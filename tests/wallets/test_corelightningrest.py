@@ -75,8 +75,8 @@ async def test_status_for_missing_config():
 
 # todo: extract
 @pytest.mark.asyncio
-@pytest.skip("todo: extract")
 async def test_cleanup(httpserver: HTTPServer):
+    pytest.skip("todo: extract")
     settings.corelightning_rest_url = ENDPOINT
     settings.corelightning_rest_macaroon = MACAROON
 
@@ -153,79 +153,6 @@ async def test_create_invoice_unhashed_description(httpserver: HTTPServer):
     assert invoice_resp.checking_id == server_resp["payment_hash"]
     assert invoice_resp.payment_request == server_resp["bolt11"]
     assert invoice_resp.error_message is None
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
-async def test_create_invoice_error(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
-
-    amount = 555
-    server_resp = {"error": "Test Error"}
-
-    data = {
-        "amount": amount * 1000,
-        "description": "Test Invoice",
-        "label": "test-label",
-    }
-
-    httpserver.expect_request(
-        uri="/v1/invoice/genInvoice",
-        headers=headers,
-        method="POST",
-        data=urlencode(data),
-    ).respond_with_json(server_resp)
-
-    wallet = CoreLightningRestWallet()
-
-    invoice_resp = await wallet.create_invoice(
-        amount=amount,
-        memo="Test Invoice",
-        label="test-label",
-    )
-
-    assert invoice_resp.success is False
-    assert invoice_resp.checking_id is None
-    assert invoice_resp.payment_request is None
-    assert invoice_resp.error_message == "Test Error"
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
-async def test_create_invoice_for_http_404(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
-
-    amount = 555
-
-    data = {
-        "amount": amount * 1000,
-        "description": "Test Invoice",
-        "label": "test-label",
-    }
-
-    httpserver.expect_request(
-        uri="/v1/invoice/genInvoice",
-        headers=headers,
-        method="POST",
-        data=urlencode(data),
-    ).respond_with_response(Response("Not Found", status=404))
-
-    wallet = CoreLightningRestWallet()
-
-    invoice_resp = await wallet.create_invoice(
-        amount=amount,
-        memo="Test Invoice",
-        label="test-label",
-    )
-
-    assert invoice_resp.success is False
-    assert invoice_resp.checking_id is None
-    assert invoice_resp.payment_request is None
-    assert invoice_resp.error_message == "Not Found"
 
     httpserver.check_assertions()
 

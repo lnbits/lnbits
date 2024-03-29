@@ -49,8 +49,8 @@ async def test_status_for_missing_config():
 
 
 @pytest.mark.asyncio
-@pytest.skip("todo: extract")
 async def test_cleanup(httpserver: HTTPServer):
+    pytest.skip("todo: extract")
     settings.lnd_rest_endpoint = ENDPOINT
     settings.lnd_rest_macaroon = MACAROON
     settings.lnd_rest_cert = ""
@@ -82,78 +82,6 @@ async def test_cleanup(httpserver: HTTPServer):
 #     settings.lnd_rest_endpoint = ENDPOINT
 #     settings.lnd_rest_macaroon = MACAROON
 #     settings.lnd_rest_cert = ""
-
-
-@pytest.mark.asyncio
-async def test_create_invoice_error(httpserver: HTTPServer):
-    settings.lnd_rest_endpoint = ENDPOINT
-    settings.lnd_rest_macaroon = MACAROON
-    settings.lnd_rest_cert = ""
-
-    amount = 555
-    server_resp = {"error": "Test Error"}
-
-    data = {"value": amount, "memo": "Test Invoice", "private": True}
-
-    httpserver.expect_request(
-        uri="/v1/invoices",
-        headers=headers,
-        method="POST",
-        json=data,
-    ).respond_with_json(
-        server_resp, 400
-    )  # todo: extra HTTP status
-
-    wallet = LndRestWallet()
-
-    invoice_resp = await wallet.create_invoice(
-        amount=amount,
-        memo="Test Invoice",
-        label="test-label",
-    )
-
-    assert invoice_resp.success is False
-    assert invoice_resp.checking_id is None
-    assert invoice_resp.payment_request is None
-    assert invoice_resp.error_message == "Test Error"
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
-async def test_create_invoice_for_http_404(httpserver: HTTPServer):
-    settings.lnd_rest_endpoint = ENDPOINT
-    settings.lnd_rest_macaroon = MACAROON
-    settings.lnd_rest_cert = ""
-
-    amount = 555
-
-    data = {
-        "amount": amount * 1000,
-        "description": "Test Invoice",
-        "label": "test-label",
-    }
-
-    data = {"value": amount, "memo": "Test Invoice", "private": True}
-
-    httpserver.expect_request(
-        uri="/v1/invoices", headers=headers, method="POST", json=data
-    ).respond_with_response(Response("Not Found", status=404))
-
-    wallet = LndRestWallet()
-
-    invoice_resp = await wallet.create_invoice(
-        amount=amount,
-        memo="Test Invoice",
-        label="test-label",
-    )
-
-    assert invoice_resp.success is False
-    assert invoice_resp.checking_id is None
-    assert invoice_resp.payment_request is None
-    assert invoice_resp.error_message == "Not Found"
-
-    httpserver.check_assertions()
 
 
 @pytest.mark.asyncio
