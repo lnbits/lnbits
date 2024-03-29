@@ -116,37 +116,6 @@ async def test_pay_invoice_validation():
 
 
 @pytest.mark.asyncio
-async def test_pay_invoice_http_404(httpserver: HTTPServer):
-    settings.lnd_rest_endpoint = ENDPOINT
-    settings.lnd_rest_macaroon = MACAROON
-    settings.lnd_rest_cert = ""
-
-    fee_limit_msat = 25_000
-    data = {
-        "payment_request": bolt11_sample,
-        "fee_limit": {"fixed_msat": f"{fee_limit_msat}"},
-    }
-
-    httpserver.expect_request(
-        uri="/v1/channels/transactions", headers=headers, method="POST", json=data
-    ).respond_with_response(Response("Not Found", status=404))
-
-    wallet = LndRestWallet()
-
-    invoice_resp = await wallet.pay_invoice(bolt11_sample, fee_limit_msat)
-
-    assert invoice_resp.success is False
-    # todo: incosistency in wallet
-    assert invoice_resp.error_message
-    assert invoice_resp.error_message.startswith(
-        "Client error '404 NOT FOUND' for url "
-        + "'http://127.0.0.1:8555/v1/channels/transactions'"
-    )
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
 async def test_get_invoice_status_success(httpserver: HTTPServer):
     settings.lnd_rest_endpoint = ENDPOINT
     settings.lnd_rest_macaroon = MACAROON

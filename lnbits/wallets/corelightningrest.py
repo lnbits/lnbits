@@ -164,34 +164,53 @@ class CoreLightningRestWallet(Wallet):
             error_message = "0 amount invoices are not allowed"
             return PaymentResponse(False, None, None, None, error_message)
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
-        r = await self.client.post(
-            f"{self.url}/v1/pay",
-            data={
-                "invoice": bolt11,
-                "maxfeepercent": f"{fee_limit_percent:.11}",
-                "exemptfee": 0,  # so fee_limit_percent is applied even on payments
-                # with fee < 5000 millisatoshi (which is default value of exemptfee)
-            },
-            timeout=None,
-        )
+        try:
+            r = await self.client.post(
+                f"{self.url}/v1/pay",
+                data={
+                    "invoice": bolt11,
+                    "maxfeepercent": f"{fee_limit_percent:.11}",
+                    "exemptfee": 0,  # so fee_limit_percent is applied even on payments
+                    # with fee < 5000 millisatoshi (which is default value of exemptfee)
+                },
+                timeout=None,
+            )
 
-        if r.is_error or "error" in r.json():
-            try:
-                data = r.json()
-                error_message = data["error"]
-            except Exception:
-                error_message = r.text
-            return PaymentResponse(False, None, None, None, error_message)
+            r.raise_for_status()
+            data = r.json()
 
-        data = r.json()
+            if "error" in data:
+                return PaymentResponse(False, None, None, None, data["error"])
+            if r.is_error:
+                return PaymentResponse(False, None, None, None, r.text)
+            if (
+                "payment_hash" not in data
+                or "payment_preimage" not in data
+                or "msatoshi_sent" not in data
+                or "msatoshi" not in data
+                or "status" not in data
+            ):
+                return InvoiceResponse(
+                    False, None, None, "Server error: 'missing required fields'"
+                )
 
-        checking_id = data["payment_hash"]
-        preimage = data["payment_preimage"]
-        fee_msat = data["msatoshi_sent"] - data["msatoshi"]
+            checking_id = data["payment_hash"]
+            preimage = data["payment_preimage"]
+            fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
-        return PaymentResponse(
-            self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
-        )
+            return PaymentResponse(
+                self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
+            )
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'invalid json response'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(
+                False, None, None, None, f"Unable to connect to {self.url}."
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(
