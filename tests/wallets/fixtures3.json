@@ -419,6 +419,49 @@
                             }
                         }
                     }
+                },
+                {
+                    "description": "error",
+                    "call_params": {
+                        "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                        "fee_limit_msat": 25000
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "fee_msat": null,
+                        "preimage": null,
+                        "error_message": "Test Error"
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "pay_invoice_endpoint": {
+                                "request_type": "data",
+                                "request_body": {
+                                    "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                    "maxfeepercent": "119.04761905",
+                                    "exemptfee": 0
+                                },
+                                "response_type": "json",
+                                "response": {
+                                    "error": "Test Error"
+                                }
+                            }
+                        },
+                        "lndrest": {
+                            "pay_invoice_endpoint": {
+                                "request_type": "json",
+                                "request_body": {
+                                    "payment_request": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                    "fee_limit": 25000
+                                },
+                                "response_type": "json",
+                                "response": {
+                                    "payment_error": "Test Error"
+                                }
+                            }
+                        }
+                    }
                 }
             ]
         }
