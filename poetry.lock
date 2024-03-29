@@ -1959,6 +1959,20 @@ pytest = ">=4.6"
 testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtualenv"]
 
 [[package]]
+name = "pytest-md"
+version = "0.2.0"
+description = "Plugin for generating Markdown reports for pytest results"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pytest-md-0.2.0.tar.gz", hash = "sha256:3b248d5b360ea5198e05b4f49c7442234812809a63137ec6cdd3643a40cf0112"},
+    {file = "pytest_md-0.2.0-py3-none-any.whl", hash = "sha256:4c4cd16fea6d1485e87ee254558712c804a96d2aa9674b780e7eb8fb6526e1d1"},
+]
+
+[package.dependencies]
+pytest = ">=4.2.1"
+
+[[package]]
 name = "python-crontab"
 version = "3.0.0"
 description = "Python Crontab API"
@@ -2948,4 +2962,4 @@ liquid = ["wallycore"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "cbe93bb8afbda1cddb4e30721fb15a016b8fb1250d07ee06ff9365b8757c1710"
+content-hash = "13d007c1f2b3a20ee3bad085143b8fe4f5ad4519d5af17bfbee5c31b7c8a6d13"
