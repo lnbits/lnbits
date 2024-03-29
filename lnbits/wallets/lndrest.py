@@ -87,11 +87,7 @@ class LndRestWallet(Wallet):
         try:
             r = await self.client.get("/v1/balance/channels")
             r.raise_for_status()
-        except (httpx.ConnectError, httpx.RequestError, httpx.HTTPStatusError) as exc:
-            logger.warning(exc)
-            return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
-        try:
             data = r.json()
 
             if len(data) == 0:
@@ -102,10 +98,9 @@ class LndRestWallet(Wallet):
 
         except json.JSONDecodeError:
             return StatusResponse("Server error: 'invalid json response'", 0)
-        except Exception:
-            return StatusResponse(
-                f"Failed to connect to {self.endpoint}, got: '{r.text}...'", 0
-            )
+        except Exception as exc:
+            logger.warning(exc)
+            return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
         return StatusResponse(None, int(data["balance"]) * 1000)
 
@@ -133,22 +128,41 @@ class LndRestWallet(Wallet):
                 hashlib.sha256(unhashed_description).digest()
             ).decode("ascii")
 
-        r = await self.client.post(url="/v1/invoices", json=data)
+        try:
+            r = await self.client.post(url="/v1/invoices", json=data)
+            r.raise_for_status()
+            data = r.json()
 
-        if r.is_error:
-            error_message = r.text
-            try:
-                error_message = r.json()["error"]
-            except Exception:
-                pass
-            return InvoiceResponse(False, None, None, error_message)
+            if len(data) == 0:
+                return InvoiceResponse(False, None, None, "no data")
 
-        data = r.json()
-        payment_request = data["payment_request"]
-        payment_hash = base64.b64decode(data["r_hash"]).hex()
-        checking_id = payment_hash
+            if "error" in data:
+                return InvoiceResponse(
+                    False, None, None, f"""Server error: '{data["error"]}'"""
+                )
 
-        return InvoiceResponse(True, checking_id, payment_request, None)
+            if r.is_error:
+                return InvoiceResponse(False, None, None, f"Server error: '{r.text}'")
+
+            if "payment_request" not in data or "r_hash" not in data:
+                return InvoiceResponse(
+                    False, None, None, "Server error: 'missing required fields'"
+                )
+
+            payment_request = data["payment_request"]
+            payment_hash = base64.b64decode(data["r_hash"]).hex()
+            checking_id = payment_hash
+
+            return InvoiceResponse(True, checking_id, payment_request, None)
+        except json.JSONDecodeError:
+            return InvoiceResponse(
+                False, None, None, "Server error: 'invalid json response'"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, f"Unable to connect to {self.url}."
+            )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # set the fee limit for the payment

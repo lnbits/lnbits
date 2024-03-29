@@ -71,11 +71,6 @@ class CoreLightningRestWallet(Wallet):
                 f"{self.url}/v1/channel/localremotebal", timeout=5
             )
             r.raise_for_status()
-        except (httpx.ConnectError, httpx.RequestError, httpx.HTTPStatusError) as exc:
-            logger.warning(exc)
-            return StatusResponse(f"Unable to connect to {self.url}.", 0)
-
-        try:
             data = r.json()
 
             if len(data) == 0:
@@ -90,10 +85,9 @@ class CoreLightningRestWallet(Wallet):
             return StatusResponse(None, int(data.get("localBalance") * 1000))
         except json.JSONDecodeError:
             return StatusResponse("Server error: 'invalid json response'", 0)
-        except Exception as e:
-            return StatusResponse(
-                f"Failed to connect to {self.url}, got: '{str(e)}...'", 0
-            )
+        except Exception as exc:
+            logger.warning(exc)
+            return StatusResponse(f"Unable to connect to {self.url}.", 0)
 
     async def create_invoice(
         self,
@@ -124,24 +118,41 @@ class CoreLightningRestWallet(Wallet):
         if kwargs.get("preimage"):
             data["preimage"] = kwargs["preimage"]
 
-        r = await self.client.post(
-            f"{self.url}/v1/invoice/genInvoice",
-            data=data,
-        )
+        try:
+            r = await self.client.post(
+                f"{self.url}/v1/invoice/genInvoice",
+                data=data,
+            )
+            r.raise_for_status()
 
-        if r.is_error or "error" in r.json():
-            try:
-                data = r.json()
-                error_message = data["error"]
-            except Exception:
-                error_message = r.text
+            data = r.json()
 
-            return InvoiceResponse(False, None, None, error_message)
+            if len(data) == 0:
+                return InvoiceResponse(False, None, None, "no data")
 
-        data = r.json()
-        assert "payment_hash" in data
-        assert "bolt11" in data
-        return InvoiceResponse(True, data["payment_hash"], data["bolt11"], None)
+            if "error" in data:
+                return InvoiceResponse(
+                    False, None, None, f"""Server error: '{data["error"]}'"""
+                )
+
+            if r.is_error:
+                return InvoiceResponse(False, None, None, f"Server error: '{r.text}'")
+
+            if "payment_hash" not in data or "bolt11" not in data:
+                return InvoiceResponse(
+                    False, None, None, "Server error: 'missing required fields'"
+                )
+
+            return InvoiceResponse(True, data["payment_hash"], data["bolt11"], None)
+        except json.JSONDecodeError:
+            return InvoiceResponse(
+                False, None, None, "Server error: 'invalid json response'"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, f"Unable to connect to {self.url}."
+            )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:

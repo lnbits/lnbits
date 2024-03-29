@@ -206,7 +206,7 @@
             },
             "tests": [
                 {
-                    "description": "create ok",
+                    "description": "success",
                     "call_params": {
                         "amount": 555,
                         "memo": "Test Invoice",
@@ -246,6 +246,50 @@
                                 "response": {
                                     "r_hash": "41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",
                                     "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "description": "error",
+                    "call_params": {
+                        "amount": 555,
+                        "memo": "Test Invoice",
+                        "label": "test-label"
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "payment_request": null,
+                        "error_message": "Server error: 'Test Error'"
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "create_invoice_endpoint": {
+                                "request_type": "data",
+                                "request_body": {
+                                    "amount": 555000,
+                                    "description": "Test Invoice",
+                                    "label": "test-label"
+                                },
+                                "response_type": "json",
+                                "response": {
+                                    "error": "Test Error"
+                                }
+                            }
+                        },
+                        "lndrest": {
+                            "create_invoice_endpoint": {
+                                "request_type": "json",
+                                "request_body": {
+                                    "value": 555,
+                                    "memo": "Test Invoice",
+                                    "private": true
+                                },
+                                "response_type": "json",
+                                "response": {
+                                    "error": "Test Error"
                                 }
                             }
                         }
