@@ -125,7 +125,7 @@ async def api_topup_balance(data: CreateTopup) -> dict[str, str]:
 
     await update_wallet_balance(wallet_id=data.id, amount=int(data.amount))
 
-    return {"status": "Success"}
+    return {"status": "Success creating virtual funds. Payments depend on actual funds on funding source."}
 
 
 @admin_router.get(
