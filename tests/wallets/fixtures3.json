@@ -947,6 +947,82 @@
                     }
                 }
             ]
+        },
+        "get_payment_status": {
+            "mocks": {
+                "corelightningrest": {
+                    "get_payment_status_endpoint": {
+                        "uri": "/v1/pay/listPays",
+                        "query_params": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                        },
+                        "headers": {
+                            "macaroon": "eNcRyPtEdMaCaRoOn",
+                            "encodingtype": "hex",
+                            "accept": "application/json",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "lndrest": {
+                    "get_payment_status_endpoint": {
+                        "uri": "/v2/router/track/41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",
+                        "headers": {
+                            "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "paid",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                        "success": true,
+                        "failed": false,
+                        "pending": false
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "pays": [
+                                            {
+                                                "status": "complete",
+                                                "amount_msat": "21000msat",
+                                                "amount_sent_msat": "-22000msat",
+                                                "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "stream",
+                                    "response": {
+                                        "result": {
+                                            "status": "SUCCEEDED",
+                                            "fee_msat": 1000,
+                                            "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
         }
     }
 }

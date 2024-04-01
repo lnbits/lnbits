@@ -45,13 +45,14 @@ def load_tests_from_json(path):
                                 # different mocks that result in the same
                                 # return value for the tested function
                                 mock = fs_mocks[mock_name] | test_mock
-                                test_description = (
+                                test_description: str = (
                                     f""":{mock["description"]}"""
                                     if "description" in mock
                                     else ""
                                 )
                                 unique_test = t | {
-                                    "description": t["description"] + test_description,
+                                    "description": str(t["description"])
+                                    + test_description,
                                     "mocks": t["mocks"] + [mock],
                                 }
 
@@ -61,7 +62,6 @@ def load_tests_from_json(path):
                         tests[fs_name].append(t)
 
         all_tests = sum([tests[fs_name] for fs_name in tests], [])
-        print("### all_tests:", len(all_tests))
         return all_tests
 
 
@@ -118,15 +118,19 @@ def _apply_mock(httpserver: HTTPServer, mock: dict):
         uri=mock["uri"],
         headers=mock["headers"],
         method=mock["method"],
-        # query_string=mock.get("query_params", {})
         **request_data,  # type: ignore
     )
 
     server_response = mock["response"]
-    if mock["response_type"] == "response":
+    response_type = mock["response_type"]
+    if response_type == "response":
         server_response = Response(**server_response)
+    elif response_type == "stream":
+        response_type = "response"
+        server_response = Response(iter(json.dumps(server_response).splitlines()))
 
-    respond_with = f"""respond_with_{mock["response_type"]}"""
+    respond_with = f"respond_with_{response_type}"
+
     getattr(req, respond_with)(server_response)
 
 
