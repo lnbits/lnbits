@@ -479,7 +479,7 @@ class InstallableExtension(BaseModel):
         shutil.copytree(Path(self.ext_upgrade_dir), Path(self.ext_dir))
         logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
 
-    def nofiy_upgrade(self) -> None:
+    def notify_upgrade(self) -> None:
         """
         Update the list of upgraded extensions. The middleware will perform
         redirects based on this

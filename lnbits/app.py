@@ -282,7 +282,7 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
     # mount routes for the new version
     core_app_extra.register_new_ext_routes(extension)
     if extension.upgrade_hash:
-        ext.nofiy_upgrade()
+        ext.notify_upgrade()
 
 
 def register_custom_extensions_path():
