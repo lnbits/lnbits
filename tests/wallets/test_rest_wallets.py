@@ -126,7 +126,12 @@ async def _check_assertions(wallet, test_data):
 async def _assert_data(wallet, tested_func, call_params, expect):
     resp = await getattr(wallet, tested_func)(**call_params)
     for key in expect:
-        assert getattr(resp, key) == expect[key]
+        received = getattr(resp, key)
+        expected = expect[key]
+        assert getattr(resp, key) == expect[key], (
+            f"Failed for field '{key}'"
+            + f"""Received: "{received}", but expected: "{expected}" """
+        )
 
 
 async def _assert_error(wallet, tested_func, call_params, expect_error):

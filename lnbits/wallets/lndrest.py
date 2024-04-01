@@ -192,6 +192,16 @@ class LndRestWallet(Wallet):
                 )
                 return PaymentResponse(False, None, None, None, error_message)
 
+            if (
+                "payment_hash" not in data
+                or "payment_route" not in data
+                or "total_fees_msat" not in data["payment_route"]
+                or "payment_preimage" not in data
+            ):
+                return PaymentResponse(
+                    False, None, None, None, "Server error: 'missing required fields'"
+                )
+
             checking_id = base64.b64decode(data["payment_hash"]).hex()
             fee_msat = int(data["payment_route"]["total_fees_msat"])
             preimage = base64.b64decode(data["payment_preimage"]).hex()
