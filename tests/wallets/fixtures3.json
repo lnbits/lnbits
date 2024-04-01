@@ -1021,6 +1021,141 @@
                             ]
                         }
                     }
+                },
+                {
+                    "description": "failed",
+                    "description1": "pending should be false in the 'expect', this is a bug",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "preimage": null,
+                        "success": false,
+                        "failed": true,
+                        "pending": true
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "pays": [
+                                            {
+                                                "status": "failed"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "stream",
+                                    "response": {
+                                        "result": {
+                                            "status": "FAILED"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "pending",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "preimage": null,
+                        "success": false,
+                        "failed": false,
+                        "pending": true
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "description": "pending status",
+                                    "response_type": "json",
+                                    "response": {
+                                        "pays": [
+                                            {
+                                                "status": "pending"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "description": "no data",
+                                    "response_type": "json",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {
+                                        "error": "test-error"
+                                    }
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "description": "UNKNOWN",
+                                    "response_type": "stream",
+                                    "response": {
+                                        "result": {
+                                            "status": "UNKNOWN"
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "IN_FLIGHT",
+                                    "response_type": "stream",
+                                    "response": {
+                                        "result": {
+                                            "status": "IN_FLIGHT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "no data",
+                                    "response_type": "stream",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "stream",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        }
+                    }
                 }
             ]
         }
