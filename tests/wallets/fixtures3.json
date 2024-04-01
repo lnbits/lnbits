@@ -807,6 +807,16 @@
                                             }
                                         ]
                                     }
+                                },
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "invoices": [
+                                            {
+                                                "status": "complete"
+                                            }
+                                        ]
+                                    }
                                 }
                             ]
                         },
