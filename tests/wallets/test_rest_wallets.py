@@ -41,13 +41,24 @@ def load_tests_from_json(path):
                         test_mocks = test["mocks"][fs_name]
                         fs_mocks = fn["mocks"][fs_name]
                         for mock_name in fs_mocks:
-                            t["mocks"].append(
-                                fs_mocks[mock_name] | test_mocks[mock_name]
-                            )
+                            if len(test_mocks[mock_name]) == 0:
+                                print("### mock no", fn_name, fs_name, mock_name)
+                            else:
+                                print("### mock yes", fn_name, fs_name, mock_name)
+                            for test_mock in test_mocks[mock_name]:
+                                # different mocks that result in the same
+                                # return value for the tested function
+                                complete_mock = fs_mocks[mock_name] | test_mock
+                                unique_test = t | {"mocks": t["mocks"] + [complete_mock]}
 
-                    tests[fs_name].append(t)
+                                tests[fs_name].append(unique_test)
+                    else:
+                        # just call the test without mocks
+                        tests[fs_name].append(t)
 
-        return sum([tests[fs_name] for fs_name in tests], [])
+        all_tests = sum([tests[fs_name] for fs_name in tests], [])
+        print("### all_tests:", len(all_tests))
+        return all_tests
 
 
 def _load_funding_sources(data: dict) -> dict:
