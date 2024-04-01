@@ -834,6 +834,7 @@
                 },
                 {
                     "description": "failed",
+                    "description1": "pending should be false in the 'expect', this is a bug",
                     "call_params": {
                         "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
                     },
@@ -861,6 +862,88 @@
                             "description": "lndrest.py doesn't handle the 'failed' status for `get_invoice_status`",
                             "get_invoice_status_endpoint": []
                         }
+                    }
+                },
+                {
+                    "description": "pending",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "success": false,
+                        "failed": false,
+                        "pending": true
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "description": "no data",
+                                    "response_type": "json",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {
+                                        "error": "test-error"
+                                    }
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {
+                                        "seetled": false
+                                    }
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "no mocks",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "success": false,
+                        "failed": false,
+                        "pending": true
                     }
                 }
             ]

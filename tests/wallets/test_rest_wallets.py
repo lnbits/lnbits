@@ -41,15 +41,19 @@ def load_tests_from_json(path):
                         test_mocks = test["mocks"][fs_name]
                         fs_mocks = fn["mocks"][fs_name]
                         for mock_name in fs_mocks:
-                            if len(test_mocks[mock_name]) == 0:
-                                print("### mock no", fn_name, fs_name, mock_name)
-                            else:
-                                print("### mock yes", fn_name, fs_name, mock_name)
                             for test_mock in test_mocks[mock_name]:
                                 # different mocks that result in the same
                                 # return value for the tested function
-                                complete_mock = fs_mocks[mock_name] | test_mock
-                                unique_test = t | {"mocks": t["mocks"] + [complete_mock]}
+                                mock = fs_mocks[mock_name] | test_mock
+                                test_description = (
+                                    f""":{mock["description"]}"""
+                                    if "description" in mock
+                                    else ""
+                                )
+                                unique_test = t | {
+                                    "description": t["description"] + test_description,
+                                    "mocks": t["mocks"] + [mock],
+                                }
 
                                 tests[fs_name].append(unique_test)
                     else:
