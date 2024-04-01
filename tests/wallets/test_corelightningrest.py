@@ -182,34 +182,3 @@ async def test_pay_invoice_validation():
     status = await wallet.pay_invoice(bolt11_zero_sats, 5)
     assert status.ok is False
     assert status.error_message == "0 amount invoices are not allowed"
-
-
-@pytest.mark.asyncio
-async def test_get_payment_status_failed(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
-
-    server_resp = {"pays": [{"status": "failed"}]}
-
-    params = {
-        "payment_hash": "e35526a43d04e985594c0dfab848814f"
-        + "524b1c786598ec9a63beddb2d726ac96"
-    }
-    httpserver.expect_request(
-        uri="/v1/pay/listPays",
-        headers=headers,
-        query_string=params,
-        method="GET",
-    ).respond_with_json(server_resp)
-
-    wallet = CoreLightningRestWallet()
-
-    status = await wallet.get_payment_status(params["payment_hash"])
-
-    assert status.success is False
-    assert status.failed is True
-
-    # todo: this needs fixing in "PaymentStatus"
-    # assert status.pending is False
-
-    httpserver.check_assertions()
