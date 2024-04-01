@@ -142,7 +142,7 @@ class LndRestWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # set the fee limit for the payment
-        lnrpcFeeLimit = dict()
+        lnrpcFeeLimit = {}
         lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
 
         try:

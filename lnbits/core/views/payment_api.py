@@ -393,7 +393,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
             payment: Payment = await payment_queue.get()
             if payment.wallet_id == this_wallet_id:
                 logger.debug("sse listener: payment received", payment)
-                yield dict(data=payment.json(), event="payment-received")
+                yield {"data": payment.json(), "event": "payment-received"}
     except asyncio.CancelledError:
         logger.debug(f"removing listener for wallet {uid}")
     except Exception as exc:

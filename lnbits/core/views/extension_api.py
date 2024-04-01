@@ -135,7 +135,7 @@ async def api_uninstall_extension(
         )
 
     # check that other extensions do not depend on this one
-    for valid_ext_id in list(map(lambda e: e.code, get_valid_extensions())):
+    for valid_ext_id in [ext.code for ext in get_valid_extensions()]:
         installed_ext = next(
             (ext for ext in installable_extensions if ext.id == valid_ext_id), None
         )

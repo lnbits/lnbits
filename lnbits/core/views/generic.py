@@ -113,6 +113,7 @@ async def extensions_install(
     except Exception as ex:
         logger.warning(ex)
         installable_exts = []
+        installed_exts_ids = []
 
     try:
         ext_id = activate or deactivate
@@ -137,34 +138,32 @@ async def extensions_install(
                 ext_id=ext_id, active=activate is not None
             )
 
-        all_ext_ids = list(map(lambda e: e.code, all_extensions))
+        all_ext_ids = [ext.code for ext in all_extensions]
         inactive_extensions = await get_inactive_extensions()
         db_version = await get_dbversions()
-        extensions = list(
-            map(
-                lambda ext: {
-                    "id": ext.id,
-                    "name": ext.name,
-                    "icon": ext.icon,
-                    "shortDescription": ext.short_description,
-                    "stars": ext.stars,
-                    "isFeatured": ext.featured,
-                    "dependencies": ext.dependencies,
-                    "isInstalled": ext.id in installed_exts_ids,
-                    "hasDatabaseTables": ext.id in db_version,
-                    "isAvailable": ext.id in all_ext_ids,
-                    "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
-                    "isActive": ext.id not in inactive_extensions,
-                    "latestRelease": (
-                        dict(ext.latest_release) if ext.latest_release else None
-                    ),
-                    "installedRelease": (
-                        dict(ext.installed_release) if ext.installed_release else None
-                    ),
-                },
-                installable_exts,
-            )
-        )
+        extensions = [
+            {
+                "id": ext.id,
+                "name": ext.name,
+                "icon": ext.icon,
+                "shortDescription": ext.short_description,
+                "stars": ext.stars,
+                "isFeatured": ext.featured,
+                "dependencies": ext.dependencies,
+                "isInstalled": ext.id in installed_exts_ids,
+                "hasDatabaseTables": ext.id in db_version,
+                "isAvailable": ext.id in all_ext_ids,
+                "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
+                "isActive": ext.id not in inactive_extensions,
+                "latestRelease": (
+                    dict(ext.latest_release) if ext.latest_release else None
+                ),
+                "installedRelease": (
+                    dict(ext.installed_release) if ext.installed_release else None
+                ),
+            }
+            for ext in installable_exts
+        ]
 
         # refresh user state. Eg: enabled extensions.
         user = await get_user(user.id) or user
