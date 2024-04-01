@@ -8,7 +8,7 @@ import time
 from contextlib import asynccontextmanager
 from enum import Enum
 from sqlite3 import Row
-from typing import Any, Generic, List, Literal, Optional, Type, TypeVar
+from typing import Any, Generic, Literal, Optional, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
@@ -175,11 +175,11 @@ class Connection(Compat):
     async def fetch_page(
         self,
         query: str,
-        where: Optional[List[str]] = None,
-        values: Optional[List[str]] = None,
+        where: Optional[list[str]] = None,
+        values: Optional[list[str]] = None,
         filters: Optional[Filters] = None,
-        model: Optional[Type[TRowModel]] = None,
-        group_by: Optional[List[str]] = None,
+        model: Optional[type[TRowModel]] = None,
+        group_by: Optional[list[str]] = None,
     ) -> Page[TRowModel]:
         if not filters:
             filters = Filters()
@@ -298,11 +298,11 @@ class Database(Compat):
     async def fetch_page(
         self,
         query: str,
-        where: Optional[List[str]] = None,
-        values: Optional[List[str]] = None,
+        where: Optional[list[str]] = None,
+        values: Optional[list[str]] = None,
         filters: Optional[Filters] = None,
-        model: Optional[Type[TRowModel]] = None,
-        group_by: Optional[List[str]] = None,
+        model: Optional[type[TRowModel]] = None,
+        group_by: Optional[list[str]] = None,
     ) -> Page[TRowModel]:
         async with self.connect() as conn:
             return await conn.fetch_page(query, where, values, filters, model, group_by)
@@ -370,8 +370,8 @@ class FromRowModel(BaseModel):
 
 
 class FilterModel(BaseModel):
-    __search_fields__: List[str] = []
-    __sort_fields__: Optional[List[str]] = None
+    __search_fields__: list[str] = []
+    __sort_fields__: Optional[list[str]] = None
 
 
 T = TypeVar("T")
@@ -390,10 +390,10 @@ class Filter(BaseModel, Generic[TFilterModel]):
     op: Operator = Operator.EQ
     values: list[Any]
 
-    model: Optional[Type[TFilterModel]]
+    model: Optional[type[TFilterModel]]
 
     @classmethod
-    def parse_query(cls, key: str, raw_values: list[Any], model: Type[TFilterModel]):
+    def parse_query(cls, key: str, raw_values: list[Any], model: type[TFilterModel]):
         # Key format:
         # key[operator]
         # e.g. name[eq]
@@ -443,7 +443,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
     the values can be validated. Otherwise, make sure to validate the inputs manually.
     """
 
-    filters: List[Filter[TFilterModel]] = []
+    filters: list[Filter[TFilterModel]] = []
     search: Optional[str] = None
 
     offset: Optional[int] = None
@@ -452,7 +452,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
     sortby: Optional[str] = None
     direction: Optional[Literal["asc", "desc"]] = None
 
-    model: Optional[Type[TFilterModel]] = None
+    model: Optional[type[TFilterModel]] = None
 
     @root_validator(pre=True)
     def validate_sortby(cls, values):
@@ -474,7 +474,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
             stmt += f"OFFSET {self.offset}"
         return stmt
 
-    def where(self, where_stmts: Optional[List[str]] = None) -> str:
+    def where(self, where_stmts: Optional[list[str]] = None) -> str:
         if not where_stmts:
             where_stmts = []
         if self.filters:
@@ -498,7 +498,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
             return f"ORDER BY {self.sortby} {self.direction or 'asc'}"
         return ""
 
-    def values(self, values: Optional[List[str]] = None) -> tuple:
+    def values(self, values: Optional[list[str]] = None) -> tuple:
         if not values:
             values = []
         if self.filters:

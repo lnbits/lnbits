@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional, Type
+from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional
 
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
@@ -96,7 +96,7 @@ class Wallet(ABC):
     async def cleanup(self):
         pass
 
-    __node_cls__: Optional[Type[Node]] = None
+    __node_cls__: Optional[type[Node]] = None
 
     @abstractmethod
     def status(self) -> Coroutine[None, None, StatusResponse]:
