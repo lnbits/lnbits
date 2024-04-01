@@ -119,8 +119,8 @@ async def invoice_listener():
 
     Called by the app startup sequence.
     """
-    WALLET = get_wallet_class()
-    async for checking_id in WALLET.paid_invoices_stream():
+    wallet_class = get_wallet_class()
+    async for checking_id in wallet_class.paid_invoices_stream():
         logger.info("> got a payment notification", checking_id)
         create_task(invoice_callback_dispatcher(checking_id))
 

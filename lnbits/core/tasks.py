@@ -28,8 +28,11 @@ async def killswitch_task():
     LNbits and will switch to VoidWallet if the killswitch is triggered.
     """
     while True:
-        WALLET = get_wallet_class()
-        if settings.lnbits_killswitch and WALLET.__class__.__name__ != "VoidWallet":
+        wallet_class = get_wallet_class()
+        if (
+            settings.lnbits_killswitch
+            and wallet_class.__class__.__name__ != "VoidWallet"
+        ):
             with httpx.Client() as client:
                 try:
                     r = client.get(settings.lnbits_status_manifest, timeout=4)
@@ -55,8 +58,8 @@ async def watchdog_task():
     and will switch to VoidWallet if the watchdog delta is reached.
     """
     while True:
-        WALLET = get_wallet_class()
-        if settings.lnbits_watchdog and WALLET.__class__.__name__ != "VoidWallet":
+        wallet_class = get_wallet_class()
+        if settings.lnbits_watchdog and wallet_class.__class__.__name__ != "VoidWallet":
             try:
                 delta, *_ = await get_balance_delta()
                 logger.debug(f"Running watchdog task. current delta: {delta}")

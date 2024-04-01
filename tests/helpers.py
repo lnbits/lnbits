@@ -23,10 +23,10 @@ class DbTestModel(FromRowModel):
     value: Optional[str] = None
 
 
-def get_random_string(N: int = 10):
+def get_random_string(iterations: int = 10):
     return "".join(
         random.SystemRandom().choice(string.ascii_uppercase + string.digits)
-        for _ in range(N)
+        for _ in range(iterations)
     )
 
 

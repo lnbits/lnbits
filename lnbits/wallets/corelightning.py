@@ -18,7 +18,7 @@ from .base import (
     PaymentStatus,
     PaymentSuccessStatus,
     StatusResponse,
-    Unsupported,
+    UnsupportedError,
     Wallet,
 )
 
@@ -73,12 +73,12 @@ class CoreLightningWallet(Wallet):
         msat: int = int(amount * 1000)
         try:
             if description_hash and not unhashed_description:
-                raise Unsupported(
+                raise UnsupportedError(
                     "'description_hash' unsupported by CoreLightning, provide"
                     " 'unhashed_description'"
                 )
             if unhashed_description and not self.supports_description_hash:
-                raise Unsupported("unhashed_description")
+                raise UnsupportedError("unhashed_description")
             r: dict = self.ln.invoice(  # type: ignore
                 msatoshi=msat,
                 label=label,

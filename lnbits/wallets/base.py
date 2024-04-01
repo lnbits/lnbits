@@ -144,5 +144,5 @@ class Wallet(ABC):
         return endpoint
 
 
-class Unsupported(Exception):
+class UnsupportedError(Exception):
     pass

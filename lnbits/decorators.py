@@ -138,12 +138,12 @@ async def get_key_type(
             detail="Invoice (or Admin) key required.",
         )
 
-    for wallet_type, WalletChecker in zip(
+    for wallet_type, wallet_checker in zip(
         [WalletType.admin, WalletType.invoice],
         [WalletAdminKeyChecker, WalletInvoiceKeyChecker],
     ):
         try:
-            checker = WalletChecker(api_key=token)
+            checker = wallet_checker(api_key=token)
             await checker.__call__(r)
             if checker.wallet is None:
                 raise HTTPException(

@@ -25,7 +25,7 @@ from starlette.responses import JSONResponse
 
 from lnbits.core.crud import get_dbversions, get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
-from lnbits.core.services import websocketUpdater
+from lnbits.core.services import websocket_updater
 from lnbits.core.tasks import (  # watchdog_task
     killswitch_task,
     wait_for_paid_invoices,
@@ -178,33 +178,33 @@ def create_app() -> FastAPI:
 
 async def check_funding_source() -> None:
 
-    WALLET = get_wallet_class()
+    wallet_class = get_wallet_class()
 
     max_retries = settings.funding_source_max_retries
     retry_counter = 0
 
     while True:
         try:
-            logger.info(f"Connecting to backend {WALLET.__class__.__name__}...")
-            error_message, balance = await WALLET.status()
+            logger.info(f"Connecting to backend {wallet_class.__class__.__name__}...")
+            error_message, balance = await wallet_class.status()
             if not error_message:
                 retry_counter = 0
                 logger.success(
-                    f"✔️ Backend {WALLET.__class__.__name__} connected "
+                    f"✔️ Backend {wallet_class.__class__.__name__} connected "
                     f"and with a balance of {balance} msat."
                 )
                 break
             logger.error(
-                f"The backend for {WALLET.__class__.__name__} isn't "
+                f"The backend for {wallet_class.__class__.__name__} isn't "
                 f"working properly: '{error_message}'",
                 RuntimeWarning,
             )
         except Exception as e:
-            logger.error(f"Error connecting to {WALLET.__class__.__name__}: {e}")
+            logger.error(f"Error connecting to {wallet_class.__class__.__name__}: {e}")
 
         if retry_counter >= max_retries:
             set_void_wallet_class()
-            WALLET = get_wallet_class()
+            wallet_class = get_wallet_class()
             break
 
         retry_counter += 1
@@ -414,7 +414,7 @@ def initialize_server_logger():
     async def update_websocket_serverlog():
         while True:
             msg = await serverlog_queue.get()
-            await websocketUpdater(super_user_hash, msg)
+            await websocket_updater(super_user_hash, msg)
 
     create_permanent_task(update_websocket_serverlog)
 

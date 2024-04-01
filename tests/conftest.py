@@ -176,8 +176,8 @@ async def adminkey_headers_to(to_wallet):
 @pytest_asyncio.fixture(scope="session")
 async def invoice(to_wallet):
     data = await get_random_invoice_data()
-    invoiceData = CreateInvoice(**data)
-    invoice = await api_payments_create_invoice(invoiceData, to_wallet)
+    invoice_data = CreateInvoice(**data)
+    invoice = await api_payments_create_invoice(invoice_data, to_wallet)
     yield invoice
     del invoice
 

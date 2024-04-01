@@ -22,7 +22,7 @@ from ...helpers import (
     settle_invoice,
 )
 
-WALLET = get_wallet_class()
+wallet_class = get_wallet_class()
 
 
 # create account POST /api/v1/account
@@ -407,7 +407,8 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 
 # check POST /api/v1/payments: invoice creation with a description hash
 @pytest.mark.skipif(
-    WALLET.__class__.__name__ in ["CoreLightningWallet", "CoreLightningRestWallet"],
+    wallet_class.__class__.__name__
+    in ["CoreLightningWallet", "CoreLightningRestWallet"],
     reason="wallet does not support description_hash",
 )
 @pytest.mark.asyncio
@@ -428,7 +429,7 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
 
 
 @pytest.mark.skipif(
-    WALLET.__class__.__name__ in ["CoreLightningRestWallet"],
+    wallet_class.__class__.__name__ in ["CoreLightningRestWallet"],
     reason="wallet does not support unhashed_description",
 )
 @pytest.mark.asyncio
@@ -540,8 +541,8 @@ async def test_pay_real_invoice(
     payment_status = response.json()
     assert payment_status["paid"]
 
-    WALLET = get_wallet_class()
-    status = await WALLET.get_payment_status(invoice["payment_hash"])
+    wallet_class = get_wallet_class()
+    status = await wallet_class.get_payment_status(invoice["payment_hash"])
     assert status.paid
 
     await asyncio.sleep(1)
@@ -622,8 +623,8 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     assert response["paid"]
 
     # make sure that the backend also thinks it's paid
-    WALLET = get_wallet_class()
-    status = await WALLET.get_payment_status(invoice["payment_hash"])
+    wallet_class = get_wallet_class()
+    status = await wallet_class.get_payment_status(invoice["payment_hash"])
     assert status.paid
 
     # get the outgoing payment from the db

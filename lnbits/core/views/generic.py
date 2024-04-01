@@ -452,8 +452,8 @@ async def node(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_node_ui:
         raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 
-    WALLET = get_wallet_class()
-    _, balance = await WALLET.status()
+    wallet_class = get_wallet_class()
+    _, balance = await wallet_class.status()
 
     return template_renderer().TemplateResponse(
         request,
@@ -472,8 +472,8 @@ async def node_public(request: Request):
     if not settings.lnbits_public_node_ui:
         raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 
-    WALLET = get_wallet_class()
-    _, balance = await WALLET.status()
+    wallet_class = get_wallet_class()
+    _, balance = await wallet_class.status()
 
     return template_renderer().TemplateResponse(
         request,
@@ -490,8 +490,8 @@ async def index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
-    WALLET = get_wallet_class()
-    _, balance = await WALLET.status()
+    wallet_class = get_wallet_class()
+    _, balance = await wallet_class.status()
 
     return template_renderer().TemplateResponse(
         request,

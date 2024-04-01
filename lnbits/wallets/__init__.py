@@ -30,19 +30,19 @@ from .zbd import ZBDWallet
 
 def set_wallet_class(class_name: Optional[str] = None):
     backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
-    wallet_class = getattr(wallets_module, backend_wallet_class)
-    global WALLET
-    WALLET = wallet_class()
-    if WALLET.__node_cls__:
-        set_node_class(WALLET.__node_cls__(WALLET))
+    wallet_class_constructor = getattr(wallets_module, backend_wallet_class)
+    global wallet_class
+    wallet_class = wallet_class_constructor()
+    if wallet_class.__node_cls__:
+        set_node_class(wallet_class.__node_cls__(wallet_class))
 
 
 def get_wallet_class() -> Wallet:
-    return WALLET
+    return wallet_class
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
-FAKE_WALLET = FakeWallet()
+fake_wallet = FakeWallet()
 
 # initialize as fake wallet
-WALLET: Wallet = FAKE_WALLET
+wallet_class: Wallet = fake_wallet

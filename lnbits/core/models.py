@@ -265,11 +265,11 @@ class Payment(FromRowModel):
             f"pending payment {self.checking_id}"
         )
 
-        WALLET = get_wallet_class()
+        wallet_class = get_wallet_class()
         if self.is_out:
-            status = await WALLET.get_payment_status(self.checking_id)
+            status = await wallet_class.get_payment_status(self.checking_id)
         else:
-            status = await WALLET.get_invoice_status(self.checking_id)
+            status = await wallet_class.get_invoice_status(self.checking_id)
 
         logger.debug(f"Status: {status}")
 
