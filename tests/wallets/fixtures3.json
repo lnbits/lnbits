@@ -1058,6 +1058,16 @@
                                             "status": "FAILED"
                                         }
                                     }
+                                },
+                                {
+                                    "description": "error code 5",
+                                    "response_type": "stream",
+                                    "response": {
+                                        "error": {
+                                            "code": 5,
+                                            "message": "payment isn't initiated"
+                                        }
+                                    }
                                 }
                             ]
                         }
@@ -1132,6 +1142,16 @@
                                     "response": {
                                         "result": {
                                             "status": "IN_FLIGHT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "error code 4",
+                                    "response_type": "stream",
+                                    "response": {
+                                        "error": {
+                                            "code": 5,
+                                            "message": "should not fail"
                                         }
                                     }
                                 },
