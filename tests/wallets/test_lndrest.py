@@ -1,4 +1,3 @@
-
 import pytest
 from pytest_httpserver import HTTPServer
 
