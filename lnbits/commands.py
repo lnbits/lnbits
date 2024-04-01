@@ -19,6 +19,7 @@ from lnbits.core.views.extension_api import (
     api_uninstall_extension,
 )
 from lnbits.settings import settings
+from lnbits.tasks import create_task
 from lnbits.wallets.base import Wallet
 
 from .core import db as core_db
@@ -124,7 +125,7 @@ def database_migrate():
 
 
 async def db_migrate():
-    asyncio.create_task(migrate_databases())
+    create_task(migrate_databases())
 
 
 async def migrate_databases():
@@ -492,7 +493,7 @@ async def extensions_uninstall(
         click.echo(f"Failed to uninstall '{extension}' Error: '{ex.detail}'.")
         return False, ex.detail
     except Exception as ex:
-        click.echo(f"Failed to uninstall '{extension}': {str(ex)}.")
+        click.echo(f"Failed to uninstall '{extension}': {ex!s}.")
         return False, str(ex)
 
 
@@ -530,7 +531,7 @@ async def install_extension(
         click.echo(f"Failed to install '{extension}' Error: '{ex.detail}'.")
         return False, ex.detail
     except Exception as ex:
-        click.echo(f"Failed to install '{extension}': {str(ex)}.")
+        click.echo(f"Failed to install '{extension}': {ex!s}.")
         return False, str(ex)
 
 
@@ -582,7 +583,7 @@ async def update_extension(
         click.echo(f"Failed to update '{extension}' Error: '{ex.detail}.")
         return False, ex.detail
     except Exception as ex:
-        click.echo(f"Failed to update '{extension}': {str(ex)}.")
+        click.echo(f"Failed to update '{extension}': {ex!s}.")
         return False, str(ex)
 
 
@@ -605,7 +606,7 @@ async def _select_release(
         return latest_repo_releases[source_repo]
 
     if len(latest_repo_releases) == 1:
-        return latest_repo_releases[list(latest_repo_releases.keys())[0]]
+        return latest_repo_releases[next(iter(latest_repo_releases.keys()))]
 
     repos = list(latest_repo_releases.keys())
     repos.sort()

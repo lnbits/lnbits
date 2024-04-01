@@ -39,7 +39,7 @@ def create_unique_task(name: str, coro: Coroutine):
         try:
             unique_tasks[name].cancel()
         except Exception as exc:
-            logger.warning(f"error while cancelling task `{name}`: {str(exc)}")
+            logger.warning(f"error while cancelling task `{name}`: {exc!s}")
     task = asyncio.create_task(coro)
     unique_tasks[name] = task
     return task
@@ -54,12 +54,12 @@ def cancel_all_tasks():
         try:
             task.cancel()
         except Exception as exc:
-            logger.warning(f"error while cancelling task: {str(exc)}")
+            logger.warning(f"error while cancelling task: {exc!s}")
     for name, task in unique_tasks.items():
         try:
             task.cancel()
         except Exception as exc:
-            logger.warning(f"error while cancelling task `{name}`: {str(exc)}")
+            logger.warning(f"error while cancelling task `{name}`: {exc!s}")
 
 
 async def catch_everything_and_restart(func):

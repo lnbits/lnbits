@@ -167,7 +167,8 @@ extend-exclude = [
 # I - isort
 # A - flake8-builtins
 # C - mccabe
-select = ["F", "E", "W", "I", "A", "C"]
+# RUF - ruff specific rules
+select = ["F", "E", "W", "I", "A", "C", "RUF"]
 ignore = []
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.

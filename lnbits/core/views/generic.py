@@ -1,4 +1,3 @@
-import asyncio
 import sys
 from http import HTTPStatus
 from pathlib import Path
@@ -18,6 +17,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import settings
+from lnbits.tasks import create_task
 from lnbits.wallets import get_wallet_class
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
@@ -302,7 +302,7 @@ async def lnurl_full_withdraw_callback(request: Request):
         except Exception:
             pass
 
-    asyncio.create_task(pay())
+    create_task(pay())
 
     balance_notify = request.query_params.get("balanceNotify")
     if balance_notify:
@@ -336,7 +336,7 @@ async def lnurlwallet(request: Request):
     if not lightning_param:
         return {"status": "ERROR", "reason": "lightning parameter not provided."}
 
-    asyncio.create_task(
+    create_task(
         redeem_lnurl_withdraw(
             wallet.id,
             lightning_param,

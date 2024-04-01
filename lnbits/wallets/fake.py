@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 from datetime import datetime
 from os import urandom
-from typing import AsyncGenerator, Dict, Optional, Set
+from typing import AsyncGenerator, ClassVar, Dict, Optional, Set
 
 from bolt11 import (
     Bolt11,
@@ -31,8 +31,8 @@ from .base import (
 
 class FakeWallet(Wallet):
     queue: asyncio.Queue = asyncio.Queue(0)
-    payment_secrets: Dict[str, str] = {}
-    paid_invoices: Set[str] = set()
+    payment_secrets: ClassVar[Dict[str, str]] = {}
+    paid_invoices: ClassVar[Set[str]] = set()
     secret: str = settings.fake_wallet_secret
     privkey: str = hashlib.pbkdf2_hmac(
         "sha256",

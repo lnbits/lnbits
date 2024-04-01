@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from sqlite3 import Row
-from typing import Callable, Dict, List, Optional
+from typing import Callable, ClassVar, Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
@@ -177,7 +177,7 @@ class Payment(FromRowModel):
     preimage: str
     payment_hash: str
     expiry: Optional[float]
-    extra: Dict = {}
+    extra: Dict
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
@@ -307,7 +307,7 @@ class Payment(FromRowModel):
 
 
 class PaymentFilters(FilterModel):
-    __search_fields__ = ["memo", "amount"]
+    __search_fields__: ClassVar[list[str]] = ["memo", "amount"]
 
     checking_id: str
     amount: int
@@ -318,7 +318,7 @@ class PaymentFilters(FilterModel):
     preimage: str
     payment_hash: str
     expiry: Optional[datetime.datetime]
-    extra: Dict = {}
+    extra: ClassVar[Dict] = {}
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]

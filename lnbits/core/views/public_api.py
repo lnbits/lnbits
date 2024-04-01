@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from loguru import logger
 
 from lnbits import bolt11
+from lnbits.tasks import create_task
 
 from ..crud import get_standalone_payment
 from ..tasks import api_invoice_listeners
@@ -49,8 +50,8 @@ async def api_public_payment_longpolling(payment_hash):
         await asyncio.sleep(45)
         cancel_scope.cancel()
 
-    cancel_scope = asyncio.create_task(payment_info_receiver())
-    asyncio.create_task(timeouter(cancel_scope))
+    cancel_scope = create_task(payment_info_receiver())
+    create_task(timeouter(cancel_scope))
 
     if response:
         return response

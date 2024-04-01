@@ -11,7 +11,7 @@ class KeycloakSSO(SSOBase):
     """Class providing login via Keycloak OAuth"""
 
     provider = "keycloak"
-    scope = ["openid", "email", "profile"]
+    scope: list[str] = ["openid", "email", "profile"]  # noqa: RUF012
     discovery_url = ""
 
     async def openid_from_response(

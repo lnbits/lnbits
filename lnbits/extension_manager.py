@@ -491,8 +491,9 @@ class InstallableExtension(BaseModel):
                 settings.lnbits_upgraded_extensions,
             )
         )
-        settings.lnbits_upgraded_extensions = clean_upgraded_exts + [
-            f"{self.hash}/{self.id}"
+        settings.lnbits_upgraded_extensions = [
+            *clean_upgraded_exts,
+            f"{self.hash}/{self.id}",
         ]
 
     def clean_extension_files(self):
@@ -639,7 +640,7 @@ class InstallableExtension(BaseModel):
                     extension_list += [ext]
                     extension_id_list += [e.id]
             except Exception as e:
-                logger.warning(f"Manifest {url} failed with '{str(e)}'")
+                logger.warning(f"Manifest {url} failed with '{e!s}'")
 
         return extension_list
 
@@ -666,7 +667,7 @@ class InstallableExtension(BaseModel):
                     extension_releases.append(explicit_release)
 
             except Exception as e:
-                logger.warning(f"Manifest {url} failed with '{str(e)}'")
+                logger.warning(f"Manifest {url} failed with '{e!s}'")
 
         return extension_releases
 

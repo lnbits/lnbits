@@ -174,7 +174,8 @@ class LndRestNode(Node):
                 status_code=HTTPStatus.BAD_REQUEST, detail="Channel point required"
             )
 
-        asyncio.create_task(self._close_channel(point, force))
+        task = asyncio.create_task(self._close_channel(point, force))
+        return task
 
     async def get_channels(self) -> List[NodeChannel]:
         normal, pending, closed = await asyncio.gather(

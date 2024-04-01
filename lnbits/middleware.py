@@ -178,9 +178,8 @@ class ExtensionsRedirectMiddleware:
         redirect_to = redirect["redirect_to_path"].split("/")
         req_tail_path = req_path.split("/")[len(from_path) :]
 
-        elements = [
-            e for e in ([redirect["ext_id"]] + redirect_to + req_tail_path) if e != ""
-        ]
+        ext_id = redirect["ext_id"]
+        elements = [e for e in [ext_id, *redirect_to, *req_tail_path] if e != ""]
 
         return "/" + "/".join(elements)
 

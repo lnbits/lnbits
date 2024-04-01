@@ -505,7 +505,7 @@ def send_admin_user_to_saas():
             except Exception as e:
                 logger.error(
                     "error sending super_user to saas:"
-                    f" {settings.lnbits_saas_callback}. Error: {str(e)}"
+                    f" {settings.lnbits_saas_callback}. Error: {e!s}"
                 )
 
 

@@ -8,7 +8,7 @@ import time
 from contextlib import asynccontextmanager
 from enum import Enum
 from sqlite3 import Row
-from typing import Any, Generic, List, Literal, Optional, Type, TypeVar
+from typing import Any, ClassVar, Generic, List, Literal, Optional, Type, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
@@ -370,7 +370,7 @@ class FromRowModel(BaseModel):
 
 
 class FilterModel(BaseModel):
-    __search_fields__: List[str] = []
+    __search_fields__: ClassVar[List[str]] = []
     __sort_fields__: Optional[List[str]] = None
 
 

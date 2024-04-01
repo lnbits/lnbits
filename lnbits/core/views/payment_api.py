@@ -468,6 +468,6 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
             return JSONResponse(invoice.data)
     except Exception as exc:
         return JSONResponse(
-            {"message": f"Failed to decode: {str(exc)}"},
+            {"message": f"Failed to decode: {exc!s}"},
             status_code=HTTPStatus.BAD_REQUEST,
         )
