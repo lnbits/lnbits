@@ -190,8 +190,8 @@ class CoreLightningRestWallet(Wallet):
                 or "msatoshi" not in data
                 or "status" not in data
             ):
-                return InvoiceResponse(
-                    False, None, None, "Server error: 'missing required fields'"
+                return PaymentResponse(
+                    False, None, None, None, "Server error: 'missing required fields'"
                 )
 
             checking_id = data["payment_hash"]
