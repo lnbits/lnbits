@@ -60,7 +60,7 @@ async def test_public_node_info(public_node_client):
 
 
 @pytest.mark.asyncio
-async def test_node_info(node_client, from_super_user):
+async def test_node_info(node_client):
     response = await node_client.get("/node/api/v1/info")
     assert response.status_code == 200
 
@@ -147,23 +147,23 @@ async def test_channel_management(node_client):
 @pytest.mark.asyncio
 async def test_peer_management(node_client):
     connect_uri = get_unconnected_node_uri()
-    id = connect_uri.split("@")[0]
+    peer_id = connect_uri.split("@")[0]
     response = await node_client.post("/node/api/v1/peers", json={"uri": connect_uri})
     assert response.status_code == 200
 
     response = await node_client.get("/node/api/v1/peers")
     assert response.status_code == 200
-    assert any(peer["id"] == id for peer in response.json())
+    assert any(peer["id"] == peer_id for peer in response.json())
 
-    response = await node_client.delete(f"/node/api/v1/peers/{id}")
+    response = await node_client.delete(f"/node/api/v1/peers/{peer_id}")
     assert response.status_code == 200
     await asyncio.sleep(0.1)
 
     response = await node_client.get("/node/api/v1/peers")
     assert response.status_code == 200
-    assert not any(peer["id"] == id for peer in response.json())
+    assert not any(peer["id"] == peer_id for peer in response.json())
 
-    response = await node_client.delete(f"/node/api/v1/peers/{id}")
+    response = await node_client.delete(f"/node/api/v1/peers/{peer_id}")
     assert response.status_code == 400
 
 
