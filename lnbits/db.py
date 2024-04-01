@@ -478,8 +478,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if not where_stmts:
             where_stmts = []
         if self.filters:
-            for filter in self.filters:
-                where_stmts.append(filter.statement)
+            for page_filter in self.filters:
+                where_stmts.append(page_filter.statement)
         if self.search and self.model:
             if DB_TYPE == POSTGRES:
                 where_stmts.append(
@@ -502,8 +502,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if not values:
             values = []
         if self.filters:
-            for filter in self.filters:
-                values.extend(filter.values)
+            for page_filter in self.filters:
+                values.extend(page_filter.values)
         if self.search and self.model:
             values.append(f"%{self.search}%")
         return tuple(values)
