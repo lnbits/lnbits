@@ -44,29 +44,7 @@
             },
             "tests": [
                 {
-                    "description": "no balance",
-                    "call_params": {},
-                    "expect": {
-                        "error_message": "no data",
-                        "balance_msat": 0
-                    },
-                    "mocks": {
-                        "corelightningrest": {
-                            "status_endpoint": {
-                                "response_type": "json",
-                                "response": {}
-                            }
-                        },
-                        "lndrest": {
-                            "status_endpoint": {
-                                "response_type": "json",
-                                "response": {}
-                            }
-                        }
-                    }
-                },
-                {
-                    "description": "with balance",
+                    "description": "success",
                     "call_params": {},
                     "expect": {
                         "error_message": null,
@@ -92,7 +70,7 @@
                     }
                 },
                 {
-                    "description": "with error",
+                    "description": "error",
                     "call_params": {},
                     "expect": {
                         "error_message": "Server error: '\"test-error\"'",
@@ -111,6 +89,28 @@
                             "status_endpoint": {
                                 "response_type": "json",
                                 "response": "test-error"
+                            }
+                        }
+                    }
+                },
+                {
+                    "description": "missing data",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": "no data",
+                        "balance_msat": 0
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "status_endpoint": {
+                                "response_type": "json",
+                                "response": {}
+                            }
+                        },
+                        "lndrest": {
+                            "status_endpoint": {
+                                "response_type": "json",
+                                "response": {}
                             }
                         }
                     }
