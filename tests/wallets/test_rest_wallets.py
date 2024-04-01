@@ -6,6 +6,8 @@ import pytest
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
+from lnbits.core.models import BaseWallet
+
 wallets_module = importlib.import_module("lnbits.wallets")
 
 # todo:
@@ -16,7 +18,7 @@ def load_tests_from_json(path):
     with open(path) as f:
         data = json.load(f)
 
-        funding_sources = _load_funding_sources(data["funding_sources"])
+        funding_sources = data["funding_sources"]
 
         tests = {fs_name: [] for fs_name in funding_sources}
 
@@ -30,8 +32,7 @@ def load_tests_from_json(path):
 
                     t = (
                         {
-                            "funding_source": fs_name,
-                            "wallet_class": funding_sources[fs_name],
+                            "funding_source": funding_sources[fs_name],
                             "function": fn_name,
                         }
                         | {**test}
@@ -65,19 +66,23 @@ def load_tests_from_json(path):
         return all_tests
 
 
-def _load_funding_sources(data: dict) -> dict:
-    funding_sources = {}
-    for fs_name in data:
-        funding_source = data[fs_name]
+def _load_funding_source(funding_source: dict) -> BaseWallet:
+    custom_settings = funding_source["settings"] | {"user_agent": "LNbits/Tests"}
+    original_settings = {}
 
-        funding_sources[fs_name] = getattr(wallets_module, funding_source["class"])
+    settings = getattr(wallets_module, "settings")
 
-        settings = getattr(wallets_module, "settings")
-        setattr(settings, "user_agent", "LNbits/Tests")
-        for s in funding_source["settings"]:
-            setattr(settings, s, funding_source["settings"][s])
+    for s in custom_settings:
+        original_settings[s] = getattr(settings, s)
+        setattr(settings, s, custom_settings[s])
 
-    return funding_sources
+    fs_instance: BaseWallet = getattr(wallets_module, funding_source["class"])()
+
+    # rollback settings (global variable)
+    for s in original_settings:
+        setattr(settings, s, original_settings[s])
+
+    return fs_instance
 
 
 # specify where the server should bind to
@@ -98,7 +103,7 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
     for mock in test_data["mocks"]:
         _apply_mock(httpserver, mock)
 
-    wallet = test_data["wallet_class"]()
+    wallet = _load_funding_source(test_data["funding_source"])
     await _check_assertions(wallet, test_data)
 
 
