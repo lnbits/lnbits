@@ -41,12 +41,14 @@ ENV POETRY_NO_INTERACTION=1 \
     VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH"
 
+COPY . /app
 WORKDIR /app
 
 COPY . .
 COPY --from=builder /app/.venv .venv
 
 RUN make
+RUN mkdir data
 
 ENV LNBITS_PORT="5000"
 ENV LNBITS_HOST="0.0.0.0"
