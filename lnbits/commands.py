@@ -83,7 +83,7 @@ def get_super_user() -> Optional[str]:
             "Superuser id not found. Please check that the file "
             + f"'{superuser_file.absolute()}' exists and has read permissions."
         )
-    with open(superuser_file, "r") as file:
+    with open(superuser_file) as file:
         return file.readline()
 
 

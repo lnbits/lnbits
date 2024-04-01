@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from http import HTTPStatus
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from fastapi import HTTPException
 
@@ -168,7 +168,7 @@ class CoreLightningNode(Node):
         return info["id"]
 
     @catch_rpc_errors
-    async def get_peer_ids(self) -> List[str]:
+    async def get_peer_ids(self) -> list[str]:
         peers = await self.ln_rpc("listpeers")
         return [p["id"] for p in peers["peers"] if p["connected"]]
 
@@ -194,7 +194,7 @@ class CoreLightningNode(Node):
             return NodePeerInfo(id=node["nodeid"])
 
     @catch_rpc_errors
-    async def get_channels(self) -> List[NodeChannel]:
+    async def get_channels(self) -> list[NodeChannel]:
         funds = await self.ln_rpc("listfunds")
         nodes = await self.ln_rpc("listnodes")
         nodes_by_id = {n["nodeid"]: n for n in nodes["nodes"]}

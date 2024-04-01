@@ -29,7 +29,7 @@ class InstalledExtensionMiddleware:
             await self.app(scope, receive, send)
             return
 
-        top_path, *rest = [p for p in full_path.split("/") if p]
+        top_path, *rest = (p for p in full_path.split("/") if p)
         headers = scope.get("headers", [])
 
         # block path for all users if the extension is disabled

@@ -17,7 +17,7 @@ assert os.getenv("OPENAI_API_KEY"), "OPENAI_API_KEY env var not set"
 
 
 def load_language(lang: str) -> dict:
-    s = open(f"lnbits/static/i18n/{lang}.js", "rt").read()
+    s = open(f"lnbits/static/i18n/{lang}.js").read()
     prefix = "window.localisation.%s = {\n" % lang
     assert s.startswith(prefix)
     s = s[len(prefix) - 2 :]
@@ -27,7 +27,7 @@ def load_language(lang: str) -> dict:
 
 
 def save_language(lang: str, data) -> None:
-    with open(f"lnbits/static/i18n/{lang}.js", "wt") as f:
+    with open(f"lnbits/static/i18n/{lang}.js", "w") as f:
         f.write("window.localisation.%s = {\n" % lang)
         row = 0
         for k, v in data.items():

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from pydantic import BaseModel
 
@@ -212,7 +212,7 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    async def get_channels(self) -> List[NodeChannel]:
+    async def get_channels(self) -> list[NodeChannel]:
         pass
 
     @abstractmethod

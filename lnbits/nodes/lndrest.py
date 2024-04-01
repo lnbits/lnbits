@@ -4,7 +4,7 @@ import asyncio
 import base64
 import json
 from http import HTTPStatus
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from fastapi import HTTPException
 from httpx import HTTPStatusError
@@ -176,7 +176,7 @@ class LndRestNode(Node):
 
         asyncio.create_task(self._close_channel(point, force))
 
-    async def get_channels(self) -> List[NodeChannel]:
+    async def get_channels(self) -> list[NodeChannel]:
         normal, pending, closed = await asyncio.gather(
             self.get("/v1/channels"),
             self.get("/v1/channels/pending"),

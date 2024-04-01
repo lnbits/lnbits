@@ -169,8 +169,10 @@ extend-exclude = [
 # A - flake8-builtins
 # C - mccabe
 # N - naming
-select = ["F", "E", "W", "I", "A", "C", "N"]
-ignore = []
+# UP - pyupgrade
+select = ["F", "E", "W", "I", "A", "C", "N", "UP"]
+# UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
+ignore = ["UP007"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

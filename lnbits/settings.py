@@ -9,7 +9,7 @@ from hashlib import sha256
 from os import path
 from sqlite3 import Row
 from time import time
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import httpx
 from loguru import logger
@@ -36,8 +36,8 @@ class LNbitsSettings(BaseModel):
 
 
 class UsersSettings(LNbitsSettings):
-    lnbits_admin_users: List[str] = Field(default=[])
-    lnbits_allowed_users: List[str] = Field(default=[])
+    lnbits_admin_users: list[str] = Field(default=[])
+    lnbits_allowed_users: list[str] = Field(default=[])
     lnbits_allow_new_accounts: bool = Field(default=True)
 
     @property
@@ -46,9 +46,9 @@ class UsersSettings(LNbitsSettings):
 
 
 class ExtensionsSettings(LNbitsSettings):
-    lnbits_admin_extensions: List[str] = Field(default=[])
+    lnbits_admin_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
-    lnbits_extensions_manifests: List[str] = Field(
+    lnbits_extensions_manifests: list[str] = Field(
         default=[
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         ]
@@ -56,18 +56,18 @@ class ExtensionsSettings(LNbitsSettings):
 
 
 class ExtensionsInstallSettings(LNbitsSettings):
-    lnbits_extensions_default_install: List[str] = Field(default=[])
+    lnbits_extensions_default_install: list[str] = Field(default=[])
     # required due to GitHUb rate-limit
     lnbits_ext_github_token: str = Field(default="")
 
 
 class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
-    lnbits_deactivated_extensions: List[str] = Field(default=[])
+    lnbits_deactivated_extensions: list[str] = Field(default=[])
     # upgraded extensions that require API redirects
-    lnbits_upgraded_extensions: List[str] = Field(default=[])
+    lnbits_upgraded_extensions: list[str] = Field(default=[])
     # list of redirects that extensions want to perform
-    lnbits_extensions_redirects: List[Any] = Field(default=[])
+    lnbits_extensions_redirects: list[Any] = Field(default=[])
 
     def extension_upgrade_path(self, ext_id: str) -> Optional[str]:
         return next(
@@ -85,7 +85,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
     lnbits_site_description: str = Field(default=None)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
-    lnbits_theme_options: List[str] = Field(
+    lnbits_theme_options: list[str] = Field(
         default=[
             "classic",
             "freedom",
@@ -102,7 +102,7 @@ class ThemesSettings(LNbitsSettings):
         default="https://shop.lnbits.com/;/static/images/lnbits-shop-light.png;/static/images/lnbits-shop-dark.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
-    lnbits_allowed_currencies: List[str] = Field(default=[])
+    lnbits_allowed_currencies: list[str] = Field(default=[])
     lnbits_default_accounting_currency: Optional[str] = Field(default=None)
     lnbits_qr_logo: str = Field(default="/static/images/logos/lnbits.png")
 
@@ -122,8 +122,8 @@ class OpsSettings(LNbitsSettings):
 class SecuritySettings(LNbitsSettings):
     lnbits_rate_limit_no: str = Field(default="200")
     lnbits_rate_limit_unit: str = Field(default="minute")
-    lnbits_allowed_ips: List[str] = Field(default=[])
-    lnbits_blocked_ips: List[str] = Field(default=[])
+    lnbits_allowed_ips: list[str] = Field(default=[])
+    lnbits_blocked_ips: list[str] = Field(default=[])
     lnbits_notifications: bool = Field(default=False)
     lnbits_killswitch: bool = Field(default=False)
     lnbits_killswitch_interval: int = Field(default=60)
@@ -286,7 +286,7 @@ class AuthMethods(Enum):
 class AuthSettings(LNbitsSettings):
     auth_token_expire_minutes: int = Field(default=525600)
     auth_all_methods = [a.value for a in AuthMethods]
-    auth_allowed_methods: List[str] = Field(
+    auth_allowed_methods: list[str] = Field(
         default=[
             AuthMethods.user_id_only.value,
             AuthMethods.username_and_password.value,
@@ -396,7 +396,7 @@ class PersistenceSettings(LNbitsSettings):
 
 
 class SuperUserSettings(LNbitsSettings):
-    lnbits_allowed_funding_sources: List[str] = Field(
+    lnbits_allowed_funding_sources: list[str] = Field(
         default=[
             "VoidWallet",
             "FakeWallet",
@@ -452,7 +452,7 @@ class ReadOnlySettings(
 
 class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
     @classmethod
-    def from_row(cls, row: Row) -> "Settings":
+    def from_row(cls, row: Row) -> Settings:
         data = dict(row)
         return cls(**data)
 
@@ -477,7 +477,7 @@ class SuperSettings(EditableSettings):
 
 class AdminSettings(EditableSettings):
     is_super_user: bool
-    lnbits_allowed_funding_sources: Optional[List[str]]
+    lnbits_allowed_funding_sources: Optional[list[str]]
 
 
 def set_cli_settings(**kwargs):
