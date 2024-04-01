@@ -2962,4 +2962,4 @@ liquid = ["wallycore"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "13d007c1f2b3a20ee3bad085143b8fe4f5ad4519d5af17bfbee5c31b7c8a6d13"
+content-hash = "a58655feabd699c4f4dd8ad67989f09dbc1385e6e62c46364bb3a7df4f254e8c"
