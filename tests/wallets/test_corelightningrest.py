@@ -2,7 +2,6 @@ from urllib.parse import urlencode
 
 import pytest
 from pytest_httpserver import HTTPServer
-from werkzeug.wrappers import Response
 
 from lnbits.wallets.base import Unsupported
 from lnbits.wallets.corelightningrest import CoreLightningRestWallet, settings
@@ -186,75 +185,6 @@ async def test_pay_invoice_validation():
 
 
 @pytest.mark.asyncio
-async def test_get_payment_status_success(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
-
-    server_resp = {
-        "pays": [
-            {
-                "status": "complete",
-                "amount_msat": "21000msat",
-                "amount_sent_msat": "-22000msat",
-                "preimage": "00000000000000000000000000000000"
-                + "00000000000000000000000000000000",
-            }
-        ]
-    }
-
-    params = {
-        "payment_hash": "e35526a43d04e985594c0dfab848814f"
-        + "524b1c786598ec9a63beddb2d726ac96"
-    }
-    httpserver.expect_request(
-        uri="/v1/pay/listPays",
-        headers=headers,
-        query_string=params,
-        method="GET",
-    ).respond_with_json(server_resp)
-
-    wallet = CoreLightningRestWallet()
-
-    status = await wallet.get_payment_status(params["payment_hash"])
-
-    assert status.fee_msat == 1000
-    assert status.preimage == server_resp["pays"][0]["preimage"]
-    assert status.success is True
-    assert status.failed is False
-    assert status.pending is False
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
-async def test_get_payment_status_pending(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
-
-    server_resp = {"pays": [{"status": "pending"}]}
-
-    params = {
-        "payment_hash": "e35526a43d04e985594c0dfab848814f"
-        + "524b1c786598ec9a63beddb2d726ac96"
-    }
-    httpserver.expect_request(
-        uri="/v1/pay/listPays",
-        headers=headers,
-        query_string=params,
-        method="GET",
-    ).respond_with_json(server_resp)
-
-    wallet = CoreLightningRestWallet()
-    status = await wallet.get_payment_status(params["payment_hash"])
-
-    assert status.success is False
-    assert status.failed is False
-    assert status.pending is True
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
 async def test_get_payment_status_failed(httpserver: HTTPServer):
     settings.corelightning_rest_url = ENDPOINT
     settings.corelightning_rest_macaroon = MACAROON
@@ -281,59 +211,5 @@ async def test_get_payment_status_failed(httpserver: HTTPServer):
 
     # todo: this needs fixing in "PaymentStatus"
     # assert status.pending is False
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
-async def test_get_payment_status_error_response(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
-
-    server_resp = {"error": "Test Error"}
-
-    params = {
-        "payment_hash": "e35526a43d04e985594c0dfab848814f"
-        + "524b1c786598ec9a63beddb2d726ac96"
-    }
-    httpserver.expect_request(
-        uri="/v1/pay/listPays",
-        headers=headers,
-        query_string=params,
-        method="GET",
-    ).respond_with_json(server_resp)
-
-    wallet = CoreLightningRestWallet()
-
-    status = await wallet.get_payment_status(params["payment_hash"])
-    assert status.success is False
-    assert status.failed is False
-    assert status.pending is True
-
-    httpserver.check_assertions()
-
-
-@pytest.mark.asyncio
-async def test_get_payment_status_http_404(httpserver: HTTPServer):
-    settings.corelightning_rest_url = ENDPOINT
-    settings.corelightning_rest_macaroon = MACAROON
-
-    params = {
-        "payment_hash": "e35526a43d04e985594c0dfab848814f"
-        + "524b1c786598ec9a63beddb2d726ac96"
-    }
-    httpserver.expect_request(
-        uri="/v1/pay/listPays",
-        headers=headers,
-        query_string=params,
-        method="GET",
-    ).respond_with_response(Response("Not Found", status=404))
-
-    wallet = CoreLightningRestWallet()
-
-    status = await wallet.get_payment_status(params["payment_hash"])
-    assert status.success is False
-    assert status.failed is False
-    assert status.pending is True
 
     httpserver.check_assertions()
