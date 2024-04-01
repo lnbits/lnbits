@@ -695,6 +695,70 @@
                     }
                 }
             ]
+        },
+        "get_invoice_status": {
+            "mocks": {
+                "corelightningrest": {
+                    "get_invoice_status_endpoint": {
+                        "uri": "/v1/invoice/listInvoices",
+                        "query_params": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                        },
+                        "headers": {
+                            "macaroon": "eNcRyPtEdMaCaRoOn",
+                            "encodingtype": "hex",
+                            "accept": "application/json",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "lndrest": {
+                    "get_invoice_status_endpoint": {
+                        "uri": "/v1/invoice/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "headers": {
+                            "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "success",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "success": true,
+                        "failed": false,
+                        "pending": false
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_invoice_status_endpoint": {
+                                "response_type": "json",
+                                "response": {
+                                    "invoices": [
+                                        {
+                                            "status": "paid"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "lndrest": {
+                            "get_invoice_status_endpoint": {
+                                "response_type": "json",
+                                "response": {
+                                    "settled": true
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
         }
     }
 }

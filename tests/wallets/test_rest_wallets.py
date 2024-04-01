@@ -96,10 +96,14 @@ def _apply_mock(httpserver: HTTPServer, mock: dict):
     elif request_type == "json":
         request_data["json"] = mock["response"]
 
+    if "query_params" in mock:
+        request_data["query_string"] = mock["query_params"]
+
     req = httpserver.expect_request(
         uri=mock["uri"],
         headers=mock["headers"],
         method=mock["method"],
+        # query_string=mock.get("query_params", {})
         **request_data,  # type: ignore
     )
 
@@ -128,10 +132,9 @@ async def _assert_data(wallet, tested_func, call_params, expect):
     for key in expect:
         received = getattr(resp, key)
         expected = expect[key]
-        assert getattr(resp, key) == expect[key], (
-            f"Failed for field '{key}'"
-            + f"""Received: "{received}", but expected: "{expected}" """
-        )
+        assert (
+            getattr(resp, key) == expect[key]
+        ), f"""Field "{key}". Received: "{received}". Expected: "{expected}"."""
 
 
 async def _assert_error(wallet, tested_func, call_params, expect_error):
