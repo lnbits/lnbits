@@ -182,18 +182,24 @@ class LndRestWallet(Wallet):
                 None, None, None, None, f"Unable to connect to {self.endpoint}."
             )
 
-        data = r.json()
+        try:
+            data = r.json()
 
-        if data.get("payment_error"):
-            error_message = r.json().get("payment_error") or r.text
-            logger.warning(f"LndRestWallet pay_invoice payment_error: {error_message}.")
-            return PaymentResponse(False, None, None, None, error_message)
+            if data.get("payment_error"):
+                error_message = r.json().get("payment_error") or r.text
+                logger.warning(
+                    f"LndRestWallet pay_invoice payment_error: {error_message}."
+                )
+                return PaymentResponse(False, None, None, None, error_message)
 
-        data = r.json()
-        checking_id = base64.b64decode(data["payment_hash"]).hex()
-        fee_msat = int(data["payment_route"]["total_fees_msat"])
-        preimage = base64.b64decode(data["payment_preimage"]).hex()
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+            checking_id = base64.b64decode(data["payment_hash"]).hex()
+            fee_msat = int(data["payment_route"]["total_fees_msat"])
+            preimage = base64.b64decode(data["payment_preimage"]).hex()
+            return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'invalid json response'"
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(url=f"/v1/invoice/{checking_id}")
