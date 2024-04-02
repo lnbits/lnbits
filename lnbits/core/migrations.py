@@ -473,7 +473,7 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
         pass
 
 
-async def m018_balances_view_exlcude_deleted(db):
+async def m018_balances_view_exclude_deleted(db):
     """
     Make deleted wallets not show up in the balances view.
     """
@@ -482,7 +482,7 @@ async def m018_balances_view_exlcude_deleted(db):
         """
         CREATE VIEW balances AS
         SELECT apipayments.wallet,
-               SUM(apipayments.amount - abs(apipayments.fee)) AS balance
+               SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
         FROM apipayments
         LEFT JOIN wallets ON apipayments.wallet = wallets.id
         WHERE (wallets.deleted = false OR wallets.deleted is NULL)
