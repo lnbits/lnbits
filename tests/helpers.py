@@ -269,7 +269,12 @@ class FunctionTest(BaseModel):
 
 
 class FunctionData(BaseModel):
+    """Data required for testing this function"""
+
+    "Function level mocks that apply for all tests of this function"
     mocks: List[FunctionMock] = []
+
+    "All the tests for this function"
     tests: List[FunctionTest] = []
 
 
