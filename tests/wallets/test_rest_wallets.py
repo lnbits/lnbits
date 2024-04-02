@@ -8,7 +8,12 @@ from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
 from lnbits.core.models import BaseWallet
-from tests.helpers import FundingSourceConfig, Mock, rest_wallet_fixtures_from_json
+from tests.helpers import (
+    FundingSourceConfig,
+    Mock,
+    WalletTest,
+    rest_wallet_fixtures_from_json,
+)
 
 wallets_module = importlib.import_module("lnbits.wallets")
 
@@ -24,8 +29,8 @@ def httpserver_listen_address():
     return ("127.0.0.1", 8555)
 
 
-def build_test_id(test):
-    return f"""{test["funding_source"]}.{test["function"]}({test["description"]})"""
+def build_test_id(test: WalletTest):
+    return f"{test.funding_source}.{test.function}({test.description})"
 
 
 @pytest.mark.asyncio
@@ -34,11 +39,11 @@ def build_test_id(test):
     rest_wallet_fixtures_from_json("tests/wallets/fixtures3.json"),
     ids=build_test_id,
 )
-async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
-    for mock in test_data["mocks"]:
+async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
+    for mock in test_data.mocks:
         _apply_mock(httpserver, mock)
 
-    wallet = _load_funding_source(test_data["funding_source"])
+    wallet = _load_funding_source(test_data.funding_source)
     await _check_assertions(wallet, test_data)
 
 
@@ -78,20 +83,21 @@ def _apply_mock(httpserver: HTTPServer, mock: Mock):
     getattr(req, respond_with)(server_response)
 
 
-async def _check_assertions(wallet, test_data):
-    tested_func = test_data["function"]
-    call_params = test_data["call_params"]
+async def _check_assertions(wallet, _test_data: WalletTest):
+    test_data = _test_data.dict()
+    tested_func = _test_data.function
+    call_params = _test_data.call_params
 
     if "expect" in test_data:
-        await _assert_data(wallet, tested_func, call_params, test_data["expect"])
-        # if len(test_data["mocks"]) == 0:
+        await _assert_data(wallet, tested_func, call_params, _test_data.expect)
+        # if len(_test_data.mocks) == 0:
         #     # all calls should fail after this method is called
         #     await wallet.cleanup()
         #     # same behaviour expected is server canot be reached
         #     # or if the connection was closed
-        #     await _assert_data(wallet, tested_func, call_params, test_data["expect"])
+        #     await _assert_data(wallet, tested_func, call_params, _test_data.expect)
     elif "expect_error" in test_data:
-        await _assert_error(wallet, tested_func, call_params, test_data["expect_error"])
+        await _assert_error(wallet, tested_func, call_params, _test_data.expect_error)
     else:
         assert False, "Expected outcome not specified"
 

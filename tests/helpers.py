@@ -181,13 +181,15 @@ def clean_database(settings):
         pass
 
 
-def rest_wallet_fixtures_from_json(path):
+def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
     with open(path) as f:
         data = json.load(f)
 
         funding_sources = data["funding_sources"]
 
-        tests = {fs_name: [] for fs_name in funding_sources}
+        tests: Dict[str, List[WalletTest]] = {
+            fs_name: [] for fs_name in funding_sources
+        }
 
         for fn_name in data["functions"]:
             fn = data["functions"][fn_name]
@@ -196,16 +198,15 @@ def rest_wallet_fixtures_from_json(path):
                 """create an unit test for each funding source"""
 
                 for fs_name in funding_sources:
-
-                    t = (
-                        {
+                    t = WalletTest(
+                        **{
                             "funding_source": FundingSourceConfig(
                                 **funding_sources[fs_name]
                             ),
                             "function": fn_name,
+                            **test,
+                            "mocks": [],
                         }
-                        | {**test}
-                        | {"mocks": []}
                     )
                     if "mocks" in test:
                         test_mocks_names = test["mocks"][fs_name]
@@ -217,14 +218,11 @@ def rest_wallet_fixtures_from_json(path):
                                 _mock = fs_mocks[mock_name] | test_mock
                                 mock = Mock(**_mock)
 
-                                test_description: str = (
-                                    f":{mock.description}" if mock.description else ""
+                                unique_test = WalletTest(**t.dict())
+                                unique_test.description = (
+                                    f"""{t.description}:{mock.description or ""}"""
                                 )
-                                unique_test = t | {
-                                    "description": str(t["description"])
-                                    + test_description,
-                                    "mocks": t["mocks"] + [mock],
-                                }
+                                unique_test.mocks = t.mocks + [mock]
 
                                 tests[fs_name].append(unique_test)
                     else:
@@ -268,3 +266,18 @@ class FunctionTest(BaseModel):
     call_params: dict
     expect: dict
     mocks: Dict[str, List[Dict[str, TestMock]]]
+
+
+class FunctionData(BaseModel):
+    mocks: List[FunctionMock] = []
+    tests: List[FunctionTest] = []
+
+
+class WalletTest(BaseModel):
+    function: str
+    description: str
+    funding_source: FundingSourceConfig
+    call_params: Optional[dict] = {}
+    expect: Optional[dict]
+    expect_error: Optional[dict]
+    mocks: List[Mock] = []
