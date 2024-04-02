@@ -36,7 +36,7 @@ def build_test_id(test: WalletTest):
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_data",
-    rest_wallet_fixtures_from_json("tests/wallets/fixtures3.json"),
+    rest_wallet_fixtures_from_json("tests/wallets/fixtures.json"),
     ids=build_test_id,
 )
 async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
