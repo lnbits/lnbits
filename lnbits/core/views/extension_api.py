@@ -102,7 +102,7 @@ async def api_install_extension(
         core_app_extra.register_new_ext_routes(extension)
 
         if extension.upgrade_hash:
-            ext_info.nofiy_upgrade()
+            ext_info.notify_upgrade()
 
         return extension
     except AssertionError as e:
