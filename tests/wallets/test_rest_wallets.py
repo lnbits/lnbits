@@ -7,7 +7,7 @@ from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
 from lnbits.core.models import BaseWallet
-from tests.helpers import FundingSourceConfig, rest_wallet_fixtures_from_json
+from tests.helpers import FundingSourceConfig, Mock, rest_wallet_fixtures_from_json
 
 wallets_module = importlib.import_module("lnbits.wallets")
 
@@ -41,27 +41,29 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
     await _check_assertions(wallet, test_data)
 
 
-def _apply_mock(httpserver: HTTPServer, mock: dict):
+def _apply_mock(httpserver: HTTPServer, mock: Mock):
+
     request_data = {}
-    request_type = getattr(mock, "request_type", None)
+    request_type = getattr(mock.dict(), "request_type", None)
+    # request_type = mock.request_type <--- this des not work for whatever reason!!!
 
     if request_type == "data":
-        request_data["data"] = urlencode(mock["response"])
+        request_data["data"] = urlencode(mock.response)
     elif request_type == "json":
-        request_data["json"] = mock["response"]
+        request_data["json"] = mock.response
 
-    if "query_params" in mock:
-        request_data["query_string"] = mock["query_params"]
+    if mock.query_params:
+        request_data["query_string"] = mock.query_params
 
     req = httpserver.expect_request(
-        uri=mock["uri"],
-        headers=mock["headers"],
-        method=mock["method"],
+        uri=mock.uri,
+        headers=mock.headers,
+        method=mock.method,
         **request_data,  # type: ignore
     )
 
-    server_response = mock["response"]
-    response_type = mock["response_type"]
+    server_response = mock.response
+    response_type = mock.response_type
     if response_type == "response":
         server_response = Response(**server_response)
     elif response_type == "stream":

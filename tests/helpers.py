@@ -5,7 +5,7 @@ import random
 import string
 import time
 from subprocess import PIPE, Popen, TimeoutExpired
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from loguru import logger
 from psycopg2 import connect
@@ -214,11 +214,11 @@ def rest_wallet_fixtures_from_json(path):
                             for test_mock in test_mocks_names[mock_name]:
                                 # different mocks that result in the same
                                 # return value for the tested function
-                                mock = fs_mocks[mock_name] | test_mock
+                                _mock = fs_mocks[mock_name] | test_mock
+                                mock = Mock(**_mock)
+
                                 test_description: str = (
-                                    f""":{mock["description"]}"""
-                                    if "description" in mock
-                                    else ""
+                                    f":{mock.description}" if mock.description else ""
                                 )
                                 unique_test = t | {
                                     "description": str(t["description"])
@@ -242,19 +242,22 @@ class FundingSourceConfig(BaseModel):
 
 class FunctionMock(BaseModel):
     uri: str
-    query_params: dict
+    query_params: Optional[dict]
     headers: dict
     method: str
 
 
 class TestMock(BaseModel):
-    request_type: str
-    request_body: dict
+    description: Optional[str]
+    request_type: Optional[str]
+    request_body: Optional[dict]
     response_type: str
-    response: dict
+    response: Union[str, dict]
+
 
 class Mock(FunctionMock, TestMock):
     pass
+
 
 class FunctionMocks(BaseModel):
     mocks: Dict[str, FunctionMock]
