@@ -42,7 +42,7 @@ Extension structure explained
 Adding new dependencies
 -----------------------
 
-DO NOT ADD NEW DEPENDENCIES. Try to use the dependencies that are availabe in `pyproject.toml`. Getting the LNbits project to accept a new dependency is time consuming and uncertain, and may result in your extension NOT being made available to others.
+DO NOT ADD NEW DEPENDENCIES. Try to use the dependencies that are available in `pyproject.toml`. Getting the LNbits project to accept a new dependency is time consuming and uncertain, and may result in your extension NOT being made available to others.
 
 If for some reason your extensions must have a new python package to work, and its nees are not met in `pyproject.toml`, you can add a new package using `poerty`:
 
@@ -51,7 +51,7 @@ $ poetry add <package>
 ```
 
 **But we need an extra step to make sure LNbits doesn't break in production.**
-Dependencies need to be added to `pyproject.toml`, then tested by running on `poetry` compatability can be tested with `nix build .#checks.x86_64-linux.vmTest`.
+Dependencies need to be added to `pyproject.toml`, then tested by running on `poetry` compatibility can be tested with `nix build .#checks.x86_64-linux.vmTest`.
 
 
 SQLite to PostgreSQL migration
