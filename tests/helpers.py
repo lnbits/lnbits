@@ -178,3 +178,55 @@ def clean_database(settings):
         # TODO: do this once mock data is removed from test data folder
         # os.remove(settings.lnbits_data_folder + "/database.sqlite3")
         pass
+
+
+def rest_wallet_fixtures_from_json(path):
+    with open(path) as f:
+        data = json.load(f)
+
+        funding_sources = data["funding_sources"]
+
+        tests = {fs_name: [] for fs_name in funding_sources}
+
+        for fn_name in data["functions"]:
+            fn = data["functions"][fn_name]
+
+            for test in fn["tests"]:
+                """create an unit test for each funding source"""
+
+                for fs_name in funding_sources:
+
+                    t = (
+                        {
+                            "funding_source": funding_sources[fs_name],
+                            "function": fn_name,
+                        }
+                        | {**test}
+                        | {"mocks": []}
+                    )
+                    if "mocks" in test:
+                        test_mocks = test["mocks"][fs_name]
+                        fs_mocks = fn["mocks"][fs_name]
+                        for mock_name in fs_mocks:
+                            for test_mock in test_mocks[mock_name]:
+                                # different mocks that result in the same
+                                # return value for the tested function
+                                mock = fs_mocks[mock_name] | test_mock
+                                test_description: str = (
+                                    f""":{mock["description"]}"""
+                                    if "description" in mock
+                                    else ""
+                                )
+                                unique_test = t | {
+                                    "description": str(t["description"])
+                                    + test_description,
+                                    "mocks": t["mocks"] + [mock],
+                                }
+
+                                tests[fs_name].append(unique_test)
+                    else:
+                        # just call the test without mocks
+                        tests[fs_name].append(t)
+
+        all_tests = sum([tests[fs_name] for fs_name in tests], [])
+        return all_tests

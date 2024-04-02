@@ -7,82 +7,12 @@ from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
 from lnbits.core.models import BaseWallet
+from tests.helpers import rest_wallet_fixtures_from_json
 
 wallets_module = importlib.import_module("lnbits.wallets")
 
 # todo:
 # - tests for extra fields
-
-
-def load_tests_from_json(path):
-    with open(path) as f:
-        data = json.load(f)
-
-        funding_sources = data["funding_sources"]
-
-        tests = {fs_name: [] for fs_name in funding_sources}
-
-        for fn_name in data["functions"]:
-            fn = data["functions"][fn_name]
-
-            for test in fn["tests"]:
-                """create an unit test for each funding source"""
-
-                for fs_name in funding_sources:
-
-                    t = (
-                        {
-                            "funding_source": funding_sources[fs_name],
-                            "function": fn_name,
-                        }
-                        | {**test}
-                        | {"mocks": []}
-                    )
-                    if "mocks" in test:
-                        test_mocks = test["mocks"][fs_name]
-                        fs_mocks = fn["mocks"][fs_name]
-                        for mock_name in fs_mocks:
-                            for test_mock in test_mocks[mock_name]:
-                                # different mocks that result in the same
-                                # return value for the tested function
-                                mock = fs_mocks[mock_name] | test_mock
-                                test_description: str = (
-                                    f""":{mock["description"]}"""
-                                    if "description" in mock
-                                    else ""
-                                )
-                                unique_test = t | {
-                                    "description": str(t["description"])
-                                    + test_description,
-                                    "mocks": t["mocks"] + [mock],
-                                }
-
-                                tests[fs_name].append(unique_test)
-                    else:
-                        # just call the test without mocks
-                        tests[fs_name].append(t)
-
-        all_tests = sum([tests[fs_name] for fs_name in tests], [])
-        return all_tests
-
-
-def _load_funding_source(funding_source: dict) -> BaseWallet:
-    custom_settings = funding_source["settings"] | {"user_agent": "LNbits/Tests"}
-    original_settings = {}
-
-    settings = getattr(wallets_module, "settings")
-
-    for s in custom_settings:
-        original_settings[s] = getattr(settings, s)
-        setattr(settings, s, custom_settings[s])
-
-    fs_instance: BaseWallet = getattr(wallets_module, funding_source["class"])()
-
-    # rollback settings (global variable)
-    for s in original_settings:
-        setattr(settings, s, original_settings[s])
-
-    return fs_instance
 
 
 # specify where the server should bind to
@@ -97,7 +27,9 @@ def build_test_id(test):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "test_data", load_tests_from_json("tests/wallets/fixtures3.json"), ids=build_test_id
+    "test_data",
+    rest_wallet_fixtures_from_json("tests/wallets/fixtures3.json"),
+    ids=build_test_id,
 )
 async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
     for mock in test_data["mocks"]:
@@ -168,3 +100,22 @@ async def _assert_error(wallet, tested_func, call_params, expect_error):
         await getattr(wallet, tested_func)(**call_params)
 
     assert e_info.match(expect_error["message"])
+
+
+def _load_funding_source(funding_source: dict) -> BaseWallet:
+    custom_settings = funding_source["settings"] | {"user_agent": "LNbits/Tests"}
+    original_settings = {}
+
+    settings = getattr(wallets_module, "settings")
+
+    for s in custom_settings:
+        original_settings[s] = getattr(settings, s)
+        setattr(settings, s, custom_settings[s])
+
+    fs_instance: BaseWallet = getattr(wallets_module, funding_source["class"])()
+
+    # rollback settings (global variable)
+    for s in original_settings:
+        setattr(settings, s, original_settings[s])
+
+    return fs_instance
