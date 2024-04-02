@@ -16,6 +16,7 @@ wallets_module = importlib.import_module("lnbits.wallets")
 # - tests for paid_invoices_stream
 # - test particular validations
 
+
 # specify where the server should bind to
 @pytest.fixture(scope="session")
 def httpserver_listen_address():
@@ -38,8 +39,6 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
 
     wallet = _load_funding_source(test_data["funding_source"])
     await _check_assertions(wallet, test_data)
-
-
 
 
 def _apply_mock(httpserver: HTTPServer, mock: dict):
