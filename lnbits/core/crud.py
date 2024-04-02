@@ -587,11 +587,6 @@ async def get_total_balance(conn: Optional[Connection] = None):
     return 0 if row[0] is None else row[0]
 
 
-async def get_active_wallet_total_balance(conn: Optional[Connection] = None):
-    row = await (conn or db).fetchone("SELECT SUM(balance) FROM balances")
-    return 0 if row[0] is None else row[0]
-
-
 # wallet payments
 # ---------------
 
