@@ -225,7 +225,7 @@ def rest_wallet_fixtures_from_json(path):
 
                                 tests[fs_name].append(unique_test)
                     else:
-                        # just call the test without mocks
+                        # add the test without mocks
                         tests[fs_name].append(t)
 
         all_tests = sum([tests[fs_name] for fs_name in tests], [])

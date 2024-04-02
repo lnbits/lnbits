@@ -14,6 +14,7 @@ wallets_module = importlib.import_module("lnbits.wallets")
 # todo:
 # - tests for extra fields
 # - tests for paid_invoices_stream
+# - test particular validations
 
 # specify where the server should bind to
 @pytest.fixture(scope="session")
@@ -37,6 +38,8 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
 
     wallet = _load_funding_source(test_data["funding_source"])
     await _check_assertions(wallet, test_data)
+
+
 
 
 def _apply_mock(httpserver: HTTPServer, mock: dict):
@@ -77,6 +80,12 @@ async def _check_assertions(wallet, test_data):
 
     if "expect" in test_data:
         await _assert_data(wallet, tested_func, call_params, test_data["expect"])
+        if len(test_data["mocks"]) == 0:
+            # all calls should fail after this method is called
+            wallet.cleanup()
+            # same behaviour expected is server canot be reached
+            # or if the connection was closed
+            await _assert_data(wallet, tested_func, call_params, test_data["expect"])
     elif "expect_error" in test_data:
         await _assert_error(wallet, tested_func, call_params, test_data["expect_error"])
     else:
