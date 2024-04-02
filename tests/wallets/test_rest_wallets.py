@@ -13,7 +13,7 @@ wallets_module = importlib.import_module("lnbits.wallets")
 
 # todo:
 # - tests for extra fields
-
+# - tests for paid_invoices_stream
 
 # specify where the server should bind to
 @pytest.fixture(scope="session")
