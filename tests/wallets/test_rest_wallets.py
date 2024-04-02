@@ -1,5 +1,6 @@
 import importlib
 import json
+from typing import Dict, Union
 from urllib.parse import urlencode
 
 import pytest
@@ -43,11 +44,12 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: dict):
 
 def _apply_mock(httpserver: HTTPServer, mock: Mock):
 
-    request_data = {}
+    request_data: Dict[str, Union[str, dict]] = {}
     request_type = getattr(mock.dict(), "request_type", None)
     # request_type = mock.request_type <--- this des not work for whatever reason!!!
 
     if request_type == "data":
+        assert isinstance(mock.response, dict), "request data must be JSON"
         request_data["data"] = urlencode(mock.response)
     elif request_type == "json":
         request_data["json"] = mock.response
@@ -62,9 +64,10 @@ def _apply_mock(httpserver: HTTPServer, mock: Mock):
         **request_data,  # type: ignore
     )
 
-    server_response = mock.response
+    server_response: Union[str, dict, Response] = mock.response
     response_type = mock.response_type
     if response_type == "response":
+        assert isinstance(server_response, dict), "server response must be JSON"
         server_response = Response(**server_response)
     elif response_type == "stream":
         response_type = "response"
