@@ -1,14 +1,14 @@
 {
     "funding_sources": {
         "corelightningrest": {
-            "class": "CoreLightningRestWallet",
+            "wallet_class": "CoreLightningRestWallet",
             "settings": {
                 "corelightning_rest_url": "http://127.0.0.1:8555",
                 "corelightning_rest_macaroon": "eNcRyPtEdMaCaRoOn"
             }
         },
         "lndrest": {
-            "class": "LndRestWallet",
+            "wallet_class": "LndRestWallet",
             "settings": {
                 "lnd_rest_endpoint": "http://127.0.0.1:8555",
                 "lnd_rest_macaroon": "eNcRyPtEdMaCaRoOn",

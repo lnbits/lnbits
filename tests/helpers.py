@@ -5,11 +5,12 @@ import random
 import string
 import time
 from subprocess import PIPE, Popen, TimeoutExpired
-from typing import Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from loguru import logger
 from psycopg2 import connect
 from psycopg2.errors import InvalidCatalogName
+from pydantic import BaseModel
 
 from lnbits import core
 from lnbits.db import DB_TYPE, POSTGRES, FromRowModel
@@ -198,17 +199,19 @@ def rest_wallet_fixtures_from_json(path):
 
                     t = (
                         {
-                            "funding_source": funding_sources[fs_name],
+                            "funding_source": FundingSourceConfig(
+                                **funding_sources[fs_name]
+                            ),
                             "function": fn_name,
                         }
                         | {**test}
                         | {"mocks": []}
                     )
                     if "mocks" in test:
-                        test_mocks = test["mocks"][fs_name]
+                        test_mocks_names = test["mocks"][fs_name]
                         fs_mocks = fn["mocks"][fs_name]
                         for mock_name in fs_mocks:
-                            for test_mock in test_mocks[mock_name]:
+                            for test_mock in test_mocks_names[mock_name]:
                                 # different mocks that result in the same
                                 # return value for the tested function
                                 mock = fs_mocks[mock_name] | test_mock
@@ -230,3 +233,35 @@ def rest_wallet_fixtures_from_json(path):
 
         all_tests = sum([tests[fs_name] for fs_name in tests], [])
         return all_tests
+
+
+class FundingSourceConfig(BaseModel):
+    wallet_class: str
+    settings: dict
+
+
+class FunctionMock(BaseModel):
+    uri: str
+    query_params: dict
+    headers: dict
+    method: str
+
+
+class TestMock(BaseModel):
+    request_type: str
+    request_body: dict
+    response_type: str
+    response: dict
+
+class Mock(FunctionMock, TestMock):
+    pass
+
+class FunctionMocks(BaseModel):
+    mocks: Dict[str, FunctionMock]
+
+
+class FunctionTest(BaseModel):
+    description: str
+    call_params: dict
+    expect: dict
+    mocks: Dict[str, List[Dict[str, TestMock]]]
