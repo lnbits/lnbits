@@ -40,6 +40,9 @@ def build_test_id(test: WalletTest):
     ids=build_test_id,
 )
 async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
+    if test_data.skip:
+        pytest.skip()
+
     for mock in test_data.mocks:
         _apply_mock(httpserver, mock)
 

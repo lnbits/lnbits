@@ -14,6 +14,13 @@
                 "lnd_rest_macaroon": "eNcRyPtEdMaCaRoOn",
                 "lnd_rest_cert": ""
             }
+        },
+        "alby": {
+            "wallet_class": "AlbyWallet",
+            "settings": {
+                "alby_api_endpoint": "http://127.0.0.1:8555",
+                "alby_access_token": "mock-alby-access-token"
+            }
         }
     },
     "functions": {
@@ -36,6 +43,16 @@
                         "uri": "/v1/balance/channels",
                         "headers": {
                             "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "alby": {
+                    "status_endpoint": {
+                        "uri": "/balance",
+                        "headers": {
+                            "Authorization": "Bearer mock-alby-access-token",
                             "User-Agent": "LNbits/Tests"
                         },
                         "method": "GET"
@@ -70,6 +87,17 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "balance": 55,
+                                        "unit": "sat"
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -98,6 +126,20 @@
                                     "response": "test-error"
                                 }
                             ]
+                        },
+                        "alby": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": "test-error"
+                                },
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "message": "\"test-error\""
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -118,6 +160,14 @@
                             ]
                         },
                         "lndrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
+                        },
+                        "alby": {
                             "status_endpoint": [
                                 {
                                     "response_type": "json",
@@ -150,6 +200,14 @@
                                     "response": "data-not-json"
                                 }
                             ]
+                        },
+                        "alby": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
                         }
                     }
                 },
@@ -173,6 +231,17 @@
                             ]
                         },
                         "lndrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
                             "status_endpoint": [
                                 {
                                     "response_type": "response",
@@ -214,6 +283,16 @@
                         "uri": "/v1/invoices",
                         "headers": {
                             "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
+                    }
+                },
+                "alby": {
+                    "create_invoice_endpoint": {
+                        "uri": "/invoices",
+                        "headers": {
+                            "Authorization": "Bearer mock-alby-access-token",
                             "User-Agent": "LNbits/Tests"
                         },
                         "method": "POST"
@@ -268,6 +347,22 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                                        "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -316,6 +411,9 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "create_invoice_endpoint": []
                         }
                     }
                 },
@@ -364,6 +462,22 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "description": "missing payment request",
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -403,6 +517,19 @@
                                         "value": 555,
                                         "memo": "Test Invoice",
                                         "private": true
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice"
                                     },
                                     "response_type": "data",
                                     "response": "data-not-json"
@@ -458,6 +585,22 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice"
+                                    },
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -496,6 +639,16 @@
                         "uri": "/v1/channels/transactions",
                         "headers": {
                             "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
+                    }
+                },
+                "alby": {
+                    "pay_invoice_endpoint": {
+                        "uri": "/payments/bolt11",
+                        "headers": {
+                            "Authorization": "Bearer mock-alby-access-token",
                             "User-Agent": "LNbits/Tests"
                         },
                         "method": "POST"
@@ -555,6 +708,22 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                                        "fee": -50,
+                                        "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -602,6 +771,9 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "pay_invoice_endpoint": []
                         }
                     }
                 },
@@ -645,6 +817,18 @@
                                     "response": {}
                                 }
                             ]
+                        },
+                        "alby": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                                    },
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
                         }
                     }
                 },
@@ -683,6 +867,18 @@
                                     "request_body": {
                                         "payment_request": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
                                         "fee_limit": 25000
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
                                     },
                                     "response_type": "data",
                                     "response": "data-not-json"
@@ -737,6 +933,21 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                                    },
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -778,6 +989,16 @@
                         "uri": "/v1/invoice/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
                         "headers": {
                             "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "alby": {
+                    "get_invoice_status_endpoint": {
+                        "uri": "/invoices/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "headers": {
+                            "Authorization": "Bearer mock-alby-access-token",
                             "User-Agent": "LNbits/Tests"
                         },
                         "method": "GET"
@@ -829,6 +1050,16 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "state": "SETTLED"
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -860,6 +1091,10 @@
                         },
                         "lndrest": {
                             "description": "lndrest.py doesn't handle the 'failed' status for `get_invoice_status`",
+                            "get_invoice_status_endpoint": []
+                        },
+                        "alby": {
+                            "description": "alby.py doesn't handle the 'failed' status for `get_invoice_status`",
                             "get_invoice_status_endpoint": []
                         }
                     }
@@ -932,6 +1167,35 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {
+                                        "status": "CREATED"
+                                    }
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -970,6 +1234,16 @@
                         "uri": "/v2/router/track/41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",
                         "headers": {
                             "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "alby": {
+                    "get_payment_status_endpoint": {
+                        "uri": "/invoices/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "headers": {
+                            "Authorization": "Bearer mock-alby-access-token",
                             "User-Agent": "LNbits/Tests"
                         },
                         "method": "GET"
@@ -1015,6 +1289,19 @@
                                             "status": "SUCCEEDED",
                                             "fee_msat": 1000,
                                             "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "skip": true,
+                                    "response_type": "json",
+                                    "response": {
+                                        "result": {
+                                            "status": "SETTLED"
                                         }
                                     }
                                 }
@@ -1070,6 +1357,9 @@
                                     }
                                 }
                             ]
+                        },
+                        "alby": {
+                            "get_payment_status_endpoint": []
                         }
                     }
                 },
@@ -1152,6 +1442,37 @@
                                         "error": {
                                             "code": 5,
                                             "message": "should not fail"
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "no data",
+                                    "response_type": "stream",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "stream",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "description": "CREATED",
+                                    "response_type": "stream",
+                                    "response": {
+                                        "result": {
+                                            "state": "CREATED"
                                         }
                                     }
                                 },

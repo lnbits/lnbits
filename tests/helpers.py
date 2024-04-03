@@ -209,7 +209,13 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
                         }
                     )
                     if "mocks" in test:
+                        if fs_name not in test["mocks"]:
+                            t.skip = True
+                            tests[fs_name].append(t)
+                            continue
+
                         test_mocks_names = test["mocks"][fs_name]
+
                         fs_mocks = fn["mocks"][fs_name]
                         for mock_name in fs_mocks:
                             for test_mock in test_mocks_names[mock_name]:
@@ -223,6 +229,7 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
                                     f"""{t.description}:{mock.description or ""}"""
                                 )
                                 unique_test.mocks = t.mocks + [mock]
+                                unique_test.skip = mock.skip
 
                                 tests[fs_name].append(unique_test)
                     else:
@@ -246,6 +253,7 @@ class FunctionMock(BaseModel):
 
 
 class TestMock(BaseModel):
+    skip: Optional[bool]
     description: Optional[str]
     request_type: Optional[str]
     request_body: Optional[dict]
@@ -279,6 +287,7 @@ class FunctionData(BaseModel):
 
 
 class WalletTest(BaseModel):
+    skip: Optional[bool]
     function: str
     description: str
     funding_source: FundingSourceConfig
