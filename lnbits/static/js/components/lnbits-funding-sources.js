@@ -136,6 +136,17 @@ Vue.component('lnbits-funding-sources', {
             spark_url: 'Endpoint',
             spark_token: 'Token'
           }
+        ],
+        [
+          'BreezSdkWallet',
+          'Breez SDK',
+          {
+            breeze_api_key: 'Endpoint',
+            breeze_greenlight_seed: 'Greenlight Seed',
+            breeze_greenlight_device_key: 'Greenlight Device Key',
+            breeze_greenlight_device_cert: 'Greenlight Device Cert',
+            breeze_greenlight_invite_code: 'Greenlight Invite Code'
+          }
         ]
       ]
     }
