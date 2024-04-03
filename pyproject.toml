@@ -163,7 +163,8 @@ extend-exclude = [
 # E - pycodestyle errors
 # W - pycodestyle warnings
 # I - isort
-select = ["F", "E", "W", "I"]
+# A - flake8-builtins
+select = ["F", "E", "W", "I", "A"]
 ignore = []
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.

@@ -6,10 +6,10 @@ def get_translation_ids_from_source():
     # find all HTML files in selected directories
     files = []
     for start in ["lnbits/core/templates", "lnbits/templates", "lnbits/static/js"]:
-        for dir, _, filenames in os.walk(start):
+        for check_dir, _, filenames in os.walk(start):
             for filename in filenames:
                 if filename.endswith(".html") or filename.endswith(".js"):
-                    fn = os.path.join(dir, filename)
+                    fn = os.path.join(check_dir, filename)
                     files.append(fn)
     # find all $t('...') and $t("...") calls in HTML files
     # and extract the string inside the quotes
@@ -56,7 +56,8 @@ if len(extra) > 0:
         print(f"  {i}")
 
 languages = []
-for dir, _, filenames in os.walk("lnbits/static/i18n"):
+
+for *_, filenames in os.walk("lnbits/static/i18n"):
     for filename in filenames:
         if filename.endswith(".js") and filename not in ["i18n.js", "en.js"]:
             languages.append(filename.split(".")[0])

@@ -215,10 +215,10 @@ async def database_delete_wallet_payment(wallet: str, checking_id: str):
 @db.command("mark-payment-pending")
 @click.option("-c", "--checking-id", required=True, help="Payment checking Id.")
 @coro
-async def database_revert_payment(checking_id: str, pending: Optional[bool] = True):
+async def database_revert_payment(checking_id: str, pending: bool = True):
     """Mark wallet as deleted"""
     async with core_db.connect() as conn:
-        await update_payment_status(pending=True, checking_id=checking_id, conn=conn)
+        await update_payment_status(pending=pending, checking_id=checking_id, conn=conn)
 
 
 @db.command("cleanup-accounts")
@@ -333,7 +333,7 @@ async def extensions_list():
 
 @extensions.command("update")
 @click.argument("extension", required=False)
-@click.option("-a", "--all", is_flag=True, help="Update all extensions.")
+@click.option("-a", "--all-extensions", is_flag=True, help="Update all extensions.")
 @click.option(
     "-i", "--repo-index", help="Select the index of the repository to be used."
 )
@@ -360,7 +360,7 @@ async def extensions_list():
 @coro
 async def extensions_update(
     extension: Optional[str] = None,
-    all: Optional[bool] = False,
+    all_extensions: Optional[bool] = False,
     repo_index: Optional[str] = None,
     source_repo: Optional[str] = None,
     url: Optional[str] = None,
@@ -370,11 +370,11 @@ async def extensions_update(
     Update extension to the latest version.
     If an extension is not present it will be instaled.
     """
-    if not extension and not all:
+    if not extension and not all_extensions:
         click.echo("Extension ID is required.")
-        click.echo("Or specify the '--all' flag to update all extensions")
+        click.echo("Or specify the '--all-extensions' flag to update all extensions")
         return
-    if extension and all:
+    if extension and all_extensions:
         click.echo("Only one of extension ID or the '--all' flag must be specified")
         return
     if url and not _is_url(url):
