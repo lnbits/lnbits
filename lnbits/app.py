@@ -69,8 +69,8 @@ from .tasks import (
 )
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+async def startup(app: FastAPI):
+
     # wait till migration is done
     await migrate_databases()
 
@@ -104,8 +104,8 @@ async def lifespan(app: FastAPI):
     # initialize tasks
     register_async_tasks()
 
-    yield
 
+async def shutdown():
     # shutdown event
     cancel_all_tasks()
 
@@ -113,6 +113,13 @@ async def lifespan(app: FastAPI):
     await asyncio.sleep(0.1)
     WALLET = get_wallet_class()
     await WALLET.cleanup()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await startup(app)
+    yield
+    await shutdown()
 
 
 def create_app() -> FastAPI:
