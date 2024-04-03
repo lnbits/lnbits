@@ -177,10 +177,10 @@ class Payment(FromRowModel):
     preimage: str
     payment_hash: str
     expiry: Optional[float]
-    extra: Dict
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
+    extra: Optional[Dict]
 
     @classmethod
     def from_row(cls, row: Row):
@@ -318,7 +318,7 @@ class PaymentFilters(FilterModel):
     preimage: str
     payment_hash: str
     expiry: Optional[datetime.datetime]
-    extra: ClassVar[Dict] = {}
+    extra: Optional[Dict]
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
