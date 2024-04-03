@@ -143,7 +143,8 @@ class AlbyWallet(Wallet):
             return PaymentResponse(
                 False, None, None, None, "Server error: 'missing required fields'"
             )
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as exc:
+            logger.warning(exc)
             return PaymentResponse(
                 False, None, None, None, "Server error: 'invalid json response'"
             )
