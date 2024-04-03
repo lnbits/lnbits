@@ -10,10 +10,10 @@ from lnbits.settings import set_cli_settings, settings
 
 
 @click.command(
-    context_settings=dict(
-        ignore_unknown_options=True,
-        allow_extra_args=True,
-    )
+    context_settings={
+        "ignore_unknown_options": True,
+        "allow_extra_args": True,
+    }
 )
 @click.option("--port", default=settings.port, help="Port to listen on")
 @click.option("--host", default=settings.host, help="Host to run LNBits on")
@@ -48,7 +48,7 @@ def main(
 
     # this beautiful beast parses all command line arguments and
     # passes them to the uvicorn server
-    d = dict()
+    d = {}
     for a in ctx.args:
         item = a.split("=")
         if len(item) > 1:  # argument like --key=value

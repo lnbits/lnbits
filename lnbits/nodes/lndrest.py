@@ -167,6 +167,8 @@ class LndRestNode(Node):
         point: Optional[ChannelPoint] = None,
         force: bool = False,
     ):
+        if short_id:
+            logger.debug(f"Closing channel with short_id: {short_id}")
         if not point:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="Channel point required"

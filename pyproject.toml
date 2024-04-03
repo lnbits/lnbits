@@ -164,7 +164,8 @@ extend-exclude = [
 # W - pycodestyle warnings
 # I - isort
 # A - flake8-builtins
-select = ["F", "E", "W", "I", "A"]
+# C - mccabe
+select = ["F", "E", "W", "I", "A", "C"]
 ignore = []
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
@@ -179,5 +180,5 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "__init__.py" = ["F401", "F403"]
 
 [tool.ruff.lint.mccabe]
-# Unlike Flake8, default to a complexity level of 10.
-max-complexity = 10
+# TODO: Decrease this to 10.
+max-complexity = 16
