@@ -31,7 +31,7 @@ pyln-client = "23.8"
 pywebpush = "1.14.0"
 slowapi = "0.1.9"
 websocket-client = "1.6.3"
-pycryptodomex = "3.19.0"
+pycryptodomex = "3.19.1"
 packaging = "23.1"
 bolt11 = "2.0.5"
 # needed for new login methods: username-password, google-auth, github-auth
