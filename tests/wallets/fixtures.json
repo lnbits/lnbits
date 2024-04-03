@@ -131,12 +131,9 @@
                             "status_endpoint": [
                                 {
                                     "response_type": "json",
-                                    "response": "test-error"
-                                },
-                                {
-                                    "response_type": "json",
                                     "response": {
-                                        "message": "\"test-error\""
+                                        "message": "\"test-error\"",
+                                        "unit": "sats"
                                     }
                                 }
                             ]

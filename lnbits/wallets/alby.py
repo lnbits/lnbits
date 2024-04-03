@@ -50,18 +50,17 @@ class AlbyWallet(Wallet):
             if len(data) == 0:
                 return StatusResponse("no data", 0)
 
-            if (
-                r.is_error
-                or "balance" not in data
-                or "unit" not in data
-                or data["unit"] != "sat"
-            ):
+            if r.is_error or data["unit"] != "sat":
                 error_message = data["message"] if "message" in data else r.text
                 return StatusResponse(f"Server error: '{error_message}'", 0)
 
             # multiply balance by 1000 to get msats balance
             return StatusResponse(None, data["balance"] * 1000)
-        except json.JSONDecodeError:
+        except KeyError as exc:
+            logger.warning(exc)
+            return StatusResponse("Server error: 'missing required fields'", 0)
+        except json.JSONDecodeError as exc:
+            logger.warning(exc)
             return StatusResponse("Server error: 'invalid json response'", 0)
         except Exception as exc:
             logger.warning(exc)
