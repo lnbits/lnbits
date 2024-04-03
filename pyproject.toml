@@ -55,7 +55,7 @@ wallycore = {version = "^1.0.0", optional = true}
 liquid = ["wallycore"]
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.2.0"
+black = "^24.3.0"
 pytest-asyncio = "^0.21.0"
 pytest = "^7.3.2"
 pytest-cov = "^4.1.0"
