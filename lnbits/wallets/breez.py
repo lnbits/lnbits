@@ -219,14 +219,14 @@ else:
             )
 
         async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-            payment = self.sdk_services.payment_by_hash(checking_id)
+            payment: breez_sdk.Payment = self.sdk_services.payment_by_hash(checking_id)
             if payment is None:
                 return PaymentStatus(None)
             assert payment.payment_type == breez_sdk.PaymentType.RECEIVED
             return PaymentStatus(payment.status == breez_sdk.PaymentStatus.COMPLETE)
 
         async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-            payment = self.sdk_services.payment_by_hash(checking_id)
+            payment: breez_sdk.Payment = self.sdk_services.payment_by_hash(checking_id)
             if payment is None:
                 return PaymentStatus(None)
             assert payment.payment_type == breez_sdk.PaymentType.SENT
