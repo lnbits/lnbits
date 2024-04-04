@@ -161,11 +161,11 @@ Vue.component('lnbits-funding-sources', {
           'BreezSdkWallet',
           'Breez SDK',
           {
-            breeze_api_key: 'Endpoint',
-            breeze_greenlight_seed: 'Greenlight Seed',
-            breeze_greenlight_device_key: 'Greenlight Device Key',
-            breeze_greenlight_device_cert: 'Greenlight Device Cert',
-            breeze_greenlight_invite_code: 'Greenlight Invite Code'
+            breez_api_key: 'Endpoint',
+            breez_greenlight_seed: 'Greenlight Seed',
+            breez_greenlight_device_key: 'Greenlight Device Key',
+            breez_greenlight_device_cert: 'Greenlight Device Cert',
+            breez_greenlight_invite_code: 'Greenlight Invite Code'
           }
         ]
       ]
