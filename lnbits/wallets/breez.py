@@ -73,7 +73,7 @@ else:
                     "cannot decode breez_greenlight_device_key "
                     "or breez_greenlight_device_cert"
                 )
-            return breez_sdk.GreenlightCredentials(
+            return breez_sdk.GreenlightCredentials(  # pyright: ignore[reportUnboundVariable]
                 device_key=list(device_key_bytes),
                 device_cert=list(device_cert_bytes),
             )
@@ -131,13 +131,8 @@ else:
             try:
                 seed = breez_sdk.mnemonic_to_seed(settings.breez_greenlight_seed)
                 self.sdk_services = breez_sdk.connect(self.config, seed, SDKListener())
-            except Exception:
-                raise ValueError(
-                    "cannot initialize BreezSdkWallet: "
-                    "missing either breez_greenlight_invite_code or "
-                    "breez_greenlight_device_key and breez_greenlight_device_cert "
-                    "to register a node"
-                )
+            except Exception as exc:
+                raise ValueError(f"cannot initialize BreezSdkWallet: {exc!s}")
 
         async def cleanup(self):
             self.sdk_services.disconnect()
