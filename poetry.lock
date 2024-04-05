@@ -39,7 +39,7 @@ sniffio = "*"
 name = "asn1crypto"
 version = "1.5.1"
 description = "Fast ASN.1 parser and serializer with definitions for private keys, public keys, certificates, CRL, OCSP, CMS, PKCS#3, PKCS#7, PKCS#8, PKCS#12, PKCS#5, X.509 and TSP"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "asn1crypto-1.5.1-py2.py3-none-any.whl", hash = "sha256:db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67"},
@@ -532,7 +532,7 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 name = "coincurve"
 version = "18.0.0"
 description = "Cross-platform Python CFFI bindings for libsecp256k1"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "coincurve-18.0.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:0b1a42eba91b9e4f833309e94bc6a270b1700cb4567d4809ef91f00968b57925"},
@@ -898,7 +898,7 @@ typing = ["typing-extensions (>=4.8)"]
 name = "grpcio"
 version = "1.58.0"
 description = "HTTP/2-based RPC framework"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "grpcio-1.58.0-cp310-cp310-linux_armv7l.whl", hash = "sha256:3e6bebf1dfdbeb22afd95650e4f019219fef3ab86d3fca8ebade52e4bc39389a"},
@@ -1614,7 +1614,7 @@ virtualenv = ">=20.10.0"
 name = "protobuf"
 version = "4.24.3"
 description = ""
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "protobuf-4.24.3-cp310-abi3-win32.whl", hash = "sha256:20651f11b6adc70c0f29efbe8f4a94a74caf61b6200472a9aea6e19898f9fcf4"},
@@ -1636,7 +1636,7 @@ files = [
 name = "psycopg2-binary"
 version = "2.9.7"
 description = "psycopg2 - Python-PostgreSQL Database Adapter"
-optional = false
+optional = true
 python-versions = ">=3.6"
 files = [
     {file = "psycopg2-binary-2.9.7.tar.gz", hash = "sha256:1b918f64a51ffe19cd2e230b3240ba481330ce1d4b7875ae67305bd1d37b041c"},
@@ -1834,7 +1834,7 @@ email = ["email-validator (>=1.0.3)"]
 name = "pyln-bolt7"
 version = "1.0.246"
 description = "BOLT7"
-optional = false
+optional = true
 python-versions = ">=3.7,<4.0"
 files = [
     {file = "pyln-bolt7-1.0.246.tar.gz", hash = "sha256:2b53744fa21c1b12d2c9c9df153651b122e38fa65d4a5c3f2957317ee148e089"},
@@ -1845,7 +1845,7 @@ files = [
 name = "pyln-client"
 version = "23.8"
 description = "Client library and plugin library for Core Lightning"
-optional = false
+optional = true
 python-versions = ">=3.8,<4.0"
 files = [
     {file = "pyln_client-23.8-py3-none-any.whl", hash = "sha256:a63a9541f422ed3d1d42483a5f37cdfa0014715b620616384d8ee048c4f95f42"},
@@ -1860,7 +1860,7 @@ pyln-proto = ">=23"
 name = "pyln-proto"
 version = "23.11"
 description = "This package implements some of the Lightning Network protocol in pure python. It is intended for protocol testing and some minor tooling only. It is not deemed secure enough to handle any amount of real funds (you have been warned!)."
-optional = false
+optional = true
 python-versions = ">=3.8,<4.0"
 files = [
     {file = "pyln_proto-23.11-py3-none-any.whl", hash = "sha256:7f3e9df5fac242db4e27b5879e1df2bd318ec8f7b125132ea7a60ce17340bded"},
@@ -1892,7 +1892,7 @@ png = ["pypng (>=0.0.13)"]
 name = "pysocks"
 version = "1.7.1"
 description = "A Python SOCKS client module. See https://github.com/Anorov/PySocks for more information."
-optional = false
+optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 files = [
     {file = "PySocks-1.7.1-py27-none-any.whl", hash = "sha256:08e69f092cc6dbe92a0fdd16eeb9b9ffbc13cadfe5ca4c7bd92ffb078b293299"},
@@ -1962,7 +1962,7 @@ testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtuale
 name = "python-crontab"
 version = "3.0.0"
 description = "Python Crontab API"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "python-crontab-3.0.0.tar.gz", hash = "sha256:79fb7465039ddfd4fb93d072d6ee0d45c1ac8bf1597f0686ea14fd4361dba379"},
@@ -1980,7 +1980,7 @@ cron-schedule = ["croniter"]
 name = "python-dateutil"
 version = "2.8.2"
 description = "Extensions to the standard Python datetime module"
-optional = false
+optional = true
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 files = [
     {file = "python-dateutil-2.8.2.tar.gz", hash = "sha256:0123cacc1627ae19ddf3c27a5de5bd67ee4586fbdd6440d9748f8abb483d3e86"},
@@ -2943,9 +2943,14 @@ docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.link
 testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
 
 [extras]
+all = ["grpcio", "protobuf", "psycopg2-binary", "pyln-client", "python-crontab", "wallycore"]
+corelightning = ["pyln-client"]
+grpc = ["grpcio", "protobuf"]
 liquid = ["wallycore"]
+postgres = ["psycopg2-binary"]
+scheduler = ["python-crontab"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9"
-content-hash = "cbe93bb8afbda1cddb4e30721fb15a016b8fb1250d07ee06ff9365b8757c1710"
+content-hash = "d787d323145c5c1d9b9fd7ae846c81a5b6cb2bdd7d33b2a396456c9b8c83639e"

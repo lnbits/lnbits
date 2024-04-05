@@ -46,7 +46,7 @@ runs:
 
     - name: Install the project dependencies
       shell: bash
-      run: poetry install
+      run: poetry install -E all
 
     - name: Use Node.js ${{ inputs.node-version }}
       if: ${{ (inputs.npm == 'true') }}
