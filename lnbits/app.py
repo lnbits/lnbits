@@ -110,8 +110,8 @@ async def shutdown():
 
     # wait a bit to allow them to finish, so that cleanup can run without problems
     await asyncio.sleep(0.1)
-    WALLET = get_wallet_class()
-    await WALLET.cleanup()
+    wallet_class = get_wallet_class()
+    await wallet_class.cleanup()
 
 
 @asynccontextmanager
