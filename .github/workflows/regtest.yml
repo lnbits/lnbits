@@ -56,7 +56,8 @@ jobs:
         if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
         run: docker exec lnbits-lnbits-1 poetry run python tools/create_fake_admin.py
 
-      - name: Run Tests
+      - name: Run pytest
+        uses: pavelzw/pytest-action@v2
         env:
           LNBITS_DATABASE_URL: ${{ inputs.db-url }}
           LNBITS_BACKEND_WALLET_CLASS: ${{ inputs.backend-wallet-class }}
@@ -75,7 +76,16 @@ jobs:
           LNBITS_KEY: "d08a3313322a4514af75d488bcc27eee"
           ECLAIR_URL: http://127.0.0.1:8082
           ECLAIR_PASS: lnbits
-        run: make test-real-wallet
+          LNBITS_DATA_FOLDER: "./tests/data"
+          PYTHONUNBUFFERED: 1
+          DEBUG: true
+        with:
+          verbose: false
+          job-summary: true
+          emoji: false
+          click-to-expand: false
+          custom-pytest: poetry run pytest
+          report-title: "regtest (${{ inputs.python-version }}, ${{ inputs.backend-wallet-class }}"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
