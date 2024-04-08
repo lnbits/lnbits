@@ -12,7 +12,7 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yml
 
-  test-unit:
+  test:
     needs: [ lint ]
     strategy:
       matrix:
@@ -20,18 +20,6 @@ jobs:
         db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
-      make: test-unit
-      python-version: ${{ matrix.python-version }}
-
-  test-api:
-    needs: [ lint ]
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10"]
-        db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
-    uses: ./.github/workflows/tests.yml
-    with:
-      make: test-api
       python-version: ${{ matrix.python-version }}
       db-url: ${{ matrix.db-url }}
     secrets:

@@ -3,9 +3,6 @@ name: regtest
 on:
   workflow_call:
     inputs:
-      make:
-        default: test
-        type: string
       python-version:
         default: "3.9"
         type: string
