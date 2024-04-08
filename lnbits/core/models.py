@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from sqlite3 import Row
-from typing import Callable, ClassVar, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
@@ -307,7 +307,8 @@ class Payment(FromRowModel):
 
 
 class PaymentFilters(FilterModel):
-    __search_fields__: ClassVar[list[str]] = ["memo", "amount"]
+    __search_fields__: list[str]
+    __sort_fields__: list[str]
 
     checking_id: str
     amount: int
