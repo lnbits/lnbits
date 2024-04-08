@@ -6,8 +6,6 @@ format: prettier black ruff
 
 check: mypy pyright checkblack checkruff checkprettier checkbundle
 
-test: test-unit test-api
-
 prettier:
 	poetry run ./node_modules/.bin/prettier --write lnbits
 
@@ -38,11 +36,7 @@ checkeditorconfig:
 dev:
 	poetry run lnbits --reload
 
-test-unit:
-	PYTHONUNBUFFERED=1 \
-	poetry run pytest tests/unit
-
-test-api:
+test:
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	FAKE_WALLET_SECRET="ToTheMoon1" \
 	PYTHONUNBUFFERED=1 \
