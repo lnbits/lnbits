@@ -11,6 +11,7 @@ __pycache__
 *.egg
 *.egg-info
 .coverage
+.coverage.*
 .pytest_cache
 .webassets-cache
 htmlcov
