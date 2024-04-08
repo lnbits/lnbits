@@ -94,7 +94,7 @@ class AlbyWallet(Wallet):
             data = r.json()
 
             if r.is_error:
-                error_message = data["message"]
+                error_message = data["message"] if "message" in data else r.text
                 return InvoiceResponse(False, None, None, error_message)
 
             checking_id = data["payment_hash"]
@@ -128,7 +128,7 @@ class AlbyWallet(Wallet):
             data = r.json()
 
             if r.is_error:
-                error_message = data["message"]
+                error_message = data["message"] if "message" in data else r.text
                 return PaymentResponse(False, None, None, None, error_message)
 
             checking_id = data["payment_hash"]
