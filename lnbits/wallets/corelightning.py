@@ -113,6 +113,7 @@ class CoreLightningWallet(Wallet):
                 False, None, None, "Server error: 'missing required fields'"
             )
         except Exception as e:
+            logger.warning(e)
             return InvoiceResponse(False, None, None, str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -151,6 +152,7 @@ class CoreLightningWallet(Wallet):
                 True, r["payment_hash"], fee_msat, r["payment_preimage"], None
             )
         except RpcError as exc:
+            logger.warning(exc)
             try:
                 error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
             except Exception:
@@ -222,7 +224,8 @@ class CoreLightningWallet(Wallet):
                 logger.warning(f"supplied an invalid checking_id: {checking_id}")
             return PaymentPendingStatus()
 
-        except Exception:
+        except Exception as exc:
+            logger.warning(exc)
             return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
