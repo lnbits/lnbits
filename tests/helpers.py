@@ -222,6 +222,11 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
                                 # different mocks that result in the same
                                 # return value for the tested function
                                 _mock = fs_mocks[mock_name] | test_mock
+                                if (
+                                    "response" in _mock
+                                    and "response" in fs_mocks[mock_name]
+                                ):
+                                    _mock["response"] |= fs_mocks[mock_name]["response"]
                                 mock = Mock(**_mock)
 
                                 unique_test = WalletTest(**t.dict())
@@ -242,14 +247,15 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
 
 class FundingSourceConfig(BaseModel):
     wallet_class: str
+    client_field: Optional[str]
     settings: dict
 
 
 class FunctionMock(BaseModel):
-    uri: str
+    uri: Optional[str]
     query_params: Optional[dict]
-    headers: dict
-    method: str
+    headers: Optional[dict]
+    method: Optional[str]
 
 
 class TestMock(BaseModel):
