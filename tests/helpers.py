@@ -198,14 +198,16 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
                 """create an unit test for each funding source"""
 
                 for fs_name in funding_sources:
+                    funding_source = FundingSourceConfig(
+                                **funding_sources[fs_name]
+                            )
                     t = WalletTest(
                         **{
-                            "funding_source": FundingSourceConfig(
-                                **funding_sources[fs_name]
-                            ),
+                            "funding_source": funding_source,
                             "function": fn_name,
                             **test,
                             "mocks": [],
+                            "skip": funding_source.skip,
                         }
                     )
                     if "mocks" in test:
@@ -234,7 +236,7 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
                                     f"""{t.description}:{mock.description or ""}"""
                                 )
                                 unique_test.mocks = t.mocks + [mock]
-                                unique_test.skip = mock.skip
+                                unique_test.skip = t.skip or mock.skip
 
                                 tests[fs_name].append(unique_test)
                     else:
@@ -246,6 +248,7 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
 
 
 class FundingSourceConfig(BaseModel):
+    skip: Optional[bool]
     wallet_class: str
     client_field: Optional[str]
     settings: dict
