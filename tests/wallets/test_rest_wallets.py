@@ -65,6 +65,8 @@ def _apply_mock(httpserver: HTTPServer, mock: Mock):
     if mock.query_params:
         request_data["query_string"] = mock.query_params
 
+    assert mock.uri, "Missing URI for HTTP mock."
+    assert mock.method, "Missing method for HTTP mock."
     req = httpserver.expect_request(
         uri=mock.uri,
         headers=mock.headers,
