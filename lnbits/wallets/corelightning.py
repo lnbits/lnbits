@@ -54,12 +54,19 @@ class CoreLightningWallet(Wallet):
     async def status(self) -> StatusResponse:
         try:
             funds: dict = self.ln.listfunds()  # type: ignore
+            if len(funds) == 0:
+                return StatusResponse("no data", 0)
+
             return StatusResponse(
                 None, sum([int(ch["our_amount_msat"]) for ch in funds["channels"]])
             )
         except RpcError as exc:
-            error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
+            logger.warning(exc)
+            error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
             return StatusResponse(error_message, 0)
+        except Exception as exc:
+            logger.warning(f"Failed to connect to breez, got: '{exc}'")
+            return StatusResponse(f"Unable to connect, got: '{exc}'", 0)
 
     async def create_invoice(
         self,
@@ -69,7 +76,7 @@ class CoreLightningWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = f"lbl{random.random()}"
+        label = kwargs.get("label", f"lbl{random.random()}")
         msat: int = int(amount * 1000)
         try:
             if description_hash and not unhashed_description:
@@ -95,13 +102,16 @@ class CoreLightningWallet(Wallet):
             if r.get("code") and r.get("code") < 0:  # type: ignore
                 raise Exception(r.get("message"))
 
-            return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
+            return InvoiceResponse(True, r["payment_hash"], r["bolt11"], None)
         except RpcError as exc:
-            error_message = (
-                f"CoreLightning method '{exc.method}' failed with"
-                f" '{exc.error.get('message') or exc.error}'."  # type: ignore
-            )
+            logger.warning(exc)
+            error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
             return InvoiceResponse(False, None, None, error_message)
+        except KeyError as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, "Server error: 'missing required fields'"
+            )
         except Exception as e:
             return InvoiceResponse(False, None, None, str(e))
 
@@ -111,94 +121,109 @@ class CoreLightningWallet(Wallet):
         except Bolt11Exception as exc:
             return PaymentResponse(False, None, None, None, str(exc))
 
-        previous_payment = await self.get_payment_status(invoice.payment_hash)
-        if previous_payment.paid:
-            return PaymentResponse(False, None, None, None, "invoice already paid")
-
-        if not invoice.amount_msat or invoice.amount_msat <= 0:
-            return PaymentResponse(
-                False, None, None, None, "CLN 0 amount invoice not supported"
-            )
-
-        fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
-        # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi
-        # (which is default value of exemptfee)
-        payload = {
-            "bolt11": bolt11,
-            "maxfeepercent": f"{fee_limit_percent:.11}",
-            "exemptfee": 0,
-            # so fee_limit_percent is applied even on payments with fee < 5000
-            # millisatoshi (which is default value of exemptfee)
-            "description": invoice.description,
-        }
         try:
+            previous_payment = await self.get_payment_status(invoice.payment_hash)
+            if previous_payment.paid:
+                return PaymentResponse(False, None, None, None, "invoice already paid")
+
+            if not invoice.amount_msat or invoice.amount_msat <= 0:
+                return PaymentResponse(
+                    False, None, None, None, "CLN 0 amount invoice not supported"
+                )
+
+            fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
+            # so fee_limit_percent is applied even
+            # on payments with fee < 5000 millisatoshi
+            # (which is default value of exemptfee)
+            payload = {
+                "bolt11": bolt11,
+                "maxfeepercent": f"{fee_limit_percent:.11}",
+                "exemptfee": 0,
+                # so fee_limit_percent is applied even on payments with fee < 5000
+                # millisatoshi (which is default value of exemptfee)
+                "description": invoice.description,
+            }
+
             r = await run_sync(lambda: self.ln.call("pay", payload))
+
+            fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
+            return PaymentResponse(
+                True, r["payment_hash"], fee_msat, r["payment_preimage"], None
+            )
         except RpcError as exc:
             try:
                 error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
             except Exception:
-                error_message = (
-                    f"CoreLightning method '{exc.method}' failed with"
-                    f" '{exc.error.get('message') or exc.error}'."  # type: ignore
-                )
+                error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
             return PaymentResponse(False, None, None, None, error_message)
-
-        fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
-        return PaymentResponse(
-            True, r["payment_hash"], fee_msat, r["payment_preimage"], None
-        )
+        except KeyError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(False, None, None, None, f"Payment failed: '{exc}'.")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r: dict = self.ln.listinvoices(payment_hash=checking_id)  # type: ignore
-        except RpcError:
-            return PaymentPendingStatus()
-        if not r["invoices"]:
-            return PaymentPendingStatus()
 
-        invoice_resp = r["invoices"][-1]
-
-        if invoice_resp["payment_hash"] == checking_id:
-            if invoice_resp["status"] == "paid":
-                return PaymentSuccessStatus()
-            elif invoice_resp["status"] == "unpaid":
+            if not r["invoices"]:
                 return PaymentPendingStatus()
-            elif invoice_resp["status"] == "expired":
-                return PaymentFailedStatus()
-        else:
-            logger.warning(f"supplied an invalid checking_id: {checking_id}")
-        return PaymentPendingStatus()
+
+            invoice_resp = r["invoices"][-1]
+
+            if invoice_resp["payment_hash"] == checking_id:
+                if invoice_resp["status"] == "paid":
+                    return PaymentSuccessStatus()
+                elif invoice_resp["status"] == "unpaid":
+                    return PaymentPendingStatus()
+                elif invoice_resp["status"] == "expired":
+                    return PaymentFailedStatus()
+            else:
+                logger.warning(f"supplied an invalid checking_id: {checking_id}")
+            return PaymentPendingStatus()
+        except RpcError as exc:
+            logger.warning(exc)
+            return PaymentPendingStatus()
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             r: dict = self.ln.listpays(payment_hash=checking_id)  # type: ignore
+
+            if "pays" not in r:
+                return PaymentPendingStatus()
+            if not r["pays"]:
+                # no payment with this payment_hash is found
+                return PaymentFailedStatus()
+
+            payment_resp = r["pays"][-1]
+
+            if payment_resp["payment_hash"] == checking_id:
+                status = payment_resp["status"]
+                if status == "complete":
+                    fee_msat = -int(
+                        payment_resp["amount_sent_msat"] - payment_resp["amount_msat"]
+                    )
+
+                    return PaymentSuccessStatus(
+                        fee_msat=fee_msat, preimage=payment_resp["preimage"]
+                    )
+                elif status == "failed":
+                    return PaymentFailedStatus()
+                else:
+                    return PaymentPendingStatus()
+            else:
+                logger.warning(f"supplied an invalid checking_id: {checking_id}")
+            return PaymentPendingStatus()
+
         except Exception:
             return PaymentPendingStatus()
-        if "pays" not in r:
-            return PaymentPendingStatus()
-        if not r["pays"]:
-            # no payment with this payment_hash is found
-            return PaymentFailedStatus()
-
-        payment_resp = r["pays"][-1]
-
-        if payment_resp["payment_hash"] == checking_id:
-            status = payment_resp["status"]
-            if status == "complete":
-                fee_msat = -int(
-                    payment_resp["amount_sent_msat"] - payment_resp["amount_msat"]
-                )
-
-                return PaymentSuccessStatus(
-                    fee_msat=fee_msat, preimage=payment_resp["preimage"]
-                )
-            elif status == "failed":
-                return PaymentFailedStatus()
-            else:
-                return PaymentPendingStatus()
-        else:
-            logger.warning(f"supplied an invalid checking_id: {checking_id}")
-        return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
