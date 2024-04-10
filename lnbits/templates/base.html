@@ -37,6 +37,7 @@
         <q-toolbar>
           {% block drawer_toggle %}
           <q-btn
+            v-if="isUserAuthorized"
             dense
             flat
             round
@@ -129,11 +130,11 @@
             <q-list>
               <q-item tag="a" href="/account" clickable v-close-popup
                 ><q-item-section>
-                  <q-icon name="person" />
+                  <q-icon name="settings" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>
-                    <span v-text="$t('my_account')"></span>
+                    <span v-text="$t('settings')"></span>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section>
