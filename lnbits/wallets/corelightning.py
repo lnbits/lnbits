@@ -18,7 +18,7 @@ from .base import (
     PaymentStatus,
     PaymentSuccessStatus,
     StatusResponse,
-    UnsupportedError,
+    Unsupported,
     Wallet,
 )
 
@@ -68,7 +68,7 @@ class CoreLightningWallet(Wallet):
             error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
             return StatusResponse(error_message, 0)
         except Exception as exc:
-            logger.warning(f"Failed to connect, got: '{exc}'")
+            logger.warning(f"Failed to connect to breez, got: '{exc}'")
             return StatusResponse(f"Unable to connect, got: '{exc}'", 0)
 
     async def create_invoice(
@@ -83,12 +83,12 @@ class CoreLightningWallet(Wallet):
         msat: int = int(amount * 1000)
         try:
             if description_hash and not unhashed_description:
-                raise UnsupportedError(
+                raise Unsupported(
                     "'description_hash' unsupported by CoreLightning, provide"
                     " 'unhashed_description'"
                 )
             if unhashed_description and not self.supports_description_hash:
-                raise UnsupportedError("unhashed_description")
+                raise Unsupported("unhashed_description")
             r: dict = self.ln.invoice(  # type: ignore
                 msatoshi=msat,
                 label=label,
@@ -116,7 +116,6 @@ class CoreLightningWallet(Wallet):
                 False, None, None, "Server error: 'missing required fields'"
             )
         except Exception as e:
-            logger.warning(e)
             return InvoiceResponse(False, None, None, str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -155,7 +154,6 @@ class CoreLightningWallet(Wallet):
                 True, r["payment_hash"], fee_msat, r["payment_preimage"], None
             )
         except RpcError as exc:
-            logger.warning(exc)
             try:
                 error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
             except Exception:
@@ -227,8 +225,7 @@ class CoreLightningWallet(Wallet):
                 logger.warning(f"supplied an invalid checking_id: {checking_id}")
             return PaymentPendingStatus()
 
-        except Exception as exc:
-            logger.warning(exc)
+        except Exception:
             return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
