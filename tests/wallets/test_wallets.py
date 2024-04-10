@@ -1,4 +1,5 @@
 import importlib
+from typing import Dict, List, Optional
 
 import pytest
 from mock import Mock
@@ -9,6 +10,9 @@ from tests.helpers import (
     FundingSourceConfig,
     WalletTest,
     rest_wallet_fixtures_from_json,
+)
+from tests.helpers import (
+    Mock as RpcMock,
 )
 
 wallets_module = importlib.import_module("lnbits.wallets")
@@ -46,17 +50,7 @@ async def test_wallets(mocker: MockerFixture, test_data: WalletTest):
         pytest.skip()
 
     for mock in test_data.mocks:
-        return_value = {}
-        for field_name in mock.response:
-            value = mock.response[field_name]
-            values = value if isinstance(value, list) else [value]
-
-            return_value[field_name] = Mock(
-                side_effect=[_mock_field(f) for f in values]
-            )
-
-        m = _data_mock(return_value)
-        mocker.patch(mock.method, m)
+        _apply_rpc_mock(mocker, mock)
 
     wallet = _load_funding_source(test_data.funding_source)
 
@@ -65,6 +59,20 @@ async def test_wallets(mocker: MockerFixture, test_data: WalletTest):
     await _check_assertions(wallet, test_data)
 
     _check_calls(expected_calls)
+
+
+def _apply_rpc_mock(mocker: MockerFixture, mock: RpcMock):
+    return_value = {}
+    assert isinstance(mock.response, dict), "Expected data RPC response"
+    for field_name in mock.response:
+        value = mock.response[field_name]
+        values = value if isinstance(value, list) else [value]
+
+        return_value[field_name] = Mock(side_effect=[_mock_field(f) for f in values])
+
+    m = _data_mock(return_value)
+    assert mock.method, "Missing method for RPC mock."
+    mocker.patch(mock.method, m)
 
 
 def _check_calls(expected_calls):
@@ -84,24 +92,33 @@ def _check_calls(expected_calls):
 
 
 def _spy_mocks(mocker: MockerFixture, test_data: WalletTest, wallet: BaseWallet):
-    expected_calls = {}
+    assert (
+        test_data.funding_source.client_field
+    ), f"Missing client field for wallet {wallet}"
+    client_field = getattr(wallet, test_data.funding_source.client_field)
+    expected_calls: Dict[str, List] = {}
     for mock in test_data.mocks:
-        for field_name in mock.response:
-            value = mock.response[field_name]
-            values = value if isinstance(value, list) else [value]
+        spy = _spy_mock(mocker, mock, client_field)
+        expected_calls |= spy
 
-            expected_calls[field_name] = [
-                {
-                    "spy": mocker.spy(
-                        getattr(wallet, test_data.funding_source.client_field),
-                        field_name,
-                    ),
-                    "request_data": f["request_data"],
-                }
-                for f in values
-                if f["request_type"] == "function" and "request_data" in f
-            ]
+    return expected_calls
 
+
+def _spy_mock(mocker: MockerFixture, mock: RpcMock, client_field):
+    expected_calls: Dict[str, List] = {}
+    assert isinstance(mock.response, dict), "Expected data RPC response"
+    for field_name in mock.response:
+        value = mock.response[field_name]
+        values = value if isinstance(value, list) else [value]
+
+        expected_calls[field_name] = [
+            {
+                "spy": mocker.spy(client_field, field_name),
+                "request_data": f["request_data"],
+            }
+            for f in values
+            if f["request_type"] == "function" and "request_data" in f
+        ]
     return expected_calls
 
 
@@ -142,9 +159,9 @@ def _load_funding_source(funding_source: FundingSourceConfig) -> BaseWallet:
     return fs_instance
 
 
-def _dict_to_object(data: dict) -> DataObject:
+def _dict_to_object(data: Optional[dict]) -> Optional[DataObject]:
     if not data:
-        return data
+        return None
     d = {**data}
     for k in data:
         value = data[k]
