@@ -1,13 +1,14 @@
 {
     "funding_sources": {
         "breez": {
+            "skip": true,
             "wallet_class": "BreezSdkWallet",
             "client_field": "sdk_services",
             "settings": {
                 "breez_api_key": "100",
                 "breez_greenlight_seed": "push divert icon era bracket fade much kind reason injury suffer muffin",
-                "breez_greenlight_device_key": "tests/wallets/data/certificates/cert.pem",
-                "breez_greenlight_device_cert": "tests/wallets/data/certificates/breez.crt"
+                "breez_greenlight_device_key": "tests/wallets/certificates/cert.pem",
+                "breez_greenlight_device_cert": "tests/wallets/certificates/breez.crt"
             }
         },
         "corelightning": {
