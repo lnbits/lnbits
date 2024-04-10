@@ -112,7 +112,6 @@ new Vue({
     }
   },
   created: async function () {
-    
     try {
       const {data} = await LNbits.api.getAuthenticatedUser()
       this.user = data

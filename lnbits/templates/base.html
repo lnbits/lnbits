@@ -111,13 +111,7 @@
             <span>OFFLINE</span>
           </q-badge>
 
-          <q-btn-dropdown
-            dense
-            flat
-            round
-            size="sm"
-            class="q-pl-sm"
-          >
+          <q-btn-dropdown dense flat round size="sm" class="q-pl-sm">
             <template v-slot:label>
               <div>
                 {%if user and user.config and user.config.picture%}
@@ -142,7 +136,11 @@
                 </q-item-section>
               </q-item>
               <q-separator v-if="isUserAuthorized"></q-separator>
-              <q-item clickable v-close-popup @click="logout" v-if="isUserAuthorized"
+              <q-item
+                clickable
+                v-close-popup
+                @click="logout"
+                v-if="isUserAuthorized"
                 ><q-item-section>
                   <q-icon name="logout" />
                 </q-item-section>
