@@ -232,13 +232,17 @@ async def wallet(
 )
 async def account(
     request: Request,
-    user: User = Depends(check_user_exists),
+    user: User = None,
 ):
+    try:
+        user_dict = user.dict()
+    except Exception:
+        user_dict = None
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
         {
-            "user": user.dict(),
+            "user": user_dict,
         },
     )
 

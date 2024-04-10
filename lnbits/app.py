@@ -70,7 +70,6 @@ from .tasks import (
 
 
 async def startup(app: FastAPI):
-
     # wait till migration is done
     await migrate_databases()
 

@@ -37,6 +37,7 @@
         <q-toolbar>
           {% block drawer_toggle %}
           <q-btn
+            v-if="isUserAuthorized"
             dense
             flat
             round
@@ -110,14 +111,7 @@
             <span>OFFLINE</span>
           </q-badge>
 
-          <q-btn-dropdown
-            v-if="isUserAuthorized"
-            dense
-            flat
-            round
-            size="sm"
-            class="q-pl-sm"
-          >
+          <q-btn-dropdown dense flat round size="sm" class="q-pl-sm">
             <template v-slot:label>
               <div>
                 {%if user and user.config and user.config.picture%}
@@ -130,19 +124,23 @@
             <q-list>
               <q-item tag="a" href="/account" clickable v-close-popup
                 ><q-item-section>
-                  <q-icon name="person" />
+                  <q-icon name="settings" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>
-                    <span v-text="$t('my_account')"></span>
+                    <span v-text="$t('settings')"></span>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section>
                   <q-item-label> </q-item-label>
                 </q-item-section>
               </q-item>
-              <q-separator></q-separator>
-              <q-item clickable v-close-popup @click="logout"
+              <q-separator v-if="isUserAuthorized"></q-separator>
+              <q-item
+                clickable
+                v-close-popup
+                @click="logout"
+                v-if="isUserAuthorized"
                 ><q-item-section>
                   <q-icon name="logout" />
                 </q-item-section>

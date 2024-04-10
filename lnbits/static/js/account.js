@@ -3,7 +3,9 @@ new Vue({
   mixins: [windowMixin],
   data: function () {
     return {
-      user: null,
+      user: {
+        config: {}
+      },
       hasUsername: false,
       showUserId: false,
       reactionOptions: [
@@ -116,7 +118,7 @@ new Vue({
       this.hasUsername = !!data.username
       if (!this.user.config) this.user.config = {}
     } catch (e) {
-      LNbits.utils.notifyApiError(e)
+      this.tab = 'theme'
     }
   }
 })

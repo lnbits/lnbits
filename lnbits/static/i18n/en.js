@@ -235,6 +235,7 @@ This service is in BETA. LNbits holds no responsibility for loss of access to fu
   invalid_username: 'Invalid Username',
   auth_provider: 'Auth Provider',
   my_account: 'My Account',
+  settings: 'Settings',
   back: 'Back',
   logout: 'Logout',
   look_and_feel: 'Look and Feel',
