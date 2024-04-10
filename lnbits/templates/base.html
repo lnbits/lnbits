@@ -111,7 +111,6 @@
           </q-badge>
 
           <q-btn-dropdown
-            v-if="isUserAuthorized"
             dense
             flat
             round
@@ -141,8 +140,8 @@
                   <q-item-label> </q-item-label>
                 </q-item-section>
               </q-item>
-              <q-separator></q-separator>
-              <q-item clickable v-close-popup @click="logout"
+              <q-separator v-if="isUserAuthorized"></q-separator>
+              <q-item clickable v-close-popup @click="logout" v-if="isUserAuthorized"
                 ><q-item-section>
                   <q-icon name="logout" />
                 </q-item-section>

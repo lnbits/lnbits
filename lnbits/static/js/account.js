@@ -3,7 +3,9 @@ new Vue({
   mixins: [windowMixin],
   data: function () {
     return {
-      user: null,
+      user: {
+        config: {}
+      },
       hasUsername: false,
       showUserId: false,
       reactionOptions: [
@@ -110,13 +112,14 @@ new Vue({
     }
   },
   created: async function () {
+    
     try {
       const {data} = await LNbits.api.getAuthenticatedUser()
       this.user = data
       this.hasUsername = !!data.username
       if (!this.user.config) this.user.config = {}
     } catch (e) {
-      LNbits.utils.notifyApiError(e)
+      this.tab = 'theme'
     }
   }
 })

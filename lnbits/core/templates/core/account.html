@@ -14,6 +14,7 @@
           <div class="col">
             <q-tabs v-model="tab" align="justify">
               <q-tab
+                v-if="isUserAuthorized"
                 name="user"
                 :label="$t('account_settings')"
                 @update="val => tab = val.name"
@@ -25,7 +26,7 @@
               ></q-tab>
             </q-tabs>
             <q-tab-panels v-model="tab">
-              <q-tab-panel name="user">
+              <q-tab-panel name="user" >
                 <div v-if="passwordData.show">
                   <q-card-section>
                     <div class="row">
@@ -420,6 +421,9 @@
                 </div>
               </q-tab-panel>
             </q-tab-panels>
+            <q-btn
+            unelevated icon="arrow_back_ios" color="primary" onclick="history.back()"
+            >back</q-btn>
           </div>
         </div>
       </q-card-section>
