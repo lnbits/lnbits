@@ -208,7 +208,7 @@ async def check_funding_source() -> None:
             break
 
         retry_counter += 1
-        sleep_time = 0.2 * (2**retry_counter)
+        sleep_time = 0.25 * (2**retry_counter)
         logger.warning(
             f"Retrying connection to backend in {sleep_time} seconds... "
             f"({retry_counter}/{max_retries})"
