@@ -127,6 +127,66 @@ class WalletTest(BaseModel):
         )
 
 
+    @staticmethod
+    def tests_for_funding_source(
+        fn_name: str, fs_name: str, fn, test, funding_source: FundingSourceConfig
+    ) -> List["WalletTest"]:
+        t = WalletTest(
+            **{
+                "funding_source": funding_source,
+                "function": fn_name,
+                **test,
+                "mocks": [],
+                "skip": funding_source.skip,
+            }
+        )
+        if "mocks" in test:
+            if fs_name not in test["mocks"]:
+                t.skip = True
+                return [t]
+
+            return t._tests_from_fs_mocks(fn, test, fs_name)
+
+        return [t]
+
+
+    def _tests_from_fs_mocks(self, fn, test, fs_name: str) -> List["WalletTest"]:
+        tests: List[WalletTest] = []
+
+        fs_mocks = fn["mocks"][fs_name]
+        test_mocks = test["mocks"][fs_name]
+
+        for mock_name in fs_mocks:
+            tests += self._tests_from_mocks(fs_mocks[mock_name], test_mocks[mock_name])
+        return tests
+
+
+    def _tests_from_mocks(self, fs_mock, test_mocks) -> List["WalletTest"]:
+        tests: List[WalletTest] = []
+        for test_mock in test_mocks:
+            # different mocks that result in the same
+            # return value for the tested function
+            unique_test = self._test_from_mocks(fs_mock, test_mock)
+
+            tests.append(unique_test)
+        return tests
+
+
+    def _test_from_mocks(self, fs_mock, test_mock) -> "WalletTest":
+        mock = Mock.combine_mocks(fs_mock, test_mock)
+
+        return WalletTest(
+            **(
+                self.dict()
+                | {
+                    "description": f"""{self.description}:{mock.description or ""}""",
+                    "mocks": self.mocks + [mock],
+                    "skip": self.skip or mock.skip,
+                }
+            )
+        )
+
+
 class DataObject:
     def __init__(self, **kwargs):
         for k in kwargs:
