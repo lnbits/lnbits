@@ -10,7 +10,7 @@ from tests.wallets.fixtures.models import FundingSourceConfig, WalletTest
 wallets_module = importlib.import_module("lnbits.wallets")
 
 
-def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
+def wallet_fixtures_from_json(path) -> List["WalletTest"]:
     with open(path) as f:
         data = json.load(f)
 
@@ -18,31 +18,30 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
             FundingSourceConfig(name=fs_name, **data["funding_sources"][fs_name])
             for fs_name in data["funding_sources"]
         ]
-        tests = {}
+        tests: Dict[str, List[WalletTest]] = {}
         for fn_name in data["functions"]:
             fn = data["functions"][fn_name]
-            fs_tests = x1(funding_sources, fn_name, fn)
-
-            _merge_dict_of_lists(tests, fs_tests)
+            fn_tests = _tests_for_function(funding_sources, fn_name, fn)
+            _merge_dict_of_lists(tests, fn_tests)
 
         all_tests = sum([tests[fs_name] for fs_name in tests], [])
         return all_tests
 
 
-def x1(
+def _tests_for_function(
     funding_sources: List[FundingSourceConfig], fn_name: str, fn
 ) -> Dict[str, List[WalletTest]]:
     tests: Dict[str, List[WalletTest]] = {}
     for test in fn["tests"]:
         """create an unit test for each funding source"""
 
-        fs_tests = x2(funding_sources, fn_name, fn, test)
+        fs_tests = _tests_for_funding_source(funding_sources, fn_name, fn, test)
         _merge_dict_of_lists(tests, fs_tests)
 
     return tests
 
 
-def x2(
+def _tests_for_funding_source(
     funding_sources: List[FundingSourceConfig], fn_name: str, fn, test
 ) -> Dict[str, List[WalletTest]]:
     tests: Dict[str, List[WalletTest]] = {fs.name: [] for fs in funding_sources}

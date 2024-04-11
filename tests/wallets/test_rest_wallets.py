@@ -12,7 +12,7 @@ from tests.wallets.helpers import (
     build_test_id,
     check_assertions,
     load_funding_source,
-    rest_wallet_fixtures_from_json,
+    wallet_fixtures_from_json,
 )
 
 # todo:
@@ -30,7 +30,7 @@ def httpserver_listen_address():
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_data",
-    rest_wallet_fixtures_from_json("tests/wallets/fixtures/json/fixtures_rest.json"),
+    wallet_fixtures_from_json("tests/wallets/fixtures/json/fixtures_rest.json"),
     ids=build_test_id,
 )
 async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
