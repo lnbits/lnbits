@@ -10,6 +10,7 @@ from tests.wallets.helpers import (
     DataObject,
     WalletTest,
     build_test_id,
+    check_assertions,
     load_funding_source,
     rest_wallet_fixtures_from_json,
 )
@@ -35,7 +36,7 @@ async def test_wallets(mocker: MockerFixture, test_data: WalletTest):
 
     expected_calls = _spy_mocks(mocker, test_data, wallet)
 
-    await _check_assertions(wallet, test_data)
+    await check_assertions(wallet, test_data)
 
     _check_calls(expected_calls)
 
@@ -144,41 +145,3 @@ def _raise(error: dict):
     error_class = getattr(error_module, error["class"])
 
     return error_class(**data)
-
-
-async def _check_assertions(wallet, _test_data: WalletTest):
-    test_data = _test_data.dict()
-    tested_func = _test_data.function
-    call_params = _test_data.call_params
-
-    if "expect" in test_data:
-        await _assert_data(wallet, tested_func, call_params, _test_data.expect)
-        # if len(_test_data.mocks) == 0:
-        #     # all calls should fail after this method is called
-        #     await wallet.cleanup()
-        #     # same behaviour expected is server canot be reached
-        #     # or if the connection was closed
-        #     await _assert_data(wallet, tested_func, call_params, _test_data.expect)
-    elif "expect_error" in test_data:
-        await _assert_error(wallet, tested_func, call_params, _test_data.expect_error)
-    else:
-        assert False, "Expected outcome not specified"
-
-
-async def _assert_data(wallet, tested_func, call_params, expect):
-    resp = await getattr(wallet, tested_func)(**call_params)
-    for key in expect:
-        received = getattr(resp, key)
-        expected = expect[key]
-        assert (
-            getattr(resp, key) == expect[key]
-        ), f"""Field "{key}". Received: "{received}". Expected: "{expected}"."""
-
-
-async def _assert_error(wallet, tested_func, call_params, expect_error):
-    error_module = importlib.import_module(expect_error["module"])
-    error_class = getattr(error_module, expect_error["class"])
-    with pytest.raises(error_class) as e_info:
-        await getattr(wallet, tested_func)(**call_params)
-
-    assert e_info.match(expect_error["message"])
