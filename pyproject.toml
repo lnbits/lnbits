@@ -74,6 +74,7 @@ json5 = "^0.9.17"
 asgi-lifespan = "^2.1.0"
 pytest-md = "^0.2.0"
 pytest-httpserver = "^1.0.10"
+pytest-mock = "^3.14.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
