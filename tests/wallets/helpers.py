@@ -23,55 +23,73 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
         for fn_name in data["functions"]:
             fn = data["functions"][fn_name]
 
-            for test in fn["tests"]:
-                """create an unit test for each funding source"""
-
-                for fs_name in funding_sources:
-                    funding_source = FundingSourceConfig(**funding_sources[fs_name])
-                    t = WalletTest(
-                        **{
-                            "funding_source": funding_source,
-                            "function": fn_name,
-                            **test,
-                            "mocks": [],
-                            "skip": funding_source.skip,
-                        }
-                    )
-                    if "mocks" in test:
-                        if fs_name not in test["mocks"]:
-                            t.skip = True
-                            tests[fs_name].append(t)
-                            continue
-
-                        test_mocks_names = test["mocks"][fs_name]
-
-                        fs_mocks = fn["mocks"][fs_name]
-                        for mock_name in fs_mocks:
-                            for test_mock in test_mocks_names[mock_name]:
-                                # different mocks that result in the same
-                                # return value for the tested function
-                                _mock = fs_mocks[mock_name] | test_mock
-                                if (
-                                    "response" in _mock
-                                    and "response" in fs_mocks[mock_name]
-                                ):
-                                    _mock["response"] |= fs_mocks[mock_name]["response"]
-                                mock = Mock(**_mock)
-
-                                unique_test = WalletTest(**t.dict())
-                                unique_test.description = (
-                                    f"""{t.description}:{mock.description or ""}"""
-                                )
-                                unique_test.mocks = t.mocks + [mock]
-                                unique_test.skip = t.skip or mock.skip
-
-                                tests[fs_name].append(unique_test)
-                    else:
-                        # add the test without mocks
-                        tests[fs_name].append(t)
+            x1(funding_sources, tests, fn_name, fn)
 
         all_tests = sum([tests[fs_name] for fs_name in tests], [])
         return all_tests
+
+
+def x1(funding_sources, tests, fn_name, fn):
+    for test in fn["tests"]:
+        """create an unit test for each funding source"""
+
+        x2(funding_sources, tests, fn_name, fn, test)
+
+
+def x2(funding_sources, tests, fn_name, fn, test):
+    for fs_name in funding_sources:
+        funding_source = FundingSourceConfig(**funding_sources[fs_name])
+        tests[fs_name] += x22(fn_name, fn, test, fs_name, funding_source)
+
+
+def x22(fn_name, fn, test, fs_name, funding_source) -> List[WalletTest]:
+    t = WalletTest(
+        **{
+            "funding_source": funding_source,
+            "function": fn_name,
+            **test,
+            "mocks": [],
+            "skip": funding_source.skip,
+        }
+    )
+    if "mocks" in test:
+        if fs_name not in test["mocks"]:
+            t.skip = True
+            # tests[fs_name].append(t)
+            return [t]
+
+        return x4(fn, test, fs_name, t)
+
+    return [t]
+
+
+def x4(fn, test, fs_name, t) -> List[WalletTest]:
+    tests: List[WalletTest] = []
+    test_mocks_names = test["mocks"][fs_name]
+
+    fs_mocks = fn["mocks"][fs_name]
+    for mock_name in fs_mocks:
+        tests += x5(t, test_mocks_names, fs_mocks, mock_name)
+    return tests
+
+
+def x5(t, test_mocks_names, fs_mocks, mock_name) -> List[WalletTest]:
+    tests: List[WalletTest] = []
+    for test_mock in test_mocks_names[mock_name]:
+        # different mocks that result in the same
+        # return value for the tested function
+        _mock = fs_mocks[mock_name] | test_mock
+        if "response" in _mock and "response" in fs_mocks[mock_name]:
+            _mock["response"] |= fs_mocks[mock_name]["response"]
+        mock = Mock(**_mock)
+
+        unique_test = WalletTest(**t.dict())
+        unique_test.description = f"""{t.description}:{mock.description or ""}"""
+        unique_test.mocks = t.mocks + [mock]
+        unique_test.skip = t.skip or mock.skip
+
+        tests.append(unique_test)
+    return tests
 
 
 def build_test_id(test: WalletTest):
