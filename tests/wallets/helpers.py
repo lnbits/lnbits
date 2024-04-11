@@ -5,7 +5,7 @@ from typing import Dict, List
 import pytest
 
 from lnbits.core.models import BaseWallet
-from tests.wallets.fixtures.models import FundingSourceConfig, Mock, WalletTest
+from tests.wallets.fixtures.models import FundingSourceConfig, WalletTest
 
 wallets_module = importlib.import_module("lnbits.wallets")
 
@@ -16,37 +16,36 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
 
         funding_sources = data["funding_sources"]
 
-        tests: Dict[str, List[WalletTest]] = {
-            fs_name: [] for fs_name in funding_sources
-        }
-
+        tests = {}
         for fn_name in data["functions"]:
             fn = data["functions"][fn_name]
+            fs_tests = x1(funding_sources, fn_name, fn)
 
-            x1(funding_sources, tests, fn_name, fn)
+            _merge_dict_of_lists(tests, fs_tests)
 
         all_tests = sum([tests[fs_name] for fs_name in tests], [])
         return all_tests
 
 
-def x1(funding_sources, tests, fn_name, fn):
+def x1(funding_sources, fn_name, fn):
+    tests: Dict[str, List[WalletTest]] = {}
     for test in fn["tests"]:
         """create an unit test for each funding source"""
 
-        x2(funding_sources, tests, fn_name, fn, test)
+        fs_tests = x2(funding_sources, fn_name, fn, test)
+        _merge_dict_of_lists(tests, fs_tests)
+
+    return tests
 
 
-def x2(funding_sources, tests, fn_name, fn, test):
+def x2(funding_sources, fn_name, fn, test) -> Dict[str, List[WalletTest]]:
+    tests: Dict[str, List[WalletTest]] = {fs_name: [] for fs_name in funding_sources}
     for fs_name in funding_sources:
         funding_source = FundingSourceConfig(**funding_sources[fs_name])
         tests[fs_name] += WalletTest.tests_for_funding_source(
             fn_name, fs_name, fn, test, funding_source
         )
-
-
-
-
-
+    return tests
 
 
 def build_test_id(test: WalletTest):
@@ -108,3 +107,9 @@ async def _assert_error(wallet, tested_func, call_params, expect_error):
         await getattr(wallet, tested_func)(**call_params)
 
     assert e_info.match(expect_error["message"])
+
+
+def _merge_dict_of_lists(v1: Dict[str, List], v2: Dict[str, List]):
+    """Merge v2 into v1"""
+    for k in v2:
+        v1[k] = v2[k] if k not in v1 else v1[k] + v2[k]

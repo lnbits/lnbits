@@ -6,8 +6,8 @@ import pytest
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
+from tests.wallets.fixtures.models import Mock
 from tests.wallets.helpers import (
-    Mock,
     WalletTest,
     build_test_id,
     check_assertions,

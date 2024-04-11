@@ -67,7 +67,6 @@ class WalletTest(BaseModel):
     expect_error: Optional[dict]
     mocks: List[Mock] = []
 
-
     @staticmethod
     def tests_for_funding_source(
         fn_name: str, fs_name: str, fn, test, funding_source: FundingSourceConfig
@@ -90,7 +89,6 @@ class WalletTest(BaseModel):
 
         return [t]
 
-
     def _tests_from_fs_mocks(self, fn, test, fs_name: str) -> List["WalletTest"]:
         tests: List[WalletTest] = []
 
@@ -101,7 +99,6 @@ class WalletTest(BaseModel):
             tests += self._tests_from_mocks(fs_mocks[mock_name], test_mocks[mock_name])
         return tests
 
-
     def _tests_from_mocks(self, fs_mock, test_mocks) -> List["WalletTest"]:
         tests: List[WalletTest] = []
         for test_mock in test_mocks:
@@ -111,7 +108,6 @@ class WalletTest(BaseModel):
 
             tests.append(unique_test)
         return tests
-
 
     def _test_from_mocks(self, fs_mock, test_mock) -> "WalletTest":
         mock = Mock.combine_mocks(fs_mock, test_mock)
