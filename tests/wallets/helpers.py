@@ -1,11 +1,11 @@
 import importlib
 import json
-from typing import Dict, List, Optional, Union
+from typing import Dict, List
 
 import pytest
-from pydantic import BaseModel
 
 from lnbits.core.models import BaseWallet
+from tests.wallets.fixtures.models import FundingSourceConfig, Mock, WalletTest
 
 wallets_module = importlib.import_module("lnbits.wallets")
 
@@ -72,71 +72,6 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
 
         all_tests = sum([tests[fs_name] for fs_name in tests], [])
         return all_tests
-
-
-class FundingSourceConfig(BaseModel):
-    skip: Optional[bool]
-    wallet_class: str
-    client_field: Optional[str]
-    settings: dict
-
-
-class FunctionMock(BaseModel):
-    uri: Optional[str]
-    query_params: Optional[dict]
-    headers: Optional[dict]
-    method: Optional[str]
-
-
-class TestMock(BaseModel):
-    skip: Optional[bool]
-    description: Optional[str]
-    request_type: Optional[str]
-    request_body: Optional[dict]
-    response_type: str
-    response: Union[str, dict]
-
-
-class Mock(FunctionMock, TestMock):
-    pass
-
-
-class FunctionMocks(BaseModel):
-    mocks: Dict[str, FunctionMock]
-
-
-class FunctionTest(BaseModel):
-    description: str
-    call_params: dict
-    expect: dict
-    mocks: Dict[str, List[Dict[str, TestMock]]]
-
-
-class FunctionData(BaseModel):
-    """Data required for testing this function"""
-
-    "Function level mocks that apply for all tests of this function"
-    mocks: List[FunctionMock] = []
-
-    "All the tests for this function"
-    tests: List[FunctionTest] = []
-
-
-class WalletTest(BaseModel):
-    skip: Optional[bool]
-    function: str
-    description: str
-    funding_source: FundingSourceConfig
-    call_params: Optional[dict] = {}
-    expect: Optional[dict]
-    expect_error: Optional[dict]
-    mocks: List[Mock] = []
-
-
-class DataObject:
-    def __init__(self, **kwargs):
-        for k in kwargs:
-            setattr(self, k, kwargs[k])
 
 
 def build_test_id(test: WalletTest):
