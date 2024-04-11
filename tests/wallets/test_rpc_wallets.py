@@ -22,7 +22,7 @@ from tests.wallets.helpers import (
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_data",
-    rest_wallet_fixtures_from_json("tests/wallets/fixtures_rpc.json"),
+    rest_wallet_fixtures_from_json("tests/wallets/fixtures/json/fixtures_rpc.json"),
     ids=build_test_id,
 )
 async def test_wallets(mocker: MockerFixture, test_data: WalletTest):
