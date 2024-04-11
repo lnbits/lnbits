@@ -180,8 +180,7 @@ async def check_funding_source() -> None:
 
     WALLET = get_wallet_class()
 
-    sleep_time = 5
-    max_retries = 5
+    max_retries = settings.funding_source_max_retries
     retry_counter = 0
 
     while True:
@@ -203,12 +202,13 @@ async def check_funding_source() -> None:
         except Exception as e:
             logger.error(f"Error connecting to {WALLET.__class__.__name__}: {e}")
 
-        if retry_counter == max_retries:
+        if retry_counter >= max_retries:
             set_void_wallet_class()
             WALLET = get_wallet_class()
             break
 
         retry_counter += 1
+        sleep_time = 0.25 * (2**retry_counter)
         logger.warning(
             f"Retrying connection to backend in {sleep_time} seconds... "
             f"({retry_counter}/{max_retries})"
