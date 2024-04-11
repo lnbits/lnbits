@@ -180,7 +180,6 @@ async def check_funding_source() -> None:
 
     WALLET = get_wallet_class()
 
-    sleep_time = 5
     max_retries = settings.funding_source_max_retries
     retry_counter = 0
 
@@ -209,6 +208,7 @@ async def check_funding_source() -> None:
             break
 
         retry_counter += 1
+        sleep_time = 0.2 * (2**retry_counter)
         logger.warning(
             f"Retrying connection to backend in {sleep_time} seconds... "
             f"({retry_counter}/{max_retries})"

@@ -377,7 +377,7 @@ class EnvSettings(LNbitsSettings):
     log_retention: str = Field(default="3 months")
     server_startup_time: int = Field(default=time())
     cleanup_wallets_days: int = Field(default=90)
-    funding_source_max_retries: int = Field(default=0)
+    funding_source_max_retries: int = Field(default=4)
 
     @property
     def has_default_extension_path(self) -> bool:
