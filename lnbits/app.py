@@ -177,43 +177,26 @@ def create_app() -> FastAPI:
 
 
 async def check_funding_source() -> None:
-
     WALLET = get_wallet_class()
-
-    sleep_time = 5
-    max_retries = 5
-    retry_counter = 0
-
-    while True:
-        try:
-            logger.info(f"Connecting to backend {WALLET.__class__.__name__}...")
-            error_message, balance = await WALLET.status()
-            if not error_message:
-                retry_counter = 0
-                logger.success(
-                    f"✔️ Backend {WALLET.__class__.__name__} connected "
-                    f"and with a balance of {balance} msat."
-                )
-                break
-            logger.error(
-                f"The backend for {WALLET.__class__.__name__} isn't "
-                f"working properly: '{error_message}'",
-                RuntimeWarning,
+    try:
+        logger.info(f"Connecting to backend {WALLET.__class__.__name__}...")
+        error_message, balance = await WALLET.status()
+        if not error_message:
+            logger.success(
+                f"✔️ Backend {WALLET.__class__.__name__} connected "
+                f"and with a balance of {balance} msat."
             )
-        except Exception as e:
-            logger.error(f"Error connecting to {WALLET.__class__.__name__}: {e}")
-
-        if retry_counter == max_retries:
-            set_void_wallet_class()
-            WALLET = get_wallet_class()
-            break
-
-        retry_counter += 1
-        logger.warning(
-            f"Retrying connection to backend in {sleep_time} seconds... "
-            f"({retry_counter}/{max_retries})"
+            return
+        logger.error(
+            f"The backend for {WALLET.__class__.__name__} isn't "
+            f"working properly: '{error_message}'",
+            RuntimeWarning,
         )
-        await asyncio.sleep(sleep_time)
+    except Exception as e:
+        logger.error(f"Error connecting to {WALLET.__class__.__name__}: {e}")
+
+    set_void_wallet_class()
+    WALLET = get_wallet_class()
 
 
 def set_void_wallet_class():
