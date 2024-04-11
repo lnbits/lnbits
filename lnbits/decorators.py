@@ -50,7 +50,7 @@ class KeyChecker(SecurityBase):
                 description="Wallet API Key - HEADER",
             )
         self.wallet: Optional[Wallet] = None
-        self.model: APIKey = openapi_model
+        self.model = openapi_model
 
     async def __call__(self, request: Request):
         try:
