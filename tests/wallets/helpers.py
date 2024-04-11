@@ -125,3 +125,9 @@ class WalletTest(BaseModel):
     expect: Optional[dict]
     expect_error: Optional[dict]
     mocks: List[Mock] = []
+
+
+class DataObject:
+    def __init__(self, **kwargs):
+        for k in kwargs:
+            setattr(self, k, kwargs[k])

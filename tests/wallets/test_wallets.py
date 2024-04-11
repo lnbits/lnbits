@@ -7,6 +7,7 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models import BaseWallet
 from tests.wallets.helpers import (
+    DataObject,
     FundingSourceConfig,
     WalletTest,
     rest_wallet_fixtures_from_json,
@@ -18,25 +19,8 @@ from tests.wallets.helpers import (
 wallets_module = importlib.import_module("lnbits.wallets")
 
 
-class DataObject:
-    def __init__(self, **kwargs):
-        for k in kwargs:
-            setattr(self, k, kwargs[k])
-
-
 def build_test_id(test: WalletTest):
     return f"{test.funding_source}.{test.function}({test.description})"
-
-
-def _raise(error):
-    data = error["data"] if "data" in error else None
-    if "module" not in error or "class" not in error:
-        return Exception(data)
-
-    error_module = importlib.import_module(error["module"])
-    error_class = getattr(error_module, error["class"])
-
-    return error_class(**data)
 
 
 @pytest.mark.asyncio
@@ -173,6 +157,17 @@ def _dict_to_object(data: Optional[dict]) -> Optional[DataObject]:
 
 def _data_mock(data: dict) -> Mock:
     return Mock(return_value=_dict_to_object(data))
+
+
+def _raise(error: dict):
+    data = error["data"] if "data" in error else None
+    if "module" not in error or "class" not in error:
+        return Exception(data)
+
+    error_module = importlib.import_module(error["module"])
+    error_class = getattr(error_module, error["class"])
+
+    return error_class(**data)
 
 
 async def _check_assertions(wallet, _test_data: WalletTest):
