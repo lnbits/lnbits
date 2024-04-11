@@ -39,10 +39,14 @@ def x1(funding_sources, tests, fn_name, fn):
 def x2(funding_sources, tests, fn_name, fn, test):
     for fs_name in funding_sources:
         funding_source = FundingSourceConfig(**funding_sources[fs_name])
-        tests[fs_name] += x22(fn_name, fn, test, fs_name, funding_source)
+        tests[fs_name] += _tests_for_funding_source(
+            fn_name, fs_name, fn, test, funding_source
+        )
 
 
-def x22(fn_name, fn, test, fs_name, funding_source) -> List[WalletTest]:
+def _tests_for_funding_source(
+    fn_name: str, fs_name: str, fn, test, funding_source: FundingSourceConfig
+) -> List[WalletTest]:
     t = WalletTest(
         **{
             "funding_source": funding_source,
@@ -55,43 +59,39 @@ def x22(fn_name, fn, test, fs_name, funding_source) -> List[WalletTest]:
     if "mocks" in test:
         if fs_name not in test["mocks"]:
             t.skip = True
-            # tests[fs_name].append(t)
             return [t]
 
-        return x4(fn, test, fs_name, t)
+        return _tests_from_fs_mocks(t, fn, test, fs_name)
 
     return [t]
 
 
-def x4(fn, test, fs_name: str, t: WalletTest) -> List[WalletTest]:
+def _tests_from_fs_mocks(t: WalletTest, fn, test, fs_name: str) -> List[WalletTest]:
     tests: List[WalletTest] = []
 
     fs_mocks = fn["mocks"][fs_name]
     test_mocks = test["mocks"][fs_name]
 
     for mock_name in fs_mocks:
-        tests += x5(t, fs_mocks[mock_name], test_mocks[mock_name])
+        tests += _tests_from_mocks(t, fs_mocks[mock_name], test_mocks[mock_name])
     return tests
 
 
-def x5(t: WalletTest, fs_mock, test_mocks) -> List[WalletTest]:
+def _tests_from_mocks(t: WalletTest, fs_mock, test_mocks) -> List[WalletTest]:
     tests: List[WalletTest] = []
     for test_mock in test_mocks:
         # different mocks that result in the same
         # return value for the tested function
-        unique_test = x51(t, fs_mock, test_mock)
+        unique_test = _test_from_mocks(t, fs_mock, test_mock)
 
         tests.append(unique_test)
     return tests
 
 
-def x51(t: WalletTest, fs_mock, test_mock) -> WalletTest:
-    _mock = fs_mock | test_mock
-    if "response" in _mock and "response" in fs_mock:
-        _mock["response"] |= fs_mock["response"]
-    mock = Mock(**_mock)
+def _test_from_mocks(t: WalletTest, fs_mock, test_mock) -> WalletTest:
+    mock = Mock.combine_mocks(fs_mock, test_mock)
 
-    test = WalletTest(
+    return WalletTest(
         **(
             t.dict()
             | {
@@ -101,8 +101,6 @@ def x51(t: WalletTest, fs_mock, test_mock) -> WalletTest:
             }
         )
     )
-
-    return test
 
 
 def build_test_id(test: WalletTest):

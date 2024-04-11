@@ -27,7 +27,13 @@ class TestMock(BaseModel):
 
 
 class Mock(FunctionMock, TestMock):
-    pass
+
+    @staticmethod
+    def combine_mocks(fs_mock, test_mock):
+        _mock = fs_mock | test_mock
+        if "response" in _mock and "response" in fs_mock:
+            _mock["response"] |= fs_mock["response"]
+        return Mock(**_mock)
 
 
 class FunctionMocks(BaseModel):
