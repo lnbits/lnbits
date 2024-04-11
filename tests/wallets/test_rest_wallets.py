@@ -8,7 +8,7 @@ from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
 from lnbits.core.models import BaseWallet
-from tests.helpers import (
+from tests.wallets.helpers import (
     FundingSourceConfig,
     Mock,
     WalletTest,
