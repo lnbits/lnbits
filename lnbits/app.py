@@ -4,7 +4,6 @@ import importlib
 import logging
 import os
 import shutil
-import signal
 import sys
 import traceback
 from contextlib import asynccontextmanager
@@ -178,32 +177,24 @@ def create_app() -> FastAPI:
 
 
 async def check_funding_source() -> None:
-    original_sigint_handler = signal.getsignal(signal.SIGINT)
-
-    def signal_handler(signal, frame):
-        logger.debug(
-            f"SIGINT received, terminating LNbits. signal: {signal}, frame: {frame}"
-        )
-        sys.exit(1)
-
-    signal.signal(signal.SIGINT, signal_handler)
 
     WALLET = get_wallet_class()
 
-    # fallback to void after 30 seconds of failures
     sleep_time = 5
-    timeout = int(30 / sleep_time)
-
-    balance = 0
+    max_retries = 5
     retry_counter = 0
 
     while True:
         try:
+            logger.info(f"Connecting to backend {WALLET.__class__.__name__}...")
             error_message, balance = await WALLET.status()
             if not error_message:
                 retry_counter = 0
+                logger.success(
+                    f"✔️ Backend {WALLET.__class__.__name__} connected "
+                    f"and with a balance of {balance} msat."
+                )
                 break
-
             logger.error(
                 f"The backend for {WALLET.__class__.__name__} isn't "
                 f"working properly: '{error_message}'",
@@ -211,23 +202,18 @@ async def check_funding_source() -> None:
             )
         except Exception as e:
             logger.error(f"Error connecting to {WALLET.__class__.__name__}: {e}")
-            pass
 
-        if settings.lnbits_admin_ui and retry_counter == timeout:
+        if retry_counter == max_retries:
             set_void_wallet_class()
             WALLET = get_wallet_class()
             break
-        else:
-            logger.warning(f"Retrying connection to backend in {sleep_time} seconds...")
-            retry_counter += 1
-            await asyncio.sleep(sleep_time)
 
-    signal.signal(signal.SIGINT, original_sigint_handler)
-
-    logger.success(
-        f"✔️ Backend {WALLET.__class__.__name__} connected "
-        f"and with a balance of {balance} msat."
-    )
+        retry_counter += 1
+        logger.warning(
+            f"Retrying connection to backend in {sleep_time} seconds... "
+            f"({retry_counter}/{max_retries})"
+        )
+        await asyncio.sleep(sleep_time)
 
 
 def set_void_wallet_class():
