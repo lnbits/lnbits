@@ -69,18 +69,18 @@ def x4(fn, test, fs_name, t) -> List[WalletTest]:
 
     fs_mocks = fn["mocks"][fs_name]
     for mock_name in fs_mocks:
-        tests += x5(t, test_mocks_names, fs_mocks, mock_name)
+        tests += x5(t, fs_mocks[mock_name], test_mocks_names[mock_name])
     return tests
 
 
-def x5(t, test_mocks_names, fs_mocks, mock_name) -> List[WalletTest]:
+def x5(t, fs_mock, test_mocks) -> List[WalletTest]:
     tests: List[WalletTest] = []
-    for test_mock in test_mocks_names[mock_name]:
+    for test_mock in test_mocks:
         # different mocks that result in the same
         # return value for the tested function
-        _mock = fs_mocks[mock_name] | test_mock
-        if "response" in _mock and "response" in fs_mocks[mock_name]:
-            _mock["response"] |= fs_mocks[mock_name]["response"]
+        _mock = fs_mock | test_mock
+        if "response" in _mock and "response" in fs_mock:
+            _mock["response"] |= fs_mock["response"]
         mock = Mock(**_mock)
 
         unique_test = WalletTest(**t.dict())
