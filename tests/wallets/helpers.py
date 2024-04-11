@@ -143,10 +143,8 @@ def build_test_id(test: WalletTest):
     return f"{test.funding_source}.{test.function}({test.description})"
 
 
-def load_funding_source(
-    funding_source: FundingSourceConfig, custom_settings: Optional[dict] = {}
-) -> BaseWallet:
-    custom_settings = funding_source.settings | custom_settings
+def load_funding_source(funding_source: FundingSourceConfig) -> BaseWallet:
+    custom_settings = funding_source.settings
     original_settings = {}
 
     settings = getattr(wallets_module, "settings")

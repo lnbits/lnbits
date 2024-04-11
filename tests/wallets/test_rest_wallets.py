@@ -40,9 +40,7 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
     for mock in test_data.mocks:
         _apply_mock(httpserver, mock)
 
-    wallet = load_funding_source(
-        test_data.funding_source, {"user_agent": "LNbits/Tests"}
-    )
+    wallet = load_funding_source(test_data.funding_source)
     await check_assertions(wallet, test_data)
 
 
