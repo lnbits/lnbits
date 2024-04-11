@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 
 class FundingSourceConfig(BaseModel):
+    name: str
     skip: Optional[bool]
     wallet_class: str
     client_field: Optional[str]
