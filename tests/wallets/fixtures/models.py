@@ -70,23 +70,26 @@ class WalletTest(BaseModel):
 
     @staticmethod
     def tests_for_funding_source(
-        fn_name: str, fs_name: str, fn, test, funding_source: FundingSourceConfig
+        fs: FundingSourceConfig,
+        fn_name: str,
+        fn,
+        test,
     ) -> List["WalletTest"]:
         t = WalletTest(
             **{
-                "funding_source": funding_source,
+                "funding_source": fs,
                 "function": fn_name,
                 **test,
                 "mocks": [],
-                "skip": funding_source.skip,
+                "skip": fs.skip,
             }
         )
         if "mocks" in test:
-            if fs_name not in test["mocks"]:
+            if fs.name not in test["mocks"]:
                 t.skip = True
                 return [t]
 
-            return t._tests_from_fs_mocks(fn, test, fs_name)
+            return t._tests_from_fs_mocks(fn, test, fs.name)
 
         return [t]
 

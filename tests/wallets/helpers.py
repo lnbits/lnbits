@@ -30,7 +30,7 @@ def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
 
 
 def x1(
-    funding_sources: List[FundingSourceConfig], fn_name, fn
+    funding_sources: List[FundingSourceConfig], fn_name: str, fn
 ) -> Dict[str, List[WalletTest]]:
     tests: Dict[str, List[WalletTest]] = {}
     for test in fn["tests"]:
@@ -43,13 +43,11 @@ def x1(
 
 
 def x2(
-    funding_sources: List[FundingSourceConfig], fn_name, fn, test
+    funding_sources: List[FundingSourceConfig], fn_name: str, fn, test
 ) -> Dict[str, List[WalletTest]]:
     tests: Dict[str, List[WalletTest]] = {fs.name: [] for fs in funding_sources}
     for fs in funding_sources:
-        tests[fs.name] += WalletTest.tests_for_funding_source(
-            fn_name, fs.name, fn, test, fs
-        )
+        tests[fs.name] += WalletTest.tests_for_funding_source(fs, fn_name, fn, test)
     return tests
 
 
