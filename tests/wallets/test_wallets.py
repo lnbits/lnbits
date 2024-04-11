@@ -8,19 +8,14 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.models import BaseWallet
 from tests.wallets.helpers import (
     DataObject,
-    FundingSourceConfig,
     WalletTest,
+    build_test_id,
+    load_funding_source,
     rest_wallet_fixtures_from_json,
 )
 from tests.wallets.helpers import (
     Mock as RpcMock,
 )
-
-wallets_module = importlib.import_module("lnbits.wallets")
-
-
-def build_test_id(test: WalletTest):
-    return f"{test.funding_source}.{test.function}({test.description})"
 
 
 @pytest.mark.asyncio
@@ -36,7 +31,7 @@ async def test_wallets(mocker: MockerFixture, test_data: WalletTest):
     for mock in test_data.mocks:
         _apply_rpc_mock(mocker, mock)
 
-    wallet = _load_funding_source(test_data.funding_source)
+    wallet = load_funding_source(test_data.funding_source)
 
     expected_calls = _spy_mocks(mocker, test_data, wallet)
 
@@ -122,25 +117,6 @@ def _mock_field(field):
             return _raise(response)
 
     return response
-
-
-def _load_funding_source(funding_source: FundingSourceConfig) -> BaseWallet:
-    custom_settings = funding_source.settings
-    original_settings = {}
-
-    settings = getattr(wallets_module, "settings")
-
-    for s in custom_settings:
-        original_settings[s] = getattr(settings, s)
-        setattr(settings, s, custom_settings[s])
-
-    fs_instance: BaseWallet = getattr(wallets_module, funding_source.wallet_class)()
-
-    # rollback settings (global variable)
-    for s in original_settings:
-        setattr(settings, s, original_settings[s])
-
-    return fs_instance
 
 
 def _dict_to_object(data: Optional[dict]) -> Optional[DataObject]:
