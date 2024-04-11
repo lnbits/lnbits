@@ -7,15 +7,13 @@ import pytest
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
-from lnbits.core.models import BaseWallet
 from tests.wallets.helpers import (
-    FundingSourceConfig,
     Mock,
     WalletTest,
+    build_test_id,
+    load_funding_source,
     rest_wallet_fixtures_from_json,
 )
-
-wallets_module = importlib.import_module("lnbits.wallets")
 
 # todo:
 # - tests for extra fields
@@ -27,10 +25,6 @@ wallets_module = importlib.import_module("lnbits.wallets")
 @pytest.fixture(scope="session")
 def httpserver_listen_address():
     return ("127.0.0.1", 8555)
-
-
-def build_test_id(test: WalletTest):
-    return f"{test.funding_source}.{test.function}({test.description})"
 
 
 @pytest.mark.asyncio
@@ -46,7 +40,9 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
     for mock in test_data.mocks:
         _apply_mock(httpserver, mock)
 
-    wallet = _load_funding_source(test_data.funding_source)
+    wallet = load_funding_source(
+        test_data.funding_source, {"user_agent": "LNbits/Tests"}
+    )
     await _check_assertions(wallet, test_data)
 
 
@@ -124,22 +120,3 @@ async def _assert_error(wallet, tested_func, call_params, expect_error):
         await getattr(wallet, tested_func)(**call_params)
 
     assert e_info.match(expect_error["message"])
-
-
-def _load_funding_source(funding_source: FundingSourceConfig) -> BaseWallet:
-    custom_settings = funding_source.settings | {"user_agent": "LNbits/Tests"}
-    original_settings = {}
-
-    settings = getattr(wallets_module, "settings")
-
-    for s in custom_settings:
-        original_settings[s] = getattr(settings, s)
-        setattr(settings, s, custom_settings[s])
-
-    fs_instance: BaseWallet = getattr(wallets_module, funding_source.wallet_class)()
-
-    # rollback settings (global variable)
-    for s in original_settings:
-        setattr(settings, s, original_settings[s])
-
-    return fs_instance

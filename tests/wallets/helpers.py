@@ -1,7 +1,12 @@
+import importlib
 import json
 from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel
+
+from lnbits.core.models import BaseWallet
+
+wallets_module = importlib.import_module("lnbits.wallets")
 
 
 def rest_wallet_fixtures_from_json(path) -> List["WalletTest"]:
@@ -131,3 +136,28 @@ class DataObject:
     def __init__(self, **kwargs):
         for k in kwargs:
             setattr(self, k, kwargs[k])
+
+
+def build_test_id(test: WalletTest):
+    return f"{test.funding_source}.{test.function}({test.description})"
+
+
+def load_funding_source(
+    funding_source: FundingSourceConfig, custom_settings: Optional[dict] = {}
+) -> BaseWallet:
+    custom_settings = funding_source.settings | custom_settings
+    original_settings = {}
+
+    settings = getattr(wallets_module, "settings")
+
+    for s in custom_settings:
+        original_settings[s] = getattr(settings, s)
+        setattr(settings, s, custom_settings[s])
+
+    fs_instance: BaseWallet = getattr(wallets_module, funding_source.wallet_class)()
+
+    # rollback settings (global variable)
+    for s in original_settings:
+        setattr(settings, s, original_settings[s])
+
+    return fs_instance
