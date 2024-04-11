@@ -6,12 +6,12 @@ from mock import Mock
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models import BaseWallet
-from tests.helpers import (
+from tests.wallets.helpers import (
     FundingSourceConfig,
     WalletTest,
     rest_wallet_fixtures_from_json,
 )
-from tests.helpers import (
+from tests.wallets.helpers import (
     Mock as RpcMock,
 )
 
