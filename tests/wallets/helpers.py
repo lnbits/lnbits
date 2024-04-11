@@ -65,11 +65,12 @@ def x22(fn_name, fn, test, fs_name, funding_source) -> List[WalletTest]:
 
 def x4(fn, test, fs_name, t) -> List[WalletTest]:
     tests: List[WalletTest] = []
-    test_mocks_names = test["mocks"][fs_name]
 
     fs_mocks = fn["mocks"][fs_name]
+    test_mocks = test["mocks"][fs_name]
+
     for mock_name in fs_mocks:
-        tests += x5(t, fs_mocks[mock_name], test_mocks_names[mock_name])
+        tests += x5(t, fs_mocks[mock_name], test_mocks[mock_name])
     return tests
 
 
