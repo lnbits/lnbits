@@ -318,8 +318,8 @@ Vue.component('lnbits-payment-details', {
         this.payment.webhook_status < 0
         ? 'red-10'
         : !this.payment.webhook_status
-        ? 'cyan-7'
-        : 'green-10'
+          ? 'cyan-7'
+          : 'green-10'
     },
     webhookStatusText() {
       return this.payment.webhook_status
