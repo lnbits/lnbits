@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import (
     List,
     Optional,
@@ -8,9 +9,6 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
-)
-from fastapi import (
-    status as HTTPStatus,
 )
 from loguru import logger
 
