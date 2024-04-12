@@ -24,7 +24,6 @@
             "settings": {
                 "lnd_grpc_endpoint": "127.0.0.1",
                 "lnd_grpc_port": "10009",
-
                 "lnd_grpc_cert": "tests/wallets/fixtures/certificates/breez.crt",
                 "lnd_grpc_macaroon": "eNcRyPtEdMaCaRoOn"
             }
@@ -194,6 +193,21 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc_new": [
+                                {
+                                    "response": {
+                                        "ChannelBalance": {
+                                            "request_type": "async-function",
+                                            "response_type": "exception",
+                                            "response": {
+                                                "data": "test-error"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -220,6 +234,9 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc_new": []
                         }
                     }
                 },
@@ -254,6 +271,9 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc_new": []
                         }
                     }
                 }
@@ -292,6 +312,14 @@
                                 }
                             }
                         }
+                    }
+                },
+                "lndrpc": {
+                    "rpc_new": {
+                        "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
                     }
                 }
             },
@@ -360,6 +388,30 @@
                                             "response": {
                                                 "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
                                                 "bolt11": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "rpc_new": [
+                                {
+                                    "response": {
+                                        "AddInvoice": {
+                                            "request_type": "async-function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.Invoice",
+                                                "kwargs": {
+                                                    "value": 555,
+                                                    "private": true,
+                                                    "memo": "Test Invoice"
+                                                }
+                                            },
+                                            "response_type": "data",
+                                            "response": {
+                                                "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")",
+                                                "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
                                             }
                                         }
                                     }

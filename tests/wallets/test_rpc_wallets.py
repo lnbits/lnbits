@@ -95,7 +95,10 @@ def _spy_mock(mocker: MockerFixture, mock: RpcMock, client_field):
                 "request_data": f["request_data"],
             }
             for f in values
-            if f["request_type"] == "function" and "request_data" in f
+            if (
+                f["request_type"] == "function" or f["request_type"] == "async-function"
+            )
+            and "request_data" in f
         ]
     return expected_calls
 
@@ -103,7 +106,7 @@ def _spy_mock(mocker: MockerFixture, mock: RpcMock, client_field):
 def _mock_field(field):
     response_type = field["response_type"]
     request_type = field["request_type"]
-    response = field["response"]
+    response = _eval_dict(field["response"])
 
     if request_type == "data":
         return _dict_to_object(response)
@@ -116,6 +119,19 @@ def _mock_field(field):
             return _raise(response)
 
     return response
+
+
+def _eval_dict(data: Optional[dict]) -> Optional[dict]:
+    fn_prefix = "__eval__:"
+    if not data:
+        return data
+    d = {**data}
+    for k in data:
+        value = data[k]
+        if k.startswith(fn_prefix):
+            field = k[len(fn_prefix) :]
+            d[field] = eval(value)
+    return d
 
 
 def _dict_to_object(data: Optional[dict]) -> Optional[DataObject]:

@@ -68,7 +68,7 @@ class CoreLightningWallet(Wallet):
             error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
             return StatusResponse(error_message, 0)
         except Exception as exc:
-            logger.warning(f"Failed to connect to breez, got: '{exc}'")
+            logger.warning(f"Failed to connect, got: '{exc}'")
             return StatusResponse(f"Unable to connect, got: '{exc}'", 0)
 
     async def create_invoice(

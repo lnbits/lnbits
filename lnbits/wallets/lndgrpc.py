@@ -116,7 +116,7 @@ class LndWallet(Wallet):
         try:
             resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())
         except Exception as exc:
-            return StatusResponse(str(exc), 0)
+            return StatusResponse(f"Unable to connect, got: '{exc}'", 0)
 
         return StatusResponse(None, resp.balance * 1000)
 
