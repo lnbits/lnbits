@@ -17,6 +17,17 @@
             "settings": {
                 "corelightning_rpc": "some-mock-value"
             }
+        },
+        "lndrpc": {
+            "wallet_class": "LndWallet",
+            "client_field": "rpc",
+            "settings": {
+                "lnd_grpc_endpoint": "127.0.0.1",
+                "lnd_grpc_port": "10009",
+
+                "lnd_grpc_cert": "tests/wallets/fixtures/certificates/breez.crt",
+                "lnd_grpc_macaroon": "eNcRyPtEdMaCaRoOn"
+            }
         }
     },
     "functions": {
@@ -53,6 +64,14 @@
                                 }
                             }
                         }
+                    }
+                },
+                "lndrpc": {
+                    "rpc_new": {
+                        "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
                     }
                 }
             },
@@ -114,6 +133,21 @@
                                                         "our_amount_msat": 30000
                                                     }
                                                 ]
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "rpc_new": [
+                                {
+                                    "response": {
+                                        "ChannelBalance": {
+                                            "request_type": "async-function",
+                                            "response_type": "data",
+                                            "response": {
+                                                "balance": 55
                                             }
                                         }
                                     }
