@@ -70,12 +70,9 @@ def _check_calls(expected_calls):
 
 
 def _spy_mocks(mocker: MockerFixture, test_data: WalletTest, wallet: BaseWallet):
-    assert (
-        test_data.funding_source.client_field
-    ), f"Missing client field for wallet {wallet}"
-    client_field = getattr(wallet, test_data.funding_source.client_field)
     expected_calls: Dict[str, List] = {}
     for mock in test_data.mocks:
+        client_field = getattr(wallet, mock.name)
         spy = _spy_mock(mocker, mock, client_field)
         expected_calls |= spy
 
@@ -83,6 +80,7 @@ def _spy_mocks(mocker: MockerFixture, test_data: WalletTest, wallet: BaseWallet)
 
 
 def _spy_mock(mocker: MockerFixture, mock: RpcMock, client_field):
+
     expected_calls: Dict[str, List] = {}
     assert isinstance(mock.response, dict), "Expected data RPC response"
     for field_name in mock.response:

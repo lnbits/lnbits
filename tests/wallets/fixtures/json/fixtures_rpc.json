@@ -3,7 +3,6 @@
         "breez": {
             "skip": true,
             "wallet_class": "BreezSdkWallet",
-            "client_field": "sdk_services",
             "settings": {
                 "breez_api_key": "100",
                 "breez_greenlight_seed": "push divert icon era bracket fade much kind reason injury suffer muffin",
@@ -13,14 +12,12 @@
         },
         "corelightning": {
             "wallet_class": "CoreLightningWallet",
-            "client_field": "ln",
             "settings": {
                 "corelightning_rpc": "some-mock-value"
             }
         },
         "lndrpc": {
             "wallet_class": "LndWallet",
-            "client_field": "rpc",
             "settings": {
                 "lnd_grpc_endpoint": "127.0.0.1",
                 "lnd_grpc_port": "10009",
@@ -33,13 +30,13 @@
         "status": {
             "mocks": {
                 "breez": {
-                    "breez_connect": {
+                    "sdk_services": {
                         "method": "breez_sdk.connect",
                         "request_type": "function"
                     }
                 },
                 "corelightning": {
-                    "rpc_new": {
+                    "ln": {
                         "method": "pyln.client.LightningRpc.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -66,7 +63,7 @@
                     }
                 },
                 "lndrpc": {
-                    "rpc_new": {
+                    "rpc": {
                         "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -84,7 +81,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -100,7 +97,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "description": "one channel",
                                     "response": {
@@ -139,7 +136,7 @@
                             ]
                         },
                         "lndrpc": {
-                            "rpc_new": [
+                            "rpc": [
                                 {
                                     "response": {
                                         "ChannelBalance": {
@@ -164,7 +161,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -180,7 +177,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listfunds": {
@@ -195,7 +192,7 @@
                             ]
                         },
                         "lndrpc": {
-                            "rpc_new": [
+                            "rpc": [
                                 {
                                     "response": {
                                         "ChannelBalance": {
@@ -220,10 +217,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listfunds": {
@@ -236,7 +233,7 @@
                             ]
                         },
                         "lndrpc": {
-                            "rpc_new": []
+                            "rpc": []
                         }
                     }
                 },
@@ -249,10 +246,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listfunds": {
@@ -273,7 +270,7 @@
                             ]
                         },
                         "lndrpc": {
-                            "rpc_new": []
+                            "rpc": []
                         }
                     }
                 }
@@ -282,13 +279,13 @@
         "create_invoice": {
             "mocks": {
                 "breez": {
-                    "breez_connect": {
+                    "sdk_services": {
                         "method": "breez_sdk.connect",
                         "request_type": "function"
                     }
                 },
                 "corelightning": {
-                    "rpc_new": {
+                    "ln": {
                         "method": "pyln.client.LightningRpc.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -315,7 +312,7 @@
                     }
                 },
                 "lndrpc": {
-                    "rpc_new": {
+                    "rpc": {
                         "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -339,7 +336,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -368,7 +365,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "description": "one channel",
                                     "response": {
@@ -395,7 +392,7 @@
                             ]
                         },
                         "lndrpc": {
-                            "rpc_new": [
+                            "rpc": [
                                 {
                                     "response": {
                                         "AddInvoice": {
@@ -435,7 +432,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -461,7 +458,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "invoice": {
@@ -508,7 +505,7 @@
                             ]
                         },
                         "lndrpc": {
-                            "rpc_new": [
+                            "rpc": [
                                 {
                                     "response": {
                                         "AddInvoice": {
@@ -547,10 +544,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "invoice": {
@@ -589,10 +586,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "invoice": {
@@ -629,13 +626,13 @@
         "pay_invoice": {
             "mocks": {
                 "breez": {
-                    "breez_connect": {
+                    "sdk_services": {
                         "method": "breez_sdk.connect",
                         "request_type": "function"
                     }
                 },
                 "corelightning": {
-                    "rpc_new": {
+                    "ln": {
                         "method": "pyln.client.LightningRpc.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -684,7 +681,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -708,7 +705,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "call": {
@@ -754,7 +751,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -770,7 +767,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "call": {
@@ -813,10 +810,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "call": {
@@ -857,10 +854,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "call": {
@@ -934,13 +931,13 @@
         "get_invoice_status": {
             "mocks": {
                 "breez": {
-                    "breez_connect": {
+                    "sdk_services": {
                         "method": "breez_sdk.connect",
                         "request_type": "function"
                     }
                 },
                 "corelightning": {
-                    "rpc_new": {
+                    "ln": {
                         "method": "pyln.client.LightningRpc.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -973,7 +970,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -994,7 +991,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "description": "one invoice",
                                     "response": {
@@ -1042,7 +1039,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -1056,7 +1053,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "description": "no invoice",
                                     "response": {
@@ -1274,7 +1271,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "description": "FAILED",
                                     "response_type": "data",
@@ -1296,7 +1293,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "description": "expired",
                                     "response": {
@@ -1342,13 +1339,13 @@
         "get_payment_status": {
             "mocks": {
                 "breez": {
-                    "breez_connect": {
+                    "sdk_services": {
                         "method": "breez_sdk.connect",
                         "request_type": "function"
                     }
                 },
                 "corelightning": {
-                    "rpc_new": {
+                    "ln": {
                         "method": "pyln.client.LightningRpc.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -1390,7 +1387,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -1417,7 +1414,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listpays": [
@@ -1456,7 +1453,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "description": "no data",
                                     "response_type": "data",
@@ -1502,7 +1499,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listpays": [
@@ -1585,7 +1582,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "description": "failed status",
                                     "response_type": "data",
@@ -1607,7 +1604,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listpays": [
