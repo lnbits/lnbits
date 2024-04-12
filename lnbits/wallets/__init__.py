@@ -28,21 +28,21 @@ from .void import VoidWallet
 from .zbd import ZBDWallet
 
 
-def set_wallet_class(class_name: Optional[str] = None):
+def set_funding_source(class_name: Optional[str] = None):
     backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
-    wallet_class_constructor = getattr(wallets_module, backend_wallet_class)
-    global wallet_class
-    wallet_class = wallet_class_constructor()
-    if wallet_class.__node_cls__:
-        set_node_class(wallet_class.__node_cls__(wallet_class))
+    funding_source_constructor = getattr(wallets_module, backend_wallet_class)
+    global funding_source
+    funding_source = funding_source_constructor()
+    if funding_source.__node_cls__:
+        set_node_class(funding_source.__node_cls__(funding_source))
 
 
-def get_wallet_class() -> Wallet:
-    return wallet_class
+def get_funding_source() -> Wallet:
+    return funding_source
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
 fake_wallet = FakeWallet()
 
 # initialize as fake wallet
-wallet_class: Wallet = fake_wallet
+funding_source: Wallet = fake_wallet

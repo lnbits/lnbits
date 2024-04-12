@@ -18,7 +18,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import settings
-from lnbits.wallets import get_wallet_class
+from lnbits.wallets import get_funding_source
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
 from ...utils.exchange_rates import allowed_currencies, currencies
@@ -452,8 +452,8 @@ async def node(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_node_ui:
         raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 
-    wallet_class = get_wallet_class()
-    _, balance = await wallet_class.status()
+    funding_source = get_funding_source()
+    _, balance = await funding_source.status()
 
     return template_renderer().TemplateResponse(
         request,
@@ -472,8 +472,8 @@ async def node_public(request: Request):
     if not settings.lnbits_public_node_ui:
         raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 
-    wallet_class = get_wallet_class()
-    _, balance = await wallet_class.status()
+    funding_source = get_funding_source()
+    _, balance = await funding_source.status()
 
     return template_renderer().TemplateResponse(
         request,
@@ -490,8 +490,8 @@ async def index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
-    wallet_class = get_wallet_class()
-    _, balance = await wallet_class.status()
+    funding_source = get_funding_source()
+    _, balance = await funding_source.status()
 
     return template_renderer().TemplateResponse(
         request,

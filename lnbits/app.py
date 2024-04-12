@@ -37,7 +37,7 @@ from lnbits.tasks import (
     register_invoice_listener,
 )
 from lnbits.utils.cache import cache
-from lnbits.wallets import get_wallet_class, set_wallet_class
+from lnbits.wallets import get_funding_source, set_funding_source
 
 from .commands import migrate_databases
 from .core import init_core_routers
@@ -81,7 +81,7 @@ async def startup(app: FastAPI):
 
     # initialize WALLET
     try:
-        set_wallet_class()
+        set_funding_source()
     except Exception as e:
         logger.error(f"Error initializing {settings.lnbits_backend_wallet_class}: {e}")
         set_void_wallet_class()
@@ -110,8 +110,8 @@ async def shutdown():
 
     # wait a bit to allow them to finish, so that cleanup can run without problems
     await asyncio.sleep(0.1)
-    wallet_class = get_wallet_class()
-    await wallet_class.cleanup()
+    funding_source = get_funding_source()
+    await funding_source.cleanup()
 
 
 @asynccontextmanager
@@ -178,33 +178,35 @@ def create_app() -> FastAPI:
 
 async def check_funding_source() -> None:
 
-    wallet_class = get_wallet_class()
+    funding_source = get_funding_source()
 
     max_retries = settings.funding_source_max_retries
     retry_counter = 0
 
     while True:
         try:
-            logger.info(f"Connecting to backend {wallet_class.__class__.__name__}...")
-            error_message, balance = await wallet_class.status()
+            logger.info(f"Connecting to backend {funding_source.__class__.__name__}...")
+            error_message, balance = await funding_source.status()
             if not error_message:
                 retry_counter = 0
                 logger.success(
-                    f"✔️ Backend {wallet_class.__class__.__name__} connected "
+                    f"✔️ Backend {funding_source.__class__.__name__} connected "
                     f"and with a balance of {balance} msat."
                 )
                 break
             logger.error(
-                f"The backend for {wallet_class.__class__.__name__} isn't "
+                f"The backend for {funding_source.__class__.__name__} isn't "
                 f"working properly: '{error_message}'",
                 RuntimeWarning,
             )
         except Exception as e:
-            logger.error(f"Error connecting to {wallet_class.__class__.__name__}: {e}")
+            logger.error(
+                f"Error connecting to {funding_source.__class__.__name__}: {e}"
+            )
 
         if retry_counter >= max_retries:
             set_void_wallet_class()
-            wallet_class = get_wallet_class()
+            funding_source = get_funding_source()
             break
 
         retry_counter += 1
@@ -221,7 +223,7 @@ def set_void_wallet_class():
         "Fallback to VoidWallet, because the backend for "
         f"{settings.lnbits_backend_wallet_class} isn't working properly"
     )
-    set_wallet_class("VoidWallet")
+    set_funding_source("VoidWallet")
 
 
 async def check_installed_extensions(app: FastAPI):

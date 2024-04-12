@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from lnbits import core
 from lnbits.db import DB_TYPE, POSTGRES, FromRowModel
-from lnbits.wallets import get_wallet_class, set_wallet_class
+from lnbits.wallets import get_funding_source, set_funding_source
 
 
 class DbTestModel(FromRowModel):
@@ -34,8 +34,8 @@ async def get_random_invoice_data():
     return {"out": False, "amount": 10, "memo": f"test_memo_{get_random_string(10)}"}
 
 
-set_wallet_class()
-WALLET = get_wallet_class()
+set_funding_source()
+WALLET = get_funding_source()
 is_fake: bool = WALLET.__class__.__name__ == "FakeWallet"
 is_regtest: bool = not is_fake
 

@@ -30,7 +30,7 @@ from lnbits.settings import (
     settings,
 )
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
-from lnbits.wallets import fake_wallet, get_wallet_class, set_wallet_class
+from lnbits.wallets import fake_wallet, get_funding_source, set_funding_source
 from lnbits.wallets.base import (
     PaymentPendingStatus,
     PaymentResponse,
@@ -132,7 +132,7 @@ async def create_invoice(
     invoice_memo = None if description_hash else memo
 
     # use the fake wallet if the invoice is for internal use only
-    wallet_class = fake_wallet if internal else get_wallet_class()
+    funding_source = fake_wallet if internal else get_funding_source()
 
     amount_sat, extra = await calculate_fiat_amounts(
         amount, wallet_id, currency=currency, extra=extra, conn=conn
@@ -146,12 +146,14 @@ async def create_invoice(
             f"{settings.lnbits_wallet_limit_max_balance} sats."
         )
 
-    ok, checking_id, payment_request, error_message = await wallet_class.create_invoice(
-        amount=amount_sat,
-        memo=invoice_memo,
-        description_hash=description_hash,
-        unhashed_description=unhashed_description,
-        expiry=expiry or settings.lightning_invoice_expiry,
+    ok, checking_id, payment_request, error_message = (
+        await funding_source.create_invoice(
+            amount=amount_sat,
+            memo=invoice_memo,
+            description_hash=description_hash,
+            unhashed_description=unhashed_description,
+            expiry=expiry or settings.lightning_invoice_expiry,
+        )
     )
     if not ok or not payment_request or not checking_id:
         raise InvoiceError(error_message or "unexpected backend error.")
@@ -323,8 +325,8 @@ async def pay_invoice(
         service_fee_msat = service_fee(invoice.amount_msat, internal=False)
         logger.debug(f"backend: sending payment {temp_id}")
         # actually pay the external invoice
-        wallet_class = get_wallet_class()
-        payment: PaymentResponse = await wallet_class.pay_invoice(
+        funding_source = get_funding_source()
+        payment: PaymentResponse = await funding_source.pay_invoice(
             payment_request, fee_reserve_msat
         )
 
@@ -591,7 +593,7 @@ async def check_transaction_status(
 
 
 # WARN: this same value must be used for balance check and passed to
-# wallet_class.pay_invoice(), it may cause a vulnerability if the values differ
+# funding_source.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int, internal: bool = False) -> int:
     if internal:
         return 0
@@ -767,17 +769,17 @@ async def websocket_updater(item_id, data):
 
 
 async def switch_to_voidwallet() -> None:
-    wallet_class = get_wallet_class()
-    if wallet_class.__class__.__name__ == "VoidWallet":
+    funding_source = get_funding_source()
+    if funding_source.__class__.__name__ == "VoidWallet":
         return
-    set_wallet_class("VoidWallet")
+    set_funding_source("VoidWallet")
     settings.lnbits_backend_wallet_class = "VoidWallet"
 
 
 async def get_balance_delta() -> Tuple[int, int, int]:
-    wallet_class = get_wallet_class()
+    funding_source = get_funding_source()
     total_balance = await get_total_balance()
-    error_message, node_balance = await wallet_class.status()
+    error_message, node_balance = await funding_source.status()
     if error_message:
         raise Exception(error_message)
     return node_balance - total_balance, node_balance, total_balance

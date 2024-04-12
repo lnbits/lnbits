@@ -532,10 +532,10 @@ if not settings.lnbits_admin_ui:
         logger.debug(f"{key}: {value}")
 
 
-def get_wallet_class():
+def get_funding_source():
     """
     Backwards compatibility
     """
-    from lnbits.wallets import get_wallet_class
+    from lnbits.wallets import get_funding_source
 
-    return get_wallet_class()
+    return get_funding_source()

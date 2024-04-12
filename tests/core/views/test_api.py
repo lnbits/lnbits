@@ -10,7 +10,7 @@ from lnbits.core.services import fee_reserve_total
 from lnbits.core.views.admin_api import api_auditor
 from lnbits.core.views.payment_api import api_payment
 from lnbits.settings import settings
-from lnbits.wallets import get_wallet_class
+from lnbits.wallets import get_funding_source
 
 from ...helpers import (
     cancel_invoice,
@@ -22,7 +22,7 @@ from ...helpers import (
     settle_invoice,
 )
 
-wallet_class = get_wallet_class()
+funding_source = get_funding_source()
 
 
 # create account POST /api/v1/account
@@ -407,7 +407,7 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 
 # check POST /api/v1/payments: invoice creation with a description hash
 @pytest.mark.skipif(
-    wallet_class.__class__.__name__
+    funding_source.__class__.__name__
     in ["CoreLightningWallet", "CoreLightningRestWallet"],
     reason="wallet does not support description_hash",
 )
@@ -429,7 +429,7 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
 
 
 @pytest.mark.skipif(
-    wallet_class.__class__.__name__ in ["CoreLightningRestWallet"],
+    funding_source.__class__.__name__ in ["CoreLightningRestWallet"],
     reason="wallet does not support unhashed_description",
 )
 @pytest.mark.asyncio
@@ -541,8 +541,8 @@ async def test_pay_real_invoice(
     payment_status = response.json()
     assert payment_status["paid"]
 
-    wallet_class = get_wallet_class()
-    status = await wallet_class.get_payment_status(invoice["payment_hash"])
+    funding_source = get_funding_source()
+    status = await funding_source.get_payment_status(invoice["payment_hash"])
     assert status.paid
 
     await asyncio.sleep(1)
@@ -572,7 +572,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
 
     async def listen():
         found_checking_id = False
-        async for checking_id in get_wallet_class().paid_invoices_stream():
+        async for checking_id in get_funding_source().paid_invoices_stream():
             if checking_id == invoice["checking_id"]:
                 found_checking_id = True
                 return
@@ -623,8 +623,8 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     assert response["paid"]
 
     # make sure that the backend also thinks it's paid
-    wallet_class = get_wallet_class()
-    status = await wallet_class.get_payment_status(invoice["payment_hash"])
+    funding_source = get_funding_source()
+    status = await funding_source.get_payment_status(invoice["payment_hash"])
     assert status.paid
 
     # get the outgoing payment from the db
@@ -801,7 +801,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
 
     async def listen():
         found_checking_id = False
-        async for checking_id in get_wallet_class().paid_invoices_stream():
+        async for checking_id in get_funding_source().paid_invoices_stream():
             if checking_id == invoice["checking_id"]:
                 found_checking_id = True
                 return

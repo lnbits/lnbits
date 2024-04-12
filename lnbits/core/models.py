@@ -17,7 +17,7 @@ from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
 from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
-from lnbits.wallets import get_wallet_class
+from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import PaymentPendingStatus, PaymentStatus
 
 
@@ -265,11 +265,11 @@ class Payment(FromRowModel):
             f"pending payment {self.checking_id}"
         )
 
-        wallet_class = get_wallet_class()
+        funding_source = get_funding_source()
         if self.is_out:
-            status = await wallet_class.get_payment_status(self.checking_id)
+            status = await funding_source.get_payment_status(self.checking_id)
         else:
-            status = await wallet_class.get_invoice_status(self.checking_id)
+            status = await funding_source.get_invoice_status(self.checking_id)
 
         logger.debug(f"Status: {status}")
 

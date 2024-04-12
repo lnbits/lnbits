@@ -17,7 +17,7 @@ from lnbits.core.crud import (
     get_standalone_payment,
 )
 from lnbits.settings import settings
-from lnbits.wallets import get_wallet_class
+from lnbits.wallets import get_funding_source
 
 tasks: List[asyncio.Task] = []
 unique_tasks: Dict[str, asyncio.Task] = {}
@@ -119,8 +119,8 @@ async def invoice_listener():
 
     Called by the app startup sequence.
     """
-    wallet_class = get_wallet_class()
-    async for checking_id in wallet_class.paid_invoices_stream():
+    funding_source = get_funding_source()
+    async for checking_id in funding_source.paid_invoices_stream():
         logger.info("> got a payment notification", checking_id)
         create_task(invoice_callback_dispatcher(checking_id))
 
