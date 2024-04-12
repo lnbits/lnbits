@@ -548,6 +548,12 @@
                                 "response": {
                                     "invoices": []
                                 }
+                            },
+                            "listpays": {
+                                "description": "no data, pending",
+                                "request_type": "function",
+                                "response_type": "json",
+                                "response": {}
                             }
                         }
                     }
@@ -1404,7 +1410,7 @@
                                     "description": "error",
                                     "response_type": "data",
                                     "response": {
-                                        "payment_by_hash": {
+                                        "listpays": {
                                             "request_type": "function",
                                             "response_type": "exception",
                                             "response": {
