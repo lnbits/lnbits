@@ -506,6 +506,29 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc_new": [
+                                {
+                                    "response": {
+                                        "AddInvoice": {
+                                            "request_type": "async-function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.Invoice",
+                                                "kwargs": {
+                                                    "value": 555,
+                                                    "private": true,
+                                                    "memo": "Test Invoice"
+                                                }
+                                            },
+                                            "response_type": "exception",
+                                            "response": {
+                                                "data": "test-error"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
