@@ -35,8 +35,8 @@ async def get_random_invoice_data():
 
 
 set_funding_source()
-WALLET = get_funding_source()
-is_fake: bool = WALLET.__class__.__name__ == "FakeWallet"
+funding_source = get_funding_source()
+is_fake: bool = funding_source.__class__.__name__ == "FakeWallet"
 is_regtest: bool = not is_fake
 
 
