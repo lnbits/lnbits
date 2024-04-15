@@ -4,7 +4,8 @@
             "wallet_class": "CoreLightningRestWallet",
             "settings": {
                 "corelightning_rest_url": "http://127.0.0.1:8555",
-                "corelightning_rest_macaroon": "eNcRyPtEdMaCaRoOn"
+                "corelightning_rest_macaroon": "eNcRyPtEdMaCaRoOn",
+                "user_agent": "LNbits/Tests"
             }
         },
         "lndrest": {
@@ -12,14 +13,16 @@
             "settings": {
                 "lnd_rest_endpoint": "http://127.0.0.1:8555",
                 "lnd_rest_macaroon": "eNcRyPtEdMaCaRoOn",
-                "lnd_rest_cert": ""
+                "lnd_rest_cert": "",
+                "user_agent": "LNbits/Tests"
             }
         },
         "alby": {
             "wallet_class": "AlbyWallet",
             "settings": {
                 "alby_api_endpoint": "http://127.0.0.1:8555",
-                "alby_access_token": "mock-alby-access-token"
+                "alby_access_token": "mock-alby-access-token",
+                "user_agent": "LNbits/Tests"
             }
         }
     },
