@@ -27,8 +27,8 @@ from ...utils.cache import cache
 
 
 def require_node():
-    NODE = get_node_class()
-    if not NODE:
+    node_class = get_node_class()
+    if not node_class:
         raise HTTPException(
             status_code=HTTPStatus.NOT_IMPLEMENTED,
             detail="Active backend does not implement Node API",
@@ -38,7 +38,7 @@ def require_node():
             status_code=HTTPStatus.SERVICE_UNAVAILABLE,
             detail="Not enabled",
         )
-    return NODE
+    return node_class
 
 
 def check_public():

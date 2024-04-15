@@ -131,39 +131,39 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
     ).fetchall()
 
     for table in tables:
-        tableName = table[0]
-        print(f"Migrating table {tableName}")
+        table_name = table[0]
+        print(f"Migrating table {table_name}")
         # hard coded skip for dbversions (already produced during startup)
-        if tableName == "dbversions":
+        if table_name == "dbversions":
             continue
-        if exclude_tables and tableName in exclude_tables:
+        if exclude_tables and table_name in exclude_tables:
             continue
 
-        columns = cursor.execute(f"PRAGMA table_info({tableName})").fetchall()
-        q = build_insert_query(schema, tableName, columns)
+        columns = cursor.execute(f"PRAGMA table_info({table_name})").fetchall()
+        q = build_insert_query(schema, table_name, columns)
 
-        data = cursor.execute(f"SELECT * FROM {tableName};").fetchall()
+        data = cursor.execute(f"SELECT * FROM {table_name};").fetchall()
 
         if len(data) == 0:
-            print(f"🛑 You sneaky dev! Table {tableName} is empty!")
+            print(f"🛑 You sneaky dev! Table {table_name} is empty!")
 
         insert_to_pg(q, data)
     cursor.close()
 
 
-def build_insert_query(schema, tableName, columns):
+def build_insert_query(schema, table_name, columns):
     to_columns = ", ".join([f'"{column[1].lower()}"' for column in columns])
     values = ", ".join([to_column_type(column[2]) for column in columns])
     return f"""
-            INSERT INTO {schema}.{tableName}({to_columns})
+            INSERT INTO {schema}.{table_name}({to_columns})
             VALUES ({values});
         """
 
 
-def to_column_type(columnType):
-    if columnType == "TIMESTAMP":
+def to_column_type(column_type):
+    if column_type == "TIMESTAMP":
         return "to_timestamp(%s)"
-    if columnType in ["BOOLEAN", "BOOL"]:
+    if column_type in ["BOOLEAN", "BOOL"]:
         return "%s::boolean"
     return "%s"
 

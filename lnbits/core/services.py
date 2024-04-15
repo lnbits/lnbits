@@ -30,7 +30,7 @@ from lnbits.settings import (
     settings,
 )
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
-from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
+from lnbits.wallets import fake_wallet, get_funding_source, set_funding_source
 from lnbits.wallets.base import (
     PaymentPendingStatus,
     PaymentResponse,
@@ -62,11 +62,11 @@ from .helpers import to_valid_user_id
 from .models import Payment, UserConfig, Wallet
 
 
-class PaymentFailure(Exception):
+class PaymentError(Exception):
     pass
 
 
-class InvoiceFailure(Exception):
+class InvoiceError(Exception):
     pass
 
 
@@ -123,16 +123,16 @@ async def create_invoice(
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
     if not amount > 0:
-        raise InvoiceFailure("Amountless invoices not supported.")
+        raise InvoiceError("Amountless invoices not supported.")
 
     user_wallet = await get_wallet(wallet_id, conn=conn)
     if not user_wallet:
-        raise InvoiceFailure(f"Could not fetch wallet '{wallet_id}'.")
+        raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.")
 
     invoice_memo = None if description_hash else memo
 
     # use the fake wallet if the invoice is for internal use only
-    wallet = FAKE_WALLET if internal else get_wallet_class()
+    funding_source = fake_wallet if internal else get_funding_source()
 
     amount_sat, extra = await calculate_fiat_amounts(
         amount, wallet_id, currency=currency, extra=extra, conn=conn
@@ -141,20 +141,22 @@ async def create_invoice(
     if settings.is_wallet_max_balance_exceeded(
         user_wallet.balance_msat / 1000 + amount_sat
     ):
-        raise InvoiceFailure(
+        raise InvoiceError(
             f"Wallet balance  cannot exceed "
             f"{settings.lnbits_wallet_limit_max_balance} sats."
         )
 
-    ok, checking_id, payment_request, error_message = await wallet.create_invoice(
-        amount=amount_sat,
-        memo=invoice_memo,
-        description_hash=description_hash,
-        unhashed_description=unhashed_description,
-        expiry=expiry or settings.lightning_invoice_expiry,
+    ok, checking_id, payment_request, error_message = (
+        await funding_source.create_invoice(
+            amount=amount_sat,
+            memo=invoice_memo,
+            description_hash=description_hash,
+            unhashed_description=unhashed_description,
+            expiry=expiry or settings.lightning_invoice_expiry,
+        )
     )
     if not ok or not payment_request or not checking_id:
-        raise InvoiceFailure(error_message or "unexpected backend error.")
+        raise InvoiceError(error_message or "unexpected backend error.")
 
     invoice = bolt11_decode(payment_request)
 
@@ -197,12 +199,12 @@ async def pay_invoice(
     try:
         invoice = bolt11_decode(payment_request)
     except Exception:
-        raise InvoiceFailure("Bolt11 decoding failed.")
+        raise InvoiceError("Bolt11 decoding failed.")
 
     if not invoice.amount_msat or not invoice.amount_msat > 0:
-        raise InvoiceFailure("Amountless invoices not supported.")
+        raise InvoiceError("Amountless invoices not supported.")
     if max_sat and invoice.amount_msat > max_sat * 1000:
-        raise InvoiceFailure("Amount in invoice is too high.")
+        raise InvoiceError("Amount in invoice is too high.")
 
     await check_wallet_limits(wallet_id, conn, invoice.amount_msat)
 
@@ -237,7 +239,7 @@ async def pay_invoice(
         # we check if an internal invoice exists that has already been paid
         # (not pending anymore)
         if not await check_internal_pending(invoice.payment_hash, conn=conn):
-            raise PaymentFailure("Internal invoice already paid.")
+            raise PaymentError("Internal invoice already paid.")
 
         # check_internal() returns the checking_id of the invoice we're waiting for
         # (pending only)
@@ -256,7 +258,7 @@ async def pay_invoice(
                 internal_invoice.amount != invoice.amount_msat
                 or internal_invoice.bolt11 != payment_request.lower()
             ):
-                raise PaymentFailure("Invalid invoice.")
+                raise PaymentError("Invalid invoice.")
 
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
@@ -284,7 +286,7 @@ async def pay_invoice(
             except Exception as e:
                 logger.error(f"could not create temporary payment: {e}")
                 # happens if the same wallet tries to pay an invoice twice
-                raise PaymentFailure("Could not make payment.")
+                raise PaymentError("Could not make payment.")
 
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
@@ -295,7 +297,7 @@ async def pay_invoice(
                 not internal_checking_id
                 and wallet.balance_msat > -fee_reserve_total_msat
             ):
-                raise PaymentFailure(
+                raise PaymentError(
                     f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
                     "  sat) to cover potential routing fees."
                 )
@@ -323,8 +325,8 @@ async def pay_invoice(
         service_fee_msat = service_fee(invoice.amount_msat, internal=False)
         logger.debug(f"backend: sending payment {temp_id}")
         # actually pay the external invoice
-        WALLET = get_wallet_class()
-        payment: PaymentResponse = await WALLET.pay_invoice(
+        funding_source = get_funding_source()
+        payment: PaymentResponse = await funding_source.pay_invoice(
             payment_request, fee_reserve_msat
         )
 
@@ -363,7 +365,7 @@ async def pay_invoice(
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_wallet_payment(temp_id, wallet_id, conn=conn)
-            raise PaymentFailure(
+            raise PaymentError(
                 f"Payment failed: {payment.error_message}"
                 or "Payment failed, but backend didn't give us an error message."
             )
@@ -499,7 +501,6 @@ async def redeem_lnurl_withdraw(
 async def perform_lnurlauth(
     callback: str,
     wallet: WalletTypeInfo = Depends(require_admin_key),
-    conn: Optional[Connection] = None,
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
 
@@ -592,7 +593,7 @@ async def check_transaction_status(
 
 
 # WARN: this same value must be used for balance check and passed to
-# WALLET.pay_invoice(), it may cause a vulnerability if the values differ
+# funding_source.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int, internal: bool = False) -> int:
     if internal:
         return 0
@@ -621,7 +622,7 @@ def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
 
 
 async def send_payment_notification(wallet: Wallet, payment: Payment):
-    await websocketUpdater(
+    await websocket_updater(
         wallet.id,
         json.dumps(
             {
@@ -760,25 +761,25 @@ class WebsocketConnectionManager:
                 await connection.send_text(message)
 
 
-websocketManager = WebsocketConnectionManager()
+websocket_manager = WebsocketConnectionManager()
 
 
-async def websocketUpdater(item_id, data):
-    return await websocketManager.send_data(f"{data}", item_id)
+async def websocket_updater(item_id, data):
+    return await websocket_manager.send_data(f"{data}", item_id)
 
 
 async def switch_to_voidwallet() -> None:
-    WALLET = get_wallet_class()
-    if WALLET.__class__.__name__ == "VoidWallet":
+    funding_source = get_funding_source()
+    if funding_source.__class__.__name__ == "VoidWallet":
         return
-    set_wallet_class("VoidWallet")
+    set_funding_source("VoidWallet")
     settings.lnbits_backend_wallet_class = "VoidWallet"
 
 
 async def get_balance_delta() -> Tuple[int, int, int]:
-    WALLET = get_wallet_class()
+    funding_source = get_funding_source()
     total_balance = await get_total_balance()
-    error_message, node_balance = await WALLET.status()
+    error_message, node_balance = await funding_source.status()
     if error_message:
         raise Exception(error_message)
     return node_balance - total_balance, node_balance, total_balance

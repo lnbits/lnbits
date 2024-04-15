@@ -164,13 +164,13 @@ class LndRestWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # set the fee limit for the payment
-        lnrpcFeeLimit = {}
-        lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
+        lnrpc_fee_limit = {}
+        lnrpc_fee_limit["fixed_msat"] = f"{fee_limit_msat}"
 
         try:
             r = await self.client.post(
                 url="/v1/channels/transactions",
-                json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
+                json={"payment_request": bolt11, "fee_limit": lnrpc_fee_limit},
                 timeout=None,
             )
             r.raise_for_status()

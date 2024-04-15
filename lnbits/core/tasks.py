@@ -16,7 +16,7 @@ from lnbits.core.services import (
     send_payment_notification,
     switch_to_voidwallet,
 )
-from lnbits.settings import get_wallet_class, settings
+from lnbits.settings import get_funding_source, settings
 from lnbits.tasks import send_push_notification
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = {}
@@ -28,8 +28,11 @@ async def killswitch_task():
     LNbits and will switch to VoidWallet if the killswitch is triggered.
     """
     while True:
-        WALLET = get_wallet_class()
-        if settings.lnbits_killswitch and WALLET.__class__.__name__ != "VoidWallet":
+        funding_source = get_funding_source()
+        if (
+            settings.lnbits_killswitch
+            and funding_source.__class__.__name__ != "VoidWallet"
+        ):
             with httpx.Client() as client:
                 try:
                     r = client.get(settings.lnbits_status_manifest, timeout=4)
@@ -55,8 +58,11 @@ async def watchdog_task():
     and will switch to VoidWallet if the watchdog delta is reached.
     """
     while True:
-        WALLET = get_wallet_class()
-        if settings.lnbits_watchdog and WALLET.__class__.__name__ != "VoidWallet":
+        funding_source = get_funding_source()
+        if (
+            settings.lnbits_watchdog
+            and funding_source.__class__.__name__ != "VoidWallet"
+        ):
             try:
                 delta, *_ = await get_balance_delta()
                 logger.debug(f"Running watchdog task. current delta: {delta}")

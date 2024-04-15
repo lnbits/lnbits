@@ -140,14 +140,14 @@ class Connection(Compat):
 
     def rewrite_values(self, values):
         # strip html
-        CLEANR = re.compile("<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
+        clean_regex = re.compile("<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
 
         # tuple to list and back to tuple
         raw_values = [values] if isinstance(values, str) else list(values)
         values = []
         for raw_value in raw_values:
             if isinstance(raw_value, str):
-                values.append(re.sub(CLEANR, "", raw_value))
+                values.append(re.sub(clean_regex, "", raw_value))
             elif isinstance(raw_value, datetime.datetime):
                 ts = raw_value.timestamp()
                 if self.type == SQLITE:

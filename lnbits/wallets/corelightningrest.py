@@ -16,7 +16,7 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    Unsupported,
+    UnsupportedError,
     Wallet,
 )
 from .macaroon import load_macaroon
@@ -104,7 +104,7 @@ class CoreLightningRestWallet(Wallet):
             "label": label,
         }
         if description_hash and not unhashed_description:
-            raise Unsupported(
+            raise UnsupportedError(
                 "'description_hash' unsupported by CoreLightningRest, "
                 "provide 'unhashed_description'"
             )

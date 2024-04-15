@@ -56,8 +56,8 @@ from ..crud import (
     update_pending_payments,
 )
 from ..services import (
-    InvoiceFailure,
-    PaymentFailure,
+    InvoiceError,
+    PaymentError,
     check_transaction_status,
     create_invoice,
     fee_reserve_total,
@@ -171,7 +171,7 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
             payment_db = await get_standalone_payment(payment_hash, conn=conn)
             assert payment_db is not None, "payment not found"
             checking_id = payment_db.checking_id
-        except InvoiceFailure as e:
+        except InvoiceError as e:
             raise HTTPException(status_code=520, detail=str(e))
         except Exception as exc:
             raise exc
@@ -230,7 +230,7 @@ async def api_payments_pay_invoice(
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(e))
-    except PaymentFailure as e:
+    except PaymentError as e:
         raise HTTPException(status_code=520, detail=str(e))
     except Exception as exc:
         raise exc
@@ -257,20 +257,20 @@ async def api_payments_pay_invoice(
 )
 async def api_payments_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
-    invoiceData: CreateInvoice = Body(...),
+    invoice_data: CreateInvoice = Body(...),
 ):
-    if invoiceData.out is True and wallet.wallet_type == WalletType.admin:
-        if not invoiceData.bolt11:
+    if invoice_data.out is True and wallet.wallet_type == WalletType.admin:
+        if not invoice_data.bolt11:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="BOLT11 string is invalid or not given",
             )
         return await api_payments_pay_invoice(
-            invoiceData.bolt11, wallet.wallet, invoiceData.extra
+            invoice_data.bolt11, wallet.wallet, invoice_data.extra
         )  # admin key
-    elif not invoiceData.out:
+    elif not invoice_data.out:
         # invoice key
-        return await api_payments_create_invoice(invoiceData, wallet.wallet)
+        return await api_payments_create_invoice(invoice_data, wallet.wallet)
     else:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
@@ -415,10 +415,10 @@ async def api_payments_sse(
 
 # TODO: refactor this route into a public and admin one
 @payment_router.get("/{payment_hash}")
-async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
+async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
-    wallet = await get_wallet_for_key(X_Api_Key) if isinstance(X_Api_Key, str) else None
+    wallet = await get_wallet_for_key(x_api_key) if isinstance(x_api_key, str) else None
 
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None

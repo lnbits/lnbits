@@ -316,16 +316,16 @@ def _new_sso(provider: str) -> Optional[SSOBase]:
             logger.warning(f"{provider} auth allowed but not configured.")
             return None
 
-        SSOProviderClass = _find_auth_provider_class(provider)
-        ssoProvider = SSOProviderClass(
+        sso_provider_class = _find_auth_provider_class(provider)
+        sso_provider = sso_provider_class(
             client_id, client_secret, None, allow_insecure_http=True
         )
         if (
             discovery_url
-            and getattr(ssoProvider, "discovery_url", discovery_url) != discovery_url
+            and getattr(sso_provider, "discovery_url", discovery_url) != discovery_url
         ):
-            ssoProvider.discovery_url = discovery_url
-        return ssoProvider
+            sso_provider.discovery_url = discovery_url
+        return sso_provider
     except Exception as e:
         logger.warning(e)
 
@@ -337,9 +337,9 @@ def _find_auth_provider_class(provider: str) -> Callable:
     for module in sso_modules:
         try:
             provider_module = importlib.import_module(f"{module}.{provider}")
-            ProviderClass = getattr(provider_module, f"{provider.title()}SSO")
-            if ProviderClass:
-                return ProviderClass
+            provider_class = getattr(provider_module, f"{provider.title()}SSO")
+            if provider_class:
+                return provider_class
         except Exception:
             pass
 

@@ -40,8 +40,8 @@ class EclairWallet(Wallet):
         self.ws_url = f"ws://{urllib.parse.urlsplit(self.url).netloc}/ws"
 
         password = settings.eclair_pass
-        encodedAuth = base64.b64encode(f":{password}".encode())
-        auth = str(encodedAuth, "utf-8")
+        encoded_auth = base64.b64encode(f":{password}".encode())
+        auth = str(encoded_auth, "utf-8")
         self.headers = {
             "Authorization": f"Basic {auth}",
             "User-Agent": settings.user_agent,
