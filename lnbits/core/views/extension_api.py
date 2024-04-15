@@ -42,6 +42,7 @@ from ..crud import (
     drop_extension_db,
     get_dbversions,
     get_installed_extension,
+    get_installed_extensions,
 )
 
 extension_router = APIRouter(
@@ -123,9 +124,9 @@ async def api_uninstall_extension(
     user: User = Depends(check_admin),
     access_token: Optional[str] = Depends(check_access_token),
 ):
-    installable_extensions = await InstallableExtension.get_installable_extensions()
+    installed_extensions = await get_installed_extensions()
 
-    extensions = [e for e in installable_extensions if e.id == ext_id]
+    extensions = [e for e in installed_extensions if e.id == ext_id]
     if len(extensions) == 0:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -135,7 +136,7 @@ async def api_uninstall_extension(
     # check that other extensions do not depend on this one
     for valid_ext_id in [ext.code for ext in get_valid_extensions()]:
         installed_ext = next(
-            (ext for ext in installable_extensions if ext.id == valid_ext_id), None
+            (ext for ext in installed_extensions if ext.id == valid_ext_id), None
         )
         if installed_ext and ext_id in installed_ext.dependencies:
             raise HTTPException(
