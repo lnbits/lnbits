@@ -116,6 +116,15 @@ def _mock_field(field):
         if response_type == "exception":
             return _raise(response)
 
+        if response_type == "function" or response_type == "async-function":
+            return_value = {}
+            for field_name in field["response"]:
+                value = field["response"][field_name]
+                _Mock = AsyncMock if value["request_type"] == "async-function" else Mock
+                return_value[field_name] = _Mock(side_effect=[_mock_field(value)])
+
+            return _dict_to_object(return_value)
+
     return response
 
 
@@ -140,6 +149,8 @@ def _dict_to_object(data: Optional[dict]) -> Optional[DataObject]:
         value = data[k]
         if isinstance(value, dict):
             d[k] = _dict_to_object(value)
+        elif isinstance(value, list):
+            d[k] = [_dict_to_object(v) for v in value]
 
     return DataObject(**d)
 

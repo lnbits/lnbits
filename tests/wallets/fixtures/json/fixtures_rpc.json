@@ -663,6 +663,20 @@
                             }
                         }
                     }
+                },
+                "lndrpc": {
+                    "rpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    },
+                    "routerpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    }
                 }
             },
             "tests": [
@@ -728,6 +742,31 @@
                                                 "amount_msat": 21050,
                                                 "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
                                                 "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "rpc": [],
+                            "routerpc": [
+                                {
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 2,
+                                                        "htlcs": [{"route": {"total_fees_msat": -50}}],
+                                                        "payment_preimage":"0000000000000000000000000000000000000000000000000000000000000000",
+                                                        "payment_hash":"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                                    }
+                                                }
                                             }
                                         }
                                     }
