@@ -6,8 +6,7 @@
 
 <b>(BETA)</b> 
 
-[![license-badge]](LICENSE) [![docs-badge]][docs]
-
+[![license-badge]](LICENSE) [![docs-badge]][docs] [<img src="https://img.shields.io/badge/sponsored_by-%3E__OpenSats-f97316">](https://opensats.org)
 ![Lightning network wallet](https://i.imgur.com/DeIiO0y.png)
 
 # The world's most powerful suite of bitcoin tools.
