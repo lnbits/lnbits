@@ -502,29 +502,29 @@
       </div>
     </div>
   </div>
-  {% if AD_SPACE %}
-  <div class="q-mx-auto">
-    <q-btn flat color="secondary" class="full-width q-mb-md"
-      >{{ AD_SPACE_TITLE }}</q-btn
-    >
-    <div class="row justify-center">
-      {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
-      <div class="flex flex-center column">
-        <a href="{{ AD[0] }}">
-          <img
-            v-if="($q.dark.isActive)"
-            src="{{ AD[1] }}"
-            style="max-width: 420px"
-          />
-          <img v-else src="{{ AD[2] }}" style="max-width: 420px" />
-        </a>
-      </div>
-
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
 </div>
+{% if AD_SPACE %}
+<div class="row justify-center">
+  <q-btn flat color="secondary" class="full-width q-mb-md"
+    >{{ AD_SPACE_TITLE }}</q-btn
+  >
+
+  {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
+  <div class="flex flex-center column">
+    <a href="{{ AD[0] }}">
+      <img
+        v-if="($q.dark.isActive)"
+        src="{{ AD[1] }}"
+        style="max-width: 420px"
+      />
+      <img v-else src="{{ AD[2] }}" style="max-width: 420px" />
+    </a>
+  </div>
+
+  {% endfor %}
+</div>
+{% endif %}
+
 <div v-if="'{{SITE_TITLE}}' == 'LNbits'" class="row gt-sm q-mt-xl">
   <div class="col-1"></div>
   <div class="col-10 q-pl-xl">
