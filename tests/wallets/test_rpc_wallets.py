@@ -1,8 +1,8 @@
 import importlib
 from typing import Dict, List, Optional
+from unittest.mock import Mock
 
 import pytest
-from mock import Mock
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models import BaseWallet
