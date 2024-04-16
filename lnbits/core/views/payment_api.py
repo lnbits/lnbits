@@ -3,7 +3,7 @@ import json
 import uuid
 from http import HTTPStatus
 from math import ceil
-from typing import List, Optional, Union
+from typing import List, Optional
 from urllib.parse import urlparse
 
 import httpx
@@ -40,7 +40,7 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import generate_filter_params_openapi, url_for
+from lnbits.helpers import generate_filter_params_openapi
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
@@ -52,7 +52,6 @@ from ..crud import (
     get_payments_paginated,
     get_standalone_payment,
     get_wallet_for_key,
-    save_balance_check,
     update_pending_payments,
 )
 from ..services import (
@@ -178,44 +177,11 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
 
     invoice = bolt11.decode(payment_request)
 
-    lnurl_response: Union[None, bool, str] = None
-    if data.lnurl_callback:
-        if data.lnurl_balance_check is not None:
-            await save_balance_check(wallet.id, data.lnurl_balance_check)
-
-        headers = {"User-Agent": settings.user_agent}
-        async with httpx.AsyncClient(headers=headers) as client:
-            try:
-                r = await client.get(
-                    data.lnurl_callback,
-                    params={
-                        "pr": payment_request,
-                        "balanceNotify": url_for(
-                            f"/withdraw/notify/{urlparse(data.lnurl_callback).netloc}",
-                            external=True,
-                            wal=wallet.id,
-                        ),
-                    },
-                    timeout=10,
-                )
-                if r.is_error:
-                    lnurl_response = r.text
-                else:
-                    resp = json.loads(r.text)
-                    if resp["status"] != "OK":
-                        lnurl_response = resp["reason"]
-                    else:
-                        lnurl_response = True
-            except (httpx.ConnectError, httpx.RequestError) as ex:
-                logger.error(ex)
-                lnurl_response = False
-
     return {
         "payment_hash": invoice.payment_hash,
         "payment_request": payment_request,
         # maintain backwards compatibility with API clients:
         "checking_id": checking_id,
-        "lnurl_response": lnurl_response,
     }
 
 

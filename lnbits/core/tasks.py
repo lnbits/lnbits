@@ -5,7 +5,6 @@ import httpx
 from loguru import logger
 
 from lnbits.core.crud import (
-    get_balance_notify,
     get_wallet,
     get_webpush_subscriptions_for_user,
     mark_webhook_sent,
@@ -76,8 +75,7 @@ async def watchdog_task():
 
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
     """
-    This task dispatches events to all api_invoice_listeners,
-    webhooks, push notifications and balance notifications.
+    This worker dispatches events to all extensions and dispatches webhooks.
     """
     while True:
         payment = await invoice_paid_queue.get()
@@ -91,28 +89,6 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
             await dispatch_webhook(payment)
-        # dispatch balance_notify
-        url = await get_balance_notify(payment.wallet_id)
-        if url:
-            headers = {"User-Agent": settings.user_agent}
-            async with httpx.AsyncClient(headers=headers) as client:
-                try:
-                    r = await client.post(url, timeout=4)
-                    r.raise_for_status()
-                    await mark_webhook_sent(payment.payment_hash, r.status_code)
-                except httpx.HTTPStatusError as exc:
-                    status_code = exc.response.status_code
-                    await mark_webhook_sent(payment.payment_hash, status_code)
-                    logger.warning(
-                        f"balance_notify returned a bad status_code: {status_code} "
-                        f"while requesting {exc.request.url!r}."
-                    )
-                    logger.warning(exc)
-                except httpx.RequestError as exc:
-                    await mark_webhook_sent(payment.payment_hash, -1)
-                    logger.warning(f"Could not send balance_notify to {url}")
-                    logger.warning(exc)
-
         # dispatch push notification
         await send_payment_push_notification(payment)
 

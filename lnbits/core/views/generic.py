@@ -1,40 +1,35 @@
-import asyncio
 import sys
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, List, Optional, Union
 from urllib.parse import urlparse
 
-from fastapi import Cookie, Depends, Query, Request, status
+from fastapi import Cookie, Depends, Query, Request
 from fastapi.exceptions import HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from loguru import logger
 from pydantic.types import UUID4
 
-from lnbits.core.db import core_app_extra, db
+from lnbits.core.db import core_app_extra
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
-from lnbits.helpers import template_renderer, url_for
+from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
 from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
-    create_account,
     create_wallet,
-    get_balance_check,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extensions,
     get_user,
-    save_balance_notify,
     update_installed_extension_state,
     update_user_extension,
 )
-from ..services import pay_invoice, redeem_lnurl_withdraw
 
 generic_router = APIRouter(
     tags=["Core NON-API Website Routes"], include_in_schema=False
@@ -240,115 +235,6 @@ async def account(
         {
             "user": user.dict(),
         },
-    )
-
-
-@generic_router.get("/withdraw", response_class=JSONResponse)
-async def lnurl_full_withdraw(request: Request):
-    usr_param = request.query_params.get("usr")
-    if not usr_param:
-        return {"status": "ERROR", "reason": "usr parameter not provided."}
-
-    user = await get_user(usr_param)
-    if not user:
-        return {"status": "ERROR", "reason": "User does not exist."}
-
-    wal_param = request.query_params.get("wal")
-    if not wal_param:
-        return {"status": "ERROR", "reason": "wal parameter not provided."}
-
-    wallet = user.get_wallet(wal_param)
-    if not wallet:
-        return {"status": "ERROR", "reason": "Wallet does not exist."}
-
-    return {
-        "tag": "withdrawRequest",
-        "callback": url_for("/withdraw/cb", external=True, usr=user.id, wal=wallet.id),
-        "k1": "0",
-        "minWithdrawable": 1000 if wallet.withdrawable_balance else 0,
-        "maxWithdrawable": wallet.withdrawable_balance,
-        "defaultDescription": (
-            f"{settings.lnbits_site_title} balance withdraw from {wallet.id[0:5]}"
-        ),
-        "balanceCheck": url_for("/withdraw", external=True, usr=user.id, wal=wallet.id),
-    }
-
-
-@generic_router.get("/withdraw/cb", response_class=JSONResponse)
-async def lnurl_full_withdraw_callback(request: Request):
-    usr_param = request.query_params.get("usr")
-    if not usr_param:
-        return {"status": "ERROR", "reason": "usr parameter not provided."}
-
-    user = await get_user(usr_param)
-    if not user:
-        return {"status": "ERROR", "reason": "User does not exist."}
-
-    wal_param = request.query_params.get("wal")
-    if not wal_param:
-        return {"status": "ERROR", "reason": "wal parameter not provided."}
-
-    wallet = user.get_wallet(wal_param)
-    if not wallet:
-        return {"status": "ERROR", "reason": "Wallet does not exist."}
-
-    pr = request.query_params.get("pr")
-    if not pr:
-        return {"status": "ERROR", "reason": "payment_request not provided."}
-
-    async def pay():
-        try:
-            await pay_invoice(wallet_id=wallet.id, payment_request=pr)
-        except Exception:
-            pass
-
-    asyncio.create_task(pay())
-
-    balance_notify = request.query_params.get("balanceNotify")
-    if balance_notify:
-        await save_balance_notify(wallet.id, balance_notify)
-
-    return {"status": "OK"}
-
-
-@generic_router.get("/withdraw/notify/{service}")
-async def lnurl_balance_notify(request: Request, service: str):
-    wal_param = request.query_params.get("wal")
-    if not wal_param:
-        return {"status": "ERROR", "reason": "wal parameter not provided."}
-
-    bc = await get_balance_check(wal_param, service)
-    if bc:
-        await redeem_lnurl_withdraw(bc.wallet, bc.url)
-
-
-@generic_router.get(
-    "/lnurlwallet", response_class=RedirectResponse, name="core.lnurlwallet"
-)
-async def lnurlwallet(request: Request):
-    async with db.connect() as conn:
-        account = await create_account(conn=conn)
-        user = await get_user(account.id, conn=conn)
-        assert user, "Newly created user not found."
-        wallet = await create_wallet(user_id=user.id, conn=conn)
-
-    lightning_param = request.query_params.get("lightning")
-    if not lightning_param:
-        return {"status": "ERROR", "reason": "lightning parameter not provided."}
-
-    asyncio.create_task(
-        redeem_lnurl_withdraw(
-            wallet.id,
-            lightning_param,
-            "LNbits initial funding: voucher redeem.",
-            {"tag": "lnurlwallet"},
-            5,  # wait 5 seconds before sending the invoice to the service
-        )
-    )
-
-    return RedirectResponse(
-        f"/wallet?usr={user.id}&wal={wallet.id}",
-        status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
 
 
