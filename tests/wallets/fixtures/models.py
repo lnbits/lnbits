@@ -28,7 +28,6 @@ class TestMock(BaseModel):
 
 
 class Mock(FunctionMock, TestMock):
-
     @staticmethod
     def combine_mocks(fs_mock, test_mock):
         _mock = fs_mock | test_mock

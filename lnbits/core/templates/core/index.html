@@ -502,18 +502,28 @@
       </div>
     </div>
   </div>
-  {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
-  <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
+  {% if AD_SPACE %}
+  <div class="q-mx-auto">
     <q-btn flat color="secondary" class="full-width q-mb-md"
       >{{ AD_SPACE_TITLE }}</q-btn
     >
+    <div class="row justify-center">
+      {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
+      <div class="flex flex-center column">
+        <a href="{{ AD[0] }}">
+          <img
+            v-if="($q.dark.isActive)"
+            src="{{ AD[1] }}"
+            style="max-width: 420px"
+          />
+          <img v-else src="{{ AD[2] }}" style="max-width: 420px" />
+        </a>
+      </div>
 
-    <a href="{{ AD[0] }}" class="q-ma-md">
-      <img v-if="($q.dark.isActive)" src="{{ AD[1] }}" style="max-width: 90%" />
-      <img v-else src="{{ AD[2] }}" style="max-width: 90%" />
-    </a>
+      {% endfor %}
+    </div>
   </div>
-  {% endfor %} {% endif %}
+  {% endif %}
 </div>
 <div v-if="'{{SITE_TITLE}}' == 'LNbits'" class="row gt-sm q-mt-xl">
   <div class="col-1"></div>

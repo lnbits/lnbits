@@ -146,14 +146,17 @@ async def create_invoice(
             f"{settings.lnbits_wallet_limit_max_balance} sats."
         )
 
-    ok, checking_id, payment_request, error_message = (
-        await funding_source.create_invoice(
-            amount=amount_sat,
-            memo=invoice_memo,
-            description_hash=description_hash,
-            unhashed_description=unhashed_description,
-            expiry=expiry or settings.lightning_invoice_expiry,
-        )
+    (
+        ok,
+        checking_id,
+        payment_request,
+        error_message,
+    ) = await funding_source.create_invoice(
+        amount=amount_sat,
+        memo=invoice_memo,
+        description_hash=description_hash,
+        unhashed_description=unhashed_description,
+        expiry=expiry or settings.lightning_invoice_expiry,
     )
     if not ok or not payment_request or not checking_id:
         raise InvoiceError(error_message or "unexpected backend error.")
