@@ -45,7 +45,6 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
 
 
 def _apply_mock(httpserver: HTTPServer, mock: Mock):
-
     request_data: Dict[str, Union[str, dict]] = {}
     request_type = getattr(mock.dict(), "request_type", None)
     # request_type = mock.request_type <--- this des not work for whatever reason!!!

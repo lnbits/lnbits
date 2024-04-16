@@ -99,7 +99,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_custom_logo: str = Field(default=None)
     lnbits_ad_space_title: str = Field(default="Supported by")
     lnbits_ad_space: str = Field(
-        default="https://shop.lnbits.com/;/static/images/lnbits-shop-light.png;/static/images/lnbits-shop-dark.png"
+        default="https://shop.lnbits.com/;/static/images/bitcoin-shop-banner.png;/static/images/bitcoin-shop-banner.png,https://affil.trezor.io/aff_c?offer_id=169&aff_id=33845;/static/images/bitcoin-hardware-wallet.png;/static/images/bitcoin-hardware-wallet.png,https://opensats.org/;/static/images/open-sats.png;/static/images/open-sats.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
     lnbits_allowed_currencies: list[str] = Field(default=[])

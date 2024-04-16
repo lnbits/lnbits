@@ -69,7 +69,6 @@ from .tasks import (
 
 
 async def startup(app: FastAPI):
-
     # wait till migration is done
     await migrate_databases()
 
@@ -177,7 +176,6 @@ def create_app() -> FastAPI:
 
 
 async def check_funding_source() -> None:
-
     funding_source = get_funding_source()
 
     max_retries = settings.funding_source_max_retries
