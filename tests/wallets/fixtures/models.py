@@ -120,7 +120,7 @@ class WalletTest(BaseModel):
                 self.dict()
                 | {
                     "description": f"""{self.description}:{mock.description or ""}""",
-                    "mocks": self.mocks + [mock],
+                    "mocks": [*self.mocks, mock],
                     "skip": self.skip or mock.skip,
                 }
             )
