@@ -8,12 +8,8 @@
 ![Lightning network wallet](https://i.imgur.com/DeIiO0y.png)
 
 # The world's most powerful suite of bitcoin tools.
-
 ## Run for yourself, for others, or as part of a stack. 
-
-(Join us on [https://t.me/lnbits](https://t.me/lnbits))
-
-LNbits is beta, for responsible disclosure of any concerns please contact an admin in [https://t.me/lnbits](https://t.me/lnbits)
+LNbits is beta, for responsible disclosure of any concerns please contact an admin in the community chat.
 
 LNbits is a Python server that sits on top of any funding source. It can be used as:
 
