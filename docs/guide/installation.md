@@ -46,6 +46,12 @@ poetry env use python3.9
 # Install nodejs and npm
 sudo apt-get install nodejs npm
 
+# nodejs version should at least be 16
+node -v
+# if not, you can install n to manage node versions
+# npm install -g n
+# n 16
+
 # run poetry install, npm install and builds the frontend
 make build
 
