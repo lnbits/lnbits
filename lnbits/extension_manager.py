@@ -560,7 +560,11 @@ class InstallableExtension(BaseModel):
         return ext
 
     @classmethod
-    def from_rows(cls, rows: List[Any] = []) -> List["InstallableExtension"]:
+    def from_rows(
+        cls, rows: Optional[List[Any]] = None
+    ) -> List["InstallableExtension"]:
+        if rows is None:
+            rows = []
         return [InstallableExtension.from_row(row) for row in rows]
 
     @classmethod

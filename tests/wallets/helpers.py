@@ -62,7 +62,7 @@ def load_funding_source(funding_source: FundingSourceConfig) -> BaseWallet:
     custom_settings = funding_source.settings
     original_settings = {}
 
-    settings = getattr(wallets_module, "settings")
+    settings = wallets_module.settings
 
     for s in custom_settings:
         original_settings[s] = getattr(settings, s)
@@ -93,7 +93,7 @@ async def check_assertions(wallet, _test_data: WalletTest):
     elif "expect_error" in test_data:
         await _assert_error(wallet, tested_func, call_params, _test_data.expect_error)
     else:
-        assert False, "Expected outcome not specified"
+        raise AssertionError("Expected outcome not specified")
 
 
 async def _assert_data(wallet, tested_func, call_params, expect):

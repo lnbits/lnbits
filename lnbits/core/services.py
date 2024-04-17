@@ -727,7 +727,7 @@ def update_cached_settings(sets_dict: dict):
         except Exception:
             logger.warning(f"Failed overriding setting: {key}, value: {value}")
     if "super_user" in sets_dict:
-        setattr(settings, "super_user", sets_dict["super_user"])
+        settings.super_user = sets_dict["super_user"]
 
 
 async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings:

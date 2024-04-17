@@ -7,7 +7,7 @@ import argparse
 import os
 import sqlite3
 import sys
-from typing import List
+from typing import List, Optional
 
 import psycopg2
 
@@ -104,7 +104,9 @@ def insert_to_pg(query, data):
     connection.close()
 
 
-def migrate_core(file: str, exclude_tables: List[str] = []):
+def migrate_core(file: str, exclude_tables: Optional[List[str]] = None):
+    if exclude_tables is None:
+        exclude_tables = []
     print(f"Migrating core: {file}")
     migrate_db(file, "public", exclude_tables)
     print("✅ Migrated core")
@@ -118,8 +120,10 @@ def migrate_ext(file: str):
     print(f"✅ Migrated ext: {schema}")
 
 
-def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
+def migrate_db(file: str, schema: str, exclude_tables: Optional[List[str]] = None):
     # first we check if this file exists:
+    if exclude_tables is None:
+        exclude_tables = []
     assert os.path.isfile(file), f"{file} does not exist!"
 
     cursor = get_sqlite_cursor(file)
