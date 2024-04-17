@@ -691,9 +691,25 @@ Vue.component('lnbits-update-balance', {
   },
   methods: {
     updateBalance: function (credit) {
-      LNbits.api.updateBalance(credit, this.wallet_id).then(res => {
-        this.callback({value: res, wallet_id: this.wallet_id})
-      })
+      LNbits.api
+        .updateBalance(credit, this.wallet_id)
+        .then(res => {
+          this.callback({value: res, wallet_id: this.wallet_id})
+        })
+        .then(_ => {
+          credit = parseInt(credit)
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('wallet_topup_ok', {
+              amount: credit
+            }),
+            icon: null
+          })
+          return credit
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
     }
   },
   template: `

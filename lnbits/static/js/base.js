@@ -138,25 +138,10 @@ window.LNbits = {
       )
     },
     updateBalance: function (credit, wallet_id) {
-      return LNbits.api
-        .request('PUT', '/admin/api/v1/topup/', null, {
-          amount: credit,
-          id: wallet_id
-        })
-        .then(_ => {
-          credit = parseInt(credit)
-          Quasar.Notify.create({
-            type: 'positive',
-            message:
-              `Success creating virtual funds (${credit} sats). ` +
-              'Payments depend on actual funds on funding source.',
-            icon: null
-          })
-          return credit
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+      return LNbits.api.request('PUT', '/admin/api/v1/topup/', null, {
+        amount: credit,
+        id: wallet_id
+      })
     }
   },
   events: {
