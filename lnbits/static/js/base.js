@@ -138,22 +138,10 @@ window.LNbits = {
       )
     },
     updateBalance: function (credit, wallet_id) {
-      return LNbits.api
-        .request('PUT', '/admin/api/v1/topup/', null, {
-          amount: credit,
-          id: wallet_id
-        })
-        .then(_ => {
-          Quasar.Notify.create({
-            type: 'positive',
-            message: 'Success! Added ' + credit + ' sats to ' + wallet_id,
-            icon: null
-          })
-          return parseInt(credit)
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+      return LNbits.api.request('PUT', '/admin/api/v1/topup/', null, {
+        amount: credit,
+        id: wallet_id
+      })
     }
   },
   events: {

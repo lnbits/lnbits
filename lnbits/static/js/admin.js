@@ -199,8 +199,9 @@ new Vue({
         .then(response => {
           this.$q.notify({
             type: 'positive',
-            message:
-              'Success! Added ' + this.wallet.amount + ' to ' + this.wallet.id,
+            message: this.$t('wallet_topup_ok', {
+              amount: this.wallet.amount
+            }),
             icon: null
           })
           this.wallet = {}
