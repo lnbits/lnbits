@@ -166,7 +166,7 @@ def _data_mock(data: dict) -> Mock:
     return Mock(return_value=_dict_to_object(data))
 
 
-def _raise(error: Optional[dict] = {}):
+def _raise(error: Optional[dict]):
     if not error:
         return Exception()
     data = error["data"] if "data" in error else None
