@@ -51,3 +51,6 @@ lnbits-backup.zip
 # Ignore extensions (post installable extension PR)
 extensions
 upgrades/
+
+# builded python package
+dist
