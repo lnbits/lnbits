@@ -43,11 +43,11 @@ async def api_auditor():
             "node_balance_msats": int(node_balance),
             "lnbits_balance_msats": int(total_balance),
         }
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail="Could not audit balance.",
-        )
+        ) from exc
 
 
 @admin_router.get(
@@ -113,10 +113,10 @@ async def api_restart_server() -> dict[str, str]:
 async def api_topup_balance(data: CreateTopup) -> dict[str, str]:
     try:
         await get_wallet(data.id)
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="wallet does not exist."
-        )
+        ) from exc
 
     if settings.lnbits_backend_wallet_class == "VoidWallet":
         raise HTTPException(

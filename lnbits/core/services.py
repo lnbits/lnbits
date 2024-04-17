@@ -201,8 +201,8 @@ async def pay_invoice(
     """
     try:
         invoice = bolt11_decode(payment_request)
-    except Exception:
-        raise InvoiceError("Bolt11 decoding failed.")
+    except Exception as exc:
+        raise InvoiceError("Bolt11 decoding failed.") from exc
 
     if not invoice.amount_msat or not invoice.amount_msat > 0:
         raise InvoiceError("Amountless invoices not supported.")
@@ -286,10 +286,10 @@ async def pay_invoice(
                     conn=conn,
                     **payment_kwargs,
                 )
-            except Exception as e:
-                logger.error(f"could not create temporary payment: {e}")
+            except Exception as exc:
+                logger.error(f"could not create temporary payment: {exc}")
                 # happens if the same wallet tries to pay an invoice twice
-                raise PaymentError("Could not make payment.")
+                raise PaymentError("Could not make payment.") from exc
 
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)

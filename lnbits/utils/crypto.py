@@ -60,8 +60,8 @@ class AESCipher:
         aes = AES.new(key, AES.MODE_CBC, iv)
         try:
             return self.unpad(aes.decrypt(encrypted[16:])).decode()  # type: ignore
-        except UnicodeDecodeError:
-            raise ValueError("Wrong passphrase")
+        except UnicodeDecodeError as exc:
+            raise ValueError("Wrong passphrase") from exc
 
     def encrypt(self, message: bytes) -> str:
         passphrase = self.passphrase

@@ -171,9 +171,11 @@ async def extensions_install(
                 "extensions": extensions,
             },
         )
-    except Exception as e:
-        logger.warning(e)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
 
 
 @generic_router.get(
@@ -396,8 +398,10 @@ async def hex_to_uuid4(hex_value: str):
     try:
         user_id = to_valid_user_id(hex_value).hex
         return RedirectResponse(url=f"/wallet?usr={user_id}")
-    except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
 
 
 async def toggle_extension(extension_to_enable, extension_to_disable, user_id):

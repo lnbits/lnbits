@@ -44,11 +44,12 @@ def catch_rpc_errors(f):
     async def wrapper(*args, **kwargs):
         try:
             return await f(*args, **kwargs)
-        except RpcError as e:
-            if e.error["code"] == -32602:
-                raise HTTPException(status_code=400, detail=e.error["message"])
+        except RpcError as exc:
+            msg = exc.error["message"]
+            if exc.error["code"] == -32602:
+                raise HTTPException(status_code=400, detail=msg) from exc
             else:
-                raise HTTPException(status_code=500, detail=e.error["message"])
+                raise HTTPException(status_code=500, detail=msg) from exc
 
     return wrapper
 
@@ -66,9 +67,11 @@ class CoreLightningNode(Node):
         # https://docs.corelightning.org/reference/lightning-connect
         try:
             await self.ln_rpc("connect", uri)
-        except RpcError as e:
-            if e.error["code"] == 400:
-                raise HTTPException(HTTPStatus.BAD_REQUEST, detail=e.error["message"])
+        except RpcError as exc:
+            if exc.error["code"] == 400:
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST, detail=exc.error["message"]
+                ) from exc
             else:
                 raise
 
@@ -76,12 +79,12 @@ class CoreLightningNode(Node):
     async def disconnect_peer(self, peer_id: str):
         try:
             await self.ln_rpc("disconnect", peer_id)
-        except RpcError as e:
-            if e.error["code"] == -1:
+        except RpcError as exc:
+            if exc.error["code"] == -1:
                 raise HTTPException(
                     HTTPStatus.BAD_REQUEST,
-                    detail=e.error["message"],
-                )
+                    detail=exc.error["message"],
+                ) from exc
             else:
                 raise
 
@@ -105,14 +108,14 @@ class CoreLightningNode(Node):
                 funding_txid=result["txid"],
                 output_index=result["outnum"],
             )
-        except RpcError as e:
-            message = e.error["message"]
+        except RpcError as exc:
+            message = exc.error["message"]
 
             if "amount: should be a satoshi amount" in message:
                 raise HTTPException(
                     HTTPStatus.BAD_REQUEST,
                     detail="The amount is not a valid satoshi amount.",
-                )
+                ) from exc
 
             if "Unknown peer" in message:
                 raise HTTPException(
@@ -121,7 +124,7 @@ class CoreLightningNode(Node):
                         "We where able to connect to the peer but CLN "
                         "can't find it when opening a channel."
                     ),
-                )
+                ) from exc
 
             if "Owning subdaemon openingd died" in message:
                 # https://github.com/ElementsProject/lightning/issues/2798#issuecomment-511205719
@@ -131,14 +134,14 @@ class CoreLightningNode(Node):
                         "Likely the peer didn't like our channel opening "
                         "proposal and disconnected from us."
                     ),
-                )
+                ) from exc
 
             if (
                 "Number of pending channels exceed maximum" in message
                 or "exceeds maximum chan size of 10 BTC" in message
                 or "Could not afford" in message
             ):
-                raise HTTPException(HTTPStatus.BAD_REQUEST, detail=message)
+                raise HTTPException(HTTPStatus.BAD_REQUEST, detail=message) from exc
             raise
 
     @catch_rpc_errors
@@ -152,13 +155,13 @@ class CoreLightningNode(Node):
             raise HTTPException(status_code=400, detail="Short id required")
         try:
             await self.ln_rpc("close", short_id)
-        except RpcError as e:
-            message = e.error["message"]
+        except RpcError as exc:
+            message = exc.error["message"]
             if (
                 "Short channel ID not active:" in message
                 or "Short channel ID not found" in message
             ):
-                raise HTTPException(HTTPStatus.BAD_REQUEST, detail=message)
+                raise HTTPException(HTTPStatus.BAD_REQUEST, detail=message) from exc
             else:
                 raise
 

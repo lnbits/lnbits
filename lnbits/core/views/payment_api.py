@@ -133,19 +133,19 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         if data.description_hash:
             try:
                 description_hash = bytes.fromhex(data.description_hash)
-            except ValueError:
+            except ValueError as exc:
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
                     detail="'description_hash' must be a valid hex string",
-                )
+                ) from exc
         if data.unhashed_description:
             try:
                 unhashed_description = bytes.fromhex(data.unhashed_description)
-            except ValueError:
+            except ValueError as exc:
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
                     detail="'unhashed_description' must be a valid hex string",
-                )
+                ) from exc
         # do not save memo if description_hash or unhashed_description is set
         memo = ""
 
@@ -170,8 +170,8 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
             payment_db = await get_standalone_payment(payment_hash, conn=conn)
             assert payment_db is not None, "payment not found"
             checking_id = payment_db.checking_id
-        except InvoiceError as e:
-            raise HTTPException(status_code=520, detail=str(e))
+        except InvoiceError as exc:
+            raise HTTPException(status_code=520, detail=str(exc)) from exc
         except Exception as exc:
             raise exc
 
@@ -192,12 +192,14 @@ async def api_payments_pay_invoice(
         payment_hash = await pay_invoice(
             wallet_id=wallet.id, payment_request=bolt11, extra=extra
         )
-    except ValueError as e:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
-    except PermissionError as e:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(e))
-    except PaymentError as e:
-        raise HTTPException(status_code=520, detail=str(e))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(exc)) from exc
+    except PaymentError as exc:
+        raise HTTPException(status_code=520, detail=str(exc)) from exc
     except Exception as exc:
         raise exc
 
@@ -282,11 +284,11 @@ async def api_payments_pay_lnurl(
             if r.is_error:
                 raise httpx.ConnectError("LNURL callback connection error")
             r.raise_for_status()
-        except (httpx.ConnectError, httpx.RequestError):
+        except (httpx.ConnectError, httpx.RequestError) as exc:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=f"Failed to connect to {domain}.",
-            )
+            ) from exc
 
     params = json.loads(r.text)
     if params.get("status") == "ERROR":

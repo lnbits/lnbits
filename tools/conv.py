@@ -90,14 +90,14 @@ def insert_to_pg(query, data):
     for d in data:
         try:
             cursor.execute(query, d)
-        except Exception as e:
+        except Exception as exc:
             if args.ignore_errors:
-                print(e)
+                print(exc)
                 print(f"Failed to insert {d}")
             else:
                 print("query:", query)
                 print("data:", d)
-                raise ValueError(f"Failed to insert {d}")
+                raise ValueError(f"Failed to insert {d}") from exc
     connection.commit()
 
     cursor.close()
