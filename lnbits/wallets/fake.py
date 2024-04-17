@@ -42,6 +42,9 @@ class FakeWallet(Wallet):
         32,
     ).hex()
 
+    async def cleanup(self):
+        pass
+
     async def status(self) -> StatusResponse:
         logger.info(
             "FakeWallet funding source is for using LNbits as a centralised,"
