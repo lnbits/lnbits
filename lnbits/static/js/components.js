@@ -698,7 +698,7 @@ Vue.component('lnbits-update-balance', {
         })
         .then(_ => {
           credit = parseInt(credit)
-          Quasar.Notify.create({
+          this.$q.notify({
             type: 'positive',
             message: this.$t('wallet_topup_ok', {
               amount: credit
