@@ -108,6 +108,8 @@ class WalletTest(BaseModel):
         mocks = []
 
         for mock_name in mock_names:
+            if mock_name not in test_mocks:
+                continue
             for test_mock in test_mocks[mock_name]:
                 mock = {"fs_mock": fs_mocks[mock_name], "test_mock": test_mock}
 
