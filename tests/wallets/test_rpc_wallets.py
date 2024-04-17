@@ -109,7 +109,7 @@ def _mock_field(field):
     if request_type == "data":
         return _dict_to_object(response)
 
-    if request_type == "function":
+    if request_type == "function" or request_type == "async-function":
         if response_type == "data":
             return _dict_to_object(response)
 
