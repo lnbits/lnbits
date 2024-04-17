@@ -1,6 +1,6 @@
 import importlib
 from typing import Dict, List, Optional
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -120,8 +120,10 @@ def _mock_field(field):
             return_value = {}
             for field_name in field["response"]:
                 value = field["response"][field_name]
-                _Mock = AsyncMock if value["request_type"] == "async-function" else Mock
-                return_value[field_name] = _Mock(side_effect=[_mock_field(value)])
+                _mock_class = (
+                    AsyncMock if value["request_type"] == "async-function" else Mock
+                )
+                return_value[field_name] = _mock_class(side_effect=[_mock_field(value)])
 
             return _dict_to_object(return_value)
 
