@@ -34,6 +34,7 @@ window.localisation.es = {
     'Borrar todas las configuraciones y restablecer a los valores predeterminados.',
   download_backup: 'Descargar copia de seguridad de la base de datos',
   name_your_wallet: 'Nombre de su billetera %{name}',
+  wallet_topup_ok: 'Éxito al crear fondos virtuales de (%{amount} sats). Los pagos dependen de los fondos reales en la fuente de financiamiento.',
   paste_invoice_label: 'Pegue la factura aquí',
   lnbits_description:
     'Fácil de instalar y liviano, LNbits puede ejecutarse en cualquier fuente de financiación de la red Lightning y hasta LNbits mismo! Puede ejecutar LNbits para usted mismo o ofrecer una solución competente a otros. Cada billetera tiene su propia clave API y no hay límite para la cantidad de billeteras que puede crear. La capacidad de particionar fondos hace de LNbits una herramienta útil para la administración de fondos y como herramienta de desarrollo. Las extensiones agregan funcionalidad adicional a LNbits, por lo que puede experimentar con una variedad de tecnologías de vanguardia en la red Lightning. Lo hemos hecho lo más simple posible para desarrollar extensiones y, como un proyecto gratuito y de código abierto, animamos a las personas a que se desarrollen a sí mismas y envíen sus propios contribuciones.',
