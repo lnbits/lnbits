@@ -137,15 +137,17 @@ class WalletTest(BaseModel):
         ]
 
         any_mock_skipped = len([m for m in test_mocks if m.skip])
+        extra_description = ";".join(
+            [m.description for m in test_mocks if m.description]
+        )
 
         return WalletTest(
             **(
                 self.dict()
                 | {
-                    "description": f"""{self.description}:""",
+                    "description": f"{self.description}:{extra_description}",
                     "mocks": test_mocks,
                     "skip": self.skip or any_mock_skipped,
-                    #   or mock.skip,
                 }
             )
         )
