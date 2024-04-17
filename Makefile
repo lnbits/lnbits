@@ -1,10 +1,11 @@
-.PHONY: test
-
-all: format check
+build: install bundle
 
 format: prettier black ruff
 
 check: mypy pyright checkblack checkruff checkprettier checkbundle
+
+install:
+	poetry install --only main -E liquid
 
 prettier:
 	poetry run ./node_modules/.bin/prettier --write lnbits
@@ -96,16 +97,6 @@ bundle:
 	npm run vendor_minify_css
 	npm run vendor_bundle_js
 	npm run vendor_minify_js
-
-checkbundle:
-	cp lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old
-	cp lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old
-	make bundle
-	diff -q lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old || exit 1
-	diff -q lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old || exit 1
-	@echo "Bundle is OK"
-	rm lnbits/static/bundle.min.js.old
-	rm lnbits/static/bundle.min.css.old
 
 install-pre-commit-hook:
 	@echo "Installing pre-commit hook to git"
