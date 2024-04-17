@@ -93,10 +93,12 @@ class PaymentPendingStatus(PaymentStatus):
 
 
 class Wallet(ABC):
-    async def cleanup(self):
-        pass
 
     __node_cls__: Optional[type[Node]] = None
+
+    @abstractmethod
+    async def cleanup(self):
+        pass
 
     @abstractmethod
     def status(self) -> Coroutine[None, None, StatusResponse]:
