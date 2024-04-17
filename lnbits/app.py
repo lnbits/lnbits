@@ -300,7 +300,7 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
 
     zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
-    if f"./{str(ext.zip_path)}" not in zip_files:
+    if f"./{ext.zip_path!s}" not in zip_files:
         await ext.download_archive()
     ext.extract_archive()
 
@@ -403,7 +403,7 @@ def register_all_ext_routes(app: FastAPI):
         try:
             register_ext_routes(app, ext)
         except Exception as e:
-            logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
+            logger.error(f"Could not load extension `{ext.code}`: {e!s}")
 
 
 def initialize_server_logger():
@@ -474,7 +474,7 @@ def register_exception_handlers(app: FastAPI):
     async def exception_handler(request: Request, exc: Exception):
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, exc, tb)
-        logger.error(f"Exception: {str(exc)}")
+        logger.error(f"Exception: {exc!s}")
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
         if (
@@ -483,7 +483,7 @@ def register_exception_handlers(app: FastAPI):
             and "text/html" in request.headers["accept"]
         ):
             return template_renderer().TemplateResponse(
-                request, "error.html", {"err": f"Error: {str(exc)}"}
+                request, "error.html", {"err": f"Error: {exc!s}"}
             )
 
         return JSONResponse(
@@ -495,7 +495,7 @@ def register_exception_handlers(app: FastAPI):
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
-        logger.error(f"RequestValidationError: {str(exc)}")
+        logger.error(f"RequestValidationError: {exc!s}")
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
 
@@ -507,7 +507,7 @@ def register_exception_handlers(app: FastAPI):
             return template_renderer().TemplateResponse(
                 request,
                 "error.html",
-                {"err": f"Error: {str(exc)}"},
+                {"err": f"Error: {exc!s}"},
             )
 
         return JSONResponse(

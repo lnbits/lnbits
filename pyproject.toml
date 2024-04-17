@@ -173,9 +173,11 @@ extend-exclude = [
 # C - mccabe
 # N - naming
 # UP - pyupgrade
-select = ["F", "E", "W", "I", "A", "C", "N", "UP"]
+# RUF - ruff specific rules
+select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF"]
 # UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
-ignore = ["UP007"]
+# RUF012: mutable-class-default
+ignore = ["UP007", "RUF012"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

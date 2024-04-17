@@ -50,7 +50,7 @@ async def api_public_payment_longpolling(payment_hash):
         cancel_scope.cancel()
 
     cancel_scope = asyncio.create_task(payment_info_receiver())
-    asyncio.create_task(timeouter(cancel_scope))
+    asyncio.create_task(timeouter(cancel_scope))  # noqa: RUF006
 
     if response:
         return response
