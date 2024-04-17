@@ -33,6 +33,7 @@ window.localisation.we = {
   reset_defaults_tooltip: 'Dileu pob gosodiad ac ailosod i`r rhagosodiadau.',
   download_backup: 'Lawrlwytho copi wrth gefn cronfa ddata',
   name_your_wallet: 'Enwch eich waled %{name}',
+  wallet_topup_ok: 'Llwyddiant wrth greu cronfeydd rhithwir (%{amount} sats). Mae taliadau`n dibynnu ar arian go iawn ar y ffynhonnell ariannu.',
   paste_invoice_label: 'Gludwch anfoneb, cais am daliad neu god lnurl *',
   lnbits_description:
     'Yn hawdd iw sefydlu ac yn ysgafn, gall LNbits redeg ar unrhyw ffynhonnell ariannu rhwydwaith mellt a hyd yn oed LNbits ei hun! Gallwch redeg LNbits i chi`ch hun, neu gynnig datrysiad ceidwad i eraill yn hawdd. Mae gan bob waled ei allweddi API ei hun ac nid oes cyfyngiad ar nifer y waledi y gallwch eu gwneud. Mae gallu rhannu cronfeydd yn gwneud LNbits yn arf defnyddiol ar gyfer rheoli arian ac fel offeryn datblygu. Mae estyniadau yn ychwanegu ymarferoldeb ychwanegol at LNbits fel y gallwch arbrofi gydag ystod o dechnolegau blaengar ar y rhwydwaith mellt. Rydym wedi gwneud datblygu estyniadau mor hawdd â phosibl, ac fel prosiect ffynhonnell agored am ddim, rydym yn annog pobl i ddatblygu a chyflwyno eu rhai eu hunain.',
