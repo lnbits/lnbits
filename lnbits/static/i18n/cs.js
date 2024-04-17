@@ -33,6 +33,7 @@ window.localisation.cs = {
   reset_defaults_tooltip: 'Smazat všechna nastavení a obnovit výchozí.',
   download_backup: 'Stáhnout zálohu databáze',
   name_your_wallet: 'Pojmenujte svou %{name} peněženku',
+  wallet_topup_ok: 'Úspěšně vytvořeno virtuálních prostředků (%{amount} sats). Platby závisejí na skutečných prostředcích na zdroji financování.',
   paste_invoice_label: 'Vložte fakturu, platební požadavek nebo lnurl kód *',
   lnbits_description:
     'Snadno nastavitelný a lehkotonážní, LNbits může běžet na jakémkoliv zdroji financování Lightning Network a dokonce LNbits samotné! LNbits můžete provozovat pro sebe, nebo snadno nabízet správu peněženek pro ostatní. Každá peněženka má své vlastní API klíče a není omezen počet peněženek, které můžete vytvořit. Možnost rozdělení prostředků dělá z LNbits užitečný nástroj pro správu peněz a jako vývojový nástroj. Rozšíření přidávají extra funkčnost k LNbits, takže můžete experimentovat s řadou špičkových technologií na lightning network. Vývoj rozšíření jsme učinili co nejjednodušší a jako svobodný a open-source projekt podporujeme lidi ve vývoji a zasílání vlastních rozšíření.',
