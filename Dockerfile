@@ -4,6 +4,9 @@ RUN apt-get clean
 RUN apt-get update
 RUN apt-get install -y curl pkg-config build-essential libnss-myhostname npm
 
+RUN npm install -g n
+RUN n 16
+
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
 

@@ -14,5 +14,3 @@ node_modules
 .gitignore
 .prettierrc
 LICENSE
-mypy.ini
-pytest.ini
