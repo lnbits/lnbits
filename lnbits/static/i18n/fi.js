@@ -34,6 +34,7 @@ window.localisation.fi = {
     'Poista kaikki asetusten muutokset ja palauta järjestelmän oletusasetukset.',
   download_backup: 'Lataa tietokannan varmuuskopio',
   name_your_wallet: 'Anna %{name}-lompakollesi nimi',
+  wallet_topup_ok: 'Virtuaalisten varojen luominen onnistui (%{amount} sats). Maksut riippuvat todellisista varoista rahoituslähteessä.',
   paste_invoice_label:
     'Liitä lasku, maksupyyntö, lnurl-koodi tai Lightning Address *',
   lnbits_description:
