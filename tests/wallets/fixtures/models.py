@@ -7,7 +7,6 @@ class FundingSourceConfig(BaseModel):
     name: str
     skip: Optional[bool]
     wallet_class: str
-    client_field: Optional[str]
     settings: dict
 
 
@@ -28,12 +27,16 @@ class TestMock(BaseModel):
 
 
 class Mock(FunctionMock, TestMock):
+    name: str
+
     @staticmethod
-    def combine_mocks(fs_mock, test_mock):
+    def combine_mocks(mock_name, fs_mock, test_mock):
         _mock = fs_mock | test_mock
         if "response" in _mock and "response" in fs_mock:
             _mock["response"] |= fs_mock["response"]
-        return Mock(**_mock)
+        m = Mock(name=mock_name, **_mock)
+
+        return m
 
 
 class FunctionMocks(BaseModel):
@@ -93,59 +96,54 @@ class WalletTest(BaseModel):
         return [t]
 
     def _tests_from_fs_mocks(self, fn, test, fs_name: str) -> List["WalletTest"]:
-        tests: List[WalletTest] = []
 
         fs_mocks = fn["mocks"][fs_name]
         test_mocks = test["mocks"][fs_name]
 
-        for mock_name in fs_mocks:
-            tests += self._tests_from_mocks(fs_mocks[mock_name], test_mocks[mock_name])
-        return tests
+        mocks = self._build_mock_objects(list(fs_mocks), fs_mocks, test_mocks)
 
-    def _tests_from_mocks(self, fs_mock, test_mocks) -> List["WalletTest"]:
-        tests: List[WalletTest] = []
-        for test_mock in test_mocks:
-            # different mocks that result in the same
-            # return value for the tested function
-            unique_test = self._test_from_mocks(fs_mock, test_mock)
+        return [self._tests_from_mock(m) for m in mocks]
 
-            tests.append(unique_test)
-        return tests
+    def _build_mock_objects(self, mock_names, fs_mocks, test_mocks):
+        mocks = []
 
-    def _test_from_mocks(self, fs_mock, test_mock) -> "WalletTest":
-        mock = Mock.combine_mocks(fs_mock, test_mock)
+        for mock_name in mock_names:
+            for test_mock in test_mocks[mock_name]:
+                mock = {"fs_mock": fs_mocks[mock_name], "test_mock": test_mock}
 
-        return WalletTest(
-            **(
-                self.dict()
-                | {
-                    "description": f"""{self.description}:{mock.description or ""}""",
-                    "mocks": [*self.mocks, mock],
-                    "skip": self.skip or mock.skip,
-                }
+                if len(mock_names) == 1:
+                    mocks.append({mock_name: mock})
+                else:
+                    sub_mocks = self._build_mock_objects(
+                        mock_names[1:], fs_mocks, test_mocks
+                    )
+                    for sub_mock in sub_mocks:
+                        mocks.append({mock_name: mock} | sub_mock)
+            return mocks
+
+        return mocks
+
+    def _tests_from_mock(self, mock_obj) -> "WalletTest":
+
+        test_mocks: List[Mock] = [
+            Mock.combine_mocks(
+                mock_name,
+                mock_obj[mock_name]["fs_mock"],
+                mock_obj[mock_name]["test_mock"],
             )
-        )
+            for mock_name in mock_obj
+        ]
 
-    def _tests_from_fs_mocks(self, fn, test, fs_name: str) -> List["WalletTest"]:
-        tests: List[WalletTest] = []
-
-        fs_mocks = fn["mocks"][fs_name]
-        test_mocks = test["mocks"][fs_name]
-
-        for mock_name in fs_mocks:
-            tests += self._tests_from_mocks(fs_mocks[mock_name], test_mocks[mock_name])
-        return tests
-
-    def _test_from_mocks(self, fs_mock, test_mock) -> "WalletTest":
-        mock = Mock.combine_mocks(fs_mock, test_mock)
+        any_mock_skipped = len([m for m in test_mocks if m.skip])
 
         return WalletTest(
             **(
                 self.dict()
                 | {
-                    "description": f"""{self.description}:{mock.description or ""}""",
-                    "mocks": [*self.mocks, mock],
-                    "skip": self.skip or mock.skip,
+                    "description": f"""{self.description}:""",
+                    "mocks": test_mocks,
+                    "skip": self.skip or any_mock_skipped,
+                    #   or mock.skip,
                 }
             )
         )
