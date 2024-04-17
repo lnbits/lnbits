@@ -780,6 +780,38 @@
                                             }
                                         }
                                     }
+                                },
+                                {
+                                    "description": "two HTLCs",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 2,
+                                                        "htlcs": [
+                                                            {
+                                                                "route": {
+                                                                    "total_fees_msat": -100
+                                                                }
+                                                            },
+                                                            {
+                                                                "route": {
+                                                                    "total_fees_msat": -50
+                                                                }
+                                                            }
+                                                        ],
+                                                        "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             ]
                         }
