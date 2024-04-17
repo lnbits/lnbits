@@ -34,6 +34,7 @@ window.localisation.pi = {
     'Scuttle all settings and reset to Davy Jones Locker. Aye, start anew!',
   download_backup: 'Download database booty',
   name_your_wallet: 'Name yer %{name} treasure chest',
+  wallet_topup_ok: 'Arrr! Successfully be creatin virtual doubloons (%{amount} sats). Plunderin be dependin on actual doubloons on treasure chest.',
   paste_invoice_label: 'Paste a booty, payment request or lnurl code, matey!',
   lnbits_description:
     'Arr, easy to set up and lightweight, LNbits can run on any Lightning Network funding source and even LNbits itself! Ye can run LNbits for yourself, or easily offer a custodian solution for others. Each chest has its own API keys and there be no limit to the number of chests ye can make. Being able to partition booty makes LNbits a useful tool for money management and as a development tool. Arr, extensions add extra functionality to LNbits so ye can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage scallywags to develop and submit their own.',
