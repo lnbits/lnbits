@@ -4,7 +4,7 @@ import time
 import traceback
 import uuid
 from http import HTTPStatus
-from typing import Coroutine, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from loguru import logger
 from py_vapid import Vapid
@@ -33,7 +33,7 @@ def create_permanent_task(func):
     return create_task(catch_everything_and_restart(func))
 
 
-def create_unique_task(name: str, coro: Coroutine):
+def create_unique_task(name: str, coro):
     if unique_tasks.get(name):
         logger.warning(f"task `{name}` already exists, cancelling it")
         try:
@@ -45,8 +45,8 @@ def create_unique_task(name: str, coro: Coroutine):
     return task
 
 
-def create_permanent_unique_task(name: str, coro: Coroutine):
-    return create_unique_task(name, catch_everything_and_restart(coro))
+def create_permanent_unique_task(name: str, coro):
+    return create_unique_task(name, catch_everything_and_restart(coro, name))
 
 
 def cancel_all_tasks():
@@ -62,17 +62,17 @@ def cancel_all_tasks():
             logger.warning(f"error while cancelling task `{name}`: {exc!s}")
 
 
-async def catch_everything_and_restart(func):
+async def catch_everything_and_restart(func, name: str = "unnamed"):
     try:
         await func()
     except asyncio.CancelledError:
         raise  # because we must pass this up
     except Exception as exc:
-        logger.error("caught exception in background task:", exc)
+        logger.error(f"exception in background task `{name}`:", exc)
         logger.error(traceback.format_exc())
         logger.error("will restart the task in 5 seconds.")
         await asyncio.sleep(5)
-        await catch_everything_and_restart(func)
+        await catch_everything_and_restart(func, name)
 
 
 invoice_listeners: Dict[str, asyncio.Queue] = {}
