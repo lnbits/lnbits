@@ -34,6 +34,7 @@ window.localisation.it = {
     'Cancella tutte le impostazioni e ripristina i valori predefiniti',
   download_backup: 'Scarica il backup del database',
   name_your_wallet: 'Dai un nome al tuo portafoglio %{name}',
+  wallet_topup_ok: 'Creazione di fondi virtuali riuscita (%{amount} sats). I pagamenti dipendono dai fondi effettivi sulla fonte di finanziamento.',
   paste_invoice_label:
     'Incolla una fattura, una richiesta di pagamento o un codice lnurl *',
   lnbits_description:
