@@ -48,6 +48,8 @@ COPY . .
 COPY --from=builder /app/.venv .venv
 
 RUN make
+RUN make build
+
 RUN mkdir data
 
 ENV LNBITS_PORT="5000"
