@@ -46,7 +46,12 @@ def _apply_rpc_mock(mocker: MockerFixture, mock: RpcMock):
         value = mock.response[field_name]
         values = value if isinstance(value, list) else [value]
 
-        return_value[field_name] = Mock(side_effect=[_mock_field(f) for f in values])
+        _mock_class = (
+            AsyncMock if values[0]["request_type"] == "async-function" else Mock
+        )
+        return_value[field_name] = _mock_class(
+            side_effect=[_mock_field(f) for f in values]
+        )
 
     m = _data_mock(return_value)
     assert mock.method, "Missing method for RPC mock."
