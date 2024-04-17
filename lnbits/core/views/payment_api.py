@@ -13,6 +13,7 @@ from fastapi import (
     Depends,
     Header,
     HTTPException,
+    Query,
     Request,
 )
 from fastapi.responses import JSONResponse
@@ -28,7 +29,6 @@ from lnbits.core.models import (
     Payment,
     PaymentFilters,
     PaymentHistoryPoint,
-    Query,
     Wallet,
     WalletType,
 )
