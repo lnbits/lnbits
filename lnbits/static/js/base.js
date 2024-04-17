@@ -144,12 +144,15 @@ window.LNbits = {
           id: wallet_id
         })
         .then(_ => {
+          credit = parseInt(credit)
           Quasar.Notify.create({
             type: 'positive',
-            message: 'Success! Added ' + credit + ' sats to ' + wallet_id,
+            message:
+              `Success creating virtual funds (${credit} sats). ` +
+              'Payments depend on actual funds on funding source.',
             icon: null
           })
-          return parseInt(credit)
+          return credit
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)

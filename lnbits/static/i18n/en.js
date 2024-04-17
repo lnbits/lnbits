@@ -33,6 +33,8 @@ window.localisation.en = {
   reset_defaults_tooltip: 'Delete all settings and reset to defaults.',
   download_backup: 'Download database backup',
   name_your_wallet: 'Name your %{name} wallet',
+  wallet_topup_ok:
+    'Success creating virtual funds (%{amount} sats). Payments depend on actual funds on funding source.',
   paste_invoice_label: 'Paste an invoice, payment request or lnurl code *',
   lnbits_description:
     'Easy to set up and lightweight, LNbits can run on any Lightning Network funding source and even LNbits itself! You can run LNbits for yourself, or easily offer a custodian solution for others. Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool. Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.',
