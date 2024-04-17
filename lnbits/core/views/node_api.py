@@ -195,5 +195,7 @@ async def api_get_1ml_stats(node: Node = Depends(require_node)) -> Optional[Node
         try:
             r.raise_for_status()
             return r.json()["noderank"]
-        except httpx.HTTPStatusError:
-            raise HTTPException(status_code=404, detail="Node not found on 1ml.com")
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(
+                status_code=404, detail="Node not found on 1ml.com"
+            ) from exc

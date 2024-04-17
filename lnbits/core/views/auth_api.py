@@ -68,11 +68,11 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
             raise HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
 
         return _auth_success_response(user.username, user.id)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        logger.debug(e)
-        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.")
+    except HTTPException as exc:
+        raise exc
+    except Exception as exc:
+        logger.debug(exc)
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.") from exc
 
 
 @auth_router.post("/usr", description="Login via the User ID")
@@ -86,11 +86,11 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
             raise HTTPException(HTTP_401_UNAUTHORIZED, "User ID does not exist.")
 
         return _auth_success_response(user.username or "", user.id)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        logger.debug(e)
-        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.")
+    except HTTPException as exc:
+        raise exc
+    except Exception as exc:
+        logger.debug(exc)
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.") from exc
 
 
 @auth_router.get("/{provider}", description="SSO Provider")
@@ -124,16 +124,16 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
             user_id = decrypt_internal_message(provider_sso.state)
         request.session.pop("user", None)
         return await _handle_sso_login(userinfo, user_id)
-    except HTTPException as e:
-        raise e
-    except ValueError as e:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
-    except Exception as e:
-        logger.debug(e)
+    except HTTPException as exc:
+        raise exc
+    except ValueError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
         raise HTTPException(
             HTTP_500_INTERNAL_SERVER_ERROR,
             f"Cannot authenticate user with {provider} Auth.",
-        )
+        ) from exc
 
 
 @auth_router.post("/logout")
@@ -169,11 +169,13 @@ async def register(data: CreateUser) -> JSONResponse:
         user = await create_user(data)
         return _auth_success_response(user.username)
 
-    except ValueError as e:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
-    except Exception as e:
-        logger.debug(e)
-        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user.")
+    except ValueError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
+        raise HTTPException(
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user."
+        ) from exc
 
 
 @auth_router.put("/password")
@@ -189,13 +191,13 @@ async def update_password(
 
     try:
         return await update_user_password(data)
-    except AssertionError as e:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
-    except Exception as e:
-        logger.debug(e)
+    except AssertionError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
         raise HTTPException(
             HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
-        )
+        ) from exc
 
 
 @auth_router.put("/update")
@@ -211,11 +213,13 @@ async def update(
 
     try:
         return await update_account(user.id, data.username, None, data.config)
-    except AssertionError as e:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
-    except Exception as e:
-        logger.debug(e)
-        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user.")
+    except AssertionError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
+        raise HTTPException(
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user."
+        ) from exc
 
 
 @auth_router.put("/first_install")
@@ -237,13 +241,13 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
         await update_user_password(super_user)
         settings.first_install = False
         return _auth_success_response(username=super_user.username)
-    except AssertionError as e:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
-    except Exception as e:
-        logger.debug(e)
+    except AssertionError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
         raise HTTPException(
             HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
-        )
+        ) from exc
 
 
 async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = None):

@@ -18,11 +18,11 @@ async def migrate_extension_database(ext: Extension, current_version):
     try:
         ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
         ext_db = importlib.import_module(ext.module_name).db
-    except ImportError as e:
-        logger.error(e)
+    except ImportError as exc:
+        logger.error(exc)
         raise ImportError(
             f"Please make sure that the extension `{ext.code}` has a migrations file."
-        )
+        ) from exc
 
     async with ext_db.connect() as ext_conn:
         await run_migration(ext_conn, ext_migrations, ext.code, current_version)
@@ -113,7 +113,7 @@ def to_valid_user_id(user_id: str) -> UUID:
         raise ValueError("User ID must have at least 128 bits")
     try:
         int(user_id, 16)
-    except Exception:
-        raise ValueError("Invalid hex string for User ID.")
+    except Exception as exc:
+        raise ValueError("Invalid hex string for User ID.") from exc
 
     return UUID(hex=user_id[:32], version=4)

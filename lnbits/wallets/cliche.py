@@ -27,6 +27,9 @@ class ClicheWallet(Wallet):
 
         self.endpoint = self.normalize_endpoint(settings.cliche_endpoint)
 
+    async def cleanup(self):
+        pass
+
     async def status(self) -> StatusResponse:
         try:
             ws = create_connection(self.endpoint)

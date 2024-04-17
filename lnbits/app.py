@@ -137,8 +137,8 @@ def create_app() -> FastAPI:
     )
 
     # Allow registering new extensions routes without direct access to the `app` object
-    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
-    setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
+    core_app_extra.register_new_ext_routes = register_new_ext_routes(app)
+    core_app_extra.register_new_ratelimiter = register_new_ratelimiter(app)
 
     # register static files
     static_path = Path("lnbits", "static")

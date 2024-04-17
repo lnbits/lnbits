@@ -38,10 +38,10 @@ async def api_create_tinyurl(
                 if tinyurl.wallet == wallet.wallet.id:
                     return tinyurl
         return await create_tinyurl(url, endless, wallet.wallet.id)
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Unable to create tinyurl"
-        )
+        ) from exc
 
 
 @tinyurl_router.get(
@@ -60,10 +60,10 @@ async def api_get_tinyurl(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
         )
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Unable to fetch tinyurl"
-        )
+        ) from exc
 
 
 @tinyurl_router.delete(
@@ -83,10 +83,10 @@ async def api_delete_tinyurl(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Wrong key provided."
         )
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Unable to delete"
-        )
+        ) from exc
 
 
 @tinyurl_router.get(

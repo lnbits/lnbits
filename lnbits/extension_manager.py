@@ -428,9 +428,9 @@ class InstallableExtension(BaseModel):
 
             self._remember_payment_info()
 
-        except Exception as ex:
-            logger.warning(ex)
-            raise AssertionError("Cannot fetch extension archive file")
+        except Exception as exc:
+            logger.warning(exc)
+            raise AssertionError("Cannot fetch extension archive file") from exc
 
         archive_hash = file_hash(ext_zip_file)
         if self.installed_release.hash and self.installed_release.hash != archive_hash:
@@ -560,7 +560,11 @@ class InstallableExtension(BaseModel):
         return ext
 
     @classmethod
-    def from_rows(cls, rows: List[Any] = []) -> List["InstallableExtension"]:
+    def from_rows(
+        cls, rows: Optional[List[Any]] = None
+    ) -> List["InstallableExtension"]:
+        if rows is None:
+            rows = []
         return [InstallableExtension.from_row(row) for row in rows]
 
     @classmethod
