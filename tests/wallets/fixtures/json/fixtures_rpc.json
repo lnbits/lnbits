@@ -687,11 +687,11 @@
                         "fee_limit_msat": 25000
                     },
                     "expect": {
+                        "error_message": null,
                         "success": true,
                         "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
                         "fee_msat": 50,
-                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
-                        "error_message": null
+                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
                     },
                     "mocks": {
                         "breez": {

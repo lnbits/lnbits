@@ -55,7 +55,7 @@ def _tests_for_funding_source(
 
 
 def build_test_id(test: WalletTest):
-    return f"{test.funding_source}.{test.function}({test.description})"
+    return f"{test.funding_source.name}.{test.function}({test.description})"
 
 
 def load_funding_source(funding_source: FundingSourceConfig) -> BaseWallet:
