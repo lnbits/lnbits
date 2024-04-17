@@ -35,6 +35,7 @@ window.localisation.nl = {
     'Wis alle instellingen en herstel de standaardinstellingen.',
   download_backup: 'Databaseback-up downloaden',
   name_your_wallet: 'Geef je %{name} portemonnee een naam',
+  wallet_topup_ok: 'Succesvol virtueel tegoed aangemaakt van (%{amount} sats). Betalingen zijn afhankelijk van het daadwerkelijke tegoed op de financieringsbron.',
   paste_invoice_label: 'Plak een factuur, betalingsverzoek of lnurl-code*',
   lnbits_description:
     'Gemakkelijk in te stellen en lichtgewicht, LNbits kan op elke lightning-netwerkfinancieringsbron draaien en zelfs LNbits zelf! U kunt LNbits voor uzelf laten draaien of gemakkelijk een bewaardersoplossing voor anderen bieden. Elke portemonnee heeft zijn eigen API-sleutels en er is geen limiet aan het aantal portemonnees dat u kunt maken. Het kunnen partitioneren van fondsen maakt LNbits een nuttige tool voor geldbeheer en als ontwikkelingstool. Extensies voegen extra functionaliteit toe aan LNbits, zodat u kunt experimenteren met een reeks toonaangevende technologieën op het bliksemschichtnetwerk. We hebben het ontwikkelen van extensies zo eenvoudig mogelijk gemaakt en als een gratis en opensource-project moedigen we mensen aan om hun eigen ontwikkelingen in te dienen.',
