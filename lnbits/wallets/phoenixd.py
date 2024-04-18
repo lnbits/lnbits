@@ -126,6 +126,9 @@ class PhoenixdWallet(Wallet):
         fee_msat = -int(data["routingFeeSat"])
         preimage = data["paymentPreimage"]
 
+        # TODO: use payment status similar to
+        # https://github.com/lnbits/lnbits/blob/4f118c5f98247dce8509089a8c3660099df2bff3/lnbits/wallets/eclair.py#L126
+
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -134,6 +137,7 @@ class PhoenixdWallet(Wallet):
             return PaymentPendingStatus()
         data = r.json()
         # logger.info(f'get_invoice_status data: {data}')
+        # TODO: use invoice status similar to https://github.com/lnbits/lnbits/blob/4f118c5f98247dce8509089a8c3660099df2bff3/lnbits/wallets/zbd.py#L128
 
         fee_msat = data["fees"]
         preimage = data["preimage"]
