@@ -64,7 +64,8 @@ def _check_calls(expected_calls):
         for func_call in func_calls:
             req = func_call["request_data"]
             args = req["args"] if "args" in req else {}
-            kwargs = req["kwargs"] if "kwargs" in req else {}
+            kwargs = _eval_dict(req["kwargs"]) if "kwargs" in req else {}
+
             if "klass" in req:
                 *rest, cls = req["klass"].split(".")
                 req_module = importlib.import_module(".".join(rest))
@@ -139,12 +140,13 @@ def _eval_dict(data: Optional[dict]) -> Optional[dict]:
     fn_prefix = "__eval__:"
     if not data:
         return data
-    d = {**data}
+    d = {}
     for k in data:
-        value = data[k]
         if k.startswith(fn_prefix):
             field = k[len(fn_prefix) :]
-            d[field] = eval(value)
+            d[field] = eval(data[k])
+        else:
+            d[k] = data[k]
     return d
 
 

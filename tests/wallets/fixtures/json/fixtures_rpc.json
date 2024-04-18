@@ -1183,6 +1183,20 @@
                             }
                         }
                     }
+                },
+                "lndrpc": {
+                    "rpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    },
+                    "routerpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    }
                 }
             },
             "tests": [
@@ -1249,6 +1263,32 @@
                                                 }
                                             }
                                         ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "routerpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "rpc": [
+                                {
+                                    "response": {
+                                        "LookupInvoice": {
+                                            "request_type": "async-function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                                                "kwargs": {
+                                                    "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "data",
+                                            "response": {
+                                                "settled": true
+                                            }
+                                        }
                                     }
                                 }
                             ]
