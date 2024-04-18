@@ -206,21 +206,23 @@ class LndWallet(Wallet):
         try:
             r_hash = hex_to_bytes(checking_id)
             if len(r_hash) != 32:
+                # this may happen if we switch between backend wallets
+                # that use different checking_id formats
                 raise ValueError
-        except ValueError:
-            # this may happen if we switch between backend wallets
-            # that use different checking_id formats
-            return PaymentPendingStatus()
-        try:
+
             resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
-        except grpc.RpcError:
+
+            # todo: where is the FAILED status
+            if resp.settled:
+                return PaymentSuccessStatus()
+
             return PaymentPendingStatus()
-
-        # todo: where is the FAILED status
-        if resp.settled:
-            return PaymentSuccessStatus()
-
-        return PaymentPendingStatus()
+        except grpc.RpcError as exc:
+            logger.warning(exc)
+            return PaymentPendingStatus()
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
