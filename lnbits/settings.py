@@ -212,6 +212,7 @@ class BlinkFundingSource(LNbitsSettings):
     blink_api_endpoint: Optional[str] = Field(default=None)
     blink_token: Optional[str] = Field(default=None)
 
+
 class ZBDFundingSource(LNbitsSettings):
     zbd_api_endpoint: Optional[str] = Field(default="https://api.zebedee.io/v0/")
     zbd_api_key: Optional[str] = Field(default=None)

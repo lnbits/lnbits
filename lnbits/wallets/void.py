@@ -13,7 +13,6 @@ from .base import (
 
 
 class VoidWallet(Wallet):
-
     async def cleanup(self):
         pass
 
