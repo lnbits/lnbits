@@ -63,7 +63,7 @@ test-regtest:
 
 test-migration:
 	LNBITS_ADMIN_UI=True \
-	make test
+	make test-api
 	HOST=0.0.0.0 \
 	PORT=5002 \
 	LNBITS_DATA_FOLDER="./tests/data" \
