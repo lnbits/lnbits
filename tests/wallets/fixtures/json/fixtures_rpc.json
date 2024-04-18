@@ -756,6 +756,7 @@
                             ],
                             "routerpc": [
                                 {
+                                    "description": "one HTLCs",
                                     "response": {
                                         "SendPaymentV2": {
                                             "request_type": "function",
