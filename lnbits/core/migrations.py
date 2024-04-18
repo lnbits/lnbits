@@ -471,3 +471,23 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
     except OperationalError as exc:
         logger.error(f"Migration 17 failed: {exc}")
         pass
+
+
+async def m018_balances_view_exclude_deleted(db):
+    """
+    Make deleted wallets not show up in the balances view.
+    """
+    await db.execute("DROP VIEW balances")
+    await db.execute(
+        """
+        CREATE VIEW balances AS
+        SELECT apipayments.wallet,
+               SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+        FROM apipayments
+        LEFT JOIN wallets ON apipayments.wallet = wallets.id
+        WHERE (wallets.deleted = false OR wallets.deleted is NULL)
+              AND ((apipayments.pending = false AND apipayments.amount > 0)
+              OR apipayments.amount < 0)
+        GROUP BY wallet
+    """
+    )
