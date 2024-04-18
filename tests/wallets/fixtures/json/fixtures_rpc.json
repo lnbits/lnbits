@@ -996,6 +996,24 @@
                                             }
                                         }
                                     }
+                                },
+                                {
+                                    "description": "RPC error.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "exception",
+                                                    "response": {
+                                                        "data": "Payment failed: 'rpc maybe'"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             ]
                         }
@@ -1042,6 +1060,10 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc": [],
+                            "routerpc": []
                         }
                     }
                 },
