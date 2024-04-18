@@ -215,6 +215,8 @@ class LndWallet(Wallet):
             resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
         except grpc.RpcError:
             return PaymentPendingStatus()
+
+        # todo: where is the FAILED status
         if resp.settled:
             return PaymentSuccessStatus()
 

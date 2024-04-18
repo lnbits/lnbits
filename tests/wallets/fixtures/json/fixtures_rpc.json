@@ -1547,6 +1547,25 @@
                                             }
                                         }
                                     }
+                                },
+                                {
+                                    "response": {
+                                        "LookupInvoice": {
+                                            "request_type": "async-function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                                                "kwargs": {
+                                                    "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "exception",
+                                            "response": {
+                                                "module": "grpc",
+                                                "class": "RpcError",
+                                                "data": {}
+                                            }
+                                        }
+                                    }
                                 }
                             ]
                         }
