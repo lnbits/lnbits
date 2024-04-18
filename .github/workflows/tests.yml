@@ -61,7 +61,7 @@ jobs:
           job-summary: true
           emoji: false
           click-to-expand: true
-          custom-pytest: ${{ inputs-custom-pytest }}
+          custom-pytest: ${{ inputs.custom-pytest }}
           report-title: "test (${{ inputs.python-version }}, ${{ inputs.db-url }})"
 
       - name: Upload coverage to Codecov
