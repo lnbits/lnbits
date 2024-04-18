@@ -33,9 +33,11 @@ window.localisation.en = {
   reset_defaults_tooltip: 'Delete all settings and reset to defaults.',
   download_backup: 'Download database backup',
   name_your_wallet: 'Name your %{name} wallet',
+  wallet_topup_ok:
+    'Success creating virtual funds (%{amount} sats). Payments depend on actual funds on funding source.',
   paste_invoice_label: 'Paste an invoice, payment request or lnurl code *',
   lnbits_description:
-    'Easy to set up and lightweight, LNbits can run on any lightning-network funding source, currently supporting LND, Core Lightning, OpenNode, Blink, Alby, LNPay and even LNbits itself! You can run LNbits for yourself, or easily offer a custodian solution for others. Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool. Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.',
+    'Easy to set up and lightweight, LNbits can run on any Lightning Network funding source and even LNbits itself! You can run LNbits for yourself, or easily offer a custodian solution for others. Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool. Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.',
   export_to_phone: 'Export to Phone with QR Code',
   export_to_phone_desc:
     'This QR code contains your wallet URL with full access. You can scan it from your phone to open your wallet from there.',
@@ -59,10 +61,10 @@ window.localisation.en = {
   service_fee_tooltip:
     'Service fee charged by the LNbits server admin per outgoing transaction',
   toggle_darkmode: 'Toggle Dark Mode',
-  toggle_reactions: 'Toggle Payment Reactions',
+  payment_reactions: 'Payment Reactions',
   view_swagger_docs: 'View LNbits Swagger API docs',
   api_docs: 'API docs',
-  api_keys_api_docs: 'API keys and API docs',
+  api_keys_api_docs: 'Node URL, API keys and API docs',
   lnbits_version: 'LNbits version',
   runs_on: 'Runs on',
   credit_hint: 'Press Enter to credit account',
@@ -97,8 +99,9 @@ window.localisation.en = {
     'This is an LNURL-withdraw QR code for slurping everything from this wallet. Do not share with anyone. It is compatible with balanceCheck and balanceNotify so your wallet may keep pulling the funds continuously from here after the first withdraw.',
   i_understand: 'I understand',
   copy_wallet_url: 'Copy wallet URL',
+  disclaimer_dialog_title: 'Important!',
   disclaimer_dialog:
-    'To ensure continuous access to your wallets, please remember to securely store your login credentials! Please visit the "My Account" page. This service is in BETA, and we hold no responsibility for people losing access to funds.',
+    'You *must* save your  login credentials to be able to access your wallet again. If you lose them, you will lose access to your wallet and funds.\n\nFind your  login credentials on your account settings page.\n\nThis service is in BETA. LNbits holds no responsibility for loss of access to funds.',
   no_transactions: 'No transactions made yet',
   manage: 'Manage',
   extensions: 'Extensions',
@@ -209,6 +212,7 @@ window.localisation.en = {
   account_settings: 'Account Settings',
   signin_with_google: 'Sign in with Google',
   signin_with_github: 'Sign in with GitHub',
+  signin_with_keycloak: 'Sign in with Keycloak',
   username_or_email: 'Username or Email',
   password: 'Password',
   password_config: 'Password Config',
@@ -234,5 +238,12 @@ window.localisation.en = {
   logout: 'Logout',
   look_and_feel: 'Look and Feel',
   language: 'Language',
-  color_scheme: 'Color Scheme'
+  color_scheme: 'Color Scheme',
+  extension_cost: 'This release requires a payment of minimum %{cost} sats.',
+  extension_paid_sats: 'You have already paid %{paid_sats} sats.',
+  release_details_error: 'Cannot get the release details.',
+  pay_from_wallet: 'Pay from Wallet',
+  show_qr: 'Show QR',
+  retry_install: 'Retry Install',
+  new_payment: 'Make New Payment'
 }

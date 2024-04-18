@@ -109,6 +109,9 @@ class LndWallet(Wallet):
     def metadata_callback(self, _, callback):
         callback([("macaroon", self.macaroon)], None)
 
+    async def cleanup(self):
+        pass
+
     async def status(self) -> StatusResponse:
         try:
             resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())

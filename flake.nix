@@ -33,6 +33,16 @@
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
             wallycore = prev.wallycore.override { preferWheel = true; };
+            # remove the following override when https://github.com/nix-community/poetry2nix/pull/1563 is merged
+            asgi-lifespan = prev.asgi-lifespan.overridePythonAttrs (
+              old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
+            );
+            pytest-md = prev.pytest-md.overridePythonAttrs (
+              old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
+            );
+            types-mock = prev.pytest-md.overridePythonAttrs (
+              old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
+            );
           });
         };
       });

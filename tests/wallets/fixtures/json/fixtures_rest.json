@@ -1,0 +1,1517 @@
+{
+    "funding_sources": {
+        "corelightningrest": {
+            "wallet_class": "CoreLightningRestWallet",
+            "settings": {
+                "corelightning_rest_url": "http://127.0.0.1:8555",
+                "corelightning_rest_macaroon": "eNcRyPtEdMaCaRoOn",
+                "user_agent": "LNbits/Tests"
+            }
+        },
+        "lndrest": {
+            "wallet_class": "LndRestWallet",
+            "settings": {
+                "lnd_rest_endpoint": "http://127.0.0.1:8555",
+                "lnd_rest_macaroon": "eNcRyPtEdMaCaRoOn",
+                "lnd_rest_cert": "",
+                "user_agent": "LNbits/Tests"
+            }
+        },
+        "alby": {
+            "wallet_class": "AlbyWallet",
+            "settings": {
+                "alby_api_endpoint": "http://127.0.0.1:8555",
+                "alby_access_token": "mock-alby-access-token",
+                "user_agent": "LNbits/Tests"
+            }
+        }
+    },
+    "functions": {
+        "status": {
+            "mocks": {
+                "corelightningrest": {
+                    "status_endpoint": {
+                        "uri": "/v1/channel/localremotebal",
+                        "headers": {
+                            "macaroon": "eNcRyPtEdMaCaRoOn",
+                            "encodingtype": "hex",
+                            "accept": "application/json",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "lndrest": {
+                    "status_endpoint": {
+                        "uri": "/v1/balance/channels",
+                        "headers": {
+                            "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "alby": {
+                    "status_endpoint": {
+                        "uri": "/balance",
+                        "headers": {
+                            "Authorization": "Bearer mock-alby-access-token",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "success",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": null,
+                        "balance_msat": 55000
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "localBalance": 55
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "balance": 55
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "balance": 55,
+                                        "unit": "sat"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "error",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": "Server error: '\"test-error\"'",
+                        "balance_msat": 0
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "error": "\"test-error\""
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": "test-error"
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "message": "\"test-error\"",
+                                        "unit": "sats"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "missing data",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": "no data",
+                        "balance_msat": 0
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "bad json",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": "Server error: 'invalid json response'",
+                        "balance_msat": 0
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "http 404",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": "Unable to connect to http://127.0.0.1:8555.",
+                        "balance_msat": 0
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "no mocks",
+                    "call_params": {},
+                    "expect": {
+                        "error_message": "Unable to connect to http://127.0.0.1:8555.",
+                        "balance_msat": 0
+                    }
+                }
+            ]
+        },
+        "create_invoice": {
+            "mocks": {
+                "corelightningrest": {
+                    "create_invoice_endpoint": {
+                        "uri": "/v1/invoice/genInvoice",
+                        "headers": {
+                            "macaroon": "eNcRyPtEdMaCaRoOn",
+                            "encodingtype": "hex",
+                            "accept": "application/json",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
+                    }
+                },
+                "lndrest": {
+                    "create_invoice_endpoint": {
+                        "uri": "/v1/invoices",
+                        "headers": {
+                            "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
+                    }
+                },
+                "alby": {
+                    "create_invoice_endpoint": {
+                        "uri": "/invoices",
+                        "headers": {
+                            "Authorization": "Bearer mock-alby-access-token",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "success",
+                    "call_params": {
+                        "amount": 555,
+                        "memo": "Test Invoice",
+                        "label": "test-label"
+                    },
+                    "expect": {
+                        "success": true,
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n",
+                        "error_message": null
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "data",
+                                    "request_body": {
+                                        "amount": 555000,
+                                        "description": "Test Invoice",
+                                        "label": "test-label"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                                        "bolt11": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice",
+                                        "private": true
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "r_hash": "41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",
+                                        "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                                        "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "error",
+                    "call_params": {
+                        "amount": 555,
+                        "memo": "Test Invoice",
+                        "label": "test-label"
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "payment_request": null,
+                        "error_message": "Server error: 'Test Error'"
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "data",
+                                    "request_body": {
+                                        "amount": 555000,
+                                        "description": "Test Invoice",
+                                        "label": "test-label"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "error": "Test Error"
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice",
+                                        "private": true
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "error": "Test Error"
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "create_invoice_endpoint": []
+                        }
+                    }
+                },
+                {
+                    "description": "missing data",
+                    "call_params": {
+                        "amount": 555,
+                        "memo": "Test Invoice",
+                        "label": "test-label"
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "payment_request": null,
+                        "error_message": "Server error: 'missing required fields'"
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "data",
+                                    "request_body": {
+                                        "amount": 555000,
+                                        "description": "Test Invoice",
+                                        "label": "test-label"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "some_field": "but the required fields are mising"
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice",
+                                        "private": true
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "some_field": "but the required fields are mising"
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "description": "missing payment request",
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "bad json",
+                    "call_params": {
+                        "amount": 555,
+                        "memo": "Test Invoice",
+                        "label": "test-label"
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "payment_request": null,
+                        "error_message": "Server error: 'invalid json response'"
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "data",
+                                    "request_body": {
+                                        "amount": 555000,
+                                        "description": "Test Invoice",
+                                        "label": "test-label"
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice",
+                                        "private": true
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice"
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "http 404",
+                    "call_params": {
+                        "amount": 555,
+                        "memo": "Test Invoice",
+                        "label": "test-label"
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "payment_request": null,
+                        "error_message": "Unable to connect to http://127.0.0.1:8555."
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "data",
+                                    "request_body": {
+                                        "amount": 555000,
+                                        "description": "Test Invoice",
+                                        "label": "test-label"
+                                    },
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice",
+                                        "private": true
+                                    },
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "value": 555,
+                                        "memo": "Test Invoice"
+                                    },
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "no mocks",
+                    "call_params": {
+                        "amount": 555,
+                        "memo": "Test Invoice",
+                        "label": "test-label"
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "payment_request": null,
+                        "error_message": "Unable to connect to http://127.0.0.1:8555."
+                    }
+                }
+            ]
+        },
+        "pay_invoice": {
+            "mocks": {
+                "corelightningrest": {
+                    "pay_invoice_endpoint": {
+                        "uri": "/v1/pay",
+                        "headers": {
+                            "macaroon": "eNcRyPtEdMaCaRoOn",
+                            "encodingtype": "hex",
+                            "accept": "application/json",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
+                    }
+                },
+                "lndrest": {
+                    "pay_invoice_endpoint": {
+                        "uri": "/v1/channels/transactions",
+                        "headers": {
+                            "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
+                    }
+                },
+                "alby": {
+                    "pay_invoice_endpoint": {
+                        "uri": "/payments/bolt11",
+                        "headers": {
+                            "Authorization": "Bearer mock-alby-access-token",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "success",
+                    "call_params": {
+                        "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                        "fee_limit_msat": 25000
+                    },
+                    "expect": {
+                        "success": true,
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "fee_msat": 50,
+                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                        "error_message": null
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "data",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                        "maxfeepercent": "119.04761905",
+                                        "exemptfee": 0
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                                        "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                                        "msatoshi": 21000,
+                                        "msatoshi_sent": 21050,
+                                        "status": "paid"
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "payment_request": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                        "fee_limit": 25000
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_hash": "41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",
+                                        "payment_route": {
+                                            "total_fees_msat": 50
+                                        },
+                                        "payment_preimage": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "skip": true,
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                                        "fee": 50,
+                                        "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "error",
+                    "call_params": {
+                        "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                        "fee_limit_msat": 25000
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "fee_msat": null,
+                        "preimage": null,
+                        "error_message": "Test Error"
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "data",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                        "maxfeepercent": "119.04761905",
+                                        "exemptfee": 0
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "error": "Test Error"
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "payment_request": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                        "fee_limit": 25000
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_error": "Test Error"
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "pay_invoice_endpoint": []
+                        }
+                    }
+                },
+                {
+                    "description": "missing data",
+                    "call_params": {
+                        "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                        "fee_limit_msat": 25000
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "fee_msat": null,
+                        "preimage": null,
+                        "error_message": "Server error: 'missing required fields'"
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "data",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                        "maxfeepercent": "119.04761905",
+                                        "exemptfee": 0
+                                    },
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "payment_request": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                        "fee_limit": 25000
+                                    },
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                                    },
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "bad json",
+                    "call_params": {
+                        "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                        "fee_limit_msat": 25000
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "fee_msat": null,
+                        "preimage": null,
+                        "error_message": "Server error: 'invalid json response'"
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "data",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                        "maxfeepercent": "119.04761905",
+                                        "exemptfee": 0
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "payment_request": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                        "fee_limit": 25000
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "http 404",
+                    "call_params": {
+                        "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                        "fee_limit_msat": 25000
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "fee_msat": null,
+                        "preimage": null,
+                        "error_message": "Unable to connect to http://127.0.0.1:8555."
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "data",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                        "maxfeepercent": "119.04761905",
+                                        "exemptfee": 0
+                                    },
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "payment_request": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                                        "fee_limit": 25000
+                                    },
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                                    },
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "no mocks",
+                    "call_params": {
+                        "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                        "fee_limit_msat": 25000
+                    },
+                    "expect": {
+                        "success": false,
+                        "checking_id": null,
+                        "fee_msat": null,
+                        "preimage": null,
+                        "error_message": "Unable to connect to http://127.0.0.1:8555."
+                    }
+                }
+            ]
+        },
+        "get_invoice_status": {
+            "mocks": {
+                "corelightningrest": {
+                    "get_invoice_status_endpoint": {
+                        "uri": "/v1/invoice/listInvoices",
+                        "query_params": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                        },
+                        "headers": {
+                            "macaroon": "eNcRyPtEdMaCaRoOn",
+                            "encodingtype": "hex",
+                            "accept": "application/json",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "lndrest": {
+                    "get_invoice_status_endpoint": {
+                        "uri": "/v1/invoice/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "headers": {
+                            "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "alby": {
+                    "get_invoice_status_endpoint": {
+                        "uri": "/invoices/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "headers": {
+                            "Authorization": "Bearer mock-alby-access-token",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "paid",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "success": true,
+                        "failed": false,
+                        "pending": false
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "invoices": [
+                                            {
+                                                "status": "paid"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "invoices": [
+                                            {
+                                                "status": "complete"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "settled": true
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "state": "SETTLED"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "failed",
+                    "description1": "pending should be false in the 'expect', this is a bug",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "success": false,
+                        "failed": true,
+                        "pending": true
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "invoices": [
+                                            {
+                                                "status": "failed"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "description": "lndrest.py doesn't handle the 'failed' status for `get_invoice_status`",
+                            "get_invoice_status_endpoint": []
+                        },
+                        "alby": {
+                            "description": "alby.py doesn't handle the 'failed' status for `get_invoice_status`",
+                            "get_invoice_status_endpoint": []
+                        }
+                    }
+                },
+                {
+                    "description": "pending",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "success": false,
+                        "failed": false,
+                        "pending": true
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "description": "no data",
+                                    "response_type": "json",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {
+                                        "error": "test-error"
+                                    }
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {
+                                        "seetled": false
+                                    }
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {
+                                        "status": "CREATED"
+                                    }
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "no mocks",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "success": false,
+                        "failed": false,
+                        "pending": true
+                    }
+                }
+            ]
+        },
+        "get_payment_status": {
+            "mocks": {
+                "corelightningrest": {
+                    "get_payment_status_endpoint": {
+                        "uri": "/v1/pay/listPays",
+                        "query_params": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                        },
+                        "headers": {
+                            "macaroon": "eNcRyPtEdMaCaRoOn",
+                            "encodingtype": "hex",
+                            "accept": "application/json",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "lndrest": {
+                    "get_payment_status_endpoint": {
+                        "uri": "/v2/router/track/41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",
+                        "headers": {
+                            "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "alby": {
+                    "get_payment_status_endpoint": {
+                        "uri": "/invoices/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "headers": {
+                            "Authorization": "Bearer mock-alby-access-token",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "paid",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                        "success": true,
+                        "failed": false,
+                        "pending": false
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "pays": [
+                                            {
+                                                "status": "complete",
+                                                "amount_msat": "21000msat",
+                                                "amount_sent_msat": "-22000msat",
+                                                "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "stream",
+                                    "response": {
+                                        "result": {
+                                            "status": "SUCCEEDED",
+                                            "fee_msat": 1000,
+                                            "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "skip": true,
+                                    "response_type": "json",
+                                    "response": {
+                                        "result": {
+                                            "status": "SETTLED"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "failed",
+                    "description1": "pending should be false in the 'expect', this is a bug",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "preimage": null,
+                        "success": false,
+                        "failed": true,
+                        "pending": true
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "pays": [
+                                            {
+                                                "status": "failed"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "stream",
+                                    "response": {
+                                        "result": {
+                                            "status": "FAILED"
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "error code 5",
+                                    "response_type": "stream",
+                                    "response": {
+                                        "error": {
+                                            "code": 5,
+                                            "message": "payment isn't initiated"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "get_payment_status_endpoint": []
+                        }
+                    }
+                },
+                {
+                    "description": "pending",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "preimage": null,
+                        "success": false,
+                        "failed": false,
+                        "pending": true
+                    },
+                    "mocks": {
+                        "corelightningrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "description": "pending status",
+                                    "response_type": "json",
+                                    "response": {
+                                        "pays": [
+                                            {
+                                                "status": "pending"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "description": "no data",
+                                    "response_type": "json",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "error status",
+                                    "response_type": "json",
+                                    "response": {
+                                        "error": "test-error"
+                                    }
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrest": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "description": "UNKNOWN",
+                                    "response_type": "stream",
+                                    "response": {
+                                        "result": {
+                                            "status": "UNKNOWN"
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "IN_FLIGHT",
+                                    "response_type": "stream",
+                                    "response": {
+                                        "result": {
+                                            "status": "IN_FLIGHT"
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "error code 4",
+                                    "response_type": "stream",
+                                    "response": {
+                                        "error": {
+                                            "code": 5,
+                                            "message": "should not fail"
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "no data",
+                                    "response_type": "stream",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "stream",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "alby": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "description": "CREATED",
+                                    "response_type": "stream",
+                                    "response": {
+                                        "result": {
+                                            "state": "CREATED"
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "no data",
+                                    "response_type": "stream",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "stream",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "no mocks",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "preimage": null,
+                        "success": false,
+                        "failed": false,
+                        "pending": true
+                    }
+                }
+            ]
+        }
+    }
+}

@@ -21,20 +21,18 @@ jobs:
     uses: ./.github/workflows/tests.yml
     with:
       python-version: ${{ matrix.python-version }}
+      db-url: ${{ matrix.db-url }}
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  migrations:
+  migration:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.9"]
-    uses: ./.github/workflows/tests.yml
+        python-version: ["3.9", "3.10"]
+    uses: ./.github/workflows/migration.yml
     with:
-      make: test-migration
-      db-name: migration
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      python-version: ${{ matrix.python-version }}
 
   openapi:
     needs: [ lint ]

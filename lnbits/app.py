@@ -4,9 +4,9 @@ import importlib
 import logging
 import os
 import shutil
-import signal
 import sys
 import traceback
+from contextlib import asynccontextmanager
 from hashlib import sha256
 from http import HTTPStatus
 from pathlib import Path
@@ -25,7 +25,7 @@ from starlette.responses import JSONResponse
 
 from lnbits.core.crud import get_dbversions, get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
-from lnbits.core.services import websocketUpdater
+from lnbits.core.services import websocket_updater
 from lnbits.core.tasks import (  # watchdog_task
     killswitch_task,
     wait_for_paid_invoices,
@@ -37,7 +37,7 @@ from lnbits.tasks import (
     register_invoice_listener,
 )
 from lnbits.utils.cache import cache
-from lnbits.wallets import get_wallet_class, set_wallet_class
+from lnbits.wallets import get_funding_source, set_funding_source
 
 from .commands import migrate_databases
 from .core import init_core_routers
@@ -68,6 +68,58 @@ from .tasks import (
 )
 
 
+async def startup(app: FastAPI):
+    # wait till migration is done
+    await migrate_databases()
+
+    # setup admin settings
+    await check_admin_settings()
+    await check_webpush_settings()
+
+    log_server_info()
+
+    # initialize WALLET
+    try:
+        set_funding_source()
+    except Exception as e:
+        logger.error(f"Error initializing {settings.lnbits_backend_wallet_class}: {e}")
+        set_void_wallet_class()
+
+    # initialize funding source
+    await check_funding_source()
+
+    # register core routes
+    init_core_routers(app)
+
+    # check extensions after restart
+    if not settings.lnbits_extensions_deactivate_all:
+        await check_installed_extensions(app)
+        register_all_ext_routes(app)
+
+    if settings.lnbits_admin_ui:
+        initialize_server_logger()
+
+    # initialize tasks
+    register_async_tasks()
+
+
+async def shutdown():
+    # shutdown event
+    cancel_all_tasks()
+
+    # wait a bit to allow them to finish, so that cleanup can run without problems
+    await asyncio.sleep(0.1)
+    funding_source = get_funding_source()
+    await funding_source.cleanup()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await startup(app)
+    yield
+    await shutdown()
+
+
 def create_app() -> FastAPI:
     configure_logger()
     app = FastAPI(
@@ -77,6 +129,7 @@ def create_app() -> FastAPI:
             "accounts system with plugins."
         ),
         version=settings.version,
+        lifespan=lifespan,
         license_info={
             "name": "MIT License",
             "url": "https://raw.githubusercontent.com/lnbits/lnbits/main/LICENSE",
@@ -84,8 +137,8 @@ def create_app() -> FastAPI:
     )
 
     # Allow registering new extensions routes without direct access to the `app` object
-    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
-    setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
+    core_app_extra.register_new_ext_routes = register_new_ext_routes(app)
+    core_app_extra.register_new_ratelimiter = register_new_ratelimiter(app)
 
     # register static files
     static_path = Path("lnbits", "static")
@@ -117,65 +170,50 @@ def create_app() -> FastAPI:
     add_ip_block_middleware(app)
     add_ratelimit_middleware(app)
 
-    register_startup(app)
-    register_async_tasks(app)
     register_exception_handlers(app)
-    register_shutdown(app)
 
     return app
 
 
 async def check_funding_source() -> None:
-    original_sigint_handler = signal.getsignal(signal.SIGINT)
+    funding_source = get_funding_source()
 
-    def signal_handler(signal, frame):
-        logger.debug(
-            f"SIGINT received, terminating LNbits. signal: {signal}, frame: {frame}"
-        )
-        sys.exit(1)
-
-    signal.signal(signal.SIGINT, signal_handler)
-
-    WALLET = get_wallet_class()
-
-    # fallback to void after 30 seconds of failures
-    sleep_time = 5
-    timeout = int(30 / sleep_time)
-
-    balance = 0
+    max_retries = settings.funding_source_max_retries
     retry_counter = 0
 
     while True:
         try:
-            error_message, balance = await WALLET.status()
+            logger.info(f"Connecting to backend {funding_source.__class__.__name__}...")
+            error_message, balance = await funding_source.status()
             if not error_message:
                 retry_counter = 0
+                logger.success(
+                    f"✔️ Backend {funding_source.__class__.__name__} connected "
+                    f"and with a balance of {balance} msat."
+                )
                 break
-
             logger.error(
-                f"The backend for {WALLET.__class__.__name__} isn't "
+                f"The backend for {funding_source.__class__.__name__} isn't "
                 f"working properly: '{error_message}'",
                 RuntimeWarning,
             )
         except Exception as e:
-            logger.error(f"Error connecting to {WALLET.__class__.__name__}: {e}")
-            pass
+            logger.error(
+                f"Error connecting to {funding_source.__class__.__name__}: {e}"
+            )
 
-        if settings.lnbits_admin_ui and retry_counter == timeout:
+        if retry_counter >= max_retries:
             set_void_wallet_class()
-            WALLET = get_wallet_class()
+            funding_source = get_funding_source()
             break
-        else:
-            logger.warning(f"Retrying connection to backend in {sleep_time} seconds...")
-            retry_counter += 1
-            await asyncio.sleep(sleep_time)
 
-    signal.signal(signal.SIGINT, original_sigint_handler)
-
-    logger.success(
-        f"✔️ Backend {WALLET.__class__.__name__} connected "
-        f"and with a balance of {balance} msat."
-    )
+        retry_counter += 1
+        sleep_time = 0.25 * (2**retry_counter)
+        logger.warning(
+            f"Retrying connection to backend in {sleep_time} seconds... "
+            f"({retry_counter}/{max_retries})"
+        )
+        await asyncio.sleep(sleep_time)
 
 
 def set_void_wallet_class():
@@ -183,7 +221,7 @@ def set_void_wallet_class():
         "Fallback to VoidWallet, because the backend for "
         f"{settings.lnbits_backend_wallet_class} isn't working properly"
     )
-    set_wallet_class("VoidWallet")
+    set_funding_source("VoidWallet")
 
 
 async def check_installed_extensions(app: FastAPI):
@@ -262,7 +300,7 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
 
     zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
-    if f"./{str(ext.zip_path)}" not in zip_files:
+    if f"./{ext.zip_path!s}" not in zip_files:
         await ext.download_archive()
     ext.extract_archive()
 
@@ -365,57 +403,7 @@ def register_all_ext_routes(app: FastAPI):
         try:
             register_ext_routes(app, ext)
         except Exception as e:
-            logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
-
-
-def register_startup(app: FastAPI):
-    @app.on_event("startup")
-    async def lnbits_startup():
-        try:
-            # wait till migration is done
-            await migrate_databases()
-
-            # setup admin settings
-            await check_admin_settings()
-            await check_webpush_settings()
-
-            log_server_info()
-
-            # initialize WALLET
-            try:
-                set_wallet_class()
-            except Exception as e:
-                logger.error(
-                    f"Error initializing {settings.lnbits_backend_wallet_class}: {e}"
-                )
-                set_void_wallet_class()
-
-            # initialize funding source
-            await check_funding_source()
-
-            init_core_routers(app)
-
-            # check extensions after restart
-            if not settings.lnbits_extensions_deactivate_all:
-                await check_installed_extensions(app)
-                register_all_ext_routes(app)
-
-            if settings.lnbits_admin_ui:
-                initialize_server_logger()
-
-        except Exception as e:
-            logger.error(str(e))
-            raise ImportError("Failed to run 'startup' event.")
-
-
-def register_shutdown(app: FastAPI):
-    @app.on_event("shutdown")
-    async def on_shutdown():
-        cancel_all_tasks()
-        # wait a bit to allow them to finish, so that cleanup can run without problems
-        await asyncio.sleep(0.1)
-        WALLET = get_wallet_class()
-        await WALLET.cleanup()
+            logger.error(f"Could not load extension `{ext.code}`: {e!s}")
 
 
 def initialize_server_logger():
@@ -426,7 +414,7 @@ def initialize_server_logger():
     async def update_websocket_serverlog():
         while True:
             msg = await serverlog_queue.get()
-            await websocketUpdater(super_user_hash, msg)
+            await websocket_updater(super_user_hash, msg)
 
     create_permanent_task(update_websocket_serverlog)
 
@@ -465,22 +453,20 @@ def get_db_vendor_name():
     )
 
 
-def register_async_tasks(app):
-    @app.on_event("startup")
-    async def listeners():
-        create_permanent_task(check_pending_payments)
-        create_permanent_task(invoice_listener)
-        create_permanent_task(internal_invoice_listener)
-        create_permanent_task(cache.invalidate_forever)
+def register_async_tasks():
+    create_permanent_task(check_pending_payments)
+    create_permanent_task(invoice_listener)
+    create_permanent_task(internal_invoice_listener)
+    create_permanent_task(cache.invalidate_forever)
 
-        # core invoice listener
-        invoice_queue = asyncio.Queue(5)
-        register_invoice_listener(invoice_queue, "core")
-        create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
+    # core invoice listener
+    invoice_queue = asyncio.Queue(5)
+    register_invoice_listener(invoice_queue, "core")
+    create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
 
-        # TODO: implement watchdog properly
-        # create_permanent_task(watchdog_task)
-        create_permanent_task(killswitch_task)
+    # TODO: implement watchdog properly
+    # create_permanent_task(watchdog_task)
+    create_permanent_task(killswitch_task)
 
 
 def register_exception_handlers(app: FastAPI):
@@ -488,7 +474,7 @@ def register_exception_handlers(app: FastAPI):
     async def exception_handler(request: Request, exc: Exception):
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, exc, tb)
-        logger.error(f"Exception: {str(exc)}")
+        logger.error(f"Exception: {exc!s}")
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
         if (
@@ -497,7 +483,7 @@ def register_exception_handlers(app: FastAPI):
             and "text/html" in request.headers["accept"]
         ):
             return template_renderer().TemplateResponse(
-                request, "error.html", {"err": f"Error: {str(exc)}"}
+                request, "error.html", {"err": f"Error: {exc!s}"}
             )
 
         return JSONResponse(
@@ -509,7 +495,7 @@ def register_exception_handlers(app: FastAPI):
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
-        logger.error(f"RequestValidationError: {str(exc)}")
+        logger.error(f"RequestValidationError: {exc!s}")
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
 
@@ -521,7 +507,7 @@ def register_exception_handlers(app: FastAPI):
             return template_renderer().TemplateResponse(
                 request,
                 "error.html",
-                {"err": f"Error: {str(exc)}"},
+                {"err": f"Error: {exc!s}"},
             )
 
         return JSONResponse(

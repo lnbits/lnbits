@@ -39,7 +39,7 @@ window.localisation.fr = {
   paste_invoice_label:
     'Coller une facture, une demande de paiement ou un code lnurl *',
   lnbits_description:
-    "Facile à installer et léger, LNbits peut fonctionner sur n'importe quelle source de financement du réseau Lightning, prenant actuellement en charge LND, Core Lightning, OpenNode, Blink, Alby, LNPay et même LNbits lui-même! Vous pouvez exécuter LNbits pour vous-même ou offrir facilement une solution de gardien pour les autres. Chaque portefeuille a ses propres clés API et il n'y a pas de limite au nombre de portefeuilles que vous pouvez créer. La capacité de partitionner les fonds rend LNbits un outil utile pour la gestion de l'argent et comme outil de développement. Les extensions ajoutent une fonctionnalité supplémentaire à LNbits afin que vous puissiez expérimenter une gamme de technologies de pointe sur le réseau Lightning. Nous avons rendu le développement d'extensions aussi simple que possible et, en tant que projet gratuit et open source, nous encourageons les gens à développer et à soumettre les leurs.",
+    "Facile à installer et léger, LNbits peut fonctionner sur n'importe quelle source de financement du réseau Lightning et même LNbits lui-même! Vous pouvez exécuter LNbits pour vous-même ou offrir facilement une solution de gardien pour les autres. Chaque portefeuille a ses propres clés API et il n'y a pas de limite au nombre de portefeuilles que vous pouvez créer. La capacité de partitionner les fonds rend LNbits un outil utile pour la gestion de l'argent et comme outil de développement. Les extensions ajoutent une fonctionnalité supplémentaire à LNbits afin que vous puissiez expérimenter une gamme de technologies de pointe sur le réseau Lightning. Nous avons rendu le développement d'extensions aussi simple que possible et, en tant que projet gratuit et open source, nous encourageons les gens à développer et à soumettre les leurs.",
   export_to_phone: 'Exporter vers le téléphone avec un code QR',
   export_to_phone_desc:
     "Ce code QR contient l'URL de votre portefeuille avec un accès complet. Vous pouvez le scanner depuis votre téléphone pour ouvrir votre portefeuille depuis là-bas.",
@@ -65,9 +65,10 @@ window.localisation.fr = {
   service_fee_tooltip:
     "Frais de service facturés par l'administrateur du serveur LNbits pour chaque transaction sortante",
   toggle_darkmode: 'Basculer le mode sombre',
+  payment_reactions: 'Réactions de paiement',
   view_swagger_docs: "Voir les documentation de l'API Swagger de LNbits",
   api_docs: "Documentation de l'API",
-  api_keys_api_docs: "Clés API et documentation de l'API",
+  api_keys_api_docs: 'URL du nœud, clés API et documentation API',
   lnbits_version: 'Version de LNbits',
   runs_on: 'Fonctionne sur',
   credit_hint: 'Appuyez sur Entrée pour créditer le compte',
@@ -102,6 +103,7 @@ window.localisation.fr = {
     "Il s'agit d'un code QR LNURL-withdraw pour tout aspirer de ce portefeuille. Ne le partagez avec personne. Il est compatible avec balanceCheck et balanceNotify, de sorte que votre portefeuille peut continuer à retirer les fonds continuellement à partir d'ici après le premier retrait.",
   i_understand: "J'ai compris",
   copy_wallet_url: "Copier l'URL du portefeuille",
+  disclaimer_dialog_title: 'Important !',
   disclaimer_dialog:
     "La fonctionnalité de connexion sera publiée dans une future mise à jour, pour l'instant, assurez-vous de mettre cette page en favori pour accéder à votre portefeuille ultérieurement ! Ce service est en BETA, et nous ne sommes pas responsables des personnes qui perdent l'accès à leurs fonds.",
   no_transactions: 'Aucune transaction effectuée pour le moment',
@@ -195,6 +197,13 @@ window.localisation.fr = {
     "Autoriser l'accès par IP (cela passera outre les IP bloquées)",
   enter_ip: "Entrez l'adresse IP et appuyez sur Entrée",
   rate_limiter: 'Limiteur de débit',
+  wallet_limiter: 'Limiteur de portefeuille',
+  wallet_limit_max_withdraw_per_day:
+    'Retrait quotidien maximum du portefeuille en sats (0 pour désactiver)',
+  wallet_max_ballance:
+    'Solde maximum du portefeuille en sats (0 pour désactiver)',
+  wallet_limit_secs_between_trans:
+    'Minutes et secondes entre les transactions par portefeuille (0 pour désactiver)',
   number_of_requests: 'Nombre de requêtes',
   time_unit: 'Unité de temps',
   minute: 'minute',
@@ -213,6 +222,7 @@ window.localisation.fr = {
   account_settings: 'Paramètres du compte',
   signin_with_google: 'Connectez-vous avec Google',
   signin_with_github: 'Connectez-vous avec GitHub',
+  signin_with_keycloak: 'Connectez-vous avec Keycloak',
   username_or_email: "Nom d'utilisateur ou e-mail",
   password: 'Mot de passe',
   password_config: 'Configuration du mot de passe',
@@ -235,5 +245,16 @@ window.localisation.fr = {
   auth_provider: "Fournisseur d'authentification",
   my_account: 'Mon compte',
   back: 'Retour',
-  logout: 'Déconnexion'
+  logout: 'Déconnexion',
+  look_and_feel: 'Apparence',
+  language: 'Langue',
+  color_scheme: 'Schéma de couleurs',
+  extension_cost:
+    'Cette version nécessite un paiement minimum de %{cost} sats.',
+  extension_paid_sats: 'Vous avez déjà payé %{paid_sats} sats.',
+  release_details_error: "Impossible d'obtenir les détails de la version.",
+  pay_from_wallet: 'Payer depuis le portefeuille',
+  show_qr: 'Afficher le QR',
+  retry_install: "Réessayer l'installation",
+  new_payment: 'Effectuer un nouveau paiement'
 }

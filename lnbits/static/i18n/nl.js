@@ -105,6 +105,7 @@ window.localisation.nl = {
     'Dit is een LNURL-withdraw QR-code om alles uit deze portemonnee te halen. Deel deze code niet met anderen. Het is compatibel met balanceCheck en balanceNotify zodat jouw portemonnee continu geld kan blijven opnemen vanaf hier na de eerste opname.',
   i_understand: 'Ik begrijp het',
   copy_wallet_url: 'Kopieer portemonnee-URL',
+  disclaimer_dialog_title: 'Belangrijk!',
   disclaimer_dialog:
     'Inlogfunctionaliteit wordt uitgebracht in een toekomstige update. Zorg er nu voor dat je deze pagina als favoriet markeert om in de toekomst toegang te krijgen tot je portemonnee! Deze service is in BETA en we zijn niet verantwoordelijk voor mensen die de toegang tot hun fondsen verliezen.',
   no_transactions: 'Er zijn nog geen transacties gedaan',
@@ -247,5 +248,13 @@ window.localisation.nl = {
   logout: 'Afmelden',
   look_and_feel: 'Uiterlijk en gedrag',
   language: 'Taal',
-  color_scheme: 'Kleurenschema'
+  color_scheme: 'Kleurenschema',
+  extension_cost:
+    'Deze release vereist een betaling van minimaal %{cost} sats.',
+  extension_paid_sats: 'U heeft al %{paid_sats} sats betaald.',
+  release_details_error: 'Kan de gegevens van de release niet ophalen.',
+  pay_from_wallet: 'Betalen vanuit Portemonnee',
+  show_qr: 'Toon QR',
+  retry_install: 'Opnieuw installeren',
+  new_payment: 'Nieuwe betaling maken'
 }

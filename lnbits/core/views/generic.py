@@ -1,40 +1,35 @@
-import asyncio
 import sys
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, List, Optional, Union
 from urllib.parse import urlparse
 
-from fastapi import Cookie, Depends, Query, Request, status
+from fastapi import Cookie, Depends, Query, Request
 from fastapi.exceptions import HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from loguru import logger
 from pydantic.types import UUID4
 
-from lnbits.core.db import core_app_extra, db
+from lnbits.core.db import core_app_extra
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
-from lnbits.helpers import template_renderer, url_for
+from lnbits.helpers import template_renderer
 from lnbits.settings import settings
-from lnbits.wallets import get_wallet_class
+from lnbits.wallets import get_funding_source
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
 from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
-    create_account,
     create_wallet,
-    get_balance_check,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extensions,
     get_user,
-    save_balance_notify,
     update_installed_extension_state,
     update_user_extension,
 )
-from ..services import pay_invoice, redeem_lnurl_withdraw
 
 generic_router = APIRouter(
     tags=["Core NON-API Website Routes"], include_in_schema=False
@@ -113,6 +108,7 @@ async def extensions_install(
     except Exception as ex:
         logger.warning(ex)
         installable_exts = []
+        installed_exts_ids = []
 
     try:
         ext_id = activate or deactivate
@@ -137,34 +133,32 @@ async def extensions_install(
                 ext_id=ext_id, active=activate is not None
             )
 
-        all_ext_ids = list(map(lambda e: e.code, all_extensions))
+        all_ext_ids = [ext.code for ext in all_extensions]
         inactive_extensions = await get_inactive_extensions()
         db_version = await get_dbversions()
-        extensions = list(
-            map(
-                lambda ext: {
-                    "id": ext.id,
-                    "name": ext.name,
-                    "icon": ext.icon,
-                    "shortDescription": ext.short_description,
-                    "stars": ext.stars,
-                    "isFeatured": ext.featured,
-                    "dependencies": ext.dependencies,
-                    "isInstalled": ext.id in installed_exts_ids,
-                    "hasDatabaseTables": ext.id in db_version,
-                    "isAvailable": ext.id in all_ext_ids,
-                    "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
-                    "isActive": ext.id not in inactive_extensions,
-                    "latestRelease": (
-                        dict(ext.latest_release) if ext.latest_release else None
-                    ),
-                    "installedRelease": (
-                        dict(ext.installed_release) if ext.installed_release else None
-                    ),
-                },
-                installable_exts,
-            )
-        )
+        extensions = [
+            {
+                "id": ext.id,
+                "name": ext.name,
+                "icon": ext.icon,
+                "shortDescription": ext.short_description,
+                "stars": ext.stars,
+                "isFeatured": ext.featured,
+                "dependencies": ext.dependencies,
+                "isInstalled": ext.id in installed_exts_ids,
+                "hasDatabaseTables": ext.id in db_version,
+                "isAvailable": ext.id in all_ext_ids,
+                "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
+                "isActive": ext.id not in inactive_extensions,
+                "latestRelease": (
+                    dict(ext.latest_release) if ext.latest_release else None
+                ),
+                "installedRelease": (
+                    dict(ext.installed_release) if ext.installed_release else None
+                ),
+            }
+            for ext in installable_exts
+        ]
 
         # refresh user state. Eg: enabled extensions.
         user = await get_user(user.id) or user
@@ -177,9 +171,11 @@ async def extensions_install(
                 "extensions": extensions,
             },
         )
-    except Exception as e:
-        logger.warning(e)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
 
 
 @generic_router.get(
@@ -241,115 +237,6 @@ async def account(
         {
             "user": user.dict(),
         },
-    )
-
-
-@generic_router.get("/withdraw", response_class=JSONResponse)
-async def lnurl_full_withdraw(request: Request):
-    usr_param = request.query_params.get("usr")
-    if not usr_param:
-        return {"status": "ERROR", "reason": "usr parameter not provided."}
-
-    user = await get_user(usr_param)
-    if not user:
-        return {"status": "ERROR", "reason": "User does not exist."}
-
-    wal_param = request.query_params.get("wal")
-    if not wal_param:
-        return {"status": "ERROR", "reason": "wal parameter not provided."}
-
-    wallet = user.get_wallet(wal_param)
-    if not wallet:
-        return {"status": "ERROR", "reason": "Wallet does not exist."}
-
-    return {
-        "tag": "withdrawRequest",
-        "callback": url_for("/withdraw/cb", external=True, usr=user.id, wal=wallet.id),
-        "k1": "0",
-        "minWithdrawable": 1000 if wallet.withdrawable_balance else 0,
-        "maxWithdrawable": wallet.withdrawable_balance,
-        "defaultDescription": (
-            f"{settings.lnbits_site_title} balance withdraw from {wallet.id[0:5]}"
-        ),
-        "balanceCheck": url_for("/withdraw", external=True, usr=user.id, wal=wallet.id),
-    }
-
-
-@generic_router.get("/withdraw/cb", response_class=JSONResponse)
-async def lnurl_full_withdraw_callback(request: Request):
-    usr_param = request.query_params.get("usr")
-    if not usr_param:
-        return {"status": "ERROR", "reason": "usr parameter not provided."}
-
-    user = await get_user(usr_param)
-    if not user:
-        return {"status": "ERROR", "reason": "User does not exist."}
-
-    wal_param = request.query_params.get("wal")
-    if not wal_param:
-        return {"status": "ERROR", "reason": "wal parameter not provided."}
-
-    wallet = user.get_wallet(wal_param)
-    if not wallet:
-        return {"status": "ERROR", "reason": "Wallet does not exist."}
-
-    pr = request.query_params.get("pr")
-    if not pr:
-        return {"status": "ERROR", "reason": "payment_request not provided."}
-
-    async def pay():
-        try:
-            await pay_invoice(wallet_id=wallet.id, payment_request=pr)
-        except Exception:
-            pass
-
-    asyncio.create_task(pay())
-
-    balance_notify = request.query_params.get("balanceNotify")
-    if balance_notify:
-        await save_balance_notify(wallet.id, balance_notify)
-
-    return {"status": "OK"}
-
-
-@generic_router.get("/withdraw/notify/{service}")
-async def lnurl_balance_notify(request: Request, service: str):
-    wal_param = request.query_params.get("wal")
-    if not wal_param:
-        return {"status": "ERROR", "reason": "wal parameter not provided."}
-
-    bc = await get_balance_check(wal_param, service)
-    if bc:
-        await redeem_lnurl_withdraw(bc.wallet, bc.url)
-
-
-@generic_router.get(
-    "/lnurlwallet", response_class=RedirectResponse, name="core.lnurlwallet"
-)
-async def lnurlwallet(request: Request):
-    async with db.connect() as conn:
-        account = await create_account(conn=conn)
-        user = await get_user(account.id, conn=conn)
-        assert user, "Newly created user not found."
-        wallet = await create_wallet(user_id=user.id, conn=conn)
-
-    lightning_param = request.query_params.get("lightning")
-    if not lightning_param:
-        return {"status": "ERROR", "reason": "lightning parameter not provided."}
-
-    asyncio.create_task(
-        redeem_lnurl_withdraw(
-            wallet.id,
-            lightning_param,
-            "LNbits initial funding: voucher redeem.",
-            {"tag": "lnurlwallet"},
-            5,  # wait 5 seconds before sending the invoice to the service
-        )
-    )
-
-    return RedirectResponse(
-        f"/wallet?usr={user.id}&wal={wallet.id}",
-        status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
 
 
@@ -453,8 +340,8 @@ async def node(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_node_ui:
         raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 
-    WALLET = get_wallet_class()
-    _, balance = await WALLET.status()
+    funding_source = get_funding_source()
+    _, balance = await funding_source.status()
 
     return template_renderer().TemplateResponse(
         request,
@@ -473,8 +360,8 @@ async def node_public(request: Request):
     if not settings.lnbits_public_node_ui:
         raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 
-    WALLET = get_wallet_class()
-    _, balance = await WALLET.status()
+    funding_source = get_funding_source()
+    _, balance = await funding_source.status()
 
     return template_renderer().TemplateResponse(
         request,
@@ -491,8 +378,8 @@ async def index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
-    WALLET = get_wallet_class()
-    _, balance = await WALLET.status()
+    funding_source = get_funding_source()
+    _, balance = await funding_source.status()
 
     return template_renderer().TemplateResponse(
         request,
@@ -511,8 +398,10 @@ async def hex_to_uuid4(hex_value: str):
     try:
         user_id = to_valid_user_id(hex_value).hex
         return RedirectResponse(url=f"/wallet?usr={user_id}")
-    except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
 
 
 async def toggle_extension(extension_to_enable, extension_to_disable, user_id):

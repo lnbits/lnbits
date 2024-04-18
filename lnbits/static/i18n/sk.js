@@ -35,7 +35,7 @@ window.localisation.sk = {
   name_your_wallet: 'Pomenujte vašu %{name} peňaženku',
   paste_invoice_label: 'Vložte faktúru, platobnú požiadavku alebo lnurl kód *',
   lnbits_description:
-    'Ľahko nastaviteľný a ľahkotonážny, LNbits môže bežať na akomkoľvek zdroji financovania lightning-network, momentálne podporuje LND, Core Lightning, OpenNode, Blink, Alby, LNPay a dokonca LNbits samotný! LNbits môžete používať pre seba, alebo ľahko ponúknuť správcovské riešenie pre iných. Každá peňaženka má svoje vlastné API kľúče a nie je limit na počet peňaženiek, ktoré môžete vytvoriť. Schopnosť rozdeľovať finančné prostriedky robí z LNbits užitočný nástroj pre správu peňazí a ako vývojový nástroj. Rozšírenia pridávajú extra funkčnosť do LNbits, takže môžete experimentovať s radou najnovších technológií na lightning sieti. Vývoj rozšírení sme urobili čo najjednoduchší a ako voľný a open-source projekt, podporujeme ľudí vývoj a odovzdávanie vlastných rozšírení.',
+    'Ľahko nastaviteľný a ľahkotonážny, LNbits môže bežať na akomkoľvek zdroji financovania Lightning Network a dokonca LNbits samotný! LNbits môžete používať pre seba, alebo ľahko ponúknuť správcovské riešenie pre iných. Každá peňaženka má svoje vlastné API kľúče a nie je limit na počet peňaženiek, ktoré môžete vytvoriť. Schopnosť rozdeľovať finančné prostriedky robí z LNbits užitočný nástroj pre správu peňazí a ako vývojový nástroj. Rozšírenia pridávajú extra funkčnosť do LNbits, takže môžete experimentovať s radou najnovších technológií na lightning sieti. Vývoj rozšírení sme urobili čo najjednoduchší a ako voľný a open-source projekt, podporujeme ľudí vývoj a odovzdávanie vlastných rozšírení.',
   export_to_phone: 'Exportovať do telefónu s QR kódom',
   export_to_phone_desc:
     'Tento QR kód obsahuje URL vašej peňaženky s plným prístupom. Môžete ho naskenovať z vášho telefónu a otvoriť vašu peňaženku odtiaľ.',
@@ -60,9 +60,10 @@ window.localisation.sk = {
   service_fee_tooltip:
     'Servisný poplatok účtovaný správcom LNbits servera za odchádzajúcu transakciu',
   toggle_darkmode: 'Prepnúť Tmavý režim',
+  payment_reactions: 'Reakcie na platbu',
   view_swagger_docs: 'Zobraziť LNbits Swagger API dokumentáciu',
   api_docs: 'API dokumentácia',
-  api_keys_api_docs: 'API kľúče a API dokumentácia',
+  api_keys_api_docs: 'Adresa uzla, API kľúče a API dokumentácia',
   lnbits_version: 'Verzia LNbits',
   runs_on: 'Beží na',
   credit_hint: 'Stlačte Enter pre pripísanie na účet',
@@ -97,6 +98,7 @@ window.localisation.sk = {
     'Toto je LNURL-withdraw QR kód pre vyprázdnienie všetkého z tejto peňaženky. S nikým ho nezdieľajte. Je kompatibilný s balanceCheck a balanceNotify, takže vaša peňaženka môže naďalej kontinuálne vyťahovať prostriedky odtiaľto po prvom výbere.',
   i_understand: 'Rozumiem',
   copy_wallet_url: 'Kopírovať URL peňaženky',
+  disclaimer_dialog_title: 'Dôležité!',
   disclaimer_dialog:
     'Funkcionalita prihlásenia bude vydaná v budúcej aktualizácii, zatiaľ si uistite, že ste si túto stránku pridali medzi záložky pre budúci prístup k vašej peňaženke! Táto služba je v BETA verzii a nenesieme zodpovednosť za stratu prístupu k prostriedkom.',
   no_transactions: 'Zatiaľ žiadne transakcie',
@@ -187,6 +189,13 @@ window.localisation.sk = {
   allow_access_hint: 'Povoliť prístup podľa IP (prebije blokované IP)',
   enter_ip: 'Zadajte IP a stlačte enter',
   rate_limiter: 'Obmedzovač počtu požiadaviek',
+  wallet_limiter: 'Obmedzovač peňaženky',
+  wallet_limit_max_withdraw_per_day:
+    'Maximálny denný výber z peňaženky v satošiach (0 pre zrušenie)',
+  wallet_max_ballance:
+    'Maximálny zostatok v peňaženke v satošiach (0 pre deaktiváciu)',
+  wallet_limit_secs_between_trans:
+    'Minimálny počet sekúnd medzi transakciami na peňaženku (0 na deaktiváciu)',
   number_of_requests: 'Počet požiadaviek',
   time_unit: 'Časová jednotka',
   minute: 'minúta',
@@ -203,8 +212,9 @@ window.localisation.sk = {
   login_to_account: 'Prihláste sa do vášho účtu',
   create_account: 'Vytvoriť účet',
   account_settings: 'Nastavenia účtu',
-  signin_with_google: 'Prihlásiť sa cez Google',
-  signin_with_github: 'Prihláste sa pomocou GitHub',
+  signin_with_google: 'Prihlásiť sa pomocou Google',
+  signin_with_github: 'Prihlásiť sa pomocou GitHub',
+  signin_with_keycloak: 'Prihlásiť sa pomocou Keycloak',
   username_or_email: 'Používateľské meno alebo email',
   password: 'Heslo',
   password_config: 'Konfigurácia hesla',
@@ -227,5 +237,15 @@ window.localisation.sk = {
   auth_provider: 'Poskytovateľ autentifikácie',
   my_account: 'Môj účet',
   back: 'Späť',
-  logout: 'Odhlásiť sa'
+  logout: 'Odhlásiť sa',
+  look_and_feel: 'Vzhľad a dojem',
+  language: 'Jazyk',
+  color_scheme: 'Farebná schéma',
+  extension_cost: 'Táto verzia vyžaduje minimálnu platbu %{cost} satoshi.',
+  extension_paid_sats: 'Už ste zaplatili %{paid_sats} sats.',
+  release_details_error: 'Nepodarilo sa získať podrobnosti o vydaní.',
+  pay_from_wallet: 'Zaplatiť z peňaženky',
+  show_qr: 'Zobraziť QR',
+  retry_install: 'Skúste inštaláciu znova',
+  new_payment: 'Vytvoriť novú platbu'
 }

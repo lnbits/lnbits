@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import (
     List,
     Optional,
@@ -8,9 +9,6 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
-)
-from fastapi import (
-    status as HTTPStatus,
 )
 from loguru import logger
 
@@ -44,6 +42,7 @@ from ..crud import (
     drop_extension_db,
     get_dbversions,
     get_installed_extension,
+    get_installed_extensions,
 )
 
 extension_router = APIRouter(
@@ -105,10 +104,10 @@ async def api_install_extension(
             ext_info.notify_upgrade()
 
         return extension
-    except AssertionError as e:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, str(e))
-    except Exception as ex:
-        logger.warning(ex)
+    except AssertionError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+    except Exception as exc:
+        logger.warning(exc)
         ext_info.clean_extension_files()
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -116,7 +115,7 @@ async def api_install_extension(
                 f"Failed to install extension {ext_info.id} "
                 f"({ext_info.installed_version})."
             ),
-        )
+        ) from exc
 
 
 @extension_router.delete("/{ext_id}")
@@ -125,9 +124,9 @@ async def api_uninstall_extension(
     user: User = Depends(check_admin),
     access_token: Optional[str] = Depends(check_access_token),
 ):
-    installable_extensions = await InstallableExtension.get_installable_extensions()
+    installed_extensions = await get_installed_extensions()
 
-    extensions = [e for e in installable_extensions if e.id == ext_id]
+    extensions = [e for e in installed_extensions if e.id == ext_id]
     if len(extensions) == 0:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -135,9 +134,9 @@ async def api_uninstall_extension(
         )
 
     # check that other extensions do not depend on this one
-    for valid_ext_id in list(map(lambda e: e.code, get_valid_extensions())):
+    for valid_ext_id in [ext.code for ext in get_valid_extensions()]:
         installed_ext = next(
-            (ext for ext in installable_extensions if ext.id == valid_ext_id), None
+            (ext for ext in installed_extensions if ext.id == valid_ext_id), None
         )
         if installed_ext and ext_id in installed_ext.dependencies:
             raise HTTPException(
@@ -160,10 +159,10 @@ async def api_uninstall_extension(
             await delete_installed_extension(ext_id=ext_info.id)
 
         logger.success(f"Extension '{ext_id}' uninstalled.")
-    except Exception as ex:
+    except Exception as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
-        )
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
 
 
 @extension_router.get("/{ext_id}/releases", dependencies=[Depends(check_admin)])
@@ -184,10 +183,10 @@ async def get_extension_releases(ext_id: str):
 
         return extension_releases
 
-    except Exception as ex:
+    except Exception as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
-        )
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
 
 
 @extension_router.put("/invoice", dependencies=[Depends(check_admin)])
@@ -217,11 +216,13 @@ async def get_extension_invoice(data: CreateExtension):
 
         return payment_info
 
-    except AssertionError as e:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, str(e))
-    except Exception as ex:
-        logger.warning(ex)
-        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot request invoice")
+    except AssertionError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot request invoice"
+        ) from exc
 
 
 @extension_router.get(
@@ -239,10 +240,10 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
             "is_version_compatible": config.is_version_compatible(),
             "warning": config.warning,
         }
-    except Exception as ex:
+    except Exception as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
-        )
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
 
 
 @extension_router.delete(
@@ -263,9 +264,9 @@ async def delete_extension_db(ext_id: str):
     except HTTPException as ex:
         logger.error(ex)
         raise ex
-    except Exception as ex:
-        logger.error(ex)
+    except Exception as exc:
+        logger.error(exc)
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f"Cannot delete data for extension '{ext_id}'",
-        )
+        ) from exc

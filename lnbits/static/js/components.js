@@ -171,6 +171,11 @@ Vue.component('lnbits-extension-list', {
 
 Vue.component('lnbits-manage', {
   props: ['showAdmin', 'showNode', 'showExtensions'],
+  methods: {
+    isActive: function (path) {
+      return window.location.pathname === path
+    }
+  },
   data: function () {
     return {
       extensions: [],
@@ -181,29 +186,29 @@ Vue.component('lnbits-manage', {
     <q-list v-if="user" dense class="lnbits-drawer__q-list">
       <q-item-label header v-text="$t('manage')"></q-item-label>
       <div v-if="user.admin">
-        <q-item v-if='showAdmin' clickable tag="a" href="/admin">
+        <q-item v-if='showAdmin' clickable tag="a" href="/admin" :active="isActive('/admin')">
           <q-item-section side>
-            <q-icon name="admin_panel_settings" color="grey-5" size="md"></q-icon>
+            <q-icon name="admin_panel_settings" :color="isActive('/admin') ? 'primary' : 'grey-5'" size="md"></q-icon>
           </q-item-section>
           <q-item-section>
-            <q-item-label lines="1" class="text-caption" v-text="$t('server')"></q-item-label>
+            <q-item-label lines="1" v-text="$t('server')"></q-item-label>
           </q-item-section>
         </q-item>
-        <q-item v-if='showNode' clickable tag="a" href="/node">
+        <q-item v-if='showNode' clickable tag="a" href="/node" :active="isActive('/node')">
           <q-item-section side>
-            <q-icon name="developer_board" color="grey-5" size="md"></q-icon>
+            <q-icon name="developer_board" :color="isActive('/node') ? 'primary' : 'grey-5'" size="md"></q-icon>
           </q-item-section>
           <q-item-section>
-            <q-item-label lines="1" class="text-caption" v-text="$t('node')"></q-item-label>
+            <q-item-label lines="1" v-text="$t('node')"></q-item-label>
           </q-item-section>
         </q-item>
       </div>
-      <q-item v-if="showExtensions" clickable tag="a" href="/extensions">
+      <q-item v-if="showExtensions" clickable tag="a" href="/extensions" :active="isActive('/extensions')">
         <q-item-section side>
-          <q-icon name="extension" color="grey-5" size="md"></q-icon>
+          <q-icon name="extension" :color="isActive('/extensions') ? 'primary' : 'grey-5'" size="md"></q-icon>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1" class="text-caption" v-text="$t('extensions')"></q-item-label>
+          <q-item-label lines="1" v-text="$t('extensions')"></q-item-label>
         </q-item-section>
       </q-item>
     </q-list>
@@ -313,8 +318,8 @@ Vue.component('lnbits-payment-details', {
         this.payment.webhook_status < 0
         ? 'red-10'
         : !this.payment.webhook_status
-        ? 'cyan-7'
-        : 'green-10'
+          ? 'cyan-7'
+          : 'green-10'
     },
     webhookStatusText() {
       return this.payment.webhook_status
@@ -686,9 +691,25 @@ Vue.component('lnbits-update-balance', {
   },
   methods: {
     updateBalance: function (credit) {
-      LNbits.api.updateBalance(credit, this.wallet_id).then(res => {
-        this.callback({value: res, wallet_id: this.wallet_id})
-      })
+      LNbits.api
+        .updateBalance(credit, this.wallet_id)
+        .then(res => {
+          this.callback({value: res, wallet_id: this.wallet_id})
+        })
+        .then(_ => {
+          credit = parseInt(credit)
+          this.$q.notify({
+            type: 'positive',
+            message: this.$t('wallet_topup_ok', {
+              amount: credit
+            }),
+            icon: null
+          })
+          return credit
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
     }
   },
   template: `

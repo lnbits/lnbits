@@ -35,7 +35,7 @@ window.localisation.jp = {
   name_your_wallet: 'あなたのウォレットの名前 %{name}',
   paste_invoice_label: '請求書を貼り付けてください',
   lnbits_description:
-    '簡単にインストールでき、軽量で、LNbitsは現在LND、Core Lightning、OpenNode、Blink, Alby, LNPay、さらにLNbits自身で動作する任意のLightningネットワークの資金源で実行できます！ LNbitsを自分で実行することも、他の人に優れたソリューションを提供することもできます。各ウォレットには独自のAPIキーがあり、作成できるウォレットの数に制限はありません。資金を分割する機能は、LNbitsを資金管理ツールとして使用したり、開発ツールとして使用したりするための便利なツールです。拡張機能は、LNbitsに追加の機能を追加します。そのため、LNbitsは最先端の技術をネットワークLightningで試すことができます。拡張機能を開発するのは簡単で、無料でオープンソースのプロジェクトであるため、人々が自分で開発し、自分の貢献を送信することを奨励しています。',
+    '簡単にインストールでき、軽量なLNbitsは、あらゆるライトニングネットワークの資金源と、LNbits自身でさえも実行できます！LNbitsを個人で実行することも、他人に対してカストディアンソリューションをで実行できます！ LNbitsを自分で実行することも、他の人に優れたソリューションを提供することもできます。各ウォレットには独自のAPIキーがあり、作成できるウォレットの数に制限はありません。資金を分割する機能は、LNbitsを資金管理ツールとして使用したり、開発ツールとして使用したりするための便利なツールです。拡張機能は、LNbitsに追加の機能を追加します。そのため、LNbitsは最先端の技術をネットワークLightningで試すことができます。拡張機能を開発するのは簡単で、無料でオープンソースのプロジェクトであるため、人々が自分で開発し、自分の貢献を送信することを奨励しています。',
   export_to_phone: '電話にエクスポート',
   export_to_phone_desc:
     'ウォレットを電話にエクスポートすると、ウォレットを削除する前にウォレットを復元できます。ウォレットを削除すると、ウォレットの秘密鍵が削除され、ウォレットを復元することはできません。',
@@ -59,9 +59,10 @@ window.localisation.jp = {
   service_fee_max: '取引手数料：%{amount}%（最大%{max}サトシ）',
   service_fee_tooltip: 'LNbitsサーバー管理者が発生する送金ごとの手数料',
   toggle_darkmode: 'ダークモードを切り替える',
+  payment_reactions: '支払いの反応',
   view_swagger_docs: 'Swaggerドキュメントを表示',
   api_docs: 'APIドキュメント',
-  api_keys_api_docs: 'APIキーとAPIドキュメント',
+  api_keys_api_docs: 'ノードURL、APIキー、APIドキュメント',
   lnbits_version: 'LNbits バージョン',
   runs_on: 'で実行',
   credit_hint:
@@ -96,6 +97,7 @@ window.localisation.jp = {
   drain_funds_desc: 'ウォレットの残高をすべて他のウォレットに送金します',
   i_understand: '理解した',
   copy_wallet_url: 'ウォレットURLをコピー',
+  disclaimer_dialog_title: '重要！',
   disclaimer_dialog:
     'ウォレットを削除すると、ウォレットの秘密鍵が削除され、ウォレットを復元することはできません。ウォレットを削除する前に、ウォレットをエクスポートしてください。',
   no_transactions: 'トランザクションはありません',
@@ -188,6 +190,12 @@ window.localisation.jp = {
     'IPによるアクセスを許可する（ブロックされたIPを上書きします）',
   enter_ip: 'IPを入力してエンターキーを押してください',
   rate_limiter: 'レートリミッター',
+  wallet_limiter: 'ウォレットリミッター',
+  wallet_limit_max_withdraw_per_day:
+    '1日あたりの最大ウォレット出金額をsatsで入力してください（0 で無効）。',
+  wallet_max_ballance: 'ウォレットの最大残高（sats）（0は無効）',
+  wallet_limit_secs_between_trans:
+    'トランザクション間の最小秒数（ウォレットごと）（0は無効）',
   number_of_requests: 'リクエストの数',
   time_unit: '時間単位',
   minute: '分',
@@ -207,6 +215,7 @@ window.localisation.jp = {
   account_settings: 'アカウント設定',
   signin_with_google: 'Googleでサインイン',
   signin_with_github: 'GitHubでサインイン',
+  signin_with_keycloak: 'Keycloakでサインイン',
   username_or_email: 'ユーザー名またはメールアドレス',
   password: 'パスワード',
   password_config: 'パスワード設定',
@@ -229,5 +238,15 @@ window.localisation.jp = {
   auth_provider: '認証プロバイダ',
   my_account: 'マイアカウント',
   back: '戻る',
-  logout: 'ログアウト'
+  logout: 'ログアウト',
+  look_and_feel: 'ルック・アンド・フィール',
+  language: '言語',
+  color_scheme: 'カラースキーム',
+  extension_cost: 'このリリースには最低 %{cost} サトシの支払いが必要です。',
+  extension_paid_sats: 'すでに%{paid_sats} satsを支払いました。',
+  release_details_error: 'リリースの詳細を取得できません。',
+  pay_from_wallet: 'ウォレットから支払う',
+  show_qr: 'QRを表示',
+  retry_install: '再試行インストール',
+  new_payment: '新しい支払いを作成する'
 }

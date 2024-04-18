@@ -3,6 +3,7 @@ import asyncio
 from time import time
 
 import uvloop
+from asgi_lifespan import LifespanManager
 
 uvloop.install()
 
@@ -35,6 +36,7 @@ settings.lnbits_admin_extensions = []
 settings.lnbits_data_folder = "./tests/data"
 settings.lnbits_admin_ui = True
 settings.lnbits_extensions_default_install = []
+settings.lnbits_extensions_deactivate_all = True
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -49,17 +51,16 @@ def event_loop():
 async def app():
     clean_database(settings)
     app = create_app()
-    await app.router.startup()
-    settings.first_install = False
-    yield app
-    await app.router.shutdown()
+    async with LifespanManager(app) as manager:
+        settings.first_install = False
+        yield manager.app
 
 
 @pytest_asyncio.fixture(scope="session")
 async def client(app):
-    client = AsyncClient(app=app, base_url=f"http://{settings.host}:{settings.port}")
-    yield client
-    await client.aclose()
+    url = f"http://{settings.host}:{settings.port}"
+    async with AsyncClient(app=app, base_url=url) as client:
+        yield client
 
 
 @pytest.fixture(scope="session")
@@ -175,8 +176,8 @@ async def adminkey_headers_to(to_wallet):
 @pytest_asyncio.fixture(scope="session")
 async def invoice(to_wallet):
     data = await get_random_invoice_data()
-    invoiceData = CreateInvoice(**data)
-    invoice = await api_payments_create_invoice(invoiceData, to_wallet)
+    invoice_data = CreateInvoice(**data)
+    invoice = await api_payments_create_invoice(invoice_data, to_wallet)
     yield invoice
     del invoice
 

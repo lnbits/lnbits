@@ -29,7 +29,7 @@ class InstalledExtensionMiddleware:
             await self.app(scope, receive, send)
             return
 
-        top_path, *rest = [p for p in full_path.split("/") if p]
+        top_path, *rest = (p for p in full_path.split("/") if p)
         headers = scope.get("headers", [])
 
         # block path for all users if the extension is disabled
@@ -78,7 +78,7 @@ class InstalledExtensionMiddleware:
             "",
         )
 
-        if "text/html" in [a for a in accept_header.split(",")]:
+        if "text/html" in accept_header.split(","):
             return HTMLResponse(
                 status_code=status_code,
                 content=template_renderer()
@@ -179,7 +179,7 @@ class ExtensionsRedirectMiddleware:
         req_tail_path = req_path.split("/")[len(from_path) :]
 
         elements = [
-            e for e in ([redirect["ext_id"]] + redirect_to + req_tail_path) if e != ""
+            e for e in ([redirect["ext_id"], *redirect_to, *req_tail_path]) if e != ""
         ]
 
         return "/" + "/".join(elements)

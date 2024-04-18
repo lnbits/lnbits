@@ -37,7 +37,7 @@ window.localisation.de = {
   paste_invoice_label:
     'Füge eine Rechnung, Zahlungsanforderung oder LNURL ein *',
   lnbits_description:
-    'Einfach zu installieren und kompakt, LNbits kann auf jeder Funding-Quelle im Lightning Netzwerk aufsetzen. Derzeit unterstützt: LND, Core Lightning, OpenNode, Blink, Alby, LNPay und sogar LNbits selbst! Du kannst LNbits für dich selbst betreiben oder anderen die Verwaltung durch dich anbieten. Jede Wallet hat ihre eigenen API-Schlüssel und die Anzahl der Wallets ist unbegrenzt. Die Möglichkeit, Gelder auf verschiedene Accounts mit unterschiedlicher Logik aufteilen zu können macht LNbits zu einem nützlichen Werkzeug für deine Buchhaltung - aber auch als Entwicklungswerkzeug. Erweiterungen bereichern LNbits Accounts um zusätzliche Funktionalität, so dass du mit einer Reihe von neuartigen Technologien auf dem Lightning-Netzwerk experimentieren kannst. Wir haben es so einfach wie möglich gemacht, Erweiterungen zu entwickeln, und als freies und Open-Source-Projekt möchten wir Menschen ermutigen, sich selbst hieran zu versuchen und gemeinsam mit uns neue Funktionalitäten zu entwickeln.',
+    'Einfach zu installieren und kompakt, LNbits kann auf jeder Funding-Quelle im Lightning Netzwerk aufsetzen und sogar LNbits selbst! Du kannst LNbits für dich selbst betreiben oder anderen die Verwaltung durch dich anbieten. Jede Wallet hat ihre eigenen API-Schlüssel und die Anzahl der Wallets ist unbegrenzt. Die Möglichkeit, Gelder auf verschiedene Accounts mit unterschiedlicher Logik aufteilen zu können macht LNbits zu einem nützlichen Werkzeug für deine Buchhaltung - aber auch als Entwicklungswerkzeug. Erweiterungen bereichern LNbits Accounts um zusätzliche Funktionalität, so dass du mit einer Reihe von neuartigen Technologien auf dem Lightning-Netzwerk experimentieren kannst. Wir haben es so einfach wie möglich gemacht, Erweiterungen zu entwickeln, und als freies und Open-Source-Projekt möchten wir Menschen ermutigen, sich selbst hieran zu versuchen und gemeinsam mit uns neue Funktionalitäten zu entwickeln.',
   export_to_phone: 'Auf dem Telefon öffnen',
   export_to_phone_desc:
     'Dieser QR-Code beinhaltet vollständige Rechte auf deine Wallet. Du kannst den QR-Code mit Deinem Telefon scannen, um deine Wallet dort zu öffnen.',
@@ -63,9 +63,10 @@ window.localisation.de = {
   service_fee_tooltip:
     'Bearbeitungsgebühr, die vom LNbits Server-Administrator pro ausgehender Transaktion berechnet wird',
   toggle_darkmode: 'Auf Dark Mode umschalten',
+  payment_reactions: 'Zahlungsreaktionen',
   view_swagger_docs: 'LNbits Swagger API-Dokumentation',
   api_docs: 'API-Dokumentation',
-  api_keys_api_docs: 'API-Schlüssel und API-Dokumentation',
+  api_keys_api_docs: 'Knoten-URL, API-Schlüssel und API-Dokumentation',
   lnbits_version: 'LNbits-Version',
   runs_on: 'Läuft auf',
   credit_hint: 'Klicke Enter, um das Konto zu belasten',
@@ -101,6 +102,7 @@ window.localisation.de = {
     'LNURL-withdraw QR-Code, der das Abziehen aller Geldmittel aus dieser Wallet erlaubt. Teile ihn mit niemandem! Kompatibel mit balanceCheck und balanceNotify, so dass dein Wallet die Sats nach dem ersten Abzug kontinuierlich von hier abziehen kann.',
   i_understand: 'Ich verstehe',
   copy_wallet_url: 'Wallet-URL kopieren',
+  disclaimer_dialog_title: 'Wichtig!',
   disclaimer_dialog:
     'Login-Funktionalität wird in einem zukünftigen Update veröffentlicht. Bis dahin ist die Speicherung der Wallet-URL als Lesezeichen absolut notwendig, um Zugriff auf die Wallet zu erhalten! Dieser Service ist in BETA und wir übernehmen keine Verantwortung für Verluste durch verlorene Zugriffe.',
   no_transactions: 'Keine Transaktionen',
@@ -192,6 +194,13 @@ window.localisation.de = {
   allow_access_hint: 'Zugriff durch IP erlauben (überschreibt blockierte IPs)',
   enter_ip: 'Geben Sie die IP ein und drücken Sie die Eingabetaste',
   rate_limiter: 'Ratenbegrenzer',
+  wallet_limiter: 'Geldbeutel-Limiter',
+  wallet_limit_max_withdraw_per_day:
+    'Maximales tägliches Wallet-Auszahlungslimit in Sats (0 zum Deaktivieren)',
+  wallet_max_ballance:
+    'Maximales Guthaben der Wallet in Sats (0 zum Deaktivieren)',
+  wallet_limit_secs_between_trans:
+    'Mindestsekunden zwischen Transaktionen pro Wallet (0 zum Deaktivieren)',
   number_of_requests: 'Anzahl der Anfragen',
   time_unit: 'Zeiteinheit',
   minute: 'Minute',
@@ -211,6 +220,7 @@ window.localisation.de = {
   account_settings: 'Kontoeinstellungen',
   signin_with_google: 'Mit Google anmelden',
   signin_with_github: 'Anmelden mit GitHub',
+  signin_with_keycloak: 'Mit Keycloak anmelden',
   username_or_email: 'Benutzername oder E-Mail',
   password: 'Passwort',
   password_config: 'Passwortkonfiguration',
@@ -233,5 +243,16 @@ window.localisation.de = {
   auth_provider: 'Anbieter für Authentifizierung',
   my_account: 'Mein Konto',
   back: 'Zurück',
-  logout: 'Abmelden'
+  logout: 'Abmelden',
+  look_and_feel: 'Aussehen und Verhalten',
+  language: 'Sprache',
+  color_scheme: 'Farbschema',
+  extension_cost:
+    'Diese Version erfordert eine Zahlung von mindestens %{cost} Sats.',
+  extension_paid_sats: 'Sie haben bereits %{paid_sats} Sats bezahlt.',
+  release_details_error: 'Kann die Details zur Veröffentlichung nicht abrufen.',
+  pay_from_wallet: 'Zahlen aus dem Geldbeutel',
+  show_qr: 'QR anzeigen',
+  retry_install: 'Installieren erneut versuchen',
+  new_payment: 'Neue Zahlung vornehmen'
 }

@@ -36,7 +36,7 @@ window.localisation.pt = {
   name_your_wallet: 'Nomeie sua carteira %{name}',
   paste_invoice_label: 'Cole uma fatura, pedido de pagamento ou código lnurl *',
   lnbits_description:
-    'Fácil de configurar e leve, o LNbits pode ser executado em qualquer fonte de financiamento da lightning-network, atualmente suportando LND, c-lightning, OpenNode, Blink, Alby, LNPay e até mesmo o LNbits em si! Você pode executar o LNbits para si mesmo ou oferecer facilmente uma solução de custódia para outros. Cada carteira tem suas próprias chaves de API e não há limite para o número de carteiras que você pode criar. Ser capaz de particionar fundos torna o LNbits uma ferramenta útil para gerenciamento de dinheiro e como uma ferramenta de desenvolvimento. As extensões adicionam funcionalidades extras ao LNbits para que você possa experimentar uma série de tecnologias de ponta na rede lightning. Nós tornamos o desenvolvimento de extensões o mais fácil possível e, como um projeto gratuito e de código aberto, incentivamos as pessoas a desenvolver e enviar as suas próprias.',
+    'Fácil de configurar e leve, o LNbits pode ser executado em qualquer fonte de financiamento da Lightning Network e até mesmo o LNbits em si! Você pode executar o LNbits para si mesmo ou oferecer facilmente uma solução de custódia para outros. Cada carteira tem suas próprias chaves de API e não há limite para o número de carteiras que você pode criar. Ser capaz de particionar fundos torna o LNbits uma ferramenta útil para gerenciamento de dinheiro e como uma ferramenta de desenvolvimento. As extensões adicionam funcionalidades extras ao LNbits para que você possa experimentar uma série de tecnologias de ponta na rede lightning. Nós tornamos o desenvolvimento de extensões o mais fácil possível e, como um projeto gratuito e de código aberto, incentivamos as pessoas a desenvolver e enviar as suas próprias.',
   export_to_phone: 'Exportar para o telefone com código QR',
   export_to_phone_desc:
     'Este código QR contém a URL da sua carteira com acesso total. Você pode escaneá-lo do seu telefone para abrir sua carteira a partir dele.',
@@ -61,9 +61,10 @@ window.localisation.pt = {
   service_fee_tooltip:
     'Taxa de serviço cobrada pelo administrador do servidor LNbits por transação de saída',
   toggle_darkmode: 'Alternar modo escuro',
+  payment_reactions: 'Reações de Pagamento',
   view_swagger_docs: 'Ver a documentação da API do LNbits Swagger',
   api_docs: 'Documentação da API',
-  api_keys_api_docs: 'Chaves de API e documentação de API',
+  api_keys_api_docs: 'URL do Nó, chaves de API e documentação de API',
   lnbits_version: 'Versão do LNbits',
   runs_on: 'Executa em',
   credit_hint: 'Pressione Enter para creditar a conta',
@@ -98,6 +99,7 @@ window.localisation.pt = {
     'Este é um código QR de saque LNURL para sacar tudo desta carteira. Não o partilhe com ninguém. É compatível com balanceCheck e balanceNotify para que a sua carteira possa continuar levantando os fundos continuamente daqui após o primeiro saque.',
   i_understand: 'Eu entendo',
   copy_wallet_url: 'Copiar URL da carteira',
+  disclaimer_dialog_title: 'Importante!',
   disclaimer_dialog:
     'Funcionalidade de login a ser lançada numa atualização futura, por enquanto, certifique-se que marca esta página para acesso futuro à sua carteira! Este serviço está em BETA, e não nos responsabilizamos por pessoas que perderem o acesso aos fundos.',
   no_transactions: 'Ainda não foram feitas transações',
@@ -189,6 +191,12 @@ window.localisation.pt = {
   allow_access_hint: 'Permitir acesso por IP (substituirá IPs bloqueados)',
   enter_ip: 'Digite o IP e pressione enter.',
   rate_limiter: 'Limitador de Taxa',
+  wallet_limiter: 'Limitador de Carteira',
+  wallet_limit_max_withdraw_per_day:
+    'Limite diário máximo de saque da carteira em sats (0 para desativar)',
+  wallet_max_ballance: 'Saldo máximo da carteira em sats (0 para desativar)',
+  wallet_limit_secs_between_trans:
+    'Minutos seg. entre transações por carteira (0 para desativar)',
   number_of_requests: 'Número de solicitações',
   time_unit: 'Unidade de tempo',
   minute: 'minuto',
@@ -207,6 +215,7 @@ window.localisation.pt = {
   account_settings: 'Configurações da Conta',
   signin_with_google: 'Entrar com o Google',
   signin_with_github: 'Entrar com o GitHub',
+  signin_with_keycloak: 'Entrar com o Keycloak',
   username_or_email: 'Nome de usuário ou Email',
   password: 'Senha',
   password_config: 'Configuração de Senha',
@@ -229,5 +238,15 @@ window.localisation.pt = {
   auth_provider: 'Provedor de Autenticação',
   my_account: 'Minha Conta',
   back: 'Voltar',
-  logout: 'Sair'
+  logout: 'Sair',
+  look_and_feel: 'Aparência e Sensação',
+  language: 'Idioma',
+  color_scheme: 'Esquema de Cores',
+  extension_cost: 'Este lançamento requer um pagamento mínimo de %{cost} sats.',
+  extension_paid_sats: 'Você já pagou %{paid_sats} sats.',
+  release_details_error: 'Não é possível obter os detalhes da versão.',
+  pay_from_wallet: 'Pague da Carteira',
+  show_qr: 'Exibir QR',
+  retry_install: 'Reinstalar Tente Novamente',
+  new_payment: 'Realizar Novo Pagamento'
 }

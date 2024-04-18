@@ -4,7 +4,7 @@ import time
 import traceback
 import uuid
 from http import HTTPStatus
-from typing import Coroutine, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from loguru import logger
 from py_vapid import Vapid
@@ -17,7 +17,7 @@ from lnbits.core.crud import (
     get_standalone_payment,
 )
 from lnbits.settings import settings
-from lnbits.wallets import get_wallet_class
+from lnbits.wallets import get_funding_source
 
 tasks: List[asyncio.Task] = []
 unique_tasks: Dict[str, asyncio.Task] = {}
@@ -33,20 +33,20 @@ def create_permanent_task(func):
     return create_task(catch_everything_and_restart(func))
 
 
-def create_unique_task(name: str, coro: Coroutine):
+def create_unique_task(name: str, coro):
     if unique_tasks.get(name):
         logger.warning(f"task `{name}` already exists, cancelling it")
         try:
             unique_tasks[name].cancel()
         except Exception as exc:
-            logger.warning(f"error while cancelling task `{name}`: {str(exc)}")
+            logger.warning(f"error while cancelling task `{name}`: {exc!s}")
     task = asyncio.create_task(coro)
     unique_tasks[name] = task
     return task
 
 
-def create_permanent_unique_task(name: str, coro: Coroutine):
-    return create_unique_task(name, catch_everything_and_restart(coro))
+def create_permanent_unique_task(name: str, coro):
+    return create_unique_task(name, catch_everything_and_restart(coro, name))
 
 
 def cancel_all_tasks():
@@ -54,25 +54,25 @@ def cancel_all_tasks():
         try:
             task.cancel()
         except Exception as exc:
-            logger.warning(f"error while cancelling task: {str(exc)}")
+            logger.warning(f"error while cancelling task: {exc!s}")
     for name, task in unique_tasks.items():
         try:
             task.cancel()
         except Exception as exc:
-            logger.warning(f"error while cancelling task `{name}`: {str(exc)}")
+            logger.warning(f"error while cancelling task `{name}`: {exc!s}")
 
 
-async def catch_everything_and_restart(func):
+async def catch_everything_and_restart(func, name: str = "unnamed"):
     try:
         await func()
     except asyncio.CancelledError:
         raise  # because we must pass this up
     except Exception as exc:
-        logger.error("caught exception in background task:", exc)
+        logger.error(f"exception in background task `{name}`:", exc)
         logger.error(traceback.format_exc())
         logger.error("will restart the task in 5 seconds.")
         await asyncio.sleep(5)
-        await catch_everything_and_restart(func)
+        await catch_everything_and_restart(func, name)
 
 
 invoice_listeners: Dict[str, asyncio.Queue] = {}
@@ -119,8 +119,8 @@ async def invoice_listener():
 
     Called by the app startup sequence.
     """
-    WALLET = get_wallet_class()
-    async for checking_id in WALLET.paid_invoices_stream():
+    funding_source = get_funding_source()
+    async for checking_id in funding_source.paid_invoices_stream():
         logger.info("> got a payment notification", checking_id)
         create_task(invoice_callback_dispatcher(checking_id))
 

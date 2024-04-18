@@ -69,10 +69,10 @@ class KeyChecker(SecurityBase):
                     detail="Invalid key or wallet.",
                 )
             self.wallet = wallet
-        except KeyError:
+        except KeyError as exc:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="`X-API-KEY` header missing."
-            )
+            ) from exc
 
 
 class WalletInvoiceKeyChecker(KeyChecker):
@@ -138,12 +138,12 @@ async def get_key_type(
             detail="Invoice (or Admin) key required.",
         )
 
-    for wallet_type, WalletChecker in zip(
+    for wallet_type, wallet_checker in zip(
         [WalletType.admin, WalletType.invoice],
         [WalletAdminKeyChecker, WalletInvoiceKeyChecker],
     ):
         try:
-            checker = WalletChecker(api_key=token)
+            checker = wallet_checker(api_key=token)
             await checker.__call__(r)
             if checker.wallet is None:
                 raise HTTPException(
@@ -324,10 +324,10 @@ async def _get_account_from_token(access_token):
             return await get_account_by_email(str(payload.get("email")))
 
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Data missing for access token.")
-    except ExpiredSignatureError:
+    except ExpiredSignatureError as exc:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Session expired.", {"token-expired": "true"}
-        )
-    except JWTError as e:
-        logger.debug(e)
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid access token.")
+        ) from exc
+    except JWTError as exc:
+        logger.debug(exc)
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid access token.") from exc

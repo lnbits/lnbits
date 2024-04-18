@@ -11,6 +11,7 @@ __pycache__
 *.egg
 *.egg-info
 .coverage
+.coverage.*
 .pytest_cache
 .webassets-cache
 htmlcov
@@ -50,3 +51,6 @@ lnbits-backup.zip
 # Ignore extensions (post installable extension PR)
 extensions
 upgrades/
+
+# builded python package
+dist

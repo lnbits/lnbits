@@ -79,7 +79,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
     try:
         url = str(lnurl_decode(code))
         domain = urlparse(url).netloc
-    except Exception:
+    except Exception as exc:
         # parse internet identifier (user@domain.com)
         name_domain = code.split("@")
         if len(name_domain) == 2 and len(name_domain[1].split(".")) >= 2:
@@ -94,7 +94,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
         else:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="invalid lnurl"
-            )
+            ) from exc
 
     # params is what will be returned to the client
     params: Dict = {"domain": domain}
@@ -119,14 +119,14 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
 
         try:
             data = json.loads(r.text)
-        except json.decoder.JSONDecodeError:
+        except json.decoder.JSONDecodeError as exc:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                 detail={
                     "domain": domain,
                     "message": f"got invalid response '{r.text[:200]}'",
                 },
-            )
+            ) from exc
 
         try:
             tag: str = data.get("tag")
@@ -185,7 +185,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                     "domain": domain,
                     "message": f"lnurl JSON response invalid: {exc}",
                 },
-            )
+            ) from exc
 
     return params
 

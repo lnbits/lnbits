@@ -31,16 +31,19 @@ from .base import (
 
 class FakeWallet(Wallet):
     queue: asyncio.Queue = asyncio.Queue(0)
-    payment_secrets: Dict[str, str] = dict()
+    payment_secrets: Dict[str, str] = {}
     paid_invoices: Set[str] = set()
     secret: str = settings.fake_wallet_secret
     privkey: str = hashlib.pbkdf2_hmac(
         "sha256",
         secret.encode(),
-        ("FakeWallet").encode(),
+        b"FakeWallet",
         2048,
         32,
     ).hex()
+
+    async def cleanup(self):
+        pass
 
     async def status(self) -> StatusResponse:
         logger.info(
