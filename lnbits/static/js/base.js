@@ -22,7 +22,13 @@ window.LNbits = {
         data: data
       })
     },
-    createInvoice: async function (wallet, amount, memo, unit = 'sat', lnurlCallback = null) {
+    createInvoice: async function (
+      wallet,
+      amount,
+      memo,
+      unit = 'sat',
+      lnurlCallback = null
+    ) {
       return this.request('post', '/api/v1/payments', wallet.inkey, {
         out: false,
         amount: amount,
