@@ -1619,7 +1619,7 @@
                         "corelightning": {
                             "ln": [
                                 {
-                                    "description": "no invoice",
+                                    "description": "validation should be added",
                                     "response": {
                                         "listinvoices": [
                                             {
@@ -1647,7 +1647,6 @@
                             ],
                             "rpc": [
                                 {
-                                    "description": "not settled",
                                     "response": {}
                                 }
                             ]
