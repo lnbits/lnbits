@@ -11,7 +11,6 @@ from fastapi import (
     APIRouter,
     Body,
     Depends,
-    Header,
     HTTPException,
     Query,
     Request,
@@ -51,13 +50,11 @@ from ..crud import (
     get_payments_history,
     get_payments_paginated,
     get_standalone_payment,
-    get_wallet_for_key,
     update_pending_payments,
 )
 from ..services import (
     InvoiceError,
     PaymentError,
-    check_transaction_status,
     create_invoice,
     fee_reserve_total,
     pay_invoice,
@@ -406,47 +403,32 @@ async def api_payments_sse(
     )
 
 
-# TODO: refactor this route into a public and admin one
-@payment_router.get("/{payment_hash}")
-async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
-    # We use X_Api_Key here because we want this call to work with and without keys
-    # If a valid key is given, we also return the field "details", otherwise not
-    wallet = await get_wallet_for_key(x_api_key) if isinstance(x_api_key, str) else None
-
-    payment = await get_standalone_payment(
-        payment_hash, wallet_id=wallet.id if wallet else None
-    )
+@payment_router.get("public/{payment_hash}")
+async def api_public_payment(payment_hash: str):
+    payment = await get_standalone_payment(payment_hash)
     if payment is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
-    await check_transaction_status(payment.wallet_id, payment_hash)
-    payment = await get_standalone_payment(
-        payment_hash, wallet_id=wallet.id if wallet else None
-    )
-    if not payment:
+    return {"paid": not payment.pending, "preimage": payment.preimage}
+
+
+@payment_router.get("/{payment_hash}")
+async def api_payment(
+    payment_hash: str, key_type: WalletTypeInfo = Depends(require_admin_key)
+):
+    wallet_id = key_type.wallet.id
+    payment = await get_standalone_payment(payment_hash, wallet_id=wallet_id)
+    if payment is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
-    elif not payment.pending:
-        if wallet and wallet.id == payment.wallet_id:
-            return {"paid": True, "preimage": payment.preimage, "details": payment}
-        return {"paid": True, "preimage": payment.preimage}
-
-    try:
-        await payment.check_status()
-    except Exception:
-        if wallet and wallet.id == payment.wallet_id:
-            return {"paid": False, "details": payment}
-        return {"paid": False}
-
-    if wallet and wallet.id == payment.wallet_id:
-        return {
-            "paid": not payment.pending,
-            "preimage": payment.preimage,
-            "details": payment,
-        }
-    return {"paid": not payment.pending, "preimage": payment.preimage}
+    # TODO: reevaluate if we should check the status of the pending payment here again
+    return {
+        "paid": not payment.pending,
+        "preimage": payment.preimage,
+        "details": payment,
+    }
 
 
 @payment_router.post("/decode", status_code=HTTPStatus.OK)
