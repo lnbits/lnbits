@@ -1592,6 +1592,69 @@
                     }
                 },
                 {
+                    "description": "pending - incorrect checking_id",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f"
+                    },
+                    "expect": {
+                        "success": false,
+                        "failed": false,
+                        "pending": true
+                    },
+                    "mocks": {
+                        "breez": {
+                            "sdk_services": [
+                                {
+                                    "response_type": "data",
+                                    "response": {
+                                        "payment_by_hash": {
+                                            "request_type": "function",
+                                            "response_type": "data",
+                                            "response": null
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "corelightning": {
+                            "ln": [
+                                {
+                                    "description": "no invoice",
+                                    "response": {
+                                        "listinvoices": [
+                                            {
+                                                "request_type": "function",
+                                                "request_data": {
+                                                    "kwargs": {
+                                                        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+                                                    }
+                                                },
+                                                "response_type": "json",
+                                                "response": {
+                                                    "invoices": []
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "routerpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "rpc": [
+                                {
+                                    "description": "not settled",
+                                    "response": {}
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
                     "description": "failed",
                     "description1": "pending should be false in the 'expect', this is a bug",
                     "call_params": {
