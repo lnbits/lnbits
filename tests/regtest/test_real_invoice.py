@@ -2,7 +2,6 @@ import asyncio
 import hashlib
 
 import pytest
-import pytest_asyncio
 
 from lnbits import bolt11
 from lnbits.core.crud import get_standalone_payment, update_payment_details
@@ -15,25 +14,10 @@ from lnbits.wallets import get_funding_source
 from ..helpers import is_fake, is_regtest
 from .helpers import (
     cancel_invoice,
-    get_hold_invoice,
     get_real_invoice,
     pay_real_invoice,
     settle_invoice,
 )
-
-
-@pytest_asyncio.fixture(scope="function")
-async def hold_invoice():
-    invoice = get_hold_invoice(100)
-    yield invoice
-    del invoice
-
-
-@pytest_asyncio.fixture(scope="function")
-async def real_invoice():
-    invoice = get_real_invoice(100)
-    yield {"bolt11": invoice["payment_request"]}
-    del invoice
 
 
 async def get_node_balance_sats():
