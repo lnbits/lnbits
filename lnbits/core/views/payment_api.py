@@ -3,7 +3,7 @@ import json
 import uuid
 from http import HTTPStatus
 from math import ceil
-from typing import List, Optional
+from typing import List, Optional, Union
 from urllib.parse import urlparse
 
 import httpx
@@ -177,9 +177,34 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
 
     invoice = bolt11.decode(payment_request)
 
+    lnurl_response: Union[None, bool, str] = None
+    if data.lnurl_callback:
+        headers = {"User-Agent": settings.user_agent}
+        async with httpx.AsyncClient(headers=headers) as client:
+            try:
+                r = await client.get(
+                    data.lnurl_callback,
+                    params={
+                        "pr": payment_request,
+                    },
+                    timeout=10,
+                )
+                if r.is_error:
+                    lnurl_response = r.text
+                else:
+                    resp = json.loads(r.text)
+                    if resp["status"] != "OK":
+                        lnurl_response = resp["reason"]
+                    else:
+                        lnurl_response = True
+            except (httpx.ConnectError, httpx.RequestError) as ex:
+                logger.error(ex)
+                lnurl_response = False
+
     return {
         "payment_hash": invoice.payment_hash,
         "payment_request": payment_request,
+        "lnurl_response": lnurl_response,
         # maintain backwards compatibility with API clients:
         "checking_id": checking_id,
     }
