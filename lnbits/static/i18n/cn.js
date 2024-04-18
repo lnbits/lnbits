@@ -95,6 +95,7 @@ window.localisation.cn = {
     '这是一个 LNURL-取款的二维码，用于从该钱包中提取全部资金。请不要与他人分享。它与 balanceCheck 和 balanceNotify 兼容，因此在第一次取款后，您的钱包还可能会持续从这里提取资金',
   i_understand: '我明白',
   copy_wallet_url: '复制钱包URL',
+  disclaimer_dialog_title: '重要！',
   disclaimer_dialog:
     '登录功能将在以后的更新中发布，请将此页面加为书签，以便将来访问您的钱包！此服务处于测试阶段，我们不对资金的丢失承担任何责任。',
   no_transactions: '尚未进行任何交易',
@@ -229,5 +230,12 @@ window.localisation.cn = {
   logout: '注销',
   look_and_feel: '外观和感觉',
   language: '语言',
-  color_scheme: '配色方案'
+  color_scheme: '配色方案',
+  extension_cost: '此版本需要支付最低 %{cost} sats。',
+  extension_paid_sats: '您已经支付了%{paid_sats} sats。',
+  release_details_error: '无法获取发布详情。',
+  pay_from_wallet: '从钱包支付',
+  show_qr: '显示QR码',
+  retry_install: '重试安装',
+  new_payment: '创建新支付'
 }

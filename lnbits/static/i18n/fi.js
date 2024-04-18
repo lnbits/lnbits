@@ -64,7 +64,7 @@ window.localisation.fi = {
   service_fee_tooltip:
     'LNBits palvelimen ylläpitäjä veloittaa lähtevästä maksusta palvelumaksun.',
   toggle_darkmode: 'Tumma näkymä',
-  toggle_reactions: 'Käytä tapahtuma efektejä',
+  payment_reactions: 'Maksureaktiot',
   view_swagger_docs: 'Näytä LNbits Swagger API-dokumentit',
   api_docs: 'API-dokumentaatio',
   api_keys_api_docs: 'Solmun URL, API-avaimet ja -dokumentaatio',
@@ -102,6 +102,7 @@ window.localisation.fi = {
     'Tämä LNURL-withdraw -tyyppinen QR-koodi on tarkoitettu kaikkien varojen imurointiin lompakosta. ÄLÄ JAA SITÄ KENELLEKÄÄN! Se on balanceCheck- ja balanceNotify-toimintojen kanssa yhteensopiva, joten sitä voi käyttää lompakon tyhjentämiseen ensimmäisen käytön jälleen jatkuvasti.',
   i_understand: 'Vakuutan ymmärtäväni',
   copy_wallet_url: 'Kopioi lompakon URL',
+  disclaimer_dialog_title: 'Tärkeää!',
   disclaimer_dialog:
     'Muistathan tallettaa kirjautumistietosi turvallisesta ja helposti saataville, jotta pääset jatkossakin kirjautumaan lompakkoosi! Tutustu myös Tilin asetukset -sivuun. Tämä palvelu on kokeiluvaiheessa (eli BETA), ja niinpä kukaan ei ota mitään vastuuta varojen säilymisestä tai niiden käytettävyyden takaamisesta.',
   no_transactions: 'Lompakossa ei ole yhtään tapahtumaa',
@@ -241,5 +242,12 @@ window.localisation.fi = {
   logout: 'Poistu',
   look_and_feel: 'Kieli ja värit',
   language: 'Kieli',
-  color_scheme: 'Väriteema'
+  color_scheme: 'Väriteema',
+  extension_cost: 'Tämä julkaisu edellyttää vähintään %{cost} satsin maksua.',
+  extension_paid_sats: 'Olet jo maksanut %{paid_sats} satsia.',
+  release_details_error: 'Ei voi hakea julkaisun tietoja.',
+  pay_from_wallet: 'Maksa lompakosta',
+  show_qr: 'Näytä QR',
+  retry_install: 'Yritä asennusta uudelleen',
+  new_payment: 'Tee uusi maksu'
 }

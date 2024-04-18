@@ -99,6 +99,7 @@ window.localisation.es = {
     'Este es un código QR LNURL-withdraw para drenar todos los fondos de esta billetera. No lo comparta con nadie. Es compatible con balanceCheck y balanceNotify, por lo que su billetera puede continuar drenando los fondos de aquí después del primer drenaje.',
   i_understand: 'Lo entiendo',
   copy_wallet_url: 'Copiar URL de billetera',
+  disclaimer_dialog_title: '¡Importante!',
   disclaimer_dialog:
     'La funcionalidad de inicio de sesión se lanzará en una actualización futura, por ahora, asegúrese de guardar esta página como marcador para acceder a su billetera en el futuro. Este servicio está en BETA y no asumimos ninguna responsabilidad por personas que pierdan el acceso a sus fondos.',
   no_transactions: 'No hay transacciones todavía',
@@ -243,5 +244,12 @@ window.localisation.es = {
   logout: 'Cerrar sesión',
   look_and_feel: 'Apariencia',
   language: 'Idioma',
-  color_scheme: 'Esquema de colores'
+  color_scheme: 'Esquema de colores',
+  extension_cost: 'Esta versión requiere un pago mínimo de %{cost} sats.',
+  extension_paid_sats: 'Ya has pagado %{paid_sats} sats.',
+  release_details_error: 'No se pueden obtener los detalles de la versión.',
+  pay_from_wallet: 'Pagar desde la billetera',
+  show_qr: 'Mostrar QR',
+  retry_install: 'Reintentar Instalación',
+  new_payment: 'Realizar nuevo pago'
 }

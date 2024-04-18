@@ -102,6 +102,7 @@ window.localisation.de = {
     'LNURL-withdraw QR-Code, der das Abziehen aller Geldmittel aus dieser Wallet erlaubt. Teile ihn mit niemandem! Kompatibel mit balanceCheck und balanceNotify, so dass dein Wallet die Sats nach dem ersten Abzug kontinuierlich von hier abziehen kann.',
   i_understand: 'Ich verstehe',
   copy_wallet_url: 'Wallet-URL kopieren',
+  disclaimer_dialog_title: 'Wichtig!',
   disclaimer_dialog:
     'Login-Funktionalität wird in einem zukünftigen Update veröffentlicht. Bis dahin ist die Speicherung der Wallet-URL als Lesezeichen absolut notwendig, um Zugriff auf die Wallet zu erhalten! Dieser Service ist in BETA und wir übernehmen keine Verantwortung für Verluste durch verlorene Zugriffe.',
   no_transactions: 'Keine Transaktionen',
@@ -245,5 +246,13 @@ window.localisation.de = {
   logout: 'Abmelden',
   look_and_feel: 'Aussehen und Verhalten',
   language: 'Sprache',
-  color_scheme: 'Farbschema'
+  color_scheme: 'Farbschema',
+  extension_cost:
+    'Diese Version erfordert eine Zahlung von mindestens %{cost} Sats.',
+  extension_paid_sats: 'Sie haben bereits %{paid_sats} Sats bezahlt.',
+  release_details_error: 'Kann die Details zur Veröffentlichung nicht abrufen.',
+  pay_from_wallet: 'Zahlen aus dem Geldbeutel',
+  show_qr: 'QR anzeigen',
+  retry_install: 'Installieren erneut versuchen',
+  new_payment: 'Neue Zahlung vornehmen'
 }
