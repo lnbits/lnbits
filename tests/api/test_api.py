@@ -6,14 +6,10 @@ from lnbits import bolt11
 from lnbits.core.models import CreateInvoice, Payment
 from lnbits.core.views.payment_api import api_payment
 from lnbits.settings import settings
-from lnbits.wallets import get_funding_source
 
 from ..helpers import (
     get_random_invoice_data,
-    is_regtest,
 )
-
-funding_source = get_funding_source()
 
 
 # create account POST /api/v1/account
@@ -330,9 +326,6 @@ async def test_get_payments_paginated(client, adminkey_headers_from, fake_paymen
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(
-    is_regtest, reason="payments wont be confirmed rightaway in regtest"
-)
 async def test_get_payments_history(client, adminkey_headers_from, fake_payments):
     fake_data, filters = fake_payments
 
@@ -397,11 +390,6 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 
 
 # check POST /api/v1/payments: invoice creation with a description hash
-@pytest.mark.skipif(
-    funding_source.__class__.__name__
-    in ["CoreLightningWallet", "CoreLightningRestWallet"],
-    reason="wallet does not support description_hash",
-)
 @pytest.mark.asyncio
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     data = await get_random_invoice_data()
@@ -419,10 +407,6 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     return invoice
 
 
-@pytest.mark.skipif(
-    funding_source.__class__.__name__ in ["CoreLightningRestWallet"],
-    reason="wallet does not support unhashed_description",
-)
 @pytest.mark.asyncio
 async def test_create_invoice_with_unhashed_description(client, inkey_headers_to):
     data = await get_random_invoice_data()
