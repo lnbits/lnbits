@@ -99,6 +99,7 @@ window.localisation.cs = {
     'Toto je LNURL-withdraw QR kód pro vyčerpání všeho z této peněženky. Nesdílejte s nikým. Je kompatibilní s balanceCheck a balanceNotify, takže vaše peněženka může kontinuálně čerpat prostředky odsud po prvním výběru.',
   i_understand: 'Rozumím',
   copy_wallet_url: 'Kopírovat URL peněženky',
+  disclaimer_dialog_title: 'Důležité!',
   disclaimer_dialog:
     'Funkcionalita přihlášení bude vydána v budoucí aktualizaci, zatím si ujistěte, že jste si tuto stránku uložili do záložek pro budoucí přístup k vaší peněžence! Tato služba je v BETA verzi a nepřebíráme žádnou zodpovědnost za ztrátu přístupu k prostředkům.',
   no_transactions: 'Zatím žádné transakce',
@@ -238,5 +239,12 @@ window.localisation.cs = {
   logout: 'Odhlásit se',
   look_and_feel: 'Vzhled a chování',
   language: 'Jazyk',
-  color_scheme: 'Barevné schéma'
+  color_scheme: 'Barevné schéma',
+  extension_cost: 'Toto vydání vyžaduje minimální platbu %{cost} satoshi.',
+  extension_paid_sats: 'Již jste zaplatili %{paid_sats} sats.',
+  release_details_error: 'Nelze získat podrobnosti o vydání.',
+  pay_from_wallet: 'Platit z peněženky',
+  show_qr: 'Zobrazit QR',
+  retry_install: 'Zkusit znovu nainstalovat',
+  new_payment: 'Vytvořit novou platbu'
 }

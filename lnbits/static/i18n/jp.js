@@ -97,6 +97,7 @@ window.localisation.jp = {
   drain_funds_desc: 'ウォレットの残高をすべて他のウォレットに送金します',
   i_understand: '理解した',
   copy_wallet_url: 'ウォレットURLをコピー',
+  disclaimer_dialog_title: '重要！',
   disclaimer_dialog:
     'ウォレットを削除すると、ウォレットの秘密鍵が削除され、ウォレットを復元することはできません。ウォレットを削除する前に、ウォレットをエクスポートしてください。',
   no_transactions: 'トランザクションはありません',
@@ -240,5 +241,12 @@ window.localisation.jp = {
   logout: 'ログアウト',
   look_and_feel: 'ルック・アンド・フィール',
   language: '言語',
-  color_scheme: 'カラースキーム'
+  color_scheme: 'カラースキーム',
+  extension_cost: 'このリリースには最低 %{cost} サトシの支払いが必要です。',
+  extension_paid_sats: 'すでに%{paid_sats} satsを支払いました。',
+  release_details_error: 'リリースの詳細を取得できません。',
+  pay_from_wallet: 'ウォレットから支払う',
+  show_qr: 'QRを表示',
+  retry_install: '再試行インストール',
+  new_payment: '新しい支払いを作成する'
 }

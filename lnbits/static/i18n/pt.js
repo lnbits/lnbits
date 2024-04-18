@@ -99,6 +99,7 @@ window.localisation.pt = {
     'Este é um código QR de saque LNURL para sacar tudo desta carteira. Não o partilhe com ninguém. É compatível com balanceCheck e balanceNotify para que a sua carteira possa continuar levantando os fundos continuamente daqui após o primeiro saque.',
   i_understand: 'Eu entendo',
   copy_wallet_url: 'Copiar URL da carteira',
+  disclaimer_dialog_title: 'Importante!',
   disclaimer_dialog:
     'Funcionalidade de login a ser lançada numa atualização futura, por enquanto, certifique-se que marca esta página para acesso futuro à sua carteira! Este serviço está em BETA, e não nos responsabilizamos por pessoas que perderem o acesso aos fundos.',
   no_transactions: 'Ainda não foram feitas transações',
@@ -240,5 +241,12 @@ window.localisation.pt = {
   logout: 'Sair',
   look_and_feel: 'Aparência e Sensação',
   language: 'Idioma',
-  color_scheme: 'Esquema de Cores'
+  color_scheme: 'Esquema de Cores',
+  extension_cost: 'Este lançamento requer um pagamento mínimo de %{cost} sats.',
+  extension_paid_sats: 'Você já pagou %{paid_sats} sats.',
+  release_details_error: 'Não é possível obter os detalhes da versão.',
+  pay_from_wallet: 'Pague da Carteira',
+  show_qr: 'Exibir QR',
+  retry_install: 'Reinstalar Tente Novamente',
+  new_payment: 'Realizar Novo Pagamento'
 }

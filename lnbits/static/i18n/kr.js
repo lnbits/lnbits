@@ -98,6 +98,7 @@ window.localisation.kr = {
     '이는 선택된 지갑으로부터 모든 자금을 인출하는 LNURL-withdraw QR 코드입니다. 그 누구와도 공유하지 마세요. balanceCheck 및 balanceNotify 기능과 호환되며, 당신의 지갑은 첫 출금 이후로도 계속 자금을 끌어당기고 있을 수 있습니다.',
   i_understand: '이해하였습니다',
   copy_wallet_url: '지갑 URL 복사하기',
+  disclaimer_dialog_title: '중요!',
   disclaimer_dialog:
     '로그인 기능은 향후 업데이트를 통해 지원될 계획이지만, 현재로써는 이 페이지에 향후 다시 접속하기 위해 북마크 설정하는 것을 잊지 마세요! 이 서비스는 아직 BETA 과정에 있고, LNbits 개발자들은 자금 손실에 대해 전혀 책임을 지지 않습니다.',
   no_transactions: '아직 아무런 거래도 이루어지지 않았습니다',
@@ -237,5 +238,12 @@ window.localisation.kr = {
   logout: '로그아웃',
   look_and_feel: '외관과 느낌',
   language: '언어',
-  color_scheme: '색상 구성'
+  color_scheme: '색상 구성',
+  extension_cost: '이 버전은 최소 %{cost} sats의 지불이 필요합니다.',
+  extension_paid_sats: '당신은 이미 %{paid_sats} sats를 지불했습니다.',
+  release_details_error: '릴리스 세부 정보를 가져올 수 없습니다.',
+  pay_from_wallet: '지갑에서 결제하다',
+  show_qr: 'QR 보기',
+  retry_install: '다시 설치하세요',
+  new_payment: '새로운 결제하기'
 }

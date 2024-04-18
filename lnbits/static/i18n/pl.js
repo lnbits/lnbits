@@ -98,6 +98,7 @@ window.localisation.pl = {
     'To jest kod QR służący do opróżnienia portfela (LNURL-withdraw). Nie udostępniaj go nikomu. Ten kod jest kompatybilny z funkcjami, które umożliwiają wielokrotne żądania aż do zupełnego opróżnienia portfela.',
   i_understand: 'Rozumiem',
   copy_wallet_url: 'Skopiuj URL portfela',
+  disclaimer_dialog_title: 'Ważne!',
   disclaimer_dialog:
     'Funkcja logowania zostanie uruchomiona w przyszłości. Póki co upewnij się, że zapisałeś adres URL tej strony aby mieć dostęp do tego portfela. Nie udostępniaj adresu tej strony nikomu, kto nie ma mieć do tego portfela dostępu! Ta usługa działa w wersji BETA, nie odpowiadamy za utratę dostępu do środków przez osoby używające LNbits.',
   no_transactions: 'Brak transakcji',
@@ -239,5 +240,13 @@ window.localisation.pl = {
   logout: 'Wyloguj',
   look_and_feel: 'Wygląd i zachowanie',
   language: 'Język',
-  color_scheme: 'Schemat kolorów'
+  color_scheme: 'Schemat kolorów',
+  extension_cost:
+    'To niniejsze wydanie wymaga zapłaty minimalnej %{cost} satów.',
+  extension_paid_sats: 'Już zapłaciłeś %{paid_sats} satów.',
+  release_details_error: 'Nie można uzyskać szczegółów wydania.',
+  pay_from_wallet: 'Zapłać z portfela',
+  show_qr: 'Pokaż kod QR',
+  retry_install: 'Ponów instalację',
+  new_payment: 'Dokonaj nowej płatności'
 }

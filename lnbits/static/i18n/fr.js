@@ -103,6 +103,7 @@ window.localisation.fr = {
     "Il s'agit d'un code QR LNURL-withdraw pour tout aspirer de ce portefeuille. Ne le partagez avec personne. Il est compatible avec balanceCheck et balanceNotify, de sorte que votre portefeuille peut continuer à retirer les fonds continuellement à partir d'ici après le premier retrait.",
   i_understand: "J'ai compris",
   copy_wallet_url: "Copier l'URL du portefeuille",
+  disclaimer_dialog_title: 'Important !',
   disclaimer_dialog:
     "La fonctionnalité de connexion sera publiée dans une future mise à jour, pour l'instant, assurez-vous de mettre cette page en favori pour accéder à votre portefeuille ultérieurement ! Ce service est en BETA, et nous ne sommes pas responsables des personnes qui perdent l'accès à leurs fonds.",
   no_transactions: 'Aucune transaction effectuée pour le moment',
@@ -247,5 +248,13 @@ window.localisation.fr = {
   logout: 'Déconnexion',
   look_and_feel: 'Apparence',
   language: 'Langue',
-  color_scheme: 'Schéma de couleurs'
+  color_scheme: 'Schéma de couleurs',
+  extension_cost:
+    'Cette version nécessite un paiement minimum de %{cost} sats.',
+  extension_paid_sats: 'Vous avez déjà payé %{paid_sats} sats.',
+  release_details_error: "Impossible d'obtenir les détails de la version.",
+  pay_from_wallet: 'Payer depuis le portefeuille',
+  show_qr: 'Afficher le QR',
+  retry_install: "Réessayer l'installation",
+  new_payment: 'Effectuer un nouveau paiement'
 }

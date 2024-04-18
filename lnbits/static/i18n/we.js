@@ -99,6 +99,7 @@ window.localisation.we = {
     'Cod QR Tynnu`n ôl LNURL yw hwn ar gyfer slurpio popeth o`r waled hon. Peidiwch â rhannu gyda neb. Mae`n gydnaws â balanceCheck a balanceNotify felly efallai y bydd eich waled yn tynnu`r arian yn barhaus o`r fan hon ar ôl y codiad cyntaf.',
   i_understand: 'Rwy`n deall',
   copy_wallet_url: 'Copi URL waled',
+  disclaimer_dialog_title: 'Pwysig!',
   disclaimer_dialog:
     'Swyddogaeth mewngofnodi i`w ryddhau mewn diweddariad yn y dyfodol, am y tro, gwnewch yn siŵr eich bod yn rhoi nod tudalen ar y dudalen hon ar gyfer mynediad i`ch waled yn y dyfodol! Mae`r gwasanaeth hwn yn BETA, ac nid ydym yn gyfrifol am bobl sy`n colli mynediad at arian.',
   no_transactions: 'Dim trafodion wedi`u gwneud eto',
@@ -239,5 +240,12 @@ window.localisation.we = {
   logout: 'Allgofnodi',
   look_and_feel: 'Edrych a Theimlo',
   language: 'Iaith',
-  color_scheme: 'Cynllun Lliw'
+  color_scheme: 'Cynllun Lliw',
+  extension_cost: "Mae'r rhyddhad hwn yn gofyn am daliad o leiaf %{cost} sats.",
+  extension_paid_sats: 'Rydych chi eisoes wedi talu %{paid_sats} sats.',
+  release_details_error: 'Methu cael manylion y rhyddhau.',
+  pay_from_wallet: "Talu o'r Waled",
+  show_qr: 'Dangos QR',
+  retry_install: 'Ailgeisio Gosod',
+  new_payment: 'Gwneud Taliad Newydd'
 }

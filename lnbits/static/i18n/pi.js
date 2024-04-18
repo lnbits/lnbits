@@ -100,6 +100,7 @@ window.localisation.pi = {
     'This be an LNURL-withdraw QR code for slurpin everything from this wallet. Don`t share with anyone. It be compatible with balanceCheck and balanceNotify so yer wallet may keep pullin` the funds continuously from here after the first withdraw.',
   i_understand: 'I understand, yo ho ho and a bottle of rum!',
   copy_wallet_url: 'Copy wallet URL like a map, savvy',
+  disclaimer_dialog_title: 'Avast!',
   disclaimer_dialog:
     'Login functionality to be released in a future update, for now, make sure ye bookmark this page for future access to your booty! This service be in BETA, and we hold no responsibility for people losing access to doubloons.',
   no_transactions: 'No transactions made yet, me hearties. Belay that!',
@@ -240,5 +241,13 @@ window.localisation.pi = {
   logout: 'Log out yer session',
   look_and_feel: 'Look and Feel',
   language: 'Langwidge',
-  color_scheme: 'Colour Scheme'
+  color_scheme: 'Colour Scheme',
+  extension_cost:
+    "This release be needin' a payment o' minimum %{cost} sats, arr.",
+  extension_paid_sats: 'Ye have already paid %{paid_sats} sats.',
+  release_details_error: "Cannot get th' release details.",
+  pay_from_wallet: 'Pay from ye Wallet',
+  show_qr: 'Show QR',
+  retry_install: "Try 'nstallin' Again",
+  new_payment: 'Make New Payment'
 }

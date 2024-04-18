@@ -100,6 +100,7 @@ window.localisation.it = {
     'Questo è un codice QR <code>LNURL-withdraw</code> per prelevare tutti i fondi da questo portafoglio. Non condividerlo con nessuno. È compatibile con <code>balanceCheck</code> e <code>balanceNotify</code>, di conseguenza il vostro portafoglio può continuare a prelevare continuamente i fondi da qui dopo il primo prelievo',
   i_understand: 'Ho capito',
   copy_wallet_url: 'Copia URL portafoglio',
+  disclaimer_dialog_title: 'Importante!',
   disclaimer_dialog:
     "La funzionalità di login sarà rilasciata in un futuro aggiornamento; per ora, assicuratevi di salvare tra i preferiti questa pagina per accedere nuovamente in futuro a questo portafoglio! Questo servizio è in fase BETA e non ci assumiamo alcuna responsabilità per la perdita all'accesso dei fondi",
   no_transactions: 'Nessuna transazione effettuata',
@@ -244,5 +245,13 @@ window.localisation.it = {
   logout: 'Esci',
   look_and_feel: 'Aspetto e Comportamento',
   language: 'Lingua',
-  color_scheme: 'Schema dei colori'
+  color_scheme: 'Schema dei colori',
+  extension_cost:
+    'Questa versione richiede un pagamento minimo di %{cost} satoshi.',
+  extension_paid_sats: 'Hai già pagato %{paid_sats} sats.',
+  release_details_error: 'Impossibile ottenere i dettagli della versione.',
+  pay_from_wallet: 'Paga dal Portafoglio',
+  show_qr: 'Mostra QR',
+  retry_install: 'Riprova Installazione',
+  new_payment: 'Effettua Nuovo Pagamento'
 }
