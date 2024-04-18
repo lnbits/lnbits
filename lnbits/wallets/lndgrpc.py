@@ -178,12 +178,12 @@ class LndWallet(Wallet):
         }
 
         failure_reasons = {
-            0: "No error given.",
-            1: "Payment timed out.",
-            2: "No route to destination.",
-            3: "Error.",
-            4: "Incorrect payment details.",
-            5: "Insufficient balance.",
+            0: "Payment failed: No error given.",
+            1: "Payment failed: Payment timed out.",
+            2: "Payment failed: No route to destination.",
+            3: "Payment failed: Error.",
+            4: "Payment failed: Incorrect payment details.",
+            5: "Payment failed: Insufficient balance.",
         }
 
         fee_msat = None

@@ -825,11 +825,11 @@
                         "fee_limit_msat": 25000
                     },
                     "expect": {
+                        "__eval__:error_message": "\"Payment failed: \" in \"{error_message}\"",
                         "success": false,
                         "checking_id": null,
                         "fee_msat": null,
-                        "preimage": null,
-                        "error_message": "Payment failed: 'test-error'."
+                        "preimage": null
                     },
                     "mocks": {
                         "breez": {
@@ -851,6 +851,7 @@
                         "corelightning": {
                             "ln": [
                                 {
+                                    "description": "test-error",
                                     "response": {
                                         "call": {
                                             "description": "indirect call to `pay` (via `call`)",
@@ -869,6 +870,129 @@
                                             "response_type": "exception",
                                             "response": {
                                                 "data": "test-error"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "description": "No error given.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 0
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "Payment timed out.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 1
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "No route to destination.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 2
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "Error.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 3
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "Incorrect payment details.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 4
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "Insufficient balance.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 5
+                                                    }
+                                                }
                                             }
                                         }
                                     }
