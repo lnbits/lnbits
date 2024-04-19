@@ -157,3 +157,7 @@ class DataObject:
     def __init__(self, **kwargs):
         for k in kwargs:
             setattr(self, k, kwargs[k])
+
+    def __str__(self):
+        return ";".join([f"{k}={getattr(self, k)}" for k in self.__dict__])
+
