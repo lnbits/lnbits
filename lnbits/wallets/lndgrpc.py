@@ -237,7 +237,6 @@ class LndWallet(Wallet):
             # that use different checking_id formats
             return PaymentPendingStatus()
 
-
         # # HTLCAttempt.HTLCStatus:
         # # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
         # htlc_statuses = {
