@@ -26,9 +26,7 @@ from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import settings
 from tests.helpers import (
     clean_database,
-    get_hold_invoice,
     get_random_invoice_data,
-    get_real_invoice,
 )
 
 # override settings for tests
@@ -182,13 +180,6 @@ async def invoice(to_wallet):
     del invoice
 
 
-@pytest_asyncio.fixture(scope="function")
-async def real_invoice():
-    invoice = get_real_invoice(100)
-    yield {"bolt11": invoice["payment_request"]}
-    del invoice
-
-
 @pytest_asyncio.fixture(scope="session")
 async def fake_payments(client, adminkey_headers_from):
     # Because sqlite only stores timestamps with milliseconds
@@ -212,10 +203,3 @@ async def fake_payments(client, adminkey_headers_from):
 
     params = {"time[ge]": ts, "time[le]": time()}
     return fake_data, params
-
-
-@pytest_asyncio.fixture(scope="function")
-async def hold_invoice():
-    invoice = get_hold_invoice(100)
-    yield invoice
-    del invoice

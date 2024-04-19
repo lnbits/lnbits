@@ -3,6 +3,10 @@ name: tests
 on:
   workflow_call:
     inputs:
+      custom-pytest:
+        description: "Custom pytest arguments"
+        required: true
+        type: string
       python-version:
         default: "3.9"
         type: string
@@ -50,16 +54,14 @@ jobs:
         env:
           LNBITS_DATABASE_URL: ${{ inputs.db-url }}
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
-          FAKE_WALLET_SECRET: "ToTheMoon1"
-          LNBITS_DATA_FOLDER: "./tests/data"
           PYTHONUNBUFFERED: 1
           DEBUG: true
         with:
-          verbose: false
+          verbose: true
           job-summary: true
           emoji: false
-          click-to-expand: false
-          custom-pytest: poetry run pytest
+          click-to-expand: true
+          custom-pytest: ${{ inputs.custom-pytest }}
           report-title: "test (${{ inputs.python-version }}, ${{ inputs.db-url }})"
 
       - name: Upload coverage to Codecov
