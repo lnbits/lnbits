@@ -3,7 +3,6 @@
         "breez": {
             "skip": true,
             "wallet_class": "BreezSdkWallet",
-            "client_field": "sdk_services",
             "settings": {
                 "breez_api_key": "100",
                 "breez_greenlight_seed": "push divert icon era bracket fade much kind reason injury suffer muffin",
@@ -13,9 +12,17 @@
         },
         "corelightning": {
             "wallet_class": "CoreLightningWallet",
-            "client_field": "ln",
             "settings": {
                 "corelightning_rpc": "some-mock-value"
+            }
+        },
+        "lndrpc": {
+            "wallet_class": "LndWallet",
+            "settings": {
+                "lnd_grpc_endpoint": "127.0.0.1",
+                "lnd_grpc_port": "10009",
+                "lnd_grpc_cert": "tests/wallets/fixtures/certificates/breez.crt",
+                "lnd_grpc_macaroon": "eNcRyPtEdMaCaRoOn"
             }
         }
     },
@@ -23,13 +30,13 @@
         "status": {
             "mocks": {
                 "breez": {
-                    "breez_connect": {
+                    "sdk_services": {
                         "method": "breez_sdk.connect",
                         "request_type": "function"
                     }
                 },
                 "corelightning": {
-                    "rpc_new": {
+                    "ln": {
                         "method": "pyln.client.LightningRpc.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -54,6 +61,14 @@
                             }
                         }
                     }
+                },
+                "lndrpc": {
+                    "rpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    }
                 }
             },
             "tests": [
@@ -66,7 +81,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -82,7 +97,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "description": "one channel",
                                     "response": {
@@ -119,6 +134,21 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {
+                                        "ChannelBalance": {
+                                            "request_type": "async-function",
+                                            "response_type": "data",
+                                            "response": {
+                                                "balance": 55
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -131,7 +161,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -147,11 +177,26 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listfunds": {
                                             "request_type": "function",
+                                            "response_type": "exception",
+                                            "response": {
+                                                "data": "test-error"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {
+                                        "ChannelBalance": {
+                                            "request_type": "async-function",
                                             "response_type": "exception",
                                             "response": {
                                                 "data": "test-error"
@@ -172,10 +217,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listfunds": {
@@ -186,6 +231,9 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc": []
                         }
                     }
                 },
@@ -198,10 +246,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listfunds": {
@@ -220,6 +268,9 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc": []
                         }
                     }
                 }
@@ -228,13 +279,13 @@
         "create_invoice": {
             "mocks": {
                 "breez": {
-                    "breez_connect": {
+                    "sdk_services": {
                         "method": "breez_sdk.connect",
                         "request_type": "function"
                     }
                 },
                 "corelightning": {
-                    "rpc_new": {
+                    "ln": {
                         "method": "pyln.client.LightningRpc.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -259,6 +310,14 @@
                             }
                         }
                     }
+                },
+                "lndrpc": {
+                    "rpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    }
                 }
             },
             "tests": [
@@ -277,7 +336,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -306,7 +365,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "description": "one channel",
                                     "response": {
@@ -331,6 +390,30 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {
+                                        "AddInvoice": {
+                                            "request_type": "async-function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.Invoice",
+                                                "kwargs": {
+                                                    "value": 555,
+                                                    "private": true,
+                                                    "memo": "Test Invoice"
+                                                }
+                                            },
+                                            "response_type": "data",
+                                            "response": {
+                                                "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")",
+                                                "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -349,7 +432,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -375,7 +458,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "invoice": {
@@ -420,6 +503,29 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {
+                                        "AddInvoice": {
+                                            "request_type": "async-function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.Invoice",
+                                                "kwargs": {
+                                                    "value": 555,
+                                                    "private": true,
+                                                    "memo": "Test Invoice"
+                                                }
+                                            },
+                                            "response_type": "exception",
+                                            "response": {
+                                                "data": "test-error"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -438,10 +544,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "invoice": {
@@ -480,10 +586,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "invoice": {
@@ -520,13 +626,13 @@
         "pay_invoice": {
             "mocks": {
                 "breez": {
-                    "breez_connect": {
+                    "sdk_services": {
                         "method": "breez_sdk.connect",
                         "request_type": "function"
                     }
                 },
                 "corelightning": {
-                    "rpc_new": {
+                    "ln": {
                         "method": "pyln.client.LightningRpc.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -557,6 +663,20 @@
                             }
                         }
                     }
+                },
+                "lndrpc": {
+                    "rpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    },
+                    "routerpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    }
                 }
             },
             "tests": [
@@ -567,15 +687,15 @@
                         "fee_limit_msat": 25000
                     },
                     "expect": {
+                        "error_message": null,
                         "success": true,
                         "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
                         "fee_msat": 50,
-                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
-                        "error_message": null
+                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -599,7 +719,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "call": {
@@ -627,6 +747,74 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "description": "one HTLCs",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 2,
+                                                        "htlcs": [
+                                                            {
+                                                                "route": {
+                                                                    "total_fees_msat": -50
+                                                                }
+                                                            }
+                                                        ],
+                                                        "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "two HTLCs",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 2,
+                                                        "htlcs": [
+                                                            {
+                                                                "route": {
+                                                                    "total_fees_msat": -100
+                                                                }
+                                                            },
+                                                            {
+                                                                "route": {
+                                                                    "total_fees_msat": -50
+                                                                }
+                                                            }
+                                                        ],
+                                                        "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -637,15 +825,15 @@
                         "fee_limit_msat": 25000
                     },
                     "expect": {
+                        "__eval__:error_message": "\"Payment failed: \" in \"{error_message}\"",
                         "success": false,
                         "checking_id": null,
                         "fee_msat": null,
-                        "preimage": null,
-                        "error_message": "Payment failed: 'test-error'."
+                        "preimage": null
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -661,8 +849,9 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
+                                    "description": "test-error",
                                     "response": {
                                         "call": {
                                             "description": "indirect call to `pay` (via `call`)",
@@ -681,6 +870,147 @@
                                             "response_type": "exception",
                                             "response": {
                                                 "data": "test-error"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "description": "No error given.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 0
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "Payment timed out.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 1
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "No route to destination.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 2
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "Error.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 3
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "Incorrect payment details.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 4
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "Insufficient balance.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "data",
+                                                    "response": {
+                                                        "status": 3,
+                                                        "failure_reason": 5
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "RPC error.",
+                                    "response": {
+                                        "SendPaymentV2": {
+                                            "request_type": "function",
+                                            "response_type": "function",
+                                            "response": {
+                                                "read": {
+                                                    "request_type": "async-function",
+                                                    "response_type": "exception",
+                                                    "response": {
+                                                        "data": "Payment failed: 'rpc maybe'"
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -704,10 +1034,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "call": {
@@ -730,6 +1060,10 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc": [],
+                            "routerpc": []
                         }
                     }
                 },
@@ -748,10 +1082,10 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": []
+                            "sdk_services": []
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "call": {
@@ -825,13 +1159,13 @@
         "get_invoice_status": {
             "mocks": {
                 "breez": {
-                    "breez_connect": {
+                    "sdk_services": {
                         "method": "breez_sdk.connect",
                         "request_type": "function"
                     }
                 },
                 "corelightning": {
-                    "rpc_new": {
+                    "ln": {
                         "method": "pyln.client.LightningRpc.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -849,6 +1183,20 @@
                             }
                         }
                     }
+                },
+                "lndrpc": {
+                    "rpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    },
+                    "routerpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    }
                 }
             },
             "tests": [
@@ -864,7 +1212,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -885,7 +1233,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "description": "one invoice",
                                     "response": {
@@ -918,6 +1266,32 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "routerpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "rpc": [
+                                {
+                                    "response": {
+                                        "LookupInvoice": {
+                                            "request_type": "async-function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                                                "kwargs": {
+                                                    "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "data",
+                                            "response": {
+                                                "settled": true
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -933,7 +1307,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -947,7 +1321,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "description": "no invoice",
                                     "response": {
@@ -1149,6 +1523,133 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "routerpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "rpc": [
+                                {
+                                    "description": "not settled",
+                                    "response": {
+                                        "LookupInvoice": {
+                                            "request_type": "async-function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                                                "kwargs": {
+                                                    "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "data",
+                                            "response": {
+                                                "settled": false
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "rpc error",
+                                    "response": {
+                                        "LookupInvoice": {
+                                            "request_type": "async-function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                                                "kwargs": {
+                                                    "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "exception",
+                                            "response": {
+                                                "module": "grpc",
+                                                "class": "RpcError",
+                                                "data": {}
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "rpc error",
+                                    "response": {
+                                        "LookupInvoice": {
+                                            "request_type": "async-function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                                                "kwargs": {
+                                                    "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "exception",
+                                            "response": {
+                                                "data": "test-error"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "pending - incorrect checking_id",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f"
+                    },
+                    "expect": {
+                        "success": false,
+                        "failed": false,
+                        "pending": true
+                    },
+                    "mocks": {
+                        "breez": {
+                            "sdk_services": [
+                                {
+                                    "response_type": "data",
+                                    "response": {
+                                        "payment_by_hash": {
+                                            "request_type": "function",
+                                            "response_type": "data",
+                                            "response": null
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "corelightning": {
+                            "ln": [
+                                {
+                                    "description": "validation should be added",
+                                    "response": {
+                                        "listinvoices": [
+                                            {
+                                                "request_type": "function",
+                                                "request_data": {
+                                                    "kwargs": {
+                                                        "payment_hash": "e35526a43d04e985594c0dfab848814f"
+                                                    }
+                                                },
+                                                "response_type": "json",
+                                                "response": {
+                                                    "invoices": []
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "routerpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ]
                         }
                     }
                 },
@@ -1165,7 +1666,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "description": "FAILED",
                                     "response_type": "data",
@@ -1187,7 +1688,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "description": "expired",
                                     "response": {
@@ -1225,6 +1726,10 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "routerpc": [],
+                            "rpc": []
                         }
                     }
                 }
@@ -1233,13 +1738,13 @@
         "get_payment_status": {
             "mocks": {
                 "breez": {
-                    "breez_connect": {
+                    "sdk_services": {
                         "method": "breez_sdk.connect",
                         "request_type": "function"
                     }
                 },
                 "corelightning": {
-                    "rpc_new": {
+                    "ln": {
                         "method": "pyln.client.LightningRpc.__new__",
                         "request_type": "function",
                         "response_type": "data",
@@ -1264,6 +1769,20 @@
                             }
                         }
                     }
+                },
+                "lndrpc": {
+                    "rpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    },
+                    "routerpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    }
                 }
             },
             "tests": [
@@ -1281,7 +1800,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "response_type": "data",
                                     "response": {
@@ -1308,7 +1827,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listpays": [
@@ -1331,6 +1850,96 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "description": "two HTLC",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": [
+                                                {
+                                                    "status": 2,
+                                                    "htlcs": [
+                                                        {
+                                                            "route": {
+                                                                "total_fees_msat": -100
+                                                            },
+                                                            "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                                        },
+                                                        {
+                                                            "route": {
+                                                                "total_fees_msat": -50
+                                                            },
+                                                            "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "success status, no payment found",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "success": true,
+                        "failed": false,
+                        "pending": false,
+                        "fee_msat": null,
+                        "preimage": null
+                    },
+                    "mocks": {
+                        "breez": {},
+                        "corelightning": {},
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "description": "two HTLC",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": [
+                                                {
+                                                    "status": 2,
+                                                    "htlcs": []
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -1347,7 +1956,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "description": "no data",
                                     "response_type": "data",
@@ -1393,7 +2002,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listpays": [
@@ -1458,6 +2067,216 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "description": "no HTLC",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": [
+                                                {
+                                                    "status": 0,
+                                                    "htlcs": []
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "no payments",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": []
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "no status",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": [
+                                                {}
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "status: non-existend",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": [
+                                                {
+                                                    "status": 0,
+                                                    "htlcs": [
+                                                        {
+                                                            "route": {
+                                                                "total_fees_msat": -50
+                                                            },
+                                                            "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "status: in-flight",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": [
+                                                {
+                                                    "status": 1,
+                                                    "htlcs": [
+                                                        {
+                                                            "route": {
+                                                                "total_fees_msat": -50
+                                                            },
+                                                            "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "status: unknown",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": [
+                                                {
+                                                    "status": 999,
+                                                    "htlcs": [
+                                                        {
+                                                            "route": {
+                                                                "total_fees_msat": -50
+                                                            },
+                                                            "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "description": "raise error",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "exception",
+                                            "response": {
+                                                "data": "test-error"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "description": "pending - incorrect checking_id",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f"
+                    },
+                    "expect": {
+                        "success": false,
+                        "failed": false,
+                        "pending": true,
+                        "fee_msat": null
+                    },
+                    "mocks": {
+                        "breez": {},
+                        "corelightning": {
+                            "ln": [
+                                {
+                                    "response": {
+                                        "listpays": [
+                                            {
+                                                "description": "no data",
+                                                "request_type": "function",
+                                                "response_type": "json",
+                                                "response": {}
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "description": "no HTLC",
+                                    "response": {}
+                                }
+                            ]
                         }
                     }
                 },
@@ -1476,7 +2295,7 @@
                     },
                     "mocks": {
                         "breez": {
-                            "breez_connect": [
+                            "sdk_services": [
                                 {
                                     "description": "failed status",
                                     "response_type": "data",
@@ -1498,7 +2317,7 @@
                             ]
                         },
                         "corelightning": {
-                            "rpc_new": [
+                            "ln": [
                                 {
                                     "response": {
                                         "listpays": [
@@ -1515,6 +2334,36 @@
                                                 }
                                             }
                                         ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "description": "two HTLC",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": [
+                                                {
+                                                    "status": 3,
+                                                    "htlcs": []
+                                                }
+                                            ]
+                                        }
                                     }
                                 }
                             ]
