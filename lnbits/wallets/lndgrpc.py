@@ -237,9 +237,6 @@ class LndWallet(Wallet):
             # that use different checking_id formats
             return PaymentPendingStatus()
 
-        resp = self.routerpc.TrackPaymentV2(
-            router.TrackPaymentRequest(payment_hash=r_hash)
-        )
 
         # # HTLCAttempt.HTLCStatus:
         # # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
@@ -256,6 +253,9 @@ class LndWallet(Wallet):
         }
 
         try:
+            resp = self.routerpc.TrackPaymentV2(
+                router.TrackPaymentRequest(payment_hash=r_hash)
+            )
             async for payment in resp:
                 if len(payment.htlcs) and statuses[payment.status]:
                     return PaymentSuccessStatus(

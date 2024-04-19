@@ -2166,6 +2166,24 @@
                                             ]
                                         }
                                     }
+                                },
+                                {
+                                    "description": "raise error",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "exception",
+                                            "response": {
+                                                "data": "test-error"
+                                            }
+                                        }
+                                    }
                                 }
                             ]
                         }
