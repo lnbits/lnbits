@@ -154,8 +154,8 @@ def _eval_dict(data: Optional[dict]) -> Optional[dict]:
     fn_prefix = "__eval__:"
     if not data:
         return data
-    if isinstance(data, list):
-        return [_eval_dict(i) for i in data]
+    # if isinstance(data, list):
+    #     return [_eval_dict(i) for i in data]
     if not isinstance(data, dict):
         return data
 
@@ -176,8 +176,8 @@ def _eval_dict(data: Optional[dict]) -> Optional[dict]:
 def _dict_to_object(data: Optional[dict]) -> Optional[DataObject]:
     if not data:
         return None
-    if isinstance(data, list):
-        return [_dict_to_object(i) for i in data]
+    # if isinstance(data, list):
+    #     return [_dict_to_object(i) for i in data]
     if not isinstance(data, dict):
         return data
 

@@ -1859,6 +1859,7 @@
                             ],
                             "routerpc": [
                                 {
+                                    "description": "two HTLC",
                                     "response": {
                                         "TrackPaymentV2": {
                                             "request_type": "function",
