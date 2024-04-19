@@ -2237,6 +2237,50 @@
                     }
                 },
                 {
+                    "description": "pending - incorrect checking_id",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f"
+                    },
+                    "expect": {
+                        "success": false,
+                        "failed": false,
+                        "pending": true,
+                        "fee_msat": null
+                    },
+                    "mocks": {
+                        "breez": {},
+                        "corelightning": {
+                            "ln": [
+                                {
+                                    "response": {
+                                        "listpays": [
+                                            {
+                                                "description": "no data",
+                                                "request_type": "function",
+                                                "response_type": "json",
+                                                "response": {}
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "description": "no HTLC",
+                                    "response": {}
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
                     "description": "failed",
                     "description1": "pending should be false in the 'expect', this is a bug",
                     "call_params": {
