@@ -18,7 +18,7 @@ websocket_router = APIRouter(prefix="/api/v1/ws", tags=["Websocket"])
 async def websocket_connect(websocket: WebSocket, item_id: str):
     await websocket_manager.connect(websocket, item_id)
     try:
-        while settings.lnbits_runing:
+        while settings.lnbits_running:
             await websocket.receive_text()
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket)

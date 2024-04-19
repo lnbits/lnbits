@@ -104,7 +104,7 @@ async def startup(app: FastAPI):
 
 
 async def shutdown():
-    settings.lnbits_runing = False
+    settings.lnbits_running = False
     # shutdown event
     cancel_all_tasks()
 
@@ -182,7 +182,7 @@ async def check_funding_source() -> None:
     max_retries = settings.funding_source_max_retries
     retry_counter = 0
 
-    while settings.lnbits_runing:
+    while settings.lnbits_running:
         try:
             logger.info(f"Connecting to backend {funding_source.__class__.__name__}...")
             error_message, balance = await funding_source.status()
@@ -413,7 +413,7 @@ def initialize_server_logger():
     serverlog_queue = asyncio.Queue()
 
     async def update_websocket_serverlog():
-        while settings.lnbits_runing:
+        while settings.lnbits_running:
             msg = await serverlog_queue.get()
             await websocket_updater(super_user_hash, msg)
 

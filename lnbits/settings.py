@@ -427,7 +427,7 @@ class TransientSettings(InstalledExtensionsSettings):
     # When set to false it indicates that the shutdown procedure is ongoing.
     # If false no new tasks, threads, etc should be started.
     # Long running while loops should use this flag instead of `while True:`
-    lnbits_runing: bool = Field(default=True)
+    lnbits_running: bool = Field(default=True)
 
     @classmethod
     def readonly_fields(cls):

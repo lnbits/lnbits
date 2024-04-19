@@ -133,6 +133,6 @@ class FakeWallet(Wallet):
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while settings.lnbits_runing:
+        while settings.lnbits_running:
             value: Bolt11 = await self.queue.get()
             yield value.payment_hash

@@ -54,7 +54,7 @@ class Cache:
             return value
 
     async def invalidate_forever(self):
-        while settings.lnbits_runing:
+        while settings.lnbits_running:
             try:
                 await asyncio.sleep(self.interval)
                 ts = time()

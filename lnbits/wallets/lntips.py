@@ -152,7 +152,7 @@ class LnTipsWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         last_connected = None
-        while settings.lnbits_runing:
+        while settings.lnbits_running:
             url = "/api/v1/invoicestream"
             try:
                 last_connected = time.time()
