@@ -280,7 +280,7 @@ class LndRestWallet(Wallet):
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_runing:
             try:
                 url = "/v1/invoices/subscribe"
                 async with self.client.stream("GET", url, timeout=None) as r:

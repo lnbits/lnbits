@@ -166,10 +166,10 @@ class ClicheWallet(Wallet):
         )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_runing:
             try:
                 ws = create_connection(self.endpoint)
-                while True:
+                while settings.lnbits_runing:
                     r = ws.recv()
                     data = json.loads(r)
                     print(data)

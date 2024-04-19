@@ -268,7 +268,7 @@ class LndWallet(Wallet):
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_runing:
             try:
                 request = ln.InvoiceSubscription()
                 async for i in self.rpc.SubscribeInvoices(request):

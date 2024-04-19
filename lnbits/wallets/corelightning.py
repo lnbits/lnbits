@@ -232,7 +232,7 @@ class CoreLightningWallet(Wallet):
             return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_runing:
             try:
                 paid = await run_sync(
                     lambda: self.ln.waitanyinvoice(self.last_pay_index, timeout=2)

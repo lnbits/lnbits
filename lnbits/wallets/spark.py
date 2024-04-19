@@ -244,7 +244,7 @@ class SparkWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = f"/stream?access-key={self.token}"
 
-        while True:
+        while settings.lnbits_runing:
             try:
                 async with self.client.stream("GET", url, timeout=None) as r:
                     async for line in r.aiter_lines():

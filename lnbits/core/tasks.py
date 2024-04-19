@@ -26,7 +26,7 @@ async def killswitch_task():
     killswitch will check lnbits-status repository for a signal from
     LNbits and will switch to VoidWallet if the killswitch is triggered.
     """
-    while True:
+    while settings.lnbits_runing:
         funding_source = get_funding_source()
         if (
             settings.lnbits_killswitch
@@ -56,7 +56,7 @@ async def watchdog_task():
     Registers a watchdog which will check lnbits balance and nodebalance
     and will switch to VoidWallet if the watchdog delta is reached.
     """
-    while True:
+    while settings.lnbits_runing:
         funding_source = get_funding_source()
         if (
             settings.lnbits_watchdog
@@ -77,7 +77,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
     """
     This worker dispatches events to all extensions and dispatches webhooks.
     """
-    while True:
+    while settings.lnbits_runing:
         payment = await invoice_paid_queue.get()
         logger.trace("received invoice paid event")
         # dispatch api_invoice_listeners
