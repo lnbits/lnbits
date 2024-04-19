@@ -1897,6 +1897,53 @@
                     }
                 },
                 {
+                    "description": "success status, no payment found",
+                    "call_params": {
+                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    },
+                    "expect": {
+                        "success": true,
+                        "failed": false,
+                        "pending": false,
+                        "fee_msat": null,
+                        "preimage": null
+                    },
+                    "mocks": {
+                        "breez": {},
+                        "corelightning": {},
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "description": "two HTLC",
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": [
+                                                {
+                                                    "status": 2,
+                                                    "htlcs": []
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
                     "description": "pending",
                     "call_params": {
                         "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
