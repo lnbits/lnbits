@@ -107,6 +107,15 @@ def _spy_mock(mocker: MockerFixture, mock: RpcMock, client_field):
     return expected_calls
 
 
+def _async_generator(data):
+    async def f1():
+        for d in data:
+            value = _eval_dict(d)
+            yield _dict_to_object(value)
+
+    return f1()
+
+
 def _mock_field(field):
     response_type = field["response_type"]
     request_type = field["request_type"]
@@ -122,6 +131,10 @@ def _mock_field(field):
         if response_type == "exception":
             return _raise(response)
 
+        if response_type == "__aiter__":
+            # todo: support dict
+            return _async_generator(field["response"])
+
         if response_type == "function" or response_type == "async-function":
             return_value = {}
             for field_name in field["response"]:
@@ -129,6 +142,7 @@ def _mock_field(field):
                 _mock_class = (
                     AsyncMock if value["request_type"] == "async-function" else Mock
                 )
+
                 return_value[field_name] = _mock_class(side_effect=[_mock_field(value)])
 
             return _dict_to_object(return_value)
@@ -142,7 +156,7 @@ def _eval_dict(data: Optional[dict]) -> Optional[dict]:
         return data
     if isinstance(data, list):
         return [_eval_dict(i) for i in data]
-    if  not isinstance(data, dict):
+    if not isinstance(data, dict):
         return data
 
     d = {}
@@ -150,6 +164,10 @@ def _eval_dict(data: Optional[dict]) -> Optional[dict]:
         if k.startswith(fn_prefix):
             field = k[len(fn_prefix) :]
             d[field] = eval(data[k])
+        elif isinstance(data[k], dict):
+            d[k] = _eval_dict(data[k])
+        elif isinstance(data[k], list):
+            d[k] = [_eval_dict(i) for i in data[k]]
         else:
             d[k] = data[k]
     return d
@@ -159,8 +177,8 @@ def _dict_to_object(data: Optional[dict]) -> Optional[DataObject]:
     if not data:
         return None
     if isinstance(data, list):
-        return[_dict_to_object(i) for i in data]
-    if  not isinstance(data, dict):
+        return [_dict_to_object(i) for i in data]
+    if not isinstance(data, dict):
         return data
 
     d = {**data}

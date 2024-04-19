@@ -159,5 +159,10 @@ class DataObject:
             setattr(self, k, kwargs[k])
 
     def __str__(self):
-        return ";".join([f"{k}={getattr(self, k)}" for k in self.__dict__])
-
+        data = []
+        for k in self.__dict__:
+            value = getattr(self, k)
+            if isinstance(value, list):
+                value = [f"{k}={v}" for v in value]
+            data.append(f"{k}={value}")
+        return ";".join(data)

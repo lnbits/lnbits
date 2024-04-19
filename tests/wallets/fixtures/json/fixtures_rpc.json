@@ -1726,6 +1726,10 @@
                                     }
                                 }
                             ]
+                        },
+                        "lndrpc": {
+                            "routerpc": [],
+                            "rpc": []
                         }
                     }
                 }
@@ -1764,6 +1768,20 @@
                                 }
                             }
                         }
+                    }
+                },
+                "lndrpc": {
+                    "rpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
+                    },
+                    "routerpc": {
+                        "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+                        "request_type": "function",
+                        "response_type": "data",
+                        "response": {}
                     }
                 }
             },
@@ -1829,6 +1847,48 @@
                                                 }
                                             }
                                         ]
+                                    }
+                                }
+                            ]
+                        },
+                        "lndrpc": {
+                            "rpc": [
+                                {
+                                    "response": {}
+                                }
+                            ],
+                            "routerpc": [
+                                {
+                                    "response": {
+                                        "TrackPaymentV2": {
+                                            "request_type": "function",
+                                            "request_data": {
+                                                "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                                                "kwargs": {
+                                                    "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                                                }
+                                            },
+                                            "response_type": "__aiter__",
+                                            "response": [
+                                                {
+                                                    "status": 2,
+                                                    "htlcs": [
+                                                        {
+                                                            "route": {
+                                                                "total_fees_msat": -100
+                                                            },
+                                                            "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                                        },
+                                                        {
+                                                            "route": {
+                                                                "total_fees_msat": -50
+                                                            },
+                                                            "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
                                     }
                                 }
                             ]
