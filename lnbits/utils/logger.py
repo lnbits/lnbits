@@ -34,7 +34,7 @@ def initialize_server_websocket_logger() -> Callable:
     serverlog_queue: asyncio.Queue = asyncio.Queue()
 
     async def update_websocket_serverlog():
-        while True:
+        while settings.lnbits_running:
             msg = await serverlog_queue.get()
             await websocket_updater(super_user_hash, msg)
 
