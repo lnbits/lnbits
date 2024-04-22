@@ -99,19 +99,37 @@ class EclairWallet(Wallet):
         else:
             data["description"] = memo
 
-        r = await self.client.post("/createinvoice", data=data, timeout=40)
+        try:
+            r = await self.client.post("/createinvoice", data=data, timeout=40)
+            r.raise_for_status()
+            data = r.json()
 
-        if r.is_error:
-            try:
-                data = r.json()
-                error_message = data["error"]
-            except Exception:
-                error_message = r.text
+            if len(data) == 0:
+                return InvoiceResponse(False, None, None, "no data")
 
-            return InvoiceResponse(False, None, None, error_message)
+            if "error" in data:
+                return InvoiceResponse(
+                    False, None, None, f"""Server error: '{data["error"]}'"""
+                )
 
-        data = r.json()
-        return InvoiceResponse(True, data["paymentHash"], data["serialized"], None)
+            if r.is_error:
+                return InvoiceResponse(False, None, None, f"Server error: '{r.text}'")
+
+            return InvoiceResponse(True, data["paymentHash"], data["serialized"], None)
+        except json.JSONDecodeError:
+            return InvoiceResponse(
+                False, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, f"Unable to connect to {self.url}."
+            )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(
