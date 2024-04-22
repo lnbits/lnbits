@@ -415,7 +415,7 @@ async def api_public_payment(payment_hash: str):
 
 @payment_router.get("/{payment_hash}")
 async def api_payment(
-    payment_hash: str, key_type: WalletTypeInfo = Depends(require_admin_key)
+    payment_hash: str, key_type: WalletTypeInfo = Depends(require_invoice_key)
 ):
     wallet_id = key_type.wallet.id
     payment = await get_standalone_payment(payment_hash, wallet_id=wallet_id)
