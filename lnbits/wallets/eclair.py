@@ -55,20 +55,27 @@ class EclairWallet(Wallet):
             logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
-        r = await self.client.post("/globalbalance", timeout=5)
         try:
+            r = await self.client.post("/globalbalance", timeout=5)
+            r.raise_for_status()
+
             data = r.json()
-        except Exception:
-            return StatusResponse(
-                f"Failed to connect to {self.url}, got: '{r.text[:200]}...'", 0
-            )
 
-        if r.is_error:
-            return StatusResponse(data.get("error") or "undefined error", 0)
-        if len(data) == 0:
-            return StatusResponse("no data", 0)
+            if len(data) == 0:
+                return StatusResponse("no data", 0)
 
-        return StatusResponse(None, int(data.get("total") * 100_000_000_000))
+            if "error" in data:
+                return StatusResponse(f"""Server error: '{data["error"]}'""", 0)
+
+            if r.is_error or "total" not in data:
+                return StatusResponse(data.get("error") or "undefined error", 0)
+
+            return StatusResponse(None, int(data.get("total") * 100_000_000_000))
+        except json.JSONDecodeError:
+            return StatusResponse("Server error: 'invalid json response'", 0)
+        except Exception as exc:
+            logger.warning(exc)
+            return StatusResponse(f"Unable to connect to {self.url}.", 0)
 
     async def create_invoice(
         self,
