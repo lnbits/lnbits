@@ -1472,9 +1472,7 @@
                                     "description": "CREATED",
                                     "response_type": "stream",
                                     "response": {
-                                        "result": {
-                                            "state": "CREATED"
-                                        }
+                                        "state": "CREATED"
                                     }
                                 },
                                 {
