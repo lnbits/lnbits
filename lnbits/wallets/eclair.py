@@ -215,13 +215,13 @@ class EclairWallet(Wallet):
             return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             try:
                 async with connect(
                     self.ws_url,
                     extra_headers=[("Authorization", self.headers["Authorization"])],
                 ) as ws:
-                    while True:
+                    while settings.lnbits_running:
                         message = await ws.recv()
                         message_json = json.loads(message)
 

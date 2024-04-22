@@ -155,7 +155,7 @@ class LNbitsWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = f"{self.endpoint}/api/v1/payments/sse"
 
-        while True:
+        while settings.lnbits_running:
             try:
                 async with httpx.AsyncClient(
                     timeout=None, headers=self.headers
