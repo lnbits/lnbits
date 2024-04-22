@@ -132,59 +132,71 @@ class EclairWallet(Wallet):
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        r = await self.client.post(
-            "/payinvoice",
-            data={"invoice": bolt11, "blocking": True},
-            timeout=None,
-        )
+        try:
+            r = await self.client.post(
+                "/payinvoice",
+                data={"invoice": bolt11, "blocking": True},
+                timeout=None,
+            )
+            r.raise_for_status()
+            data = r.json()
 
-        if "error" in r.json():
-            try:
-                data = r.json()
-                error_message = data["error"]
-            except Exception:
-                error_message = r.text
-            return PaymentResponse(False, None, None, None, error_message)
+            if "error" in data:
+                return PaymentResponse(False, None, None, None, data["error"])
+            if r.is_error:
+                return PaymentResponse(False, None, None, None, r.text)
 
-        data = r.json()
+            if data["type"] == "payment-failed":
+                return PaymentResponse(False, None, None, None, "payment failed")
 
-        if data["type"] == "payment-failed":
-            return PaymentResponse(False, None, None, None, "payment failed")
+            checking_id = data["paymentHash"]
+            preimage = data["paymentPreimage"]
 
-        checking_id = data["paymentHash"]
-        preimage = data["paymentPreimage"]
+            # We do all this again to get the fee:
 
-        # We do all this again to get the fee:
+            r = await self.client.post(
+                "/getsentinfo",
+                data={"paymentHash": checking_id},
+                timeout=40,
+            )
 
-        r = await self.client.post(
-            "/getsentinfo",
-            data={"paymentHash": checking_id},
-            timeout=40,
-        )
+            if "error" in r.json():
+                try:
+                    data = r.json()
+                    error_message = data["error"]
+                except Exception:
+                    error_message = r.text
+                return PaymentResponse(None, checking_id, None, preimage, error_message)
 
-        if "error" in r.json():
-            try:
-                data = r.json()
-                error_message = data["error"]
-            except Exception:
-                error_message = r.text
-            return PaymentResponse(None, checking_id, None, preimage, error_message)
+            statuses = {
+                "sent": True,
+                "failed": False,
+                "pending": None,
+            }
 
-        statuses = {
-            "sent": True,
-            "failed": False,
-            "pending": None,
-        }
+            data = r.json()[-1]
+            fee_msat = 0
+            if data["status"]["type"] == "sent":
+                fee_msat = -data["status"]["feesPaid"]
+                preimage = data["status"]["paymentPreimage"]
 
-        data = r.json()[-1]
-        fee_msat = 0
-        if data["status"]["type"] == "sent":
-            fee_msat = -data["status"]["feesPaid"]
-            preimage = data["status"]["paymentPreimage"]
-
-        return PaymentResponse(
-            statuses[data["status"]["type"]], checking_id, fee_msat, preimage, None
-        )
+            return PaymentResponse(
+                statuses[data["status"]["type"]], checking_id, fee_msat, preimage, None
+            )
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(
+                False, None, None, None, f"Unable to connect to {self.url}."
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
