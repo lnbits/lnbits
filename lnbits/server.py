@@ -48,7 +48,7 @@ def main(
 
     set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
 
-    while settings.lnbits_running:
+    while True:
         config = uvicorn.Config(
             "lnbits.__main__:app",
             loop="uvloop",

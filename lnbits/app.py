@@ -69,6 +69,8 @@ from .tasks import (
 
 
 async def startup(app: FastAPI):
+    settings.lnbits_running = True
+
     # wait till migration is done
     await migrate_databases()
 
@@ -104,7 +106,9 @@ async def startup(app: FastAPI):
 
 
 async def shutdown():
+    logger.warning("LNbits shutting down...")
     settings.lnbits_running = False
+
     # shutdown event
     cancel_all_tasks()
 
