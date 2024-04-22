@@ -23,7 +23,7 @@ class TestMock(BaseModel):
     request_type: Optional[str]
     request_body: Optional[dict]
     response_type: str
-    response: Union[str, dict]
+    response: Union[str, dict, list]
 
 
 class Mock(FunctionMock, TestMock):
