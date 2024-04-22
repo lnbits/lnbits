@@ -24,6 +24,14 @@
                 "alby_access_token": "mock-alby-access-token",
                 "user_agent": "LNbits/Tests"
             }
+        },
+        "eclair": {
+            "wallet_class": "EclairWallet",
+            "settings": {
+                "eclair_url": "http://127.0.0.1:8555",
+                "eclair_pass": "secret",
+                "user_agent": "LNbits/Tests"
+            }
         }
     },
     "functions": {
@@ -59,6 +67,16 @@
                             "User-Agent": "LNbits/Tests"
                         },
                         "method": "GET"
+                    }
+                },
+                "eclair": {
+                    "status_endpoint": {
+                        "uri": "/globalbalance",
+                        "headers": {
+                            "Authorization": "Basic OnNlY3JldA==",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
                     }
                 }
             },
@@ -101,6 +119,16 @@
                                     }
                                 }
                             ]
+                        },
+                        "eclair": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "total": 0.00000055
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -140,6 +168,16 @@
                                     }
                                 }
                             ]
+                        },
+                        "eclair": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "error": "\"test-error\""
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -168,6 +206,14 @@
                             ]
                         },
                         "alby": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
+                        },
+                        "eclair": {
                             "status_endpoint": [
                                 {
                                     "response_type": "json",
@@ -208,6 +254,14 @@
                                     "response": "data-not-json"
                                 }
                             ]
+                        },
+                        "eclair": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
                         }
                     }
                 },
@@ -242,6 +296,17 @@
                             ]
                         },
                         "alby": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "eclair": {
                             "status_endpoint": [
                                 {
                                     "response_type": "response",
