@@ -129,7 +129,9 @@ class LNbitsWallet(Wallet):
             payment: PaymentStatus = await self.get_payment_status(checking_id)
 
             success = True if payment.success else None
-            return PaymentResponse(success, checking_id, payment.fee_msat, payment.preimage)
+            return PaymentResponse(
+                success, checking_id, payment.fee_msat, payment.preimage
+            )
         except json.JSONDecodeError:
             return PaymentResponse(
                 False, None, None, None, "Server error: 'invalid json response'"
