@@ -80,21 +80,30 @@ class LNbitsWallet(Wallet):
         if unhashed_description:
             data["unhashed_description"] = unhashed_description.hex()
 
-        r = await self.client.post(url="/api/v1/payments", json=data)
-        ok, checking_id, payment_request, error_message = (
-            not r.is_error,
-            None,
-            None,
-            None,
-        )
-
-        if r.is_error:
-            error_message = r.json()["detail"]
-        else:
+        try:
+            r = await self.client.post(url="/api/v1/payments", json=data)
+            r.raise_for_status()
             data = r.json()
-            checking_id, payment_request = data["checking_id"], data["payment_request"]
 
-        return InvoiceResponse(ok, checking_id, payment_request, error_message)
+            if r.is_error or "payment_request" not in data:
+                error_message = data["detail"] if "detail" in data else r.text
+                return InvoiceResponse(False, None, None, f"Server error: '{error_message}'")
+
+            return InvoiceResponse(True,  data["checking_id"], data["payment_request"], None)
+        except json.JSONDecodeError:
+            return InvoiceResponse(
+                False, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, f"Unable to connect to {self.endpoint}."
+            )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(

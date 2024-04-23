@@ -435,6 +435,16 @@
                         },
                         "method": "POST"
                     }
+                },
+                "lnbits": {
+                    "create_invoice_endpoint": {
+                        "uri": "/api/v1/payments",
+                        "headers": {
+                            "X-Api-Key": "f171ba022a764e679eef950b21fb1c04",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
+                    }
                 }
             },
             "tests": [
@@ -446,10 +456,10 @@
                         "label": "test-label"
                     },
                     "expect": {
+                        "error_message": null,
                         "success": true,
                         "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
-                        "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n",
-                        "error_message": null
+                        "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
                     },
                     "mocks": {
                         "corelightningrest": {
@@ -516,6 +526,23 @@
                                     }
                                 }
                             ]
+                        },
+                        "lnbits": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "out": false,
+                                        "amount": 555000,
+                                        "memo": "Test Invoice"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                                        "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -527,10 +554,10 @@
                         "label": "test-label"
                     },
                     "expect": {
+                        "error_message": "Server error: 'Test Error'",
                         "success": false,
                         "checking_id": null,
-                        "payment_request": null,
-                        "error_message": "Server error: 'Test Error'"
+                        "payment_request": null
                     },
                     "mocks": {
                         "corelightningrest": {
@@ -581,6 +608,22 @@
                                     }
                                 }
                             ]
+                        },
+                        "lnbits": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "out": false,
+                                        "amount": 555000,
+                                        "memo": "Test Invoice"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "detail": "Test Error"
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -592,10 +635,10 @@
                         "label": "test-label"
                     },
                     "expect": {
+                        "error_message": "Server error: 'missing required fields'",
                         "success": false,
                         "checking_id": null,
-                        "payment_request": null,
-                        "error_message": "Server error: 'missing required fields'"
+                        "payment_request": null
                     },
                     "mocks": {
                         "corelightningrest": {
@@ -656,6 +699,22 @@
                                     "response_type": "json",
                                     "response": {
                                         "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    }
+                                }
+                            ]
+                        },
+                        "lnbits": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "out": false,
+                                        "amount": 555000,
+                                        "memo": "Test Invoice"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
                                     }
                                 }
                             ]
@@ -723,6 +782,20 @@
                                     "request_type": "json",
                                     "request_body": {
                                         "amountMsat": 555000
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "lnbits": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "out": false,
+                                        "amount": 555000,
+                                        "memo": "Test Invoice"
                                     },
                                     "response_type": "data",
                                     "response": "data-not-json"
@@ -801,6 +874,23 @@
                                     "request_type": "json",
                                     "request_body": {
                                         "amountMsat": 555000
+                                    },
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "lnbits": {
+                            "create_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "out": false,
+                                        "amount": 555000,
+                                        "memo": "Test Invoice"
                                     },
                                     "response_type": "response",
                                     "response": {
