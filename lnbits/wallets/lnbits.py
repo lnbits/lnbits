@@ -110,25 +110,40 @@ class LNbitsWallet(Wallet):
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        r = await self.client.post(
-            url="/api/v1/payments",
-            json={"out": True, "bolt11": bolt11},
-            timeout=None,
-        )
-        r.raise_for_status()
-        data = r.json()
+        try:
+            r = await self.client.post(
+                url="/api/v1/payments",
+                json={"out": True, "bolt11": bolt11},
+                timeout=None,
+            )
+            r.raise_for_status()
+            data = r.json()
 
-        if r.is_error or "payment_hash" not in data:
-            error_message = data["detail"] if "detail" in data else r.text
-            return PaymentResponse(False, None, None, None, error_message)
+            if r.is_error or "payment_hash" not in data:
+                error_message = data["detail"] if "detail" in data else r.text
+                return PaymentResponse(False, None, None, None, error_message)
 
-        checking_id = data["payment_hash"]
+            checking_id = data["payment_hash"]
 
-        # we do this to get the fee and preimage
-        payment: PaymentStatus = await self.get_payment_status(checking_id)
+            # we do this to get the fee and preimage
+            payment: PaymentStatus = await self.get_payment_status(checking_id)
 
-        success = True if payment.success else None
-        return PaymentResponse(success, checking_id, payment.fee_msat, payment.preimage)
+            success = True if payment.success else None
+            return PaymentResponse(success, checking_id, payment.fee_msat, payment.preimage)
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(
+                False, None, None, None, f"Unable to connect to {self.endpoint}."
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
