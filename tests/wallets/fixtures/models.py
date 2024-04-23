@@ -100,7 +100,12 @@ class WalletTest(BaseModel):
         fs_mocks = fn["mocks"][fs_name]
         test_mocks = test["mocks"][fs_name]
 
-        mocks = self._build_mock_objects(list(fs_mocks), fs_mocks, test_mocks)
+
+        all_test_mocks = [test_mocks] if isinstance(test_mocks, dict) else test_mocks
+
+        mocks = []
+        for tm in all_test_mocks:
+            mocks += self._build_mock_objects(list(fs_mocks), fs_mocks, tm)
 
         return [self._tests_from_mock(m) for m in mocks]
 

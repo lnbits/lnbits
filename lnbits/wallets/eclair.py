@@ -166,6 +166,7 @@ class EclairWallet(Wallet):
                     error_message = data["error"]
                 except Exception:
                     error_message = r.text
+                # todo: add test for pending with checking_id
                 return PaymentResponse(None, checking_id, None, preimage, error_message)
 
             statuses = {
