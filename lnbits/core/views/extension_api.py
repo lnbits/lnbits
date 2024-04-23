@@ -1,3 +1,4 @@
+import httpx
 from http import HTTPStatus
 from typing import (
     List,
@@ -167,11 +168,12 @@ async def api_uninstall_extension(
 
 @extension_router.get("/{ext_id}/releases", dependencies=[Depends(check_admin)])
 async def get_extension_releases(ext_id: str):
+
     try:
         extension_releases: List[ExtensionRelease] = (
             await InstallableExtension.get_extension_releases(ext_id)
         )
-
+        logger.debug(extension_releases[0].repo)
         installed_ext = await get_installed_extension(ext_id)
         if not installed_ext:
             return extension_releases
@@ -181,6 +183,8 @@ async def get_extension_releases(ext_id: str):
             if payment_info:
                 release.paid_sats = payment_info.amount
 
+        pleasework = await InstallableExtension.get_extension_releases(ext_id)
+
         return extension_releases
 
     except Exception as exc:
@@ -188,6 +192,18 @@ async def get_extension_releases(ext_id: str):
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
         ) from exc
 
+@extension_router.get("/{ext_id}/details")
+async def get_extension_details(repo: str):
+    logger.debug(repo + "/main/config.json")
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(repo + "/config.json")
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
+        ) from e
 
 @extension_router.put("/invoice", dependencies=[Depends(check_admin)])
 async def get_extension_invoice(data: CreateExtension):
