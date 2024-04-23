@@ -1933,6 +1933,25 @@
                         },
                         "alby": {
                             "get_payment_status_endpoint": []
+                        },
+                        "eclair": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "description": "failed status",
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    },
+                                    "response_type": "json",
+                                    "response": [
+                                        {
+                                            "status": {
+                                                "type": "failed"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
                         }
                     }
                 },
@@ -2059,6 +2078,55 @@
                                 },
                                 {
                                     "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "eclair": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "description": "no data",
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    },
+                                    "response_type": "json",
+                                    "response": []
+                                },
+                                {
+                                    "description": "pending status",
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    },
+                                    "response_type": "json",
+                                    "response": [
+                                        {
+                                            "status": {
+                                                "type": "pending"
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "description": "bad json",
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    },
                                     "response_type": "response",
                                     "response": {
                                         "response": "Not Found",
