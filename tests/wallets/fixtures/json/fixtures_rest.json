@@ -1053,6 +1053,30 @@
                                     "response": {}
                                 }
                             ]
+                        },
+                        "eclair": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "description": "no data from pay invoice",
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "blocking": true,
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                                    },
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ],
+                            "get_paid_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    },
+                                    "response_type": "json",
+                                    "response": []
+                                }
+                            ]
                         }
                     }
                 },
@@ -1106,6 +1130,30 @@
                                     },
                                     "response_type": "data",
                                     "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "eclair": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "description": "no data from pay invoice",
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "blocking": true,
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                                    },
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ],
+                            "get_paid_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    },
+                                    "response_type": "json",
+                                    "response": []
                                 }
                             ]
                         }
@@ -1170,6 +1218,33 @@
                                         "response": "Not Found",
                                         "status": 404
                                     }
+                                }
+                            ]
+                        },
+                        "eclair": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "description": "no data from pay invoice",
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "blocking": true,
+                                        "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                                    },
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ],
+                            "get_paid_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    },
+                                    "response_type": "json",
+                                    "response": []
                                 }
                             ]
                         }

@@ -100,7 +100,6 @@ class WalletTest(BaseModel):
         fs_mocks = fn["mocks"][fs_name]
         test_mocks = test["mocks"][fs_name]
 
-
         all_test_mocks = [test_mocks] if isinstance(test_mocks, dict) else test_mocks
 
         mocks = []

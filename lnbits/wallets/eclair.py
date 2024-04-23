@@ -152,6 +152,22 @@ class EclairWallet(Wallet):
             checking_id = data["paymentHash"]
             preimage = data["paymentPreimage"]
 
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(
+                False, None, None, None, f"Unable to connect to {self.url}."
+            )
+
+        try:
             # We do all this again to get the fee:
 
             r = await self.client.post(
@@ -159,15 +175,16 @@ class EclairWallet(Wallet):
                 data={"paymentHash": checking_id},
                 timeout=40,
             )
+            r.raise_for_status()
+            data = r.json()
 
-            if "error" in r.json():
-                try:
-                    data = r.json()
-                    error_message = data["error"]
-                except Exception:
-                    error_message = r.text
-                # todo: add test for pending with checking_id
-                return PaymentResponse(None, checking_id, None, preimage, error_message)
+            # todo: add test for pending with checking_id
+            if "error" in data:
+                # return PaymentResponse(False, None, None, None, data["error"])
+                return PaymentResponse(None, checking_id, None, preimage, data["error"])
+            if r.is_error:
+                return PaymentResponse(None, checking_id, None, preimage, r.text)
+                # return PaymentResponse(False, None, None, None, r.text)
 
             statuses = {
                 "sent": True,
@@ -186,17 +203,25 @@ class EclairWallet(Wallet):
             )
         except json.JSONDecodeError:
             return PaymentResponse(
-                False, None, None, None, "Server error: 'invalid json response'"
+                None,
+                checking_id,
+                None,
+                preimage,
+                "Server error: 'invalid json response'",
             )
         except KeyError:
             return PaymentResponse(
-                False, None, None, None, "Server error: 'missing required fields'"
+                None,
+                checking_id,
+                None,
+                preimage,
+                "Server error: 'missing required fields'",
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                False, None, None, None, f"Unable to connect to {self.url}."
+                None, checking_id, None, preimage, f"Unable to connect to {self.url}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
