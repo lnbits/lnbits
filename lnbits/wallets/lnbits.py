@@ -87,9 +87,13 @@ class LNbitsWallet(Wallet):
 
             if r.is_error or "payment_request" not in data:
                 error_message = data["detail"] if "detail" in data else r.text
-                return InvoiceResponse(False, None, None, f"Server error: '{error_message}'")
+                return InvoiceResponse(
+                    False, None, None, f"Server error: '{error_message}'"
+                )
 
-            return InvoiceResponse(True,  data["checking_id"], data["payment_request"], None)
+            return InvoiceResponse(
+                True, data["checking_id"], data["payment_request"], None
+            )
         except json.JSONDecodeError:
             return InvoiceResponse(
                 False, None, None, "Server error: 'invalid json response'"
