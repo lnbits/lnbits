@@ -32,6 +32,14 @@
                 "eclair_pass": "secret",
                 "user_agent": "LNbits/Tests"
             }
+        },
+        "lnbits": {
+            "wallet_class": "LNbitsWallet",
+            "settings": {
+                "lnbits_endpoint": "http://127.0.0.1:8555",
+                "lnbits_admin_key": "f171ba022a764e679eef950b21fb1c04",
+                "user_agent": "LNbits/Tests"
+            }
         }
     },
     "functions": {
@@ -77,6 +85,16 @@
                             "User-Agent": "LNbits/Tests"
                         },
                         "method": "POST"
+                    }
+                },
+                "lnbits": {
+                    "status_endpoint": {
+                        "uri": "/api/v1/wallet",
+                        "headers": {
+                            "X-Api-Key": "f171ba022a764e679eef950b21fb1c04",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
                     }
                 }
             },
@@ -129,6 +147,16 @@
                                     }
                                 }
                             ]
+                        },
+                        "lnbits": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "balance": 55000
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -178,6 +206,14 @@
                                     }
                                 }
                             ]
+                        },
+                        "lnbits": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": "test-error"
+                                }
+                            ]
                         }
                     }
                 },
@@ -220,6 +256,14 @@
                                     "response": {}
                                 }
                             ]
+                        },
+                        "lnbits": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
                         }
                     }
                 },
@@ -256,6 +300,14 @@
                             ]
                         },
                         "eclair": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "lnbits": {
                             "status_endpoint": [
                                 {
                                     "response_type": "data",
@@ -307,6 +359,17 @@
                             ]
                         },
                         "eclair": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "lnbits": {
                             "status_endpoint": [
                                 {
                                     "response_type": "response",

@@ -48,22 +48,21 @@ class LNbitsWallet(Wallet):
     async def status(self) -> StatusResponse:
         try:
             r = await self.client.get(url="/api/v1/wallet", timeout=15)
-        except Exception as exc:
-            return StatusResponse(
-                f"Failed to connect to {self.endpoint} due to: {exc}", 0
-            )
-
-        try:
+            r.raise_for_status()
             data = r.json()
-        except Exception:
-            return StatusResponse(
-                f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0
-            )
 
-        if r.is_error:
-            return StatusResponse(data["detail"], 0)
+            if len(data) == 0:
+                return StatusResponse("no data", 0)
 
-        return StatusResponse(None, data["balance"])
+            if r.is_error or "balance" not in data:
+                return StatusResponse(f"Server error: '{r.text}'", 0)
+
+            return StatusResponse(None, data["balance"])
+        except json.JSONDecodeError:
+            return StatusResponse("Server error: 'invalid json response'", 0)
+        except Exception as exc:
+            logger.warning(exc)
+            return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
     async def create_invoice(
         self,
