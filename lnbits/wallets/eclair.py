@@ -168,8 +168,8 @@ class EclairWallet(Wallet):
             )
 
         payment_status: PaymentStatus = await self.get_payment_status(checking_id)
-        x = True if payment_status.success else None
-        return PaymentResponse(x, checking_id, payment_status.fee_msat, preimage, None)
+        success = True if payment_status.success else None
+        return PaymentResponse(success, checking_id, payment_status.fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
