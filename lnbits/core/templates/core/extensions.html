@@ -118,6 +118,16 @@
               style="font-size: 9px; height: 34px"
               v-text="extension.shortDescription"
             ></div>
+            <q-btn
+              @click="getExtensionConfig(extension)"
+              flat
+              color="primary"
+              v-if="g.user.admin"
+              :label="$t('more')"
+              ><q-tooltip
+                ><span v-text="$t('more_details')"></span
+              ></q-tooltip>
+            </q-btn>
           </div>
         </div>
         <div class="row q-pt-sm">
@@ -978,6 +988,20 @@
           LNbits.utils.notifyApiError(error)
         } finally {
           release.inProgress = false
+        }
+      },
+      getExtensionConfig: async function (extension) {
+        console.log(extension)
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/api/v1/extension/${extension.id}/details?repo=${extension.installedRelease.repo}`,
+            this.g.user.wallets[0].inkey
+          )
+          extensionConfig = data
+        } catch (error) {
+          console.warn(error)
+          LNbits.utils.notifyApiError(error)
         }
       }
     },
