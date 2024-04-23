@@ -166,21 +166,24 @@ class LNbitsWallet(Wallet):
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(url=f"/api/v1/payments/{checking_id}")
+        try:
+            r = await self.client.get(url=f"/api/v1/payments/{checking_id}")
 
-        if r.is_error:
+            if r.is_error:
+                return PaymentPendingStatus()
+            data = r.json()
+
+            if "paid" not in data or not data["paid"]:
+                return PaymentPendingStatus()
+
+            if "details" not in data:
+                return PaymentPendingStatus()
+
+            return PaymentSuccessStatus(
+                fee_msat=data["details"]["fee"], preimage=data["preimage"]
+            )
+        except Exception:
             return PaymentPendingStatus()
-        data = r.json()
-
-        if "paid" not in data or not data["paid"]:
-            return PaymentPendingStatus()
-
-        if "details" not in data:
-            return PaymentPendingStatus()
-
-        return PaymentSuccessStatus(
-            fee_msat=data["details"]["fee"], preimage=data["preimage"]
-        )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = f"{self.endpoint}/api/v1/payments/sse"
