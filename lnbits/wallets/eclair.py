@@ -68,7 +68,7 @@ class EclairWallet(Wallet):
                 return StatusResponse(f"""Server error: '{data["error"]}'""", 0)
 
             if r.is_error or "total" not in data:
-                return StatusResponse(data.get("error") or "undefined error", 0)
+                return StatusResponse(f"Server error: '{r.text}'", 0)
 
             return StatusResponse(None, int(data.get("total") * 100_000_000_000))
         except json.JSONDecodeError:
