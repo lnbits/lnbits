@@ -323,7 +323,22 @@
     </q-card>
   </q-dialog>
   <q-dialog v-model="extMore">
-    
+    <q-card class="q-pa-lg">
+      <h3 class="q-my-md text-primary" v-text="extensionConfig.name"></h3>
+      <h4 class="q-my-md text-primary" v-text="extensionConfig.short_description"></h4>
+      <div 
+      class="row q-mt-lg" 
+      v-for="image of extensionConfig.images">
+        <div class="col">
+          <q-img
+          :src="image.uri"
+          style="width: 150px"
+        ></q-img>
+        </div>
+      </div>
+      <p v-text="extensionConfig.descrition_md">
+      </p>
+    </q-card>
   </q-dialog>
   <q-dialog v-model="showUpgradeDialog">
     <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
@@ -602,6 +617,7 @@
     el: '#vue',
     data: function () {
       return {
+        extensionConfig:[],
         searchTerm: '',
         tab: 'all',
         filteredExtensions: null,
@@ -993,14 +1009,16 @@
         }
       },
       getExtensionConfig: async function (extension) {
-        console.log(extension)
+        const url = new URL(extension.latestRelease.repo)
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/api/v1/extension/${extension.id}/details?repo=${extension.installedRelease.repo}`,
+            `/api/v1/extension/${extension.id}/details?path=${url.pathname}`,
             this.g.user.wallets[0].inkey
           )
-          extensionConfig = data
+          this.extensionConfig = data
+          console.log(this.extensionConfig)
+          this.extMore = true
         } catch (error) {
           console.warn(error)
           LNbits.utils.notifyApiError(error)

@@ -313,7 +313,7 @@ class ExtensionRelease(BaseModel):
             archive=r.zipball_url,
             source_repo=source_repo,
             is_github_release=True,
-            repo=f"https://github.com/{source_repo}",
+            repo=source_repo,
             html_url=r.html_url,
         )
 
