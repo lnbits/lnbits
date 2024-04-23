@@ -176,6 +176,7 @@ window.localisation.en = {
   notification_source_label:
     'Source URL (only use the official LNbits status source, and sources you can trust)',
   more: 'more',
+  more_details: 'more details',
   less: 'less',
   releases: 'Releases',
   killswitch: 'Killswitch',
