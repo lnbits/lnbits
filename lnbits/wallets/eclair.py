@@ -178,13 +178,10 @@ class EclairWallet(Wallet):
             r.raise_for_status()
             data = r.json()
 
-            # todo: add test for pending with checking_id
             if "error" in data:
-                # return PaymentResponse(False, None, None, None, data["error"])
                 return PaymentResponse(None, checking_id, None, preimage, data["error"])
             if r.is_error:
                 return PaymentResponse(None, checking_id, None, preimage, r.text)
-                # return PaymentResponse(False, None, None, None, r.text)
 
             statuses = {
                 "sent": True,
@@ -193,7 +190,7 @@ class EclairWallet(Wallet):
             }
 
             data = r.json()[-1]
-            fee_msat = 0
+            fee_msat = None
             if data["status"]["type"] == "sent":
                 fee_msat = -data["status"]["feesPaid"]
                 preimage = data["status"]["paymentPreimage"]
