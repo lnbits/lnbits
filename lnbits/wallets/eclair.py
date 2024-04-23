@@ -167,59 +167,9 @@ class EclairWallet(Wallet):
                 False, None, None, None, f"Unable to connect to {self.url}."
             )
 
-        try:
-            # We do all this again to get the fee:
-
-            r = await self.client.post(
-                "/getsentinfo",
-                data={"paymentHash": checking_id},
-                timeout=40,
-            )
-            r.raise_for_status()
-            data = r.json()
-
-            if "error" in data:
-                return PaymentResponse(None, checking_id, None, preimage, data["error"])
-            if r.is_error:
-                return PaymentResponse(None, checking_id, None, preimage, r.text)
-
-            statuses = {
-                "sent": True,
-                "failed": False,
-                "pending": None,
-            }
-
-            data = r.json()[-1]
-            fee_msat = None
-            if data["status"]["type"] == "sent":
-                fee_msat = -data["status"]["feesPaid"]
-                preimage = data["status"]["paymentPreimage"]
-
-            return PaymentResponse(
-                statuses[data["status"]["type"]], checking_id, fee_msat, preimage, None
-            )
-        except json.JSONDecodeError:
-            return PaymentResponse(
-                None,
-                checking_id,
-                None,
-                preimage,
-                "Server error: 'invalid json response'",
-            )
-        except KeyError:
-            return PaymentResponse(
-                None,
-                checking_id,
-                None,
-                preimage,
-                "Server error: 'missing required fields'",
-            )
-        except Exception as exc:
-            logger.info(f"Failed to pay invoice {bolt11}")
-            logger.warning(exc)
-            return PaymentResponse(
-                None, checking_id, None, preimage, f"Unable to connect to {self.url}."
-            )
+        payment_status: PaymentStatus = await self.get_payment_status(checking_id)
+        x = True if payment_status.success else None
+        return PaymentResponse(x, checking_id, payment_status.fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
