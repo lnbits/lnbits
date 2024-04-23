@@ -969,6 +969,24 @@
                         },
                         "method": "POST"
                     }
+                },
+                "lnbits": {
+                    "pay_invoice_endpoint": {
+                        "uri": "/api/v1/payments",
+                        "headers": {
+                            "X-Api-Key": "f171ba022a764e679eef950b21fb1c04",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "POST"
+                    },
+                    "get_payment_status_endpoint": {
+                        "uri": "/api/v1/payments/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "headers": {
+                            "X-Api-Key": "f171ba022a764e679eef950b21fb1c04",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
                 }
             },
             "tests": [
@@ -1076,6 +1094,33 @@
                                             }
                                         }
                                     ]
+                                }
+                            ]
+                        },
+                        "lnbits": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "out": true,
+                                        "blt11": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                                    }
+                                }
+                            ],
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "paid": true,
+                                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                                        "details": {
+                                            "fee": 50
+                                        }
+                                    }
                                 }
                             ]
                         }
@@ -1220,7 +1265,8 @@
                                     }
                                 ]
                             }
-                        ]
+                        ],
+                        "lnbits": []
                     }
                 },
                 {
@@ -1295,6 +1341,33 @@
                                     },
                                     "response_type": "json",
                                     "response": []
+                                }
+                            ]
+                        },
+                        "lnbits": {
+                            "pay_invoice_endpoint": [
+                                {
+                                    "request_type": "json",
+                                    "request_body": {
+                                        "out": true,
+                                        "blt11": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                                    },
+                                    "response_type": "json",
+                                    "response": {
+                                        "detail": "Test Error"
+                                    }
+                                }
+                            ],
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "paid": true,
+                                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                                        "details": {
+                                            "fee": 50
+                                        }
+                                    }
                                 }
                             ]
                         }
