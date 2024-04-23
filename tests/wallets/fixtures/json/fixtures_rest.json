@@ -826,11 +826,13 @@
                         "fee_limit_msat": 25000
                     },
                     "expect": {
+                        "error_message": null,
                         "success": true,
+                        "pending": false,
+                        "failed": false,
                         "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
                         "fee_msat": 50,
-                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
-                        "error_message": null
+                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
                     },
                     "mocks": {
                         "corelightningrest": {
@@ -935,6 +937,7 @@
                     "expect": {
                         "success": false,
                         "pending": true,
+                        "failed": false,
                         "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
                         "fee_msat": null,
                         "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
@@ -1075,6 +1078,8 @@
                     },
                     "expect": {
                         "success": false,
+                        "pending": false,
+                        "failed": true,
                         "checking_id": null,
                         "fee_msat": null,
                         "preimage": null,
@@ -1149,11 +1154,13 @@
                         "fee_limit_msat": 25000
                     },
                     "expect": {
+                        "error_message": "Server error: 'missing required fields'",
                         "success": false,
+                        "pending": false,
+                        "failed": true,
                         "checking_id": null,
                         "fee_msat": null,
-                        "preimage": null,
-                        "error_message": "Server error: 'missing required fields'"
+                        "preimage": null
                     },
                     "mocks": {
                         "corelightningrest": {
@@ -1228,11 +1235,13 @@
                         "fee_limit_msat": 25000
                     },
                     "expect": {
+                        "error_message": "Server error: 'invalid json response'",
                         "success": false,
+                        "pending": false,
+                        "failed": true,
                         "checking_id": null,
                         "fee_msat": null,
-                        "preimage": null,
-                        "error_message": "Server error: 'invalid json response'"
+                        "preimage": null
                     },
                     "mocks": {
                         "corelightningrest": {
@@ -1307,11 +1316,13 @@
                         "fee_limit_msat": 25000
                     },
                     "expect": {
+                        "error_message": "Unable to connect to http://127.0.0.1:8555.",
                         "success": false,
+                        "pending": false,
+                        "failed": true,
                         "checking_id": null,
                         "fee_msat": null,
-                        "preimage": null,
-                        "error_message": "Unable to connect to http://127.0.0.1:8555."
+                        "preimage": null
                     },
                     "mocks": {
                         "corelightningrest": {
@@ -1398,11 +1409,13 @@
                         "fee_limit_msat": 25000
                     },
                     "expect": {
+                        "error_message": "Unable to connect to http://127.0.0.1:8555.",
                         "success": false,
+                        "pending": false,
+                        "failed": true,
                         "checking_id": null,
                         "fee_msat": null,
-                        "preimage": null,
-                        "error_message": "Unable to connect to http://127.0.0.1:8555."
+                        "preimage": null
                     }
                 }
             ]
