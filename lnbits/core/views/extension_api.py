@@ -1,3 +1,4 @@
+import json
 import httpx
 from http import HTTPStatus
 from typing import (
@@ -193,13 +194,18 @@ async def get_extension_releases(ext_id: str):
         ) from exc
 
 @extension_router.get("/{ext_id}/details")
-async def get_extension_details(repo: str):
-    logger.debug(repo + "/main/config.json")
+async def get_extension_details(path: str):
+    logger.debug("https://raw.githubusercontent.com" + path + "/main/config.json")
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(repo + "/config.json")
+            resp = await client.get("https://raw.githubusercontent.com" + path + "/main/config.json")
             resp.raise_for_status()
-            return resp.json()
+            respJson = resp.json()
+            logger.debug(respJson["descrition_md"])
+            descrition_md = await client.get(respJson["descrition_md"])
+            respJson["descrition_md"] = descrition_md.text
+            logger.debug(descrition_md)
+            return respJson
     except Exception as e:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
