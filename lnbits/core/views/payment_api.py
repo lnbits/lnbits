@@ -379,7 +379,7 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
     api_invoice_listeners[uid] = payment_queue
 
     try:
-        while True:
+        while settings.lnbits_running:
             if await request.is_disconnected():
                 await request.close()
                 break

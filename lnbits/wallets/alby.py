@@ -184,6 +184,6 @@ class AlbyWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
+        while settings.lnbits_running:
             value = await self.queue.get()
             yield value

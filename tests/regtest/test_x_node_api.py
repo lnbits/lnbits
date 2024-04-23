@@ -9,9 +9,11 @@ from lnbits import bolt11
 from lnbits.nodes.base import ChannelPoint, ChannelState, NodeChannel
 from tests.conftest import pytest_asyncio, settings
 
-from ...helpers import (
+from ..helpers import (
     funding_source,
     get_random_invoice_data,
+)
+from .helpers import (
     get_unconnected_node_uri,
     mine_blocks,
 )

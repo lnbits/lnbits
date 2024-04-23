@@ -177,7 +177,7 @@ class LndRestWallet(Wallet):
         except Exception as exc:
             logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
             return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.endpoint}."
+                False, None, None, None, f"Unable to connect to {self.endpoint}."
             )
 
         try:
@@ -280,7 +280,7 @@ class LndRestWallet(Wallet):
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             try:
                 url = "/v1/invoices/subscribe"
                 async with self.client.stream("GET", url, timeout=None) as r:

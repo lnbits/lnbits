@@ -106,7 +106,7 @@ async def internal_invoice_listener():
 
     Called by the app startup sequence.
     """
-    while True:
+    while settings.lnbits_running:
         checking_id = await internal_invoice_queue.get()
         logger.info("> got internal payment notification", checking_id)
         create_task(invoice_callback_dispatcher(checking_id))
@@ -134,7 +134,7 @@ async def check_pending_payments():
     outgoing = True
     incoming = True
 
-    while True:
+    while settings.lnbits_running:
         logger.info(
             f"Task: checking all pending payments (incoming={incoming},"
             f" outgoing={outgoing}) of last 15 days"

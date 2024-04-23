@@ -1,6 +1,6 @@
 import importlib
 from typing import Dict, List, Optional
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -46,7 +46,12 @@ def _apply_rpc_mock(mocker: MockerFixture, mock: RpcMock):
         value = mock.response[field_name]
         values = value if isinstance(value, list) else [value]
 
-        return_value[field_name] = Mock(side_effect=[_mock_field(f) for f in values])
+        _mock_class = (
+            AsyncMock if values[0]["request_type"] == "async-function" else Mock
+        )
+        return_value[field_name] = _mock_class(
+            side_effect=[_mock_field(f) for f in values]
+        )
 
     m = _data_mock(return_value)
     assert mock.method, "Missing method for RPC mock."
@@ -59,7 +64,8 @@ def _check_calls(expected_calls):
         for func_call in func_calls:
             req = func_call["request_data"]
             args = req["args"] if "args" in req else {}
-            kwargs = req["kwargs"] if "kwargs" in req else {}
+            kwargs = _eval_dict(req["kwargs"]) if "kwargs" in req else {}
+
             if "klass" in req:
                 *rest, cls = req["klass"].split(".")
                 req_module = importlib.import_module(".".join(rest))
@@ -70,12 +76,9 @@ def _check_calls(expected_calls):
 
 
 def _spy_mocks(mocker: MockerFixture, test_data: WalletTest, wallet: BaseWallet):
-    assert (
-        test_data.funding_source.client_field
-    ), f"Missing client field for wallet {wallet}"
-    client_field = getattr(wallet, test_data.funding_source.client_field)
     expected_calls: Dict[str, List] = {}
     for mock in test_data.mocks:
+        client_field = getattr(wallet, mock.name)
         spy = _spy_mock(mocker, mock, client_field)
         expected_calls |= spy
 
@@ -83,6 +86,7 @@ def _spy_mocks(mocker: MockerFixture, test_data: WalletTest, wallet: BaseWallet)
 
 
 def _spy_mock(mocker: MockerFixture, mock: RpcMock, client_field):
+
     expected_calls: Dict[str, List] = {}
     assert isinstance(mock.response, dict), "Expected data RPC response"
     for field_name in mock.response:
@@ -95,37 +99,95 @@ def _spy_mock(mocker: MockerFixture, mock: RpcMock, client_field):
                 "request_data": f["request_data"],
             }
             for f in values
-            if f["request_type"] == "function" and "request_data" in f
+            if (
+                f["request_type"] == "function" or f["request_type"] == "async-function"
+            )
+            and "request_data" in f
         ]
     return expected_calls
+
+
+def _async_generator(data):
+    async def f1():
+        for d in data:
+            value = _eval_dict(d)
+            yield _dict_to_object(value)
+
+    return f1()
 
 
 def _mock_field(field):
     response_type = field["response_type"]
     request_type = field["request_type"]
-    response = field["response"]
+    response = _eval_dict(field["response"])
 
     if request_type == "data":
         return _dict_to_object(response)
 
-    if request_type == "function":
+    if request_type == "function" or request_type == "async-function":
         if response_type == "data":
             return _dict_to_object(response)
 
         if response_type == "exception":
             return _raise(response)
 
+        if response_type == "__aiter__":
+            # todo: support dict
+            return _async_generator(field["response"])
+
+        if response_type == "function" or response_type == "async-function":
+            return_value = {}
+            for field_name in field["response"]:
+                value = field["response"][field_name]
+                _mock_class = (
+                    AsyncMock if value["request_type"] == "async-function" else Mock
+                )
+
+                return_value[field_name] = _mock_class(side_effect=[_mock_field(value)])
+
+            return _dict_to_object(return_value)
+
     return response
+
+
+def _eval_dict(data: Optional[dict]) -> Optional[dict]:
+    fn_prefix = "__eval__:"
+    if not data:
+        return data
+    # if isinstance(data, list):
+    #     return [_eval_dict(i) for i in data]
+    if not isinstance(data, dict):
+        return data
+
+    d = {}
+    for k in data:
+        if k.startswith(fn_prefix):
+            field = k[len(fn_prefix) :]
+            d[field] = eval(data[k])
+        elif isinstance(data[k], dict):
+            d[k] = _eval_dict(data[k])
+        elif isinstance(data[k], list):
+            d[k] = [_eval_dict(i) for i in data[k]]
+        else:
+            d[k] = data[k]
+    return d
 
 
 def _dict_to_object(data: Optional[dict]) -> Optional[DataObject]:
     if not data:
         return None
+    # if isinstance(data, list):
+    #     return [_dict_to_object(i) for i in data]
+    if not isinstance(data, dict):
+        return data
+
     d = {**data}
     for k in data:
         value = data[k]
         if isinstance(value, dict):
             d[k] = _dict_to_object(value)
+        elif isinstance(value, list):
+            d[k] = [_dict_to_object(v) for v in value]
 
     return DataObject(**d)
 
@@ -134,7 +196,9 @@ def _data_mock(data: dict) -> Mock:
     return Mock(return_value=_dict_to_object(data))
 
 
-def _raise(error: dict):
+def _raise(error: Optional[dict]):
+    if not error:
+        return Exception()
     data = error["data"] if "data" in error else None
     if "module" not in error or "class" not in error:
         return Exception(data)

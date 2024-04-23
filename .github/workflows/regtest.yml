@@ -3,8 +3,9 @@ name: regtest
 on:
   workflow_call:
     inputs:
-      make:
-        default: test
+      custom-pytest:
+        description: "Custom pytest arguments"
+        required: true
         type: string
       python-version:
         default: "3.9"
@@ -76,15 +77,14 @@ jobs:
           LNBITS_KEY: "d08a3313322a4514af75d488bcc27eee"
           ECLAIR_URL: http://127.0.0.1:8082
           ECLAIR_PASS: lnbits
-          LNBITS_DATA_FOLDER: "./tests/data"
           PYTHONUNBUFFERED: 1
           DEBUG: true
         with:
-          verbose: false
+          verbose: true
           job-summary: true
           emoji: false
-          click-to-expand: false
-          custom-pytest: poetry run pytest
+          click-to-expand: true
+          custom-pytest: ${{ inputs.custom-pytest }}
           report-title: "regtest (${{ inputs.python-version }}, ${{ inputs.backend-wallet-class }}"
 
       - name: Upload coverage to Codecov

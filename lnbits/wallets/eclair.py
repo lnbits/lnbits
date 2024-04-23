@@ -55,20 +55,27 @@ class EclairWallet(Wallet):
             logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
-        r = await self.client.post("/globalbalance", timeout=5)
         try:
+            r = await self.client.post("/globalbalance", timeout=5)
+            r.raise_for_status()
+
             data = r.json()
-        except Exception:
-            return StatusResponse(
-                f"Failed to connect to {self.url}, got: '{r.text[:200]}...'", 0
-            )
 
-        if r.is_error:
-            return StatusResponse(data.get("error") or "undefined error", 0)
-        if len(data) == 0:
-            return StatusResponse("no data", 0)
+            if len(data) == 0:
+                return StatusResponse("no data", 0)
 
-        return StatusResponse(None, int(data.get("total") * 100_000_000_000))
+            if "error" in data:
+                return StatusResponse(f"""Server error: '{data["error"]}'""", 0)
+
+            if r.is_error or "total" not in data:
+                return StatusResponse(f"Server error: '{r.text}'", 0)
+
+            return StatusResponse(None, int(data.get("total") * 100_000_000_000))
+        except json.JSONDecodeError:
+            return StatusResponse("Server error: 'invalid json response'", 0)
+        except Exception as exc:
+            logger.warning(exc)
+            return StatusResponse(f"Unable to connect to {self.url}.", 0)
 
     async def create_invoice(
         self,
@@ -92,73 +99,78 @@ class EclairWallet(Wallet):
         else:
             data["description"] = memo
 
-        r = await self.client.post("/createinvoice", data=data, timeout=40)
+        try:
+            r = await self.client.post("/createinvoice", data=data, timeout=40)
+            r.raise_for_status()
+            data = r.json()
 
-        if r.is_error:
-            try:
-                data = r.json()
-                error_message = data["error"]
-            except Exception:
-                error_message = r.text
+            if len(data) == 0:
+                return InvoiceResponse(False, None, None, "no data")
 
-            return InvoiceResponse(False, None, None, error_message)
+            if "error" in data:
+                return InvoiceResponse(
+                    False, None, None, f"""Server error: '{data["error"]}'"""
+                )
 
-        data = r.json()
-        return InvoiceResponse(True, data["paymentHash"], data["serialized"], None)
+            if r.is_error:
+                return InvoiceResponse(False, None, None, f"Server error: '{r.text}'")
+
+            return InvoiceResponse(True, data["paymentHash"], data["serialized"], None)
+        except json.JSONDecodeError:
+            return InvoiceResponse(
+                False, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, f"Unable to connect to {self.url}."
+            )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        r = await self.client.post(
-            "/payinvoice",
-            data={"invoice": bolt11, "blocking": True},
-            timeout=None,
-        )
+        try:
+            r = await self.client.post(
+                "/payinvoice",
+                data={"invoice": bolt11, "blocking": True},
+                timeout=None,
+            )
+            r.raise_for_status()
+            data = r.json()
 
-        if "error" in r.json():
-            try:
-                data = r.json()
-                error_message = data["error"]
-            except Exception:
-                error_message = r.text
-            return PaymentResponse(False, None, None, None, error_message)
+            if "error" in data:
+                return PaymentResponse(False, None, None, None, data["error"])
+            if r.is_error:
+                return PaymentResponse(False, None, None, None, r.text)
 
-        data = r.json()
+            if data["type"] == "payment-failed":
+                return PaymentResponse(False, None, None, None, "payment failed")
 
-        if data["type"] == "payment-failed":
-            return PaymentResponse(False, None, None, None, "payment failed")
+            checking_id = data["paymentHash"]
+            preimage = data["paymentPreimage"]
 
-        checking_id = data["paymentHash"]
-        preimage = data["paymentPreimage"]
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(
+                False, None, None, None, f"Unable to connect to {self.url}."
+            )
 
-        # We do all this again to get the fee:
-
-        r = await self.client.post(
-            "/getsentinfo",
-            data={"paymentHash": checking_id},
-            timeout=40,
-        )
-
-        if "error" in r.json():
-            try:
-                data = r.json()
-                error_message = data["error"]
-            except Exception:
-                error_message = r.text
-            return PaymentResponse(None, checking_id, None, preimage, error_message)
-
-        statuses = {
-            "sent": True,
-            "failed": False,
-            "pending": None,
-        }
-
-        data = r.json()[-1]
-        fee_msat = 0
-        if data["status"]["type"] == "sent":
-            fee_msat = -data["status"]["feesPaid"]
-            preimage = data["status"]["paymentPreimage"]
-
+        payment_status: PaymentStatus = await self.get_payment_status(checking_id)
+        success = True if payment_status.success else None
         return PaymentResponse(
-            statuses[data["status"]["type"]], checking_id, fee_msat, preimage, None
+            success, checking_id, payment_status.fee_msat, preimage, None
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -215,13 +227,13 @@ class EclairWallet(Wallet):
             return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             try:
                 async with connect(
                     self.ws_url,
                     extra_headers=[("Authorization", self.headers["Authorization"])],
                 ) as ws:
-                    while True:
+                    while settings.lnbits_running:
                         message = await ws.recv()
                         message_json = json.loads(message)
 

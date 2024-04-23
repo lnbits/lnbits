@@ -256,7 +256,7 @@ class CoreLightningRestWallet(Wallet):
             return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             try:
                 url = f"{self.url}/v1/invoice/waitAnyInvoice/{self.last_pay_index}"
                 async with self.client.stream("GET", url, timeout=None) as r:

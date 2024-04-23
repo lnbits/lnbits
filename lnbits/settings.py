@@ -430,6 +430,12 @@ class TransientSettings(InstalledExtensionsSettings):
     #  - are cleared on server restart
     first_install: bool = Field(default=False)
 
+    # Indicates that the server should continue to run.
+    # When set to false it indicates that the shutdown procedure is ongoing.
+    # If false no new tasks, threads, etc should be started.
+    # Long running while loops should use this flag instead of `while True:`
+    lnbits_running: bool = Field(default=True)
+
     @classmethod
     def readonly_fields(cls):
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
