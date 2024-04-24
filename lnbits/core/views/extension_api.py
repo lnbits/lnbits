@@ -199,8 +199,8 @@ async def get_extension_details(path: str):
             )
             resp.raise_for_status()
             respjson = resp.json()
-            descrition_md = await client.get(respjson["descrition_md"])
-            respjson["descrition_md"] = descrition_md.text
+            description_md = await client.get(respjson["description_md"])
+            respjson["description_md"] = description_md.text
             return respjson
     except Exception as e:
         raise HTTPException(
