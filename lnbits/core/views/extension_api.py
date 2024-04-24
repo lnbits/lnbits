@@ -194,14 +194,10 @@ async def get_extension_releases(ext_id: str):
 async def get_extension_details(path: str):
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                "https://raw.githubusercontent.com" + path + "/main/config.json"
-            )
+            resp = await client.get(path)
+            logger.debug(resp.text)
             resp.raise_for_status()
-            respjson = resp.json()
-            description_md = await client.get(respjson["description_md"])
-            respjson["description_md"] = description_md.text
-            return respjson
+            return resp.text
     except Exception as e:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)

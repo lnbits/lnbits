@@ -1060,17 +1060,13 @@
         }
       },
       getExtensionConfig: async function (extension) {
-        const url = new URL(extension.latestRelease.repo)
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/api/v1/extension/${extension.id}/details?path=${url.pathname}`,
+            `/api/v1/extension/${extension.id}/details?path=${extension.extendedDescription}`,
             this.g.user.wallets[0].inkey
           )
-          this.extensionConfig = data
-          this.extensionConfig['descrition_md'] = LNbits.utils.convertMarkdown(
-            this.extensionConfig['descrition_md']
-          )
+          this.extensionConfig['descrition_md'] = LNbits.utils.convertMarkdown(data)
           this.extMore = true
         } catch (error) {
           this.$q.notify({
@@ -1089,6 +1085,7 @@
         ...e,
         inProgress: false
       }))
+      console.log(this.extensions)
       this.filteredExtensions = this.extensions.concat([])
       for (let i = 0; i < this.filteredExtensions.length; i++) {
         if (this.filteredExtensions[i].isInstalled != false) {

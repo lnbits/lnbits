@@ -104,7 +104,6 @@ async def extensions_install(
                 e.name = installed_ext.name
                 e.short_description = installed_ext.short_description
                 e.icon = installed_ext.icon
-
     except Exception as ex:
         logger.warning(ex)
         installable_exts = []
@@ -136,16 +135,22 @@ async def extensions_install(
         all_ext_ids = [ext.code for ext in all_extensions]
         inactive_extensions = await get_inactive_extensions()
         db_version = await get_dbversions()
-        logger.debug(all_extensions)
+        for ext in installable_exts:
+            matching_ext = next((e for e in all_extensions if e.name == ext.name), None)
+            if matching_ext:
+                ext.description_md = matching_ext.description_md
+                ext.contributors = matching_ext.contributors
+                ext.images = matching_ext.images
+
         extensions = [
             {
                 "id": ext.id,
                 "name": ext.name,
                 "icon": ext.icon,
                 "shortDescription": ext.short_description,
-                "extendedDescription": ext.description_md or None,
-                "immages": ext.images or None,
-                "contributors": ext.contributors or None,
+                "immages": ext.images if ext.images else None,
+                "extendedDescription": ext.description_md if ext.description_md else None,
+                "contributors": ext.contributors if ext.contributors else None,
                 "stars": ext.stars,
                 "isFeatured": ext.featured,
                 "dependencies": ext.dependencies,

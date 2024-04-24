@@ -24,9 +24,6 @@ class ExplicitRelease(BaseModel):
     archive: str
     hash: str
     dependencies: List[str] = []
-    images: List[str] = []
-    contributors: List[str] = []
-    description_md: Optional[str]
     repo: Optional[str]
     icon: Optional[str]
     short_description: Optional[str]
@@ -361,6 +358,7 @@ class InstallableExtension(BaseModel):
     id: str
     name: str
     short_description: Optional[str] = None
+    icon: Optional[str] = None
     description_md: Optional[str] = None
     images: List[str] = []
     tile: Optional[str] = None
