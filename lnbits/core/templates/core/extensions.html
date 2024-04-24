@@ -340,14 +340,14 @@
       <div class="row">
         <div class="col-2">
           <q-img
-            :src="extensionConfig.tile"
+            :src="extensionConfig.icon"
             style="width: 100px"
             type="image"
           ></q-img>
         </div>
         <div class="col-9 q-pl-md">
           <h3 class="q-my-sm" v-text="extensionConfig.name"></h3>
-          <h6 class="q-my-sm" v-text="extensionConfig.short_description"></h6>
+          <h6 class="q-my-sm" v-text="extensionConfig.shortDescription"></h6>
         </div>
         <div class="col-1">
           <q-badge color="primary" v-text="extensionConfig.license"></q-badge>
@@ -355,12 +355,18 @@
       </div>
       <div class="row q-my-lg">
         <div class="col q-pr-md" v-for="image of extensionConfig.images">
-          <q-img :src="image.uri" type="image" @click="bigImage(image)"></q-img>
+          <q-img 
+            style="cursor: pointer"
+            :src="image.uri" 
+            type="image" 
+            @click="bigImage(image)"
+            loading="lazy"
+          ></q-img>
         </div>
       </div>
       <div class="row">
         <div class="col-9">
-          <div v-html="extensionConfig.descrition_md"></div>
+          <div v-html="extensionConfig.extendedDescription"></div>
         </div>
         <div class="col-3 q-pl-sm">
           <b><div>Contributors</div></b>
@@ -1060,13 +1066,16 @@
         }
       },
       getExtensionConfig: async function (extension) {
+        this.extensionConfig = []
         try {
           const {data} = await LNbits.api.request(
             'GET',
             `/api/v1/extension/${extension.id}/details?path=${extension.extendedDescription}`,
             this.g.user.wallets[0].inkey
           )
-          this.extensionConfig['descrition_md'] = LNbits.utils.convertMarkdown(data)
+          this.extensionConfig = extension
+          this.extensionConfig['extendedDescription'] = LNbits.utils.convertMarkdown(data)
+          console.log(this.extensionConfig)
           this.extMore = true
         } catch (error) {
           this.$q.notify({
@@ -1085,7 +1094,6 @@
         ...e,
         inProgress: false
       }))
-      console.log(this.extensions)
       this.filteredExtensions = this.extensions.concat([])
       for (let i = 0; i < this.filteredExtensions.length; i++) {
         if (this.filteredExtensions[i].isInstalled != false) {

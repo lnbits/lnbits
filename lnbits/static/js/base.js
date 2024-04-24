@@ -418,14 +418,10 @@ window.LNbits = {
       }
     },
     convertMarkdown(text) {
-      const toHTML = text
-        .replace(/^### (.*$)/gim, '<div class="text-subtitle3">$1</div>') 
-        .replace(/^## (.*$)/gim, '<div class="text-h6">$1</div>') 
-        .replace(/^# (.*$)/gim, '<div class="text-h5">$1</div>')
-        .replace(/\*\*(.*)\*\*/gim, '<b>$1</b>') 
-        .replace(/\*(.*)\*/gim, '<i>$1</i>') 
-        .replace(/^#i# (.*$)/gim, '<div class="text-h5">$1</div>')
-      return toHTML.trim()
+      const converter = new showdown.Converter()
+      converter.setFlavor('github')
+      converter.setOption('simpleLineBreaks', true)
+      return converter.makeHtml(text)
     }
   }
 }

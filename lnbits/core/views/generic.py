@@ -148,7 +148,7 @@ async def extensions_install(
                 "name": ext.name,
                 "icon": ext.icon,
                 "shortDescription": ext.short_description,
-                "immages": ext.images if ext.images else None,
+                "images": ext.images if ext.images else None,
                 "extendedDescription": ext.description_md if ext.description_md else None,
                 "contributors": ext.contributors if ext.contributors else None,
                 "stars": ext.stars,
