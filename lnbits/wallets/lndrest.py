@@ -177,7 +177,7 @@ class LndRestWallet(Wallet):
         except Exception as exc:
             logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
             return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.endpoint}."
+                False, None, None, None, f"Unable to connect to {self.endpoint}."
             )
 
         try:
