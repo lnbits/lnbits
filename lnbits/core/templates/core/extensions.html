@@ -121,12 +121,10 @@
             <q-btn
               @click="getExtensionConfig(extension)"
               flat
-              color="primary"
+              dense
               v-if="g.user.admin"
               :label="$t('more')"
-              ><q-tooltip
-                ><span v-text="$t('more_details')"></span
-              ></q-tooltip>
+              ><q-tooltip><span v-text="$t('more_details')"></span></q-tooltip>
             </q-btn>
           </div>
         </div>
@@ -322,22 +320,72 @@
       </div>
     </q-card>
   </q-dialog>
+  <q-dialog v-model="imageDialog" position="top">
+    <div v-if="selectedImage.link" style="width: 1200px; max-width: 80vw">
+      <q-video
+        :src="selectedImage.link"
+        style="width: 1200px; max-width: 80vw"
+      ></q-video>
+    </div>
+    <div v-else style="width: 1200px; max-width: 80vw">
+      <q-img
+        :src="selectedImage.uri"
+        style="width: 1200px; max-width: 80vw"
+        type="image"
+      ></q-img>
+    </div>
+  </q-dialog>
   <q-dialog v-model="extMore">
-    <q-card class="q-pa-lg">
-      <h3 class="q-my-md text-primary" v-text="extensionConfig.name"></h3>
-      <h4 class="q-my-md text-primary" v-text="extensionConfig.short_description"></h4>
-      <div 
-      class="row q-mt-lg" 
-      v-for="image of extensionConfig.images">
-        <div class="col">
+    <q-card class="q-pa-lg" style="width: 800px; max-width: 80vw">
+      <div class="row">
+        <div class="col-2">
           <q-img
-          :src="image.uri"
-          style="width: 150px"
-        ></q-img>
+            :src="extensionConfig.tile"
+            style="width: 100px"
+            type="image"
+          ></q-img>
+        </div>
+        <div class="col-9 q-pl-md">
+          <h3 class="q-my-sm" v-text="extensionConfig.name"></h3>
+          <h6 class="q-my-sm" v-text="extensionConfig.short_description"></h6>
+        </div>
+        <div class="col-1">
+          <q-badge color="primary" v-text="extensionConfig.license"></q-badge>
         </div>
       </div>
-      <p v-text="extensionConfig.descrition_md">
-      </p>
+      <div class="row q-my-lg">
+        <div class="col q-pr-md" v-for="image of extensionConfig.images">
+          <q-img :src="image.uri" type="image" @click="bigImage(image)"></q-img>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-9">
+          <div v-html="extensionConfig.descrition_md"></div>
+        </div>
+        <div class="col-3 q-pl-sm">
+          <b><div>Contributors</div></b>
+          <small>
+            <div v-for="contributor of extensionConfig.contributors">
+              <div
+                color="primary"
+                v-text="contributor.name + ' - ' + contributor.role"
+                type="a"
+                :href="contributor.role"
+              ></div>
+            </div>
+          </small>
+          <q-rating
+            class="q-pt-lg"
+            v-model="maxStars"
+            disable
+            size="1.5em"
+            :max="5"
+            color="primary"
+            ><q-tooltip>
+              <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
+          ></q-rating>
+        </div>
+      </div>
     </q-card>
   </q-dialog>
   <q-dialog v-model="showUpgradeDialog">
@@ -617,7 +665,10 @@
     el: '#vue',
     data: function () {
       return {
-        extensionConfig:[],
+        extensionConfig: [],
+        imageDialog: false,
+        extMore: false,
+        selectedImage: [],
         searchTerm: '',
         tab: 'all',
         filteredExtensions: null,
@@ -1017,12 +1068,20 @@
             this.g.user.wallets[0].inkey
           )
           this.extensionConfig = data
-          console.log(this.extensionConfig)
+          this.extensionConfig['descrition_md'] = LNbits.utils.convertMarkdown(
+            this.extensionConfig['descrition_md']
+          )
           this.extMore = true
         } catch (error) {
-          console.warn(error)
-          LNbits.utils.notifyApiError(error)
+          this.$q.notify({
+            message: 'Extended description not set in extension repo'
+          })
         }
+      },
+      bigImage: function (image) {
+        this.selectedImage = image
+        console.log(this.selectedImage)
+        this.imageDialog = true
       }
     },
     created: function () {
