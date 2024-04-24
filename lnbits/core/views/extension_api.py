@@ -1,11 +1,10 @@
-import json
-import httpx
 from http import HTTPStatus
 from typing import (
     List,
     Optional,
 )
 
+import httpx
 from bolt11 import decode as bolt11_decode
 from fastapi import (
     APIRouter,
@@ -193,15 +192,17 @@ async def get_extension_releases(ext_id: str):
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
         ) from exc
 
+
 @extension_router.get("/{ext_id}/details")
 async def get_extension_details(path: str):
     logger.debug("https://raw.githubusercontent.com" + path + "/main/config.json")
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get("https://raw.githubusercontent.com" + path + "/main/config.json")
+            resp = await client.get(
+                "https://raw.githubusercontent.com" + path + "/main/config.json"
+            )
             resp.raise_for_status()
             respJson = resp.json()
-            logger.debug(respJson["descrition_md"])
             descrition_md = await client.get(respJson["descrition_md"])
             respJson["descrition_md"] = descrition_md.text
             logger.debug(descrition_md)
@@ -210,6 +211,7 @@ async def get_extension_details(path: str):
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
         ) from e
+
 
 @extension_router.put("/invoice", dependencies=[Depends(check_admin)])
 async def get_extension_invoice(data: CreateExtension):
