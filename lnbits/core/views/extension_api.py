@@ -182,9 +182,6 @@ async def get_extension_releases(ext_id: str):
             payment_info = installed_ext.find_existing_payment(release.pay_link)
             if payment_info:
                 release.paid_sats = payment_info.amount
-
-        pleasework = await InstallableExtension.get_extension_releases(ext_id)
-
         return extension_releases
 
     except Exception as exc:
@@ -202,11 +199,11 @@ async def get_extension_details(path: str):
                 "https://raw.githubusercontent.com" + path + "/main/config.json"
             )
             resp.raise_for_status()
-            respJson = resp.json()
-            descrition_md = await client.get(respJson["descrition_md"])
-            respJson["descrition_md"] = descrition_md.text
+            respjson = resp.json()
+            descrition_md = await client.get(respjson["descrition_md"])
+            respjson["descrition_md"] = descrition_md.text
             logger.debug(descrition_md)
-            return respJson
+            return respjson
     except Exception as e:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
