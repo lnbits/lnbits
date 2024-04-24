@@ -31,7 +31,8 @@ Vue.component('lnbits-funding-sources', {
           'CoreLightningWallet',
           'Core Lightning',
           {
-            corelightning_rpc: 'Endpoint'
+            corelightning_rpc: 'Endpoint',
+            corelightning_pay_command: 'Custom Pay Command'
           }
         ],
         [

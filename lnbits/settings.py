@@ -164,6 +164,7 @@ class ClicheFundingSource(LNbitsSettings):
 
 class CoreLightningFundingSource(LNbitsSettings):
     corelightning_rpc: Optional[str] = Field(default=None)
+    corelightning_pay_command: str = Field(default="pay")
     clightning_rpc: Optional[str] = Field(default=None)
 
 
