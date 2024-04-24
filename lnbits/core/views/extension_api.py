@@ -173,7 +173,6 @@ async def get_extension_releases(ext_id: str):
         extension_releases: List[ExtensionRelease] = (
             await InstallableExtension.get_extension_releases(ext_id)
         )
-        logger.debug(extension_releases[0].repo)
         installed_ext = await get_installed_extension(ext_id)
         if not installed_ext:
             return extension_releases
@@ -192,7 +191,6 @@ async def get_extension_releases(ext_id: str):
 
 @extension_router.get("/{ext_id}/details")
 async def get_extension_details(path: str):
-    logger.debug("https://raw.githubusercontent.com" + path + "/main/config.json")
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
@@ -202,7 +200,6 @@ async def get_extension_details(path: str):
             respjson = resp.json()
             descrition_md = await client.get(respjson["descrition_md"])
             respjson["descrition_md"] = descrition_md.text
-            logger.debug(descrition_md)
             return respjson
     except Exception as e:
         raise HTTPException(
