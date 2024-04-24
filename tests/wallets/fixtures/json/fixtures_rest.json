@@ -1888,14 +1888,8 @@
                             ]
                         },
                         "lnbits": {
-                            "get_invoice_status_endpoint": [
-                                {
-                                    "response_type": "json",
-                                    "response": {
-                                        "mock": "no invoice relevant data"
-                                    }
-                                }
-                            ]
+                            "description": "lnbits.py doesn't handle the 'failed' status for `get_invoice_status`",
+                            "get_invoice_status_endpoint": []
                         }
                     }
                 },
@@ -2048,8 +2042,6 @@
                             "get_invoice_status_endpoint": [
                                 {
                                     "description": "no data",
-                                    "description1": "this returns failed status, not sure that should be the case",
-                                    "skip": true,
                                     "response_type": "json",
                                     "response": {}
                                 },
