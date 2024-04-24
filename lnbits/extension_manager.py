@@ -24,6 +24,9 @@ class ExplicitRelease(BaseModel):
     archive: str
     hash: str
     dependencies: List[str] = []
+    images: List[str] = []
+    contributors: List[str] = []
+    description_md: Optional[str]
     repo: Optional[str]
     icon: Optional[str]
     short_description: Optional[str]
@@ -191,6 +194,8 @@ class Extension(NamedTuple):
     is_admin_only: bool
     name: Optional[str] = None
     short_description: Optional[str] = None
+    description_md: Optional[str] = None
+    images: List[str] = []
     tile: Optional[str] = None
     contributors: Optional[List[str]] = None
     hidden: bool = False
@@ -256,6 +261,8 @@ class ExtensionManager:
                     is_admin_only,
                     config.get("name"),
                     config.get("short_description"),
+                    config.get("description_md"),
+                    config.get("images"),
                     config.get("tile"),
                     config.get("contributors"),
                     config.get("hidden") or False,
@@ -354,7 +361,10 @@ class InstallableExtension(BaseModel):
     id: str
     name: str
     short_description: Optional[str] = None
-    icon: Optional[str] = None
+    description_md: Optional[str] = None
+    images: List[str] = []
+    tile: Optional[str] = None
+    contributors: Optional[List[str]] = None
     dependencies: List[str] = []
     is_admin_only: bool = False
     stars: int = 0
@@ -363,6 +373,7 @@ class InstallableExtension(BaseModel):
     installed_release: Optional[ExtensionRelease] = None
     payments: List[ReleasePaymentInfo] = []
     archive: Optional[str] = None
+
 
     @property
     def hash(self) -> str:

@@ -136,12 +136,16 @@ async def extensions_install(
         all_ext_ids = [ext.code for ext in all_extensions]
         inactive_extensions = await get_inactive_extensions()
         db_version = await get_dbversions()
+        logger.debug(all_extensions)
         extensions = [
             {
                 "id": ext.id,
                 "name": ext.name,
                 "icon": ext.icon,
                 "shortDescription": ext.short_description,
+                "extendedDescription": ext.description_md or None,
+                "immages": ext.images or None,
+                "contributors": ext.contributors or None,
                 "stars": ext.stars,
                 "isFeatured": ext.featured,
                 "dependencies": ext.dependencies,
