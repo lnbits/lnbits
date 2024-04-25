@@ -127,6 +127,10 @@ class PhoenixdWallet(Wallet):
         data = r.json()
         logger.info(f"pay_invoice data: {data}")
 
+        if "routingFeeSat" not in data:
+            error_message = data["reason"] if "reason" in data else r.text
+            return PaymentResponse(False, None, None, None, error_message)
+
         checking_id = data["paymentHash"]
         fee_msat = -int(data["routingFeeSat"])
         preimage = data["paymentPreimage"]
