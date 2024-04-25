@@ -191,9 +191,21 @@ class PhoenixdWallet(Wallet):
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        # todo: why not use the outgoing enpoint?
-        # https://phoenix.acinq.co/server/api#get-outgoing-payment
-        return await self.get_invoice_status(checking_id)
+        try:
+            r = await self.client.get(f"/payments/outgoing/{checking_id}")
+            if r.is_error:
+                return PaymentPendingStatus()
+            data = r.json()
+
+            if data["isPaid"]:
+                fee_msat = data["fees"]
+                preimage = data["preimage"]
+                return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
+
+            return PaymentPendingStatus()
+        except Exception as e:
+            logger.error(f"Error getting invoice status: {e}")
+            return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
