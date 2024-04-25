@@ -60,6 +60,9 @@ class PhoenixdWallet(Wallet):
             r.raise_for_status()
             data = r.json()
 
+            if len(data) == 0:
+                return StatusResponse("no data", 0)
+
             if r.is_error or "channels" not in data:
                 error_message = data["message"] if "message" in data else r.text
                 return StatusResponse(f"Server error: '{error_message}'", 0)
@@ -188,6 +191,8 @@ class PhoenixdWallet(Wallet):
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        # todo: why not use the outgoing enpoint?
+        # https://phoenix.acinq.co/server/api#get-outgoing-payment
         return await self.get_invoice_status(checking_id)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

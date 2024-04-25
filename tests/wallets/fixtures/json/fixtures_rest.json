@@ -304,6 +304,14 @@
                                     "response": {}
                                 }
                             ]
+                        },
+                        "phoenixd": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {}
+                                }
+                            ]
                         }
                     }
                 },
@@ -348,6 +356,14 @@
                             ]
                         },
                         "lnbits": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                }
+                            ]
+                        },
+                        "phoenixd": {
                             "status_endpoint": [
                                 {
                                     "response_type": "data",
@@ -410,6 +426,17 @@
                             ]
                         },
                         "lnbits": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "phoenixd": {
                             "status_endpoint": [
                                 {
                                     "response_type": "response",
@@ -1423,7 +1450,8 @@
                                 ]
                             }
                         ],
-                        "lnbits": []
+                        "lnbits": [],
+                        "phoenixd": []
                     }
                 },
                 {
@@ -2415,6 +2443,17 @@
                         },
                         "method": "GET"
                     }
+                },
+                "phoenixd": {
+                    "get_payment_status_endpoint": {
+                        "description": "todo: use the outgoing enpoint",
+                        "uri": "/payments/incoming/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "headers": {
+                            "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
                 }
             },
             "tests": [
@@ -2508,6 +2547,18 @@
                                     }
                                 }
                             ]
+                        },
+                        "phoenixd": {
+                            "get_payment_status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "isPaid": true,
+                                        "fees": 1000,
+                                        "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -2584,6 +2635,10 @@
                         },
                         "lnbits": {
                             "get_payment_status_endpoint": []
+                        },
+                        "phoenixd": {
+                            "description": "phoenixd.py doesn't handle the 'failed' status for `get_invoice_status`",
+                            "get_invoice_status_endpoint": []
                         }
                     }
                 },
@@ -2798,6 +2853,42 @@
                                     "response_type": "json",
                                     "response": {
                                         "paid": true
+                                    }
+                                },
+                                {
+                                    "description": "bad json",
+                                    "response_type": "data",
+                                    "response": "data-not-json"
+                                },
+                                {
+                                    "description": "http 404",
+                                    "response_type": "response",
+                                    "response": {
+                                        "response": "Not Found",
+                                        "status": 404
+                                    }
+                                }
+                            ]
+                        },
+                        "phoenixd": {
+                            "get_invoice_status_endpoint": [
+                                {
+                                    "description": "no data",
+                                    "response_type": "json",
+                                    "response": {}
+                                },
+                                {
+                                    "description": "not paid",
+                                    "response_type": "json",
+                                    "response": {
+                                        "isPaid": false
+                                    }
+                                },
+                                {
+                                    "description": "paid and missing data",
+                                    "response_type": "json",
+                                    "response": {
+                                        "isPaid": true
                                     }
                                 },
                                 {
