@@ -186,8 +186,9 @@ else:
             invoice = lnbits_bolt11.decode(bolt11)
 
             try:
-                req = breez_sdk.SendPaymentRequest(bolt11=bolt11)
-                payment: breez_sdk.Payment = self.sdk_services.send_payment(req)
+                send_payment_request = breez_sdk.SendPaymentRequest(bolt11=bolt11)
+                send_payment_response: breez_sdk.SendPaymentResponse = self.sdk_services.send_payment(send_payment_request)
+                payment: breez_sdk.Payment = send_payment_response.payment
             except Exception as exc:
                 logger.info(exc)
                 try:
