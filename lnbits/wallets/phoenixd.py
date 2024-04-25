@@ -85,29 +85,45 @@ class PhoenixdWallet(Wallet):
         if description_hash or unhashed_description:
             raise UnsupportedError("description_hash")
 
-        msats_amount = amount
-        data: Dict = {
-            "amountSat": f"{msats_amount}",
-            "description": memo,
-            "externalId": "",
-        }
+        try:
+            msats_amount = amount
+            data: Dict = {
+                "amountSat": f"{msats_amount}",
+                "description": memo,
+                "externalId": "",
+            }
 
-        r = await self.client.post(
-            "/createinvoice",
-            data=data,
-            timeout=40,
-        )
+            r = await self.client.post(
+                "/createinvoice",
+                data=data,
+                timeout=40,
+            )
+            r.raise_for_status()
+            data = r.json()
 
-        if r.is_error:
-            error_message = r.json()["message"]
-            return InvoiceResponse(False, None, None, error_message)
+            if r.is_error or "paymentHash" not in data:
+                error_message = data["message"]
+                return InvoiceResponse(
+                    False, None, None, f"Server error: '{error_message}'"
+                )
 
-        data = r.json()
-        # logger.info(f'data: {data}')
-
-        checking_id = data["paymentHash"]
-        payment_request = data["serialized"]
-        return InvoiceResponse(True, checking_id, payment_request, None)
+            checking_id = data["paymentHash"]
+            payment_request = data["serialized"]
+            return InvoiceResponse(True, checking_id, payment_request, None)
+        except json.JSONDecodeError:
+            return InvoiceResponse(
+                False, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, f"Unable to connect to {self.endpoint}."
+            )
 
     async def pay_invoice(
         self, bolt11_invoice: str, fee_limit_msat: int
