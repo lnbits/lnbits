@@ -15,6 +15,7 @@ from .base import (
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentSuccessStatus,
     StatusResponse,
     UnsupportedError,
     Wallet,
@@ -170,18 +171,21 @@ class PhoenixdWallet(Wallet):
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(f"/payments/incoming/{checking_id}")
-        if r.is_error:
+        try:
+            r = await self.client.get(f"/payments/incoming/{checking_id}")
+            if r.is_error:
+                return PaymentPendingStatus()
+            data = r.json()
+
+            if data["isPaid"]:
+                fee_msat = data["fees"]
+                preimage = data["preimage"]
+                return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
+
             return PaymentPendingStatus()
-        data = r.json()
-        # logger.info(f'get_invoice_status data: {data}')
-        # TODO: use invoice status similar to https://github.com/lnbits/lnbits/blob/4f118c5f98247dce8509089a8c3660099df2bff3/lnbits/wallets/zbd.py#L128
-
-        fee_msat = data["fees"]
-        preimage = data["preimage"]
-        is_paid = data["isPaid"]
-
-        return PaymentStatus(paid=is_paid, fee_msat=fee_msat, preimage=preimage)
+        except Exception as e:
+            logger.error(f"Error getting invoice status: {e}")
+            return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_invoice_status(checking_id)
