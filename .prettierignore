@@ -13,3 +13,5 @@
 **/lnbits/static/css/*
 
 flake.lock
+
+.venv
