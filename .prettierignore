@@ -11,3 +11,5 @@
 **/lnbits/static/vendor
 **/lnbits/static/bundle.*
 **/lnbits/static/css/*
+
+flake.lock
