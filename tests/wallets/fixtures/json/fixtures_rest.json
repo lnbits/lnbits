@@ -40,6 +40,14 @@
                 "lnbits_admin_key": "f171ba022a764e679eef950b21fb1c04",
                 "user_agent": "LNbits/Tests"
             }
+        },
+        "phoenixd": {
+            "wallet_class": "PhoenixdWallet",
+            "settings": {
+                "phoenixd_api_endpoint": "http://127.0.0.1:8555",
+                "phoenixd_api_password": "f171ba022a764e679eef950b21fb1c04f171ba022a764e679eef950b21fb1c04",
+                "user_agent": "LNbits/Tests"
+            }
         }
     },
     "functions": {
@@ -92,6 +100,16 @@
                         "uri": "/api/v1/wallet",
                         "headers": {
                             "X-Api-Key": "f171ba022a764e679eef950b21fb1c04",
+                            "User-Agent": "LNbits/Tests"
+                        },
+                        "method": "GET"
+                    }
+                },
+                "phoenixd": {
+                    "status_endpoint": {
+                        "uri": "/getinfo",
+                        "headers": {
+                            "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
                             "User-Agent": "LNbits/Tests"
                         },
                         "method": "GET"
@@ -157,6 +175,20 @@
                                     }
                                 }
                             ]
+                        },
+                        "phoenixd": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": {
+                                        "channels": [
+                                            {
+                                                "balanceSat": 55
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
@@ -208,6 +240,14 @@
                             ]
                         },
                         "lnbits": {
+                            "status_endpoint": [
+                                {
+                                    "response_type": "json",
+                                    "response": "test-error"
+                                }
+                            ]
+                        },
+                        "phoenixd": {
                             "status_endpoint": [
                                 {
                                     "response_type": "json",
