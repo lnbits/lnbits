@@ -4,10 +4,10 @@ title: FAQ
 nav_order: 5
 ---
 
-
 # FAQ - Frequently Asked Questions
 
 ## Install options
+
 <ul><p>LNbits is not a node management software but a ⚡️LN only accounting system on top of a funding source.</p>
 
 <details><summary>Funding my LNbits wallet from my node it doesn't work.</summary>
@@ -54,6 +54,7 @@ allow-self-payment=1
   </ul>
 
 ## Troubleshooting
+
 <ul><details><summary>Message "https error" or network error" when scanning a LNbits QR</summary>
 <p>Bad news, this is a routing error that might have quite a lot of reasons. Let´s try a few of the most possible problems and their solutions. First choose your setup</p>
   <ul>
@@ -155,7 +156,6 @@ allow-self-payment=1
   </p>
   </details>
 
-
 <details><summary>How can I use a LNbits lndhub account in other wallet apps?</summary>
   <p>Open your LNbits with the account / wallet you want to use, go to "manage extensions" and activate the <a href="https://github.com/lnbits/lndhub">LNDHUB extension</a>.</p>
   <p>Then open the LNDHUB extension, choose the wallet you want to use and scan the QR code you want to use: "admin" or "invoice only", depending on the security level you want for that wallet.</p>
@@ -166,6 +166,7 @@ allow-self-payment=1
   </ul>
 
 ## Building hardware tools
+
 <ul>  <p>LNbits has all sorts of open APIs and tools to program and connect to a lot of different devices for a gazillion of use-cases. Let us know what you did with it ! Come to the <a href="https://t.me/makerbits">Makerbits Telegram Group</a> if you are interested in building or if you need help with a project - we got you!</p>
 
 <details><summary>ATM - deposit and withdraw in your shop or at your meetup</summary>
@@ -216,6 +217,7 @@ allow-self-payment=1
   </ul>
 
 ## Use cases of LNbits
+
 <ul><details><summary>Merchant</summary>
   <p>LNbits is a powerful solution for merchants, due to the easy setup with various extensions, that can be used for many scenarios.</p>
   <p><a href="https://darthcoin.substack.com/p/lnbits-for-small-merchants">Here is an overview of the LNbits tools available for a small restaurant as well as a hotel</a></p>
@@ -262,6 +264,7 @@ allow-self-payment=1
 </ul>
 
 ## Developing for LNbits
+
  <ul>
     <li><a href="https://docs.lnbits.org/devs/development.html">Making extensions / How to use Websockets / API reference</a></li>
     <li><a href="https://t.me/lnbits">Telegram LNbits Support Group</a></li></ul>

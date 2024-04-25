@@ -5,8 +5,6 @@ title: API reference
 nav_order: 3
 ---
 
-
-API reference
-=============
+# API reference
 
 [Swagger Docs](https://legend.lnbits.com/docs)
