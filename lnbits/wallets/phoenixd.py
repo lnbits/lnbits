@@ -68,6 +68,7 @@ class PhoenixdWallet(Wallet):
                 return StatusResponse(f"Server error: '{error_message}'", 0)
 
             if len(data["channels"]) == 0:
+                # todo: add custom unit-test for this
                 return StatusResponse(None, 0)
 
             balance_msat = int(data["channels"][0]["balanceSat"]) * 1000
@@ -152,9 +153,6 @@ class PhoenixdWallet(Wallet):
             checking_id = data["paymentHash"]
             fee_msat = -int(data["routingFeeSat"])
             preimage = data["paymentPreimage"]
-
-            # TODO: use payment status similar to
-            # https://github.com/lnbits/lnbits/blob/4f118c5f98247dce8509089a8c3660099df2bff3/lnbits/wallets/eclair.py#L126
 
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
