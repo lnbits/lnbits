@@ -126,12 +126,12 @@ class PhoenixdWallet(Wallet):
             )
 
     async def pay_invoice(
-        self, bolt11_invoice: str, fee_limit_msat: int
+        self, bolt11: str, fee_limit_msat: int
     ) -> PaymentResponse:
         r = await self.client.post(
             "/payinvoice",
             data={
-                "invoice": bolt11_invoice,
+                "invoice": bolt11,
             },
             timeout=40,
         )
