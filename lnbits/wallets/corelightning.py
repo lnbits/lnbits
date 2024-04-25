@@ -40,7 +40,7 @@ class CoreLightningWallet(Wallet):
             raise ValueError(
                 "cannot initialize CoreLightningWallet: missing corelightning_rpc"
             )
-
+        self.pay = settings.corelightning_pay_command
         self.ln = LightningRpc(rpc)
         # check if description_hash is supported (from corelightning>=v0.11.0)
         command = self.ln.help("invoice")["help"][0]["command"]  # type: ignore
@@ -135,20 +135,18 @@ class CoreLightningWallet(Wallet):
                     False, None, None, None, "CLN 0 amount invoice not supported"
                 )
 
-            fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
-            # so fee_limit_percent is applied even
-            # on payments with fee < 5000 millisatoshi
-            # (which is default value of exemptfee)
+            # maxfee overrides both maxfeepercent and exemptfee defaults (and
+            # if you specify maxfee you cannot specify either of those), and
+            # creates an absolute limit on what fee we will pay. This allows you to
+            # implement your own heuristics rather than the primitive ones used
+            # here.
             payload = {
                 "bolt11": bolt11,
-                "maxfeepercent": f"{fee_limit_percent:.11}",
-                "exemptfee": 0,
-                # so fee_limit_percent is applied even on payments with fee < 5000
-                # millisatoshi (which is default value of exemptfee)
+                "maxfee": fee_limit_msat,
                 "description": invoice.description,
             }
 
-            r = await run_sync(lambda: self.ln.call("pay", payload))
+            r = await run_sync(lambda: self.ln.call(self.pay, payload))
 
             fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
             return PaymentResponse(
