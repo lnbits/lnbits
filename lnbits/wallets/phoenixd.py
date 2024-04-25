@@ -45,9 +45,7 @@ class PhoenixdWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
 
-        self.client = httpx.AsyncClient(
-            base_url=self.endpoint, auth=("", settings.phoenixd_api_password)
-        )
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
 
     async def cleanup(self):
         try:
