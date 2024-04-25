@@ -125,37 +125,49 @@ class PhoenixdWallet(Wallet):
                 False, None, None, f"Unable to connect to {self.endpoint}."
             )
 
-    async def pay_invoice(
-        self, bolt11: str, fee_limit_msat: int
-    ) -> PaymentResponse:
-        r = await self.client.post(
-            "/payinvoice",
-            data={
-                "invoice": bolt11,
-            },
-            timeout=40,
-        )
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        try:
+            r = await self.client.post(
+                "/payinvoice",
+                data={
+                    "invoice": bolt11,
+                },
+                timeout=40,
+            )
 
-        if r.is_error:
-            logger.error(f"pay_invoice error: {r.json()}")
-            error_message = r.json()["message"]
-            return PaymentResponse(False, None, None, None, error_message)
+            r.raise_for_status()
+            data = r.json()
 
-        data = r.json()
-        logger.info(f"pay_invoice data: {data}")
+            if "routingFeeSat" not in data and "reason" in data:
+                return PaymentResponse(False, None, None, None, data["reason"])
 
-        if "routingFeeSat" not in data:
-            error_message = data["reason"] if "reason" in data else r.text
-            return PaymentResponse(False, None, None, None, error_message)
+            if r.is_error or "paymentHash" not in data:
+                error_message = data["message"] if "message" in data else r.text
+                return PaymentResponse(False, None, None, None, error_message)
 
-        checking_id = data["paymentHash"]
-        fee_msat = -int(data["routingFeeSat"])
-        preimage = data["paymentPreimage"]
+            checking_id = data["paymentHash"]
+            fee_msat = -int(data["routingFeeSat"])
+            preimage = data["paymentPreimage"]
 
-        # TODO: use payment status similar to
-        # https://github.com/lnbits/lnbits/blob/4f118c5f98247dce8509089a8c3660099df2bff3/lnbits/wallets/eclair.py#L126
+            # TODO: use payment status similar to
+            # https://github.com/lnbits/lnbits/blob/4f118c5f98247dce8509089a8c3660099df2bff3/lnbits/wallets/eclair.py#L126
 
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+            return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError:
+            return PaymentResponse(
+                False, None, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as exc:
+            logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
+            return PaymentResponse(
+                False, None, None, None, f"Unable to connect to {self.endpoint}."
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"/payments/incoming/{checking_id}")
