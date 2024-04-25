@@ -40,6 +40,14 @@
         "lnbits_admin_key": "f171ba022a764e679eef950b21fb1c04",
         "user_agent": "LNbits/Tests"
       }
+    },
+    "phoenixd": {
+      "wallet_class": "PhoenixdWallet",
+      "settings": {
+        "phoenixd_api_endpoint": "http://127.0.0.1:8555",
+        "phoenixd_api_password": "f171ba022a764e679eef950b21fb1c04f171ba022a764e679eef950b21fb1c04",
+        "user_agent": "LNbits/Tests"
+      }
     }
   },
   "functions": {
@@ -92,6 +100,16 @@
             "uri": "/api/v1/wallet",
             "headers": {
               "X-Api-Key": "f171ba022a764e679eef950b21fb1c04",
+              "User-Agent": "LNbits/Tests"
+            },
+            "method": "GET"
+          }
+        },
+        "phoenixd": {
+          "status_endpoint": {
+            "uri": "/getinfo",
+            "headers": {
+              "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
               "User-Agent": "LNbits/Tests"
             },
             "method": "GET"
@@ -157,6 +175,20 @@
                   }
                 }
               ]
+            },
+            "phoenixd": {
+              "status_endpoint": [
+                {
+                  "response_type": "json",
+                  "response": {
+                    "channels": [
+                      {
+                        "balanceSat": 55
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           }
         },
@@ -214,6 +246,14 @@
                   "response": "test-error"
                 }
               ]
+            },
+            "phoenixd": {
+              "status_endpoint": [
+                {
+                  "response_type": "json",
+                  "response": "test-error"
+                }
+              ]
             }
           }
         },
@@ -264,6 +304,14 @@
                   "response": {}
                 }
               ]
+            },
+            "phoenixd": {
+              "status_endpoint": [
+                {
+                  "response_type": "json",
+                  "response": {}
+                }
+              ]
             }
           }
         },
@@ -308,6 +356,14 @@
               ]
             },
             "lnbits": {
+              "status_endpoint": [
+                {
+                  "response_type": "data",
+                  "response": "data-not-json"
+                }
+              ]
+            },
+            "phoenixd": {
               "status_endpoint": [
                 {
                   "response_type": "data",
@@ -379,6 +435,17 @@
                   }
                 }
               ]
+            },
+            "phoenixd": {
+              "status_endpoint": [
+                {
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
             }
           }
         },
@@ -441,6 +508,16 @@
             "uri": "/api/v1/payments",
             "headers": {
               "X-Api-Key": "f171ba022a764e679eef950b21fb1c04",
+              "User-Agent": "LNbits/Tests"
+            },
+            "method": "POST"
+          }
+        },
+        "phoenixd": {
+          "create_invoice_endpoint": {
+            "uri": "/createinvoice",
+            "headers": {
+              "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
               "User-Agent": "LNbits/Tests"
             },
             "method": "POST"
@@ -543,6 +620,23 @@
                   }
                 }
               ]
+            },
+            "phoenixd": {
+              "create_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "amountSat": "555000",
+                    "description": "Test Invoice",
+                    "externalId": ""
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                    "serialized": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                  }
+                }
+              ]
             }
           }
         },
@@ -621,6 +715,22 @@
                   "response_type": "json",
                   "response": {
                     "detail": "Test Error"
+                  }
+                }
+              ]
+            },
+            "phoenixd": {
+              "create_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "amountSat": "555000",
+                    "description": "Test Invoice",
+                    "externalId": ""
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "message": "Test Error"
                   }
                 }
               ]
@@ -718,6 +828,22 @@
                   }
                 }
               ]
+            },
+            "phoenixd": {
+              "create_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "amountSat": "555000",
+                    "description": "Test Invoice",
+                    "externalId": ""
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                  }
+                }
+              ]
             }
           }
         },
@@ -796,6 +922,20 @@
                     "out": false,
                     "amount": 555000,
                     "memo": "Test Invoice"
+                  },
+                  "response_type": "data",
+                  "response": "data-not-json"
+                }
+              ]
+            },
+            "phoenixd": {
+              "create_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "amountSat": "555000",
+                    "description": "Test Invoice",
+                    "externalId": ""
                   },
                   "response_type": "data",
                   "response": "data-not-json"
@@ -899,6 +1039,23 @@
                   }
                 }
               ]
+            },
+            "phoenixd": {
+              "create_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "amountSat": "555000",
+                    "description": "Test Invoice",
+                    "externalId": ""
+                  },
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
             }
           }
         },
@@ -987,6 +1144,16 @@
             },
             "method": "GET"
           }
+        },
+        "phoenixd": {
+          "pay_invoice_endpoint": {
+            "uri": "/payinvoice",
+            "headers": {
+              "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
+              "User-Agent": "LNbits/Tests"
+            },
+            "method": "POST"
+          }
         }
       },
       "tests": [
@@ -1012,7 +1179,8 @@
                   "request_type": "data",
                   "request_body": {
                     "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
-                    "maxfee": 25000
+                    "maxfeepercent": "119.04761905",
+                    "exemptfee": 0
                   },
                   "response_type": "json",
                   "response": {
@@ -1120,6 +1288,22 @@
                     "details": {
                       "fee": 50
                     }
+                  }
+                }
+              ]
+            },
+            "phoenixd": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "invoice": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                    "routingFeeSat": -50,
+                    "paymentPreimage": "0000000000000000000000000000000000000000000000000000000000000000"
                   }
                 }
               ]
@@ -1266,7 +1450,8 @@
                 ]
               }
             ],
-            "lnbits": []
+            "lnbits": [],
+            "phoenixd": []
           }
         },
         {
@@ -1291,7 +1476,8 @@
                   "request_type": "data",
                   "request_body": {
                     "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
-                    "maxfee": 25000
+                    "maxfeepercent": "119.04761905",
+                    "exemptfee": 0
                   },
                   "response_type": "json",
                   "response": {
@@ -1369,6 +1555,20 @@
                   }
                 }
               ]
+            },
+            "phoenixd": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "invoice": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "message": "Test Error"
+                  }
+                }
+              ]
             }
           }
         },
@@ -1394,7 +1594,8 @@
                   "request_type": "data",
                   "request_body": {
                     "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
-                    "maxfee": 25000
+                    "maxfeepercent": "119.04761905",
+                    "exemptfee": 0
                   },
                   "response_type": "json",
                   "response": {}
@@ -1450,7 +1651,22 @@
                 }
               ]
             },
-            "lnbits": {}
+            "lnbits": {},
+            "phoenixd": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "invoice": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                    "routingFeeSat": -50
+                  }
+                }
+              ]
+            }
           }
         },
         {
@@ -1475,7 +1691,8 @@
                   "request_type": "data",
                   "request_body": {
                     "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
-                    "maxfee": 25000
+                    "maxfeepercent": "119.04761905",
+                    "exemptfee": 0
                   },
                   "response_type": "data",
                   "response": "data-not-json"
@@ -1555,6 +1772,18 @@
                   }
                 }
               ]
+            },
+            "phoenixd": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "invoice": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                  },
+                  "response_type": "data",
+                  "response": "data-not-json"
+                }
+              ]
             }
           }
         },
@@ -1580,7 +1809,8 @@
                   "request_type": "data",
                   "request_body": {
                     "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
-                    "maxfee": 25000
+                    "maxfeepercent": "119.04761905",
+                    "exemptfee": 0
                   },
                   "response_type": "response",
                   "response": {
@@ -1669,6 +1899,21 @@
                   "response": {}
                 }
               ]
+            },
+            "phoenixd": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "invoice": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                  },
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
             }
           }
         },
@@ -1742,6 +1987,16 @@
             "uri": "/api/v1/payments/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
             "headers": {
               "X-Api-Key": "f171ba022a764e679eef950b21fb1c04",
+              "User-Agent": "LNbits/Tests"
+            },
+            "method": "GET"
+          }
+        },
+        "phoenixd": {
+          "get_invoice_status_endpoint": {
+            "uri": "/payments/incoming/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+            "headers": {
+              "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
               "User-Agent": "LNbits/Tests"
             },
             "method": "GET"
@@ -1829,6 +2084,18 @@
                   }
                 }
               ]
+            },
+            "phoenixd": {
+              "get_invoice_status_endpoint": [
+                {
+                  "response_type": "json",
+                  "response": {
+                    "isPaid": true,
+                    "fees": 50,
+                    "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                  }
+                }
+              ]
             }
           }
         },
@@ -1884,6 +2151,10 @@
             },
             "lnbits": {
               "description": "lnbits.py doesn't handle the 'failed' status for `get_invoice_status`",
+              "get_invoice_status_endpoint": []
+            },
+            "phoenixd": {
+              "description": "phoenixd.py doesn't handle the 'failed' status for `get_invoice_status`",
               "get_invoice_status_endpoint": []
             }
           }
@@ -2064,6 +2335,42 @@
                   }
                 }
               ]
+            },
+            "phoenixd": {
+              "get_invoice_status_endpoint": [
+                {
+                  "description": "no data",
+                  "response_type": "json",
+                  "response": {}
+                },
+                {
+                  "description": "not paid",
+                  "response_type": "json",
+                  "response": {
+                    "isPaid": false
+                  }
+                },
+                {
+                  "description": "paid and missing data",
+                  "response_type": "json",
+                  "response": {
+                    "isPaid": true
+                  }
+                },
+                {
+                  "description": "bad json",
+                  "response_type": "data",
+                  "response": "data-not-json"
+                },
+                {
+                  "description": "http 404",
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
             }
           }
         },
@@ -2132,6 +2439,17 @@
             "uri": "/api/v1/payments/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
             "headers": {
               "X-Api-Key": "f171ba022a764e679eef950b21fb1c04",
+              "User-Agent": "LNbits/Tests"
+            },
+            "method": "GET"
+          }
+        },
+        "phoenixd": {
+          "get_payment_status_endpoint": {
+            "description": "todo: use the outgoing enpoint",
+            "uri": "/payments/incoming/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+            "headers": {
+              "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
               "User-Agent": "LNbits/Tests"
             },
             "method": "GET"
@@ -2229,6 +2547,18 @@
                   }
                 }
               ]
+            },
+            "phoenixd": {
+              "get_payment_status_endpoint": [
+                {
+                  "response_type": "json",
+                  "response": {
+                    "isPaid": true,
+                    "fees": 1000,
+                    "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                  }
+                }
+              ]
             }
           }
         },
@@ -2305,6 +2635,10 @@
             },
             "lnbits": {
               "get_payment_status_endpoint": []
+            },
+            "phoenixd": {
+              "description": "phoenixd.py doesn't handle the 'failed' status for `get_invoice_status`",
+              "get_invoice_status_endpoint": []
             }
           }
         },
@@ -2519,6 +2853,42 @@
                   "response_type": "json",
                   "response": {
                     "paid": true
+                  }
+                },
+                {
+                  "description": "bad json",
+                  "response_type": "data",
+                  "response": "data-not-json"
+                },
+                {
+                  "description": "http 404",
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
+            },
+            "phoenixd": {
+              "get_invoice_status_endpoint": [
+                {
+                  "description": "no data",
+                  "response_type": "json",
+                  "response": {}
+                },
+                {
+                  "description": "not paid",
+                  "response_type": "json",
+                  "response": {
+                    "isPaid": false
+                  }
+                },
+                {
+                  "description": "paid and missing data",
+                  "response_type": "json",
+                  "response": {
+                    "isPaid": true
                   }
                 },
                 {

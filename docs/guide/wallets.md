@@ -95,7 +95,7 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 ### Phoenixd
 
 For the invoice to work you must have a publicly accessible URL in your LNbits. You can get a phoenixd API key from the install
- ~/.phoenix/phoenix.conf, also see the documentation for phoenixd.
+~/.phoenix/phoenix.conf, also see the documentation for phoenixd.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **PhoenixdWallet**
 - `PHOENIXD_API_ENDPOINT`: http://localhost:9740/
