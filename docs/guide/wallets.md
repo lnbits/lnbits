@@ -4,14 +4,11 @@ title: Backend wallets
 nav_order: 3
 ---
 
-
-Backend wallets
-===============
+# Backend wallets
 
 LNbits can run on top of many Lightning Network funding sources with more being added regularly.
 
 A backend wallet can be configured using the following LNbits environment variables:
-
 
 ### CoreLightning
 
