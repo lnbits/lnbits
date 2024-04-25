@@ -163,15 +163,12 @@ class CoreLightningRestWallet(Wallet):
         if not invoice.amount_msat or invoice.amount_msat <= 0:
             error_message = "0 amount invoices are not allowed"
             return PaymentResponse(False, None, None, None, error_message)
-        fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
         try:
             r = await self.client.post(
                 f"{self.url}/v1/pay",
                 data={
                     "invoice": bolt11,
-                    "maxfeepercent": f"{fee_limit_percent:.11}",
-                    "exemptfee": 0,  # so fee_limit_percent is applied even on payments
-                    # with fee < 5000 millisatoshi (which is default value of exemptfee)
+                    "maxfee": fee_limit_msat,
                 },
                 timeout=None,
             )
