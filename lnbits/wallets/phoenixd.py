@@ -16,7 +16,7 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    Unsupported,
+    UnsupportedError,
     Wallet,
 )
 
@@ -77,7 +77,7 @@ class PhoenixdWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         if description_hash or unhashed_description:
-            raise Unsupported("description_hash")
+            raise UnsupportedError("description_hash")
 
         msats_amount = amount
         data: Dict = {
