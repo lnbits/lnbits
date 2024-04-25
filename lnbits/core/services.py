@@ -333,6 +333,7 @@ async def pay_invoice(
             # payment.ok can be True (paid) or None (pending)!
             logger.debug(f"updating payment {temp_id}")
             async with db.connect() as conn:
+                fee = payment.fee_msat or 0 + service_fee_msat
                 await update_payment_details(
                     checking_id=temp_id,
                     status=(
@@ -340,10 +341,7 @@ async def pay_invoice(
                         if payment.ok is True
                         else PaymentState.PENDING
                     ),
-                    fee=-(
-                        abs(payment.fee_msat if payment.fee_msat else 0)
-                        + abs(service_fee_msat)
-                    ),
+                    fee=fee,
                     preimage=payment.preimage,
                     new_checking_id=payment.checking_id,
                     conn=conn,
