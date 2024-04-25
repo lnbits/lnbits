@@ -2647,7 +2647,7 @@
             },
             "phoenixd": {
               "description": "phoenixd.py doesn't handle the 'failed' status for `get_invoice_status`",
-              "get_invoice_status_endpoint": []
+              "get_payment_status_endpoint": []
             }
           }
         },
@@ -2880,7 +2880,7 @@
               ]
             },
             "phoenixd": {
-              "get_invoice_status_endpoint": [
+              "get_payment_status_endpoint": [
                 {
                   "description": "no data",
                   "response_type": "json",
