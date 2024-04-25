@@ -40,7 +40,6 @@ class CoreLightningWallet(Wallet):
             raise ValueError(
                 "cannot initialize CoreLightningWallet: missing corelightning_rpc"
             )
-        self.exemptfee = settings.corelightning_exemptfee
         self.pay = settings.corelightning_pay_command
         self.ln = LightningRpc(rpc)
         # check if description_hash is supported (from corelightning>=v0.11.0)
