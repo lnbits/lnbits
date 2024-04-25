@@ -61,12 +61,17 @@ class PhoenixdWallet(Wallet):
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
+        data = r.json()
+
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = data["message"]
             return StatusResponse(error_message, 0)
 
-        data = int(r.json()["channels"][0]["balanceSat"]) * 1000
-        return StatusResponse(None, data)
+        if len(data["channels"]) == 0:
+            return StatusResponse(None, 0)
+
+        balance_msat = int(data["channels"][0]["balanceSat"]) * 1000
+        return StatusResponse(None, balance_msat)
 
     async def create_invoice(
         self,
