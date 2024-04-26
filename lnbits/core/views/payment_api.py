@@ -52,12 +52,10 @@ from ..crud import (
     get_payments_paginated,
     get_standalone_payment,
     get_wallet_for_key,
-    update_pending_payments,
 )
 from ..services import (
     InvoiceError,
     PaymentError,
-    check_transaction_status,
     create_invoice,
     fee_reserve_total,
     pay_invoice,
@@ -79,7 +77,6 @@ async def api_payments(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(wallet.wallet.id)
     return await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
@@ -99,7 +96,6 @@ async def api_payments_history(
     group: DateTrunc = Query("day"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(wallet.wallet.id)
     return await get_payments_history(wallet.wallet.id, group, filters)
 
 
@@ -115,7 +111,6 @@ async def api_payments_paginated(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(wallet.wallet.id)
     page = await get_payments_paginated(
         wallet_id=wallet.wallet.id,
         pending=True,
@@ -416,37 +411,15 @@ async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None
     )
-    if payment is None:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
-        )
-    await check_transaction_status(payment.wallet_id, payment_hash)
-    payment = await get_standalone_payment(
-        payment_hash, wallet_id=wallet.id if wallet else None
-    )
     if not payment:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
-    elif not payment.pending:
-        if wallet and wallet.id == payment.wallet_id:
-            return {"paid": True, "preimage": payment.preimage, "details": payment}
-        return {"paid": True, "preimage": payment.preimage}
-
-    try:
-        await payment.check_status()
-    except Exception:
-        if wallet and wallet.id == payment.wallet_id:
-            return {"paid": False, "details": payment}
-        return {"paid": False}
-
-    if wallet and wallet.id == payment.wallet_id:
-        return {
-            "paid": not payment.pending,
-            "preimage": payment.preimage,
-            "details": payment,
-        }
-    return {"paid": not payment.pending, "preimage": payment.preimage}
+    return {
+        "paid": not payment.pending,
+        "preimage": payment.preimage,
+        "details": payment if wallet and wallet.id == payment.wallet_id else None,
+    }
 
 
 @payment_router.post("/decode", status_code=HTTPStatus.OK)

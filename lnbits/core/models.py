@@ -253,17 +253,15 @@ class Payment(FromRowModel):
 
         await update_payment_status(self.checking_id, pending)
 
-    async def check_status(
-        self,
-        conn: Optional[Connection] = None,
-    ) -> PaymentStatus:
-        if self.is_uncheckable:
-            return PaymentPendingStatus()
+    async def check_status(self) -> PaymentStatus:
 
         logger.debug(
             f"Checking {'outgoing' if self.is_out else 'incoming'} "
             f"pending payment {self.checking_id}"
         )
+
+        if self.is_uncheckable:
+            return PaymentPendingStatus()
 
         funding_source = get_funding_source()
         if self.is_out:
@@ -272,12 +270,6 @@ class Payment(FromRowModel):
             status = await funding_source.get_invoice_status(self.checking_id)
 
         logger.debug(f"Status: {status}")
-        if not status.pending:
-            logger.info(
-                f"Marking '{'in' if self.is_in else 'out'}' "
-                f"{self.checking_id} as not pending anymore: {status}"
-            )
-            await self.update_status(status, conn=conn)
         return status
 
 

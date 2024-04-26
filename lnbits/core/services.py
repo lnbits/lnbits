@@ -32,10 +32,7 @@ from lnbits.settings import (
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source, set_funding_source
 from lnbits.wallets.base import (
-    PaymentPendingStatus,
     PaymentResponse,
-    PaymentStatus,
-    PaymentSuccessStatus,
 )
 
 from .crud import (
@@ -577,22 +574,6 @@ async def perform_lnurlauth(
             return LnurlErrorResponse(
                 reason=r.text[:200] + "..." if len(r.text) > 200 else r.text
             )
-
-
-async def check_transaction_status(
-    wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
-) -> PaymentStatus:
-    payment: Optional[Payment] = await get_wallet_payment(
-        wallet_id, payment_hash, conn=conn
-    )
-    if not payment:
-        return PaymentPendingStatus()
-    if not payment.pending:
-        # note: before, we still checked the status of the payment again
-        return PaymentSuccessStatus(fee_msat=payment.fee)
-
-    status: PaymentStatus = await payment.check_status()
-    return status
 
 
 # WARN: this same value must be used for balance check and passed to

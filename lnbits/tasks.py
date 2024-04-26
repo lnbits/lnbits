@@ -11,7 +11,6 @@ from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
 
 from lnbits.core.crud import (
-    delete_expired_invoices,
     delete_webpush_subscriptions,
     get_payments,
     get_standalone_payment,
@@ -131,44 +130,35 @@ async def check_pending_payments():
     the backend and also to delete expired invoices. Incoming payments will be
     checked only once, outgoing pending payments will be checked regularly.
     """
-    outgoing = True
-    incoming = True
 
     while settings.lnbits_running:
-        logger.info(
-            f"Task: checking all pending payments (incoming={incoming},"
-            f" outgoing={outgoing}) of last 15 days"
-        )
+        logger.info("Task: checking all pending payments")
         start_time = time.time()
+        since = int(time.time()) - 60 * 60 * 24 * 15  # 15 days ago
         pending_payments = await get_payments(
-            since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
+            since=since,
             complete=False,
             pending=True,
-            outgoing=outgoing,
-            incoming=incoming,
+            outgoing=True,
+            incoming=True,
             exclude_uncheckable=True,
         )
         for payment in pending_payments:
-            await payment.check_status()
+            status = await payment.check_status()
+            if status.success:
+                await payment.set_pending(False)
+            elif status.failed or payment.is_expired:
+                logger.info(
+                    f"Task: setting expired payment {payment.payment_hash} to failed"
+                )
+                await payment.set_pending(True)
+
             await asyncio.sleep(0.01)  # to avoid complete blocking
 
         logger.info(
             f"Task: pending check finished for {len(pending_payments)} payments"
             f" (took {time.time() - start_time:0.3f} s)"
         )
-        # we delete expired invoices once upon the first pending check
-        if incoming:
-            logger.debug("Task: deleting all expired invoices")
-            start_time = time.time()
-            await delete_expired_invoices()
-            logger.info(
-                "Task: expired invoice deletion finished (took"
-                f" {time.time() - start_time:0.3f} s)"
-            )
-
-        # after the first check we will only check outgoing, not incoming
-        # that will be handled by the global invoice listeners, hopefully
-        incoming = False
 
         await asyncio.sleep(60 * 30)  # every 30 minutes
 

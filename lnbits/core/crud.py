@@ -751,27 +751,6 @@ async def get_payments(
     return page.data
 
 
-async def delete_expired_invoices(
-    conn: Optional[Connection] = None,
-) -> None:
-    # first we delete all invoices older than one month
-    await (conn or db).execute(
-        f"""
-        DELETE FROM apipayments
-        WHERE pending = true AND amount > 0
-          AND time < {db.timestamp_now} - {db.interval_seconds(2592000)}
-        """
-    )
-    # then we delete all invoices whose expiry date is in the past
-    await (conn or db).execute(
-        f"""
-        DELETE FROM apipayments
-        WHERE pending = true AND amount > 0
-          AND expiry < {db.timestamp_now}
-        """
-    )
-
-
 # payments
 # --------
 
@@ -899,16 +878,6 @@ async def update_payment_extra(
         f"UPDATE apipayments SET extra = ? WHERE hash = ? {amount_clause} ",
         (json.dumps(db_extra), payment_hash),
     )
-
-
-async def update_pending_payments(wallet_id: str):
-    pending_payments = await get_payments(
-        wallet_id=wallet_id,
-        pending=True,
-        exclude_uncheckable=True,
-    )
-    for payment in pending_payments:
-        await payment.check_status()
 
 
 DateTrunc = Literal["hour", "day", "month"]
