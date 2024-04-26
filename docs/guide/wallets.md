@@ -92,6 +92,15 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `ZBD_API_ENDPOINT`: https://api.zebedee.io/v0/
 - `ZBD_API_KEY`: ZBDApiKey
 
+### Phoenixd
+
+For the invoice to work you must have a publicly accessible URL in your LNbits. You can get a phoenixd API key from the install
+~/.phoenix/phoenix.conf, also see the documentation for phoenixd.
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **PhoenixdWallet**
+- `PHOENIXD_API_ENDPOINT`: http://localhost:9740/
+- `PHOENIXD_API_PASSWORD`: PhoenixdApiPassword
+
 ### Cliche Wallet
 
 - `CLICHE_ENDPOINT`: ws://127.0.0.1:12000
