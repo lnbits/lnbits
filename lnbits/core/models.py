@@ -272,38 +272,13 @@ class Payment(FromRowModel):
             status = await funding_source.get_invoice_status(self.checking_id)
 
         logger.debug(f"Status: {status}")
-
-        if self.is_in and status.pending and self.is_expired and self.expiry:
-            expiration_date = datetime.datetime.fromtimestamp(self.expiry)
-            logger.debug(
-                f"Deleting expired incoming pending payment {self.checking_id}: "
-                f"expired {expiration_date}"
-            )
-            await self.delete(conn)
-        # wait at least 15 minutes before deleting failed outgoing payments
-        elif self.is_out and status.failed:
-            if self.time + 900 < int(time.time()):
-                logger.warning(
-                    f"Deleting outgoing failed payment {self.checking_id}: {status}"
-                )
-                await self.delete(conn)
-            else:
-                logger.warning(
-                    f"Tried to delete outgoing payment {self.checking_id}: "
-                    "skipping because it's not old enough"
-                )
-        elif not status.pending:
+        if not status.pending:
             logger.info(
                 f"Marking '{'in' if self.is_in else 'out'}' "
                 f"{self.checking_id} as not pending anymore: {status}"
             )
             await self.update_status(status, conn=conn)
         return status
-
-    async def delete(self, conn: Optional[Connection] = None) -> None:
-        from .crud import delete_wallet_payment
-
-        await delete_wallet_payment(self.checking_id, self.wallet_id, conn=conn)
 
 
 class PaymentFilters(FilterModel):
