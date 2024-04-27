@@ -41,7 +41,7 @@ async def api_users_get_users(
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f"Could not fetch users. {exc}",
-        )
+        ) from exc
 
 
 @users_router.delete("/user/{user_id}", status_code=HTTPStatus.OK)
@@ -92,7 +92,7 @@ async def api_users_get_user_wallet(user_id: str) -> List[Wallet]:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f"Could not fetch user wallets. {exc}",
-        )
+        ) from exc
 
 
 @users_router.get("/user/{user_id}/wallet/{wallet}/undelete")
@@ -134,10 +134,10 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> None:
 async def api_topup_balance(data: CreateTopup) -> dict[str, str]:
     try:
         await get_wallet(data.id)
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="wallet does not exist."
-        )
+        ) from exc
 
     if settings.lnbits_backend_wallet_class == "VoidWallet":
         raise HTTPException(

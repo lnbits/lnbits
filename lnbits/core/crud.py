@@ -22,7 +22,6 @@ from lnbits.settings import (
 from .models import (
     Account,
     AccountFilters,
-    BalanceCheck,
     CreateUser,
     Payment,
     PaymentFilters,
