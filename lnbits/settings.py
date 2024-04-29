@@ -83,8 +83,13 @@ class InstalledExtensionsSettings(LNbitsSettings):
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
-    lnbits_site_description: str = Field(default=None)
+    lnbits_site_description: str = Field(
+        default="The world's most powerful suite of bitcoin tools. Run for yourself, for others, or as part of a stack."
+    )
+    lnbits_hp_elements: bool = Field(default=True)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
+    lnbits_custom_badge: str = Field(default=None)
+    lnbits_custom_badge_color: str = Field(default="warning")
     lnbits_theme_options: list[str] = Field(
         default=[
             "classic",

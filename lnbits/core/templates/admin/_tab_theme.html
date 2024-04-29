@@ -4,7 +4,7 @@
     <br />
     <div>
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-5">
           <p>Site Title</p>
           <q-input
             filled
@@ -14,7 +14,7 @@
           ></q-input>
           <br />
         </div>
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-5">
           <p>Site Tagline</p>
           <q-input
             filled
@@ -24,7 +24,15 @@
           ></q-input>
           <br />
         </div>
+        <div class="col-12 col-md-2 q-mt-xl">
+          <q-toggle
+            tip="Remove homepage elements like 'runs on' etc"
+            v-model="formData.lnbits_hp_elements"
+            :label="formData.lnbits_ad_space_enabled ? 'Enable hp elements' : 'Disable hp elements'"
+          ></q-toggle>
+        </div>
       </div>
+
       <div>
         <p>Site Description</p>
         <q-input
@@ -69,6 +77,29 @@
           <br />
         </div>
       </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-4">
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-8">
+              <q-input
+                filled
+                type="text"
+                tip="Custom Badge"
+                v-model="formData.lnbits_custom_badge"
+                label="Custom Badge 'USE WITH CAUTION - LNbits wallet is still in BETA'"
+              ></q-input>
+            </div>
+            <div class="col-12 col-md-4">
+              <q-select
+                v-model="formData.lnbits_custom_badge_color"
+                :options="colors"
+                label="Custom badge color"
+              ></q-select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <br />
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <p>Themes</p>
