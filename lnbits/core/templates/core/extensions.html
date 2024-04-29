@@ -84,7 +84,7 @@
               ></q-icon>
             </div>
           </div>
-          <div class="col-9 q-pl-sm" >
+          <div class="col-9 q-pl-sm">
             <q-badge
               v-if="hasNewVersion(extension)"
               color="green"
@@ -391,7 +391,13 @@
             ><q-tooltip>
               <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
           ></q-rating>
-          <q-btn size="xs" color="primary" :label="extensionConfig.repo" type="a" :href="extensionConfig.repo"></q-btn>
+          <q-btn
+            size="xs"
+            color="primary"
+            :label="extensionConfig.repo"
+            type="a"
+            :href="extensionConfig.repo"
+          ></q-btn>
         </div>
       </div>
     </q-card>
@@ -1078,8 +1084,7 @@
           this.extensionConfig = extension
           this.extensionConfig['extendedDescription'] =
             LNbits.utils.convertMarkdown(data)
-          this.extensionConfig['repo'] =
-            extension.latestRelease.repo
+          this.extensionConfig['repo'] = extension.latestRelease.repo
           console.log(this.extensionConfig['latestRelease']['repo'])
           this.extMore = true
         } catch (error) {

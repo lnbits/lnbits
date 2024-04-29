@@ -195,7 +195,6 @@ async def get_extension_details(path: str):
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(path)
-            logger.debug(resp.text)
             resp.raise_for_status()
             return resp.text
     except Exception as e:
