@@ -84,7 +84,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
     lnbits_site_description: str = Field(
-        default="The world's most powerful suite of bitcoin tools. Run for yourself, for others, or as part of a stack."
+        default="The world's most powerful suite of bitcoin tools."
     )
     lnbits_hp_elements: bool = Field(default=True)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
