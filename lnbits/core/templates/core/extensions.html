@@ -60,7 +60,7 @@
     :key="extension.id + extension.hash"
   >
     <q-card>
-      <q-card-section style="min-height: 140px" class="q-pb-none">
+      <q-card-section style="min-height: 170px" class="q-pb-none">
         <div class="row">
           <div class="col-3">
             <q-img
@@ -84,7 +84,7 @@
               ></q-icon>
             </div>
           </div>
-          <div class="col-9 q-pl-sm">
+          <div class="col-9 q-pl-sm" >
             <q-badge
               v-if="hasNewVersion(extension)"
               color="green"
@@ -101,7 +101,6 @@
             ></div>
             <div
               class="text-h5 gt-sm q-mt-sm q-mb-xs lt-md"
-              style="min-height: 60px"
               v-text="extension.name"
             ></div>
             <div
@@ -119,6 +118,7 @@
               v-text="extension.shortDescription"
             ></div>
             <q-btn
+              v-if="extension.extendedDescription"
               @click="getExtensionConfig(extension)"
               flat
               dense
@@ -355,10 +355,10 @@
       </div>
       <div class="row q-my-lg">
         <div class="col q-pr-md" v-for="image of extensionConfig.images">
-          <q-img 
+          <q-img
             style="cursor: pointer"
-            :src="image.uri" 
-            type="image" 
+            :src="image.uri"
+            type="image"
             @click="bigImage(image)"
             loading="lazy"
           ></q-img>
@@ -390,6 +390,7 @@
             ><q-tooltip>
               <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
           ></q-rating>
+          <q-badge color="primary" v-text="repo" type="a" :src="extensionConfig.repo"></q-badge>
         </div>
       </div>
     </q-card>
@@ -1074,7 +1075,8 @@
             this.g.user.wallets[0].inkey
           )
           this.extensionConfig = extension
-          this.extensionConfig['extendedDescription'] = LNbits.utils.convertMarkdown(data)
+          this.extensionConfig['extendedDescription'] =
+            LNbits.utils.convertMarkdown(data)
           console.log(this.extensionConfig)
           this.extMore = true
         } catch (error) {

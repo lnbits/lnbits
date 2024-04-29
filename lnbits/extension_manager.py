@@ -193,6 +193,8 @@ class Extension(NamedTuple):
     short_description: Optional[str] = None
     description_md: Optional[str] = None
     images: List[str] = []
+    license: Optional[str] = None
+    repo: Optional[str] = None
     tile: Optional[str] = None
     contributors: Optional[List[str]] = None
     hidden: bool = False
@@ -260,6 +262,8 @@ class ExtensionManager:
                     config.get("short_description"),
                     config.get("description_md"),
                     config.get("images"),
+                    config.get("license"),
+                    config.get("repo"),
                     config.get("tile"),
                     config.get("contributors"),
                     config.get("hidden") or False,
@@ -361,6 +365,8 @@ class InstallableExtension(BaseModel):
     icon: Optional[str] = None
     description_md: Optional[str] = None
     images: List[str] = []
+    license: Optional[str] = None
+    repo: Optional[str] = None
     tile: Optional[str] = None
     contributors: Optional[List[str]] = None
     dependencies: List[str] = []
@@ -371,7 +377,6 @@ class InstallableExtension(BaseModel):
     installed_release: Optional[ExtensionRelease] = None
     payments: List[ReleasePaymentInfo] = []
     archive: Optional[str] = None
-
 
     @property
     def hash(self) -> str:

@@ -104,6 +104,7 @@ async def extensions_install(
                 e.name = installed_ext.name
                 e.short_description = installed_ext.short_description
                 e.icon = installed_ext.icon
+                e.repo = installed_ext.repo
     except Exception as ex:
         logger.warning(ex)
         installable_exts = []
@@ -141,6 +142,7 @@ async def extensions_install(
                 ext.description_md = matching_ext.description_md
                 ext.contributors = matching_ext.contributors
                 ext.images = matching_ext.images
+                ext.license = matching_ext.license
 
         extensions = [
             {
@@ -149,7 +151,11 @@ async def extensions_install(
                 "icon": ext.icon,
                 "shortDescription": ext.short_description,
                 "images": ext.images if ext.images else None,
-                "extendedDescription": ext.description_md if ext.description_md else None,
+                "license": ext.license if ext.license else None,
+                "repo": ext.repo if ext.repo else None,
+                "extendedDescription": (
+                    ext.description_md if ext.description_md else None
+                ),
                 "contributors": ext.contributors if ext.contributors else None,
                 "stars": ext.stars,
                 "isFeatured": ext.featured,
