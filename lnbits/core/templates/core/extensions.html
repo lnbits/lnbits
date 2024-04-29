@@ -122,6 +122,7 @@
               @click="getExtensionConfig(extension)"
               flat
               dense
+              size="sm"
               v-if="g.user.admin"
               :label="$t('more')"
               ><q-tooltip><span v-text="$t('more_details')"></span></q-tooltip>
@@ -356,7 +357,7 @@
       <div class="row q-my-lg">
         <div class="col q-pr-md" v-for="image of extensionConfig.images">
           <q-img
-            style="cursor: pointer"
+            style="cursor: pointer; max-height: 130px"
             :src="image.uri"
             type="image"
             @click="bigImage(image)"
@@ -381,7 +382,7 @@
             </div>
           </small>
           <q-rating
-            class="q-pt-lg"
+            class="q-py-lg"
             v-model="maxStars"
             disable
             size="1.5em"
@@ -390,7 +391,7 @@
             ><q-tooltip>
               <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
           ></q-rating>
-          <q-badge color="primary" v-text="repo" type="a" :src="extensionConfig.repo"></q-badge>
+          <q-btn size="xs" color="primary" :label="extensionConfig.repo" type="a" :href="extensionConfig.repo"></q-btn>
         </div>
       </div>
     </q-card>
@@ -1077,7 +1078,9 @@
           this.extensionConfig = extension
           this.extensionConfig['extendedDescription'] =
             LNbits.utils.convertMarkdown(data)
-          console.log(this.extensionConfig)
+          this.extensionConfig['repo'] =
+            extension.latestRelease.repo
+          console.log(this.extensionConfig['latestRelease']['repo'])
           this.extMore = true
         } catch (error) {
           this.$q.notify({
