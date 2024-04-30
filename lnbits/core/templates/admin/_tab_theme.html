@@ -4,7 +4,7 @@
     <br />
     <div>
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-5">
           <p>Site Title</p>
           <q-input
             filled
@@ -14,7 +14,7 @@
           ></q-input>
           <br />
         </div>
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-5">
           <p>Site Tagline</p>
           <q-input
             filled
@@ -24,7 +24,15 @@
           ></q-input>
           <br />
         </div>
+        <div class="col-12 col-md-2 q-mt-xl">
+          <q-toggle
+            tip="Remove homepage elements like 'runs on' etc"
+            v-model="formData.LNBITS_SHOW_HOME_PAGE_ELEMENTS"
+            :label="formData.LNBITS_SHOW_HOME_PAGE_ELEMENTS ? 'Enable elements on homepage' : 'Disable elements on homepage'"
+          ></q-toggle>
+        </div>
       </div>
+
       <div>
         <p>Site Description</p>
         <q-input
@@ -44,7 +52,6 @@
             v-model="formData.lnbits_default_wallet_name"
             label="LNbits wallet"
           ></q-input>
-          <br />
         </div>
         <div class="col-12 col-md-4">
           <p>Denomination</p>
@@ -55,7 +62,6 @@
             label="sats"
             hint="The name for the FakeWallet token"
           ></q-input>
-          <br />
         </div>
         <div class="col-12 col-md-4">
           <p>QR code logo</p>
@@ -66,9 +72,33 @@
             label="https://example.com/image.svg"
             hint="URL to logo image in QR code"
           ></q-input>
-          <br />
         </div>
       </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-4">
+          <p>Custom Badge</p>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-8">
+              <q-input
+                filled
+                type="text"
+                tip="Custom Badge"
+                v-model="formData.lnbits_custom_badge"
+                label="Custom Badge 'USE WITH CAUTION - LNbits wallet is still in BETA'"
+              ></q-input>
+            </div>
+            <div class="col-12 col-md-4">
+              <q-select
+                filled
+                v-model="formData.lnbits_custom_badge_color"
+                :options="colors"
+                label="Custom badge color"
+              ></q-select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <br />
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <p>Themes</p>
