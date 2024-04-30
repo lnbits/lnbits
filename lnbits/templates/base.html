@@ -68,7 +68,7 @@
           </q-badge>
           {%endif%}
           <q-badge
-            v-if="'{{LNBITS_CUSTOM_BADGE}}' != ''"
+            v-if="'{{LNBITS_CUSTOM_BADGE}}' && '{{LNBITS_CUSTOM_BADGE}}' != 'None'"
             v-show="$q.screen.gt.sm"
             color="{{ LNBITS_CUSTOM_BADGE_COLOR }}"
             class="q-mr-md"
