@@ -61,8 +61,8 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["LNBITS_SHOW_HOME_PAGE_ELEMENTS"] = (
         settings.LNBITS_SHOW_HOME_PAGE_ELEMENTS
     )
-    t.env.globals["LNIBITS_CUSTOM_BADGE"] = settings.lnbits_custom_badge
-    t.env.globals["LNIBITS_CUSTOM_BADGE_COLOR"] = settings.lnbits_custom_badge_color
+    t.env.globals["LNBITS_CUSTOM_BADGE"] = settings.lnbits_custom_badge
+    t.env.globals["LNBITS_CUSTOM_BADGE_COLOR"] = settings.lnbits_custom_badge_color
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.lnbits_theme_options
     t.env.globals["LNBITS_QR_LOGO"] = settings.lnbits_qr_logo
     t.env.globals["LNBITS_VERSION"] = settings.version

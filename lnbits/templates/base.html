@@ -68,11 +68,11 @@
           </q-badge>
           {%endif%}
           <q-badge
-            v-if="'{{LNIBITS_CUSTOM_BADGE}}' != ''"
+            v-if="'{{LNBITS_CUSTOM_BADGE}}' != ''"
             v-show="$q.screen.gt.sm"
-            color="{{ LNIBITS_CUSTOM_BADGE_COLOR }}"
+            color="{{ LNBITS_CUSTOM_BADGE_COLOR }}"
             class="q-mr-md"
-            label="{{LNIBITS_CUSTOM_BADGE}}"
+            label="{{LNBITS_CUSTOM_BADGE}}"
           >
           </q-badge>
           {% if LNBITS_SERVICE_FEE > 0 %}
