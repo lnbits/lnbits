@@ -8,15 +8,15 @@
   ></div>
   <div v-else class="col-12 col-md-4 col-lg-4 q-gutter-y-md">
     <div class="gt-sm">
-      <h3 class="q-my-none" v-if="'{{LNBITS_HP_ELEMENTS}}' == 'True'">
+      <h3 class="q-my-none" v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'">
         {{SITE_TITLE}}
       </h3>
-      <h5 class="q-my-md" v-if="'{{LNBITS_HP_ELEMENTS}}' == 'True'">
+      <h5 class="q-my-md" v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'">
         {{SITE_TAGLINE}}
       </h5>
       <div
         v-html="formatDescription"
-        v-if="'{{LNBITS_HP_ELEMENTS}}' == 'True'"
+        v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
       ></div>
     </div>
     {% if lnurl and LNBITS_NEW_ACCOUNTS_ALLOWED and ("user-id-only" in
@@ -310,7 +310,7 @@
   </div>
 
   <div
-    v-if="'{{LNBITS_HP_ELEMENTS}}' == 'False'"
+    v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'False'"
     class="col-12 col-md-5 col-lg-5 q-pt-xl"
   >
     <h3 class="q-my-none">{{SITE_TITLE}}</h3>
@@ -544,7 +544,7 @@
 </div>
 {% endif %}
 
-<div v-if="'{{LNBITS_HP_ELEMENTS}}' == 'True'" class="row gt-sm q-mt-xl">
+<div v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'" class="row gt-sm q-mt-xl">
   <div class="col-1"></div>
   <div class="col-10 q-pl-xl">
     <span v-text="$t('lnbits_description')"></span>
