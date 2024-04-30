@@ -63,12 +63,12 @@
           <q-badge
             v-text="$t('voidwallet_active')"
             color="red"
-            text-color="black"
             class="q-mr-md gt-md"
           >
           </q-badge>
           {%endif%}
           <q-badge
+            v-if="'{{LNIBITS_CUSTOM_BADGE}}' != ''"
             v-show="$q.screen.gt.sm"
             color="{{ LNIBITS_CUSTOM_BADGE_COLOR }}"
             class="q-mr-md"
