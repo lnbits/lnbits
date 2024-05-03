@@ -44,6 +44,18 @@ new Vue({
       isSuperUser: false,
       wallet: {},
       cancel: {},
+      colors: [
+        'primary',
+        'secondary',
+        'accent',
+        'positive',
+        'negative',
+        'info',
+        'warning',
+        'red',
+        'yellow',
+        'orange'
+      ],
       topUpDialog: {
         show: false
       },
