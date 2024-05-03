@@ -216,7 +216,10 @@ class PhoenixdWallet(Wallet):
                     while settings.lnbits_running:
                         message = await ws.recv()
                         message_json = json.loads(message)
-                        if message_json and message_json["type"] == "payment-received":
+                        if (
+                            message_json
+                            and message_json.get("type") == "payment_received"
+                        ):
                             logger.info(
                                 f'payment-received: {message_json["paymentHash"]}'
                             )
