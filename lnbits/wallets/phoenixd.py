@@ -189,6 +189,7 @@ class PhoenixdWallet(Wallet):
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        # TODO: how can we detect a failed payment?
         try:
             r = await self.client.get(f"/payments/outgoing/{checking_id}")
             if r.is_error:
