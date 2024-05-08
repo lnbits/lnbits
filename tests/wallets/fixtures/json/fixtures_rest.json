@@ -2643,7 +2643,17 @@
               ]
             },
             "lnbits": {
-              "get_payment_status_endpoint": []
+              "get_payment_status_endpoint": [
+                {
+                  "response_type": "json",
+                  "response": {
+                    "paid": false,
+                    "failed": true,
+                    "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "details": {}
+                  }
+                }
+              ]
             },
             "phoenixd": {
               "description": "phoenixd.py doesn't handle the 'failed' status for `get_invoice_status`",
