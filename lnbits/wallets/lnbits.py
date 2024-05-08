@@ -120,7 +120,7 @@ class LNbitsWallet(Wallet):
 
             if r.is_error or "payment_hash" not in data:
                 error_message = data["detail"] if "detail" in data else r.text
-                return PaymentResponse(False, None, None, None, error_message)
+                return PaymentResponse(None, None, None, None, error_message)
 
             checking_id = data["payment_hash"]
 
@@ -133,17 +133,17 @@ class LNbitsWallet(Wallet):
             )
         except json.JSONDecodeError:
             return PaymentResponse(
-                False, None, None, None, "Server error: 'invalid json response'"
+                None, None, None, None, "Server error: 'invalid json response'"
             )
         except KeyError:
             return PaymentResponse(
-                False, None, None, None, "Server error: 'missing required fields'"
+                None, None, None, None, "Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                False, None, None, None, f"Unable to connect to {self.endpoint}."
+                None, None, None, None, f"Unable to connect to {self.endpoint}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

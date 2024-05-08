@@ -129,7 +129,7 @@ class AlbyWallet(Wallet):
 
             if r.is_error:
                 error_message = data["message"] if "message" in data else r.text
-                return PaymentResponse(False, None, None, None, error_message)
+                return PaymentResponse(None, None, None, None, error_message)
 
             checking_id = data["payment_hash"]
             # todo: confirm with bitkarrot that having the minus is fine
@@ -141,18 +141,18 @@ class AlbyWallet(Wallet):
         except KeyError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                False, None, None, None, "Server error: 'missing required fields'"
+                None, None, None, None, "Server error: 'missing required fields'"
             )
         except json.JSONDecodeError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                False, None, None, None, "Server error: 'invalid json response'"
+                None, None, None, None, "Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                False, None, None, None, f"Unable to connect to {self.endpoint}."
+                None, None, None, None, f"Unable to connect to {self.endpoint}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
