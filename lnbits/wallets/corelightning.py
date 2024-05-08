@@ -167,7 +167,6 @@ class CoreLightningWallet(Wallet):
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
-            print("#### 123")
             return PaymentResponse(None, None, None, None, f"Payment failed: '{exc}'.")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
