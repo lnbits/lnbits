@@ -226,13 +226,23 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     cancel_invoice(preimage_hash)
 
     response = await task
-    assert response.status_code > 300  # should error
+    assert response.status_code == 201, "Payment created, but not settled"
 
-    await asyncio.sleep(1)
+    response = await client.get(
+        f"/api/v1/payments/{preimage_hash}",
+        headers=adminkey_headers_from,
+    )
 
-    # payment should not be in database anymore
-    payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
-    assert payment_db_after_settlement is None
+    assert response.status_code == 200, "Payment found"
+    data = response.json()
+    assert data["details"]["failed"] is True, "Payment expected to fail"
+
+    # TODO: to be updated after the failed status is explicit
+    # await asyncio.sleep(1)
+
+    # # payment should not be in database anymore
+    # payment_db_after_settlement=await get_standalone_payment(invoice_obj.payment_hash)
+    # assert payment_db_after_settlement is None
 
 
 @pytest.mark.asyncio

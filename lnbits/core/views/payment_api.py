@@ -434,7 +434,7 @@ async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
         return {"paid": True, "preimage": payment.preimage}
 
     try:
-        await payment.check_status()
+        status = await payment.check_status()
     except Exception:
         if wallet and wallet.id == payment.wallet_id:
             return {"paid": False, "details": payment}
@@ -443,6 +443,7 @@ async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
     if wallet and wallet.id == payment.wallet_id:
         return {
             "paid": not payment.pending,
+            "failed": status.failed,
             "preimage": payment.preimage,
             "details": payment,
         }
