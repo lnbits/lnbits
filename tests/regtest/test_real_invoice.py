@@ -151,7 +151,7 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     assert payment_pending.pending is True
 
     # check the outgoing payment status
-    await payment.check_status()
+    await payment.refresh_status()
 
     payment_not_pending = await get_standalone_payment(invoice["payment_hash"])
     assert payment_not_pending
@@ -274,7 +274,7 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     assert payment_db_after_settlement is not None
 
     # status should still be available and be False
-    status = await payment_db.check_status()
+    status = await payment_db.refresh_status()
     assert not status.paid
 
     # now the payment should be gone after the status check
@@ -292,7 +292,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     """
     1. We create a real invoice
     2. We pay it from our wallet
-    3. We check that the inoice was paid with the backend
+    3. We check that the invoice was paid with the backend
     4. We set the invoice to pending in the database
     5. We recheck the state of the invoice with the backend
     6. We verify that the invoice is now marked as paid in the database
@@ -342,7 +342,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     assert payment_pending.pending is True
 
     # check the incoming payment status
-    await payment.check_status()
+    await payment.refresh_status()
 
     payment_not_pending = await get_standalone_payment(
         invoice["payment_hash"], incoming=True

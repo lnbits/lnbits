@@ -59,6 +59,7 @@ from ..services import (
     create_invoice,
     fee_reserve_total,
     pay_invoice,
+    refresh_payments_status,
 )
 from ..tasks import api_invoice_listeners
 
@@ -77,12 +78,14 @@ async def api_payments(
     wallet: WalletTypeInfo = Depends(get_key_type),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    return await get_payments(
+    payments = await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
         complete=True,
         filters=filters,
     )
+    await refresh_payments_status(payments)
+    return payments
 
 
 @payment_router.get(
@@ -117,6 +120,7 @@ async def api_payments_paginated(
         complete=True,
         filters=filters,
     )
+    await refresh_payments_status(page.data)
     return page
 
 
@@ -415,6 +419,9 @@ async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
+
+    await refresh_payments_status([payment])
+
     res = {
         "paid": not payment.pending,
         "preimage": payment.preimage,

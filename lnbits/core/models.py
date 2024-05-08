@@ -253,6 +253,11 @@ class Payment(FromRowModel):
 
         await update_payment_status(self.checking_id, pending)
 
+    async def refresh_status(self) -> PaymentStatus:
+        status = await self.check_status()
+        await self.set_pending(status.pending)
+        return status
+
     async def check_status(self) -> PaymentStatus:
 
         logger.debug(

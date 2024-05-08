@@ -595,6 +595,12 @@ async def check_transaction_status(
     return status
 
 
+async def refresh_payments_status(payments: List[Payment]):
+    for payment in payments:
+        if payment.pending and payment.is_uncheckable is False:
+            await payment.refresh_status()
+
+
 # WARN: this same value must be used for balance check and passed to
 # funding_source.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int, internal: bool = False) -> int:
