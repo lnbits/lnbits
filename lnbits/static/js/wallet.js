@@ -223,6 +223,12 @@ new Vue({
             align: 'right',
             label: 'Fiat Amount',
             field: row => row.extra.wallet_fiat_amount
+          },
+          {
+            name: 'items',
+            align: 'right',
+            label: 'Items',
+            field: row => (row.tag === 'tpos' && row.extra.details) || null
           }
         ],
         filter: null,
