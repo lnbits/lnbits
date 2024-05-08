@@ -11,6 +11,7 @@ from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
 
 from lnbits.core.crud import (
+    delete_wallet_payment,
     delete_webpush_subscriptions,
     get_payments,
     get_standalone_payment,
@@ -147,11 +148,9 @@ async def check_pending_payments():
             status = await payment.check_status()
             if status.success:
                 await payment.set_pending(False)
-            elif status.failed or payment.is_expired:
-                logger.info(
-                    f"Task: setting expired payment {payment.payment_hash} to failed"
-                )
-                await payment.set_pending(True)
+            elif status.failed:
+                logger.info(f"Task: deleting failed payment {payment.payment_hash}")
+                await delete_wallet_payment(payment.payment_hash, payment.wallet_id)
 
             await asyncio.sleep(0.01)  # to avoid complete blocking
 

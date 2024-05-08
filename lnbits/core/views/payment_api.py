@@ -415,11 +415,14 @@ async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
-    return {
+    res = {
         "paid": not payment.pending,
         "preimage": payment.preimage,
-        "details": payment if wallet and wallet.id == payment.wallet_id else None,
     }
+    if wallet and wallet.id == payment.wallet_id:
+        res["details"] = payment
+
+    return res
 
 
 @payment_router.post("/decode", status_code=HTTPStatus.OK)
