@@ -226,13 +226,15 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     cancel_invoice(preimage_hash)
 
     response = await task
-    assert response.status_code == 201, "Payment created, but not settled"
+    assert response.status_code > 300, "Payment failed on the funding source"
 
+    # get payment from LNbits
     response = await client.get(
         f"/api/v1/payments/{preimage_hash}",
         headers=adminkey_headers_from,
     )
 
+    # no time to delete the payment yet
     assert response.status_code == 200, "Payment found"
     data = response.json()
     assert data["details"]["failed"] is True, "Payment expected to fail"
