@@ -13,16 +13,20 @@ if len(sys.argv) < 2:
     sys.exit(1)
 lang = sys.argv[1]
 
+assert os.getenv("OPENAI_API_KEY"), "OPENAI_API_KEY env var not set"
 
-def load_language(lang):
+
+def load_language(lang: str) -> dict:
     s = open(f"lnbits/static/i18n/{lang}.js", "rt").read()
     prefix = "window.localisation.%s = {\n" % lang
     assert s.startswith(prefix)
     s = s[len(prefix) - 2 :]
-    return json5.loads(s)
+    json = json5.loads(s)
+    assert isinstance(json, dict)
+    return json
 
 
-def save_language(lang, data):
+def save_language(lang: str, data) -> None:
     with open(f"lnbits/static/i18n/{lang}.js", "wt") as f:
         f.write("window.localisation.%s = {\n" % lang)
         row = 0
@@ -40,7 +44,7 @@ def save_language(lang, data):
         f.write("}\n")
 
 
-def string_variables_match(str1, str2):
+def string_variables_match(str1: str, str2: str) -> bool:
     pat = re.compile(r"%\{[a-z0-9_]*\}")
     m1 = re.findall(pat, str1)
     m2 = re.findall(pat, str2)
@@ -66,7 +70,6 @@ def translate_string(lang_from, lang_to, text):
         "kr": "Korean",
         "fi": "Finnish",
     }[lang_to]
-    assert os.getenv("OPENAI_API_KEY"), "OPENAI_API_KEY env var not set"
     client = OpenAI()
     try:
         chat_completion = client.chat.completions.create(
@@ -82,6 +85,7 @@ def translate_string(lang_from, lang_to, text):
             ],
             model="gpt-4-1106-preview",  # aka GPT-4 Turbo
         )
+        assert chat_completion.choices[0].message.content, "No response from GPT-4"
         translated = chat_completion.choices[0].message.content.strip()
         # return translated string only if variables were not broken
         if string_variables_match(text, translated):

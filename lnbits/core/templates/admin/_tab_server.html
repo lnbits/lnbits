@@ -7,14 +7,14 @@
         <div class="col">
           <p>Server Info</p>
           <ul>
-            {%raw%}
-            <li v-if="settings.lnbits_data_folder">
-              SQlite: {{settings.lnbits_data_folder}}
-            </li>
-            <li v-if="settings.lnbits_database_url">
-              Postgres: {{settings.lnbits_database_url}}
-            </li>
-            {%endraw%}
+            <li
+              v-if="settings.lnbits_data_folder"
+              v-text="'SQlite: ' + settings.lnbits_data_folder"
+            ></li>
+            <li
+              v-if="settings.lnbits_database_url"
+              v-text="'Postgres: ' + settings.lnbits_database_url"
+            ></li>
           </ul>
           <br />
         </div>
@@ -60,6 +60,21 @@
         </div>
         <div class="col-12 col-md-6">
           <p>Miscellaneous</p>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label>Disable Extensions</q-item-label>
+              <q-item-label caption>Disables all extensions</q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_extensions_deactivate_all"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
           <q-item tag="label" v-ripple>
             <q-item-section>
               <q-item-label>Hide API</q-item-label>
@@ -154,7 +169,6 @@
           <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
         </q-input>
         <div>
-          {%raw%}
           <q-chip
             v-for="manifestUrl in formData.lnbits_extensions_manifests"
             :key="manifestUrl"
@@ -162,10 +176,8 @@
             @remove="removeExtensionsManifest(manifestUrl)"
             color="primary"
             text-color="white"
-          >
-            {{ manifestUrl }}
-          </q-chip>
-          {%endraw%}
+            ><span v-text="manifestUrl"></span
+          ></q-chip>
         </div>
         <br />
       </div>

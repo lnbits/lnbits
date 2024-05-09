@@ -1,0 +1,53 @@
+name: JMeter Extension Tests
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python Version"
+        required: true
+        default: "3.9"
+        type: string
+      poetry-version:
+        description: "Poetry Version"
+        required: true
+        default: "1.5.1"
+        type: string
+
+jobs:
+  jmeter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/prepare
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: run LNbits
+        env:
+          LNBITS_ADMIN_UI: true
+          LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar, tpos, lnurlp, withdraw"
+          LNBITS_BACKEND_WALLET_CLASS: FakeWallet
+        run: |
+          poetry run lnbits &
+          sleep 5
+
+      - name: clone lnbits-extensions, install jmeter and run tests
+        run: |
+          git clone https://github.com/lnbits/lnbits-extensions
+          cd lnbits-extensions
+          mkdir logs
+          mkdir reports
+          make install-jmeter
+          make start-mirror-server
+          make test
+
+      - name: upload jmeter test results
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: jmeter-extension-test-results
+          path: |
+            lnbits-extensions/reports/
+            lnbits-extensions/logs/

@@ -47,6 +47,7 @@ class UsersSettings(LNbitsSettings):
 
 class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: List[str] = Field(default=[])
+    lnbits_extensions_deactivate_all: bool = Field(default=False)
     lnbits_extensions_manifests: List[str] = Field(
         default=[
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
@@ -182,6 +183,7 @@ class LndRestFundingSource(LNbitsSettings):
     lnd_rest_cert: Optional[str] = Field(default=None)
     lnd_rest_macaroon: Optional[str] = Field(default=None)
     lnd_rest_macaroon_encrypted: Optional[str] = Field(default=None)
+    lnd_rest_route_hints: bool = Field(default=True)
     lnd_cert: Optional[str] = Field(default=None)
     lnd_admin_macaroon: Optional[str] = Field(default=None)
     lnd_invoice_macaroon: Optional[str] = Field(default=None)
@@ -204,6 +206,11 @@ class LnPayFundingSource(LNbitsSettings):
     lnpay_api_key: Optional[str] = Field(default=None)
     lnpay_wallet_key: Optional[str] = Field(default=None)
     lnpay_admin_key: Optional[str] = Field(default=None)
+
+
+class ZBDFundingSource(LNbitsSettings):
+    zbd_api_endpoint: Optional[str] = Field(default="https://api.zebedee.io/v0/")
+    zbd_api_key: Optional[str] = Field(default=None)
 
 
 class AlbyFundingSource(LNbitsSettings):
@@ -245,6 +252,7 @@ class FundingSourcesSettings(
     LndGrpcFundingSource,
     LnPayFundingSource,
     AlbyFundingSource,
+    ZBDFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
@@ -352,6 +360,7 @@ class UpdateSettings(EditableSettings):
 
 class EnvSettings(LNbitsSettings):
     debug: bool = Field(default=False)
+    debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000)
@@ -367,7 +376,6 @@ class EnvSettings(LNbitsSettings):
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
     server_startup_time: int = Field(default=time())
-    lnbits_extensions_deactivate_all: bool = Field(default=False)
     cleanup_wallets_days: int = Field(default=90)
 
     @property
@@ -399,6 +407,7 @@ class SuperUserSettings(LNbitsSettings):
             "LnTipsWallet",
             "LNPayWallet",
             "AlbyWallet",
+            "ZBDWallet",
             "LNbitsWallet",
             "OpenNodeWallet",
         ]

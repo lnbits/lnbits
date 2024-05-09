@@ -1,17 +1,22 @@
-# LNbits BETA
 
-[![license-badge]](LICENSE)
-[![docs-badge]][docs]
+<picture >
+  <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png"  style="width:300px">
+  <img src="https://i.imgur.com/fyKPgVT.png" style="width:300px">
+</picture>
 
-![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
+<b>(BETA)</b> 
 
-# Free and Open-Source Lightning Wallet Accounts System
+[![license-badge]](LICENSE) [![docs-badge]][docs]
+
+![Lightning network wallet](https://i.imgur.com/DeIiO0y.png)
+
+# The world's most powerful suite of bitcoin tools.
+
+## Run for yourself, for others, or as part of a stack. 
 
 (Join us on [https://t.me/lnbits](https://t.me/lnbits))
 
-LNbits is beta, for responsible disclosure of any concerns please contact lnbits@pm.me
-
-Use [legend.lnbits.com](https://legend.lnbits.com), or run your own LNbits server!
+LNbits is beta, for responsible disclosure of any concerns please contact an admin in [https://t.me/lnbits](https://t.me/lnbits)
 
 LNbits is a Python server that sits on top of any funding source. It can be used as:
 
@@ -21,15 +26,7 @@ LNbits is a Python server that sits on top of any funding source. It can be used
 - Fallback wallet for the LNURL scheme
 - Instant wallet for LN demonstrations
 
-LNbits can run on top of any Lightning funding source. It currently supports the following, but more and more are added regularly:
-- LND (REST and gRPC)
-- Core Lightning aka CLN (gRPC, REST and Spark)
-- Eclair
-- LNPay
-- LNbits
-- OpenNode
-- Alby
-- LightningTipBot
+LNbits can run on top of almost all Lightning funding sources.
 
 See [LNbits manual](https://docs.lnbits.org/guide/wallets.html) for more detailed documentation about each funding source.
 
@@ -39,36 +36,41 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 
 ## Running LNbits
 
+Test on our demo server [legend.lnbits.com](https://legend.lnbits.com), or on [lnbits.com](https://lnbits.com) software as a service, where you can spin up an LNbits instance for 21sats per hr.
+
 See the [install guide](https://github.com/lnbits/lnbits/blob/main/docs/guide/installation.md) for details on installation and setup.
 
-## LNbits as an account system
+## LNbits account system
 
-LNbits is packaged with tools to help manage funds, such as a table of transactions, line chart of spending, export to csv + more to come..
+LNbits is packaged with tools to help manage funds, such as a table of transactions, line chart of spending, export to csv. Each wallet also comes with its own API keys, to help partition the exposure of your funding source.
 
-![Lightning network wallet](https://i.imgur.com/w8jdGpF.png)
+<img src="https://i.imgur.com/w8jdGpF.png" style="width:800px">
 
-Each wallet also comes with its own API keys, to help partition the exposure of your funding source.
+## LNbits extension universe
 
-(LNbits M5StackSats available here https://github.com/arcbtc/M5StackSats)
+Extend YOUR LNbits to meet YOUR needs.
 
-![lnurl ATM](https://i.imgur.com/WfCg8wY.png)
+All non-core features are installed as extensions, reducing your code base and making your LNbits unique to you. Extend your LNbits install in any direction, and even create and share your own extensions. 
 
-## LNbits as an LNURL-withdraw fallback
+<img src="https://i.imgur.com/aEBpwJF.png" style="width:800px">
 
-LNURL has a fallback scheme, so if scanned by a regular QR code reader it can default to a URL. LNbits exploits this to generate an instant wallet using the [LNURL-withdraw](https://github.com/btcontract/lnurl-rfc/blob/master/lnurl-withdraw.md).
+## LNbits API
 
-![lnurl fallback](https://i.imgur.com/CPBKHIv.png)
+LNbits has a powerful API, many projects use LNbits to do the heavy lifting for their bitcoin/lightning services.
 
-Using **lnbits.com/?lightning="LNURL-withdraw"** will trigger a withdraw that builds an LNbits wallet.
-Example use would be an ATM, which utilizes LNURL, if the user scans the QR with a regular QR code scanner app, they will still be able to access the funds.
+<img src="https://i.imgur.com/V742sb9.png" style="width:800px">
 
-![lnurl ATM](https://i.imgur.com/Gi6bn3L.jpg)
+## LNbits node manager
 
-## LNbits as an instant wallet
+LNbits comes packaged with a light node management UI, to make running your node that much easier.
 
-Wallets can be easily generated and given out to people at events. "Go to this website", has a lot less friction than "Download this app".
+<img src="https://i.imgur.com/TYqIK60.png" style="width:800px">
 
-![lnurl ATM](https://i.imgur.com/xFWDnwy.png)
+## LNbits across all your devices
+
+As well as working great in a browser, LNbits has native IoS and Android apps as well as a chrome extension. So you can enjoy the same UI across ALL your devices.
+
+<img src="https://i.imgur.com/J96EbRf.png" style="width:800px">
 
 ## Tip us
 

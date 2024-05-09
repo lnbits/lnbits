@@ -64,6 +64,9 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["LNBITS_NEW_ACCOUNTS_ALLOWED"] = settings.new_accounts_allowed
     t.env.globals["LNBITS_AUTH_METHODS"] = settings.auth_allowed_methods
     t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
+    t.env.globals["LNBITS_EXTENSIONS_DEACTIVATE_ALL"] = (
+        settings.lnbits_extensions_deactivate_all
+    )
     t.env.globals["LNBITS_SERVICE_FEE"] = settings.lnbits_service_fee
     t.env.globals["LNBITS_SERVICE_FEE_MAX"] = settings.lnbits_service_fee_max
     t.env.globals["LNBITS_SERVICE_FEE_WALLET"] = settings.lnbits_service_fee_wallet

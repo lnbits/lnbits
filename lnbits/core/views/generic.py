@@ -21,7 +21,7 @@ from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
-from ...utils.exchange_rates import currencies
+from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
     create_account,
     create_wallet,
@@ -49,7 +49,7 @@ async def favicon():
 @generic_router.get("/", response_class=HTMLResponse)
 async def home(request: Request, lightning: str = ""):
     return template_renderer().TemplateResponse(
-        "core/index.html", {"request": request, "lnurl": lightning}
+        request, "core/index.html", {"lnurl": lightning}
     )
 
 
@@ -57,15 +57,15 @@ async def home(request: Request, lightning: str = ""):
 async def first_install(request: Request):
     if not settings.first_install:
         return template_renderer().TemplateResponse(
+            request,
             "error.html",
             {
-                "request": request,
                 "err": "Super user account has already been configured.",
             },
         )
     return template_renderer().TemplateResponse(
+        request,
         "core/first_install.html",
-        {"request": request},
     )
 
 
@@ -113,6 +113,7 @@ async def extensions_install(
     except Exception as ex:
         logger.warning(ex)
         installable_exts = []
+        installed_exts_ids = []
 
     try:
         ext_id = activate or deactivate
@@ -137,42 +138,40 @@ async def extensions_install(
                 ext_id=ext_id, active=activate is not None
             )
 
-        all_ext_ids = list(map(lambda e: e.code, all_extensions))
+        all_ext_ids = [ext.code for ext in all_extensions]
         inactive_extensions = await get_inactive_extensions()
         db_version = await get_dbversions()
-        extensions = list(
-            map(
-                lambda ext: {
-                    "id": ext.id,
-                    "name": ext.name,
-                    "icon": ext.icon,
-                    "shortDescription": ext.short_description,
-                    "stars": ext.stars,
-                    "isFeatured": ext.featured,
-                    "dependencies": ext.dependencies,
-                    "isInstalled": ext.id in installed_exts_ids,
-                    "hasDatabaseTables": ext.id in db_version,
-                    "isAvailable": ext.id in all_ext_ids,
-                    "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
-                    "isActive": ext.id not in inactive_extensions,
-                    "latestRelease": (
-                        dict(ext.latest_release) if ext.latest_release else None
-                    ),
-                    "installedRelease": (
-                        dict(ext.installed_release) if ext.installed_release else None
-                    ),
-                },
-                installable_exts,
-            )
-        )
+        extensions = [
+            {
+                "id": ext.id,
+                "name": ext.name,
+                "icon": ext.icon,
+                "shortDescription": ext.short_description,
+                "stars": ext.stars,
+                "isFeatured": ext.featured,
+                "dependencies": ext.dependencies,
+                "isInstalled": ext.id in installed_exts_ids,
+                "hasDatabaseTables": ext.id in db_version,
+                "isAvailable": ext.id in all_ext_ids,
+                "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
+                "isActive": ext.id not in inactive_extensions,
+                "latestRelease": (
+                    dict(ext.latest_release) if ext.latest_release else None
+                ),
+                "installedRelease": (
+                    dict(ext.installed_release) if ext.installed_release else None
+                ),
+            }
+            for ext in installable_exts
+        ]
 
         # refresh user state. Eg: enabled extensions.
         user = await get_user(user.id) or user
 
         return template_renderer().TemplateResponse(
+            request,
             "core/extensions.html",
             {
-                "request": request,
                 "user": user.dict(),
                 "extensions": extensions,
             },
@@ -207,23 +206,22 @@ async def wallet(
     user_wallet = user.get_wallet(wallet_id)
     if not user_wallet or user_wallet.deleted:
         return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": "Wallet not found"}
+            request, "error.html", {"err": "Wallet not found"}
         )
 
     resp = template_renderer().TemplateResponse(
+        request,
         "core/wallet.html",
         {
-            "request": request,
             "user": user.dict(),
             "wallet": user_wallet.dict(),
+            "currencies": allowed_currencies(),
             "service_fee": settings.lnbits_service_fee,
             "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
     )
-    resp.set_cookie(
-        "lnbits_last_active_wallet", wallet_id, samesite="none", secure=True
-    )
+    resp.set_cookie("lnbits_last_active_wallet", wallet_id)
     return resp
 
 
@@ -237,9 +235,9 @@ async def account(
     user: User = Depends(check_user_exists),
 ):
     return template_renderer().TemplateResponse(
+        request,
         "core/account.html",
         {
-            "request": request,
             "user": user.dict(),
         },
     )
@@ -354,9 +352,16 @@ async def lnurlwallet(request: Request):
     )
 
 
-@generic_router.get("/service-worker.js", response_class=FileResponse)
-async def service_worker():
-    return FileResponse(Path("lnbits", "static", "js", "service-worker.js"))
+@generic_router.get("/service-worker.js")
+async def service_worker(request: Request):
+    return template_renderer().TemplateResponse(
+        request,
+        "service-worker.js",
+        {
+            "cache_version": settings.server_startup_time,
+        },
+        media_type="text/javascript",
+    )
 
 
 @generic_router.get("/manifest/{usr}.webmanifest")
@@ -451,9 +456,9 @@ async def node(request: Request, user: User = Depends(check_admin)):
     _, balance = await WALLET.status()
 
     return template_renderer().TemplateResponse(
+        request,
         "node/index.html",
         {
-            "request": request,
             "user": user.dict(),
             "settings": settings.dict(),
             "balance": balance,
@@ -471,9 +476,9 @@ async def node_public(request: Request):
     _, balance = await WALLET.status()
 
     return template_renderer().TemplateResponse(
+        request,
         "node/public.html",
         {
-            "request": request,
             "settings": settings.dict(),
             "balance": balance,
         },
@@ -489,9 +494,9 @@ async def index(request: Request, user: User = Depends(check_admin)):
     _, balance = await WALLET.status()
 
     return template_renderer().TemplateResponse(
+        request,
         "admin/index.html",
         {
-            "request": request,
             "user": user.dict(),
             "settings": settings.dict(),
             "balance": balance,

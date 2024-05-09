@@ -1,7 +1,6 @@
 // update cache version every time there is a new deployment
 // so the service worker reinitializes the cache
-const CACHE_VERSION = 117
-const CURRENT_CACHE = `lnbits-${CACHE_VERSION}-`
+const CURRENT_CACHE = 'lnbits-{{ cache_version }}-'
 
 const getApiKey = request => {
   let api_key = request.headers.get('X-Api-Key')
@@ -17,8 +16,7 @@ self.addEventListener('activate', evt =>
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          const currentCacheVersion = cacheName.split('-').slice(-2, 2)
-          if (currentCacheVersion !== CACHE_VERSION) {
+          if (!cacheName.startsWith(CURRENT_CACHE)) {
             return caches.delete(cacheName)
           }
         })

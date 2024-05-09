@@ -179,16 +179,27 @@ class Connection(Compat):
         values: Optional[List[str]] = None,
         filters: Optional[Filters] = None,
         model: Optional[Type[TRowModel]] = None,
+        group_by: Optional[List[str]] = None,
     ) -> Page[TRowModel]:
         if not filters:
             filters = Filters()
         clause = filters.where(where)
         parsed_values = filters.values(values)
 
+        group_by_string = ""
+        if group_by:
+            for field in group_by:
+                if not re.fullmatch(
+                    r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?", field
+                ):
+                    raise ValueError("Value for GROUP BY is invalid")
+            group_by_string = f"GROUP BY {', '.join(group_by)}"
+
         rows = await self.fetchall(
             f"""
             {query}
             {clause}
+            {group_by_string}
             {filters.order_by()}
             {filters.pagination()}
             """,
@@ -202,6 +213,7 @@ class Connection(Compat):
                     SELECT COUNT(*) FROM (
                         {query}
                         {clause}
+                        {group_by_string}
                     ) as count
                     """,
                     parsed_values,
@@ -242,7 +254,9 @@ class Database(Compat):
         else:
             self.schema = None
 
-        self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
+        self.engine = create_engine(
+            database_uri, strategy=ASYNCIO_STRATEGY, echo=settings.debug_database
+        )
         self.lock = asyncio.Lock()
 
         logger.trace(f"database {self.type} added for {self.name}")
@@ -288,9 +302,10 @@ class Database(Compat):
         values: Optional[List[str]] = None,
         filters: Optional[Filters] = None,
         model: Optional[Type[TRowModel]] = None,
+        group_by: Optional[List[str]] = None,
     ) -> Page[TRowModel]:
         async with self.connect() as conn:
-            return await conn.fetch_page(query, where, values, filters, model)
+            return await conn.fetch_page(query, where, values, filters, model, group_by)
 
     async def execute(self, query: str, values: tuple = ()):
         async with self.connect() as conn:
@@ -463,8 +478,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if not where_stmts:
             where_stmts = []
         if self.filters:
-            for filter in self.filters:
-                where_stmts.append(filter.statement)
+            for page_filter in self.filters:
+                where_stmts.append(page_filter.statement)
         if self.search and self.model:
             if DB_TYPE == POSTGRES:
                 where_stmts.append(
@@ -487,8 +502,8 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if not values:
             values = []
         if self.filters:
-            for filter in self.filters:
-                values.extend(filter.values)
+            for page_filter in self.filters:
+                values.extend(page_filter.values)
         if self.search and self.model:
             values.append(f"%{self.search}%")
         return tuple(values)

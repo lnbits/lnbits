@@ -18,17 +18,20 @@ from lnbits.helpers import url_for
 from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
-from lnbits.wallets.base import PaymentStatus
+from lnbits.wallets.base import PaymentPendingStatus, PaymentStatus
 
 
-class Wallet(BaseModel):
+class BaseWallet(BaseModel):
     id: str
     name: str
-    user: str
     adminkey: str
     inkey: str
-    currency: Optional[str]
     balance_msat: int
+
+
+class Wallet(BaseWallet):
+    user: str
+    currency: Optional[str]
     deleted: bool
     created_at: Optional[int] = None
     updated_at: Optional[int] = None
@@ -255,7 +258,7 @@ class Payment(FromRowModel):
         conn: Optional[Connection] = None,
     ) -> PaymentStatus:
         if self.is_uncheckable:
-            return PaymentStatus(None)
+            return PaymentPendingStatus()
 
         logger.debug(
             f"Checking {'outgoing' if self.is_out else 'incoming'} "

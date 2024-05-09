@@ -21,16 +21,18 @@ jobs:
     uses: ./.github/workflows/tests.yml
     with:
       python-version: ${{ matrix.python-version }}
+      db-url: ${{ matrix.db-url }}
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  migrations:
+  migration:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.9"]
-    uses: ./.github/workflows/tests.yml
+        python-version: ["3.9", "3.10"]
+    uses: ./.github/workflows/migration.yml
     with:
-      make: test-migration
-      db-name: migration
+      python-version: ${{ matrix.python-version }}
 
   openapi:
     needs: [ lint ]
@@ -48,3 +50,16 @@ jobs:
     with:
       python-version: ${{ matrix.python-version }}
       backend-wallet-class: ${{ matrix.backend-wallet-class }}
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  jmeter:
+    needs: [ lint ]
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        poetry-version: ["1.5.1"]
+    uses: ./.github/workflows/jmeter.yml
+    with:
+      python-version: ${{ matrix.python-version }}
+      poetry-version: ${{ matrix.poetry-version }}

@@ -4,9 +4,8 @@ import time
 import traceback
 import uuid
 from http import HTTPStatus
-from typing import Dict, List, Optional
+from typing import Coroutine, Dict, List, Optional
 
-from fastapi.exceptions import HTTPException
 from loguru import logger
 from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
@@ -21,6 +20,7 @@ from lnbits.settings import settings
 from lnbits.wallets import get_wallet_class
 
 tasks: List[asyncio.Task] = []
+unique_tasks: Dict[str, asyncio.Task] = {}
 
 
 def create_task(coro):
@@ -33,12 +33,33 @@ def create_permanent_task(func):
     return create_task(catch_everything_and_restart(func))
 
 
+def create_unique_task(name: str, coro: Coroutine):
+    if unique_tasks.get(name):
+        logger.warning(f"task `{name}` already exists, cancelling it")
+        try:
+            unique_tasks[name].cancel()
+        except Exception as exc:
+            logger.warning(f"error while cancelling task `{name}`: {str(exc)}")
+    task = asyncio.create_task(coro)
+    unique_tasks[name] = task
+    return task
+
+
+def create_permanent_unique_task(name: str, coro: Coroutine):
+    return create_unique_task(name, catch_everything_and_restart(coro))
+
+
 def cancel_all_tasks():
     for task in tasks:
         try:
             task.cancel()
         except Exception as exc:
             logger.warning(f"error while cancelling task: {str(exc)}")
+    for name, task in unique_tasks.items():
+        try:
+            task.cancel()
+        except Exception as exc:
+            logger.warning(f"error while cancelling task `{name}`: {str(exc)}")
 
 
 async def catch_everything_and_restart(func):
@@ -52,10 +73,6 @@ async def catch_everything_and_restart(func):
         logger.error("will restart the task in 5 seconds.")
         await asyncio.sleep(5)
         await catch_everything_and_restart(func)
-
-
-async def send_push_promise(a, b) -> None:
-    pass
 
 
 invoice_listeners: Dict[str, asyncio.Queue] = {}
@@ -79,17 +96,6 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = No
     invoice_listeners[name] = send_chan
 
 
-async def webhook_handler():
-    """
-    Returns the webhook_handler for the selected wallet if present. Used by API.
-    """
-    WALLET = get_wallet_class()
-    handler = getattr(WALLET, "webhook_listener", None)
-    if handler:
-        return await handler()
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
-
-
 internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
 
 
@@ -103,7 +109,7 @@ async def internal_invoice_listener():
     while True:
         checking_id = await internal_invoice_queue.get()
         logger.info("> got internal payment notification", checking_id)
-        asyncio.create_task(invoice_callback_dispatcher(checking_id))
+        create_task(invoice_callback_dispatcher(checking_id))
 
 
 async def invoice_listener():
@@ -116,7 +122,7 @@ async def invoice_listener():
     WALLET = get_wallet_class()
     async for checking_id in WALLET.paid_invoices_stream():
         logger.info("> got a payment notification", checking_id)
-        asyncio.create_task(invoice_callback_dispatcher(checking_id))
+        create_task(invoice_callback_dispatcher(checking_id))
 
 
 async def check_pending_payments():

@@ -9,8 +9,11 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    PaymentFailedStatus,
+    PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentSuccessStatus,
     StatusResponse,
     Wallet,
 )
@@ -119,22 +122,35 @@ class LNbitsWallet(Wallet):
             r = await self.client.get(
                 url=f"/api/v1/payments/{checking_id}",
             )
-            if r.is_error:
-                return PaymentStatus(None)
-            return PaymentStatus(r.json()["paid"])
+            r.raise_for_status()
+
+            data = r.json()
+            details = data.get("details", None)
+
+            if details and details.get("pending", False) is True:
+                return PaymentPendingStatus()
+            if data.get("paid", False) is True:
+                return PaymentSuccessStatus()
+            return PaymentFailedStatus()
         except Exception:
-            return PaymentStatus(None)
+            return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(url=f"/api/v1/payments/{checking_id}")
 
         if r.is_error:
-            return PaymentStatus(False)
+            return PaymentPendingStatus()
         data = r.json()
-        if "paid" not in data and "details" not in data:
-            return PaymentStatus(None)
 
-        return PaymentStatus(data["paid"], data["details"]["fee"], data["preimage"])
+        if "paid" not in data or not data["paid"]:
+            return PaymentPendingStatus()
+
+        if "details" not in data:
+            return PaymentPendingStatus()
+
+        return PaymentSuccessStatus(
+            fee_msat=data["details"]["fee"], preimage=data["preimage"]
+        )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = f"{self.endpoint}/api/v1/payments/sse"

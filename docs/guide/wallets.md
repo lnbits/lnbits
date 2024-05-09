@@ -8,7 +8,7 @@ nav_order: 3
 Backend wallets
 ===============
 
-LNbits can run on top of many lightning-network funding sources with more being added regularly.
+LNbits can run on top of many Lightning Network funding sources with more being added regularly.
 
 A backend wallet can be configured using the following LNbits environment variables:
 
@@ -86,6 +86,14 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `LNBITS_BACKEND_WALLET_CLASS`: **AlbyWallet**
 - `ALBY_API_ENDPOINT`: https://api.getalby.com/
 - `ALBY_ACCESS_TOKEN`: AlbyAccessToken
+
+### ZBD
+
+For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary. You can generate an ZBD API Key here: https://zbd.dev/docs/dashboard/projects/api
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **ZBDWallet**
+- `ZBD_API_ENDPOINT`: https://api.zebedee.io/v0/
+- `ZBD_API_KEY`: ZBDApiKey
 
 ### Cliche Wallet
 

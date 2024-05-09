@@ -1,4 +1,3 @@
-{% raw %}
 <q-banner v-if="updateAvailable" class="bg-primary text-white">
   <q-icon size="28px" name="update"></q-icon>
 
@@ -30,9 +29,12 @@
       <template v-slot:header="props">
         <q-tr :props="props">
           <q-th auto-width> </q-th>
-          <q-th v-for="col in props.cols" :key="col.name" :props="props"
-            >{{ col.label }}</q-th
-          >
+          <q-th
+            v-for="col in props.cols"
+            :key="col.name"
+            :props="props"
+            v-text="col.label"
+          ></q-th>
         </q-tr>
       </template>
       <template v-slot:body="props">
@@ -51,12 +53,16 @@
               color="red"
             ></q-icon>
           </q-td>
-          <q-td auto-width key="date" :props="props">
-            {{ formatDate(props.row.date) }}
+          <q-td
+            auto-width
+            key="date"
+            :props="props"
+            v-text="formatDate(props.row.date)"
+          >
           </q-td>
           <q-td key="message" :props="props"
-            >{{ props.row.message }}
-            <a
+            ><span v-text="props.row.message"></span
+            ><a
               v-if="props.row.link"
               target="_blank"
               rel="noopener noreferrer"
@@ -69,4 +75,3 @@
     </q-table>
   </q-card-section>
 </q-card>
-{% endraw %}

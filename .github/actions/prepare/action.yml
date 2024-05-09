@@ -10,7 +10,7 @@ inputs:
     default: "1.7.0"
   node-version:
     description: "Node Version"
-    default: "18.x"
+    default: "20.x"
   npm:
     description: "use npm"
     default: false
@@ -21,7 +21,7 @@ runs:
   using: "composite"
   steps:
     - name: Set up Python ${{ inputs.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
         # cache poetry install via pip
@@ -38,7 +38,7 @@ runs:
         poetry config virtualenvs.create true --local
         poetry config virtualenvs.in-project true --local
 
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       name: Define a cache for the virtual environment based on the dependencies lock file
       with:
         path: ./.venv
@@ -50,11 +50,11 @@ runs:
 
     - name: Use Node.js ${{ inputs.node-version }}
       if: ${{ (inputs.npm == 'true') }}
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
 
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       if: ${{ (inputs.npm == 'true') }}
       name: Define a cache for the npm based on the dependencies lock file
       with:

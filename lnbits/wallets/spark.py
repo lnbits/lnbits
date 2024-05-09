@@ -11,8 +11,11 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    PaymentFailedStatus,
+    PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentSuccessStatus,
     StatusResponse,
     Wallet,
 )
@@ -196,33 +199,33 @@ class SparkWallet(Wallet):
         try:
             r = await self.listinvoices(label=checking_id)
         except (SparkError, UnknownError):
-            return PaymentStatus(None)
+            return PaymentPendingStatus()
 
         if not r or not r.get("invoices"):
-            return PaymentStatus(None)
+            return PaymentPendingStatus()
 
         if r["invoices"][0]["status"] == "paid":
-            return PaymentStatus(True)
+            return PaymentSuccessStatus()
         else:
-            return PaymentStatus(False)
+            return PaymentFailedStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         # check if it's 32 bytes hex
         if len(checking_id) != 64:
-            return PaymentStatus(None)
+            return PaymentPendingStatus()
         try:
             int(checking_id, 16)
         except ValueError:
-            return PaymentStatus(None)
+            return PaymentPendingStatus()
 
         # ask sparko
         try:
             r = await self.listpays(payment_hash=checking_id)
         except (SparkError, UnknownError):
-            return PaymentStatus(None)
+            return PaymentPendingStatus()
 
         if not r["pays"]:
-            return PaymentStatus(False)
+            return PaymentFailedStatus()
         if r["pays"][0]["payment_hash"] == checking_id:
             status = r["pays"][0]["status"]
             if status == "complete":
@@ -230,10 +233,12 @@ class SparkWallet(Wallet):
                     int(r["pays"][0]["amount_sent_msat"][0:-4])
                     - int(r["pays"][0]["amount_msat"][0:-4])
                 )
-                return PaymentStatus(True, fee_msat, r["pays"][0]["preimage"])
+                return PaymentSuccessStatus(
+                    fee_msat=fee_msat, preimage=r["pays"][0]["preimage"]
+                )
             if status == "failed":
-                return PaymentStatus(False)
-            return PaymentStatus(None)
+                return PaymentFailedStatus()
+            return PaymentPendingStatus()
         raise KeyError("supplied an invalid checking_id")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

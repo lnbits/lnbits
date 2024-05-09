@@ -15,21 +15,24 @@ on:
       backend-wallet-class:
         required: true
         type: string
+    secrets:
+      CODECOV_TOKEN:
+        required: true
 
 jobs:
   regtest:
     runs-on: ${{ inputs.os-version }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build and push
         if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
             context: .
             push: false
@@ -53,7 +56,8 @@ jobs:
         if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
         run: docker exec lnbits-lnbits-1 poetry run python tools/create_fake_admin.py
 
-      - name: Run Tests
+      - name: Run pytest
+        uses: pavelzw/pytest-action@v2
         env:
           LNBITS_DATABASE_URL: ${{ inputs.db-url }}
           LNBITS_BACKEND_WALLET_CLASS: ${{ inputs.backend-wallet-class }}
@@ -72,10 +76,20 @@ jobs:
           LNBITS_KEY: "d08a3313322a4514af75d488bcc27eee"
           ECLAIR_URL: http://127.0.0.1:8082
           ECLAIR_PASS: lnbits
-        run: make test-real-wallet
+          LNBITS_DATA_FOLDER: "./tests/data"
+          PYTHONUNBUFFERED: 1
+          DEBUG: true
+        with:
+          verbose: false
+          job-summary: true
+          emoji: false
+          click-to-expand: false
+          custom-pytest: poetry run pytest
+          report-title: "regtest (${{ inputs.python-version }}, ${{ inputs.backend-wallet-class }}"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true

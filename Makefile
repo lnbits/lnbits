@@ -86,7 +86,7 @@ bak:
 sass:
 	npm run sass
 
-bundle_no_bump:
+bundle:
 	npm install
 	npm run sass
 	npm run vendor_copy
@@ -97,16 +97,10 @@ bundle_no_bump:
 	npm run vendor_bundle_js
 	npm run vendor_minify_js
 
-bundle:
-	make bundle_no_bump
-	# increment serviceworker version
-	awk '/CACHE_VERSION =/ {sub(/[0-9]+$$/, $$NF+1)} 1' lnbits/static/js/service-worker.js > lnbits/static/js/service-worker.js.new
-	mv lnbits/static/js/service-worker.js.new lnbits/static/js/service-worker.js
-
 checkbundle:
 	cp lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old
 	cp lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old
-	make bundle_no_bump
+	make bundle
 	diff -q lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old || exit 1
 	diff -q lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old || exit 1
 	@echo "Bundle is OK"

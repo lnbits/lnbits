@@ -35,7 +35,7 @@ window.localisation.en = {
   name_your_wallet: 'Name your %{name} wallet',
   paste_invoice_label: 'Paste an invoice, payment request or lnurl code *',
   lnbits_description:
-    'Easy to set up and lightweight, LNbits can run on any lightning-network funding source, currently supporting LND, Core Lightning, OpenNode, Alby, LNPay and even LNbits itself! You can run LNbits for yourself, or easily offer a custodian solution for others. Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool. Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.',
+    'Easy to set up and lightweight, LNbits can run on any Lightning Network funding source and even LNbits itself! You can run LNbits for yourself, or easily offer a custodian solution for others. Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool. Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.',
   export_to_phone: 'Export to Phone with QR Code',
   export_to_phone_desc:
     'This QR code contains your wallet URL with full access. You can scan it from your phone to open your wallet from there.',
@@ -239,5 +239,12 @@ This service is in BETA. LNbits holds no responsibility for loss of access to fu
   logout: 'Logout',
   look_and_feel: 'Look and Feel',
   language: 'Language',
-  color_scheme: 'Color Scheme'
+  color_scheme: 'Color Scheme',
+  extension_cost: 'This release requires a payment of minimum %{cost} sats.',
+  extension_paid_sats: 'You have already paid %{paid_sats} sats.',
+  release_details_error: 'Cannot get the release details.',
+  pay_from_wallet: 'Pay from Wallet',
+  show_qr: 'Show QR',
+  retry_install: 'Retry Install',
+  new_payment: 'Make New Payment'
 }

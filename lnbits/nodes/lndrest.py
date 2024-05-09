@@ -167,6 +167,8 @@ class LndRestNode(Node):
         point: Optional[ChannelPoint] = None,
         force: bool = False,
     ):
+        if short_id:
+            logger.debug(f"Closing channel with short_id: {short_id}")
         if not point:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="Channel point required"
@@ -237,9 +239,11 @@ class LndRestNode(Node):
                         remote_msat=msat(channel["remote_balance"]),
                         total_msat=msat(channel["capacity"]),
                     ),
-                    state=ChannelState.ACTIVE
-                    if channel["active"]
-                    else ChannelState.INACTIVE,
+                    state=(
+                        ChannelState.ACTIVE
+                        if channel["active"]
+                        else ChannelState.INACTIVE
+                    ),
                     # name=channel['peer_alias'],
                     name=info.alias,
                     color=info.color,
@@ -318,11 +322,13 @@ class LndRestNode(Node):
                 amount=payment["value_msat"],
                 fee=payment["fee_msat"],
                 time=payment["creation_date"],
-                destination=await self.get_peer_info(
-                    payment["htlcs"][0]["route"]["hops"][-1]["pub_key"]
-                )
-                if payment["htlcs"]
-                else None,
+                destination=(
+                    await self.get_peer_info(
+                        payment["htlcs"][0]["route"]["hops"][-1]["pub_key"]
+                    )
+                    if payment["htlcs"]
+                    else None
+                ),
                 bolt11=payment["payment_request"],
                 preimage=payment["payment_preimage"],
             )

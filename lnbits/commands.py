@@ -1,7 +1,9 @@
 import asyncio
+import importlib
+import time
 from functools import wraps
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 
 import click
@@ -10,21 +12,29 @@ from fastapi.exceptions import HTTPException
 from loguru import logger
 from packaging import version
 
-from lnbits.core.models import User
+from lnbits.core.models import Payment, User
 from lnbits.core.services import check_admin_settings
-from lnbits.core.views.api import api_install_extension, api_uninstall_extension
+from lnbits.core.views.extension_api import (
+    api_install_extension,
+    api_uninstall_extension,
+)
 from lnbits.settings import settings
+from lnbits.wallets.base import Wallet
 
 from .core import db as core_db
 from .core import migrations as core_migrations
 from .core.crud import (
     delete_accounts_no_wallets,
     delete_unused_wallets,
+    delete_wallet_by_id,
+    delete_wallet_payment,
     get_dbversions,
     get_inactive_extensions,
     get_installed_extension,
     get_installed_extensions,
+    get_payments,
     remove_deleted_wallets,
+    update_payment_status,
 )
 from .core.helpers import migrate_extension_database, run_migration
 from .db import COCKROACH, POSTGRES, SQLITE
@@ -180,6 +190,37 @@ async def database_cleanup_deleted_wallets():
         await remove_deleted_wallets(conn)
 
 
+@db.command("delete-wallet")
+@click.option("-w", "--wallet", required=True, help="ID of wallet to be deleted.")
+@coro
+async def database_delete_wallet(wallet: str):
+    """Mark wallet as deleted"""
+    async with core_db.connect() as conn:
+        count = await delete_wallet_by_id(wallet_id=wallet, conn=conn)
+        click.echo(f"Marked as deleted '{count}' rows.")
+
+
+@db.command("delete-wallet-payment")
+@click.option("-w", "--wallet", required=True, help="ID of wallet to be deleted.")
+@click.option("-c", "--checking-id", required=True, help="Payment checking Id.")
+@coro
+async def database_delete_wallet_payment(wallet: str, checking_id: str):
+    """Mark wallet as deleted"""
+    async with core_db.connect() as conn:
+        await delete_wallet_payment(
+            wallet_id=wallet, checking_id=checking_id, conn=conn
+        )
+
+
+@db.command("mark-payment-pending")
+@click.option("-c", "--checking-id", required=True, help="Payment checking Id.")
+@coro
+async def database_revert_payment(checking_id: str, pending: bool = True):
+    """Mark wallet as deleted"""
+    async with core_db.connect() as conn:
+        await update_payment_status(pending=pending, checking_id=checking_id, conn=conn)
+
+
 @db.command("cleanup-accounts")
 @click.argument("days", type=int, required=False)
 @coro
@@ -189,6 +230,86 @@ async def database_cleanup_accounts(days: Optional[int] = None):
         delta = days or settings.cleanup_wallets_days
         delta = delta * 24 * 60 * 60
         await delete_accounts_no_wallets(delta, conn)
+
+
+@db.command("check-payments")
+@click.option("-d", "--days", help="Maximum age of payments in days.")
+@click.option("-l", "--limit", help="Maximum number of payments to be checked.")
+@click.option("-w", "--wallet", help="Only check for this wallet.")
+@click.option("-v", "--verbose", is_flag=True, help="Detailed log.")
+@coro
+async def check_invalid_payments(
+    days: Optional[int] = None,
+    limit: Optional[int] = None,
+    wallet: Optional[str] = None,
+    verbose: Optional[bool] = False,
+):
+    """Check payments that are settled in the DB but pending on the Funding Source"""
+    await check_admin_settings()
+    settled_db_payments = []
+
+    if verbose:
+        click.echo(f"Get Payments: days={days}, limit={limit}, wallet={wallet}")
+    async with core_db.connect() as conn:
+        delta = int(days) if days else 3  # default to 3 days
+        limit = int(limit) if limit else 1000
+        since = int(time.time()) - delta * 24 * 60 * 60
+
+        settled_db_payments = await get_payments(
+            complete=True,
+            incoming=True,
+            exclude_uncheckable=True,
+            since=since,
+            limit=limit,
+            wallet_id=wallet,
+            conn=conn,
+        )
+
+    click.echo("Settled Payments: " + str(len(settled_db_payments)))
+
+    wallets_module = importlib.import_module("lnbits.wallets")
+    wallet_class = getattr(wallets_module, settings.lnbits_backend_wallet_class)
+
+    funding_source: Wallet = wallet_class()
+
+    click.echo("Funding source: " + str(funding_source))
+
+    # payments that are settled in the DB, but not at the Funding source level
+    invalid_payments: List[Payment] = []
+    invalid_wallets = {}
+    for db_payment in settled_db_payments:
+        if verbose:
+            click.echo(
+                f"Checking Payment: '{db_payment.checking_id}' for wallet"
+                + f" '{db_payment.wallet_id}'."
+            )
+        payment_status = await funding_source.get_invoice_status(db_payment.checking_id)
+
+        if payment_status.pending:
+            invalid_payments.append(db_payment)
+            if db_payment.wallet_id not in invalid_wallets:
+                invalid_wallets[f"{db_payment.wallet_id}"] = [0, 0]
+            invalid_wallets[f"{db_payment.wallet_id}"][0] += 1
+            invalid_wallets[f"{db_payment.wallet_id}"][1] += db_payment.amount
+
+            click.echo(
+                "Invalid Payment:  '"
+                + " ".join(
+                    [
+                        db_payment.checking_id,
+                        db_payment.wallet_id,
+                        str(db_payment.amount / 1000).ljust(10),
+                        db_payment.memo or "",
+                    ]
+                )
+                + "'"
+            )
+
+    click.echo("Invalid Payments: " + str(len(invalid_payments)))
+    click.echo("\nInvalid Wallets: " + str(len(invalid_wallets)))
+    for w in invalid_wallets:
+        data = invalid_wallets[f"{w}"]
+        click.echo(" ".join([w, str(data[0]), str(data[1] / 1000).ljust(10)]))
 
 
 async def load_disabled_extension_list() -> None:
@@ -212,7 +333,7 @@ async def extensions_list():
 
 @extensions.command("update")
 @click.argument("extension", required=False)
-@click.option("-a", "--all", is_flag=True, help="Update all extensions.")
+@click.option("-a", "--all-extensions", is_flag=True, help="Update all extensions.")
 @click.option(
     "-i", "--repo-index", help="Select the index of the repository to be used."
 )
@@ -239,7 +360,7 @@ async def extensions_list():
 @coro
 async def extensions_update(
     extension: Optional[str] = None,
-    all: Optional[bool] = False,
+    all_extensions: Optional[bool] = False,
     repo_index: Optional[str] = None,
     source_repo: Optional[str] = None,
     url: Optional[str] = None,
@@ -249,11 +370,11 @@ async def extensions_update(
     Update extension to the latest version.
     If an extension is not present it will be instaled.
     """
-    if not extension and not all:
+    if not extension and not all_extensions:
         click.echo("Extension ID is required.")
-        click.echo("Or specify the '--all' flag to update all extensions")
+        click.echo("Or specify the '--all-extensions' flag to update all extensions")
         return
-    if extension and all:
+    if extension and all_extensions:
         click.echo("Only one of extension ID or the '--all' flag must be specified")
         return
     if url and not _is_url(url):
@@ -397,7 +518,10 @@ async def install_extension(
             return False, "No release selected"
 
         data = CreateExtension(
-            ext_id=extension, archive=release.archive, source_repo=release.source_repo
+            ext_id=extension,
+            archive=release.archive,
+            source_repo=release.source_repo,
+            version=release.version,
         )
         await _call_install_extension(data, url, admin_user)
         click.echo(f"Extension '{extension}' ({release.version}) installed.")
@@ -445,7 +569,10 @@ async def update_extension(
         click.echo(f"Updating '{extension}' extension to version: {release.version }")
 
         data = CreateExtension(
-            ext_id=extension, archive=release.archive, source_repo=release.source_repo
+            ext_id=extension,
+            archive=release.archive,
+            source_repo=release.source_repo,
+            version=release.version,
         )
 
         await _call_install_extension(data, url, admin_user)

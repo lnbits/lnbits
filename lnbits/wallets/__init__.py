@@ -25,6 +25,7 @@ from .lntips import LnTipsWallet
 from .opennode import OpenNodeWallet
 from .spark import SparkWallet
 from .void import VoidWallet
+from .zbd import ZBDWallet
 
 
 def set_wallet_class(class_name: Optional[str] = None):

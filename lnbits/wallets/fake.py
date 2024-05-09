@@ -19,8 +19,11 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    PaymentFailedStatus,
+    PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
+    PaymentSuccessStatus,
     StatusResponse,
     Wallet,
 )
@@ -28,7 +31,7 @@ from .base import (
 
 class FakeWallet(Wallet):
     queue: asyncio.Queue = asyncio.Queue(0)
-    payment_secrets: Dict[str, str] = dict()
+    payment_secrets: Dict[str, str] = {}
     paid_invoices: Set[str] = set()
     secret: str = settings.fake_wallet_secret
     privkey: str = hashlib.pbkdf2_hmac(
@@ -117,11 +120,14 @@ class FakeWallet(Wallet):
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        paid = checking_id in self.paid_invoices
-        return PaymentStatus(paid)
+        if checking_id in self.paid_invoices:
+            return PaymentSuccessStatus()
+        if checking_id in list(self.payment_secrets.keys()):
+            return PaymentPendingStatus()
+        return PaymentFailedStatus()
 
     async def get_payment_status(self, _: str) -> PaymentStatus:
-        return PaymentStatus(None)
+        return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:

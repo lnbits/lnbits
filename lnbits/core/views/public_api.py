@@ -9,7 +9,7 @@ from lnbits import bolt11
 from ..crud import get_standalone_payment
 from ..tasks import api_invoice_listeners
 
-public_router = APIRouter()
+public_router = APIRouter(tags=["Core"])
 
 
 @public_router.get("/public/v1/payment/{payment_hash}")

@@ -48,7 +48,7 @@ def check_db_versions(sqdb):
 
     postgres = get_postgres_cursor()
     postgres.execute("SELECT * FROM public.dbversions;")
-    dbpost = dict(postgres.fetchall())
+    dbpost = dict(postgres.fetchall())  # type: ignore
 
     for key, value in dblite.items():
         if key in dblite and key in dbpost:
@@ -104,7 +104,7 @@ def insert_to_pg(query, data):
     connection.close()
 
 
-def migrate_core(file: str, exclude_tables: List[str] = None):
+def migrate_core(file: str, exclude_tables: List[str] = []):
     print(f"Migrating core: {file}")
     migrate_db(file, "public", exclude_tables)
     print("✅ Migrated core")
@@ -118,12 +118,12 @@ def migrate_ext(file: str):
     print(f"✅ Migrated ext: {schema}")
 
 
-def migrate_db(file: str, schema: str, exclude_tables: List[str] = None):
+def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
     # first we check if this file exists:
     assert os.path.isfile(file), f"{file} does not exist!"
 
-    sq = get_sqlite_cursor(file)
-    tables = sq.execute(
+    cursor = get_sqlite_cursor(file)
+    tables = cursor.execute(
         """
         SELECT name FROM sqlite_master
         WHERE type='table' AND name not like 'sqlite?_%' escape '?'
@@ -139,21 +139,21 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = None):
         if exclude_tables and tableName in exclude_tables:
             continue
 
-        columns = sq.execute(f"PRAGMA table_info({tableName})").fetchall()
+        columns = cursor.execute(f"PRAGMA table_info({tableName})").fetchall()
         q = build_insert_query(schema, tableName, columns)
 
-        data = sq.execute(f"SELECT * FROM {tableName};").fetchall()
+        data = cursor.execute(f"SELECT * FROM {tableName};").fetchall()
 
         if len(data) == 0:
             print(f"🛑 You sneaky dev! Table {tableName} is empty!")
 
         insert_to_pg(q, data)
-    sq.close()
+    cursor.close()
 
 
 def build_insert_query(schema, tableName, columns):
-    to_columns = ", ".join(map(lambda column: f'"{column[1].lower()}"', columns))
-    values = ", ".join(map(lambda column: to_column_type(column[2]), columns))
+    to_columns = ", ".join([f'"{column[1].lower()}"' for column in columns])
+    values = ", ".join([to_column_type(column[2]) for column in columns])
     return f"""
             INSERT INTO {schema}.{tableName}({to_columns})
             VALUES ({values});

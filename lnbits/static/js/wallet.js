@@ -360,7 +360,6 @@ new Vue({
     },
     onPaymentReceived: function (paymentHash) {
       this.fetchPayments()
-      this.fetchBalance()
 
       if (this.receive.paymentHash === paymentHash) {
         this.receive.show = false
@@ -589,7 +588,6 @@ new Vue({
                   clearInterval(this.parse.paymentChecker)
                   dismissPaymentMsg()
                   this.fetchPayments()
-                  this.fetchBalance()
                 }
               })
           }, 2000)
@@ -630,8 +628,6 @@ new Vue({
                   dismissPaymentMsg()
                   clearInterval(this.parse.paymentChecker)
                   this.fetchPayments()
-                  this.fetchBalance()
-
                   // show lnurlpay success action
                   if (response.data.success_action) {
                     switch (response.data.success_action.tag) {
@@ -840,20 +836,11 @@ new Vue({
     if (this.$q.screen.lt.md) {
       this.mobileSimple = true
     }
-    this.fetchBalance()
     this.fetchPayments()
 
     this.update.name = this.g.wallet.name
     this.update.currency = this.g.wallet.currency
-
-    LNbits.api
-      .request('GET', '/api/v1/currencies')
-      .then(response => {
-        this.receive.units = ['sat', ...response.data]
-      })
-      .catch(err => {
-        LNbits.utils.notifyApiError(err)
-      })
+    this.receive.units = ['sat', ...window.currencies]
   },
   mounted: function () {
     // show disclaimer

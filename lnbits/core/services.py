@@ -31,7 +31,12 @@ from lnbits.settings import (
 )
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import FAKE_WALLET, get_wallet_class, set_wallet_class
-from lnbits.wallets.base import PaymentResponse, PaymentStatus
+from lnbits.wallets.base import (
+    PaymentPendingStatus,
+    PaymentResponse,
+    PaymentStatus,
+    PaymentSuccessStatus,
+)
 
 from .crud import (
     check_internal,
@@ -189,23 +194,21 @@ async def pay_invoice(
     If the payment is still in flight, we hope that some other process
     will regularly check for the payment.
     """
-    invoice = bolt11_decode(payment_request)
+    try:
+        invoice = bolt11_decode(payment_request)
+    except Exception:
+        raise InvoiceFailure("Bolt11 decoding failed.")
 
     if not invoice.amount_msat or not invoice.amount_msat > 0:
-        raise ValueError("Amountless invoices not supported.")
+        raise InvoiceFailure("Amountless invoices not supported.")
     if max_sat and invoice.amount_msat > max_sat * 1000:
-        raise ValueError("Amount in invoice is too high.")
+        raise InvoiceFailure("Amount in invoice is too high.")
 
     await check_wallet_limits(wallet_id, conn, invoice.amount_msat)
 
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
         internal_id = f"internal_{invoice.payment_hash}"
-
-        if invoice.amount_msat == 0:
-            raise ValueError("Amountless invoices not supported.")
-        if max_sat and invoice.amount_msat > max_sat * 1000:
-            raise ValueError("Amount in invoice is too high.")
 
         _, extra = await calculate_fiat_amounts(
             invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
@@ -579,10 +582,10 @@ async def check_transaction_status(
         wallet_id, payment_hash, conn=conn
     )
     if not payment:
-        return PaymentStatus(None)
+        return PaymentPendingStatus()
     if not payment.pending:
         # note: before, we still checked the status of the payment again
-        return PaymentStatus(True, fee_msat=payment.fee)
+        return PaymentSuccessStatus(fee_msat=payment.fee)
 
     status: PaymentStatus = await payment.check_status()
     return status
@@ -711,11 +714,14 @@ async def check_webpush_settings():
 
 def update_cached_settings(sets_dict: dict):
     for key, value in sets_dict.items():
-        if key not in readonly_variables:
-            try:
-                setattr(settings, key, value)
-            except Exception:
-                logger.warning(f"Failed overriding setting: {key}, value: {value}")
+        if key in readonly_variables:
+            continue
+        if key not in settings.dict().keys():
+            continue
+        try:
+            setattr(settings, key, value)
+        except Exception:
+            logger.warning(f"Failed overriding setting: {key}, value: {value}")
     if "super_user" in sets_dict:
         setattr(settings, "super_user", sets_dict["super_user"])
 

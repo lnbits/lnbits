@@ -35,7 +35,7 @@ class InstalledExtensionMiddleware:
         # block path for all users if the extension is disabled
         if top_path in settings.lnbits_deactivated_extensions:
             response = self._response_by_accepted_type(
-                headers, f"Extension '{top_path}' disabled", HTTPStatus.NOT_FOUND
+                scope, headers, f"Extension '{top_path}' disabled", HTTPStatus.NOT_FOUND
             )
             await response(scope, receive, send)
             return
@@ -61,7 +61,7 @@ class InstalledExtensionMiddleware:
         await self.app(scope, receive, send)
 
     def _response_by_accepted_type(
-        self, headers: List[Any], msg: str, status_code: HTTPStatus
+        self, scope: Scope, headers: List[Any], msg: str, status_code: HTTPStatus
     ) -> Union[HTMLResponse, JSONResponse]:
         """
         Build an HTTP response containing the `msg` as HTTP body and the `status_code`
@@ -78,11 +78,11 @@ class InstalledExtensionMiddleware:
             "",
         )
 
-        if "text/html" in [a for a in accept_header.split(",")]:
+        if "text/html" in accept_header.split(","):
             return HTMLResponse(
                 status_code=status_code,
                 content=template_renderer()
-                .TemplateResponse("error.html", {"request": {}, "err": msg})
+                .TemplateResponse(Request(scope), "error.html", {"err": msg})
                 .body,
             )
 
