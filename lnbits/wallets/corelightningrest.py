@@ -49,6 +49,15 @@ class CoreLightningRestWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
 
+        # https://docs.corelightning.org/reference/lightning-pay
+        # 201: Already paid
+        # 203: Permanent failure at destination.
+        # 205: Unable to find a route.
+        # 206: Route too expensive.
+        # 207: Invoice expired.
+        # 210: Payment timed out without a payment in progress.
+        self.pay_failure_error_codes = [201, 203, 205, 206, 207, 210]
+
         self.cert = settings.corelightning_rest_cert or False
         self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
         self.last_pay_index = 0
@@ -176,11 +185,6 @@ class CoreLightningRestWallet(Wallet):
             r.raise_for_status()
             data = r.json()
 
-            if "error" in data:
-                return PaymentResponse(None, None, None, None, data["error"])
-            if r.is_error:
-                return PaymentResponse(None, None, None, None, r.text)
-
             status = self.statuses.get(data["status"])
             if "payment_preimage" not in data:
                 return PaymentResponse(
@@ -196,6 +200,24 @@ class CoreLightningRestWallet(Wallet):
             fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
             return PaymentResponse(status, checking_id, fee_msat, preimage, None)
+        except httpx.HTTPStatusError as exc:
+            try:
+                data = exc.response.json()
+                logger.debug(data)
+                if data["error"]["code"] in self.pay_failure_error_codes:  # type: ignore
+                    return PaymentResponse(
+                        False,
+                        None,
+                        None,
+                        None,
+                        f"Payment failed: {data['error']['message']}",
+                    )
+                error_message = f"REST failed with {data['error']['message']}."
+                return PaymentResponse(None, None, None, None, error_message)
+            except Exception as exc:
+                error_message = f"REST failed with {exc}."
+                return PaymentResponse(None, None, None, None, error_message)
+
         except json.JSONDecodeError:
             return PaymentResponse(
                 None, None, None, None, "Server error: 'invalid json response'"
