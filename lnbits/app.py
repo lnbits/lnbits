@@ -4,22 +4,17 @@ import importlib
 import os
 import shutil
 import sys
-import traceback
 from contextlib import asynccontextmanager
-from http import HTTPStatus
 from pathlib import Path
 from typing import Callable, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import JSONResponse
 
 from lnbits.core.crud import get_dbversions, get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
@@ -27,6 +22,7 @@ from lnbits.core.tasks import (  # watchdog_task
     killswitch_task,
     wait_for_paid_invoices,
 )
+from lnbits.exceptions import register_exception_handlers
 from lnbits.settings import settings
 from lnbits.tasks import (
     cancel_all_tasks,
@@ -53,7 +49,6 @@ from .extension_manager import (
     get_valid_extensions,
     version_parse,
 )
-from .helpers import template_renderer
 from .middleware import (
     CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,
@@ -429,82 +424,3 @@ def register_async_tasks():
     if settings.lnbits_admin_ui:
         server_log_task = initialize_server_websocket_logger()
         create_permanent_task(server_log_task)
-
-
-def register_exception_handlers(app: FastAPI):
-    @app.exception_handler(Exception)
-    async def exception_handler(request: Request, exc: Exception):
-        etype, _, tb = sys.exc_info()
-        traceback.print_exception(etype, exc, tb)
-        logger.error(f"Exception: {exc!s}")
-        # Only the browser sends "text/html" request
-        # not fail proof, but everything else get's a JSON response
-        if (
-            request.headers
-            and "accept" in request.headers
-            and "text/html" in request.headers["accept"]
-        ):
-            return template_renderer().TemplateResponse(
-                request, "error.html", {"err": f"Error: {exc!s}"}
-            )
-
-        return JSONResponse(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            content={"detail": str(exc)},
-        )
-
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
-    ):
-        logger.error(f"RequestValidationError: {exc!s}")
-        # Only the browser sends "text/html" request
-        # not fail proof, but everything else get's a JSON response
-
-        if (
-            request.headers
-            and "accept" in request.headers
-            and "text/html" in request.headers["accept"]
-        ):
-            return template_renderer().TemplateResponse(
-                request,
-                "error.html",
-                {"err": f"Error: {exc!s}"},
-            )
-
-        return JSONResponse(
-            status_code=HTTPStatus.BAD_REQUEST,
-            content={"detail": str(exc)},
-        )
-
-    @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException):
-        logger.error(f"HTTPException {exc.status_code}: {exc.detail}")
-        # Only the browser sends "text/html" request
-        # not fail proof, but everything else get's a JSON response
-
-        if (
-            request.headers
-            and "accept" in request.headers
-            and "text/html" in request.headers["accept"]
-        ):
-            if exc.headers and "token-expired" in exc.headers:
-                response = RedirectResponse("/")
-                response.delete_cookie("cookie_access_token")
-                response.delete_cookie("is_lnbits_user_authorized")
-                response.set_cookie("is_access_token_expired", "true")
-                return response
-
-            return template_renderer().TemplateResponse(
-                request,
-                "error.html",
-                {
-                    "request": request,
-                    "err": f"HTTP Error {exc.status_code}: {exc.detail}",
-                },
-            )
-
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"detail": exc.detail},
-        )
