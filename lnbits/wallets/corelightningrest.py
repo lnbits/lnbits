@@ -180,27 +180,30 @@ class CoreLightningRestWallet(Wallet):
                 return PaymentResponse(None, None, None, None, data["error"])
             if r.is_error:
                 return PaymentResponse(None, None, None, None, r.text)
-            if (
-                "payment_hash" not in data
-                or "payment_preimage" not in data
-                or "msatoshi_sent" not in data
-                or "msatoshi" not in data
-                or "status" not in data
-            ):
+
+            status = self.statuses.get(data["status"])
+            if "payment_preimage" not in data:
                 return PaymentResponse(
-                    None, None, None, None, "Server error: 'missing required fields'"
+                    status,
+                    None,
+                    None,
+                    None,
+                    None,
                 )
 
             checking_id = data["payment_hash"]
             preimage = data["payment_preimage"]
             fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
-            return PaymentResponse(
-                self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
-            )
+            return PaymentResponse(status, checking_id, fee_msat, preimage, None)
         except json.JSONDecodeError:
             return PaymentResponse(
                 None, None, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                None, None, None, None, "Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
