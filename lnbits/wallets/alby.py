@@ -167,6 +167,7 @@ class AlbyWallet(Wallet):
 
             data = r.json()
 
+            # TODO: how can we detect a failed payment?
             statuses = {
                 "CREATED": None,
                 "SETTLED": True,

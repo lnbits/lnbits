@@ -228,6 +228,7 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     response = await task
     assert response.status_code > 300, "Payment failed on the funding source"
 
+    await asyncio.sleep(1)
     # get payment from LNbits
     response = await client.get(
         f"/api/v1/payments/{preimage_hash}",
