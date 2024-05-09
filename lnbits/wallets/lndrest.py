@@ -176,12 +176,10 @@ class LndRestWallet(Wallet):
             r.raise_for_status()
             data = r.json()
 
-            if data.get("payment_error"):
-                error_message = r.json().get("payment_error") or r.text
-                logger.warning(
-                    f"LndRestWallet pay_invoice payment_error: {error_message}."
-                )
-                return PaymentResponse(None, None, None, None, error_message)
+            payment_error = data.get("payment_error")
+            if payment_error:
+                logger.warning(f"LndRestWallet payment_error: {payment_error}.")
+                return PaymentResponse(False, None, None, None, payment_error)
 
             checking_id = base64.b64decode(data["payment_hash"]).hex()
             fee_msat = int(data["payment_route"]["total_fees_msat"])
