@@ -53,10 +53,6 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - name: Create fake admin
-        if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
-        run: docker exec lnbits-lnbits-1 poetry run python tools/create_fake_admin.py
-
       - name: Run pytest
         uses: pavelzw/pytest-action@v2
         env:
