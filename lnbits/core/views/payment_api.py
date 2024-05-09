@@ -171,7 +171,10 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
             assert payment_db is not None, "payment not found"
             checking_id = payment_db.checking_id
         except InvoiceError as exc:
-            raise HTTPException(status_code=520, detail=str(exc)) from exc
+            return JSONResponse(
+                status_code=520,
+                content={"detail": exc.message, "status": exc.status},
+            )
         except Exception as exc:
             raise exc
 
@@ -217,14 +220,11 @@ async def api_payments_pay_invoice(
         payment_hash = await pay_invoice(
             wallet_id=wallet.id, payment_request=bolt11, extra=extra
         )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
-    except PermissionError as exc:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(exc)) from exc
     except PaymentError as exc:
-        raise HTTPException(status_code=520, detail=str(exc)) from exc
+        return JSONResponse(
+            status_code=520,
+            content={"detail": exc.message, "status": exc.status},
+        )
     except Exception as exc:
         raise exc
 
