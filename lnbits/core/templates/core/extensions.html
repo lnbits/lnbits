@@ -302,7 +302,6 @@
       ></q-input>
       <br />
       <p v-text="$t('confirm_continue')"></p>
-
       <div class="row q-mt-lg">
         <q-btn
           :disable="dropDbExtensionId !== selectedExtension.id"
@@ -323,10 +322,15 @@
   </q-dialog>
   <q-dialog v-model="imageDialog" position="top">
     <div v-if="selectedImage.link" style="width: 1200px; max-width: 80vw">
-      <q-video
+      <iframe
+        width="560"
+        height="315"
         :src="selectedImage.link"
-        style="width: 1200px; max-width: 80vw"
-      ></q-video>
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+      >
+      </iframe>
     </div>
     <div v-else style="width: 1200px; max-width: 80vw">
       <q-img
@@ -360,6 +364,12 @@
             style="cursor: pointer; max-height: 130px"
             :src="image.uri"
             type="image"
+            loading="lazy"
+          ></q-img>
+          <q-img
+            style="cursor: pointer; max-height: 130px"
+            :src="image.uri"
+            type="image"
             @click="bigImage(image)"
             loading="lazy"
           ></q-img>
@@ -370,7 +380,9 @@
           <div v-html="extensionConfig.extendedDescription"></div>
         </div>
         <div class="col-3 q-pl-sm">
-          <b><div>Contributors</div></b>
+          <b>
+            <div>Contributors</div>
+          </b>
           <small>
             <div v-for="contributor of extensionConfig.contributors">
               <div
@@ -639,8 +651,9 @@
                       </q-card-section>
                     </q-card>
 
-                    <q-separator></q-separator> </q-card
-                ></q-expansion-item>
+                    <q-separator></q-separator>
+                  </q-card>
+                </q-expansion-item>
               </q-list>
             </q-card-section>
           </q-expansion-item>
@@ -1095,7 +1108,6 @@
       },
       bigImage: function (image) {
         this.selectedImage = image
-        console.log(this.selectedImage)
         this.imageDialog = true
       }
     },
