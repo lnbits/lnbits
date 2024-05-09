@@ -1,13 +1,11 @@
 import asyncio
 import glob
 import importlib
-import logging
 import os
 import shutil
 import sys
 import traceback
 from contextlib import asynccontextmanager
-from hashlib import sha256
 from http import HTTPStatus
 from pathlib import Path
 from typing import Callable, List, Optional
@@ -25,7 +23,6 @@ from starlette.responses import JSONResponse
 
 from lnbits.core.crud import get_dbversions, get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
-from lnbits.core.services import websocket_updater
 from lnbits.core.tasks import (  # watchdog_task
     killswitch_task,
     wait_for_paid_invoices,
@@ -37,6 +34,11 @@ from lnbits.tasks import (
     register_invoice_listener,
 )
 from lnbits.utils.cache import cache
+from lnbits.utils.logger import (
+    configure_logger,
+    initialize_server_websocket_logger,
+    log_server_info,
+)
 from lnbits.wallets import get_funding_source, set_funding_source
 
 from .commands import migrate_databases
@@ -97,9 +99,6 @@ async def startup(app: FastAPI):
     if not settings.lnbits_extensions_deactivate_all:
         await check_installed_extensions(app)
         register_all_ext_routes(app)
-
-    if settings.lnbits_admin_ui:
-        initialize_server_logger()
 
     # initialize tasks
     register_async_tasks()
@@ -411,53 +410,6 @@ def register_all_ext_routes(app: FastAPI):
             logger.error(f"Could not load extension `{ext.code}`: {e!s}")
 
 
-def initialize_server_logger():
-    super_user_hash = sha256(settings.super_user.encode("utf-8")).hexdigest()
-
-    serverlog_queue = asyncio.Queue()
-
-    async def update_websocket_serverlog():
-        while settings.lnbits_running:
-            msg = await serverlog_queue.get()
-            await websocket_updater(super_user_hash, msg)
-
-    create_permanent_task(update_websocket_serverlog)
-
-    logger.add(
-        lambda msg: serverlog_queue.put_nowait(msg),
-        format=Formatter().format,
-    )
-
-
-def log_server_info():
-    logger.info("Starting LNbits")
-    logger.info(f"Version: {settings.version}")
-    logger.info(f"Baseurl: {settings.lnbits_baseurl}")
-    logger.info(f"Host: {settings.host}")
-    logger.info(f"Port: {settings.port}")
-    logger.info(f"Debug: {settings.debug}")
-    logger.info(f"Site title: {settings.lnbits_site_title}")
-    logger.info(f"Funding source: {settings.lnbits_backend_wallet_class}")
-    logger.info(f"Data folder: {settings.lnbits_data_folder}")
-    logger.info(f"Database: {get_db_vendor_name()}")
-    logger.info(f"Service fee: {settings.lnbits_service_fee}")
-    logger.info(f"Service fee max: {settings.lnbits_service_fee_max}")
-    logger.info(f"Service fee wallet: {settings.lnbits_service_fee_wallet}")
-
-
-def get_db_vendor_name():
-    db_url = settings.lnbits_database_url
-    return (
-        "PostgreSQL"
-        if db_url and db_url.startswith("postgres://")
-        else (
-            "CockroachDB"
-            if db_url and db_url.startswith("cockroachdb://")
-            else "SQLite"
-        )
-    )
-
-
 def register_async_tasks():
     create_permanent_task(check_pending_payments)
     create_permanent_task(invoice_listener)
@@ -472,6 +424,11 @@ def register_async_tasks():
     # TODO: implement watchdog properly
     # create_permanent_task(watchdog_task)
     create_permanent_task(killswitch_task)
+
+    # server logs for websocket
+    if settings.lnbits_admin_ui:
+        server_log_task = initialize_server_websocket_logger()
+        create_permanent_task(server_log_task)
 
 
 def register_exception_handlers(app: FastAPI):
@@ -551,70 +508,3 @@ def register_exception_handlers(app: FastAPI):
             status_code=exc.status_code,
             content={"detail": exc.detail},
         )
-
-
-def configure_logger() -> None:
-    logger.remove()
-    log_level: str = "DEBUG" if settings.debug else "INFO"
-    formatter = Formatter()
-    logger.add(sys.stdout, level=log_level, format=formatter.format)
-
-    if settings.enable_log_to_file:
-        logger.add(
-            Path(settings.lnbits_data_folder, "logs", "lnbits.log"),
-            rotation=settings.log_rotation,
-            retention=settings.log_retention,
-            level="INFO",
-            format=formatter.format,
-        )
-        logger.add(
-            Path(settings.lnbits_data_folder, "logs", "debug.log"),
-            rotation=settings.log_rotation,
-            retention=settings.log_retention,
-            level="DEBUG",
-            format=formatter.format,
-        )
-
-    logging.getLogger("uvicorn").handlers = [InterceptHandler()]
-    logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
-    logging.getLogger("uvicorn.error").handlers = [InterceptHandler()]
-    logging.getLogger("uvicorn.error").propagate = False
-
-    logging.getLogger("sqlalchemy").handlers = [InterceptHandler()]
-    logging.getLogger("sqlalchemy.engine.base").handlers = [InterceptHandler()]
-    logging.getLogger("sqlalchemy.engine.base").propagate = False
-    logging.getLogger("sqlalchemy.engine.base.Engine").handlers = [InterceptHandler()]
-    logging.getLogger("sqlalchemy.engine.base.Engine").propagate = False
-
-
-class Formatter:
-    def __init__(self):
-        self.padding = 0
-        self.minimal_fmt = (
-            "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | "
-            "<level>{message}</level>\n"
-        )
-        if settings.debug:
-            self.fmt = (
-                "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | "
-                "<level>{level: <4}</level> | "
-                "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
-                "<level>{message}</level>\n"
-            )
-        else:
-            self.fmt = self.minimal_fmt
-
-    def format(self, record):
-        function = "{function}".format(**record)
-        if function == "emit":  # uvicorn logs
-            return self.minimal_fmt
-        return self.fmt
-
-
-class InterceptHandler(logging.Handler):
-    def emit(self, record):
-        try:
-            level = logger.level(record.levelname).name
-        except ValueError:
-            level = record.levelno
-        logger.log(level, record.getMessage())

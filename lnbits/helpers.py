@@ -20,6 +20,19 @@ from .db import FilterModel
 from .extension_manager import get_valid_extensions
 
 
+def get_db_vendor_name():
+    db_url = settings.lnbits_database_url
+    return (
+        "PostgreSQL"
+        if db_url and db_url.startswith("postgres://")
+        else (
+            "CockroachDB"
+            if db_url and db_url.startswith("cockroachdb://")
+            else "SQLite"
+        )
+    )
+
+
 def urlsafe_short_hash() -> str:
     return shortuuid.uuid()
 
