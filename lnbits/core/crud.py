@@ -8,6 +8,7 @@ import shortuuid
 from passlib.context import CryptContext
 
 from lnbits.core.db import db
+from lnbits.core.models import PaymentState
 from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
 from lnbits.extension_manager import (
     InstallableExtension,
@@ -779,7 +780,7 @@ async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: in
     rows = await db.fetchall(
         f"""
         SELECT * FROM apipayments
-        WHERE pending = false
+        WHERE status = 'success'
         AND extra LIKE ?
         AND extra LIKE ?
         ORDER BY time DESC LIMIT {limit}
@@ -823,9 +824,9 @@ async def get_payments_paginated(
     if complete and pending:
         pass
     elif complete:
-        clause.append("((amount > 0 AND pending = false) OR amount < 0)")
+        clause.append("((amount > 0 AND status NOT 'pending') OR amount < 0)")
     elif pending:
-        clause.append("pending = true")
+        clause.append("status = 'pending'")
     else:
         pass
 
@@ -898,7 +899,7 @@ async def delete_expired_invoices(
     await (conn or db).execute(
         f"""
         DELETE FROM apipayments
-        WHERE pending = true AND amount > 0
+        WHERE status = 'pending' AND amount > 0
           AND time < {db.timestamp_now} - {db.interval_seconds(2592000)}
         """
     )
@@ -906,7 +907,7 @@ async def delete_expired_invoices(
     await (conn or db).execute(
         f"""
         DELETE FROM apipayments
-        WHERE pending = true AND amount > 0
+        WHERE status = 'pending' AND amount > 0
           AND expiry < {db.timestamp_now}
         """
     )
@@ -925,9 +926,9 @@ async def create_payment(
     amount: int,
     memo: str,
     fee: int = 0,
+    status: PaymentState = PaymentState.PENDING,
     preimage: Optional[str] = None,
     expiry: Optional[datetime.datetime] = None,
-    pending: bool = True,
     extra: Optional[Dict] = None,
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
@@ -941,7 +942,7 @@ async def create_payment(
         """
         INSERT INTO apipayments
           (wallet, checking_id, bolt11, hash, preimage,
-           amount, pending, memo, fee, extra, webhook, expiry)
+           amount, status, memo, fee, extra, webhook, expiry)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
@@ -951,7 +952,7 @@ async def create_payment(
             payment_hash,
             preimage,
             amount,
-            pending,
+            status.value,
             memo,
             fee,
             (
@@ -971,17 +972,17 @@ async def create_payment(
 
 
 async def update_payment_status(
-    checking_id: str, pending: bool, conn: Optional[Connection] = None
+    checking_id: str, status: PaymentState, conn: Optional[Connection] = None
 ) -> None:
     await (conn or db).execute(
-        "UPDATE apipayments SET pending = ? WHERE checking_id = ?",
-        (pending, checking_id),
+        "UPDATE apipayments SET status = ? WHERE checking_id = ?",
+        (status.value, checking_id),
     )
 
 
 async def update_payment_details(
     checking_id: str,
-    pending: Optional[bool] = None,
+    status: Optional[PaymentState] = None,
     fee: Optional[int] = None,
     preimage: Optional[str] = None,
     new_checking_id: Optional[str] = None,
@@ -993,9 +994,9 @@ async def update_payment_details(
     if new_checking_id is not None:
         set_clause.append("checking_id = ?")
         set_variables.append(new_checking_id)
-    if pending is not None:
-        set_clause.append("pending = ?")
-        set_variables.append(pending)
+    if status is not None:
+        set_clause.append("status = ?")
+        set_variables.append(status.value)
     if fee is not None:
         set_clause.append("fee = ?")
         set_variables.append(fee)
@@ -1041,16 +1042,6 @@ async def update_payment_extra(
     )
 
 
-async def update_pending_payments(wallet_id: str):
-    pending_payments = await get_payments(
-        wallet_id=wallet_id,
-        pending=True,
-        exclude_uncheckable=True,
-    )
-    for payment in pending_payments:
-        await payment.check_status()
-
-
 DateTrunc = Literal["hour", "day", "month"]
 sqlite_formats = {
     "hour": "%Y-%m-%d %H:00:00",
@@ -1066,7 +1057,7 @@ async def get_payments_history(
 ) -> List[PaymentHistoryPoint]:
     if not filters:
         filters = Filters()
-    where = ["(pending = False OR amount < 0)"]
+    where = ["(status = 'success' OR amount < 0)"]
     values = []
     if wallet_id:
         where.append("wallet = ?")
@@ -1133,7 +1124,7 @@ async def check_internal(
     row = await (conn or db).fetchone(
         """
         SELECT checking_id FROM apipayments
-        WHERE hash = ? AND pending AND amount > 0
+        WHERE hash = ? AND status = 'pending' AND amount > 0
         """,
         (payment_hash,),
     )
@@ -1152,15 +1143,14 @@ async def check_internal_pending(
     """
     row = await (conn or db).fetchone(
         """
-        SELECT pending FROM apipayments
+        SELECT status FROM apipayments
         WHERE hash = ? AND amount > 0
         """,
         (payment_hash,),
     )
     if not row:
         return True
-    else:
-        return row["pending"]
+    return row["status"] == PaymentState.PENDING.value
 
 
 async def mark_webhook_sent(payment_hash: str, status: int) -> None:

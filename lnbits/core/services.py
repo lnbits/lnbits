@@ -62,7 +62,7 @@ from .crud import (
     update_super_user,
 )
 from .helpers import to_valid_user_id
-from .models import BalanceDelta, Payment, UserConfig, Wallet
+from .models import BalanceDelta, Payment, PaymentState, UserConfig, Wallet
 
 
 class PaymentError(Exception):
@@ -278,7 +278,7 @@ async def pay_invoice(
             new_payment = await create_payment(
                 checking_id=internal_id,
                 fee=0 + abs(fee_reserve_total_msat),
-                pending=False,
+                status=PaymentState.SUCCESS,
                 conn=conn,
                 **payment_kwargs,
             )
@@ -320,7 +320,9 @@ async def pay_invoice(
         # the payer has enough to deduct from
         async with db.connect() as conn:
             await update_payment_status(
-                checking_id=internal_checking_id, pending=False, conn=conn
+                checking_id=internal_checking_id,
+                status=PaymentState.SUCCESS,
+                conn=conn,
             )
         await send_payment_notification(wallet, new_payment)
 
@@ -353,7 +355,11 @@ async def pay_invoice(
             async with db.connect() as conn:
                 await update_payment_details(
                     checking_id=temp_id,
-                    pending=payment.ok is not True,
+                    status=(
+                        PaymentState.SUCCESS
+                        if payment.ok is True
+                        else PaymentState.PENDING
+                    ),
                     fee=-(
                         abs(payment.fee_msat if payment.fee_msat else 0)
                         + abs(service_fee_msat)
@@ -612,12 +618,11 @@ async def check_transaction_status(
     )
     if not payment:
         return PaymentPendingStatus()
-    if not payment.pending:
-        # note: before, we still checked the status of the payment again
+
+    if payment.status is PaymentState.SUCCESS.value:
         return PaymentSuccessStatus(fee_msat=payment.fee)
 
-    status: PaymentStatus = await payment.check_status()
-    return status
+    return await payment.check_status()
 
 
 # WARN: this same value must be used for balance check and passed to
@@ -675,7 +680,9 @@ async def update_wallet_balance(wallet_id: str, amount: int):
     async with db.connect() as conn:
         checking_id = await check_internal(payment_hash, conn=conn)
         assert checking_id, "newly created checking_id cannot be retrieved"
-        await update_payment_status(checking_id=checking_id, pending=False, conn=conn)
+        await update_payment_status(
+            checking_id=checking_id, status=PaymentState.SUCCESS, conn=conn
+        )
         # notify receiver asynchronously
         from lnbits.tasks import internal_invoice_queue
 
@@ -816,3 +823,23 @@ async def get_balance_delta() -> BalanceDelta:
         lnbits_balance_msats=lnbits_balance,
         node_balance_msats=status.balance_msat,
     )
+
+
+async def update_pending_payments(wallet_id: str):
+    pending_payments = await get_payments(
+        wallet_id=wallet_id,
+        pending=True,
+        exclude_uncheckable=True,
+    )
+    for payment in pending_payments:
+        status = await payment.check_status()
+        if status.failed:
+            await update_payment_status(
+                checking_id=payment.checking_id,
+                status=PaymentState.FAILED,
+            )
+        elif status.success:
+            await update_payment_status(
+                checking_id=payment.checking_id,
+                status=PaymentState.SUCCESS,
+            )

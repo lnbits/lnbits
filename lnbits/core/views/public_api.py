@@ -20,7 +20,7 @@ async def api_public_payment_longpolling(payment_hash):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
-    elif not payment.pending:
+    if payment.success:
         return {"status": "paid"}
 
     try:

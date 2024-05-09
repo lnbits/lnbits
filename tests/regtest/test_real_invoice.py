@@ -5,7 +5,7 @@ import pytest
 
 from lnbits import bolt11
 from lnbits.core.crud import get_standalone_payment, update_payment_details
-from lnbits.core.models import CreateInvoice, Payment
+from lnbits.core.models import CreateInvoice, Payment, PaymentState
 from lnbits.core.services import fee_reserve_total, get_balance_delta
 from lnbits.core.views.payment_api import api_payment
 from lnbits.wallets import get_funding_source
@@ -140,10 +140,11 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     # get the outgoing payment from the db
     payment = await get_standalone_payment(invoice["payment_hash"])
     assert payment
+    assert payment.success
     assert payment.pending is False
 
     # set the outgoing invoice to pending
-    await update_payment_details(payment.checking_id, pending=True)
+    await update_payment_details(payment.checking_id, status=PaymentState.PENDING)
 
     payment_pending = await get_standalone_payment(invoice["payment_hash"])
     assert payment_pending
@@ -332,13 +333,15 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     assert payment.pending is False
 
     # set the incoming invoice to pending
-    await update_payment_details(payment.checking_id, pending=True)
+    await update_payment_details(payment.checking_id, status=PaymentState.PENDING)
 
     payment_pending = await get_standalone_payment(
         invoice["payment_hash"], incoming=True
     )
     assert payment_pending
     assert payment_pending.pending is True
+    assert payment_pending.success is False
+    assert payment_pending.failed is False
 
     # check the incoming payment status
     await payment.check_status()
