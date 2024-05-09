@@ -859,6 +859,7 @@
                           "method": "test_method",
                           "payload": "y",
                           "error": {
+                            "code": 205,
                             "attempts": [
                               {
                                 "fail_reason": "some reason"

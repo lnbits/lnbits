@@ -192,7 +192,7 @@ class CoreLightningRestWallet(Wallet):
                     None,
                     None,
                     None,
-                    None,
+                    data.get("error"),
                 )
 
             checking_id = data["payment_hash"]
@@ -202,20 +202,15 @@ class CoreLightningRestWallet(Wallet):
             return PaymentResponse(status, checking_id, fee_msat, preimage, None)
         except httpx.HTTPStatusError as exc:
             try:
+                logger.debug(exc)
                 data = exc.response.json()
-                logger.debug(data)
                 if data["error"]["code"] in self.pay_failure_error_codes:  # type: ignore
-                    return PaymentResponse(
-                        False,
-                        None,
-                        None,
-                        None,
-                        f"Payment failed: {data['error']['message']}",
-                    )
+                    error_message = f"Payment failed: {data['error']['message']}"
+                    return PaymentResponse(False, None, None, None, error_message)
                 error_message = f"REST failed with {data['error']['message']}."
                 return PaymentResponse(None, None, None, None, error_message)
             except Exception as exc:
-                error_message = f"REST failed with {exc}."
+                error_message = f"Unable to connect to {self.url}."
                 return PaymentResponse(None, None, None, None, error_message)
 
         except json.JSONDecodeError:

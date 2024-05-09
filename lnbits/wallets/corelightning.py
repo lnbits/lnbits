@@ -164,13 +164,14 @@ class CoreLightningWallet(Wallet):
         except RpcError as exc:
             logger.warning(exc)
             try:
-                if exc.error["code"] in self.pay_failure_error_codes:  # type: ignore
-                    error_message = exc.error.get("message", exc.error["code"])  # type: ignore
+                error_code = exc.error.get("code")
+                if error_code in self.pay_failure_error_codes:  # type: ignore
+                    error_message = exc.error.get("message", error_code)  # type: ignore
                     return PaymentResponse(
                         False, None, None, None, f"Payment failed: {error_message}"
                     )
                 else:
-                    error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
+                    error_message = f"Payment failed: {exc.error}"
                     return PaymentResponse(None, None, None, None, error_message)
             except Exception:
                 error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
