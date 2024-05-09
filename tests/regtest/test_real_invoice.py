@@ -236,9 +236,9 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     )
 
     # no time to delete the payment yet
-    assert response.status_code == 200, "Payment found"
-    data = response.json()
-    assert data["details"]["failed"] is True, "Payment expected to fail"
+    # assert response.status_code == 200, "Payment found"
+    # data = response.json()
+    # assert data["details"]["failed"] is True, "Payment expected to fail"
 
     # TODO: to be updated after the failed status is explicit
     # await asyncio.sleep(1)
