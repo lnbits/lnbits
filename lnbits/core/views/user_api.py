@@ -22,7 +22,7 @@ from lnbits.settings import EditableSettings, settings
 users_router = APIRouter(prefix="/users/api/v1", dependencies=[Depends(check_admin)])
 
 
-@users_router.get("/user/")
+@users_router.get("/user")
 async def api_get_users(
     filters: Filters = Depends(parse_filters(AccountFilters)),
 ) -> Page[Account]:
@@ -53,6 +53,7 @@ async def api_users_delete_user(
 
         if user_id in settings.lnbits_admin_users and not user.super_user:
             raise Exception("Only super_user can delete admin user.")
+
         await delete_account(user_id)
 
     except Exception as exc:
@@ -127,7 +128,7 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> None:
 
 
 @users_router.put(
-    "/topup/",
+    "/topup",
     name="Topup",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],

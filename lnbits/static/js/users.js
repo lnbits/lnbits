@@ -184,12 +184,7 @@ new Vue({
     },
     createUser() {
       LNbits.api
-        .request(
-          'POST',
-          '/users/api/v1/user/',
-          null,
-          this.createUserDialog.data
-        )
+        .request('POST', '/users/api/v1/user', null, this.createUserDialog.data)
         .then(() => {
           this.fetchUsers()
           this.$q.notify({
@@ -227,7 +222,7 @@ new Vue({
         .confirmDialog('Are you sure you want to delete this user?')
         .onOk(() => {
           LNbits.api
-            .request('DELETE', `/users/api/v1/user/${user_id}/`)
+            .request('DELETE', `/users/api/v1/user/${user_id}`)
             .then(() => {
               this.fetchUsers()
               this.$q.notify({
@@ -359,7 +354,7 @@ new Vue({
       LNbits.api
         .request(
           'PUT',
-          '/users/api/v1/topup/',
+          '/users/api/v1/topup',
           this.g.user.wallets[0].adminkey,
           this.wallet
         )
