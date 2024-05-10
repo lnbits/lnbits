@@ -28,14 +28,9 @@ async def api_get_users(
 ) -> Page[Account]:
     try:
         filtered = await get_accounts(filters=filters)
-        users = []
         for user in filtered.data:
-            user.admin = (
-                user.id in settings.lnbits_admin_users or user.id == settings.super_user
-            )
             user.super_user = user.id == settings.super_user
-            users.append(user)
-        filtered.data = users
+            user.admin = user.id in settings.lnbits_admin_users or user.super_user
         return filtered
     except Exception as exc:
         raise HTTPException(
