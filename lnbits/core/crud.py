@@ -173,10 +173,10 @@ async def get_accounts(
             (
                 SELECT COUNT(*) FROM wallets WHERE wallets.user = accounts.id
             ) as wallet_count,
-            (
+            MAX((
                 SELECT time FROM apipayments
                 WHERE wallet = wallets.id ORDER BY time DESC LIMIT 1
-            ) as last_payment
+            )) as last_payment
             FROM accounts LEFT JOIN wallets ON accounts.id = wallets.user
         """,
         [],
