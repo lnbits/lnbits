@@ -9,6 +9,8 @@ window.localisation.en = {
   transactions: 'Transactions',
   dashboard: 'Dashboard',
   node: 'Node',
+  export_users: 'Export Users',
+  no_users: 'No users found',
   total_capacity: 'Total Capacity',
   avg_channel_size: 'Avg. Channel Size',
   biggest_channel_size: 'Biggest Channel Size',
@@ -245,5 +247,6 @@ window.localisation.en = {
   pay_from_wallet: 'Pay from Wallet',
   show_qr: 'Show QR',
   retry_install: 'Retry Install',
-  new_payment: 'Make New Payment'
+  new_payment: 'Make New Payment',
+  hide_empty_wallets: 'Hide empty wallets'
 }

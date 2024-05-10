@@ -20,6 +20,8 @@ from lnbits.settings import (
 )
 
 from .models import (
+    Account,
+    AccountFilters,
     CreateUser,
     Payment,
     PaymentFilters,
@@ -143,6 +145,46 @@ async def update_account(
     user = await get_user(user_id)
     assert user, "Updated account couldn't be retrieved"
     return user
+
+
+async def delete_account(user_id: str, conn: Optional[Connection] = None) -> None:
+    await (conn or db).execute(
+        "DELETE from accounts WHERE id = ?",
+        (user_id,),
+    )
+
+
+async def get_accounts(
+    filters: Optional[Filters[AccountFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> Page[Account]:
+    return await (conn or db).fetch_page(
+        """
+        SELECT
+            accounts.id,
+            accounts.username,
+            accounts.email,
+            SUM(COALESCE((
+                SELECT balance FROM balances WHERE wallet = wallets.id
+            ), 0)) as balance_msat,
+            SUM((
+                SELECT COUNT(*) FROM apipayments WHERE wallet = wallets.id
+            )) as transaction_count,
+            (
+                SELECT COUNT(*) FROM wallets WHERE wallets.user = accounts.id
+            ) as wallet_count,
+            MAX((
+                SELECT time FROM apipayments
+                WHERE wallet = wallets.id ORDER BY time DESC LIMIT 1
+            )) as last_payment
+            FROM accounts LEFT JOIN wallets ON accounts.id = wallets.user
+        """,
+        [],
+        [],
+        filters=filters,
+        model=Account,
+        group_by=["accounts.id"],
+    )
 
 
 async def get_account(
@@ -498,16 +540,29 @@ async def update_wallet(
 
 
 async def delete_wallet(
-    *, user_id: str, wallet_id: str, conn: Optional[Connection] = None
+    *,
+    user_id: str,
+    wallet_id: str,
+    deleted: bool = True,
+    conn: Optional[Connection] = None,
 ) -> None:
     now = int(time())
     await (conn or db).execute(
         f"""
         UPDATE wallets
-        SET deleted = true, updated_at = {db.timestamp_placeholder}
+        SET deleted = ?, updated_at = {db.timestamp_placeholder}
         WHERE id = ? AND "user" = ?
         """,
-        (now, wallet_id, user_id),
+        (deleted, now, wallet_id, user_id),
+    )
+
+
+async def force_delete_wallet(
+    wallet_id: str, conn: Optional[Connection] = None
+) -> None:
+    await (conn or db).execute(
+        "DELETE FROM wallets WHERE id = ?",
+        (wallet_id,),
     )
 
 
@@ -557,6 +612,18 @@ async def get_wallet(
     )
 
     return Wallet(**row) if row else None
+
+
+async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> List[Wallet]:
+    rows = await (conn or db).fetchall(
+        """
+        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
+        AS balance_msat FROM wallets WHERE "user" = ?
+        """,
+        (user_id,),
+    )
+
+    return [Wallet(**row) for row in rows]
 
 
 async def get_wallet_for_key(
