@@ -99,8 +99,8 @@ class UserConfig(BaseModel):
 
 class Account(FromRowModel):
     id: str
-    super_user: Optional[bool] = False
-    admin: Optional[bool] = False
+    is_super_user: Optional[bool] = False
+    is_admin: Optional[bool] = False
     username: Optional[str] = None
     email: Optional[str] = None
     balance_msat: Optional[int] = 0

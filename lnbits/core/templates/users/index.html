@@ -68,17 +68,17 @@ include "users/_createWalletDialog.html" %}
                 </q-btn>
                 <q-btn
                   round
-                  v-if="!props.row.super_user"
+                  v-if="!props.row.is_super_user"
                   icon="build"
                   size="sm"
-                  :color="props.row.admin ? 'primary' : ''"
+                  :color="props.row.is_admin ? 'primary' : ''"
                   @click="toggleAdmin(props.row.id)"
                 >
                   <q-tooltip>Toggle Admin</q-tooltip>
                 </q-btn>
                 <q-btn
                   round
-                  v-if="props.row.super_user"
+                  v-if="props.row.is_super_user"
                   icon="build"
                   size="sm"
                   color="positive"
