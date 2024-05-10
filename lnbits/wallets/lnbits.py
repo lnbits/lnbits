@@ -180,7 +180,7 @@ class LNbitsWallet(Wallet):
                 return PaymentPendingStatus()
             data = r.json()
 
-            if data.get("failed", False) is True:
+            if data.get("status") == "failed":
                 return PaymentFailedStatus()
 
             if "paid" not in data or not data["paid"]:
