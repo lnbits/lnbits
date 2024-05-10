@@ -80,3 +80,8 @@ jobs:
           file: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+
+      - name: docker lnbits logs
+        if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
+        run: |
+          docker logs lnbits-lnbits-1
