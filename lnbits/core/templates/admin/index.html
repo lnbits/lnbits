@@ -70,6 +70,12 @@
             ></q-tab>
 
             <q-tab
+              name="users"
+              :label="$t('users')"
+              @update="val => tab = val.name"
+            ></q-tab>
+
+            <q-tab
               name="server"
               :label="$t('server')"
               @update="val => tab = val.name"
@@ -93,8 +99,9 @@
       <q-form name="settings_form" id="settings_form">
         <q-tab-panels v-model="tab" animated>
           {% include "admin/_tab_funding.html" %} {% include
-          "admin/_tab_server.html" %} {% include "admin/_tab_security.html" %}
-          {% include "admin/_tab_theme.html" %}
+          "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %} {%
+          include "admin/_tab_security.html" %} {% include
+          "admin/_tab_theme.html" %} "admin/_tab_theme.html" %}
         </q-tab-panels>
       </q-form>
     </q-card>
