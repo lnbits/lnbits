@@ -93,6 +93,13 @@ new Vue({
             sortable: true
           },
           {
+            name: 'wallet_count',
+            align: 'left',
+            label: 'Wallet Count',
+            field: 'wallet_count',
+            sortable: true
+          },
+          {
             name: 'transaction_count',
             align: 'left',
             label: 'Transaction Count',

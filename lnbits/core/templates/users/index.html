@@ -99,6 +99,7 @@ include "users/_createWalletDialog.html" %}
                 auto-width
                 v-text="formatSat(props.row.balance_msat)"
               ></q-td>
+              <q-td auto-width v-text="props.row.wallet_count"></q-td>
               <q-td auto-width v-text="props.row.transaction_count"></q-td>
               <q-td auto-width v-text="props.row.username"></q-td>
               <q-td auto-width v-text="props.row.email"></q-td>

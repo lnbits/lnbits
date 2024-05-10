@@ -164,12 +164,15 @@ async def get_accounts(
             accounts.id,
             accounts.username,
             accounts.email,
-            COALESCE((
+            SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet = wallets.id
-            ), 0) as balance_msat,
-            (
+            ), 0)) as balance_msat,
+            SUM((
                 SELECT COUNT(*) FROM apipayments WHERE wallet = wallets.id
-            ) as transaction_count,
+            )) as transaction_count,
+            (
+                SELECT COUNT(*) FROM wallets WHERE wallets.user = accounts.id
+            ) as wallet_count,
             (
                 SELECT time FROM apipayments
                 WHERE wallet = wallets.id ORDER BY time DESC LIMIT 1
@@ -180,7 +183,7 @@ async def get_accounts(
         [],
         filters=filters,
         model=Account,
-        group_by=["accounts.id", "wallets.id"],
+        group_by=["accounts.id"],
     )
 
 
