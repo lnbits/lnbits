@@ -2665,7 +2665,7 @@
                   "response_type": "json",
                   "response": {
                     "paid": false,
-                    "failed": true,
+                    "status": "failed",
                     "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
                     "details": {}
                   }
