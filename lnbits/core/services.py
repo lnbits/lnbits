@@ -348,6 +348,7 @@ async def pay_invoice(
             )
 
         logger.debug(f"backend: pay_invoice finished {temp_id}")
+        logger.debug(f"backend: pay_invoice response {payment}")
         if payment.checking_id and payment.ok is not False:
             # payment.ok can be True (paid) or None (pending)!
             logger.debug(f"updating payment {temp_id}")
