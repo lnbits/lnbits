@@ -63,11 +63,15 @@ from .models import Payment, UserConfig, Wallet
 
 
 class PaymentError(Exception):
-    pass
+    def __init__(self, message: str, status: str = "pending"):
+        self.message = message
+        self.status = status
 
 
 class InvoiceError(Exception):
-    pass
+    def __init__(self, message: str, status: str = "pending"):
+        self.message = message
+        self.status = status
 
 
 async def calculate_fiat_amounts(
@@ -123,11 +127,11 @@ async def create_invoice(
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
     if not amount > 0:
-        raise InvoiceError("Amountless invoices not supported.")
+        raise InvoiceError("Amountless invoices not supported.", status="failed")
 
     user_wallet = await get_wallet(wallet_id, conn=conn)
     if not user_wallet:
-        raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.")
+        raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
 
     invoice_memo = None if description_hash else memo
 
@@ -142,8 +146,9 @@ async def create_invoice(
         user_wallet.balance_msat / 1000 + amount_sat
     ):
         raise InvoiceError(
-            f"Wallet balance  cannot exceed "
-            f"{settings.lnbits_wallet_limit_max_balance} sats."
+            f"Wallet balance cannot exceed "
+            f"{settings.lnbits_wallet_limit_max_balance} sats.",
+            status="failed",
         )
 
     (
@@ -159,7 +164,9 @@ async def create_invoice(
         expiry=expiry or settings.lightning_invoice_expiry,
     )
     if not ok or not payment_request or not checking_id:
-        raise InvoiceError(error_message or "unexpected backend error.")
+        raise InvoiceError(
+            error_message or "unexpected backend error.", status="pending"
+        )
 
     invoice = bolt11_decode(payment_request)
 
@@ -202,12 +209,12 @@ async def pay_invoice(
     try:
         invoice = bolt11_decode(payment_request)
     except Exception as exc:
-        raise InvoiceError("Bolt11 decoding failed.") from exc
+        raise PaymentError("Bolt11 decoding failed.", status="failed") from exc
 
     if not invoice.amount_msat or not invoice.amount_msat > 0:
-        raise InvoiceError("Amountless invoices not supported.")
+        raise PaymentError("Amountless invoices not supported.", status="failed")
     if max_sat and invoice.amount_msat > max_sat * 1000:
-        raise InvoiceError("Amount in invoice is too high.")
+        raise PaymentError("Amount in invoice is too high.", status="failed")
 
     await check_wallet_limits(wallet_id, conn, invoice.amount_msat)
 
@@ -242,7 +249,7 @@ async def pay_invoice(
         # we check if an internal invoice exists that has already been paid
         # (not pending anymore)
         if not await check_internal_pending(invoice.payment_hash, conn=conn):
-            raise PaymentError("Internal invoice already paid.")
+            raise PaymentError("Internal invoice already paid.", status="failed")
 
         # check_internal() returns the checking_id of the invoice we're waiting for
         # (pending only)
@@ -261,7 +268,7 @@ async def pay_invoice(
                 internal_invoice.amount != invoice.amount_msat
                 or internal_invoice.bolt11 != payment_request.lower()
             ):
-                raise PaymentError("Invalid invoice.")
+                raise PaymentError("Invalid invoice.", status="failed")
 
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
@@ -289,7 +296,7 @@ async def pay_invoice(
             except Exception as exc:
                 logger.error(f"could not create temporary payment: {exc}")
                 # happens if the same wallet tries to pay an invoice twice
-                raise PaymentError("Could not make payment.") from exc
+                raise PaymentError("Could not make payment.", status="failed") from exc
 
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
@@ -302,9 +309,10 @@ async def pay_invoice(
             ):
                 raise PaymentError(
                     f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
-                    "  sat) to cover potential routing fees."
+                    "  sat) to cover potential routing fees.",
+                    status="failed",
                 )
-            raise PermissionError("Insufficient balance.")
+            raise PaymentError("Insufficient balance.", status="failed")
 
     if internal_checking_id:
         service_fee_msat = service_fee(invoice.amount_msat, internal=True)
@@ -340,6 +348,7 @@ async def pay_invoice(
             )
 
         logger.debug(f"backend: pay_invoice finished {temp_id}")
+        logger.debug(f"backend: pay_invoice response {payment}")
         if payment.checking_id and payment.ok is not False:
             # payment.ok can be True (paid) or None (pending)!
             logger.debug(f"updating payment {temp_id}")
@@ -370,7 +379,8 @@ async def pay_invoice(
                 await delete_wallet_payment(temp_id, wallet_id, conn=conn)
             raise PaymentError(
                 f"Payment failed: {payment.error_message}"
-                or "Payment failed, but backend didn't give us an error message."
+                or "Payment failed, but backend didn't give us an error message.",
+                status="failed",
             )
         else:
             logger.warning(
@@ -413,8 +423,9 @@ async def check_time_limit_between_transactions(conn, wallet_id):
     if len(payments) == 0:
         return
 
-    raise ValueError(
-        f"The time limit of {limit} seconds between payments has been reached."
+    raise PaymentError(
+        status="failed",
+        message=f"The time limit of {limit} seconds between payments has been reached.",
     )
 
 

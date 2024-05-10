@@ -818,7 +818,7 @@
           }
         },
         {
-          "description": "error",
+          "description": "failed",
           "call_params": {
             "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
             "fee_limit_msat": 25000
@@ -826,31 +826,17 @@
           "expect": {
             "__eval__:error_message": "\"Payment failed: \" in \"{error_message}\"",
             "success": false,
+            "pending": false,
+            "failed": true,
             "checking_id": null,
             "fee_msat": null,
             "preimage": null
           },
           "mocks": {
-            "breez": {
-              "sdk_services": [
-                {
-                  "response_type": "data",
-                  "response": {
-                    "send_payment": {
-                      "request_type": "function",
-                      "response_type": "exception",
-                      "response": {
-                        "data": "test-error"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
+            "breez": {},
             "corelightning": {
               "ln": [
                 {
-                  "description": "test-error",
                   "response": {
                     "call": {
                       "description": "indirect call to `pay` (via `call`)",
@@ -867,7 +853,20 @@
                       },
                       "response_type": "exception",
                       "response": {
-                        "data": "test-error"
+                        "module": "pyln.client.lightning",
+                        "class": "RpcError",
+                        "data": {
+                          "method": "test_method",
+                          "payload": "y",
+                          "error": {
+                            "code": 205,
+                            "attempts": [
+                              {
+                                "fail_reason": "some reason"
+                              }
+                            ]
+                          }
+                        }
                       }
                     }
                   }
@@ -994,7 +993,77 @@
                       }
                     }
                   }
-                },
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "error",
+          "call_params": {
+            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+            "fee_limit_msat": 25000
+          },
+          "expect": {
+            "__eval__:error_message": "\"Payment failed: \" in \"{error_message}\"",
+            "success": false,
+            "pending": true,
+            "failed": false,
+            "checking_id": null,
+            "fee_msat": null,
+            "preimage": null
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "send_payment": {
+                      "request_type": "function",
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "description": "test-error",
+                  "response": {
+                    "call": {
+                      "description": "indirect call to `pay` (via `call`)",
+                      "request_type": "function",
+                      "request_data": {
+                        "args": [
+                          "pay",
+                          {
+                            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                            "description": "Unit Test Invoice",
+                            "maxfee": 25000
+                          }
+                        ]
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "routerpc": [
                 {
                   "description": "RPC error.",
                   "response": {
@@ -1024,11 +1093,13 @@
             "fee_limit_msat": 25000
           },
           "expect": {
+            "error_message": "Server error: 'missing required fields'",
             "success": false,
+            "pending": true,
+            "failed": false,
             "checking_id": null,
             "fee_msat": null,
-            "preimage": null,
-            "error_message": "Server error: 'missing required fields'"
+            "preimage": null
           },
           "mocks": {
             "breez": {
@@ -1071,11 +1142,13 @@
             "fee_limit_msat": 25000
           },
           "expect": {
+            "error_message": "RPC 'test_method' failed with 'test-error'.",
             "success": false,
+            "pending": true,
+            "failed": false,
             "checking_id": null,
             "fee_msat": null,
-            "preimage": null,
-            "error_message": "RPC 'test_method' failed with 'test-error'."
+            "preimage": null
           },
           "mocks": {
             "breez": {
@@ -1083,40 +1156,6 @@
             },
             "corelightning": {
               "ln": [
-                {
-                  "response": {
-                    "call": {
-                      "description": "indirect call to `pay` (via `call`)",
-                      "request_type": "function",
-                      "request_data": {
-                        "args": [
-                          "pay",
-                          {
-                            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
-                            "description": "Unit Test Invoice",
-                            "maxfee": 25000
-                          }
-                        ]
-                      },
-                      "response_type": "exception",
-                      "response": {
-                        "module": "pyln.client.lightning",
-                        "class": "RpcError",
-                        "data": {
-                          "method": "test_method",
-                          "payload": "y",
-                          "error": {
-                            "attempts": [
-                              {
-                                "fail_reason": "RPC 'test_method' failed with 'test-error'."
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
                 {
                   "response": {
                     "call": {

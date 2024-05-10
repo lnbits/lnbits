@@ -1311,6 +1311,58 @@
           }
         },
         {
+          "description": "failed",
+          "call_params": {
+            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+            "fee_limit_msat": 25000
+          },
+          "expect": {
+            "success": false,
+            "pending": false,
+            "failed": true,
+            "checking_id": null,
+            "fee_msat": null,
+            "preimage": null
+          },
+          "mocks": {
+            "corelightningrest": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "data",
+                  "request_body": {
+                    "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                    "maxfeepercent": "119.04761905",
+                    "exemptfee": 0
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "status": "failed"
+                  }
+                }
+              ]
+            },
+            "lndrest": {
+              "pay_invoice_endpoint": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "payment_request": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                    "fee_limit": 25000
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "payment_error": "Test Error"
+                  }
+                }
+              ]
+            },
+            "alby": {},
+            "eclair": [],
+            "lnbits": [],
+            "phoenixd": []
+          }
+        },
+        {
           "description": "pending, no fee",
           "call_params": {
             "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
@@ -1462,8 +1514,8 @@
           },
           "expect": {
             "success": false,
-            "pending": false,
-            "failed": true,
+            "pending": true,
+            "failed": false,
             "checking_id": null,
             "fee_msat": null,
             "preimage": null,
@@ -1481,25 +1533,14 @@
                   },
                   "response_type": "json",
                   "response": {
+                    "status": "pending",
                     "error": "Test Error"
                   }
                 }
               ]
             },
             "lndrest": {
-              "pay_invoice_endpoint": [
-                {
-                  "request_type": "json",
-                  "request_body": {
-                    "payment_request": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
-                    "fee_limit": 25000
-                  },
-                  "response_type": "json",
-                  "response": {
-                    "payment_error": "Test Error"
-                  }
-                }
-              ]
+              "pay_invoice_endpoint": []
             },
             "alby": {
               "pay_invoice_endpoint": []
@@ -1530,31 +1571,7 @@
               ]
             },
             "lnbits": {
-              "pay_invoice_endpoint": [
-                {
-                  "request_type": "json",
-                  "request_body": {
-                    "out": true,
-                    "blt11": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
-                  },
-                  "response_type": "json",
-                  "response": {
-                    "detail": "Test Error"
-                  }
-                }
-              ],
-              "get_payment_status_endpoint": [
-                {
-                  "response_type": "json",
-                  "response": {
-                    "paid": true,
-                    "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
-                    "details": {
-                      "fee": 50
-                    }
-                  }
-                }
-              ]
+              "pay_invoice_endpoint": []
             },
             "phoenixd": {
               "pay_invoice_endpoint": [
@@ -1591,8 +1608,8 @@
           "expect": {
             "error_message": "Server error: 'missing required fields'",
             "success": false,
-            "pending": false,
-            "failed": true,
+            "pending": true,
+            "failed": false,
             "checking_id": null,
             "fee_msat": null,
             "preimage": null
@@ -1688,8 +1705,8 @@
           "expect": {
             "error_message": "Server error: 'invalid json response'",
             "success": false,
-            "pending": false,
-            "failed": true,
+            "pending": true,
+            "failed": false,
             "checking_id": null,
             "fee_msat": null,
             "preimage": null
@@ -1806,8 +1823,8 @@
           "expect": {
             "error_message": "Unable to connect to http://127.0.0.1:8555.",
             "success": false,
-            "pending": false,
-            "failed": true,
+            "pending": true,
+            "failed": false,
             "checking_id": null,
             "fee_msat": null,
             "preimage": null
@@ -1936,8 +1953,8 @@
           "expect": {
             "error_message": "Unable to connect to http://127.0.0.1:8555.",
             "success": false,
-            "pending": false,
-            "failed": true,
+            "pending": true,
+            "failed": false,
             "checking_id": null,
             "fee_msat": null,
             "preimage": null
@@ -2643,7 +2660,17 @@
               ]
             },
             "lnbits": {
-              "get_payment_status_endpoint": []
+              "get_payment_status_endpoint": [
+                {
+                  "response_type": "json",
+                  "response": {
+                    "paid": false,
+                    "status": "failed",
+                    "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "details": {}
+                  }
+                }
+              ]
             },
             "phoenixd": {
               "description": "phoenixd.py doesn't handle the 'failed' status for `get_invoice_status`",

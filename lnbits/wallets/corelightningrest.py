@@ -49,6 +49,15 @@ class CoreLightningRestWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
 
+        # https://docs.corelightning.org/reference/lightning-pay
+        # 201: Already paid
+        # 203: Permanent failure at destination.
+        # 205: Unable to find a route.
+        # 206: Route too expensive.
+        # 207: Invoice expired.
+        # 210: Payment timed out without a payment in progress.
+        self.pay_failure_error_codes = [201, 203, 205, 206, 207, 210]
+
         self.cert = settings.corelightning_rest_cert or False
         self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
         self.last_pay_index = 0
@@ -176,37 +185,48 @@ class CoreLightningRestWallet(Wallet):
             r.raise_for_status()
             data = r.json()
 
-            if "error" in data:
-                return PaymentResponse(False, None, None, None, data["error"])
-            if r.is_error:
-                return PaymentResponse(False, None, None, None, r.text)
-            if (
-                "payment_hash" not in data
-                or "payment_preimage" not in data
-                or "msatoshi_sent" not in data
-                or "msatoshi" not in data
-                or "status" not in data
-            ):
+            status = self.statuses.get(data["status"])
+            if "payment_preimage" not in data:
                 return PaymentResponse(
-                    False, None, None, None, "Server error: 'missing required fields'"
+                    status,
+                    None,
+                    None,
+                    None,
+                    data.get("error"),
                 )
 
             checking_id = data["payment_hash"]
             preimage = data["payment_preimage"]
             fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
-            return PaymentResponse(
-                self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
-            )
+            return PaymentResponse(status, checking_id, fee_msat, preimage, None)
+        except httpx.HTTPStatusError as exc:
+            try:
+                logger.debug(exc)
+                data = exc.response.json()
+                if data["error"]["code"] in self.pay_failure_error_codes:  # type: ignore
+                    error_message = f"Payment failed: {data['error']['message']}"
+                    return PaymentResponse(False, None, None, None, error_message)
+                error_message = f"REST failed with {data['error']['message']}."
+                return PaymentResponse(None, None, None, None, error_message)
+            except Exception as exc:
+                error_message = f"Unable to connect to {self.url}."
+                return PaymentResponse(None, None, None, None, error_message)
+
         except json.JSONDecodeError:
             return PaymentResponse(
-                False, None, None, None, "Server error: 'invalid json response'"
+                None, None, None, None, "Server error: 'invalid json response'"
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                None, None, None, None, "Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                False, None, None, None, f"Unable to connect to {self.url}."
+                None, None, None, None, f"Unable to connect to {self.url}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

@@ -142,9 +142,9 @@ class EclairWallet(Wallet):
             data = r.json()
 
             if "error" in data:
-                return PaymentResponse(False, None, None, None, data["error"])
+                return PaymentResponse(None, None, None, None, data["error"])
             if r.is_error:
-                return PaymentResponse(False, None, None, None, r.text)
+                return PaymentResponse(None, None, None, None, r.text)
 
             if data["type"] == "payment-failed":
                 return PaymentResponse(False, None, None, None, "payment failed")
@@ -154,17 +154,17 @@ class EclairWallet(Wallet):
 
         except json.JSONDecodeError:
             return PaymentResponse(
-                False, None, None, None, "Server error: 'invalid json response'"
+                None, None, None, None, "Server error: 'invalid json response'"
             )
         except KeyError:
             return PaymentResponse(
-                False, None, None, None, "Server error: 'missing required fields'"
+                None, None, None, None, "Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                False, None, None, None, f"Unable to connect to {self.url}."
+                None, None, None, None, f"Unable to connect to {self.url}."
             )
 
         payment_status: PaymentStatus = await self.get_payment_status(checking_id)

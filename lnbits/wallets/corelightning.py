@@ -46,6 +46,15 @@ class CoreLightningWallet(Wallet):
         command = self.ln.help("invoice")["help"][0]["command"]  # type: ignore
         self.supports_description_hash = "deschashonly" in command
 
+        # https://docs.corelightning.org/reference/lightning-pay
+        # 201: Already paid
+        # 203: Permanent failure at destination.
+        # 205: Unable to find a route.
+        # 206: Route too expensive.
+        # 207: Invoice expired.
+        # 210: Payment timed out without a payment in progress.
+        self.pay_failure_error_codes = [201, 203, 205, 206, 207, 210]
+
         # check last payindex so we can listen from that point on
         self.last_pay_index = 0
         invoices: dict = self.ln.listinvoices()  # type: ignore
@@ -155,19 +164,27 @@ class CoreLightningWallet(Wallet):
         except RpcError as exc:
             logger.warning(exc)
             try:
-                error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
+                error_code = exc.error.get("code")
+                if error_code in self.pay_failure_error_codes:  # type: ignore
+                    error_message = exc.error.get("message", error_code)  # type: ignore
+                    return PaymentResponse(
+                        False, None, None, None, f"Payment failed: {error_message}"
+                    )
+                else:
+                    error_message = f"Payment failed: {exc.error}"
+                    return PaymentResponse(None, None, None, None, error_message)
             except Exception:
                 error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
-            return PaymentResponse(False, None, None, None, error_message)
+                return PaymentResponse(None, None, None, None, error_message)
         except KeyError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                False, None, None, None, "Server error: 'missing required fields'"
+                None, None, None, None, "Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
-            return PaymentResponse(False, None, None, None, f"Payment failed: '{exc}'.")
+            return PaymentResponse(None, None, None, None, f"Payment failed: '{exc}'.")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

@@ -167,7 +167,7 @@ class LndWallet(Wallet):
             resp = await self.routerpc.SendPaymentV2(req).read()
         except Exception as exc:
             logger.warning(exc)
-            return PaymentResponse(False, None, None, None, str(exc))
+            return PaymentResponse(None, None, None, None, str(exc))
 
         # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
         statuses = {

@@ -9,6 +9,7 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
@@ -115,12 +116,9 @@ class LNbitsWallet(Wallet):
                 json={"out": True, "bolt11": bolt11},
                 timeout=None,
             )
+
             r.raise_for_status()
             data = r.json()
-
-            if r.is_error or "payment_hash" not in data:
-                error_message = data["detail"] if "detail" in data else r.text
-                return PaymentResponse(False, None, None, None, error_message)
 
             checking_id = data["payment_hash"]
 
@@ -131,19 +129,32 @@ class LNbitsWallet(Wallet):
             return PaymentResponse(
                 success, checking_id, payment.fee_msat, payment.preimage
             )
+
+        except httpx.HTTPStatusError as exc:
+            try:
+                logger.debug(exc)
+                data = exc.response.json()
+                error_message = f"Payment {data['status']}: {data['detail']}."
+                if data["status"] == "failed":
+                    return PaymentResponse(False, None, None, None, error_message)
+                return PaymentResponse(None, None, None, None, error_message)
+            except Exception as exc:
+                error_message = f"Unable to connect to {self.endpoint}."
+                return PaymentResponse(None, None, None, None, error_message)
+
         except json.JSONDecodeError:
             return PaymentResponse(
-                False, None, None, None, "Server error: 'invalid json response'"
+                None, None, None, None, "Server error: 'invalid json response'"
             )
         except KeyError:
             return PaymentResponse(
-                False, None, None, None, "Server error: 'missing required fields'"
+                None, None, None, None, "Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                False, None, None, None, f"Unable to connect to {self.endpoint}."
+                None, None, None, None, f"Unable to connect to {self.endpoint}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -168,6 +179,9 @@ class LNbitsWallet(Wallet):
             if r.is_error:
                 return PaymentPendingStatus()
             data = r.json()
+
+            if data.get("status") == "failed":
+                return PaymentFailedStatus()
 
             if "paid" not in data or not data["paid"]:
                 return PaymentPendingStatus()
