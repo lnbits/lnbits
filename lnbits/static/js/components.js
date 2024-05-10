@@ -202,6 +202,14 @@ Vue.component('lnbits-manage', {
             <q-item-label lines="1" v-text="$t('node')"></q-item-label>
           </q-item-section>
         </q-item>
+        <q-item v-if="showUsers" clickable tag="a" href="/users" :active="isActive('/users')">
+          <q-item-section side>
+            <q-icon name="groups" :color="isActive('/users') ? 'primary' : 'grey-5'" size="md"></q-icon>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label lines="1" v-text="$t('users')"></q-item-label>
+          </q-item-section>
+        </q-item>
       </div>
       <q-item v-if="showExtensions" clickable tag="a" href="/extensions" :active="isActive('/extensions')">
         <q-item-section side>
@@ -209,14 +217,6 @@ Vue.component('lnbits-manage', {
         </q-item-section>
         <q-item-section>
           <q-item-label lines="1" v-text="$t('extensions')"></q-item-label>
-        </q-item-section>
-      </q-item>
-      <q-item v-if="showUsers" clickable tag="a" href="/users" :active="isActive('/users')">
-        <q-item-section side>
-          <q-icon name="groups" :color="isActive('/users') ? 'primary' : 'grey-5'" size="md"></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" v-text="$t('users')"></q-item-label>
         </q-item-section>
       </q-item>
     </q-list>
