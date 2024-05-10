@@ -119,6 +119,13 @@ new Vue({
             label: 'Email',
             field: 'email',
             sortable: true
+          },
+          {
+            name: 'last_payment',
+            align: 'left',
+            label: 'Last Payment',
+            field: 'last_payment',
+            sortable: true
           }
         ],
         pagination: {
