@@ -182,9 +182,6 @@ new Vue({
     usersTableRowKey: function (row) {
       return row.id
     },
-    refreshUsers() {
-      this.fetchUsers()
-    },
     createUser() {
       LNbits.api
         .request(

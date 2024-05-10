@@ -22,7 +22,6 @@ include "users/_createWalletDialog.html" %}
               >{%raw%}{{ $t('add_funds_tooltip') }}{%endraw%}</q-tooltip
             >
           </q-btn>
-          <q-btn @click="fetchUsers" label="Refresh"></q-btn>
         </div>
         <q-table
           :data="users"
