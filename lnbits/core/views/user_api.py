@@ -23,7 +23,7 @@ users_router = APIRouter(prefix="/users/api/v1", dependencies=[Depends(check_adm
 
 
 @users_router.get("/user/")
-async def api_users_get_users(
+async def api_get_users(
     filters: Filters = Depends(parse_filters(AccountFilters)),
 ) -> Page[Account]:
     try:
