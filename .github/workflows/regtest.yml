@@ -38,8 +38,6 @@ jobs:
             context: .
             push: false
             tags: lnbits/lnbits:latest
-            cache-from: type=registry,ref=lnbits/lnbits:latest
-            cache-to: type=inline
 
       - name: Setup Regtest
         run: |
