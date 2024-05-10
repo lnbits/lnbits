@@ -443,7 +443,7 @@ async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
     if wallet and wallet.id == payment.wallet_id:
         return {
             "paid": not payment.pending,
-            "status": f"{status}",
+            "status": f"{status!s}",
             "preimage": payment.preimage,
             "details": payment,
         }
