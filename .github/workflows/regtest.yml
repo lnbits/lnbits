@@ -27,17 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
-        if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
-        uses: docker/build-push-action@v5
-        with:
-            context: .
-            push: false
-            tags: lnbits/lnbits:latest
+      - name: docker build
+        run: |
+          docker build -t lnbits/lnbits .
 
       - name: Setup Regtest
         run: |
