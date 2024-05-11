@@ -4,10 +4,14 @@ new Vue({
   data: function () {
     return {
       isSuperUser: false,
+      activeWallet: {},
       wallet: {},
       cancel: {},
       users: [],
       wallets: [],
+      paymentDialog: {
+        show: false
+      },
       walletDialog: {
         show: false
       },
@@ -323,6 +327,10 @@ new Vue({
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
+    },
+    showPayments(wallet_id) {
+      this.activeWallet = this.wallets.find(wallet => wallet.id === wallet_id)
+      this.paymentDialog.show = true
     },
     toggleAdmin(user_id) {
       LNbits.api

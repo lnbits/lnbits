@@ -13,16 +13,28 @@ from lnbits.core.crud import (
     get_wallets,
     update_admin_settings,
 )
-from lnbits.core.models import Account, AccountFilters, CreateTopup, User, Wallet
+from lnbits.core.models import (
+    Account,
+    AccountFilters,
+    CreateTopup,
+    User,
+    Wallet,
+)
 from lnbits.core.services import update_wallet_balance
 from lnbits.db import Filters, Page
 from lnbits.decorators import check_admin, check_super_user, parse_filters
+from lnbits.helpers import generate_filter_params_openapi
 from lnbits.settings import EditableSettings, settings
 
 users_router = APIRouter(prefix="/users/api/v1", dependencies=[Depends(check_admin)])
 
 
-@users_router.get("/user")
+@users_router.get(
+    "/user",
+    name="get accounts",
+    summary="Get paginated list of accounts",
+    openapi_extra=generate_filter_params_openapi(AccountFilters),
+)
 async def api_get_users(
     filters: Filters = Depends(parse_filters(AccountFilters)),
 ) -> Page[Account]:
