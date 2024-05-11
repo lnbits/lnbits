@@ -8,7 +8,6 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-from starlette.exceptions import HTTPException
 
 from lnbits.core.models import User
 from lnbits.core.services import (
@@ -34,18 +33,7 @@ admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
     dependencies=[Depends(check_admin)],
 )
 async def api_auditor():
-    try:
-        delta, node_balance, total_balance = await get_balance_delta()
-        return {
-            "delta_msats": int(delta),
-            "node_balance_msats": int(node_balance),
-            "lnbits_balance_msats": int(total_balance),
-        }
-    except Exception as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail="Could not audit balance.",
-        ) from exc
+    return await get_balance_delta()
 
 
 @admin_router.get(
