@@ -207,14 +207,21 @@ async def delete_accounts_no_wallets(
     time_delta: int,
     conn: Optional[Connection] = None,
 ) -> None:
+    delta = int(time()) - time_delta
     await (conn or db).execute(
         f"""
         DELETE FROM accounts
         WHERE NOT EXISTS (
             SELECT wallets.id FROM wallets WHERE wallets.user = accounts.id
-        ) AND updated_at < {db.timestamp_placeholder}
+        ) AND (
+            (updated_at is null AND created_at < {db.timestamp_placeholder})
+            OR updated_at < {db.timestamp_placeholder}
+        )
         """,
-        (int(time()) - time_delta,),
+        (
+            delta,
+            delta,
+        ),
     )
 
 
@@ -588,14 +595,21 @@ async def delete_unused_wallets(
     time_delta: int,
     conn: Optional[Connection] = None,
 ) -> None:
+    delta = int(time()) - time_delta
     await (conn or db).execute(
         f"""
         DELETE FROM wallets
         WHERE (
             SELECT COUNT(*) FROM apipayments WHERE wallet = wallets.id
-        ) = 0 AND updated_at < {db.timestamp_placeholder}
+        ) = 0 AND (
+            (updated_at is null AND created_at < {db.timestamp_placeholder})
+            OR updated_at < {db.timestamp_placeholder}
+        )
         """,
-        (int(time()) - time_delta,),
+        (
+            delta,
+            delta,
+        ),
     )
 
 

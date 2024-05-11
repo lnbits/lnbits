@@ -206,7 +206,7 @@ async def database_delete_wallet(wallet: str):
 @click.option("-c", "--checking-id", required=True, help="Payment checking Id.")
 @coro
 async def database_delete_wallet_payment(wallet: str, checking_id: str):
-    """Mark wallet as deleted"""
+    """Delete wallet payment"""
     async with core_db.connect() as conn:
         await delete_wallet_payment(
             wallet_id=wallet, checking_id=checking_id, conn=conn
