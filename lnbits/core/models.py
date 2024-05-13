@@ -444,3 +444,12 @@ class WebPushSubscription(BaseModel):
     data: str
     host: str
     timestamp: str
+
+
+class BalanceDelta(BaseModel):
+    lnbits_balance_msats: int
+    node_balance_msats: int
+
+    @property
+    def delta_msats(self):
+        return self.node_balance_msats - self.lnbits_balance_msats

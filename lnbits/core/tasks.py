@@ -63,7 +63,8 @@ async def watchdog_task():
             and funding_source.__class__.__name__ != "VoidWallet"
         ):
             try:
-                delta, *_ = await get_balance_delta()
+                balance = await get_balance_delta()
+                delta = balance.delta_msats
                 logger.debug(f"Running watchdog task. current delta: {delta}")
                 if delta + settings.lnbits_watchdog_delta <= 0:
                     logger.error(f"Switching to VoidWallet. current delta: {delta}")

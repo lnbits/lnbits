@@ -59,7 +59,7 @@ from .crud import (
     update_super_user,
 )
 from .helpers import to_valid_user_id
-from .models import Payment, UserConfig, Wallet
+from .models import BalanceDelta, Payment, UserConfig, Wallet
 
 
 class PaymentError(Exception):
@@ -790,13 +790,14 @@ async def switch_to_voidwallet() -> None:
     settings.lnbits_backend_wallet_class = "VoidWallet"
 
 
-async def get_balance_delta() -> Tuple[int, int, int]:
+async def get_balance_delta() -> BalanceDelta:
     funding_source = get_funding_source()
-    total_balance = await get_total_balance()
-    error_message, node_balance = await funding_source.status()
-    if error_message:
-        raise Exception(error_message)
-    return node_balance - total_balance, node_balance, total_balance
+    status = await funding_source.status()
+    lnbits_balance = await get_total_balance()
+    return BalanceDelta(
+        lnbits_balance_msats=lnbits_balance,
+        node_balance_msats=status.balance_msat,
+    )
 
 
 def get_bolt11_expiry(invoice: Bolt11) -> datetime.datetime:

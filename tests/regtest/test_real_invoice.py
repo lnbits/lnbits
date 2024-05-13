@@ -6,8 +6,7 @@ import pytest
 from lnbits import bolt11
 from lnbits.core.crud import get_standalone_payment, update_payment_details
 from lnbits.core.models import CreateInvoice, Payment
-from lnbits.core.services import fee_reserve_total
-from lnbits.core.views.admin_api import api_auditor
+from lnbits.core.services import fee_reserve_total, get_balance_delta
 from lnbits.core.views.payment_api import api_payment
 from lnbits.wallets import get_funding_source
 
@@ -21,8 +20,8 @@ from .helpers import (
 
 
 async def get_node_balance_sats():
-    audit = await api_auditor()
-    return audit["node_balance_msats"] / 1000
+    balance = await get_balance_delta()
+    return balance.node_balance_msats / 1000
 
 
 @pytest.mark.asyncio
