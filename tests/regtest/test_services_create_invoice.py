@@ -2,7 +2,7 @@ import pytest
 from bolt11 import decode
 
 from lnbits.core.services import (
-    PaymentPendingStatus,
+    PaymentStatus,
     create_invoice,
 )
 from lnbits.wallets import get_funding_source
@@ -24,7 +24,8 @@ async def test_create_invoice(from_wallet):
 
     funding_source = get_funding_source()
     status = await funding_source.get_invoice_status(payment_hash)
-    assert isinstance(status, PaymentPendingStatus)
+    assert isinstance(status, PaymentStatus)
+    assert status.pending
 
 
 @pytest.mark.asyncio
@@ -37,6 +38,9 @@ async def test_create_internal_invoice(from_wallet):
     assert invoice.amount_msat == 1000000
     assert invoice.description == description
 
+    # Internal invoices are not on fundingsource. so we should get some kind of error
+    # that the invoice is not found, but we get status pending
     funding_source = get_funding_source()
     status = await funding_source.get_invoice_status(payment_hash)
-    assert isinstance(status, PaymentPendingStatus)
+    assert isinstance(status, PaymentStatus)
+    assert status.pending
