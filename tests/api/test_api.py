@@ -15,6 +15,10 @@ from ..helpers import (
 # create account POST /api/v1/account
 @pytest.mark.asyncio
 async def test_create_account(client):
+    settings.lnbits_allow_new_accounts = False
+    response = await client.post("/api/v1/account", json={"name": "test"})
+    assert response.status_code == 403
+    settings.lnbits_allow_new_accounts = True
     response = await client.post("/api/v1/account", json={"name": "test"})
     assert response.status_code == 200
     result = response.json()
@@ -39,6 +43,16 @@ async def test_create_wallet_and_delete(client, adminkey_headers_to):
     assert "balance_msat" in result
     assert "id" in result
     assert "adminkey" in result
+
+    invalid_response = await client.delete(
+        "/api/v1/wallet",
+        headers={
+            "X-Api-Key": result["inkey"],
+            "Content-type": "application/json",
+        },
+    )
+    assert invalid_response.status_code == 401
+
     response = await client.delete(
         "/api/v1/wallet",
         headers={
@@ -52,7 +66,7 @@ async def test_create_wallet_and_delete(client, adminkey_headers_to):
     response = await client.get(
         "/api/v1/wallet",
         headers={
-            "X-API-KEY": result["adminkey"],
+            "X-Api-Key": result["adminkey"],
             "Content-type": "application/json",
         },
     )
@@ -85,14 +99,14 @@ async def test_get_wallet_adminkey(client, adminkey_headers_to):
 @pytest.mark.asyncio
 async def test_put_empty_request_expected_admin_keys(client):
     response = await client.put("/api/v1/wallet/newwallet")
-    assert response.status_code == 400
+    assert response.status_code == 401
 
 
 # check POST /api/v1/payments: empty request where invoice key is needed
 @pytest.mark.asyncio
 async def test_post_empty_request_expected_invoice_keys(client):
     response = await client.post("/api/v1/payments")
-    assert response.status_code == 400
+    assert response.status_code == 401
 
 
 # check POST /api/v1/payments: invoice creation

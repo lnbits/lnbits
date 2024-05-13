@@ -61,54 +61,46 @@ class KeyChecker(SecurityBase):
         self.model: APIKey = openapi_model
 
     async def __call__(self, request: Request) -> WalletTypeInfo:
-        try:
 
-            key_value = (
-                self._api_key
-                if self._api_key
-                else request.headers.get("X-API-KEY") or request.query_params["api-key"]
-            )
+        key_value = (
+            self._api_key
+            if self._api_key
+            else request.headers.get("X-API-KEY") or request.query_params.get("api-key")
+        )
 
-            if not key_value:
-                raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED,
-                    detail="No Api Key provided.",
-                )
-
-            wallet = await get_wallet_for_key(key_value)
-
-            if not wallet:
-                raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED,
-                    detail="Invalid key or wallet.",
-                )
-
-            if self.expected_key_type is KeyType.admin and wallet.adminkey != key_value:
-                raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED,
-                    detail="Invalid adminkey.",
-                )
-
-            if (
-                wallet.user != settings.super_user
-                and wallet.user not in settings.lnbits_admin_users
-            ) and (
-                settings.lnbits_admin_extensions
-                and request["path"].split("/")[1] in settings.lnbits_admin_extensions
-            ):
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail="User not authorized for this extension.",
-                )
-
-            key_type = (
-                KeyType.admin if wallet.adminkey == key_value else KeyType.invoice
-            )
-            return WalletTypeInfo(key_type, wallet)
-        except KeyError as exc:
+        if not key_value:
             raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, detail="`X-API-KEY` header missing."
-            ) from exc
+                status_code=HTTPStatus.UNAUTHORIZED,
+                detail="No Api Key provided.",
+            )
+
+        wallet = await get_wallet_for_key(key_value)
+
+        if not wallet:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                detail="Invalid key or wallet.",
+            )
+
+        if self.expected_key_type is KeyType.admin and wallet.adminkey != key_value:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                detail="Invalid adminkey.",
+            )
+
+        if (
+            wallet.user != settings.super_user
+            and wallet.user not in settings.lnbits_admin_users
+            and settings.lnbits_admin_extensions
+            and request["path"].split("/")[1] in settings.lnbits_admin_extensions
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                detail="User not authorized for this extension.",
+            )
+
+        key_type = KeyType.admin if wallet.adminkey == key_value else KeyType.invoice
+        return WalletTypeInfo(key_type, wallet)
 
 
 async def get_key_type(
@@ -169,8 +161,15 @@ async def check_user_exists(
     user = await get_user(account.id)
     assert user, "User not found for account."
 
-    if not user.admin and r["path"].split("/")[1] in settings.lnbits_admin_extensions:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "User not authorized for extension.")
+    if (
+        user.id != settings.super_user
+        and user.id not in settings.lnbits_admin_users
+        and settings.lnbits_admin_extensions
+        and r["path"].split("/")[1] in settings.lnbits_admin_extensions
+    ):
+        raise HTTPException(
+            HTTPStatus.UNAUTHORIZED, "User not authorized for extension."
+        )
 
     return user
 

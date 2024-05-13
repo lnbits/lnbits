@@ -67,7 +67,7 @@ async def api_wallets(user: User = Depends(check_user_exists)) -> List[BaseWalle
 async def api_create_account(data: CreateWallet) -> Wallet:
     if not settings.new_accounts_allowed:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
+            status_code=HTTPStatus.FORBIDDEN,
             detail="Account creation is disabled.",
         )
     account = await create_account()
