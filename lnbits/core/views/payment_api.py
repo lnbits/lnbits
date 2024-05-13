@@ -55,8 +55,6 @@ from ..crud import (
     update_pending_payments,
 )
 from ..services import (
-    InvoiceError,
-    PaymentError,
     check_transaction_status,
     create_invoice,
     fee_reserve_total,
@@ -150,33 +148,25 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         memo = ""
 
     async with db.connect() as conn:
-        try:
-            payment_hash, payment_request = await create_invoice(
-                wallet_id=wallet.id,
-                amount=data.amount,
-                memo=memo,
-                currency=data.unit,
-                description_hash=description_hash,
-                unhashed_description=unhashed_description,
-                expiry=data.expiry,
-                extra=data.extra,
-                webhook=data.webhook,
-                internal=data.internal,
-                conn=conn,
-            )
-            # NOTE: we get the checking_id with a seperate query because create_invoice
-            # does not return it and it would be a big hustle to change its return type
-            # (used across extensions)
-            payment_db = await get_standalone_payment(payment_hash, conn=conn)
-            assert payment_db is not None, "payment not found"
-            checking_id = payment_db.checking_id
-        except InvoiceError as exc:
-            return JSONResponse(
-                status_code=520,
-                content={"detail": exc.message, "status": exc.status},
-            )
-        except Exception as exc:
-            raise exc
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=wallet.id,
+            amount=data.amount,
+            memo=memo,
+            currency=data.unit,
+            description_hash=description_hash,
+            unhashed_description=unhashed_description,
+            expiry=data.expiry,
+            extra=data.extra,
+            webhook=data.webhook,
+            internal=data.internal,
+            conn=conn,
+        )
+        # NOTE: we get the checking_id with a seperate query because create_invoice
+        # does not return it and it would be a big hustle to change its return type
+        # (used across extensions)
+        payment_db = await get_standalone_payment(payment_hash, conn=conn)
+        assert payment_db is not None, "payment not found"
+        checking_id = payment_db.checking_id
 
     invoice = bolt11.decode(payment_request)
 
@@ -213,28 +203,6 @@ async def api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
     }
 
 
-async def api_payments_pay_invoice(
-    bolt11: str, wallet: Wallet, extra: Optional[dict] = None
-):
-    try:
-        payment_hash = await pay_invoice(
-            wallet_id=wallet.id, payment_request=bolt11, extra=extra
-        )
-    except PaymentError as exc:
-        return JSONResponse(
-            status_code=520,
-            content={"detail": exc.message, "status": exc.status},
-        )
-    except Exception as exc:
-        raise exc
-
-    return {
-        "payment_hash": payment_hash,
-        # maintain backwards compatibility with API clients:
-        "checking_id": payment_hash,
-    }
-
-
 @payment_router.post(
     "",
     summary="Create or pay an invoice",
@@ -247,6 +215,11 @@ async def api_payments_pay_invoice(
         field to supply the BOLT11 invoice to be paid.
     """,
     status_code=HTTPStatus.CREATED,
+    responses={
+        400: {"description": "Invalid BOLT11 string or missing fields."},
+        401: {"description": "Invoice (or Admin) key required."},
+        520: {"description": "Payment or Invoice error."},
+    },
 )
 async def api_payments_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
@@ -258,9 +231,18 @@ async def api_payments_create(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="BOLT11 string is invalid or not given",
             )
-        return await api_payments_pay_invoice(
-            invoice_data.bolt11, wallet.wallet, invoice_data.extra
-        )  # admin key
+
+        payment_hash = await pay_invoice(
+            wallet_id=wallet.wallet.id,
+            payment_request=invoice_data.bolt11,
+            extra=invoice_data.extra,
+        )
+        return {
+            "payment_hash": payment_hash,
+            # maintain backwards compatibility with API clients:
+            "checking_id": payment_hash,
+        }
+
     elif not invoice_data.out:
         # invoice key
         return await api_payments_create_invoice(invoice_data, wallet.wallet)
