@@ -78,8 +78,8 @@ class KeyChecker(SecurityBase):
 
         if not wallet:
             raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED,
-                detail="Invalid key or wallet.",
+                status_code=HTTPStatus.NOT_FOUND,
+                detail="Wallet not found.",
             )
 
         if self.expected_key_type is KeyType.admin and wallet.adminkey != key_value:

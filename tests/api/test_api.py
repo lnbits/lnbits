@@ -70,7 +70,7 @@ async def test_create_wallet_and_delete(client, adminkey_headers_to):
             "Content-type": "application/json",
         },
     )
-    assert response.status_code == 401
+    assert response.status_code == 404
 
 
 # check GET /api/v1/wallet with inkey: wallet info, no balance
