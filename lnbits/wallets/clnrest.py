@@ -20,13 +20,6 @@ from .base import (
     Wallet,
 )
 
-def parse_msat(value):
-    # Check if the value ends with 'msat' and remove it
-    if str(value).endswith("msat"):
-        return int(value[:-4])  # Remove the last 4 characters ('msat') and convert to int
-    else:
-        raise ValueError(f"Unexpected format for amount: {value}")
-
 class CLNRestWallet(Wallet):
 
     def __init__(self):
@@ -86,6 +79,7 @@ class CLNRestWallet(Wallet):
             self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
 
         self.last_pay_index = 0
+
         self.statuses = {
             "paid": True,
             "complete": True,
@@ -241,8 +235,8 @@ class CLNRestWallet(Wallet):
         checking_id = data["payment_hash"]
         preimage = data["payment_preimage"]
 
-        amount_sent_msat_int = parse_msat(data.get('amount_sent_msat'))
-        amount_msat_int = parse_msat(data.get('amount_msat'))
+        amount_sent_msat_int = data.get('amount_sent_msat')
+        amount_msat_int = data.get('amount_msat')
         fee_msat = amount_sent_msat_int - amount_msat_int
 
         return PaymentResponse(
@@ -279,19 +273,26 @@ class CLNRestWallet(Wallet):
         try:
             r.raise_for_status()
             data = r.json()
+            logger.debug(data)
 
             if r.is_error or "error" in data or not data.get("pays"):
                 logger.error(f"RESPONSE with error: {data}")
                 raise Exception("error in corelightning-rest response")
 
-            pay = data["pays"][0]
+
+            pays_list = data.get("pays", [])
+            if len(pays_list) != 1:
+                error_message = f"Expected one payment status, but found {len(pays_list)}"
+                logger.error(error_message)
+                raise Exception(error_message)
+
+            pay = pays_list[0]
+
+            logger.debug(f"Payment status from API: {pay['status']}")
 
             fee_msat, preimage = None, None
-            if self.statuses[pay["status"]]:
-                # cut off "msat" and convert to int
-                fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(
-                    pay["amount_msat"][:-4]
-                )
+            if pay['status'] == 'complete':
+                fee_msat = -pay["amount_sent_msat"] - pay["amount_msat"]
                 preimage = pay["preimage"]
 
             return PaymentStatus(self.statuses.get(pay["status"]), fee_msat, preimage)
