@@ -1,14 +1,15 @@
-
 <picture >
   <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png"  style="width:300px">
   <img src="https://i.imgur.com/fyKPgVT.png" style="width:300px">
 </picture>
 
-![phase: beta](https://img.shields.io/badge/phase-beta-C41E3A) [![license-badge]](LICENSE) [![docs-badge]][docs] ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-08A04B)  [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) [<img src="https://img.shields.io/badge/sponsored_by-%3E__OpenSats-f97316">](https://opensats.org)
+![phase: beta](https://img.shields.io/badge/phase-beta-C41E3A) [![license-badge]](LICENSE) [![docs-badge]][docs] ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-08A04B) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) [<img src="https://img.shields.io/badge/sponsored_by-%3E__OpenSats-f97316">](https://opensats.org)
 ![Lightning network wallet](https://i.imgur.com/DeIiO0y.png)
 
 # The world's most powerful suite of bitcoin tools.
-## Run for yourself, for others, or as part of a stack. 
+
+## Run for yourself, for others, or as part of a stack.
+
 LNbits is beta, for responsible disclosure of any concerns please contact an admin in the community chat.
 
 LNbits is a Python server that sits on top of any funding source. It can be used as:
@@ -43,7 +44,7 @@ LNbits is packaged with tools to help manage funds, such as a table of transacti
 
 Extend YOUR LNbits to meet YOUR needs.
 
-All non-core features are installed as extensions, reducing your code base and making your LNbits unique to you. Extend your LNbits install in any direction, and even create and share your own extensions. 
+All non-core features are installed as extensions, reducing your code base and making your LNbits unique to you. Extend your LNbits install in any direction, and even create and share your own extensions.
 
 <img src="https://i.imgur.com/aEBpwJF.png" style="width:800px">
 

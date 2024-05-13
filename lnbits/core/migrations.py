@@ -491,3 +491,24 @@ async def m018_balances_view_exclude_deleted(db):
         GROUP BY wallet
     """
     )
+
+
+async def m019_balances_view_based_on_wallets(db):
+    """
+    Make deleted wallets not show up in the balances view.
+    Important for querying whole lnbits balances.
+    """
+    await db.execute("DROP VIEW balances")
+    await db.execute(
+        """
+        CREATE VIEW balances AS
+        SELECT apipayments.wallet,
+               SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+        FROM wallets
+        LEFT JOIN apipayments ON apipayments.wallet = wallets.id
+        WHERE (wallets.deleted = false OR wallets.deleted is NULL)
+              AND ((apipayments.pending = false AND apipayments.amount > 0)
+              OR apipayments.amount < 0)
+        GROUP BY apipayments.wallet
+    """
+    )

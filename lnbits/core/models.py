@@ -68,7 +68,7 @@ class Wallet(BaseWallet):
         return await get_standalone_payment(payment_hash)
 
 
-class WalletType(Enum):
+class KeyType(Enum):
     admin = 0
     invoice = 1
     invalid = 2
@@ -80,7 +80,7 @@ class WalletType(Enum):
 
 @dataclass
 class WalletTypeInfo:
-    wallet_type: WalletType
+    key_type: KeyType
     wallet: Wallet
 
 
@@ -95,6 +95,37 @@ class UserConfig(BaseModel):
     # - "lnbits": the user was created via register form (username/pass or user_id only)
     # - "google | github | ...": the user was created using an SSO provider
     provider: Optional[str] = "lnbits"  # auth provider
+
+
+class Account(FromRowModel):
+    id: str
+    is_super_user: Optional[bool] = False
+    is_admin: Optional[bool] = False
+    username: Optional[str] = None
+    email: Optional[str] = None
+    balance_msat: Optional[int] = 0
+    transaction_count: Optional[int] = 0
+    wallet_count: Optional[int] = 0
+    last_payment: Optional[datetime.datetime] = None
+
+
+class AccountFilters(FilterModel):
+    __search_fields__ = ["id", "email", "username"]
+    __sort_fields__ = [
+        "balance_msat",
+        "email",
+        "username",
+        "transaction_count",
+        "wallet_count",
+        "last_payment",
+    ]
+
+    id: str
+    last_payment: Optional[datetime.datetime] = None
+    transaction_count: Optional[int] = None
+    wallet_count: Optional[int] = None
+    username: Optional[str] = None
+    email: Optional[str] = None
 
 
 class User(BaseModel):
@@ -413,3 +444,12 @@ class WebPushSubscription(BaseModel):
     data: str
     host: str
     timestamp: str
+
+
+class BalanceDelta(BaseModel):
+    lnbits_balance_msats: int
+    node_balance_msats: int
+
+    @property
+    def delta_msats(self):
+        return self.node_balance_msats - self.lnbits_balance_msats

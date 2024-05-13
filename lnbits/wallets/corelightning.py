@@ -40,11 +40,20 @@ class CoreLightningWallet(Wallet):
             raise ValueError(
                 "cannot initialize CoreLightningWallet: missing corelightning_rpc"
             )
-
+        self.pay = settings.corelightning_pay_command
         self.ln = LightningRpc(rpc)
         # check if description_hash is supported (from corelightning>=v0.11.0)
         command = self.ln.help("invoice")["help"][0]["command"]  # type: ignore
         self.supports_description_hash = "deschashonly" in command
+
+        # https://docs.corelightning.org/reference/lightning-pay
+        # 201: Already paid
+        # 203: Permanent failure at destination.
+        # 205: Unable to find a route.
+        # 206: Route too expensive.
+        # 207: Invoice expired.
+        # 210: Payment timed out without a payment in progress.
+        self.pay_failure_error_codes = [201, 203, 205, 206, 207, 210]
 
         # check last payindex so we can listen from that point on
         self.last_pay_index = 0
@@ -135,20 +144,18 @@ class CoreLightningWallet(Wallet):
                     False, None, None, None, "CLN 0 amount invoice not supported"
                 )
 
-            fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
-            # so fee_limit_percent is applied even
-            # on payments with fee < 5000 millisatoshi
-            # (which is default value of exemptfee)
+            # maxfee overrides both maxfeepercent and exemptfee defaults (and
+            # if you specify maxfee you cannot specify either of those), and
+            # creates an absolute limit on what fee we will pay. This allows you to
+            # implement your own heuristics rather than the primitive ones used
+            # here.
             payload = {
                 "bolt11": bolt11,
-                "maxfeepercent": f"{fee_limit_percent:.11}",
-                "exemptfee": 0,
-                # so fee_limit_percent is applied even on payments with fee < 5000
-                # millisatoshi (which is default value of exemptfee)
+                "maxfee": fee_limit_msat,
                 "description": invoice.description,
             }
 
-            r = await run_sync(lambda: self.ln.call("pay", payload))
+            r = await run_sync(lambda: self.ln.call(self.pay, payload))
 
             fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
             return PaymentResponse(
@@ -157,19 +164,27 @@ class CoreLightningWallet(Wallet):
         except RpcError as exc:
             logger.warning(exc)
             try:
-                error_message = exc.error["attempts"][-1]["fail_reason"]  # type: ignore
+                error_code = exc.error.get("code")
+                if error_code in self.pay_failure_error_codes:  # type: ignore
+                    error_message = exc.error.get("message", error_code)  # type: ignore
+                    return PaymentResponse(
+                        False, None, None, None, f"Payment failed: {error_message}"
+                    )
+                else:
+                    error_message = f"Payment failed: {exc.error}"
+                    return PaymentResponse(None, None, None, None, error_message)
             except Exception:
                 error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
-            return PaymentResponse(False, None, None, None, error_message)
+                return PaymentResponse(None, None, None, None, error_message)
         except KeyError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                False, None, None, None, "Server error: 'missing required fields'"
+                None, None, None, None, "Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
-            return PaymentResponse(False, None, None, None, f"Payment failed: '{exc}'.")
+            return PaymentResponse(None, None, None, None, f"Payment failed: '{exc}'.")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

@@ -1,0 +1,49 @@
+<q-dialog v-model="topupDialog.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-form class="q-gutter-md">
+      <p v-text="$t('topup_wallet')"></p>
+
+      <div class="row">
+        <div class="col-12">
+          <q-input
+            dense
+            type="text"
+            filled
+            v-model="wallet.id"
+            label="Wallet ID"
+            :hint="$t('topup_hint')"
+          ></q-input>
+
+          <br />
+        </div>
+
+        <div class="col-12">
+          <q-input
+            dense
+            type="number"
+            filled
+            v-model="wallet.amount"
+            :label="$t('amount')"
+          ></q-input>
+        </div>
+      </div>
+
+      <div class="row q-mt-lg">
+        <q-btn
+          :label="$t('topup')"
+          color="primary"
+          @click="topupWallet"
+          v-close-popup
+        ></q-btn>
+
+        <q-btn
+          v-close-popup
+          flat
+          color="grey"
+          class="q-ml-auto"
+          :label="$t('cancel')"
+        ></q-btn>
+      </div>
+    </q-form>
+  </q-card>
+</q-dialog>

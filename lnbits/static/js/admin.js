@@ -44,9 +44,18 @@ new Vue({
       isSuperUser: false,
       wallet: {},
       cancel: {},
-      topUpDialog: {
-        show: false
-      },
+      colors: [
+        'primary',
+        'secondary',
+        'accent',
+        'positive',
+        'negative',
+        'info',
+        'warning',
+        'red',
+        'yellow',
+        'orange'
+      ],
       tab: 'funding',
       needsRestart: false
     }
@@ -68,31 +77,6 @@ new Vue({
     }
   },
   methods: {
-    addAdminUser() {
-      let addUser = this.formAddAdmin
-      let admin_users = this.formData.lnbits_admin_users
-      if (addUser && addUser.length && !admin_users.includes(addUser)) {
-        //admin_users = [...admin_users, addUser]
-        this.formData.lnbits_admin_users = [...admin_users, addUser]
-        this.formAddAdmin = ''
-      }
-    },
-    removeAdminUser(user) {
-      let admin_users = this.formData.lnbits_admin_users
-      this.formData.lnbits_admin_users = admin_users.filter(u => u !== user)
-    },
-    addAllowedUser() {
-      let addUser = this.formAddUser
-      let allowed_users = this.formData.lnbits_allowed_users
-      if (addUser && addUser.length && !allowed_users.includes(addUser)) {
-        this.formData.lnbits_allowed_users = [...allowed_users, addUser]
-        this.formAddUser = ''
-      }
-    },
-    removeAllowedUser(user) {
-      let allowed_users = this.formData.lnbits_allowed_users
-      this.formData.lnbits_allowed_users = allowed_users.filter(u => u !== user)
-    },
     addExtensionsManifest() {
       const addManifest = this.formAddExtensionsManifest.trim()
       const manifests = this.formData.lnbits_extensions_manifests
@@ -183,28 +167,6 @@ new Vue({
             icon: null
           })
           this.needsRestart = false
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
-    },
-    topupWallet() {
-      LNbits.api
-        .request(
-          'PUT',
-          '/admin/api/v1/topup/',
-          this.g.user.wallets[0].adminkey,
-          this.wallet
-        )
-        .then(response => {
-          this.$q.notify({
-            type: 'positive',
-            message: this.$t('wallet_topup_ok', {
-              amount: this.wallet.amount
-            }),
-            icon: null
-          })
-          this.wallet = {}
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)

@@ -70,14 +70,11 @@ class PaymentStatus(NamedTuple):
         return self.paid is False
 
     def __str__(self) -> str:
-        if self.paid is True:
-            return "settled"
-        elif self.paid is False:
+        if self.success:
+            return "success"
+        if self.failed:
             return "failed"
-        elif self.paid is None:
-            return "still pending"
-        else:
-            return "unknown (should never happen)"
+        return "pending"
 
 
 class PaymentSuccessStatus(PaymentStatus):

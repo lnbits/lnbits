@@ -83,8 +83,13 @@ class InstalledExtensionsSettings(LNbitsSettings):
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
-    lnbits_site_description: str = Field(default=None)
+    lnbits_site_description: str = Field(
+        default="The world's most powerful suite of bitcoin tools."
+    )
+    LNBITS_SHOW_HOME_PAGE_ELEMENTS: bool = Field(default=True)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
+    lnbits_custom_badge: str = Field(default=None)
+    lnbits_custom_badge_color: str = Field(default="warning")
     lnbits_theme_options: list[str] = Field(
         default=[
             "classic",
@@ -164,6 +169,7 @@ class ClicheFundingSource(LNbitsSettings):
 
 class CoreLightningFundingSource(LNbitsSettings):
     corelightning_rpc: Optional[str] = Field(default=None)
+    corelightning_pay_command: str = Field(default="pay")
     clightning_rpc: Optional[str] = Field(default=None)
 
 
@@ -213,6 +219,11 @@ class ZBDFundingSource(LNbitsSettings):
     zbd_api_key: Optional[str] = Field(default=None)
 
 
+class PhoenixdFundingSource(LNbitsSettings):
+    phoenixd_api_endpoint: Optional[str] = Field(default="http://localhost:9740/")
+    phoenixd_api_password: Optional[str] = Field(default=None)
+
+
 class AlbyFundingSource(LNbitsSettings):
     alby_api_endpoint: Optional[str] = Field(default="https://api.getalby.com/")
     alby_access_token: Optional[str] = Field(default=None)
@@ -253,6 +264,7 @@ class FundingSourcesSettings(
     LnPayFundingSource,
     AlbyFundingSource,
     ZBDFundingSource,
+    PhoenixdFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
@@ -398,19 +410,20 @@ class PersistenceSettings(LNbitsSettings):
 class SuperUserSettings(LNbitsSettings):
     lnbits_allowed_funding_sources: list[str] = Field(
         default=[
-            "VoidWallet",
-            "FakeWallet",
-            "CoreLightningWallet",
-            "CoreLightningRestWallet",
-            "LndRestWallet",
-            "EclairWallet",
-            "LndWallet",
-            "LnTipsWallet",
-            "LNPayWallet",
             "AlbyWallet",
-            "ZBDWallet",
+            "FakeWallet",
+            "CoreLightningRestWallet",
+            "CoreLightningWallet",
+            "EclairWallet",
             "LNbitsWallet",
+            "LndRestWallet",
+            "LNPayWallet",
+            "LnTipsWallet",
+            "LndWallet",
             "OpenNodeWallet",
+            "PhoenixdWallet",
+            "VoidWallet",
+            "ZBDWallet",
         ]
     )
 

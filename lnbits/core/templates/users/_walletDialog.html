@@ -1,0 +1,106 @@
+<q-dialog v-model="walletDialog.show">
+  <q-card class="q-pa-lg" style="width: 700px; max-width: 80vw">
+    <h2 class="text-h6 q-mb-md">Wallets</h2>
+    <q-dialog v-model="paymentDialog.show">
+      <q-card class="q-pa-lg" style="width: 700px; max-width: 80vw">
+        <payment-list :wallet="activeWallet" />
+      </q-card>
+    </q-dialog>
+    <q-table :data="wallets" :columns="walletTable.columns">
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th auto-width></q-th>
+          <q-th
+            auto-width
+            v-for="col in props.cols"
+            v-text="col.label"
+            :key="col.name"
+            :props="props"
+          ></q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td auto-width>
+            <q-btn
+              round
+              icon="menu"
+              size="sm"
+              color="secondary"
+              @click="showPayments(props.row.id)"
+            >
+              <q-tooltip>Show Payments</q-tooltip>
+            </q-btn>
+            <q-btn
+              v-if="!props.row.deleted"
+              round
+              icon="content_copy"
+              size="sm"
+              color="primary"
+              @click="copyText(props.row.id)"
+            >
+              <q-tooltip>Copy Wallet ID</q-tooltip>
+            </q-btn>
+            <lnbits-update-balance
+              v-if="!props.row.deleted"
+              :wallet_id="props.row.id"
+              :callback="topupCallback"
+            ></lnbits-update-balance>
+            <q-btn
+              round
+              v-if="!props.row.deleted"
+              icon="vpn_key"
+              size="sm"
+              color="primary"
+              @click="copyText(props.row.adminkey)"
+            >
+              <q-tooltip>Copy Admin Key</q-tooltip>
+            </q-btn>
+            <q-btn
+              round
+              v-if="!props.row.deleted"
+              icon="vpn_key"
+              size="sm"
+              color="secondary"
+              @click="copyText(props.row.inkey)"
+            >
+              <q-tooltip>Copy Invoice Key</q-tooltip>
+            </q-btn>
+            <q-btn
+              round
+              v-if="props.row.deleted"
+              icon="toggle_off"
+              size="sm"
+              color="secondary"
+              @click="undeleteUserWallet(props.row.user, props.row.id)"
+            >
+              <q-tooltip>Undelete Wallet</q-tooltip>
+            </q-btn>
+            <q-btn
+              round
+              icon="delete"
+              size="sm"
+              color="negative"
+              @click="deleteUserWallet(props.row.user, props.row.id, props.row.deleted)"
+            >
+              <q-tooltip>Delete Wallet</q-tooltip>
+            </q-btn>
+          </q-td>
+          <q-td auto-width v-text="props.row.name"></q-td>
+          <q-td auto-width v-text="props.row.currency"></q-td>
+          <q-td auto-width v-text="formatSat(props.row.balance_msat)"></q-td>
+          <q-td auto-width v-text="props.row.deleted"></q-td>
+        </q-tr>
+      </template>
+    </q-table>
+    <div class="row q-mt-lg">
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        :label="$t('close')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>

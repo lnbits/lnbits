@@ -63,27 +63,23 @@
           <q-badge
             v-text="$t('voidwallet_active')"
             color="red"
-            text-color="black"
             class="q-mr-md gt-md"
           >
           </q-badge>
           {%endif%}
           <q-badge
+            v-if="'{{LNBITS_CUSTOM_BADGE}}' && '{{LNBITS_CUSTOM_BADGE}}' != 'None'"
             v-show="$q.screen.gt.sm"
-            color="yellow"
-            text-color="black"
+            color="{{ LNBITS_CUSTOM_BADGE_COLOR }}"
             class="q-mr-md"
+            label="{{LNBITS_CUSTOM_BADGE}}"
           >
-            <span
-              v-text='$t("use_with_caution", { name: "{{ SITE_TITLE }}" })'
-            ></span>
           </q-badge>
           {% if LNBITS_SERVICE_FEE > 0 %}
           <q-badge
             v-show="$q.screen.gt.sm"
             v-if="g.user"
             color="green"
-            text-color="black"
             class="q-mr-md"
           >
             {% if LNBITS_SERVICE_FEE_MAX > 0 %}
@@ -101,12 +97,7 @@
           </q-badge>
 
           {%endif%} {% endblock %}
-          <q-badge
-            v-if="g.offline"
-            color="red"
-            text-color="white"
-            class="q-mr-md"
-          >
+          <q-badge v-if="g.offline" color="red" class="q-mr-md">
             <span>OFFLINE</span>
           </q-badge>
 
@@ -172,6 +163,7 @@
 
         <lnbits-manage
           :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
+          :show-users="'{{LNBITS_ADMIN_UI}}' == 'True'"
           :show-node="'{{LNBITS_NODE_UI}}' == 'True'"
           :show-extensions="'{{LNBITS_EXTENSIONS_DEACTIVATE_ALL}}' == 'False'"
         ></lnbits-manage>

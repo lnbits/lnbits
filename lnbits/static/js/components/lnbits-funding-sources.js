@@ -31,7 +31,8 @@ Vue.component('lnbits-funding-sources', {
           'CoreLightningWallet',
           'Core Lightning',
           {
-            corelightning_rpc: 'Endpoint'
+            corelightning_rpc: 'Endpoint',
+            corelightning_pay_command: 'Custom Pay Command'
           }
         ],
         [
@@ -112,6 +113,14 @@ Vue.component('lnbits-funding-sources', {
           {
             zbd_api_endpoint: 'Endpoint',
             zbd_api_key: 'Key'
+          }
+        ],
+        [
+          'PhoenixdWallet',
+          'Phoenixd',
+          {
+            phoenixd_api_endpoint: 'Endpoint',
+            phoenixd_api_password: 'Key'
           }
         ],
         [

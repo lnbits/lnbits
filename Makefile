@@ -9,7 +9,7 @@ check: mypy pyright checkblack checkruff checkprettier checkbundle
 test: test-unit test-wallets test-api test-regtest
 
 prettier:
-	poetry run ./node_modules/.bin/prettier --write lnbits
+	poetry run ./node_modules/.bin/prettier --write .
 
 pyright:
 	poetry run ./node_modules/.bin/pyright
@@ -27,7 +27,7 @@ checkruff:
 	poetry run ruff check .
 
 checkprettier:
-	poetry run ./node_modules/.bin/prettier --check lnbits
+	poetry run ./node_modules/.bin/prettier --check .
 
 checkblack:
 	poetry run black --check .
