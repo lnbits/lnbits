@@ -1,6 +1,11 @@
 <q-dialog v-model="walletDialog.show">
   <q-card class="q-pa-lg" style="width: 700px; max-width: 80vw">
     <h2 class="text-h6 q-mb-md">Wallets</h2>
+    <q-dialog v-model="paymentDialog.show">
+      <q-card class="q-pa-lg" style="width: 700px; max-width: 80vw">
+        <payment-list :wallet="activeWallet" />
+      </q-card>
+    </q-dialog>
     <q-table :data="wallets" :columns="walletTable.columns">
       <template v-slot:header="props">
         <q-tr :props="props">
@@ -17,6 +22,15 @@
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td auto-width>
+            <q-btn
+              round
+              icon="menu"
+              size="sm"
+              color="secondary"
+              @click="showPayments(props.row.id)"
+            >
+              <q-tooltip>Show Payments</q-tooltip>
+            </q-btn>
             <q-btn
               v-if="!props.row.deleted"
               round
