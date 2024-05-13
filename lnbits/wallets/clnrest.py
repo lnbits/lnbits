@@ -16,13 +16,13 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    Unsupported,
+    UnsupportedError,
     Wallet,
 )
 
 def parse_msat(value):
     # Check if the value ends with 'msat' and remove it
-    if value.endswith("msat"):
+    if str(value).endswith("msat"):
         return int(value[:-4])  # Remove the last 4 characters ('msat') and convert to int
     else:
         raise ValueError(f"Unexpected format for amount: {value}")
@@ -121,7 +121,7 @@ class CLNRestWallet(Wallet):
         if not data.get("channels"):
             return StatusResponse("no data or no channels available", 0)
 
-        total_our_amount_msat = sum(parse_msat(channel["our_amount_msat"]) for channel in data["channels"])
+        total_our_amount_msat = sum(channel["our_amount_msat"] for channel in data["channels"])
 
         #todo: calculate the amount of spendable sats based on rune permissions or some sort of accounting system?
 
