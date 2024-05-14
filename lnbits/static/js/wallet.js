@@ -49,7 +49,7 @@ new Vue({
         show: false,
         location: window.location
       },
-      balance: 0,
+      balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
       mobileSimple: false,
       credit: 0,
