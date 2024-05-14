@@ -351,6 +351,7 @@ new Vue({
                 if (res.data.paid) {
                   this.parse.show = false
                   clearInterval(this.parse.paymentChecker)
+                  this.updatePayments = !this.updatePayments
                   dismissPaymentMsg()
                 }
               })
