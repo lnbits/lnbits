@@ -322,15 +322,10 @@
   </q-dialog>
   <q-dialog v-model="imageDialog" position="top">
     <div v-if="selectedImage.link" style="width: 1200px; max-width: 80vw">
-      <iframe
-        width="560"
-        height="315"
-        :src="selectedImage.link"
-        frameborder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen
-      >
-      </iframe>
+
+          <q-video
+            src="https://www.youtube.com/embed/k3_tw44QsZQ?rel=0"
+          />
     </div>
     <div v-else style="width: 1200px; max-width: 80vw">
       <q-img
@@ -360,12 +355,6 @@
       </div>
       <div class="row q-my-lg">
         <div class="col q-pr-md" v-for="image of extensionConfig.images">
-          <q-img
-            style="cursor: pointer; max-height: 130px"
-            :src="image.uri"
-            type="image"
-            loading="lazy"
-          ></q-img>
           <q-img
             style="cursor: pointer; max-height: 130px"
             :src="image.uri"
