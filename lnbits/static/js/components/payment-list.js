@@ -1,6 +1,7 @@
 Vue.component('payment-list', {
   name: 'payment-list',
   props: ['update', 'wallet', 'mobileSimple', 'lazy'],
+  mixins: [windowMixin],
   data: function () {
     return {
       denomination: LNBITS_DENOMINATION,
