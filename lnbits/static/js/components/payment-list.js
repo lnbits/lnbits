@@ -1,6 +1,6 @@
 Vue.component('payment-list', {
   name: 'payment-list',
-  props: ['wallet', 'mobileSimple', 'lazy'],
+  props: ['update', 'wallet', 'mobileSimple', 'lazy'],
   data: function () {
     return {
       denomination: LNBITS_DENOMINATION,
@@ -163,12 +163,22 @@ Vue.component('payment-list', {
           this.wallet.name + '-payments'
         )
       })
+    },
+    formatCurrency: function (amount, currency) {
+      try {
+        return LNbits.utils.formatCurrency(amount, currency)
+      } catch (e) {
+        console.error(e)
+        return `${amount} ???`
+      }
     }
   },
   watch: {
     lazy: function (newVal) {
-      debugger
       if (newVal === true) this.fetchPayments()
+    },
+    update: function () {
+      this.fetchPayments()
     }
   },
   created: function () {
@@ -285,22 +295,22 @@ Vue.component('payment-list', {
                 key="amount"
                 v-if="denomination != 'sats'"
                 :props="props"
-                class="lol1"
+                class="col1"
                 v-text="parseFloat(String(props.row.fsat).replaceAll(',', '')) / 100"
               >
               </q-td>
-              <q-td class="lol2" auto-width key="amount" v-else :props="props">
+              <q-td class="col2" auto-width key="amount" v-else :props="props">
                 <span v-text="props.row.fsat"></span>
                 <br />
                 <i v-if="props.row.extra.wallet_fiat_currency">
                   <span
-                    v-text="LNbits.utils.formatCurrency(props.row.extra.wallet_fiat_currency, props.row.extra.wallet_fiat_amount)"
+                    v-text="formatCurrency(props.row.extra.wallet_fiat_amount, props.row.extra.wallet_fiat_currency)"
                   ></span>
                   <br />
                 </i>
                 <i v-if="props.row.extra.fiat_currency">
                   <span
-                    v-text="LNbits.utils.formatCurrency(props.row.extra.fiat_currency, props.row.extra.fiat_amount)"
+                    v-text="formatCurrency(props.row.extra.fiat_amount, props.row.extra.fiat_currency)"
                   ></span>
                 </i>
               </q-td>

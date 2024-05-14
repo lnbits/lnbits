@@ -8,6 +8,7 @@ new Vue({
   mixins: [windowMixin],
   data: function () {
     return {
+      updatePayments: false,
       origin: window.location.origin,
       user: LNbits.map.user(window.user),
       receive: {
@@ -123,6 +124,7 @@ new Vue({
       }, 10000)
     },
     onPaymentReceived: function (paymentHash) {
+      this.updatePayments = !this.updatePayments
       if (this.receive.paymentHash === paymentHash) {
         this.receive.show = false
         this.receive.paymentHash = null
@@ -169,6 +171,9 @@ new Vue({
               })
             }
           }
+        })
+        .then(() => {
+          this.updatePayments = !this.updatePayments
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -551,6 +556,11 @@ new Vue({
     this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
   },
+  watch: {
+    updatePayments: function () {
+      this.fetchBalance()
+    }
+  },
   mounted: function () {
     // show disclaimer
     if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
@@ -558,9 +568,9 @@ new Vue({
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
     // listen to incoming payments
-    LNbits.events.onInvoicePaid(this.g.wallet, payment =>
+    LNbits.events.onInvoicePaid(this.g.wallet, payment => {
       this.onPaymentReceived(payment.payment_hash)
-    )
+    })
     eventReactionWebocket(wallet.id)
   }
 })

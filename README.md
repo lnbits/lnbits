@@ -3,7 +3,7 @@
   <img src="https://i.imgur.com/fyKPgVT.png" style="width:300px">
 </picture>
 
-![phase: beta](https://img.shields.io/badge/phase-beta-C41E3A) [![license-badge]](LICENSE) [![docs-badge]][docs] ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-08A04B) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) [<img src="https://img.shields.io/badge/sponsored_by-%3E__OpenSats-f97316">](https://opensats.org)
+![phase: beta](https://img.shields.io/badge/phase-beta-C41E3A) [![license-badge]](LICENSE) [![docs-badge]][docs] ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-08A04B) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) [<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)
 ![Lightning network wallet](https://i.imgur.com/DeIiO0y.png)
 
 # The world's most powerful suite of bitcoin tools.
