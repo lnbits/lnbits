@@ -359,6 +359,7 @@ new Vue({
         })
         .catch(err => {
           dismissPaymentMsg()
+          this.parse.show = false
           LNbits.utils.notifyApiError(err)
           this.updatePayments = !this.updatePayments
         })
