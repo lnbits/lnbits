@@ -20,9 +20,31 @@ from .base import (
     Wallet,
 )
 
+import base64
+import json
+
+
 class CLNRestWallet(Wallet):
+    @staticmethod
+    def decode_rune( rune_string: str) -> Dict:
+        try:
+            # Decode the URL-safe base64 encoded rune
+            decoded_bytes = base64.urlsafe_b64decode(rune_string + "==")
+            # Convert the bytes to a UTF-8 string
+            decoded_str = decoded_bytes.decode('utf-8')
+            # Split the string by '&' to parse the key-value pairs
+            parts = decoded_str.split('&')
+            # Create a dictionary from the key-value pairs
+            rune_data = {}
+            for part in parts:
+                key, value = part.split('=')
+                rune_data[key] = value
+            return rune_data
+        except Exception as e:
+            raise ValueError(f"Failed to decode rune: {e}")
 
     def __init__(self):
+
         if not settings.clnrest_url:
             raise ValueError(
                 "cannot initialize CLNRest: "
@@ -35,16 +57,46 @@ class CLNRestWallet(Wallet):
                 "missing clnrest_cert"
             )
 
-        if not settings.clnrest_rune:
+        if settings.clnrest_readonly_rune:
+            logger.debug(f"TODO: decode this rune: {settings.clnrest_readonly_rune}")
+            #decoded_rune = self.decode_rune(settings.clnrest_readonly_rune)
+            #expected_rune = {
+            #    "method": "listfunds",
+            #    "method": "listpays",
+            #    "method": "listinvoices",
+            #    "method": "get",
+            #    "method": "summary",
+            #    "method": "waitanyinvoice"
+            #}
+##
+#            if decoded_rune != expected_rune:
+#                #todo: if rune is too priviliged, try to drop priviliges and issue warning instead of exiting
+#                raise ValueError(
+#                        "cannot initialize CLNRest: "
+#                        "readonly rune does not match the expected restrictions. "
+#                        """create one with: lightning-cli createrune restrictions='["method=listfunds", "method=listpays", "method=listinvoices", "method^get", "method=summary", "method=waitanyinvoice"]'"""
+#                        )
+        else:
             raise ValueError(
                 "cannot initialize CLNRest: "
-                "missing clnrest_rune"
+                "missing clnrest_readonly_rune. create one with:"
+                """lightning-cli createrune restrictions='["method=listfunds", "method=listpays", "method=listinvoices", "method^get", "method=summary", "method=waitanyinvoice"]'"""
+                )
+
+        if not settings.clnrest_invoice_rune:
+            #todo: this can control how large invoices can be created
+            raise ValueError(
+                "cannot initialize CLNRest: "
+                "missing clnrest_invoice_rune. create one with:"
+                """lightning-cli createrune restrictions='["method=invoice"]'"""
             )
 
-        if not settings.clnrest_rune:
+        if not settings.clnrest_pay_rune:
+            #todo: if the bolt11 rune is not rate limited, rate limit it
             raise ValueError(
                 "cannot initialize CLNRest: "
-                "no clnrest_rune provided"
+                "missing clnrest_pay_rune. create one with:"
+                """lightning-cli createrune restrictions='[["method=pay"], ["pinvbolt11_amount<1001"], ["rate=1"]]'"""
             )
 
         if not settings.clnrest_nodeid:
@@ -55,11 +107,11 @@ class CLNRestWallet(Wallet):
 
         self.url = self.normalize_endpoint(settings.clnrest_url)
 
-        headers = {
+        self.default_headers = {
             "accept": "application/json",
             "User-Agent": settings.user_agent,
             "Content-Type": "application/json",
-            "rune": settings.clnrest_rune,
+            "rune": "",
             "nodeid": settings.clnrest_nodeid,
         }
 
@@ -69,14 +121,10 @@ class CLNRestWallet(Wallet):
         #This will allow you to check the certificate but ignore the hostname issue
         buypass_ssl_hostname_check = True
 
-        if self.cert and buypass_ssl_hostname_check:
-            # Create a custom SSL context with hostname verification disabled
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.load_verify_locations(self.cert)
-            self.client = httpx.AsyncClient(verify=ssl_context, headers=headers)
-        else:
-            self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
+
+        self.readonly_client = self.create_client(settings.clnrest_readonly_rune)
+        self.pay_client = self.create_client(settings.clnrest_pay_rune)
+        self.invoice_client = self.create_client(settings.clnrest_invoice_rune)
 
         self.last_pay_index = 0
 
@@ -87,16 +135,32 @@ class CLNRestWallet(Wallet):
             "pending": None,
         }
 
+    def create_client(self, rune: str) -> httpx.AsyncClient:
+        """Create an HTTP client with specified headers and SSL configuration."""
+        headers = self.default_headers.copy()
+        headers["rune"] = rune
+
+        if self.cert and self.bypass_ssl_hostname_check:
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.load_verify_locations(self.cert)
+            return httpx.AsyncClient(verify=ssl_context, headers=headers)
+        else:
+            return httpx.AsyncClient(verify=self.cert, headers=headers)
+
     async def cleanup(self):
         try:
-            await self.client.aclose()
+            await self.readonly_client.close()
+            await self.pay_client.close()
+            await self.invoice_client.close()
         except RuntimeError as e:
             logger.warning(f"Error closing wallet connection: {e}")
+
 
     async def status(self) -> StatusResponse:
         data={}
         logger.debug(f"REQUEST to /v1/getinfo: {json.dumps(data)}")
-        r = await self.client.post( f"{self.url}/v1/listfunds", timeout=15, json=data)
+        r = await self.readonly_client.post( f"{self.url}/v1/listfunds", timeout=15, json=data)
         r.raise_for_status()
         if r.is_error or "error" in r.json():
             try:
@@ -151,7 +215,8 @@ class CLNRestWallet(Wallet):
             data["preimage"] = kwargs["preimage"]
 
         logger.debug(f"REQUEST to /v1/invoice: : {json.dumps(data)}")
-        r = await self.client.post(
+
+        r = await self.invoice_client.post(
             f"{self.url}/v1/invoice",
             json=data,
         )
@@ -171,6 +236,7 @@ class CLNRestWallet(Wallet):
         return InvoiceResponse(True, data["payment_hash"], data["bolt11"], None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        #todo: rune restrictions will not be enforced for internal payments within the lnbits instance as they are not routed through to core lightning
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
@@ -206,7 +272,7 @@ class CLNRestWallet(Wallet):
 
         logger.debug(f"REQUEST to {api_endpoint}: {json.dumps(data)}")
 
-        r = await self.client.post(
+        r = await self.pay_client.post(
             api_endpoint,
             json=data,
             timeout=None,
@@ -246,7 +312,7 @@ class CLNRestWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         data: Dict = { "payment_hash": checking_id }
         logger.debug(f"REQUEST to /v1/listinvoices: {json.dumps(data)}")
-        r = await self.client.post(
+        r = await self.readonly_client.post(
             f"{self.url}/v1/listinvoices",
             json=data,
         )
@@ -266,7 +332,7 @@ class CLNRestWallet(Wallet):
         data: Dict = { "payment_hash": checking_id }
 
         logger.debug(f"REQUEST to /v1/listpays: {json.dumps(data)}")
-        r = await self.client.post(
+        r = await self.readonly_client.post(
             f"{self.url}/v1/listpays",
             json=data,
         )
@@ -308,7 +374,7 @@ class CLNRestWallet(Wallet):
                 request_timeout = httpx.Timeout(connect=5.0, read=read_timeout, write=60.0, pool=60.0)
                 url = f"{self.url}/v1/waitanyinvoice"
                 logger.debug(f"REQUEST(stream) to  /v1/waitanyinvoice with data: {data}.")
-                async with self.client.stream("POST", url, json=data, timeout=request_timeout) as r:
+                async with self.readonly_client.stream("POST", url, json=data, timeout=request_timeout) as r:
                     async for line in r.aiter_lines():
                         inv = json.loads(line)
                         if "error" in inv and "message" in inv["error"]:
@@ -329,7 +395,7 @@ class CLNRestWallet(Wallet):
                         yield payment_hash
 
                         # hack to return payment_hash if the above shouldn't work
-                        #r = await self.client.get(
+                        #r = await self.readonly_client.get(
                         #    f"{self.url}/v1/invoice/listInvoices",
                         #    params={"label": inv["label"]},
                         #)
@@ -348,4 +414,4 @@ class CLNRestWallet(Wallet):
                     f"lost connection to corelightning-rest invoices stream: '{exc}', "
                     "reconnecting..."
                 )
-                await asyncio.sleep(0.02)
+                await asyncio.sleep(0.5)
