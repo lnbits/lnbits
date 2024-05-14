@@ -50,13 +50,15 @@ class CoreLightningRestWallet(Wallet):
         }
 
         # https://docs.corelightning.org/reference/lightning-pay
+        # -32602: Invalid bolt11: Prefix bc is not for regtest
+        # -1: Catchall nonspecific error.
         # 201: Already paid
         # 203: Permanent failure at destination.
         # 205: Unable to find a route.
         # 206: Route too expensive.
         # 207: Invoice expired.
         # 210: Payment timed out without a payment in progress.
-        self.pay_failure_error_codes = [201, 203, 205, 206, 207, 210]
+        self.pay_failure_error_codes = [-32602, 201, 203, 205, 206, 207, 210]
 
         self.cert = settings.corelightning_rest_cert or False
         self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
@@ -204,7 +206,8 @@ class CoreLightningRestWallet(Wallet):
             try:
                 logger.debug(exc)
                 data = exc.response.json()
-                if data["error"]["code"] in self.pay_failure_error_codes:  # type: ignore
+                error_code = int(data["error"]["code"])
+                if error_code in self.pay_failure_error_codes:
                     error_message = f"Payment failed: {data['error']['message']}"
                     return PaymentResponse(False, None, None, None, error_message)
                 error_message = f"REST failed with {data['error']['message']}."
