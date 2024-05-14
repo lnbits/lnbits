@@ -361,7 +361,6 @@ new Vue({
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
           this.updatePayments = !this.updatePayments
-          dismissPaymentMsg()
         })
     },
     payLnurl: function () {
