@@ -360,6 +360,8 @@ new Vue({
         .catch(err => {
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
+          this.updatePayments = !this.updatePayments
+          dismissPaymentMsg()
         })
     },
     payLnurl: function () {
