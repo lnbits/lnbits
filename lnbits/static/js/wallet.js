@@ -349,19 +349,19 @@ new Vue({
               .getPayment(this.g.wallet, response.data.payment_hash)
               .then(res => {
                 if (res.data.paid) {
-                  this.parse.show = false
+                  dismissPaymentMsg()
                   clearInterval(this.parse.paymentChecker)
                   this.updatePayments = !this.updatePayments
-                  dismissPaymentMsg()
+                  this.parse.show = false
                 }
               })
           }, 2000)
         })
         .catch(err => {
           dismissPaymentMsg()
-          this.parse.show = false
           LNbits.utils.notifyApiError(err)
           this.updatePayments = !this.updatePayments
+          this.parse.show = false
         })
     },
     payLnurl: function () {
