@@ -102,7 +102,11 @@
             </div>
           </div>
         </q-card>
-        <payment-list :wallet="this.g.wallet" :mobileSimple="mobileSimple" />
+        <payment-list
+          :update="updatePayments"
+          :wallet="this.g.wallet"
+          :mobileSimple="mobileSimple"
+        />
       </div>
       {% if HIDE_API %}
       <div class="col-12 col-md-4 q-gutter-y-md">
