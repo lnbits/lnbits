@@ -83,6 +83,7 @@ function generateChart(canvas, rawData) {
 Vue.component('payment-chart', {
   name: 'payment-chart',
   props: ['wallet'],
+  mixins: [windowMixin],
   data: function () {
     return {
       paymentsChart: {
