@@ -1,6 +1,6 @@
 Vue.component('payment-list', {
   name: 'payment-list',
-  props: ['wallet', 'mobileSimple', 'lazy'],
+  props: ['update', 'wallet', 'mobileSimple', 'lazy'],
   data: function () {
     return {
       denomination: LNBITS_DENOMINATION,
@@ -167,8 +167,10 @@ Vue.component('payment-list', {
   },
   watch: {
     lazy: function (newVal) {
-      debugger
       if (newVal === true) this.fetchPayments()
+    },
+    update: function () {
+      this.fetchPayments()
     }
   },
   created: function () {
