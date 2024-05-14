@@ -163,6 +163,14 @@ Vue.component('payment-list', {
           this.wallet.name + '-payments'
         )
       })
+    },
+    formatCurrency: function (currency, amount) {
+      try {
+        return LNbits.utils.formatCurrency(currency, amount)
+      } catch (error) {
+        console.warn(error)
+        return `${amount} ???`
+      }
     }
   },
   watch: {
@@ -296,13 +304,13 @@ Vue.component('payment-list', {
                 <br />
                 <i v-if="props.row.extra.wallet_fiat_currency">
                   <span
-                    v-text="LNbits.utils.formatCurrency(props.row.extra.wallet_fiat_currency, props.row.extra.wallet_fiat_amount)"
+                    v-text="formatCurrency(props.row.extra.wallet_fiat_currency, props.row.extra.wallet_fiat_amount)"
                   ></span>
                   <br />
                 </i>
                 <i v-if="props.row.extra.fiat_currency">
                   <span
-                    v-text="LNbits.utils.formatCurrency(props.row.extra.fiat_currency, props.row.extra.fiat_amount)"
+                    v-text="formatCurrency(props.row.extra.fiat_currency, props.row.extra.fiat_amount)"
                   ></span>
                 </i>
               </q-td>
