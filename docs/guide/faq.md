@@ -84,7 +84,7 @@ allow-self-payment=1
 <details><summary>Wallet-URL deleted, are my funds safu ?</summary>
     <ul>
       <li>
-        <details><summary>Wallet on demo server legend.lnbits</summary>
+        <details><summary>Wallet on demo server demo.lnbits.com</summary>
         <p>Always save a copy of your wallet-URL, Export2phone-QR or LNDhub for your own wallets in a safe place. LNbits CANNOT help you to recover them when lost.</p>
         </details>
       </li>
