@@ -513,7 +513,7 @@ To install using docker you first need to build the docker image as:
 ```
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-docker build -t lnbits-demo .
+docker build -t lnbits/lnbits .
 ```
 
 You can launch the docker in a different directory, but make sure to copy `.env.example` from lnbits there
