@@ -49,7 +49,7 @@ new Vue({
         show: false,
         location: window.location
       },
-      balance: 0,
+      balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
       mobileSimple: false,
       credit: 0,
@@ -349,9 +349,10 @@ new Vue({
               .getPayment(this.g.wallet, response.data.payment_hash)
               .then(res => {
                 if (res.data.paid) {
-                  this.parse.show = false
-                  clearInterval(this.parse.paymentChecker)
                   dismissPaymentMsg()
+                  clearInterval(this.parse.paymentChecker)
+                  this.updatePayments = !this.updatePayments
+                  this.parse.show = false
                 }
               })
           }, 2000)
@@ -359,6 +360,8 @@ new Vue({
         .catch(err => {
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
+          this.updatePayments = !this.updatePayments
+          this.parse.show = false
         })
     },
     payLnurl: function () {
