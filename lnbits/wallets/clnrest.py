@@ -88,7 +88,7 @@ class CLNRestWallet(Wallet):
             raise ValueError(
                 "cannot initialize CLNRest: "
                 "missing clnrest_invoice_rune. create one with:"
-                """lightning-cli createrune restrictions='["method=invoice"]'"""
+                """lightning-cli createrune restrictions='[["method=invoice"], ["pnameamount_msat<10001"]]'"""
             )
 
         if not settings.clnrest_pay_rune:
@@ -308,6 +308,10 @@ class CLNRestWallet(Wallet):
         return PaymentResponse(
             self.statuses.get(data["status"]), checking_id, fee_msat, preimage, None
         )
+    async def invoice_status(self, checking_id: str) -> PaymentStatus:
+        logger.error("why is something calling invoice_status from clnrest.py")
+        # Call get_invoice_status instead
+        return await self.get_invoice_status(checking_id)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         data: Dict = { "payment_hash": checking_id }
