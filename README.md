@@ -68,7 +68,7 @@ As well as working great in a browser, LNbits has native IoS and Android apps as
 
 ## Tip us
 
-If you like this project [send some tip love](https://demo.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
+If you like this project [send some tip love](https://demo.lnbits.com/lnurlp/link/fH59GD)!
 
 [docs]: https://github.com/lnbits/lnbits/wiki
 [docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg
