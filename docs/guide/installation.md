@@ -513,7 +513,7 @@ To install using docker you first need to build the docker image as:
 ```
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-docker build -t lnbits-legend .
+docker build -t lnbits-demo .
 ```
 
 You can launch the docker in a different directory, but make sure to copy `.env.example` from lnbits there
@@ -533,7 +533,7 @@ mkdir data
 Then the image can be run as:
 
 ```
-docker run --detach --publish 5000:5000 --name lnbits-legend -e "LNBITS_BACKEND_WALLET_CLASS='FakeWallet'" --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
+docker run --detach --publish 5000:5000 --name lnbits-demo -e "LNBITS_BACKEND_WALLET_CLASS='FakeWallet'" --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-demo
 ```
 
 Finally you can access your lnbits on your machine at port 5000.
