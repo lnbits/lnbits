@@ -30,7 +30,7 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 
 ## Running LNbits
 
-Test on our demo server [legend.lnbits.com](https://legend.lnbits.com), or on [lnbits.com](https://lnbits.com) software as a service, where you can spin up an LNbits instance for 21sats per hr.
+Test on our demo server [demo.lnbits.com](https://demo.lnbits.com), or on [lnbits.com](https://lnbits.com) software as a service, where you can spin up an LNbits instance for 21sats per hr.
 
 See the [install guide](https://github.com/lnbits/lnbits/blob/main/docs/guide/installation.md) for details on installation and setup.
 
@@ -68,7 +68,7 @@ As well as working great in a browser, LNbits has native IoS and Android apps as
 
 ## Tip us
 
-If you like this project [send some tip love](https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
+If you like this project [send some tip love](https://demo.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
 
 [docs]: https://github.com/lnbits/lnbits/wiki
 [docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg
