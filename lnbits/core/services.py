@@ -801,8 +801,6 @@ async def get_balance_delta() -> BalanceDelta:
 
 
 def get_bolt11_expiry(invoice: Bolt11) -> datetime.datetime:
-    if invoice.expiry:
-        return datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
-    else:
-        # assume maximum bolt11 expiry of 31 days to be on the safe side
-        return datetime.datetime.now() + datetime.timedelta(days=31)
+    # When explicit expiration is absent. The default value should be 1 hour.
+    expiry = invoice.expiry if invoice.expiry else 3600
+    return datetime.datetime.fromtimestamp(invoice.date + expiry)
