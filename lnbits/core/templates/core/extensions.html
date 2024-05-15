@@ -322,7 +322,7 @@
   </q-dialog>
   <q-dialog v-model="imageDialog" position="top">
     <div v-if="selectedImage.link" style="width: 1200px; max-width: 80vw">
-      <q-video src="https://www.youtube.com/embed/k3_tw44QsZQ?rel=0" />
+      <q-video :ratio="16/9" :src="selectedImage.link"></q-video>
     </div>
     <div v-else style="width: 1200px; max-width: 80vw">
       <q-img
@@ -335,7 +335,7 @@
   <q-dialog v-model="extMore">
     <q-card class="q-pa-lg" style="width: 800px; max-width: 80vw">
       <div class="row">
-        <div class="col-2">
+        <div class="col-2 gt-md">
           <q-img
             :src="extensionConfig.icon"
             style="width: 100px"
@@ -371,12 +371,9 @@
           </b>
           <small>
             <div v-for="contributor of extensionConfig.contributors">
-              <div
-                color="primary"
-                v-text="contributor.name + ' - ' + contributor.role"
-                type="a"
-                :href="contributor.role"
-              ></div>
+              <a :href="contributor.uri" target="_blank" rel="noopener noreferrer" style="color: var(--q-primary);text-decoration: none;">
+               {% raw %} {{ contributor.name + ' - ' + contributor.role }}{% endraw %}
+              </a>
             </div>
           </small>
           <q-rating
@@ -392,9 +389,10 @@
           <q-btn
             size="xs"
             color="primary"
-            :label="extensionConfig.repo"
+            label="Repo"
             type="a"
             :href="extensionConfig.repo"
+            target="_blank" rel="noopener noreferrer"
           ></q-btn>
         </div>
       </div>
@@ -1084,8 +1082,8 @@
           this.extensionConfig['extendedDescription'] =
             LNbits.utils.convertMarkdown(data)
           this.extensionConfig['repo'] = extension.latestRelease.repo
-          console.log(this.extensionConfig['latestRelease']['repo'])
           this.extMore = true
+          this.getExtensions()
         } catch (error) {
           this.$q.notify({
             message: 'Extended description not set in extension repo'
@@ -1095,10 +1093,9 @@
       bigImage: function (image) {
         this.selectedImage = image
         this.imageDialog = true
-      }
-    },
-    created: function () {
-      this.extensions = JSON.parse('{{extensions | tojson | safe}}').map(e => ({
+      },
+      getExtensions: function() {
+        this.extensions = JSON.parse('{{extensions | tojson | safe}}').map(e => ({
         ...e,
         inProgress: false
       }))
@@ -1112,6 +1109,10 @@
       if (window.user) {
         this.user = LNbits.map.user(window.user)
       }
+      }
+    },
+    created: function () {
+      this.getExtensions()
     },
     mixins: [windowMixin]
   })
