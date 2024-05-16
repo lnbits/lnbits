@@ -177,7 +177,7 @@ async def create_invoice(
         payment_request=payment_request,
         payment_hash=invoice.payment_hash,
         amount=amount_msat,
-        expiry=get_bolt11_expiry(invoice),
+        expiry=invoice.expiry_date,
         memo=memo,
         extra=extra,
         webhook=webhook,
@@ -241,7 +241,7 @@ async def pay_invoice(
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
             amount=-invoice.amount_msat,
-            expiry=get_bolt11_expiry(invoice),
+            expiry=invoice.expiry_date,
             memo=description or invoice.description or "",
             extra=extra,
         )
@@ -798,9 +798,3 @@ async def get_balance_delta() -> BalanceDelta:
         lnbits_balance_msats=lnbits_balance,
         node_balance_msats=status.balance_msat,
     )
-
-
-def get_bolt11_expiry(invoice: Bolt11) -> datetime.datetime:
-    # When explicit expiration is absent. The default value should be 1 hour.
-    expiry = invoice.expiry if invoice.expiry else 3600
-    return datetime.datetime.fromtimestamp(invoice.date + expiry)
