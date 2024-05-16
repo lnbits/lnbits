@@ -9,6 +9,8 @@ window.localisation.fi = {
   transactions: 'Tapahtumat',
   dashboard: 'Ohjauspaneeli',
   node: 'Solmu',
+  export_users: 'Vie käyttäjät',
+  no_users: 'Käyttäjiä ei löytynyt',
   total_capacity: 'Kokonaiskapasiteetti',
   avg_channel_size: 'Keskimääräisen kanavan kapasiteetti',
   biggest_channel_size: 'Suurimman kanavan kapasiteetti',
@@ -34,6 +36,8 @@ window.localisation.fi = {
     'Poista kaikki asetusten muutokset ja palauta järjestelmän oletusasetukset.',
   download_backup: 'Lataa tietokannan varmuuskopio',
   name_your_wallet: 'Anna %{name}-lompakollesi nimi',
+  wallet_topup_ok:
+    'Virtuaalisten varojen luominen onnistui (%{amount} sats). Maksut riippuvat rahoituslähteen todellisista varoista.',
   paste_invoice_label:
     'Liitä lasku, maksupyyntö, lnurl-koodi tai Lightning Address *',
   lnbits_description:
@@ -249,5 +253,6 @@ window.localisation.fi = {
   pay_from_wallet: 'Maksa lompakosta',
   show_qr: 'Näytä QR',
   retry_install: 'Yritä asennusta uudelleen',
-  new_payment: 'Tee uusi maksu'
+  new_payment: 'Tee uusi maksu',
+  hide_empty_wallets: 'Piilota tyhjät lompakot'
 }

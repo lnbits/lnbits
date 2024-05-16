@@ -9,6 +9,8 @@ window.localisation.cn = {
   transactions: '交易记录',
   dashboard: '控制面板',
   node: '节点',
+  export_users: '导出用户',
+  no_users: '未找到用户',
   total_capacity: '总容量',
   avg_channel_size: '平均频道大小',
   biggest_channel_size: '最大通道大小',
@@ -33,6 +35,8 @@ window.localisation.cn = {
   reset_defaults_tooltip: '删除所有设置并重置为默认设置',
   download_backup: '下载数据库备份',
   name_your_wallet: '给你的 %{name}钱包起个名字',
+  wallet_topup_ok:
+    '成功创建虚拟资金（%{amount} sats）。付款取决于资金来源的实际资金。',
   paste_invoice_label: '粘贴发票，付款请求或lnurl*',
   lnbits_description:
     'LNbits 设置简单、轻量级，可以在任何闪电网络的资金来源上运行，甚至可以在LNbits自身上运行！您可以为自己运行LNbits，或者轻松为他人提供托管解决方案。每个钱包都有自己的 API 密钥，你可以创建的钱包数量没有限制。能够把资金分开管理使 LNbits 成为一款有用的资金管理和开发工具。扩展程序增加了 LNbits 的额外功能，所以你可以在闪电网络上尝试各种尖端技术。我们已经尽可能简化了开发扩展程序的过程，作为一个免费和开源的项目，我们鼓励人们开发并提交自己的扩展程序。',
@@ -237,5 +241,6 @@ window.localisation.cn = {
   pay_from_wallet: '从钱包支付',
   show_qr: '显示QR码',
   retry_install: '重试安装',
-  new_payment: '创建新支付'
+  new_payment: '创建新支付',
+  hide_empty_wallets: '隐藏空钱包'
 }
