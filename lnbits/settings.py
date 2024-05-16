@@ -157,7 +157,7 @@ class FakeWalletFundingSource(LNbitsSettings):
 
 
 class LNbitsFundingSource(LNbitsSettings):
-    lnbits_endpoint: str = Field(default="https://legend.lnbits.com")
+    lnbits_endpoint: str = Field(default="https://demo.lnbits.com")
     lnbits_key: Optional[str] = Field(default=None)
     lnbits_admin_key: Optional[str] = Field(default=None)
     lnbits_invoice_key: Optional[str] = Field(default=None)

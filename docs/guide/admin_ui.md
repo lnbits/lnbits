@@ -44,7 +44,7 @@ Account creation can be also disabled by setting `LNBITS_ALLOW_NEW_ACCOUNTS=fals
 
 ```
 $ sudo systemctl stop lnbits.service
-$ cd ~/lnbits-legend
+$ cd ~/lnbits
 $ sudo nano .env
 ```
 
