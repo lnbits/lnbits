@@ -145,7 +145,7 @@ window.LNbits = {
       )
     },
     updateBalance: function (credit, wallet_id) {
-      return LNbits.api.request('PUT', '/users/api/v1/topup/', null, {
+      return LNbits.api.request('PUT', '/users/api/v1/topup', null, {
         amount: credit,
         id: wallet_id
       })

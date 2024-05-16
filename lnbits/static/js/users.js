@@ -351,12 +351,14 @@ new Vue({
       console.log('export users')
     },
     topupCallback(res) {
-      this.wallets.forEach(wallet => {
-        if (res.wallet_id === wallet.id) {
-          wallet.balance_msat += res.value * 1000
-        }
-      })
-      this.fetchUsers()
+      if (res.success) {
+        this.wallets.forEach(wallet => {
+          if (res.wallet_id === wallet.id) {
+            wallet.balance_msat += res.credit * 1000
+          }
+        })
+        this.fetchUsers()
+      }
     },
     topupWallet() {
       LNbits.api

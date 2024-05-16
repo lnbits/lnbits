@@ -702,7 +702,14 @@ Vue.component('lnbits-update-balance', {
       LNbits.api
         .updateBalance(credit, this.wallet_id)
         .then(res => {
-          this.callback({value: res, wallet_id: this.wallet_id})
+          if (res.data.status !== 'Success') {
+            throw new Error(res.data)
+          }
+          this.callback({
+            success: true,
+            credit: parseInt(credit),
+            wallet_id: this.wallet_id
+          })
         })
         .then(_ => {
           credit = parseInt(credit)
