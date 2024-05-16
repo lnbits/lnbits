@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 import httpx
-from bolt11 import Bolt11
 from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
