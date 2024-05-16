@@ -352,10 +352,30 @@
       </div>
     </q-card>
     <q-card v-else class="q-pa-lg lnbits__dialog-card">
-      <q-card-section>
-        <div class="text-h6" v-text="selectedExtension?.name"></div>
-      </q-card-section>
-      <div class="col-12 col-md-5 q-gutter-y-md" v-if="selectedExtensionRepos">
+      <!-- here -->
+      <q-tabs
+        v-model="manageExtensionTab"
+        active-color="primary"
+        align="justify"
+      >
+        <q-tab
+          name="releases"
+          :label="'Releases'"
+          @update="val => manageExtensionTab = val.name"
+        ></q-tab>
+
+        <q-tab
+          name="payment"
+          :label="'Payment'"
+          @update="val => manageExtensionTab = val.name"
+        ></q-tab>
+      </q-tabs>
+
+      <div
+        v-show="manageExtensionTab === 'releases'"
+        class="col-12 col-md-5 q-gutter-y-md q-mt-md"
+        v-if="selectedExtensionRepos"
+      >
         <q-card
           flat
           bordered
@@ -592,6 +612,7 @@
       return {
         searchTerm: '',
         tab: 'all',
+        manageExtensionTab: 'releases',
         filteredExtensions: null,
         showUninstallDialog: false,
         showUpgradeDialog: false,
