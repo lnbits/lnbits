@@ -576,30 +576,79 @@
             </q-card-section>
           </q-expansion-item>
         </q-card>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="selectedExtension?.isInstalled"
+            @click="showUninstall()"
+            flat
+            color="red"
+            v-text="$t('uninstall')"
+          ></q-btn>
+          <q-btn
+            v-else-if="selectedExtension?.hasDatabaseTables"
+            @click="showDropDb()"
+            flat
+            color="red"
+            :label="$t('drop_db')"
+          ></q-btn>
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            v-text="$t('close')"
+          ></q-btn>
+        </div>
       </div>
       <q-spinner v-else color="primary" size="2.55em"></q-spinner>
-      <div class="row q-mt-lg">
-        <q-btn
-          v-if="selectedExtension?.isInstalled"
-          @click="showUninstall()"
-          flat
-          color="red"
-          v-text="$t('uninstall')"
-        ></q-btn>
-        <q-btn
-          v-else-if="selectedExtension?.hasDatabaseTables"
-          @click="showDropDb()"
-          flat
-          color="red"
-          :label="$t('drop_db')"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('close')"
-        ></q-btn>
+      <div
+        v-if="selectedExtension"
+        v-show="manageExtensionTab === 'payment'"
+        class="col-12 col-md-5 q-gutter-y-md q-mt-md"
+      >
+        <q-toggle
+          v-model="selectedExtension.payToEnable"
+          :label="'Ask payment to enable extension'"
+          color="secondary"
+          style="max-height: 21px"
+        ></q-toggle>
+        <q-select
+          v-if="selectedExtension.payToEnable"
+          filled
+          dense
+          emit-value
+          v-model="selectedExtension.payToEnableWallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+          class="q-mt-md"
+        ></q-select>
+        <q-input
+          v-if="selectedExtension.payToEnable"
+          filled
+          dense
+          v-model.number="selectedExtension.payToEnableAmount"
+          label="Amount (sats)"
+          type="number"
+          min="1"
+          class="q-mt-md"
+        >
+        </q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            @click="updateSelectedExtension()"
+            flat
+            color="green"
+            v-text="'Update Payment'"
+          ></q-btn>
+
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            v-text="$t('close')"
+          ></q-btn>
+        </div>
       </div>
     </q-card>
   </q-dialog>
@@ -778,6 +827,9 @@
             LNbits.utils.notifyApiError(err)
             extension.inProgress = false
           })
+      },
+      updateSelectedExtension: function () {
+        console.log('### updateSelectedExtension')
       },
 
       showUninstall: function () {
