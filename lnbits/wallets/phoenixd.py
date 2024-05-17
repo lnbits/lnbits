@@ -68,7 +68,6 @@ class PhoenixdWallet(Wallet):
                 return StatusResponse(f"Server error: '{error_message}'", 0)
 
             if len(data["channels"]) == 0:
-                # todo: add custom unit-test for this
                 return StatusResponse(None, 0)
 
             balance_msat = int(data["channels"][0]["balanceSat"]) * 1000
@@ -87,9 +86,6 @@ class PhoenixdWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        if description_hash or unhashed_description:
-            raise UnsupportedError("description_hash")
-
         try:
             msats_amount = amount
             data: Dict = {
@@ -189,7 +185,6 @@ class PhoenixdWallet(Wallet):
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        # TODO: how can we detect a failed payment?
         try:
             r = await self.client.get(f"/payments/outgoing/{checking_id}")
             if r.is_error:
