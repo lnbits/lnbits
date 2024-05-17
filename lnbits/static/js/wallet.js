@@ -560,6 +560,7 @@ new Vue({
     this.update.name = this.g.wallet.name
     this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
+    this.updateFiatBalance()
   },
   watch: {
     updatePayments: function () {
