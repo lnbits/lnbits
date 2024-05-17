@@ -215,7 +215,7 @@
             ></q-btn>
 
             <q-btn
-              @click="showUpgrade(extension)"
+              @click="showManageExtension(extension)"
               flat
               color="primary"
               v-if="g.user.admin"
@@ -859,10 +859,11 @@
         this.showDropDbDialog = true
       },
 
-      showUpgrade: async function (extension) {
+      showManageExtension: async function (extension) {
         this.selectedExtension = extension
         this.selectedRelease = null
         this.selectedExtensionRepos = null
+        this.manageExtensionTab = 'releases'
         this.showManageExtensionDialog = true
 
         try {
