@@ -200,7 +200,7 @@ async def get_extension_releases(ext_id: str):
         ) from exc
 
 
-@extension_router.put("/invoice", dependencies=[Depends(check_admin)])
+@extension_router.put("/pay/install", dependencies=[Depends(check_admin)])
 async def get_extension_invoice(data: CreateExtension):
     try:
         assert data.cost_sats, "A non-zero amount must be specified"

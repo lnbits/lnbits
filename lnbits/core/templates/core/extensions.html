@@ -835,7 +835,6 @@
           })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
-            extension.inProgress = false
           })
       },
       updatePayToInstallData: function (extension) {
@@ -918,7 +917,7 @@
         try {
           this.selectedExtension.inProgress = true
           this.showManageExtensionDialog = false
-          const paymentInfo = await this.requestPayment(
+          const paymentInfo = await this.requestPaymentForInstall(
             this.selectedExtension.id,
             release
           )
@@ -943,7 +942,7 @@
         this.selectedRelease = release
 
         try {
-          const data = await this.requestPayment(
+          const data = await this.requestPaymentForInstall(
             this.selectedExtension.id,
             release
           )
@@ -966,10 +965,10 @@
         }
       },
 
-      async requestPayment(extId, release) {
+      async requestPaymentForInstall(extId, release) {
         const {data} = await LNbits.api.request(
           'PUT',
-          `/api/v1/extension/invoice`,
+          `/api/v1/extension/pay/install`,
           this.g.user.wallets[0].adminkey,
           {
             ext_id: extId,
