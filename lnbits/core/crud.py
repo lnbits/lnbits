@@ -497,6 +497,19 @@ async def get_user_extension(
     return UserExtension.from_row(row) if row else None
 
 
+async def get_user_extensions(
+    user_id: str, conn: Optional[Connection] = None
+) -> List[UserExtension]:
+    rows = await (conn or db).fetchall(
+        """
+            SELECT extension, active, extra as _extra FROM extensions
+            WHERE "user" = ?
+        """,
+        (user_id,),
+    )
+    return [UserExtension.from_row(row) for row in rows]
+
+
 async def update_user_extension(
     *, user_id: str, extension: str, active: bool, conn: Optional[Connection] = None
 ) -> None:
