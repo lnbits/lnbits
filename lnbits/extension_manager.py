@@ -92,6 +92,7 @@ class PayToEnableInfo(BaseModel):
 
 
 class UserExtensionInfo(BaseModel):
+    paid_to_enable: Optional[bool] = False
     payment_hash_to_enable: Optional[str] = None
 
 
@@ -99,6 +100,12 @@ class UserExtension(BaseModel):
     extension: str
     active: bool
     extra: Optional[UserExtensionInfo] = None
+
+    @property
+    def is_paid(self) -> bool:
+        if not self.extra:
+            return False
+        return self.extra.paid_to_enable is True
 
     @classmethod
     def from_row(cls, data: dict) -> "UserExtension":
@@ -439,6 +446,12 @@ class InstallableExtension(BaseModel):
         if self.installed_release:
             return self.installed_release.version
         return ""
+
+    @property
+    def requires_payment(self) -> bool:
+        if not self.pay_to_enable:
+            return False
+        return self.pay_to_enable.required is True
 
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
