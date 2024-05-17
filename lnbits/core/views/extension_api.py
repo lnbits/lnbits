@@ -32,6 +32,7 @@ from lnbits.extension_manager import (
     ExtensionRelease,
     InstallableExtension,
     PayToEnableInfo,
+    UserExtensionInfo,
     fetch_github_release_config,
     fetch_release_payment_info,
     get_valid_extensions,
@@ -46,7 +47,10 @@ from ..crud import (
     get_dbversions,
     get_installed_extension,
     get_installed_extensions,
+    get_user_extension,
     update_extension_pay_to_enable,
+    update_user_extension,
+    update_user_extension_extra,
 )
 
 extension_router = APIRouter(
@@ -129,6 +133,40 @@ async def api_update_pay_to_enable(ext_id: str, data: PayToEnableInfo):
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=(f"Failed to update pay to install data for extension '{ext_id}' "),
+        ) from exc
+
+
+@extension_router.put("/{ext_id}/enable")
+async def api_enable_extension(ext_id: str, user: User = Depends(check_user_exists)):
+    if ext_id not in [e.code for e in get_valid_extensions()]:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, f"Extension '{ext_id}' doesn't exist."
+        )
+    try:
+        logger.info(f"Enabling extension: {ext_id}.")
+        await update_user_extension(user_id=user.id, extension=ext_id, active=True)
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=(f"Failed to enable '{ext_id}' "),
+        ) from exc
+
+
+@extension_router.put("/{ext_id}/disable")
+async def api_disable_extension(ext_id: str, user: User = Depends(check_user_exists)):
+    if ext_id not in [e.code for e in get_valid_extensions()]:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, f"Extension '{ext_id}' doesn't exist."
+        )
+    try:
+        logger.info(f"Disabeling extension: {ext_id}.")
+        await update_user_extension(user_id=user.id, extension=ext_id, active=False)
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=(f"Failed to disable '{ext_id}'."),
         ) from exc
 
 
@@ -238,8 +276,10 @@ async def get_pay_to_install_invoice(data: CreateExtension):
         ) from exc
 
 
-@extension_router.put("/pay/enable/{ext_id}", dependencies=[Depends(check_user_exists)])
-async def get_pay_to_enable_invoice(ext_id: str, data: PayToEnableInfo):
+@extension_router.put("/pay/enable/{ext_id}")
+async def get_pay_to_enable_invoice(
+    ext_id: str, data: PayToEnableInfo, user: User = Depends(check_user_exists)
+):
     try:
         assert data.amount > 0, "A non-zero amount must be specified"
 
@@ -259,6 +299,11 @@ async def get_pay_to_enable_invoice(ext_id: str, data: PayToEnableInfo):
             amount=data.amount,
             memo=f"Enable '{ext.name}' extension.",
         )
+
+        user_ext = await get_user_extension(user.id, ext_id)
+        user_ext_info = user_ext.extra if user_ext else UserExtensionInfo()
+        user_ext_info.payment_hash_to_enable = payment_hash
+        await update_user_extension_extra(user.id, ext_id, user_ext_info)
 
         return {"payment_hash": payment_hash, "payment_request": payment_request}
 

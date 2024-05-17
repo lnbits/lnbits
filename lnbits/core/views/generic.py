@@ -28,7 +28,6 @@ from ..crud import (
     get_installed_extensions,
     get_user,
     update_installed_extension_state,
-    update_user_extension,
 )
 
 generic_router = APIRouter(
@@ -81,11 +80,7 @@ async def extensions_install(
     user: User = Depends(check_user_exists),
     activate: str = Query(None),
     deactivate: str = Query(None),
-    enable: str = Query(None),
-    disable: str = Query(None),
 ):
-    await toggle_extension(enable, disable, user.id)
-
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
@@ -420,29 +415,3 @@ async def hex_to_uuid4(hex_value: str):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
         ) from exc
-
-
-async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
-    if extension_to_enable and extension_to_disable:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
-        )
-
-    # check if extension exists
-    if extension_to_enable or extension_to_disable:
-        ext = extension_to_enable or extension_to_disable
-        if ext not in [e.code for e in get_valid_extensions()]:
-            raise HTTPException(
-                HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
-            )
-
-    if extension_to_enable:
-        logger.info(f"Enabling extension: {extension_to_enable} for user {user_id}")
-        await update_user_extension(
-            user_id=user_id, extension=extension_to_enable, active=True
-        )
-    elif extension_to_disable:
-        logger.info(f"Disabling extension: {extension_to_disable} for user {user_id}")
-        await update_user_extension(
-            user_id=user_id, extension=extension_to_disable, active=False
-        )

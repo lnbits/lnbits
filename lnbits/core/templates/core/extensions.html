@@ -188,10 +188,7 @@
               v-if="user.extensions.includes(extension.id) && extension.isActive && extension.isInstalled"
               flat
               color="grey-5"
-              type="a"
-              :href="['{{
-                url_for('install.extensions')
-              }}', '?disable=', extension.id].join('')"
+              @click="disableExtension(extension)"
               :label="$t('disable')"
             ></q-btn>
             <q-badge
@@ -206,10 +203,7 @@
                 v-if="!extension.payToEnable.required || user.admin"
                 flat
                 color="primary"
-                type="a"
-                :href="['{{
-              url_for('install.extensions')
-            }}', '?enable=', extension.id].join('')"
+                @click="enableExtension(extension)"
                 :label="$t('enable')"
               >
                 <q-tooltip>
@@ -698,6 +692,7 @@
               class="q-mt-sm"
             >
             </q-select>
+            <q-separator class="q-mb-lg"></q-separator>
             <q-btn
               unelevated
               color="primary"
@@ -896,6 +891,48 @@
             extension.inProgress = false
           })
       },
+      enableExtension: function (extension) {
+        LNbits.api
+          .request(
+            'PUT',
+            `/api/v1/extension/${extension.id}/enable`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Extension enabled!'
+            })
+            setTimeout(() => {
+              window.location.reload()
+            }, 300)
+          })
+          .catch(err => {
+            console.warn(err)
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      disableExtension: function (extension) {
+        LNbits.api
+          .request(
+            'PUT',
+            `/api/v1/extension/${extension.id}/disable`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Extension disabled!'
+            })
+            setTimeout(() => {
+              window.location.reload()
+            }, 300)
+          })
+          .catch(err => {
+            console.warn(error)
+            LNbits.utils.notifyApiError(err)
+          })
+      },
       showPayToEnable: function (extension) {
         if (!extension.payToEnable.required) {
           return
@@ -1012,7 +1049,7 @@
             extension.id,
             extension.payToEnable.paidAmount
           )
-          console.log('### paymentInfo', paymentInfo)
+
           const wallet = this.g.user.wallets.find(
             w => w.id === extension.payToEnable.paymentWallet
           )
@@ -1020,7 +1057,6 @@
             wallet,
             paymentInfo.payment_request
           )
-          console.log('### data', data)
           this.showPayToEnableDialog = false
         } catch (err) {
           console.warn(err)
