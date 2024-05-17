@@ -100,7 +100,11 @@ async def extensions_install(
             installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
             if installed_ext:
                 e.installed_release = installed_ext.installed_release
+                if installed_ext.pay_to_enable and not user.admin:
+                    # not a security leak, but better not to share the wallet id
+                    installed_ext.pay_to_enable.wallet = None
                 e.pay_to_enable = installed_ext.pay_to_enable
+
                 # use the installed extension values
                 e.name = installed_ext.name
                 e.short_description = installed_ext.short_description

@@ -23,6 +23,7 @@ from lnbits.core.models import (
 from lnbits.decorators import (
     check_access_token,
     check_admin,
+    check_user_exists,
 )
 from lnbits.extension_manager import (
     CreateExtension,
@@ -201,7 +202,45 @@ async def get_extension_releases(ext_id: str):
 
 
 @extension_router.put("/pay/install", dependencies=[Depends(check_admin)])
-async def get_extension_invoice(data: CreateExtension):
+async def get_pay_to_install_invoice(data: CreateExtension):
+    try:
+        assert data.cost_sats, "A non-zero amount must be specified"
+        release = await InstallableExtension.get_extension_release(
+            data.ext_id, data.source_repo, data.archive, data.version
+        )
+        assert release, "Release not found"
+        assert release.pay_link, "Pay link not found for release"
+
+        payment_info = await fetch_release_payment_info(
+            release.pay_link, data.cost_sats
+        )
+        assert payment_info and payment_info.payment_request, "Cannot request invoice"
+        invoice = bolt11_decode(payment_info.payment_request)
+
+        assert invoice.amount_msat is not None, "Invoic amount is missing"
+        invoice_amount = int(invoice.amount_msat / 1000)
+        assert (
+            invoice_amount == data.cost_sats
+        ), f"Wrong invoice amount: {invoice_amount}."
+        assert (
+            payment_info.payment_hash == invoice.payment_hash
+        ), "Wroong invoice payment hash"
+
+        return payment_info
+
+    except AssertionError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot request invoice"
+        ) from exc
+
+
+@extension_router.put("/pay/enable")
+async def get_pay_to_enable_invoice(
+    data: CreateExtension, user: User = Depends(check_user_exists)
+):
     try:
         assert data.cost_sats, "A non-zero amount must be specified"
         release = await InstallableExtension.get_extension_release(
