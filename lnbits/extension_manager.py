@@ -103,7 +103,11 @@ class UserExtension(BaseModel):
     @classmethod
     def from_row(cls, data: dict) -> "UserExtension":
         ext = UserExtension(**data)
-        ext.extra = UserExtensionInfo(**json.loads(data["meta"])) if data.meta else None
+        ext.extra = (
+            UserExtensionInfo(**json.loads(data["_extra"] or "{}"))
+            if "_extra" in data
+            else None
+        )
         return ext
 
 

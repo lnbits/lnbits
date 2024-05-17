@@ -153,6 +153,9 @@ async def api_enable_extension(ext_id: str, user: User = Depends(check_user_exis
                 user_ext and user_ext.extra and user_ext.extra.payment_hash_to_enable
             ), f"Extension '{ext_id}' requires payment."
 
+            assert (
+                ext.pay_to_enable.wallet
+            ), f"Extension '{ext_id}' is missing payment wallet."
             payment_status = await check_transaction_status(
                 wallet_id=ext.pay_to_enable.wallet,
                 payment_hash=user_ext.extra.payment_hash_to_enable,
@@ -263,27 +266,27 @@ async def get_extension_releases(ext_id: str):
 @extension_router.put("/pay/install", dependencies=[Depends(check_admin)])
 async def get_pay_to_install_invoice(data: CreateExtension):
     try:
-        assert data.cost_sats, "A non-zero amount must be specified"
+        assert data.cost_sats, "A non-zero amount must be specified."
         release = await InstallableExtension.get_extension_release(
             data.ext_id, data.source_repo, data.archive, data.version
         )
-        assert release, "Release not found"
-        assert release.pay_link, "Pay link not found for release"
+        assert release, "Release not found."
+        assert release.pay_link, "Pay link not found for release."
 
         payment_info = await fetch_release_payment_info(
             release.pay_link, data.cost_sats
         )
-        assert payment_info and payment_info.payment_request, "Cannot request invoice"
+        assert payment_info and payment_info.payment_request, "Cannot request invoice."
         invoice = bolt11_decode(payment_info.payment_request)
 
-        assert invoice.amount_msat is not None, "Invoic amount is missing"
+        assert invoice.amount_msat is not None, "Invoic amount is missing."
         invoice_amount = int(invoice.amount_msat / 1000)
         assert (
             invoice_amount == data.cost_sats
         ), f"Wrong invoice amount: {invoice_amount}."
         assert (
             payment_info.payment_hash == invoice.payment_hash
-        ), "Wroong invoice payment hash"
+        ), "Wroong invoice payment hash."
 
         return payment_info
 
@@ -301,15 +304,18 @@ async def get_pay_to_enable_invoice(
     ext_id: str, data: PayToEnableInfo, user: User = Depends(check_user_exists)
 ):
     try:
-        assert data.amount > 0, "A non-zero amount must be specified"
+        assert data.amount and data.amount > 0, "A non-zero amount must be specified."
 
         ext = await get_installed_extension(ext_id)
-        assert ext, f"Extension `{ext_id}` not found"
-        assert ext.pay_to_enable, "Payment Info not found for extension."
-        assert ext.pay_to_enable.required, "Payment not required for extension."
+        assert ext, f"Extension '{ext_id}' not found."
+        assert ext.pay_to_enable, f"Payment Info not found for extension '{ext_id}'."
         assert (
-            ext.pay_to_enable.wallet
-        ), "Payment wallet missing. Please contact the administrator."
+            ext.pay_to_enable.required
+        ), f"Payment not required for extension '{ext_id}'."
+        assert ext.pay_to_enable.wallet and ext.pay_to_enable.amount, (
+            f"Payment wallet or amount missing for extension '{ext_id}'."
+            "Please contact the administrator."
+        )
         assert (
             data.amount >= ext.pay_to_enable.amount
         ), f"Minimum amount is {ext.pay_to_enable.amount} sats."
@@ -321,7 +327,9 @@ async def get_pay_to_enable_invoice(
         )
 
         user_ext = await get_user_extension(user.id, ext_id)
-        user_ext_info = user_ext.extra if user_ext else UserExtensionInfo()
+        user_ext_info = (
+            user_ext.extra if user_ext and user_ext.extra else UserExtensionInfo()
+        )
         user_ext_info.payment_hash_to_enable = payment_hash
         await update_user_extension_extra(user.id, ext_id, user_ext_info)
 
@@ -332,7 +340,7 @@ async def get_pay_to_enable_invoice(
     except Exception as exc:
         logger.warning(exc)
         raise HTTPException(
-            HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot request invoice"
+            HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot request invoice."
         ) from exc
 
 

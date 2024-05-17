@@ -489,7 +489,7 @@ async def get_user_extension(
 ) -> Optional[UserExtension]:
     row = await (conn or db).fetchone(
         """
-            SELECT extension, active, extra as meta FROM extensions
+            SELECT extension, active, extra as _extra FROM extensions
             WHERE "user" = ? AND extension = ?
         """,
         (user_id, extension),
