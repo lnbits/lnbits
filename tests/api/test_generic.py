@@ -75,7 +75,7 @@ async def test_get_extensions_no_user(client):
 # check GET /extensions: enable nonexistent extension, expect code 400 bad request
 @pytest.mark.asyncio
 async def test_get_extensions_enable_nonexistent_extension(client, to_user):
-    response = await client.get(
-        "extensions", params={"usr": to_user.id, "enable": "12341234"}
+    response = await client.put(
+        "api/v1/extension/bad_ext_id/enable", params={"usr": to_user.id}
     )
     assert response.status_code == 400, f"{response.url} {response.status_code}"
