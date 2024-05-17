@@ -147,7 +147,7 @@ async def api_enable_extension(ext_id: str, user: User = Depends(check_user_exis
         ext = await get_installed_extension(ext_id)
         assert ext, f"Extension '{ext_id}' is not installed."
 
-        if ext.pay_to_enable and ext.pay_to_enable.required:
+        if not user.admin and ext.pay_to_enable and ext.pay_to_enable.required:
             user_ext = await get_user_extension(user.id, ext_id)
             assert (
                 user_ext and user_ext.extra and user_ext.extra.payment_hash_to_enable
