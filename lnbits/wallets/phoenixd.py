@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import hashlib
 import json
 import urllib.parse
 from typing import AsyncGenerator, Dict, Optional
@@ -17,7 +18,6 @@ from .base import (
     PaymentStatus,
     PaymentSuccessStatus,
     StatusResponse,
-    UnsupportedError,
     Wallet,
 )
 
@@ -87,16 +87,27 @@ class PhoenixdWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        if description_hash or unhashed_description:
-            raise UnsupportedError("description_hash")
 
         try:
             msats_amount = amount
             data: Dict = {
                 "amountSat": f"{msats_amount}",
-                "description": memo,
                 "externalId": "",
             }
+
+            # Either 'description' (string) or 'descriptionHash' must be supplied
+            # PhoenixD description limited to 128 characters
+            if description_hash:
+                data["descriptionHash"] = description_hash.hex()
+            else:
+                #desc = unhashed_description.decode() if unhashed_description else memo
+                desc = memo
+                if desc is None and unhashed_description:
+                    desc = unhashed_description.decode()
+                desc = "" if desc is None else desc
+                if len(desc) > 128:
+                    desc = hashlib.sha256(desc.encode('utf-8')).hexdigest()
+                data["description"] = desc
 
             r = await self.client.post(
                 "/createinvoice",
