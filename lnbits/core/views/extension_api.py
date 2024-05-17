@@ -1,3 +1,4 @@
+import sys
 from http import HTTPStatus
 from typing import (
     List,
@@ -49,6 +50,7 @@ from ..crud import (
     get_installed_extensions,
     get_user_extension,
     update_extension_pay_to_enable,
+    update_installed_extension_state,
     update_user_extension,
     update_user_extension_extra,
 )
@@ -190,6 +192,52 @@ async def api_disable_extension(ext_id: str, user: User = Depends(check_user_exi
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=(f"Failed to disable '{ext_id}'."),
+        ) from exc
+
+
+@extension_router.put("/{ext_id}/activate", dependencies=[Depends(check_admin)])
+async def api_activate_extension(ext_id: str):
+    try:
+        logger.info(f"Activating extension: '{ext_id}'.")
+
+        all_extensions = get_valid_extensions()
+        ext = next((e for e in all_extensions if e.code == ext_id), None)
+        assert ext, f"Extension '{ext_id}' doesn't exist."
+        # if extension never loaded (was deactivated on server startup)
+        if ext_id not in sys.modules.keys():
+            # run extension start-up routine
+            core_app_extra.register_new_ext_routes(ext)
+
+        settings.lnbits_deactivated_extensions = [
+            e for e in settings.lnbits_deactivated_extensions if e != ext_id
+        ]
+
+        await update_installed_extension_state(ext_id=ext_id, active=True)
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=(f"Failed to activate '{ext_id}'."),
+        ) from exc
+
+
+@extension_router.put("/{ext_id}/deactivate", dependencies=[Depends(check_admin)])
+async def api_deactivate_extension(ext_id: str):
+    try:
+        logger.info(f"Deactivating extension: '{ext_id}'.")
+
+        all_extensions = get_valid_extensions()
+        ext = next((e for e in all_extensions if e.code == ext_id), None)
+        assert ext, f"Extension '{ext_id}' doesn't exist."
+
+        settings.lnbits_deactivated_extensions.append(ext_id)
+
+        await update_installed_extension_state(ext_id=ext_id, active=False)
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=(f"Failed to deactivate '{ext_id}'."),
         ) from exc
 
 

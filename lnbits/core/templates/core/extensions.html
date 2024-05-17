@@ -878,14 +878,16 @@
         const action = extension.isActive ? 'activate' : 'deactivate'
         LNbits.api
           .request(
-            'GET',
-            "{{ url_for('install.extensions') }}" +
-              '?' +
-              action +
-              '=' +
-              extension.id
+            'PUT',
+            `/api/v1/extension/${extension.id}/${action}`,
+            this.g.user.wallets[0].adminkey
           )
-          .then(response => {})
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: `Extension '${extension.id}' ${action}d!`
+            })
+          })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
             extension.inProgress = false
