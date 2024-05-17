@@ -102,13 +102,10 @@ class UserExtension(BaseModel):
 
     @classmethod
     def from_row(cls, data: dict) -> "UserExtension":
-        if "extra" in data:
-            extra = UserExtensionInfo(**json.loads(data["extra"]))
-            del data["extra"]
-        else:
-            extra = None
         ext = UserExtension(**data)
-        ext.extra = extra
+        ext.extra = (
+            UserExtensionInfo(**json.loads(data["meta"])) if "meta" in data else None
+        )
         return ext
 
 
@@ -577,7 +574,7 @@ class InstallableExtension(BaseModel):
         ext = InstallableExtension(**data)
         if "installed_release" in meta:
             ext.installed_release = ExtensionRelease(**meta["installed_release"])
-        if "pay_to_enable" in meta:
+        if meta.get("pay_to_enable"):
             ext.pay_to_enable = PayToEnableInfo(**meta["pay_to_enable"])
         if meta.get("payments"):
             ext.payments = [ReleasePaymentInfo(**p) for p in meta["payments"]]

@@ -1057,6 +1057,7 @@
             wallet,
             paymentInfo.payment_request
           )
+          this.enableExtension(extension)
           this.showPayToEnableDialog = false
         } catch (err) {
           console.warn(err)

@@ -487,8 +487,11 @@ async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[
 async def get_user_extension(
     user_id: str, extension: str, conn: Optional[Connection] = None
 ) -> Optional[UserExtension]:
-    row = await (conn or db).fetchall(
-        "SELECT * FROM extensions WHERE user = ? AND extension = ?",
+    row = await (conn or db).fetchone(
+        """
+            SELECT extension, active, extra as meta FROM extensions
+            WHERE "user" = ? AND extension = ?
+        """,
         (user_id, extension),
     )
     return UserExtension.from_row(row) if row else None

@@ -20,7 +20,7 @@ from lnbits.core.helpers import (
 from lnbits.core.models import (
     User,
 )
-from lnbits.core.services import create_invoice
+from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import (
     check_access_token,
     check_admin,
@@ -144,7 +144,27 @@ async def api_enable_extension(ext_id: str, user: User = Depends(check_user_exis
         )
     try:
         logger.info(f"Enabling extension: {ext_id}.")
+        ext = await get_installed_extension(ext_id)
+        assert ext, f"Extension '{ext_id}' is not installed."
+
+        if ext.pay_to_enable and ext.pay_to_enable.required:
+            user_ext = await get_user_extension(user.id, ext_id)
+            assert (
+                user_ext and user_ext.extra and user_ext.extra.payment_hash_to_enable
+            ), f"Extension '{ext_id}' requires payment."
+
+            payment_status = await check_transaction_status(
+                wallet_id=ext.pay_to_enable.wallet,
+                payment_hash=user_ext.extra.payment_hash_to_enable,
+            )
+            assert (
+                payment_status.paid
+            ), f"Invoice not paid for enabeling extension '{ext_id}'."
+
         await update_user_extension(user_id=user.id, extension=ext_id, active=True)
+
+    except AssertionError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
     except Exception as exc:
         logger.warning(exc)
         raise HTTPException(
