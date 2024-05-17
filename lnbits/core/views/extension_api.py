@@ -20,6 +20,7 @@ from lnbits.core.helpers import (
 from lnbits.core.models import (
     User,
 )
+from lnbits.core.services import create_invoice
 from lnbits.decorators import (
     check_access_token,
     check_admin,
@@ -237,34 +238,29 @@ async def get_pay_to_install_invoice(data: CreateExtension):
         ) from exc
 
 
-@extension_router.put("/pay/enable")
-async def get_pay_to_enable_invoice(
-    data: CreateExtension, user: User = Depends(check_user_exists)
-):
+@extension_router.put("/pay/enable/{ext_id}", dependencies=[Depends(check_user_exists)])
+async def get_pay_to_enable_invoice(ext_id: str, data: PayToEnableInfo):
     try:
-        assert data.cost_sats, "A non-zero amount must be specified"
-        release = await InstallableExtension.get_extension_release(
-            data.ext_id, data.source_repo, data.archive, data.version
-        )
-        assert release, "Release not found"
-        assert release.pay_link, "Pay link not found for release"
+        assert data.amount > 0, "A non-zero amount must be specified"
 
-        payment_info = await fetch_release_payment_info(
-            release.pay_link, data.cost_sats
-        )
-        assert payment_info and payment_info.payment_request, "Cannot request invoice"
-        invoice = bolt11_decode(payment_info.payment_request)
-
-        assert invoice.amount_msat is not None, "Invoic amount is missing"
-        invoice_amount = int(invoice.amount_msat / 1000)
+        ext = await get_installed_extension(ext_id)
+        assert ext, f"Extension `{ext_id}` not found"
+        assert ext.pay_to_enable, "Payment Info not found for extension."
+        assert ext.pay_to_enable.required, "Payment not required for extension."
         assert (
-            invoice_amount == data.cost_sats
-        ), f"Wrong invoice amount: {invoice_amount}."
+            ext.pay_to_enable.wallet
+        ), "Payment wallet missing. Please contact the administrator."
         assert (
-            payment_info.payment_hash == invoice.payment_hash
-        ), "Wroong invoice payment hash"
+            data.amount >= ext.pay_to_enable.amount
+        ), f"Minimum amount is {ext.pay_to_enable.amount} sats."
 
-        return payment_info
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=ext.pay_to_enable.wallet,
+            amount=data.amount,
+            memo=f"Enable '{ext.name}' extension.",
+        )
+
+        return {"payment_hash": payment_hash, "payment_request": payment_request}
 
     except AssertionError as exc:
         raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc

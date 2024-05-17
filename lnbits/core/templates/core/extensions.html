@@ -698,11 +698,11 @@
               class="q-mt-sm"
             >
             </q-select>
-            <!-- @click="payAndInstall(release)" -->
             <q-btn
               unelevated
               color="primary"
               class="q-mt-sm"
+              @click="payAndEnable(selectedExtension)"
               :disabled="!selectedExtension.payToEnable.paymentWallet"
               :label="$t('pay_from_wallet')"
             ></q-btn>
@@ -1006,6 +1006,27 @@
           this.selectedExtension.inProgress = false
         }
       },
+      async payAndEnable(extension) {
+        try {
+          const paymentInfo = await this.requestPaymentForEnable(
+            extension.id,
+            extension.payToEnable.paidAmount
+          )
+          console.log('### paymentInfo', paymentInfo)
+          const wallet = this.g.user.wallets.find(
+            w => w.id === extension.payToEnable.paymentWallet
+          )
+          const {data} = await LNbits.api.payInvoice(
+            wallet,
+            paymentInfo.payment_request
+          )
+          console.log('### data', data)
+          this.showPayToEnableDialog = false
+        } catch (err) {
+          console.warn(err)
+          LNbits.utils.notifyApiError(err)
+        }
+      },
       async showQRCode(release) {
         this.selectedRelease = release
 
@@ -1044,6 +1065,18 @@
             source_repo: release.source_repo,
             cost_sats: release.paidAmount,
             version: release.version
+          }
+        )
+        return data
+      },
+
+      async requestPaymentForEnable(extId, amount) {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/api/v1/extension/pay/enable/${extId}`,
+          this.g.user.wallets[0].adminkey,
+          {
+            amount
           }
         )
         return data
