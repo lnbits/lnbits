@@ -9,7 +9,12 @@ from passlib.context import CryptContext
 
 from lnbits.core.db import db
 from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
-from lnbits.extension_manager import InstallableExtension, PayToEnableInfo
+from lnbits.extension_manager import (
+    InstallableExtension,
+    PayToEnableInfo,
+    UserExtension,
+    UserExtensionInfo,
+)
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,
@@ -479,6 +484,16 @@ async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[
     return [ext[0] for ext in inactive_extensions]
 
 
+async def get_user_extension(
+    user_id: str, extension: str, conn: Optional[Connection] = None
+) -> Optional[UserExtension]:
+    row = await (conn or db).fetchall(
+        "SELECT * FROM extensions WHERE user = ? AND extension = ?",
+        (user_id, extension),
+    )
+    return UserExtension.from_row(row) if row else None
+
+
 async def update_user_extension(
     *, user_id: str, extension: str, active: bool, conn: Optional[Connection] = None
 ) -> None:
@@ -499,6 +514,20 @@ async def get_user_active_extensions_ids(
         (user_id,),
     )
     return [e[0] for e in rows]
+async def update_user_extension_extra(
+    user_id: str,
+    extension: str,
+    extra: UserExtensionInfo,
+    conn: Optional[Connection] = None,
+) -> None:
+    extra_json = json.dumps(dict(extra))
+    await (conn or db).execute(
+        """
+        INSERT INTO extensions ("user", extension, extra) VALUES (?, ?, ?)
+        ON CONFLICT ("user", extension) DO UPDATE SET extra = ?
+        """,
+        (user_id, extension, extra_json, extra_json),
+    )
 
 
 # wallets

@@ -91,6 +91,27 @@ class PayToEnableInfo(BaseModel):
     wallet: Optional[str] = None
 
 
+class UserExtensionInfo(BaseModel):
+    payment_hash_to_enable: Optional[str] = None
+
+
+class UserExtension(BaseModel):
+    extension: str
+    active: bool
+    extra: Optional[UserExtensionInfo] = None
+
+    @classmethod
+    def from_row(cls, data: dict) -> "UserExtension":
+        if "extra" in data:
+            extra = UserExtensionInfo(**json.loads(data["extra"]))
+            del data["extra"]
+        else:
+            extra = None
+        ext = UserExtension(**data)
+        ext.extra = extra
+        return ext
+
+
 def download_url(url, save_path):
     with request.urlopen(url, timeout=60) as dl_file:
         with open(save_path, "wb") as out_file:
