@@ -359,6 +359,7 @@ class ExtensionRelease(BaseModel):
 class InstallableExtension(BaseModel):
     id: str
     name: str
+    active: Optional[bool] = False
     short_description: Optional[str] = None
     icon: Optional[str] = None
     dependencies: List[str] = []

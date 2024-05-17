@@ -389,7 +389,7 @@ async def add_installed_extension(
             json.dumps(meta),
             version,
             ext.name,
-            False,
+            ext.active,
             ext.short_description,
             ext.icon,
             ext.stars,
