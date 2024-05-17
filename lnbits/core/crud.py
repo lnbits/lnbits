@@ -9,7 +9,7 @@ from passlib.context import CryptContext
 
 from lnbits.core.db import db
 from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
-from lnbits.extension_manager import InstallableExtension
+from lnbits.extension_manager import InstallableExtension, PayToEnableInfo
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,
@@ -364,6 +364,7 @@ async def add_installed_extension(
         "installed_release": (
             dict(ext.installed_release) if ext.installed_release else None
         ),
+        "pay_to_enable": (dict(ext.pay_to_enable) if ext.pay_to_enable else None),
         "dependencies": ext.dependencies,
         "payments": [dict(p) for p in ext.payments] if ext.payments else None,
     }
@@ -406,6 +407,17 @@ async def update_installed_extension_state(
         """,
         (active, ext_id),
     )
+
+
+async def update_extension_pay_to_enable(
+    ext_id: str, payment_info: PayToEnableInfo, conn: Optional[Connection] = None
+) -> None:
+    ext = await get_installed_extension(ext_id, conn)
+    if not ext:
+        return
+    ext.pay_to_enable = payment_info
+
+    await add_installed_extension(ext, conn)
 
 
 async def delete_installed_extension(

@@ -29,6 +29,7 @@ from lnbits.extension_manager import (
     Extension,
     ExtensionRelease,
     InstallableExtension,
+    PayToEnableInfo,
     fetch_github_release_config,
     fetch_release_payment_info,
     get_valid_extensions,
@@ -43,6 +44,7 @@ from ..crud import (
     get_dbversions,
     get_installed_extension,
     get_installed_extensions,
+    update_extension_pay_to_enable,
 )
 
 extension_router = APIRouter(
@@ -113,6 +115,18 @@ async def api_install_extension(
                 f"Failed to install extension {ext_info.id} "
                 f"({ext_info.installed_version})."
             ),
+        ) from exc
+
+
+@extension_router.put("/{ext_id}/payment", dependencies=[Depends(check_admin)])
+async def api_update_pay_to_enable(ext_id: str, data: PayToEnableInfo):
+    try:
+        await update_extension_pay_to_enable(ext_id, data)
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=(f"Failed to update pay to install data for extension '{ext_id}' "),
         ) from exc
 
 

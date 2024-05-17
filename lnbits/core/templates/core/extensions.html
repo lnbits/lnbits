@@ -313,7 +313,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="showUpgradeDialog">
+  <q-dialog v-model="showManageExtensionDialog">
     <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
       <q-card-section>
         <div v-if="selectedRelease.paymentRequest">
@@ -607,26 +607,26 @@
         class="col-12 col-md-5 q-gutter-y-md q-mt-md"
       >
         <q-toggle
-          v-model="selectedExtension.payToEnable"
+          v-model="selectedExtension.payToEnable.required"
           :label="'Ask payment to enable extension'"
           color="secondary"
           style="max-height: 21px"
         ></q-toggle>
         <q-select
-          v-if="selectedExtension.payToEnable"
+          v-if="selectedExtension.payToEnable.required"
           filled
           dense
           emit-value
-          v-model="selectedExtension.payToEnableWallet"
+          v-model="selectedExtension.payToEnable.wallet"
           :options="g.user.walletOptions"
           label="Wallet *"
           class="q-mt-md"
         ></q-select>
         <q-input
-          v-if="selectedExtension.payToEnable"
+          v-if="selectedExtension.payToEnable.required"
           filled
           dense
-          v-model.number="selectedExtension.payToEnableAmount"
+          v-model.number="selectedExtension.payToEnable.amount"
           label="Amount (sats)"
           type="number"
           min="1"
@@ -635,7 +635,7 @@
         </q-input>
         <div class="row q-mt-lg">
           <q-btn
-            @click="updateSelectedExtension()"
+            @click="updatePayToInstallData(selectedExtension)"
             flat
             color="green"
             v-text="'Update Payment'"
@@ -664,7 +664,7 @@
         manageExtensionTab: 'releases',
         filteredExtensions: null,
         showUninstallDialog: false,
-        showUpgradeDialog: false,
+        showManageExtensionDialog: false,
         showDropDbDialog: false,
         dropDbExtensionId: '',
         selectedExtension: null,
@@ -719,7 +719,7 @@
 
         const extension = this.selectedExtension
         extension.inProgress = true
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         release.payment_hash =
           release.payment_hash || this.getPaylinkHash(release.pay_link)
 
@@ -754,7 +754,7 @@
       },
       uninstallExtension: async function () {
         const extension = this.selectedExtension
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         this.showUninstallDialog = false
         extension.inProgress = true
         LNbits.api
@@ -787,7 +787,7 @@
 
       dropExtensionDb: async function () {
         const extension = this.selectedExtension
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         this.showDropDbDialog = false
         this.dropDbExtensionId = ''
         extension.inProgress = true
@@ -828,12 +828,29 @@
             extension.inProgress = false
           })
       },
-      updateSelectedExtension: function () {
-        console.log('### updateSelectedExtension')
+      updatePayToInstallData: function (extension) {
+        LNbits.api
+          .request(
+            'PUT',
+            `/api/v1/extension/${extension.id}/payment`,
+            this.g.user.wallets[0].adminkey,
+            extension.payToEnable
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Payment info updated!'
+            })
+            this.showManageExtensionDialog = false
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+            extension.inProgress = false
+          })
       },
 
       showUninstall: function () {
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         this.showUninstallDialog = true
         this.uninstallAndDropDb = false
       },
@@ -846,7 +863,7 @@
         this.selectedExtension = extension
         this.selectedRelease = null
         this.selectedExtensionRepos = null
-        this.showUpgradeDialog = true
+        this.showManageExtensionDialog = true
 
         try {
           const {data} = await LNbits.api.request(
@@ -889,7 +906,7 @@
       async payAndInstall(release) {
         try {
           this.selectedExtension.inProgress = true
-          this.showUpgradeDialog = false
+          this.showManageExtensionDialog = false
           const paymentInfo = await this.requestPayment(
             this.selectedExtension.id,
             release
@@ -1059,6 +1076,7 @@
         ...e,
         inProgress: false
       }))
+      console.log('### this.extensions', this.extensions)
       this.filteredExtensions = this.extensions.concat([])
       for (let i = 0; i < this.filteredExtensions.length; i++) {
         if (this.filteredExtensions[i].isInstalled != false) {

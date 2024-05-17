@@ -100,6 +100,7 @@ async def extensions_install(
             installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
             if installed_ext:
                 e.installed_release = installed_ext.installed_release
+                e.pay_to_enable = installed_ext.pay_to_enable
                 # use the installed extension values
                 e.name = installed_ext.name
                 e.short_description = installed_ext.short_description
@@ -152,6 +153,7 @@ async def extensions_install(
                 "installedRelease": (
                     dict(ext.installed_release) if ext.installed_release else None
                 ),
+                "payToEnable": (dict(ext.pay_to_enable) if ext.pay_to_enable else {}),
             }
             for ext in installable_exts
         ]

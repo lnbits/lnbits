@@ -85,6 +85,12 @@ class ReleasePaymentInfo(BaseModel):
     payment_request: Optional[str] = None
 
 
+class PayToEnableInfo(BaseModel):
+    required: Optional[bool] = False
+    amount: Optional[int] = None
+    wallet: Optional[str] = None
+
+
 def download_url(url, save_path):
     with request.urlopen(url, timeout=60) as dl_file:
         with open(save_path, "wb") as out_file:
@@ -362,6 +368,7 @@ class InstallableExtension(BaseModel):
     latest_release: Optional[ExtensionRelease] = None
     installed_release: Optional[ExtensionRelease] = None
     payments: List[ReleasePaymentInfo] = []
+    pay_to_enable: Optional[PayToEnableInfo] = None
     archive: Optional[str] = None
 
     @property
@@ -548,8 +555,11 @@ class InstallableExtension(BaseModel):
         ext = InstallableExtension(**data)
         if "installed_release" in meta:
             ext.installed_release = ExtensionRelease(**meta["installed_release"])
+        if "pay_to_enable" in meta:
+            ext.pay_to_enable = PayToEnableInfo(**meta["pay_to_enable"])
         if meta.get("payments"):
             ext.payments = [ReleasePaymentInfo(**p) for p in meta["payments"]]
+
         return ext
 
     @classmethod
