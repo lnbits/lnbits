@@ -203,11 +203,8 @@
               v-else-if="extension.isInstalled && extension.isActive && !user.extensions.includes(extension.id)"
               flat
               color="primary"
-              type="a"
-              :href="['{{
-                url_for('install.extensions')
-              }}', '?enable=', extension.id].join('')"
-              :label="$t('enable')"
+              @click="enableExtension(extension)"
+              :label="extension.payToEnable.required && !user.admin ? $t('pay_to_enable') : $t('enable')"
             >
               <q-tooltip>
                 <span v-text="$t('enable_extension_details')">
@@ -823,6 +820,19 @@
               extension.id
           )
           .then(response => {})
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+            extension.inProgress = false
+          })
+      },
+      enableExtension: function (extension) {
+        url = "{{ url_for('install.extensions') }}" + `?enable=${extension.id}`
+
+        LNbits.api
+          .request('GET', url)
+          .then(response => {
+            window.location = url
+          })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
             extension.inProgress = false

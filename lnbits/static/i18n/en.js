@@ -118,6 +118,7 @@ window.localisation.en = {
   uninstall: 'Uninstall',
   drop_db: 'Remove Data',
   enable: 'Enable',
+  pay_to_enable: 'Pay To Enable',
   enable_extension_details: 'Enable extension for current user',
   disable: 'Disable',
   installed: 'Installed',
