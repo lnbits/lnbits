@@ -7,4 +7,4 @@ nav_order: 3
 
 # API reference
 
-[Swagger Docs](https://legend.lnbits.com/docs)
+[Swagger Docs](https://demo.lnbits.com/docs)

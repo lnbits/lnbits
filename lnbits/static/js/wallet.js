@@ -535,7 +535,9 @@ new Vue({
         .catch(e => console.error(e))
     },
     updateBalanceCallback: function (res) {
-      this.balance += res.value
+      if (res.success && wallet.id === res.wallet_id) {
+        this.balance += res.credit
+      }
     },
     pasteToTextArea: function () {
       this.$refs.textArea.focus() // Set cursor to textarea

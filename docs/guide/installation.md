@@ -163,7 +163,7 @@ You'll be prompted to enter an app name, region, postgres (choose no), deploy no
 
 You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings.
 
-Note: Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`. Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://legend.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://legend.lnbits.com"`.
+Note: Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`. Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://demo.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://demo.lnbits.com"`.
 
 Note: Don't enter secret environment variables here. Fly.io offers secrets (via the `fly secrets` command) that are exposed as environment variables in your runtime. So, for example, if using the LND_REST funding source, you can run `fly secrets set LND_REST_MACAROON=<hex_macaroon_data>`.
 
@@ -513,7 +513,7 @@ To install using docker you first need to build the docker image as:
 ```
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-docker build -t lnbits-legend .
+docker build -t lnbits/lnbits .
 ```
 
 You can launch the docker in a different directory, but make sure to copy `.env.example` from lnbits there
@@ -533,7 +533,7 @@ mkdir data
 Then the image can be run as:
 
 ```
-docker run --detach --publish 5000:5000 --name lnbits-legend -e "LNBITS_BACKEND_WALLET_CLASS='FakeWallet'" --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
+docker run --detach --publish 5000:5000 --name lnbits -e "LNBITS_BACKEND_WALLET_CLASS='FakeWallet'" --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits
 ```
 
 Finally you can access your lnbits on your machine at port 5000.

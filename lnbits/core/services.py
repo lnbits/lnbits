@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 import httpx
-from bolt11 import Bolt11
 from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
@@ -177,7 +176,7 @@ async def create_invoice(
         payment_request=payment_request,
         payment_hash=invoice.payment_hash,
         amount=amount_msat,
-        expiry=get_bolt11_expiry(invoice),
+        expiry=invoice.expiry_date,
         memo=memo,
         extra=extra,
         webhook=webhook,
@@ -241,7 +240,7 @@ async def pay_invoice(
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
             amount=-invoice.amount_msat,
-            expiry=get_bolt11_expiry(invoice),
+            expiry=invoice.expiry_date,
             memo=description or invoice.description or "",
             extra=extra,
         )
@@ -798,11 +797,3 @@ async def get_balance_delta() -> BalanceDelta:
         lnbits_balance_msats=lnbits_balance,
         node_balance_msats=status.balance_msat,
     )
-
-
-def get_bolt11_expiry(invoice: Bolt11) -> datetime.datetime:
-    if invoice.expiry:
-        return datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
-    else:
-        # assume maximum bolt11 expiry of 31 days to be on the safe side
-        return datetime.datetime.now() + datetime.timedelta(days=31)
