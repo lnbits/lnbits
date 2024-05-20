@@ -92,7 +92,7 @@ async def from_wallet(from_user):
 async def from_wallet_ws(from_wallet, test_client):
     # wait a bit in order to avoid receiving topup notification
     await asyncio.sleep(0.1)
-    with test_client.websocket_connect(f"/api/v1/ws/{from_wallet.id}") as ws:
+    with test_client.websocket_connect(f"/api/v1/ws/{from_wallet.inkey}") as ws:
         yield ws
 
 
@@ -131,7 +131,7 @@ async def to_wallet(to_user):
 async def to_wallet_ws(to_wallet, test_client):
     # wait a bit in order to avoid receiving topup notification
     await asyncio.sleep(0.1)
-    with test_client.websocket_connect(f"/api/v1/ws/{to_wallet.id}") as ws:
+    with test_client.websocket_connect(f"/api/v1/ws/{to_wallet.inkey}") as ws:
         yield ws
 
 
