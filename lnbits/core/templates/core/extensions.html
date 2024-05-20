@@ -347,7 +347,6 @@
       </div>
     </q-card>
     <q-card v-else class="q-pa-lg lnbits__dialog-card">
-      <!-- here -->
       <q-tabs
         v-model="manageExtensionTab"
         active-color="primary"
@@ -494,7 +493,7 @@
                           <q-btn
                             unelevated
                             color="primary"
-                            @click="showQRCode(release)"
+                            @click="showInstallQRCode(release)"
                             class="q-mt-sm float-right"
                             :label="$t('show_qr')"
                           ></q-btn>
@@ -650,55 +649,96 @@
 
   <q-dialog v-model="showPayToEnableDialog">
     <q-card v-if="selectedExtension" class="q-pa-md">
-      <p>
-        <span
-          v-text="`The '${selectedExtension.name}' extension requires a payment of minimum ${selectedExtension.payToEnable.amount} sats to enable.`"
-        ></span>
-      </p>
-
-      <div class="row q-mt-lg">
-        <div class="col">
-          <div>
-            <q-input
-              filled
-              dense
-              type="number"
-              v-model.number="selectedExtension.payToEnable.paidAmount"
-              :min="selectedExtension.payToEnable.amount"
-              suffix="sat"
-              class="q-mt-sm"
+      <q-card-section>
+        <p>
+          <span
+            v-text="`The '${selectedExtension.name}' extension requires a payment of minimum ${selectedExtension.payToEnable.amount} sats to enable.`"
+          ></span>
+        </p>
+      </q-card-section>
+      <q-card-section v-if="selectedExtension.payToEnable.showQRCode">
+        <div class="row q-mt-lg">
+          <div v-if="selectedExtension.payToEnable.paymentRequest" class="col">
+            <a
+              :href="'lightning:' + selectedExtension.payToEnable.paymentRequest"
             >
-            </q-input>
-            <q-select
-              filled
-              dense
-              v-model="selectedExtension.payToEnable.paymentWallet"
-              emit-value
-              :options="g.user.walletOptions"
-              label="Wallet *"
-              class="q-mt-sm"
-            >
-            </q-select>
-            <q-separator class="q-mb-lg"></q-separator>
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <lnbits-qrcode
+                  :value="'lightning:' + selectedExtension.payToEnable.paymentRequest.toUpperCase()"
+                ></lnbits-qrcode>
+              </q-responsive>
+            </a>
+          </div>
+          <div v-else class="col">
+            <q-spinner color="primary" size="2.55em"></q-spinner>
+          </div>
+        </div>
+        <div class="row q-mt-lg">
+          <div class="col">
             <q-btn
-              unelevated
-              color="primary"
-              class="q-mt-sm"
-              @click="payAndEnable(selectedExtension)"
-              :disabled="!selectedExtension.payToEnable.paymentWallet"
-              :label="$t('pay_from_wallet')"
+              outline
+              color="grey"
+              @click="copyText(selectedExtension.payToEnable.paymentRequest)"
+              :label="$t('copy_invoice')"
             ></q-btn>
-
-            <!-- @click="showQRCode(release)" -->
+          </div>
+          <div class="col">
             <q-btn
-              unelevated
-              color="primary"
-              class="q-mt-sm float-right"
-              :label="$t('show_qr')"
+              v-close-popup
+              flat
+              color="grey"
+              class="float-right q-ml-lg"
+              v-text="$t('close')"
             ></q-btn>
           </div>
         </div>
-      </div>
+      </q-card-section>
+
+      <q-card-section v-else>
+        <div class="row q-mt-lg">
+          <div class="col">
+            <div>
+              <q-input
+                filled
+                dense
+                type="number"
+                v-model.number="selectedExtension.payToEnable.paidAmount"
+                :min="selectedExtension.payToEnable.amount"
+                suffix="sat"
+                class="q-mt-sm"
+              >
+              </q-input>
+              <q-select
+                filled
+                dense
+                v-model="selectedExtension.payToEnable.paymentWallet"
+                emit-value
+                :options="g.user.walletOptions"
+                label="Wallet *"
+                class="q-mt-sm"
+              >
+              </q-select>
+              <q-separator class="q-mb-lg"></q-separator>
+              <q-btn
+                unelevated
+                color="primary"
+                class="q-mt-sm"
+                @click="payAndEnable(selectedExtension)"
+                :disabled="!selectedExtension.payToEnable.paymentWallet"
+                :label="$t('pay_from_wallet')"
+              ></q-btn>
+
+              <q-btn
+                unelevated
+                @click="showEnableQRCode(selectedExtension)"
+                color="primary"
+                class="q-mt-sm float-right"
+                :label="$t('show_qr')"
+              ></q-btn>
+            </div>
+          </div>
+        </div>
+      </q-card-section>
     </q-card>
   </q-dialog>
 </div>
@@ -941,7 +981,11 @@
             'PUT',
             `/api/v1/extension/${extension.id}/payment`,
             this.g.user.wallets[0].adminkey,
-            extension.payToEnable
+            {
+              required: extension.payToEnable.required,
+              amount: extension.payToEnable.amount,
+              wallet: extension.payToEnable.wallet
+            }
           )
           .then(response => {
             this.$q.notify({
@@ -1057,7 +1101,7 @@
           LNbits.utils.notifyApiError(err)
         }
       },
-      async showQRCode(release) {
+      async showInstallQRCode(release) {
         this.selectedRelease = release
 
         try {
@@ -1078,6 +1122,28 @@
             this.selectedRelease.pay_link,
             data.payment_hash
           )
+        } catch (err) {
+          console.warn(err)
+          LNbits.utils.notifyApiError(err)
+        }
+      },
+
+      async showEnableQRCode(extension) {
+        try {
+          extension.payToEnable.showQRCode = true
+          this.selectedExtension = _.clone(extension)
+
+          const data = await this.requestPaymentForEnable(
+            extension.id,
+            extension.payToEnable.amount
+          )
+          extension.payToEnable.paymentRequest = data.payment_request
+          this.selectedExtension = _.clone(extension)
+
+          // this.subscribeToPaylinkWs(
+          //   this.selectedRelease.pay_link,
+          //   data.payment_hash
+          // )
         } catch (err) {
           console.warn(err)
           LNbits.utils.notifyApiError(err)
