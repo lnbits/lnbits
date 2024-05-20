@@ -126,7 +126,7 @@ async def api_install_extension(
         ) from exc
 
 
-@extension_router.put("/{ext_id}/payment", dependencies=[Depends(check_admin)])
+@extension_router.put("/{ext_id}/sell", dependencies=[Depends(check_admin)])
 async def api_update_pay_to_enable(ext_id: str, data: PayToEnableInfo):
     try:
         await update_extension_pay_to_enable(ext_id, data)
@@ -320,9 +320,12 @@ async def get_extension_releases(ext_id: str):
         ) from exc
 
 
-@extension_router.put("/pay/install", dependencies=[Depends(check_admin)])
-async def get_pay_to_install_invoice(data: CreateExtension):
+@extension_router.put("/{ext_id}/invoice/install", dependencies=[Depends(check_admin)])
+async def get_pay_to_install_invoice(ext_id: str, data: CreateExtension):
     try:
+        assert (
+            ext_id == data.ext_id
+        ), f"Wrong extension id. Expected {ext_id}, but got {data.ext_id}"
         assert data.cost_sats, "A non-zero amount must be specified."
         release = await InstallableExtension.get_extension_release(
             data.ext_id, data.source_repo, data.archive, data.version
@@ -356,7 +359,7 @@ async def get_pay_to_install_invoice(data: CreateExtension):
         ) from exc
 
 
-@extension_router.put("/pay/enable/{ext_id}")
+@extension_router.put("{ext_id}/invoice/enable")
 async def get_pay_to_enable_invoice(
     ext_id: str, data: PayToEnableInfo, user: User = Depends(check_user_exists)
 ):

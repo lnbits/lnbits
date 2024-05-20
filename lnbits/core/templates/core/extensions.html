@@ -993,7 +993,7 @@
         LNbits.api
           .request(
             'PUT',
-            `/api/v1/extension/${extension.id}/payment`,
+            `/api/v1/extension/${extension.id}/sell`,
             this.g.user.wallets[0].adminkey,
             {
               required: extension.payToEnable.required,
@@ -1179,7 +1179,7 @@
       async requestPaymentForInstall(extId, release) {
         const {data} = await LNbits.api.request(
           'PUT',
-          `/api/v1/extension/pay/install`,
+          `/api/v1/extension/${extId}/invoice/install`,
           this.g.user.wallets[0].adminkey,
           {
             ext_id: extId,
@@ -1195,7 +1195,7 @@
       async requestPaymentForEnable(extId, amount) {
         const {data} = await LNbits.api.request(
           'PUT',
-          `/api/v1/extension/pay/enable/${extId}`,
+          `/api/v1/extension/${extId}/invoice/enable`,
           this.g.user.wallets[0].adminkey,
           {
             amount
