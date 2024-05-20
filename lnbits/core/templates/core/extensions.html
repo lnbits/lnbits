@@ -359,6 +359,7 @@
         ></q-tab>
 
         <q-tab
+          v-if="selectedExtension && selectedExtension.isInstalled"
           name="payment"
           :label="'Payment'"
           @update="val => manageExtensionTab = val.name"
@@ -676,6 +677,7 @@
         <div class="row q-mt-lg">
           <div class="col">
             <q-btn
+              v-if="selectedExtension.payToEnable.paymentRequest"
               outline
               color="grey"
               @click="copyText(selectedExtension.payToEnable.paymentRequest)"
@@ -973,6 +975,7 @@
         this.selectedExtension = extension
         this.selectedExtension.payToEnable.paidAmount =
           extension.payToEnable.amount
+        this.selectedExtension.payToEnable.showQRCode = false
         this.showPayToEnableDialog = true
       },
       updatePayToInstallData: function (extension) {
@@ -1135,15 +1138,27 @@
 
           const data = await this.requestPaymentForEnable(
             extension.id,
-            extension.payToEnable.amount
+            extension.payToEnable.paidAmount
           )
           extension.payToEnable.paymentRequest = data.payment_request
           this.selectedExtension = _.clone(extension)
 
-          // this.subscribeToPaylinkWs(
-          //   this.selectedRelease.pay_link,
-          //   data.payment_hash
-          // )
+          const url = new URL(window.location)
+          url.protocol = url.protocol === 'https:' ? 'wss' : 'ws'
+          url.pathname = `/api/v1/ws/${data.payment_hash}`
+          const ws = new WebSocket(url)
+          ws.addEventListener('message', async ({data}) => {
+            const payment = JSON.parse(data)
+            if (payment.pending === false) {
+              this.$q.notify({
+                type: 'positive',
+                message: 'Invoice Paid!'
+              })
+
+              this.enableExtension(extension)
+              ws.close()
+            }
+          })
         } catch (err) {
           console.warn(err)
           LNbits.utils.notifyApiError(err)
