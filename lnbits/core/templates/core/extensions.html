@@ -656,6 +656,17 @@
             v-text="`The '${selectedExtension.name}' extension requires a payment of minimum ${selectedExtension.payToEnable.amount} sats to enable.`"
           ></span>
         </p>
+        <p>
+          <span v-text="'Have you already paid?'"></span>
+          <q-badge
+            @click="enableExtension(selectedExtension)"
+            color="primary"
+            class="cursor-pointer"
+            rounded
+          >
+            <strong> <span v-text="'Recheck'"></span> </strong
+          ></q-badge>
+        </p>
       </q-card-section>
       <q-card-section v-if="selectedExtension.payToEnable.showQRCode">
         <div class="row q-mt-lg">
