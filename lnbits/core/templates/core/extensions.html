@@ -200,7 +200,7 @@
               v-else-if="extension.isInstalled && extension.isActive && !user.extensions.includes(extension.id)"
             >
               <q-btn
-                v-if="!extension.payToEnable.required || user.admin"
+                v-if="!extension.isPaymentRequired"
                 flat
                 color="primary"
                 @click="enableExtension(extension)"
@@ -936,9 +936,6 @@
           })
       },
       showPayToEnable: function (extension) {
-        if (!extension.payToEnable.required) {
-          return
-        }
         this.selectedExtension = extension
         this.selectedExtension.payToEnable.paidAmount =
           extension.payToEnable.amount
