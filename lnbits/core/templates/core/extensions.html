@@ -196,32 +196,19 @@
               v-text="$t('admin_only')"
             >
             </q-badge>
-            <div
+
+            <q-btn
               v-else-if="extension.isInstalled && extension.isActive && !user.extensions.includes(extension.id)"
+              flat
+              color="primary"
+              @click="enableExtensionForUser(extension)"
+              :label="$t(extension.isPaymentRequired? 'pay_to_enable': 'enable')"
             >
-              <q-btn
-                v-if="!extension.isPaymentRequired"
-                flat
-                color="primary"
-                @click="enableExtension(extension)"
-                :label="$t('enable')"
-              >
-                <q-tooltip>
-                  <span v-text="$t('enable_extension_details')">
-                  </span> </q-tooltip
-              ></q-btn>
-              <q-btn
-                v-else
-                flat
-                color="primary"
-                @click="showPayToEnable(extension)"
-                :label="$t('pay_to_enable')"
-              >
-                <q-tooltip>
-                  <span v-text="$t('enable_extension_details')">
-                  </span> </q-tooltip
-              ></q-btn>
-            </div>
+              <q-tooltip>
+                <span v-text="$t('enable_extension_details')">
+                </span> </q-tooltip
+            ></q-btn>
+
             <q-btn
               @click="showManageExtension(extension)"
               flat
@@ -892,6 +879,13 @@
             LNbits.utils.notifyApiError(err)
             extension.inProgress = false
           })
+      },
+      enableExtensionForUser: function (extension) {
+        if (extension.isPaymentRequired) {
+          this.showPayToEnable(extension)
+          return
+        }
+        this.enableExtension(extension)
       },
       enableExtension: function (extension) {
         LNbits.api
