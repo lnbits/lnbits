@@ -149,22 +149,31 @@ async def api_enable_extension(ext_id: str, user: User = Depends(check_user_exis
         ext = await get_installed_extension(ext_id)
         assert ext, f"Extension '{ext_id}' is not installed."
 
-        if not user.admin and ext.pay_to_enable and ext.pay_to_enable.required:
-            user_ext = await get_user_extension(user.id, ext_id)
-            assert (
-                user_ext and user_ext.extra and user_ext.extra.payment_hash_to_enable
-            ), f"Extension '{ext_id}' requires payment."
+        if user.admin or not ext.requires_payment:
+            await update_user_extension(user_id=user.id, extension=ext_id, active=True)
+            return
 
-            assert (
-                ext.pay_to_enable.wallet
-            ), f"Extension '{ext_id}' is missing payment wallet."
-            payment_status = await check_transaction_status(
-                wallet_id=ext.pay_to_enable.wallet,
-                payment_hash=user_ext.extra.payment_hash_to_enable,
-            )
-            assert (
-                payment_status.paid
-            ), f"Invoice not paid for enabeling extension '{ext_id}'."
+        user_ext = await get_user_extension(user.id, ext_id)
+        if user_ext and user_ext.is_paid:
+            await update_user_extension(user_id=user.id, extension=ext_id, active=True)
+            return
+
+        assert (
+            user_ext and user_ext.extra and user_ext.extra.payment_hash_to_enable
+        ), f"Extension '{ext_id}' requires payment."
+
+        assert (
+            ext.pay_to_enable and ext.pay_to_enable.wallet
+        ), f"Extension '{ext_id}' is missing payment wallet."
+        payment_status = await check_transaction_status(
+            wallet_id=ext.pay_to_enable.wallet,
+            payment_hash=user_ext.extra.payment_hash_to_enable,
+        )
+        assert (
+            payment_status.paid
+        ), f"Invoice not paid for enabeling extension '{ext_id}'."
+        user_ext.extra.paid_to_enable = True
+        await update_user_extension_extra(user.id, ext_id, user_ext.extra)
 
         await update_user_extension(user_id=user.id, extension=ext_id, active=True)
 
