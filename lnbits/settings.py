@@ -181,6 +181,7 @@ class CoreLightningRestFundingSource(LNbitsSettings):
 
 class CLNRestFundingSource(LNbitsSettings):
     clnrest_url: Optional[str] = Field(default="https://127.0.0.1:3010")
+    clnrest_cert: Optional[str] = Field(default="/var/lib/docker/volumes/generated_clightning_bitcoin_datadir/_data/bitcoin/client.pem")
     clnrest_readonly_rune: Optional[str] = Field(default=None)
     clnrest_invoice_rune: Optional[str] = Field(default=None)
     clnrest_pay_rune: Optional[str] = Field(default=None)
