@@ -145,6 +145,7 @@ window.localisation.en = {
   payment_hash: 'Payment Hash',
   fee: 'Fee',
   amount: 'Amount',
+  amount_sats: 'Amount (sats)',
   tag: 'Tag',
   unit: 'Unit',
   description: 'Description',
@@ -246,8 +247,16 @@ window.localisation.en = {
   extension_paid_sats: 'You have already paid %{paid_sats} sats.',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
+  wallet_required: 'Wallet *',
   show_qr: 'Show QR',
   retry_install: 'Retry Install',
   new_payment: 'Make New Payment',
-  hide_empty_wallets: 'Hide empty wallets'
+  update_payment: 'Update Payment',
+  already_paid_question: 'Have you already paid?',
+  sell: 'Sell',
+  sell_require: 'Ask payment to enable extension',
+  sell_info:
+    'The %{name} extension requires a payment of minimum %{amount} sats to enable.',
+  hide_empty_wallets: 'Hide empty wallets',
+  recheck: 'Recheck'
 }

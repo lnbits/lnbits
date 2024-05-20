@@ -359,7 +359,7 @@ async def get_pay_to_install_invoice(ext_id: str, data: CreateExtension):
         ) from exc
 
 
-@extension_router.put("{ext_id}/invoice/enable")
+@extension_router.put("/{ext_id}/invoice/enable")
 async def get_pay_to_enable_invoice(
     ext_id: str, data: PayToEnableInfo, user: User = Depends(check_user_exists)
 ):

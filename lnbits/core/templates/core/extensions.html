@@ -354,14 +354,14 @@
       >
         <q-tab
           name="releases"
-          :label="'Releases'"
+          :label="$t('releases')"
           @update="val => manageExtensionTab = val.name"
         ></q-tab>
 
         <q-tab
           v-if="selectedExtension && selectedExtension.isInstalled"
-          name="payment"
-          :label="'Payment'"
+          name="sell"
+          :label="$t('sell')"
           @update="val => manageExtensionTab = val.name"
         ></q-tab>
       </q-tabs>
@@ -478,7 +478,7 @@
                             emit-value
                             v-model="release.wallet"
                             :options="g.user.walletOptions"
-                            label="Wallet *"
+                            :label="$t('wallet_required')"
                             class="q-mt-sm"
                           >
                           </q-select>
@@ -598,12 +598,12 @@
       <q-spinner v-else color="primary" size="2.55em"></q-spinner>
       <div
         v-if="selectedExtension"
-        v-show="manageExtensionTab === 'payment'"
+        v-show="manageExtensionTab === 'sell'"
         class="col-12 col-md-5 q-gutter-y-md q-mt-md"
       >
         <q-toggle
           v-model="selectedExtension.payToEnable.required"
-          :label="'Ask payment to enable extension'"
+          :label="$t('sell_require')"
           color="secondary"
           style="max-height: 21px"
         ></q-toggle>
@@ -622,7 +622,7 @@
           filled
           dense
           v-model.number="selectedExtension.payToEnable.amount"
-          label="Amount (sats)"
+          :label="$t('amount_sats')"
           type="number"
           min="1"
           class="q-mt-md"
@@ -633,7 +633,7 @@
             @click="updatePayToInstallData(selectedExtension)"
             flat
             color="green"
-            v-text="'Update Payment'"
+            v-text="$t('update_payment')"
           ></q-btn>
 
           <q-btn
@@ -653,18 +653,18 @@
       <q-card-section>
         <p>
           <span
-            v-text="`The '${selectedExtension.name}' extension requires a payment of minimum ${selectedExtension.payToEnable.amount} sats to enable.`"
+            v-text="$t('sell_info', {name: selectedExtension.name, amount: selectedExtension.payToEnable.amount})"
           ></span>
         </p>
         <p>
-          <span v-text="'Have you already paid?'"></span>
+          <span v-text="$t('already_paid_question')"></span>
           <q-badge
             @click="enableExtension(selectedExtension)"
             color="primary"
             class="cursor-pointer"
             rounded
           >
-            <strong> <span v-text="'Recheck'"></span> </strong
+            <strong> <span v-text="$t('recheck')"></span> </strong
           ></q-badge>
         </p>
       </q-card-section>
@@ -727,7 +727,7 @@
                 v-model="selectedExtension.payToEnable.paymentWallet"
                 emit-value
                 :options="g.user.walletOptions"
-                label="Wallet *"
+                :label="$t('wallet_required')"
                 class="q-mt-sm"
               >
               </q-select>
