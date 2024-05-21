@@ -100,13 +100,12 @@ class PhoenixdWallet(Wallet):
             if description_hash:
                 data["descriptionHash"] = description_hash.hex()
             else:
-                #desc = unhashed_description.decode() if unhashed_description else memo
                 desc = memo
                 if desc is None and unhashed_description:
                     desc = unhashed_description.decode()
                 desc = "" if desc is None else desc
                 if len(desc) > 128:
-                    desc = hashlib.sha256(desc.encode('utf-8')).hexdigest()
+                    desc = hashlib.sha256(desc.encode("utf-8")).hexdigest()
                 data["description"] = desc
 
             r = await self.client.post(
