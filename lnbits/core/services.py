@@ -304,18 +304,7 @@ async def pay_invoice(
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
         assert wallet, "Wallet for balancecheck could not be fetched"
-        if wallet.balance_msat < 0:
-            logger.debug("balance is too low, deleting temporary payment")
-            if (
-                not internal_checking_id
-                and wallet.balance_msat > -fee_reserve_total_msat
-            ):
-                raise PaymentError(
-                    f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
-                    "  sat) to cover potential routing fees.",
-                    status="failed",
-                )
-            raise PaymentError("Insufficient balance.", status="failed")
+        _check_wallet_balance(wallet, fee_reserve_total_msat, internal_checking_id)
 
     if extra and "tag" in extra:
         # check if the payment is made for an extension that the user disabled
@@ -410,6 +399,22 @@ async def pay_invoice(
             pending=False,
         )
     return invoice.payment_hash
+
+
+def _check_wallet_balance(
+    wallet: Wallet,
+    fee_reserve_total_msat: int,
+    internal_checking_id: Optional[str] = None,
+):
+    if wallet.balance_msat < 0:
+        logger.debug("balance is too low, deleting temporary payment")
+        if not internal_checking_id and wallet.balance_msat > -fee_reserve_total_msat:
+            raise PaymentError(
+                f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
+                "  sat) to cover potential routing fees.",
+                status="failed",
+            )
+        raise PaymentError("Insufficient balance.", status="failed")
 
 
 async def check_wallet_limits(wallet_id, conn, amount_msat):
