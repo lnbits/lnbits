@@ -316,7 +316,7 @@ async def check_invalid_payments(
 async def load_disabled_extension_list() -> None:
     """Update list of extensions that have been explicitly disabled"""
     inactive_extensions = await get_inactive_extensions()
-    settings.lnbits_deactivated_extensions += inactive_extensions
+    settings.lnbits_deactivated_extensions.update(inactive_extensions)
 
 
 @extensions.command("list")

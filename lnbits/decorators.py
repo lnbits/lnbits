@@ -15,6 +15,7 @@ from lnbits.core.crud import (
     get_account_by_email,
     get_account_by_username,
     get_user,
+    get_user_active_extensions_ids,
     get_wallet_for_key,
 )
 from lnbits.core.models import KeyType, User, WalletTypeInfo
@@ -88,16 +89,7 @@ class KeyChecker(SecurityBase):
                 detail="Invalid adminkey.",
             )
 
-        if (
-            wallet.user != settings.super_user
-            and wallet.user not in settings.lnbits_admin_users
-            and settings.lnbits_admin_extensions
-            and request["path"].split("/")[1] in settings.lnbits_admin_extensions
-        ):
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="User not authorized for this extension.",
-            )
+        await _check_user_extension_access(wallet.user, request["path"])
 
         key_type = KeyType.admin if wallet.adminkey == key_value else KeyType.invoice
         return WalletTypeInfo(key_type, wallet)
@@ -161,15 +153,7 @@ async def check_user_exists(
     user = await get_user(account.id)
     assert user, "User not found for account."
 
-    if (
-        user.id != settings.super_user
-        and user.id not in settings.lnbits_admin_users
-        and settings.lnbits_admin_extensions
-        and r["path"].split("/")[1] in settings.lnbits_admin_extensions
-    ):
-        raise HTTPException(
-            HTTPStatus.UNAUTHORIZED, "User not authorized for extension."
-        )
+    await _check_user_extension_access(user.id, r["path"])
 
     return user
 
@@ -224,6 +208,28 @@ def parse_filters(model: Type[TFilterModel]):
         )
 
     return dependency
+
+
+async def _check_user_extension_access(user_id: str, current_path: str):
+    """
+    Check if the user has access to a particular extension.
+    Raises HTTP Forbidden if the user is not allowed.
+    """
+    path = current_path.split("/")
+    ext_id = path[3] if path[1] == "upgrades" else path[1]
+    if settings.is_admin_extension(ext_id) and not settings.is_admin_user(user_id):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            f"User not authorized for extension '{ext_id}'.",
+        )
+
+    if settings.is_extension_id(ext_id):
+        ext_ids = await get_user_active_extensions_ids(user_id)
+        if ext_id not in ext_ids:
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN,
+                f"User extension '{ext_id}' not enabled.",
+            )
 
 
 async def _get_account_from_token(access_token):
