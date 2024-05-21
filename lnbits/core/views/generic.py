@@ -115,19 +115,15 @@ async def extensions_install(
         all_extensions = get_valid_extensions()
         ext = next((e for e in all_extensions if e.code == ext_id), None)
         if ext_id and user.admin:
-            if deactivate and deactivate not in settings.lnbits_deactivated_extensions:
-                settings.lnbits_deactivated_extensions += [deactivate]
+            if deactivate:
+                settings.lnbits_deactivated_extensions.add(deactivate)
             elif activate:
                 # if extension never loaded (was deactivated on server startup)
                 if ext_id not in sys.modules.keys():
                     # run extension start-up routine
                     core_app_extra.register_new_ext_routes(ext)
 
-                settings.lnbits_deactivated_extensions = list(
-                    filter(
-                        lambda e: e != activate, settings.lnbits_deactivated_extensions
-                    )
-                )
+                settings.lnbits_deactivated_extensions.remove(activate)
 
             await update_installed_extension_state(
                 ext_id=ext_id, active=activate is not None
