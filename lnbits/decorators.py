@@ -89,7 +89,7 @@ class KeyChecker(SecurityBase):
                 detail="Invalid adminkey.",
             )
 
-        await _check_user_extension_access(wallet.user, request["path"].split("/")[1])
+        await _check_user_extension_access(wallet.user, request["path"])
 
         key_type = KeyType.admin if wallet.adminkey == key_value else KeyType.invoice
         return WalletTypeInfo(key_type, wallet)
@@ -153,7 +153,7 @@ async def check_user_exists(
     user = await get_user(account.id)
     assert user, "User not found for account."
 
-    await _check_user_extension_access(user.id, r["path"].split("/")[1])
+    await _check_user_extension_access(user.id, r["path"])
 
     return user
 
@@ -210,11 +210,13 @@ def parse_filters(model: Type[TFilterModel]):
     return dependency
 
 
-async def _check_user_extension_access(user_id: str, ext_id: str):
+async def _check_user_extension_access(user_id: str, current_path: str):
     """
     Check if the user has access to a particular extension.
     Raises HTTP Forbidden if the user is not allowed.
     """
+    path = current_path.split("/")
+    ext_id = path[3] if path[1] == "upgrades" else path[1]
     if settings.is_admin_extension(ext_id) and not settings.is_admin_user(user_id):
         raise HTTPException(
             HTTPStatus.FORBIDDEN,

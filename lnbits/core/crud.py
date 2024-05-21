@@ -341,7 +341,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         username=user["username"],
         extensions=[
-            e[0] for e in extensions if User.is_extension_for_user(e[0], user["id"])
+            e for e in extensions if User.is_extension_for_user(e[0], user["id"])
         ],
         wallets=[Wallet(**w) for w in wallets],
         admin=user["id"] == settings.super_user
@@ -482,10 +482,11 @@ async def update_user_extension(
 async def get_user_active_extensions_ids(
     user_id: str, conn: Optional[Connection] = None
 ) -> List[str]:
-    return await (conn or db).fetchall(
+    rows = await (conn or db).fetchall(
         """SELECT extension FROM extensions WHERE "user" = ? AND active""",
         (user_id,),
     )
+    return [e[0] for e in rows]
 
 
 # wallets
