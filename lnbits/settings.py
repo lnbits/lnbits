@@ -63,11 +63,14 @@ class ExtensionsInstallSettings(LNbitsSettings):
 
 class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
-    lnbits_deactivated_extensions: list[str] = Field(default=[])
+    lnbits_deactivated_extensions: set[str] = Field(default=[])
     # upgraded extensions that require API redirects
-    lnbits_upgraded_extensions: list[str] = Field(default=[])
+    lnbits_upgraded_extensions: set[str] = Field(default=[])
     # list of redirects that extensions want to perform
     lnbits_extensions_redirects: list[Any] = Field(default=[])
+
+    # list of all extension ids
+    lnbits_all_extensions_ids: set[Any] = Field(default=[])
 
     def extension_upgrade_path(self, ext_id: str) -> Optional[str]:
         return next(
@@ -488,13 +491,22 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
         case_sensitive = False
         json_loads = list_parse_fallback
 
-    def is_user_allowed(self, user_id: str):
+    def is_user_allowed(self, user_id: str) -> bool:
         return (
             len(self.lnbits_allowed_users) == 0
             or user_id in self.lnbits_allowed_users
             or user_id in self.lnbits_admin_users
             or user_id == self.super_user
         )
+
+    def is_admin_user(self, user_id: str) -> bool:
+        return user_id in self.lnbits_admin_users or user_id == self.super_user
+
+    def is_admin_extension(self, ext_id: str) -> bool:
+        return ext_id in self.lnbits_admin_extensions
+
+    def is_extension_id(self, ext_id: str) -> bool:
+        return ext_id in self.lnbits_all_extensions_ids
 
 
 class SuperSettings(EditableSettings):
