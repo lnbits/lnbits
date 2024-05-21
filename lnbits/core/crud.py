@@ -322,10 +322,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
     )
 
     if user:
-        extensions = await (conn or db).fetchall(
-            """SELECT extension FROM extensions WHERE "user" = ? AND active""",
-            (user_id,),
-        )
+        extensions = await get_user_active_extensions_ids(user_id, conn)
         wallets = await (conn or db).fetchall(
             """
             SELECT *, COALESCE((
@@ -479,6 +476,15 @@ async def update_user_extension(
         ON CONFLICT ("user", extension) DO UPDATE SET active = ?
         """,
         (user_id, extension, active, active),
+    )
+
+
+async def get_user_active_extensions_ids(
+    user_id: str, conn: Optional[Connection] = None
+) -> List[str]:
+    return await (conn or db).fetchall(
+        """SELECT extension FROM extensions WHERE "user" = ? AND active""",
+        (user_id,),
     )
 
 

@@ -15,7 +15,7 @@ from lnbits.core.crud import (
     get_account_by_email,
     get_account_by_username,
     get_user,
-    get_user_extension,
+    get_user_active_extensions_ids,
     get_wallet_for_key,
 )
 from lnbits.core.models import KeyType, User, WalletTypeInfo
@@ -212,8 +212,8 @@ def parse_filters(model: Type[TFilterModel]):
 
 async def _check_user_extension_access(user_id: str, ext_id: str):
     """
-        Check if the user has access to a particular extension.
-        Raises HTTP Forbidden if the user is not allowed.
+    Check if the user has access to a particular extension.
+    Raises HTTP Forbidden if the user is not allowed.
     """
     if settings.is_admin_extension(ext_id) and not settings.is_admin_user(user_id):
         raise HTTPException(
@@ -222,8 +222,8 @@ async def _check_user_extension_access(user_id: str, ext_id: str):
         )
 
     if settings.is_extension_id(ext_id):
-        user_ext = await get_user_extension(user_id, ext_id)
-        if not user_ext or not user_ext.active:
+        ext_ids = await get_user_active_extensions_ids(user_id)
+        if ext_id not in ext_ids:
             raise HTTPException(
                 HTTPStatus.FORBIDDEN,
                 f"User extension '{ext_id}' not enabled.",
