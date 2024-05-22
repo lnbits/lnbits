@@ -9,6 +9,8 @@ window.localisation.cs = {
   transactions: 'Transakce',
   dashboard: 'Přehled',
   node: 'Uzel',
+  export_users: 'Exportovat uživatele',
+  no_users: 'Nebyli nalezeni žádní uživatelé',
   total_capacity: 'Celková kapacita',
   avg_channel_size: 'Průmerná velikost kanálu',
   biggest_channel_size: 'Největší velikost kanálu',
@@ -33,6 +35,8 @@ window.localisation.cs = {
   reset_defaults_tooltip: 'Smazat všechna nastavení a obnovit výchozí.',
   download_backup: 'Stáhnout zálohu databáze',
   name_your_wallet: 'Pojmenujte svou %{name} peněženku',
+  wallet_topup_ok:
+    'Úspěšně vytvořeny virtuální prostředky (%{amount} sats). Platby závisí na skutečných prostředcích na zdrojovém účtu.',
   paste_invoice_label: 'Vložte fakturu, platební požadavek nebo lnurl kód *',
   lnbits_description:
     'Snadno nastavitelný a lehkotonážní, LNbits může běžet na jakémkoliv zdroji financování Lightning Network a dokonce LNbits samotné! LNbits můžete provozovat pro sebe, nebo snadno nabízet správu peněženek pro ostatní. Každá peněženka má své vlastní API klíče a není omezen počet peněženek, které můžete vytvořit. Možnost rozdělení prostředků dělá z LNbits užitečný nástroj pro správu peněz a jako vývojový nástroj. Rozšíření přidávají extra funkčnost k LNbits, takže můžete experimentovat s řadou špičkových technologií na lightning network. Vývoj rozšíření jsme učinili co nejjednodušší a jako svobodný a open-source projekt podporujeme lidi ve vývoji a zasílání vlastních rozšíření.',
@@ -246,5 +250,6 @@ window.localisation.cs = {
   pay_from_wallet: 'Platit z peněženky',
   show_qr: 'Zobrazit QR',
   retry_install: 'Zkusit znovu nainstalovat',
-  new_payment: 'Vytvořit novou platbu'
+  new_payment: 'Vytvořit novou platbu',
+  hide_empty_wallets: 'Skrýt prázdné peněženky'
 }
