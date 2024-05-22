@@ -196,7 +196,11 @@ async def send_push_notification(subscription, title, body, url=""):
         webpush(
             json.loads(subscription.data),
             json.dumps({"title": title, "body": body, "url": url}),
-            vapid.from_pem(bytes(settings.lnbits_webpush_privkey, "utf-8")),
+            (
+                vapid.from_pem(bytes(settings.lnbits_webpush_privkey, "utf-8"))
+                if settings.lnbits_webpush_privkey
+                else None
+            ),
             {"aud": "", "sub": "mailto:alan@lnbits.com"},
         )
     except WebPushException as e:
