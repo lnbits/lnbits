@@ -86,7 +86,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
-    lnbits_site_description: Optional[str]  = Field(
+    lnbits_site_description: Optional[str] = Field(
         default="The world's most powerful suite of bitcoin tools."
     )
     LNBITS_SHOW_HOME_PAGE_ELEMENTS: bool = Field(default=True)
