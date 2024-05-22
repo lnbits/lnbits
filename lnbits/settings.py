@@ -89,9 +89,9 @@ class ThemesSettings(LNbitsSettings):
     lnbits_site_description: Optional[str] = Field(
         default="The world's most powerful suite of bitcoin tools."
     )
-    LNBITS_SHOW_HOME_PAGE_ELEMENTS: bool = Field(default=True)
+    lnbits_show_home_page_elements: bool = Field(default=True)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
-    lnbits_custom_badge: str = Field(default=None)
+    lnbits_custom_badge: Optional[str] = Field(default=None)
     lnbits_custom_badge_color: str = Field(default="warning")
     lnbits_theme_options: list[str] = Field(
         default=[
@@ -104,7 +104,7 @@ class ThemesSettings(LNbitsSettings):
             "cyber",
         ]
     )
-    lnbits_custom_logo: str = Field(default=None)
+    lnbits_custom_logo: Optional[str] = Field(default=None)
     lnbits_ad_space_title: str = Field(default="Supported by")
     lnbits_ad_space: str = Field(
         default="https://shop.lnbits.com/;/static/images/bitcoin-shop-banner.png;/static/images/bitcoin-shop-banner.png,https://affil.trezor.io/aff_c?offer_id=169&aff_id=33845;/static/images/bitcoin-hardware-wallet.png;/static/images/bitcoin-hardware-wallet.png,https://opensats.org/;/static/images/open-sats.png;/static/images/open-sats.png"
@@ -122,7 +122,7 @@ class OpsSettings(LNbitsSettings):
     lnbits_service_fee: float = Field(default=0)
     lnbits_service_fee_ignore_internal: bool = Field(default=True)
     lnbits_service_fee_max: int = Field(default=0)
-    lnbits_service_fee_wallet: str = Field(default=None)
+    lnbits_service_fee_wallet: Optional[str] = Field(default=None)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
 
@@ -276,8 +276,8 @@ class FundingSourcesSettings(
 
 
 class WebPushSettings(LNbitsSettings):
-    lnbits_webpush_pubkey: str = Field(default=None)
-    lnbits_webpush_privkey: str = Field(default=None)
+    lnbits_webpush_pubkey: Optional[str] = Field(default=None)
+    lnbits_webpush_privkey: Optional[str] = Field(default=None)
 
 
 class NodeUISettings(LNbitsSettings):
