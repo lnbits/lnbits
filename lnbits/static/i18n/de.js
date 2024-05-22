@@ -9,6 +9,8 @@ window.localisation.de = {
   transactions: 'Transaktionen',
   dashboard: 'Armaturenbrett',
   node: 'Knoten',
+  export_users: 'Benutzer exportieren',
+  no_users: 'Keine Benutzer gefunden',
   total_capacity: 'Gesamtkapazität',
   avg_channel_size: 'Durchschn. Kanalgröße',
   biggest_channel_size: 'Größte Kanalgröße',
@@ -34,6 +36,8 @@ window.localisation.de = {
     'Alle Einstellungen auf die Standardeinstellungen zurücksetzen.',
   download_backup: 'Datenbank-Backup herunterladen',
   name_your_wallet: 'Vergib deiner %{name} Wallet einen Namen',
+  wallet_topup_ok:
+    'Erfolg beim Erstellen von virtuellen Mitteln (%{amount} Satoshis). Zahlungen hängen von den tatsächlichen Mitteln der Finanzierungsquelle ab.',
   paste_invoice_label:
     'Füge eine Rechnung, Zahlungsanforderung oder LNURL ein *',
   lnbits_description:
@@ -254,5 +258,6 @@ window.localisation.de = {
   pay_from_wallet: 'Zahlen aus dem Geldbeutel',
   show_qr: 'QR anzeigen',
   retry_install: 'Installieren erneut versuchen',
-  new_payment: 'Neue Zahlung vornehmen'
+  new_payment: 'Neue Zahlung vornehmen',
+  hide_empty_wallets: 'Leere Geldbörsen verbergen'
 }

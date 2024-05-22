@@ -9,6 +9,8 @@ window.localisation.kr = {
   transactions: '거래 내역',
   dashboard: '현황판',
   node: '노드',
+  export_users: '사용자 내보내기',
+  no_users: '사용자가 없습니다',
   total_capacity: '총 용량',
   avg_channel_size: '평균 채널 용량',
   biggest_channel_size: '가장 큰 채널 용량',
@@ -34,6 +36,8 @@ window.localisation.kr = {
     '설정했던 내용들을 모두 지우고, 기본 설정으로 돌아갑니다.',
   download_backup: '데이터베이스 백업 다운로드',
   name_your_wallet: '사용할 %{name}지갑의 이름을 정하세요',
+  wallet_topup_ok:
+    '성공적으로 가상 자금을 생성했습니다 (%{amount} sats). 지급은 자금 원천의 실제 자금에 따라 달라집니다.',
   paste_invoice_label: '인보이스, 결제 요청, 혹은 lnurl 코드를 붙여넣으세요 *',
   lnbits_description:
     '설정이 쉽고 가벼운 LNBits는 어떤 라이트닝 네트워크의 예산 자원 위에서든 돌아갈 수 있습니다, 그리고 다른 LNBits 지갑들입니다. 스스로 사용하기 위해, 또는 다른 사람들에게 수탁형 솔루션을 제공하기 위해 LNBits를 운영할 수 있습니다. 각 지갑들은 자신만의 API key를 가지며, 생성 가능한 지갑의 수에는 제한이 없습니다. 자금을 분할할 수 있는 기능으로 인해, LNBits는 자금 운영 도구로써뿐만 아니라 개발 도구로써도 유용합니다. 확장 기능들은 LNBits에 여러분들이 라이트닝 네트워크의 다양한 최신 기술들을 수행해볼 수 있게 하는 추가 기능을 제공합니다. LNBits 개발진들은 확장 기능들의 개발 또한 가능한 쉽게 만들었으며, 무료 오픈 소스 프로젝트답게 사람들이 자신만의 확장 기능들을 개발하고 제출하기를 응원합니다.',
@@ -245,5 +249,6 @@ window.localisation.kr = {
   pay_from_wallet: '지갑에서 결제하다',
   show_qr: 'QR 보기',
   retry_install: '다시 설치하세요',
-  new_payment: '새로운 결제하기'
+  new_payment: '새로운 결제하기',
+  hide_empty_wallets: '빈 지갑 숨기기'
 }

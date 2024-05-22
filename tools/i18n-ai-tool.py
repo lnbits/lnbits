@@ -83,7 +83,7 @@ def translate_string(lang_from, lang_to, text):
                     "content": f"Translate the following string from English to {target}: {text}",  # noqa: E501
                 },
             ],
-            model="gpt-4-1106-preview",  # aka GPT-4 Turbo
+            model="gpt-4o",
         )
         assert chat_completion.choices[0].message.content, "No response from GPT-4"
         translated = chat_completion.choices[0].message.content.strip()
