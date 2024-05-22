@@ -89,7 +89,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_site_description: Optional[str] = Field(
         default="The world's most powerful suite of bitcoin tools."
     )
-    LNBITS_SHOW_HOME_PAGE_ELEMENTS: bool = Field(default=True)
+    lnbits_show_home_page_elements: bool = Field(default=True)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
     lnbits_custom_badge: Optional[str] = Field(default=None)
     lnbits_custom_badge_color: str = Field(default="warning")
