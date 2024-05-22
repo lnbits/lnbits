@@ -31,6 +31,15 @@ jobs:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
+  docker-latest:
+    needs: [ release ]
+    uses: ./.github/workflows/docker.yml
+    with:
+      tag: latest
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
   pypi:
     runs-on: ubuntu-latest
     steps:
