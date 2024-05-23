@@ -50,9 +50,11 @@ Vue.component('lnbits-funding-sources', {
           {
             clnrest_url: 'Endpoint',
             clnrest_cert: 'Certificate',
-            clnrest_rune: 'Rune',
+            clnrest_readonly_rune: 'Rune used for read-only API calls',
+            clnrest_invoice_rune: 'Rune used for creating invoices',
+            clnrest_pay_rune: 'Rune to use for paying invoices',
+            clnrest_renepay_rune: 'Rune to use for paying invoices with renepay',
             clnrest_nodeid: 'Nodeid',
-            clnrest_enable_renepay: 'Use renepay instead of pay'
           }
         ],
         [

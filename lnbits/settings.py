@@ -185,9 +185,9 @@ class CLNRestFundingSource(LNbitsSettings):
     clnrest_readonly_rune: Optional[str] = Field(default=None)
     clnrest_invoice_rune: Optional[str] = Field(default=None)
     clnrest_pay_rune: Optional[str] = Field(default=None)
+    clnrest_renepay_rune: Optional[str] = Field(default=None)
     clnrest_cert: Optional[str] = Field(default=None)
     clnrest_nodeid: Optional[str] = Field(default=None)
-    clnrest_enable_renepay: Optional[bool] = Field(default=None)
 
 class EclairFundingSource(LNbitsSettings):
     eclair_url: Optional[str] = Field(default=None)
