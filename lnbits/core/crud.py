@@ -1304,7 +1304,7 @@ async def create_webpush_subscription(
 
 async def delete_webpush_subscription(endpoint: str, user: str) -> None:
     await db.execute(
-        """DELETE FROM webpush_subscriptions WHERE endpoint = ? AND "user"" = ?""",
+        """DELETE FROM webpush_subscriptions WHERE endpoint = ? AND "user" = ?""",
         (
             endpoint,
             user,
