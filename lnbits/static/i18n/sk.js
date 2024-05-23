@@ -9,6 +9,8 @@ window.localisation.sk = {
   transactions: 'Transakcie',
   dashboard: 'Prehľad',
   node: 'Uzol',
+  export_users: 'Exportovať používateľov',
+  no_users: 'Nenašli sa žiadni používatelia',
   total_capacity: 'Celková kapacita',
   avg_channel_size: 'Priemerná veľkosť kanálu',
   biggest_channel_size: 'Najväčší kanál',
@@ -33,6 +35,8 @@ window.localisation.sk = {
   reset_defaults_tooltip: 'Odstrániť všetky nastavenia a obnoviť predvolené.',
   download_backup: 'Stiahnuť zálohu databázy',
   name_your_wallet: 'Pomenujte vašu %{name} peňaženku',
+  wallet_topup_ok:
+    'Úspešne vytvorené virtuálne prostriedky (%{amount} sats). Platby závisia od skutočných prostriedkov v zdroji financovania.',
   paste_invoice_label: 'Vložte faktúru, platobnú požiadavku alebo lnurl kód *',
   lnbits_description:
     'Ľahko nastaviteľný a ľahkotonážny, LNbits môže bežať na akomkoľvek zdroji financovania Lightning Network a dokonca LNbits samotný! LNbits môžete používať pre seba, alebo ľahko ponúknuť správcovské riešenie pre iných. Každá peňaženka má svoje vlastné API kľúče a nie je limit na počet peňaženiek, ktoré môžete vytvoriť. Schopnosť rozdeľovať finančné prostriedky robí z LNbits užitočný nástroj pre správu peňazí a ako vývojový nástroj. Rozšírenia pridávajú extra funkčnosť do LNbits, takže môžete experimentovať s radou najnovších technológií na lightning sieti. Vývoj rozšírení sme urobili čo najjednoduchší a ako voľný a open-source projekt, podporujeme ľudí vývoj a odovzdávanie vlastných rozšírení.',
@@ -247,5 +251,6 @@ window.localisation.sk = {
   pay_from_wallet: 'Zaplatiť z peňaženky',
   show_qr: 'Zobraziť QR',
   retry_install: 'Skúste inštaláciu znova',
-  new_payment: 'Vytvoriť novú platbu'
+  new_payment: 'Vytvoriť novú platbu',
+  hide_empty_wallets: 'Skryť prázdne peňaženky'
 }

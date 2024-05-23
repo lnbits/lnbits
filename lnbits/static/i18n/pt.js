@@ -9,6 +9,8 @@ window.localisation.pt = {
   transactions: 'Transações',
   dashboard: 'Painel de Controle',
   node: 'Nó',
+  export_users: 'Exportar Usuários',
+  no_users: 'Nenhum usuário encontrado',
   total_capacity: 'Capacidade Total',
   avg_channel_size: 'Tamanho Médio do Canal',
   biggest_channel_size: 'Maior Tamanho do Canal',
@@ -34,6 +36,8 @@ window.localisation.pt = {
     'Apagar todas as configurações e redefinir para os padrões.',
   download_backup: 'Fazer backup da base de dados',
   name_your_wallet: 'Nomeie sua carteira %{name}',
+  wallet_topup_ok:
+    'Sucesso ao criar fundos virtuais (%{amount} sats). Os pagamentos dependem dos fundos reais na fonte de financiamento.',
   paste_invoice_label: 'Cole uma fatura, pedido de pagamento ou código lnurl *',
   lnbits_description:
     'Fácil de configurar e leve, o LNbits pode ser executado em qualquer fonte de financiamento da Lightning Network e até mesmo o LNbits em si! Você pode executar o LNbits para si mesmo ou oferecer facilmente uma solução de custódia para outros. Cada carteira tem suas próprias chaves de API e não há limite para o número de carteiras que você pode criar. Ser capaz de particionar fundos torna o LNbits uma ferramenta útil para gerenciamento de dinheiro e como uma ferramenta de desenvolvimento. As extensões adicionam funcionalidades extras ao LNbits para que você possa experimentar uma série de tecnologias de ponta na rede lightning. Nós tornamos o desenvolvimento de extensões o mais fácil possível e, como um projeto gratuito e de código aberto, incentivamos as pessoas a desenvolver e enviar as suas próprias.',
@@ -248,5 +252,6 @@ window.localisation.pt = {
   pay_from_wallet: 'Pague da Carteira',
   show_qr: 'Exibir QR',
   retry_install: 'Reinstalar Tente Novamente',
-  new_payment: 'Realizar Novo Pagamento'
+  new_payment: 'Realizar Novo Pagamento',
+  hide_empty_wallets: 'Ocultar carteiras vazias'
 }

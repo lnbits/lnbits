@@ -9,6 +9,8 @@ window.localisation.nl = {
   transactions: 'Transacties',
   dashboard: 'Dashboard',
   node: 'Knooppunt',
+  export_users: 'Gebruikers exporteren',
+  no_users: 'Geen gebruikers gevonden',
   total_capacity: 'Totale capaciteit',
   avg_channel_size: 'Gem. Kanaalgrootte',
   biggest_channel_size: 'Grootste Kanaalgrootte',
@@ -35,6 +37,8 @@ window.localisation.nl = {
     'Wis alle instellingen en herstel de standaardinstellingen.',
   download_backup: 'Databaseback-up downloaden',
   name_your_wallet: 'Geef je %{name} portemonnee een naam',
+  wallet_topup_ok:
+    'Succes met het aanmaken van virtuele fondsen (%{amount} sats). Betalingen zijn afhankelijk van de werkelijke fondsen op de financieringsbron.',
   paste_invoice_label: 'Plak een factuur, betalingsverzoek of lnurl-code*',
   lnbits_description:
     'Gemakkelijk in te stellen en lichtgewicht, LNbits kan op elke lightning-netwerkfinancieringsbron draaien en zelfs LNbits zelf! U kunt LNbits voor uzelf laten draaien of gemakkelijk een bewaardersoplossing voor anderen bieden. Elke portemonnee heeft zijn eigen API-sleutels en er is geen limiet aan het aantal portemonnees dat u kunt maken. Het kunnen partitioneren van fondsen maakt LNbits een nuttige tool voor geldbeheer en als ontwikkelingstool. Extensies voegen extra functionaliteit toe aan LNbits, zodat u kunt experimenteren met een reeks toonaangevende technologieën op het bliksemschichtnetwerk. We hebben het ontwikkelen van extensies zo eenvoudig mogelijk gemaakt en als een gratis en opensource-project moedigen we mensen aan om hun eigen ontwikkelingen in te dienen.',
@@ -252,5 +256,6 @@ window.localisation.nl = {
   pay_from_wallet: 'Betalen vanuit Portemonnee',
   show_qr: 'Toon QR',
   retry_install: 'Opnieuw installeren',
-  new_payment: 'Nieuwe betaling maken'
+  new_payment: 'Nieuwe betaling maken',
+  hide_empty_wallets: 'Verberg lege portemonnees'
 }

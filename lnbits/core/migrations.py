@@ -366,7 +366,8 @@ async def m014_set_deleted_wallets(db):
                 inkey = row[4].split(":")[1]
                 await db.execute(
                     """
-                    UPDATE wallets SET user = ?, adminkey = ?, inkey = ?, deleted = true
+                    UPDATE wallets SET
+                    "user" = ?, adminkey = ?, inkey = ?, deleted = true
                     WHERE id = ?
                     """,
                     (user, adminkey, inkey, row[0]),

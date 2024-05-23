@@ -9,6 +9,8 @@ window.localisation.jp = {
   transactions: 'トランザクション',
   dashboard: 'ダッシュボード',
   node: 'ノード',
+  export_users: 'ユーザーのエクスポート',
+  no_users: 'ユーザーが見つかりません',
   total_capacity: '合計容量',
   avg_channel_size: '平均チャンネルサイズ',
   biggest_channel_size: '最大チャネルサイズ',
@@ -33,6 +35,8 @@ window.localisation.jp = {
   reset_defaults_tooltip: 'すべての設定を削除してデフォルトに戻します。',
   download_backup: 'データベースのバックアップをダウンロードする',
   name_your_wallet: 'あなたのウォレットの名前 %{name}',
+  wallet_topup_ok:
+    '仮想資金の作成に成功しました（%{amount} sats）。支払いは資金ソースの実際の資金に依存します。',
   paste_invoice_label: '請求書を貼り付けてください',
   lnbits_description:
     '簡単にインストールでき、軽量なLNbitsは、あらゆるライトニングネットワークの資金源と、LNbits自身でさえも実行できます！LNbitsを個人で実行することも、他人に対してカストディアンソリューションをで実行できます！ LNbitsを自分で実行することも、他の人に優れたソリューションを提供することもできます。各ウォレットには独自のAPIキーがあり、作成できるウォレットの数に制限はありません。資金を分割する機能は、LNbitsを資金管理ツールとして使用したり、開発ツールとして使用したりするための便利なツールです。拡張機能は、LNbitsに追加の機能を追加します。そのため、LNbitsは最先端の技術をネットワークLightningで試すことができます。拡張機能を開発するのは簡単で、無料でオープンソースのプロジェクトであるため、人々が自分で開発し、自分の貢献を送信することを奨励しています。',
@@ -248,5 +252,6 @@ window.localisation.jp = {
   pay_from_wallet: 'ウォレットから支払う',
   show_qr: 'QRを表示',
   retry_install: '再試行インストール',
-  new_payment: '新しい支払いを作成する'
+  new_payment: '新しい支払いを作成する',
+  hide_empty_wallets: '空のウォレットを非表示にする'
 }

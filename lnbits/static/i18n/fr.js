@@ -9,6 +9,8 @@ window.localisation.fr = {
   transactions: 'Transactions',
   dashboard: 'Tableau de bord',
   node: 'Noeud',
+  export_users: 'Exporter les utilisateurs',
+  no_users: 'Aucun utilisateur trouvé',
   total_capacity: 'Capacité totale',
   avg_channel_size: 'Taille moyenne du canal',
   biggest_channel_size: 'Taille de canal maximale',
@@ -36,6 +38,8 @@ window.localisation.fr = {
     'Supprimer tous les paramètres et les réinitialiser aux valeurs par défaut.',
   download_backup: 'Télécharger la sauvegarde de la base de données',
   name_your_wallet: 'Nommez votre portefeuille %{name}',
+  wallet_topup_ok:
+    'Succès de la création de fonds virtuels (%{amount} sats). Les paiements dépendent des fonds réels sur la source de financement.',
   paste_invoice_label:
     'Coller une facture, une demande de paiement ou un code lnurl *',
   lnbits_description:
@@ -256,5 +260,6 @@ window.localisation.fr = {
   pay_from_wallet: 'Payer depuis le portefeuille',
   show_qr: 'Afficher le QR',
   retry_install: "Réessayer l'installation",
-  new_payment: 'Effectuer un nouveau paiement'
+  new_payment: 'Effectuer un nouveau paiement',
+  hide_empty_wallets: 'Masquer les portefeuilles vides'
 }
