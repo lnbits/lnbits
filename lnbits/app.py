@@ -404,7 +404,7 @@ def register_all_ext_routes(app: FastAPI):
         try:
             register_ext_routes(app, ext)
         except Exception as e:
-            logger.error(f"Could not load extension `{ext.id}`: {e!s}")
+            logger.error(f"Could not load extension `{ext.code}`: {e!s}")
 
 
 def register_async_tasks():
