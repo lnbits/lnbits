@@ -23,7 +23,6 @@ from ...extension_manager import InstallableExtension, get_valid_extensions
 from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
     create_wallet,
-    get_active_extensions_ids,
     get_dbversions,
     get_installed_extensions,
     get_user,
@@ -130,7 +129,9 @@ async def extensions_install(
             )
 
         all_ext_ids = [ext.code for ext in all_extensions]
-        inactive_extensions = await get_active_extensions_ids(False)
+        inactive_extensions = [
+            e.id for e in await get_installed_extensions(active=False)
+        ]
         db_version = await get_dbversions()
         extensions = [
             {

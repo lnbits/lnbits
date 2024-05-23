@@ -379,8 +379,8 @@ async def add_installed_extension(
     await (conn or db).execute(
         """
         INSERT INTO installed_extensions
-        (id, version, name, short_description, icon, stars, meta)
-        VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET
+        (id, version, name, active, short_description, icon, stars, meta)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET
         (version, name, active, short_description, icon, stars, meta) =
         (?, ?, ?, ?, ?, ?, ?)
         """,
@@ -388,6 +388,7 @@ async def add_installed_extension(
             ext.id,
             version,
             ext.name,
+            ext.active,
             ext.short_description,
             ext.icon,
             ext.stars,
@@ -467,23 +468,18 @@ async def get_installed_extension(
 
 
 async def get_installed_extensions(
+    active: Optional[bool] = None,
     conn: Optional[Connection] = None,
 ) -> List["InstallableExtension"]:
     rows = await (conn or db).fetchall(
         "SELECT * FROM installed_extensions",
         (),
     )
-    return [InstallableExtension.from_row(row) for row in rows]
+    all_extensions = [InstallableExtension.from_row(row) for row in rows]
+    if active is None:
+        return all_extensions
 
-
-async def get_active_extensions_ids(
-    active: bool = True, conn: Optional[Connection] = None
-) -> List[str]:
-    active_extensions = await (conn or db).fetchall(
-        "SELECT id FROM installed_extensions WHERE active = ?",
-        (active,),
-    )
-    return [ext[0] for ext in active_extensions]
+    return [e for e in all_extensions if e.active == active]
 
 
 async def get_user_extension(

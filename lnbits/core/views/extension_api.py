@@ -98,13 +98,14 @@ async def api_install_extension(
         db_version = (await get_dbversions()).get(data.ext_id, 0)
         await migrate_extension_database(extension, db_version)
 
+        ext_info.active = True
         await add_installed_extension(ext_info)
 
         if extension.is_upgrade_extension:
             # call stop while the old routes are still active
             await stop_extension_background_work(data.ext_id, user.id, access_token)
 
-        settings.lnbits_deactivated_extensions.add(data.ext_id)
+        settings.lnbits_deactivated_extensions.add(data.ext_id) #here
 
         # mount routes for the new version
         core_app_extra.register_new_ext_routes(extension)
@@ -149,6 +150,7 @@ async def api_enable_extension(ext_id: str, user: User = Depends(check_user_exis
         logger.info(f"Enabling extension: {ext_id}.")
         ext = await get_installed_extension(ext_id)
         assert ext, f"Extension '{ext_id}' is not installed."
+        assert ext.active, f"Extension '{ext_id}' is not activated."
 
         if user.admin or not ext.requires_payment:
             await update_user_extension(user_id=user.id, extension=ext_id, active=True)

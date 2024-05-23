@@ -17,7 +17,6 @@ from slowapi.util import get_remote_address
 from starlette.middleware.sessions import SessionMiddleware
 
 from lnbits.core.crud import (
-    get_active_extensions_ids,
     get_dbversions,
     get_installed_extensions,
     update_installed_extension_state,
@@ -96,7 +95,7 @@ async def startup(app: FastAPI):
     # check extensions after restart
     if not settings.lnbits_extensions_deactivate_all:
         await check_installed_extensions(app)
-        register_all_ext_routes(app)
+        await register_all_ext_routes(app)
 
     # initialize tasks
     register_async_tasks()
@@ -400,11 +399,11 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
 
 async def register_all_ext_routes(app: FastAPI):
-    for ext in await get_active_extensions_ids(True):
+    for ext in await get_installed_extensions(active=True):
         try:
-            register_ext_routes(app, ext)
+            register_ext_routes(app, Extension.from_installable_ext(ext))
         except Exception as e:
-            logger.error(f"Could not load extension `{ext.code}`: {e!s}")
+            logger.error(f"Could not load extension `{ext.id}`: {e!s}")
 
 
 def register_async_tasks():
