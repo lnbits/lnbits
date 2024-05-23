@@ -1287,7 +1287,7 @@ async def create_webpush_subscription(
 ) -> WebPushSubscription:
     await db.execute(
         """
-        INSERT INTO webpush_subscriptions (endpoint, user, data, host)
+        INSERT INTO webpush_subscriptions (endpoint, "user", data, host)
         VALUES (?, ?, ?, ?)
         """,
         (
