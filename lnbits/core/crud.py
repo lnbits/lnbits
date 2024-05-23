@@ -476,12 +476,14 @@ async def get_installed_extensions(
     return [InstallableExtension.from_row(row) for row in rows]
 
 
-async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[str]:
-    inactive_extensions = await (conn or db).fetchall(
-        """SELECT id FROM installed_extensions WHERE NOT active""",
-        (),
+async def get_active_extensions_ids(
+    active: bool = True, conn: Optional[Connection] = None
+) -> List[str]:
+    active_extensions = await (conn or db).fetchall(
+        "SELECT id FROM installed_extensions WHERE active = ?",
+        (active,),
     )
-    return [ext[0] for ext in inactive_extensions]
+    return [ext[0] for ext in active_extensions]
 
 
 async def get_user_extension(

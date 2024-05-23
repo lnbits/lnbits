@@ -28,8 +28,8 @@ from .core.crud import (
     delete_unused_wallets,
     delete_wallet_by_id,
     delete_wallet_payment,
+    get_active_extensions_ids,
     get_dbversions,
-    get_inactive_extensions,
     get_installed_extension,
     get_installed_extensions,
     get_payments,
@@ -315,7 +315,7 @@ async def check_invalid_payments(
 
 async def load_disabled_extension_list() -> None:
     """Update list of extensions that have been explicitly disabled"""
-    inactive_extensions = await get_inactive_extensions()
+    inactive_extensions = await get_active_extensions_ids(False)
     settings.lnbits_deactivated_extensions.update(inactive_extensions)
 
 

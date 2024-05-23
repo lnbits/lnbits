@@ -17,6 +17,7 @@ from slowapi.util import get_remote_address
 from starlette.middleware.sessions import SessionMiddleware
 
 from lnbits.core.crud import (
+    get_active_extensions_ids,
     get_dbversions,
     get_installed_extensions,
     update_installed_extension_state,
@@ -49,7 +50,6 @@ from .core.views.extension_api import add_installed_extension
 from .extension_manager import (
     Extension,
     InstallableExtension,
-    get_valid_extensions,
     version_parse,
 )
 from .middleware import (
@@ -399,8 +399,8 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     app.include_router(router=ext_route, prefix=prefix)
 
 
-def register_all_ext_routes(app: FastAPI):
-    for ext in get_valid_extensions(False):
+async def register_all_ext_routes(app: FastAPI):
+    for ext in await get_active_extensions_ids(True):
         try:
             register_ext_routes(app, ext)
         except Exception as e:

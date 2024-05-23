@@ -268,6 +268,7 @@ class ExtensionManager:
 
     @property
     def extensions(self) -> List[Extension]:
+        # todo: remove this property somehow, it is too expensive
         output: List[Extension] = []
 
         for extension_folder in self._extension_folders:
