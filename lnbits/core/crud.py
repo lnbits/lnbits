@@ -1263,7 +1263,7 @@ async def get_webpush_subscription(
     endpoint: str, user: str
 ) -> Optional[WebPushSubscription]:
     row = await db.fetchone(
-        "SELECT * FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
+        """SELECT * FROM webpush_subscriptions WHERE endpoint = ? AND "user" = ?""",
         (
             endpoint,
             user,
@@ -1276,7 +1276,7 @@ async def get_webpush_subscriptions_for_user(
     user: str,
 ) -> List[WebPushSubscription]:
     rows = await db.fetchall(
-        "SELECT * FROM webpush_subscriptions WHERE user = ?",
+        """SELECT * FROM webpush_subscriptions WHERE "user" = ?""",
         (user,),
     )
     return [WebPushSubscription(**dict(row)) for row in rows]
@@ -1304,7 +1304,7 @@ async def create_webpush_subscription(
 
 async def delete_webpush_subscription(endpoint: str, user: str) -> None:
     await db.execute(
-        "DELETE FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
+        """DELETE FROM webpush_subscriptions WHERE endpoint = ? AND "user" = ?""",
         (
             endpoint,
             user,
