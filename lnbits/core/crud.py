@@ -1287,7 +1287,7 @@ async def create_webpush_subscription(
 ) -> WebPushSubscription:
     await db.execute(
         """
-        INSERT INTO webpush_subscriptions (endpoint, user, data, host)
+        INSERT INTO webpush_subscriptions (endpoint, "user", data, host)
         VALUES (?, ?, ?, ?)
         """,
         (
@@ -1302,17 +1302,19 @@ async def create_webpush_subscription(
     return subscription
 
 
-async def delete_webpush_subscription(endpoint: str, user: str) -> None:
-    await db.execute(
+async def delete_webpush_subscription(endpoint: str, user: str) -> int:
+    resp = await db.execute(
         """DELETE FROM webpush_subscriptions WHERE endpoint = ? AND "user" = ?""",
         (
             endpoint,
             user,
         ),
     )
+    return resp.rowcount
 
 
-async def delete_webpush_subscriptions(endpoint: str) -> None:
-    await db.execute(
+async def delete_webpush_subscriptions(endpoint: str) -> int:
+    resp = await db.execute(
         "DELETE FROM webpush_subscriptions WHERE endpoint = ?", (endpoint,)
     )
+    return resp.rowcount
