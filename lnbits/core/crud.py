@@ -530,6 +530,8 @@ async def get_user_active_extensions_ids(
         (user_id,),
     )
     return [e[0] for e in rows]
+
+
 async def update_user_extension_extra(
     user_id: str,
     extension: str,

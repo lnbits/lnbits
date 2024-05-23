@@ -220,9 +220,7 @@ async def api_activate_extension(ext_id: str):
             # run extension start-up routine
             core_app_extra.register_new_ext_routes(ext)
 
-        settings.lnbits_deactivated_extensions = [
-            e for e in settings.lnbits_deactivated_extensions if e != ext_id
-        ]
+        settings.lnbits_deactivated_extensions.remove(ext_id)
 
         await update_installed_extension_state(ext_id=ext_id, active=True)
         return {"success": True}
@@ -243,7 +241,7 @@ async def api_deactivate_extension(ext_id: str):
         ext = next((e for e in all_extensions if e.code == ext_id), None)
         assert ext, f"Extension '{ext_id}' doesn't exist."
 
-        settings.lnbits_deactivated_extensions.append(ext_id)
+        settings.lnbits_deactivated_extensions.add(ext_id)
 
         await update_installed_extension_state(ext_id=ext_id, active=False)
         return {"success": True}
