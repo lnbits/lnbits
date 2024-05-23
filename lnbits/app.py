@@ -49,6 +49,7 @@ from .core.views.extension_api import add_installed_extension
 from .extension_manager import (
     Extension,
     InstallableExtension,
+    get_valid_extensions,
     version_parse,
 )
 from .middleware import (
@@ -95,7 +96,7 @@ async def startup(app: FastAPI):
     # check extensions after restart
     if not settings.lnbits_extensions_deactivate_all:
         await check_installed_extensions(app)
-        await register_all_ext_routes(app)
+        register_all_ext_routes(app)
 
     # initialize tasks
     register_async_tasks()
@@ -398,10 +399,10 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     app.include_router(router=ext_route, prefix=prefix)
 
 
-async def register_all_ext_routes(app: FastAPI):
-    for ext in await get_installed_extensions(active=True):
+def register_all_ext_routes(app: FastAPI):
+    for ext in get_valid_extensions(False):
         try:
-            register_ext_routes(app, Extension.from_installable_ext(ext))
+            register_ext_routes(app, ext)
         except Exception as e:
             logger.error(f"Could not load extension `{ext.id}`: {e!s}")
 
