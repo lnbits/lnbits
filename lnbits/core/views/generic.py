@@ -76,9 +76,7 @@ async def robots():
 )
 async def extensions_install(
     request: Request,
-    user: User = Depends(check_user_exists),
-    activate: str = Query(None),
-    deactivate: str = Query(None),
+    user: User = Depends(check_user_exists)
 ):
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
@@ -110,25 +108,7 @@ async def extensions_install(
         installed_exts_ids = []
 
     try:
-        ext_id = activate or deactivate
-        all_extensions = get_valid_extensions()
-        ext = next((e for e in all_extensions if e.code == ext_id), None)
-        if ext_id and user.admin:
-            if deactivate:
-                settings.lnbits_deactivated_extensions.add(deactivate)
-            elif activate:
-                # if extension never loaded (was deactivated on server startup)
-                if ext_id not in sys.modules.keys():
-                    # run extension start-up routine
-                    core_app_extra.register_new_ext_routes(ext)
-
-                settings.lnbits_deactivated_extensions.remove(activate)
-
-            await update_installed_extension_state(
-                ext_id=ext_id, active=activate is not None
-            )
-
-        all_ext_ids = [ext.code for ext in all_extensions]
+        all_ext_ids = [ext.code for ext in get_valid_extensions()]
         inactive_extensions = [
             e.id for e in await get_installed_extensions(active=False)
         ]
