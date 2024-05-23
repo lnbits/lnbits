@@ -200,7 +200,7 @@ async def wallet(
     user_wallet = user.get_wallet(wallet_id)
     if not user_wallet or user_wallet.deleted:
         return template_renderer().TemplateResponse(
-            request, "error.html", {"err": "Wallet not found"}
+            request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
         )
 
     resp = template_renderer().TemplateResponse(
