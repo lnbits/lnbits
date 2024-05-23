@@ -1,4 +1,3 @@
-import sys
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, List, Optional, Union
@@ -11,7 +10,6 @@ from fastapi.routing import APIRouter
 from loguru import logger
 from pydantic.types import UUID4
 
-from lnbits.core.db import core_app_extra
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
@@ -26,7 +24,6 @@ from ..crud import (
     get_dbversions,
     get_installed_extensions,
     get_user,
-    update_installed_extension_state,
 )
 
 generic_router = APIRouter(
@@ -74,10 +71,7 @@ async def robots():
 @generic_router.get(
     "/extensions", name="install.extensions", response_class=HTMLResponse
 )
-async def extensions_install(
-    request: Request,
-    user: User = Depends(check_user_exists)
-):
+async def extensions_install(request: Request, user: User = Depends(check_user_exists)):
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
