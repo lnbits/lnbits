@@ -126,26 +126,6 @@
               <q-separator></q-separator>
 
               <q-list>
-                {% if wallet.lnurlwithdraw_full %}
-                <q-expansion-item
-                  group="extras"
-                  icon="crop_free"
-                  :label="$t('drain_funds')"
-                >
-                  <q-card>
-                    <q-card-section class="text-center">
-                      <a href="lightning:{{wallet.lnurlwithdraw_full}}">
-                        <lnbits-qrcode
-                          :value="lightning:{{wallet.lnurlwithdraw_full}}"
-                        ></lnbits-qrcode>
-                      </a>
-                      <p v-text="$t('drain_funds_desc')"></p>
-                    </q-card-section>
-                  </q-card>
-                </q-expansion-item>
-                <q-separator></q-separator>
-                {% endif %}
-
                 <q-expansion-item
                   group="extras"
                   icon="settings_cell"
@@ -439,7 +419,7 @@
           <div v-else-if="parse.lnurlauth">
             <q-form @submit="authLnurl" class="q-gutter-md">
               <p class="q-my-none text-h6">
-                Authenticate with <b v-text="parse.lnurlauth.domain"></b>?
+                Authenticate with <b v-text="parse.domain"></b>?
               </p>
               <q-separator class="q-my-sm"></q-separator>
               <p>
@@ -449,9 +429,7 @@
                 data will be shared with
                 <span v-text="parse.lnurlauth.domain"></span>.
               </p>
-              <p>
-                Your public key for <b v-text="parse.lnurlauth.domain"></b> is:
-              </p>
+              <p>Your public key for <b v-text="parse.domain"></b> is:</p>
               <p class="q-mx-xl">
                 <code class="text-wrap" v-text="parse.lnurlauth.pubkey"></code>
               </p>
