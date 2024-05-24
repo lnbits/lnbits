@@ -110,6 +110,7 @@ async def api_install_extension(
         core_app_extra.register_new_ext_routes(extension)
 
         ext_info.notify_upgrade(extension.upgrade_hash)
+        settings.lnbits_deactivated_extensions.discard(data.ext_id)
 
         return extension
     except AssertionError as exc:
@@ -221,7 +222,7 @@ async def api_activate_extension(ext_id: str):
             # run extension start-up routine
             core_app_extra.register_new_ext_routes(ext)
 
-        settings.lnbits_deactivated_extensions.remove(ext_id)
+        settings.lnbits_deactivated_extensions.discard(ext_id)
 
         await update_installed_extension_state(ext_id=ext_id, active=True)
         return {"success": True}
