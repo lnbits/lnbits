@@ -19,8 +19,6 @@ from lnbits.core.models import (
 )
 from lnbits.decorators import (
     check_user_exists,
-    require_admin_key,
-    require_invoice_key,
 )
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
