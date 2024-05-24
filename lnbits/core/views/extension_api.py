@@ -265,7 +265,7 @@ async def api_uninstall_extension(
     extensions = [e for e in installed_extensions if e.id == ext_id]
     if len(extensions) == 0:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
+            status_code=HTTPStatus.NOT_FOUND,
             detail=f"Unknown extension id: {ext_id}",
         )
 
