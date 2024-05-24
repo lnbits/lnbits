@@ -103,10 +103,11 @@ class PhoenixdWallet(Wallet):
                 desc = memo
                 if desc is None and unhashed_description:
                     desc = unhashed_description.decode()
-                desc = "" if desc is None else desc
+                desc = desc or ""
                 if len(desc) > 128:
-                    desc = hashlib.sha256(desc.encode("utf-8")).hexdigest()
-                data["description"] = desc
+                    data["descriptionHash"] = hashlib.sha256(desc.encode("utf-8")).hexdigest()
+                else:
+                    data["description"] = desc
 
             r = await self.client.post(
                 "/createinvoice",
