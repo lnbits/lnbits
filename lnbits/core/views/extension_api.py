@@ -126,11 +126,20 @@ async def api_install_extension(
         ) from exc
 
 
-@extension_router.put("/{ext_id}/sell", dependencies=[Depends(check_admin)])
-async def api_update_pay_to_enable(ext_id: str, data: PayToEnableInfo):
+@extension_router.put("/{ext_id}/sell")
+async def api_update_pay_to_enable(
+    ext_id: str,
+    data: PayToEnableInfo,
+    user: User = Depends(check_admin),
+):
     try:
+        assert (
+            data.wallet in user.wallet_ids
+        ), "Wallet does not belong to this admin user."
         await update_extension_pay_to_enable(ext_id, data)
         return {"success": True}
+    except AssertionError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
     except Exception as exc:
         logger.warning(exc)
         raise HTTPException(
@@ -143,7 +152,7 @@ async def api_update_pay_to_enable(ext_id: str, data: PayToEnableInfo):
 async def api_enable_extension(ext_id: str, user: User = Depends(check_user_exists)):
     if ext_id not in [e.code for e in get_valid_extensions()]:
         raise HTTPException(
-            HTTPStatus.BAD_REQUEST, f"Extension '{ext_id}' doesn't exist."
+            HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' doesn't exist."
         )
     try:
         logger.info(f"Enabling extension: {ext_id}.")
