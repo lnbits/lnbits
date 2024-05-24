@@ -105,7 +105,6 @@ async def api_install_extension(
             # call stop while the old routes are still active
             await stop_extension_background_work(data.ext_id, user.id, access_token)
 
-
         # mount routes for the new version
         core_app_extra.register_new_ext_routes(extension)
 
