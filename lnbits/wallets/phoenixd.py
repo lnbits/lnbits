@@ -105,7 +105,7 @@ class PhoenixdWallet(Wallet):
                     desc = unhashed_description.decode()
                 desc = desc or ""
                 if len(desc) > 128:
-                    data["descriptionHash"] = hashlib.sha256(desc.encode("utf-8")).hexdigest()
+                    data["descriptionHash"] = hashlib.sha256(desc.encode()).hexdigest()
                 else:
                     data["description"] = desc
 
