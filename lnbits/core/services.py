@@ -48,7 +48,6 @@ from .crud import (
     create_admin_settings,
     create_payment,
     create_wallet,
-    delete_wallet_payment,
     get_account,
     get_payments,
     get_standalone_payment,
@@ -347,8 +346,7 @@ async def pay_invoice(
                 f" {payment.checking_id})"
             )
 
-        logger.debug(f"backend: pay_invoice finished {temp_id}")
-        logger.debug(f"backend: pay_invoice response {payment}")
+        logger.debug(f"backend: pay_invoice finished {temp_id}, {payment}")
         if payment.checking_id and payment.ok is not False:
             # payment.ok can be True (paid) or None (pending)!
             logger.debug(f"updating payment {temp_id}")
@@ -377,10 +375,12 @@ async def pay_invoice(
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
             # payment failed
-            logger.warning("backend sent payment failure")
             async with db.connect() as conn:
-                logger.debug(f"deleting temporary payment {temp_id}")
-                await delete_wallet_payment(temp_id, wallet_id, conn=conn)
+                await update_payment_status(
+                    checking_id=temp_id,
+                    status=PaymentState.FAILED,
+                    conn=conn,
+                )
             raise PaymentError(
                 f"Payment failed: {payment.error_message}"
                 or "Payment failed, but backend didn't give us an error message.",
