@@ -206,6 +206,9 @@ class PaymentState(str, Enum):
     SUCCESS = "success"
     FAILED = "failed"
 
+    def __str__(self) -> str:
+        return self.value
+
 
 class Payment(FromRowModel):
     status: str

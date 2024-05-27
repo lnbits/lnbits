@@ -780,7 +780,7 @@ async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: in
     rows = await db.fetchall(
         f"""
         SELECT * FROM apipayments
-        WHERE status = 'success'
+        WHERE status = '{PaymentState.SUCCESS}'
         AND extra LIKE ?
         AND extra LIKE ?
         ORDER BY time DESC LIMIT {limit}
@@ -824,9 +824,11 @@ async def get_payments_paginated(
     if complete and pending:
         pass
     elif complete:
-        clause.append("((amount > 0 AND status NOT 'pending') OR amount < 0)")
+        clause.append(
+            f"((amount > 0 AND status NOT '{PaymentState.PENDING}') OR amount < 0)"
+        )
     elif pending:
-        clause.append("status = 'pending'")
+        clause.append(f"status = '{PaymentState.PENDING}'")
     else:
         pass
 
@@ -899,7 +901,7 @@ async def delete_expired_invoices(
     await (conn or db).execute(
         f"""
         DELETE FROM apipayments
-        WHERE status = 'pending' AND amount > 0
+        WHERE status = '{PaymentState.PENDING}' AND amount > 0
           AND time < {db.timestamp_now} - {db.interval_seconds(2592000)}
         """
     )
@@ -907,7 +909,7 @@ async def delete_expired_invoices(
     await (conn or db).execute(
         f"""
         DELETE FROM apipayments
-        WHERE status = 'pending' AND amount > 0
+        WHERE status = '{PaymentState.PENDING}' AND amount > 0
           AND expiry < {db.timestamp_now}
         """
     )
@@ -1057,7 +1059,7 @@ async def get_payments_history(
 ) -> List[PaymentHistoryPoint]:
     if not filters:
         filters = Filters()
-    where = ["(status = 'success' OR amount < 0)"]
+    where = [f"(status = '{PaymentState.SUCCESS}' OR amount < 0)"]
     values = []
     if wallet_id:
         where.append("wallet = ?")
@@ -1122,9 +1124,9 @@ async def check_internal(
     otherwise None
     """
     row = await (conn or db).fetchone(
-        """
+        f"""
         SELECT checking_id FROM apipayments
-        WHERE hash = ? AND status = 'pending' AND amount > 0
+        WHERE hash = ? AND status = '{PaymentState.PENDING}' AND amount > 0
         """,
         (payment_hash,),
     )
