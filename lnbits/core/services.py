@@ -402,7 +402,7 @@ async def pay_invoice(
             checking_id="service_fee" + temp_id,
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
-            pending=False,
+            status=PaymentState.SUCCESS,
         )
     return invoice.payment_hash
 
