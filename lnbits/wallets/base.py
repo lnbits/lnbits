@@ -3,8 +3,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional
 
-from pydantic import BaseModel
-
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
 
@@ -54,9 +52,8 @@ class PaymentResponse(NamedTuple):
         return self.ok is False
 
 
-class PaymentStatus(BaseModel):
-    pending: bool = True
-    paid: bool = False
+class PaymentStatus(NamedTuple):
+    paid: Optional[bool] = None
     fee_msat: Optional[int] = None
     preimage: Optional[str] = None
 
@@ -65,8 +62,12 @@ class PaymentStatus(BaseModel):
         return self.paid is True
 
     @property
+    def pending(self) -> bool:
+        return self.paid is not True
+
+    @property
     def failed(self) -> bool:
-        return self.pending is False and self.paid is False
+        return self.paid is False
 
     def __str__(self) -> str:
         if self.success:
@@ -78,16 +79,14 @@ class PaymentStatus(BaseModel):
 
 class PaymentSuccessStatus(PaymentStatus):
     paid = True
-    pending = False
 
 
 class PaymentFailedStatus(PaymentStatus):
     paid = False
-    pending = False
 
 
 class PaymentPendingStatus(PaymentStatus):
-    pending = True
+    paid = None
 
 
 class Wallet(ABC):
