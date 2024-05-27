@@ -68,10 +68,8 @@ async def robots():
     return HTMLResponse(content=data, media_type="text/plain")
 
 
-@generic_router.get(
-    "/extensions", name="install.extensions", response_class=HTMLResponse
-)
-async def extensions_install(request: Request, user: User = Depends(check_user_exists)):
+@generic_router.get("/extensions", name="extensions", response_class=HTMLResponse)
+async def extensions(request: Request, user: User = Depends(check_user_exists)):
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
@@ -128,6 +126,7 @@ async def extensions_install(request: Request, user: User = Depends(check_user_e
                     dict(ext.installed_release) if ext.installed_release else None
                 ),
                 "payToEnable": (dict(ext.pay_to_enable) if ext.pay_to_enable else {}),
+                "isPaymentRequired": ext.requires_payment,
             }
             for ext in installable_exts
         ]
