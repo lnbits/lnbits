@@ -91,7 +91,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     await asyncio.sleep(1)
     pay_real_invoice(invoice["payment_request"])
     await asyncio.wait_for(task, timeout=10)
-
+    await asyncio.sleep(1)
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
     )
