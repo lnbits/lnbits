@@ -380,7 +380,7 @@ async def get_pay_to_install_invoice(
         ), f"Wrong invoice amount: {invoice_amount}."
         assert (
             payment_info.payment_hash == invoice.payment_hash
-        ), "Wroong invoice payment hash."
+        ), "Wrong invoice payment hash."
 
         return payment_info
 
