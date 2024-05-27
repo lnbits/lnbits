@@ -519,7 +519,4 @@ async def m020_add_column_column_to_user_extensions(db):
     """
     Adds extra column to user extensions.
     """
-    try:
-        await db.execute("ALTER TABLE extensions ADD COLUMN extra TEXT")
-    except OperationalError:
-        pass
+    await db.execute("ALTER TABLE extensions ADD COLUMN extra TEXT")
