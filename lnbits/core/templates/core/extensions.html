@@ -202,7 +202,7 @@
               flat
               color="primary"
               @click="enableExtensionForUser(extension)"
-              :label="$t(extension.isPaymentRequired? 'pay_to_enable': 'enable')"
+              :label="$t(extension.isPaymentRequired ? 'pay_to_enable': 'enable')"
             >
               <q-tooltip>
                 <span v-text="$t('enable_extension_details')">
