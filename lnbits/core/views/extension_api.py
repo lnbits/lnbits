@@ -68,7 +68,7 @@ async def api_install_extension(
     data: CreateExtension,
     user: User = Depends(check_admin),
     access_token: Optional[str] = Depends(check_access_token),
-) -> Extension:
+):
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive, data.version
     )
