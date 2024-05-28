@@ -159,6 +159,7 @@ async def create_invoice(
     ) = await funding_source.create_invoice(
         amount=amount_sat,
         memo=invoice_memo,
+        label_prefix = "LNbits " + wallet_id + " ",
         description_hash=description_hash,
         unhashed_description=unhashed_description,
         expiry=expiry or settings.lightning_invoice_expiry,
@@ -314,6 +315,7 @@ async def pay_invoice(
                 )
             raise PaymentError("Insufficient balance.", status="failed")
 
+    internal_checking_id=False
     if internal_checking_id:
         service_fee_msat = service_fee(invoice.amount_msat, internal=True)
         logger.debug(f"marking temporary payment as not pending {internal_checking_id}")
@@ -338,7 +340,9 @@ async def pay_invoice(
         # actually pay the external invoice
         funding_source = get_funding_source()
         payment: PaymentResponse = await funding_source.pay_invoice(
-            payment_request, fee_reserve_msat
+            bolt11=payment_request,
+            fee_limit_msat=fee_reserve_msat,
+            label_prefix = "LNbits " + wallet_id + " ",
         )
 
         if payment.checking_id and payment.checking_id != temp_id:
