@@ -88,7 +88,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         assert found_checking_id
 
     async def pay():
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
         pay_real_invoice(invoice["payment_request"])
 
     await asyncio.gather(listen(), pay())
@@ -304,7 +304,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         assert found_checking_id
 
     async def pay():
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
         pay_real_invoice(invoice["payment_request"])
 
     await asyncio.gather(listen(), pay())
