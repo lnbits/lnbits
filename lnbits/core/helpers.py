@@ -77,7 +77,9 @@ async def _stop_extension_background_work(ext_id) -> bool:
         stop_fn_name = next((fn for fn in stop_fns if hasattr(old_module, fn)), None)
         assert stop_fn_name, "No stop function found for '{ext.module_name}'"
 
-        await getattr(old_module, stop_fn_name)()
+        stop_fn = getattr(old_module, stop_fn_name)
+        if stop_fn:
+            await stop_fn()
 
         logger.info(f"Stopped background work for extension '{ext.module_name}'.")
     except Exception as ex:

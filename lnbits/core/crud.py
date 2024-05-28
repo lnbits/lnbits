@@ -9,7 +9,12 @@ from passlib.context import CryptContext
 
 from lnbits.core.db import db
 from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
-from lnbits.extension_manager import InstallableExtension
+from lnbits.extension_manager import (
+    InstallableExtension,
+    PayToEnableInfo,
+    UserExtension,
+    UserExtensionInfo,
+)
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,
@@ -364,6 +369,7 @@ async def add_installed_extension(
         "installed_release": (
             dict(ext.installed_release) if ext.installed_release else None
         ),
+        "pay_to_enable": (dict(ext.pay_to_enable) if ext.pay_to_enable else None),
         "dependencies": ext.dependencies,
         "payments": [dict(p) for p in ext.payments] if ext.payments else None,
     }
@@ -373,8 +379,8 @@ async def add_installed_extension(
     await (conn or db).execute(
         """
         INSERT INTO installed_extensions
-        (id, version, name, short_description, icon, stars, meta)
-        VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET
+        (id, version, name, active, short_description, icon, stars, meta)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET
         (version, name, active, short_description, icon, stars, meta) =
         (?, ?, ?, ?, ?, ?, ?)
         """,
@@ -382,13 +388,14 @@ async def add_installed_extension(
             ext.id,
             version,
             ext.name,
+            ext.active,
             ext.short_description,
             ext.icon,
             ext.stars,
             json.dumps(meta),
             version,
             ext.name,
-            False,
+            ext.active,
             ext.short_description,
             ext.icon,
             ext.stars,
@@ -406,6 +413,17 @@ async def update_installed_extension_state(
         """,
         (active, ext_id),
     )
+
+
+async def update_extension_pay_to_enable(
+    ext_id: str, payment_info: PayToEnableInfo, conn: Optional[Connection] = None
+) -> None:
+    ext = await get_installed_extension(ext_id, conn)
+    if not ext:
+        return
+    ext.pay_to_enable = payment_info
+
+    await add_installed_extension(ext, conn)
 
 
 async def delete_installed_extension(
@@ -450,21 +468,44 @@ async def get_installed_extension(
 
 
 async def get_installed_extensions(
+    active: Optional[bool] = None,
     conn: Optional[Connection] = None,
 ) -> List["InstallableExtension"]:
     rows = await (conn or db).fetchall(
         "SELECT * FROM installed_extensions",
         (),
     )
-    return [InstallableExtension.from_row(row) for row in rows]
+    all_extensions = [InstallableExtension.from_row(row) for row in rows]
+    if active is None:
+        return all_extensions
+
+    return [e for e in all_extensions if e.active == active]
 
 
-async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[str]:
-    inactive_extensions = await (conn or db).fetchall(
-        """SELECT id FROM installed_extensions WHERE NOT active""",
-        (),
+async def get_user_extension(
+    user_id: str, extension: str, conn: Optional[Connection] = None
+) -> Optional[UserExtension]:
+    row = await (conn or db).fetchone(
+        """
+            SELECT extension, active, extra as _extra FROM extensions
+            WHERE "user" = ? AND extension = ?
+        """,
+        (user_id, extension),
     )
-    return [ext[0] for ext in inactive_extensions]
+    return UserExtension.from_row(row) if row else None
+
+
+async def get_user_extensions(
+    user_id: str, conn: Optional[Connection] = None
+) -> List[UserExtension]:
+    rows = await (conn or db).fetchall(
+        """
+            SELECT extension, active, extra as _extra FROM extensions
+            WHERE "user" = ?
+        """,
+        (user_id,),
+    )
+    return [UserExtension.from_row(row) for row in rows]
 
 
 async def update_user_extension(
@@ -487,6 +528,22 @@ async def get_user_active_extensions_ids(
         (user_id,),
     )
     return [e[0] for e in rows]
+
+
+async def update_user_extension_extra(
+    user_id: str,
+    extension: str,
+    extra: UserExtensionInfo,
+    conn: Optional[Connection] = None,
+) -> None:
+    extra_json = json.dumps(dict(extra))
+    await (conn or db).execute(
+        """
+        INSERT INTO extensions ("user", extension, extra) VALUES (?, ?, ?)
+        ON CONFLICT ("user", extension) DO UPDATE SET extra = ?
+        """,
+        (user_id, extension, extra_json, extra_json),
+    )
 
 
 # wallets
