@@ -7,7 +7,7 @@ from .views.auth_api import auth_router
 from .views.extension_api import extension_router
 
 # this compat is needed for usermanager extension
-from .views.generic import generic_router, update_user_extension
+from .views.generic import generic_router
 from .views.node_api import node_router, public_node_router, super_node_router
 from .views.payment_api import payment_router
 from .views.public_api import public_router

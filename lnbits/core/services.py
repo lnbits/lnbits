@@ -651,13 +651,17 @@ def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
 
 async def send_payment_notification(wallet: Wallet, payment: Payment):
     await websocket_updater(
-        wallet.id,
+        wallet.inkey,
         json.dumps(
             {
                 "wallet_balance": wallet.balance,
                 "payment": payment.dict(),
             }
         ),
+    )
+
+    await websocket_updater(
+        payment.payment_hash, json.dumps({"pending": payment.pending})
     )
 
 
