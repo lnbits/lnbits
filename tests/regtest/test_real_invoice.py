@@ -87,11 +87,12 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
                 return
         assert found_checking_id
 
-    task = asyncio.create_task(listen())
+    async def pay():
+        await asyncio.sleep(1)
+        pay_real_invoice(invoice["payment_request"])
+
+    await asyncio.gather(listen(), pay())
     await asyncio.sleep(1)
-    pay_real_invoice(invoice["payment_request"])
-    await asyncio.wait_for(task, timeout=10)
-    await asyncio.sleep(2)
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
     )
@@ -302,11 +303,12 @@ async def test_receive_real_invoice_set_pending_and_check_state(
                 return
         assert found_checking_id
 
-    task = asyncio.create_task(listen())
+    async def pay():
+        await asyncio.sleep(1)
+        pay_real_invoice(invoice["payment_request"])
+
+    await asyncio.gather(listen(), pay())
     await asyncio.sleep(1)
-    pay_real_invoice(invoice["payment_request"])
-    await asyncio.wait_for(task, timeout=10)
-    await asyncio.sleep(2)
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
     )
