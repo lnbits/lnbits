@@ -142,19 +142,22 @@ class CLNRestWallet(Wallet):
         if settings.clnrest_pay_rune and settings.clnrest_renepay_rune:
             raise ValueError( "Cannot initialize CLNRestWallet: both CLNREST_PAY_RUNE and CLNREST_RENEPAY_RUNE are set. Only one should be set.")
         elif not settings.clnrest_pay_rune and not settings.clnrest_renepay_rune:
-            raise ValueError(
-                    "Cannot initialize CLNRestWallet: missing either 'CLNREST_PAY_RUNE' or 'CLNREST_RENEPAY_RUNE'. Please create one with one of the following commands:\n"
+            self.payment_endpoint = None
+            logger.warning (
+                    "Will be unable to pay any invoices without either setings either 'CLNREST_PAY_RUNE' or 'CLNREST_RENEPAY_RUNE'. Please create one with one of the following commands:\n"
                     """   lightning-cli createrune restrictions='[["method=pay"],     ["pinvbolt11_amount<1001"], ["pname_label^LNbits"], ["rate=1"]]' \n"""
                     """   lightning-cli createrune restrictions='[["method=renepay"], ["pinvbolt11_amount<1001"], ["pname_label^LNbits"], ["rate=1"]]' """
                     )
         elif settings.clnrest_pay_rune:
-            self.use_renepay = False
+            self.payment_endpoint="v1/pay"
             logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
             logger.debug((decode_rune(settings.clnrest_pay_rune)))
         elif settings.clnrest_renepay_rune:
-            self.use_renepay = True
+            self.payment_endpoint="v1/renepay"
             logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_renepay_rune}:")
             logger.debug((decode_rune(settings.clnrest_renepay_rune)))
+        else:
+            self.payment_endpoint = None
 
         self.url = self.normalize_endpoint(settings.clnrest_url)
 
@@ -167,10 +170,14 @@ class CLNRestWallet(Wallet):
         
         self.readonly_headers = {**base_headers, "rune": settings.clnrest_readonly_rune}
         self.invoice_headers = {**base_headers, "rune": settings.clnrest_invoice_rune}
-        if self.use_renepay:
-            self.renepay_headers = {**base_headers, "rune": settings.clnrest_renepay_rune}
-        else:
+
+        #todo: consider moving this somewhere else
+        if settings.clnrest_renepay_rune:
+            self.pay_headers = {**base_headers, "rune": settings.clnrest_renepay_rune}
+        elif settings.clnrest_pay_rune:
             self.pay_headers = {**base_headers, "rune": settings.clnrest_pay_rune}
+        else:
+            self.pay_headers = None
 
         # https://docs.corelightning.org/reference/lightning-pay
         # 201: Already paid
@@ -250,13 +257,14 @@ class CLNRestWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        label_prefix: Optional[str] = "LNbits ",
         **kwargs,
     ) -> InvoiceResponse:
 
         #TODO: the identifier could be used to encode the LNBits user or the LNBits wallet that is creating the invoice
 
-        identifier = base58.b58encode(hashlib.sha256(settings.clnrest_invoice_rune.encode('utf-8')).digest()[:16]).decode('utf-8').rstrip('=')
-        label = "LNbits " + identifier + ' ' + base58.b58encode(uuid.uuid4().bytes).rstrip(b'=').decode('utf-8')
+        identifier = base58.b58encode(hashlib.sha256(str(self.invoice_headers).encode('utf-8')).digest()[:16]).decode('utf-8').rstrip('=')
+        label = label_prefix + identifier + ' ' + base58.b58encode(uuid.uuid4().bytes).rstrip(b'=').decode('utf-8')
 
         data: Dict = {
             "amount_msat": amount * 1000,
@@ -316,7 +324,12 @@ class CLNRestWallet(Wallet):
                 False, None, None, f"Unable to connect to {self.url}."
             )
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(
+            self,
+            bolt11: str,
+            fee_limit_msat: int,
+            label_prefix: Optional[str] = "LNbits ",
+            ) -> PaymentResponse:
         #todo: rune restrictions will not be enforced for internal payments within the lnbits instance as they are not routed through to core lightning
         try:
             invoice = decode(bolt11)
@@ -332,12 +345,10 @@ class CLNRestWallet(Wallet):
             return PaymentResponse(False, None, None, None, error_message)
 
         #TODO: the identifier could be used to encode the LNBits user or the LNBits wallet that is pay the invoice
-        identifier = base58.b58encode(hashlib.sha256(settings.clnrest_pay_rune.encode('utf-8')).digest()[:16]).decode('utf-8').rstrip('=')
-        label = "LNbits " + identifier + ' ' + base58.b58encode(uuid.uuid4().bytes).rstrip(b'=').decode('utf-8')
+        identifier = base58.b58encode(hashlib.sha256(str(self.pay_headers).encode('utf-8')).digest()[:16]).decode('utf-8').rstrip('=')
+        label = label_prefix + identifier + ' ' + base58.b58encode(uuid.uuid4().bytes).rstrip(b'=').decode('utf-8')
 
-        if self.use_renepay:
-            pay_or_renepay_headers = self.renepay_headers
-            api_endpoint = "/v1/renepay"
+        if (self.payment_endpoint == "v1/renepay"):
             maxfee = fee_limit_msat
             maxdelay = 300
             data = {
@@ -350,9 +361,7 @@ class CLNRestWallet(Wallet):
                 #"amount_msat": invoice.amount_msat,
                 #"maxdelay": maxdelay,
                 # Add other necessary parameters like retry_for, description, label as required
-        else:
-            pay_or_renepay_headers = self.pay_headers
-            api_endpoint = "/v1/pay"
+        elif (self.payment_endpoint == "v1/pay"):
             fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
             data = {
                 "bolt11": bolt11,
@@ -362,13 +371,15 @@ class CLNRestWallet(Wallet):
                 "exemptfee": 0,  # so fee_limit_percent is applied even on payments
                 # with fee < 5000 millisatoshi (which is default value of exemptfee)
             }
+        else:
+            return PaymentResponse(False, None, None, None, "No payments are possible without a valid renepay or pay rune")
 
-        logger.debug(f"REQUEST to {api_endpoint}: {json.dumps(data)}")
+        logger.debug(f"REQUEST to {self.payment_endpoint}: {json.dumps(data)}")
 
         r = await self.client.post(
-            api_endpoint,
+            self.payment_endpoint,
             json=data,
-            headers=pay_or_renepay_headers,
+            headers=self.pay_headers,
             timeout=None,
         )
 
@@ -444,24 +455,26 @@ class CLNRestWallet(Wallet):
             data = r.json()
             logger.debug(data)
 
-            if r.is_error or "error" in data or not data.get("pays"):
-                logger.error(f"RESPONSE with error: {data}")
-                raise Exception("error in corelightning-rest response")
-
+            if r.is_error or "error" in data:
+                logger.error(f"API response error: {data}")
+                raise Exception("Error in corelightning-rest response")
 
             pays_list = data.get("pays", [])
+            if not pays_list:
+                logger.debug(f"No payments found for payment hash {checking_id}. Payment is pending.")
+                return PaymentStatus(self.statuses.get("pending"))
+
             if len(pays_list) != 1:
                 error_message = f"Expected one payment status, but found {len(pays_list)}"
                 logger.error(error_message)
                 raise Exception(error_message)
 
             pay = pays_list[0]
-
             logger.debug(f"Payment status from API: {pay['status']}")
 
             fee_msat, preimage = None, None
             if pay['status'] == 'complete':
-                fee_msat = -pay["amount_sent_msat"] - pay["amount_msat"]
+                fee_msat = pay["amount_sent_msat"] - pay["amount_msat"]
                 preimage = pay["preimage"]
 
             return PaymentStatus(self.statuses.get(pay["status"]), fee_msat, preimage)
