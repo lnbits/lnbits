@@ -212,6 +212,7 @@ class PaymentState(str, Enum):
 
 class Payment(FromRowModel):
     status: str
+    pending: bool
     checking_id: str
     amount: int
     fee: int
@@ -234,10 +235,6 @@ class Payment(FromRowModel):
     def failed(self) -> bool:
         return self.status == PaymentState.FAILED.value
 
-    @property
-    def pending(self) -> bool:
-        return self.status == PaymentState.PENDING.value
-
     @classmethod
     def from_row(cls, row: Row):
         return cls(
@@ -246,7 +243,8 @@ class Payment(FromRowModel):
             bolt11=row["bolt11"] or "",
             preimage=row["preimage"] or "0" * 64,
             extra=json.loads(row["extra"] or "{}"),
-pending=row["status"] == PaymentState.PENDING.value,
+            status=row["status"],
+            pending=row["status"] == PaymentState.PENDING.value,
             amount=row["amount"],
             fee=row["fee"],
             memo=row["memo"],
