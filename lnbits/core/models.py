@@ -212,6 +212,7 @@ class PaymentState(str, Enum):
 
 class Payment(FromRowModel):
     status: str
+    # TODO should be removed in the future, backward compatibility
     pending: bool
     checking_id: str
     amount: int
@@ -244,6 +245,7 @@ class Payment(FromRowModel):
             preimage=row["preimage"] or "0" * 64,
             extra=json.loads(row["extra"] or "{}"),
             status=row["status"],
+            # TODO should be removed in the future, backward compatibility
             pending=row["status"] == PaymentState.PENDING.value,
             amount=row["amount"],
             fee=row["fee"],
