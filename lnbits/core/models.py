@@ -246,7 +246,7 @@ class Payment(FromRowModel):
             bolt11=row["bolt11"] or "",
             preimage=row["preimage"] or "0" * 64,
             extra=json.loads(row["extra"] or "{}"),
-            status=row["status"],
+pending=row["status"] == PaymentState.PENDING.value,
             amount=row["amount"],
             fee=row["fee"],
             memo=row["memo"],
