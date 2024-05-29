@@ -52,6 +52,9 @@ class Rune:
         self.binary_part, self.text_part = self._decode_rune()
         self.id, self.text_parts = self._parse_text_part()
 
+    def __str__(self):
+        return self.encoded_rune
+
     def _decode_rune(self):
         padding = '=' * (-len(self.encoded_rune) % 4)
         encoded_rune_padded = self.encoded_rune + padding
@@ -198,16 +201,18 @@ class CLNRestWallet(Wallet):
             self.payment_endpoint="v1/pay"
             logger.debug(f"TODO: sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
             pay_rune=Rune(settings.clnrest_pay_rune)
+            logger.debug(pay_rune)
+            logger.debug(json.dumps(pay_rune.to_dict()))
         elif settings.clnrest_renepay_rune:
             self.payment_endpoint="v1/renepay"
             logger.debug(f"TODO: make sure that it has the correct permissions: {settings.clnrest_renepay_rune}:")
             pay_rune=Rune(settings.clnrest_renepay_rune)
+            logger.debug(pay_rune)
+            logger.debug(json.dumps(pay_rune.to_dict()))
         else:
             self.payment_endpoint = None
             pay_rune = None
 
-        logger.debug(pay_rune)
-        logger.debug(json.dumps(pay_rune.to_dict()))
 
         self.url = self.normalize_endpoint(settings.clnrest_url)
 
@@ -219,7 +224,11 @@ class CLNRestWallet(Wallet):
         }
         
         self.readonly_headers = {**base_headers, "rune": settings.clnrest_readonly_rune}
-        self.invoice_headers = {**base_headers, "rune": settings.clnrest_invoice_rune}
+
+        if invoice_rune:
+            self.invoice_headers = {**base_headers, "rune": settings.clnrest_invoice_rune}
+        else:
+            self.invoice_headers = None
 
         #todo: consider moving this somewhere else
         if settings.clnrest_renepay_rune:
@@ -311,8 +320,9 @@ class CLNRestWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
 
-        if not self.invoice_endpoint:
-            return InvoiceResponse( False, None, None, "Unable to invoice without an invoice rune/endpoint")
+        #todo: try to load the wallet specific invoice rune here instead of from self.invoice_headers
+        if not self.invoice_headers:
+            return InvoiceResponse( False, None, None, "Unable to invoice without a valid invoice rune")
 
         #TODO: the identifier could be used to encode the LNBits user or the LNBits wallet that is creating the invoice
 
@@ -384,6 +394,10 @@ class CLNRestWallet(Wallet):
             label_prefix: Optional[str] = "LNbits ",
             ) -> PaymentResponse:
         #todo: rune restrictions will not be enforced for internal payments within the lnbits instance as they are not routed through to core lightning
+
+        if not self.pay_headers:
+            return InvoiceResponse( False, None, None, "Unable to invoice without a valid rune")
+
         try:
             invoice = decode(bolt11)
             logger.debug(invoice)
@@ -425,7 +439,7 @@ class CLNRestWallet(Wallet):
                 # with fee < 5000 millisatoshi (which is default value of exemptfee)
             }
         else:
-            return PaymentResponse(False, None, None, None, "No payments are possible without a valid renepay or pay rune")
+            raise Error ("this should never happen")
 
         logger.debug(f"REQUEST to {self.payment_endpoint}: {json.dumps(data)}")
 
