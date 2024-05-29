@@ -220,21 +220,21 @@ class CLNRestWallet(Wallet):
             "accept": "application/json",
             "User-Agent": settings.user_agent,
             "Content-Type": "application/json",
-            "nodeid": settings.clnrest_nodeid,
         }
         
-        self.readonly_headers = {**base_headers, "rune": settings.clnrest_readonly_rune}
+        self.readonly_headers = {**base_headers, "rune": settings.clnrest_readonly_rune, "nodeid": settings.clnrest_nodeid}
+
 
         if invoice_rune:
-            self.invoice_headers = {**base_headers, "rune": settings.clnrest_invoice_rune}
+            self.invoice_headers = {**base_headers, "rune": settings.clnrest_invoice_rune, "nodeid": settings.clnrest_nodeid}
         else:
             self.invoice_headers = None
 
         #todo: consider moving this somewhere else
         if settings.clnrest_renepay_rune:
-            self.pay_headers = {**base_headers, "rune": settings.clnrest_renepay_rune}
+            self.pay_headers = {**base_headers, "rune": settings.clnrest_renepay_rune, "nodeid": settings.clnrest_nodeid}
         elif settings.clnrest_pay_rune:
-            self.pay_headers = {**base_headers, "rune": settings.clnrest_pay_rune}
+            self.pay_headers = {**base_headers, "rune": settings.clnrest_pay_rune, "nodeid": settings.clnrest_nodeid}
         else:
             self.pay_headers = None
 
