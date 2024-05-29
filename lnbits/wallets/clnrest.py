@@ -216,25 +216,21 @@ class CLNRestWallet(Wallet):
 
         self.url = self.normalize_endpoint(settings.clnrest_url)
 
-        base_headers = {
+        self.base_headers = {
             "accept": "application/json",
             "User-Agent": settings.user_agent,
             "Content-Type": "application/json",
         }
         
-        self.readonly_headers = {**base_headers, "rune": settings.clnrest_readonly_rune, "nodeid": settings.clnrest_nodeid}
+        self.readonly_headers = {**self.base_headers, "rune": settings.clnrest_readonly_rune, "nodeid": settings.clnrest_nodeid}
 
 
-        if self.invoice_rune:
-            self.invoice_headers = {**base_headers, "rune": settings.clnrest_invoice_rune, "nodeid": settings.clnrest_nodeid}
-        else:
-            self.invoice_headers = None
 
         #todo: consider moving this somewhere else
         if settings.clnrest_renepay_rune:
-            self.pay_headers = {**base_headers, "rune": settings.clnrest_renepay_rune, "nodeid": settings.clnrest_nodeid}
+            self.pay_headers = {**self.base_headers, "rune": settings.clnrest_renepay_rune, "nodeid": settings.clnrest_nodeid}
         elif settings.clnrest_pay_rune:
-            self.pay_headers = {**base_headers, "rune": settings.clnrest_pay_rune, "nodeid": settings.clnrest_nodeid}
+            self.pay_headers = {**self.base_headers, "rune": settings.clnrest_pay_rune, "nodeid": settings.clnrest_nodeid}
         else:
             self.pay_headers = None
 
@@ -320,9 +316,11 @@ class CLNRestWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
 
-        #todo: try to load the wallet specific invoice rune here instead of from self.invoice_headers
-        if not self.invoice_headers:
+        if not self.invoice_rune:
+            #todo: try to load the wallet specific invoice rune here instead of from self.invoice_headers which comes from self.settings.cln_invoice_rune
             return InvoiceResponse( False, None, None, "Unable to invoice without a valid invoice rune")
+        else:
+            self.invoice_headers = {**self.base_headers, "rune": self.invoice_rune, "nodeid": settings.clnrest_nodeid}
 
         #TODO: the identifier could be used to encode the LNBits user or the LNBits wallet that is creating the invoice
 
