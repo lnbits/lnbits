@@ -30,69 +30,107 @@ import json
 import uuid
 import hashlib
 
+#decodeing runes now loosely based on https://github.com/ElementsProject/lightning/blob/master/devtools/rune.c
 
-def decode_rune(rune):
-    # TODO: make this function align with how runes are decoded using lightning-cli decode
+class Rune:
+    class RuneCondition:
+        IF_MISSING = 0
+        EQUAL = 1
+        NOT_EQUAL = 2
+        BEGINS = 3
+        ENDS = 4
+        CONTAINS = 5
+        INT_LESS = 6
+        INT_GREATER = 7
+        LEXO_BEFORE = 8
+        LEXO_AFTER = 9
+        COMMENT = 10
 
-    # Ensure proper base64 URL-safe padding
-    padding = '=' * (-len(rune) % 4)
-    rune_padded = rune + padding
+    def __init__(self, encoded_rune, binary_length=32):
+        self.encoded_rune = encoded_rune
+        self.binary_length = binary_length
+        self.binary_part, self.text_part = self._decode_rune()
+        self.id, self.text_parts = self._parse_text_part()
 
-    try:
-        # Base64 URL-safe decode
-        decoded_bytes = base64.urlsafe_b64decode(rune_padded)
-    except Exception as e:
-        return f"Error decoding base64: {e}"
-
-    # Find the text part by looking for the first valid UTF-8 segment
-    text_part = None
-    binary_part = None
-    for i in range(len(decoded_bytes)):
+    def _decode_rune(self):
+        padding = '=' * (-len(self.encoded_rune) % 4)
+        encoded_rune_padded = self.encoded_rune + padding
         try:
-            text_part = decoded_bytes[i:].decode('utf-8')
-            binary_part = decoded_bytes[:i]
-            break
-        except UnicodeDecodeError:
-            continue
-    else:
-        return "No valid UTF-8 text found in the rune"
+            decoded_bytes = base64.urlsafe_b64decode(encoded_rune_padded)
+        except Exception as e:
+            print(f"Error decoding base64: {e}")
+            return None, None
 
-    # Split the text part into its components
-    parts = text_part.split('|')
+        # Extract the binary part of the specified length
+        binary_part = decoded_bytes[:self.binary_length]
+        try:
+            text_part = decoded_bytes[self.binary_length:].decode('utf-8')
+        except UnicodeDecodeError as e:
+            print(f"Error decoding text part: {e}")
+            return None, None
 
-    if not parts:
-        return "Invalid rune format"
+        return binary_part, text_part
 
-    # Create a dictionary to hold the parsed data
-    rune_info = {
-        # 'binary_part': binary_part,  # Uncomment if binary part is needed
-        'restrictions': []
-    }
+    def _parse_text_part(self):
+        if not self.text_part:
+            return None, {}
 
-    valid_operators = ['=', '/', '^', '$', '~', '<', '>', '{', '}', '!', '#']
+        parts = self.text_part.split('&', 1)
+        if len(parts) == 2:
+            id_part = parts[0]
+            remaining_text = parts[1]
+        else:
+            id_part = parts[0]
+            remaining_text = ""
 
-    for restriction in parts:
-        found_condition = False
+        text_parts = {}
+        if remaining_text:
+            for part in remaining_text.split('&'):
+                key_value = part.replace('^', '=').split('=', 1)
+                if len(key_value) == 2:
+                    key, value = key_value
+                    text_parts[key] = value
+                else:
+                    text_parts[key_value[0]] = None
 
-        for operator in valid_operators:
-            if operator in restriction:
-                fieldname, value = restriction.split(operator, 1)
-                condition = operator
-                found_condition = True
-                break
+        return id_part, text_parts
 
-        if found_condition:
-            # Ignore comments and empty conditions
-            if condition == '#' or not fieldname or not value:
-                continue
+    def is_valid(self):
+        return self.text_part is not None
 
-            rune_info['restrictions'].append({
-                'fieldname': fieldname,
-                'condition': condition,
-                'value': value
-            })
+    def to_dict(self):
+        if not self.is_valid():
+            return {"error": "Invalid rune"}
 
-    return rune_info
+        return {
+            "string_encoding": self.encoded_rune,
+            "binary_part": self.binary_part.hex(),
+            "id": self.id,
+            "text_parts": self.text_parts
+        }
+
+# Provided URL-safe base64 encoded rune string
+#rune_str = "rFurzBnRZT-C-1C6i7uEMsszl_1O73V80dnVNlPQ3Uk9Mzc5Jm1ldGhvZD1pbnZvaWNlJnBuYW1lYW1udW50X21zYXQ8MTAwMDAwMSZwbmFtZWxhYmVsXkxOYml0cyZyYXRlPTYw"
+
+# Decode the rune and print the original encoded string
+#rune = Rune(rune_str)
+#logger.debug(rune)
+#rune_dict = rune.to_dict()
+#logger.debug(json.dumps(rune_dict, indent=4))
+
+#TODO: write test
+#{
+#    "string_encoding": "rFurzBnRZT-C-1C6i7uEMsszl_1O73V80dnVNlPQ3Uk9Mzc5Jm1ldGhvZD1pbnZvaWNlJnBuYW1lYW1vdW50X21zYXQ8MTAwMDAwMSZwbmFtZWxhYmVsXkxOYml0cyZyYXRlPTYw",
+#    "binary_part": "ac5babcc19d1653f82fb50ba8bbb8432cb3397fd4eef757cd1d9d53653d0dd49",
+#    "text_parts": {
+#        "": "379",
+#        "method": "invoice",
+#        "pnameamount_msat<1000001": null,
+#        "pnamelabel": "LNbits",
+#        "rate": "60"
+#    }
+#}
+
 
 class CLNRestWallet(Wallet):
 
@@ -122,8 +160,11 @@ class CLNRestWallet(Wallet):
             raise ValueError ('#TODO: consider not allowing this unless the hostname is localhost')
 
         if settings.clnrest_readonly_rune:
-            logger.debug((decode_rune(settings.clnrest_readonly_rune)))
-            logger.debug(f"TODO: decode this readonly_rune and make sure that it has the correct permissions: {settings.clnrest_readonly_rune}:")
+            readonly_rune=Rune(settings.clnrest_readonly_rune)
+            logger.debug(f"TODO: make sure that it has the correct permissions: {readonly_rune}:")
+            logger.debug(readonly_rune)
+            logger.debug(json.dumps(readonly_rune.to_dict()))
+
         else:
             raise ValueError(
                 "Cannot initialize CLNRestWallet: missing CLNREST_READONLY_RUNE. Create one with:\n"
@@ -131,11 +172,16 @@ class CLNRestWallet(Wallet):
             )
 
         if settings.clnrest_invoice_rune:
+            self.invoice_endpoint = "v1/invoice"
             logger.debug(f"TODO: decode this invoice_rune and make sure that it has the correct permissions: {settings.clnrest_invoice_rune}:")
-            logger.debug((decode_rune(settings.clnrest_invoice_rune)))
+            invoice_rune=Rune(settings.clnrest_invoice_rune)
+            logger.debug(invoice_rune)
+            logger.debug(json.dumps(invoice_rune.to_dict()))
         else:
-            raise ValueError(
-                "Cannot initialize CLNRestWallet: missing CLNREST_INVOICE_RUNE. Create one with:\n"
+            self.invoice_endpoint = None
+            invoice_rune=None
+            logger.warning(
+                "Will be unable to create any invoices without setting 'CLNREST_INVOICE_RUNE'. Please create one with one of the following commands:\n"
                 """ lightning-cli createrune restrictions='[["method=invoice"], ["pnameamount_msat<1000001"], ["pname_label^LNbits"], ["rate=60"]]' """
                 )
 
@@ -150,14 +196,18 @@ class CLNRestWallet(Wallet):
                     )
         elif settings.clnrest_pay_rune:
             self.payment_endpoint="v1/pay"
-            logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
-            logger.debug((decode_rune(settings.clnrest_pay_rune)))
+            logger.debug(f"TODO: sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
+            pay_rune=Rune(settings.clnrest_pay_rune)
         elif settings.clnrest_renepay_rune:
             self.payment_endpoint="v1/renepay"
-            logger.debug(f"TODO: decode this pay_rune and make sure that it has the correct permissions: {settings.clnrest_renepay_rune}:")
-            logger.debug((decode_rune(settings.clnrest_renepay_rune)))
+            logger.debug(f"TODO: make sure that it has the correct permissions: {settings.clnrest_renepay_rune}:")
+            pay_rune=Rune(settings.clnrest_renepay_rune)
         else:
             self.payment_endpoint = None
+            pay_rune = None
+
+        logger.debug(pay_rune)
+        logger.debug(json.dumps(pay_rune.to_dict()))
 
         self.url = self.normalize_endpoint(settings.clnrest_url)
 
@@ -261,6 +311,9 @@ class CLNRestWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
 
+        if not self.invoice_endpoint:
+            return InvoiceResponse( False, None, None, "Unable to invoice without an invoice rune/endpoint")
+
         #TODO: the identifier could be used to encode the LNBits user or the LNBits wallet that is creating the invoice
 
         identifier = base58.b58encode(hashlib.sha256(str(self.invoice_headers).encode('utf-8')).digest()[:16]).decode('utf-8').rstrip('=')
@@ -286,11 +339,11 @@ class CLNRestWallet(Wallet):
         if kwargs.get("preimage"):
             data["preimage"] = kwargs["preimage"]
 
-        logger.debug(f"REQUEST to /v1/invoice: : {json.dumps(data)}")
+        logger.debug(f"REQUEST to {self.invoice_endpoint}: : {json.dumps(data)}")
 
         try:
             r = await self.client.post(
-                "/v1/invoice",
+                self.invoice_endpoint,
                 json=data,
                 headers=self.invoice_headers,
             )
