@@ -163,10 +163,10 @@ class CLNRestWallet(Wallet):
             raise ValueError ('#TODO: consider not allowing this unless the hostname is localhost')
 
         if settings.clnrest_readonly_rune:
-            readonly_rune=Rune(settings.clnrest_readonly_rune)
-            logger.debug(f"TODO: make sure that it has the correct permissions: {readonly_rune}:")
-            logger.debug(readonly_rune)
-            logger.debug(json.dumps(readonly_rune.to_dict()))
+            self.readonly_rune=Rune(settings.clnrest_readonly_rune)
+            logger.debug(f"TODO: make sure that it has the correct permissions: {self.readonly_rune}:")
+            logger.debug(self.readonly_rune)
+            logger.debug(json.dumps(self.readonly_rune.to_dict()))
 
         else:
             raise ValueError(
@@ -177,12 +177,12 @@ class CLNRestWallet(Wallet):
         if settings.clnrest_invoice_rune:
             self.invoice_endpoint = "v1/invoice"
             logger.debug(f"TODO: decode this invoice_rune and make sure that it has the correct permissions: {settings.clnrest_invoice_rune}:")
-            invoice_rune=Rune(settings.clnrest_invoice_rune)
-            logger.debug(invoice_rune)
-            logger.debug(json.dumps(invoice_rune.to_dict()))
+            self.invoice_rune=Rune(settings.clnrest_invoice_rune)
+            logger.debug(self.invoice_rune)
+            logger.debug(json.dumps(self.invoice_rune.to_dict()))
         else:
             self.invoice_endpoint = None
-            invoice_rune=None
+            self.invoice_rune=None
             logger.warning(
                 "Will be unable to create any invoices without setting 'CLNREST_INVOICE_RUNE'. Please create one with one of the following commands:\n"
                 """ lightning-cli createrune restrictions='[["method=invoice"], ["pnameamount_msat<1000001"], ["pname_label^LNbits"], ["rate=60"]]' """
@@ -200,18 +200,18 @@ class CLNRestWallet(Wallet):
         elif settings.clnrest_pay_rune:
             self.payment_endpoint="v1/pay"
             logger.debug(f"TODO: sure that it has the correct permissions: {settings.clnrest_pay_rune}:")
-            pay_rune=Rune(settings.clnrest_pay_rune)
-            logger.debug(pay_rune)
-            logger.debug(json.dumps(pay_rune.to_dict()))
+            self.pay_rune=Rune(settings.clnrest_pay_rune)
+            logger.debug(self.pay_rune)
+            logger.debug(json.dumps(self.pay_rune.to_dict()))
         elif settings.clnrest_renepay_rune:
             self.payment_endpoint="v1/renepay"
             logger.debug(f"TODO: make sure that it has the correct permissions: {settings.clnrest_renepay_rune}:")
-            pay_rune=Rune(settings.clnrest_renepay_rune)
-            logger.debug(pay_rune)
-            logger.debug(json.dumps(pay_rune.to_dict()))
+            self.pay_rune=Rune(settings.clnrest_renepay_rune)
+            logger.debug(self.pay_rune)
+            logger.debug(json.dumps(self.pay_rune.to_dict()))
         else:
             self.payment_endpoint = None
-            pay_rune = None
+            self.pay_rune = None
 
 
         self.url = self.normalize_endpoint(settings.clnrest_url)
@@ -225,7 +225,7 @@ class CLNRestWallet(Wallet):
         self.readonly_headers = {**base_headers, "rune": settings.clnrest_readonly_rune, "nodeid": settings.clnrest_nodeid}
 
 
-        if invoice_rune:
+        if self.invoice_rune:
             self.invoice_headers = {**base_headers, "rune": settings.clnrest_invoice_rune, "nodeid": settings.clnrest_nodeid}
         else:
             self.invoice_headers = None
