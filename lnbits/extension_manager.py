@@ -151,7 +151,6 @@ async def fetch_github_repo_info(
     config_url = f"https://raw.githubusercontent.com/{org}/{repository}/{github_repo.default_branch}/config.json"
     error_msg = "Cannot fetch config for extension"
     config = await github_api_get(config_url, error_msg)
-
     return (
         github_repo,
         GitHubRepoRelease.parse_obj(latest_release),
@@ -666,7 +665,6 @@ class InstallableExtension(BaseModel):
         for url in settings.lnbits_extensions_manifests:
             try:
                 manifest = await fetch_manifest(url)
-
                 for r in manifest.repos:
                     ext = await InstallableExtension.from_github_release(r)
                     if not ext:
