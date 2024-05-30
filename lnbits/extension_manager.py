@@ -151,6 +151,7 @@ async def fetch_github_repo_info(
     config_url = f"https://raw.githubusercontent.com/{org}/{repository}/{github_repo.default_branch}/config.json"
     error_msg = "Cannot fetch config for extension"
     config = await github_api_get(config_url, error_msg)
+
     return (
         github_repo,
         GitHubRepoRelease.parse_obj(latest_release),
@@ -223,10 +224,6 @@ class Extension(NamedTuple):
     is_admin_only: bool
     name: Optional[str] = None
     short_description: Optional[str] = None
-    description_md: Optional[str] = None
-    images: List[str] = []
-    license: Optional[str] = None
-    repo: Optional[str] = None
     tile: Optional[str] = None
     contributors: Optional[List[str]] = None
     hidden: bool = False
@@ -293,10 +290,6 @@ class ExtensionManager:
                     is_admin_only,
                     config.get("name"),
                     config.get("short_description"),
-                    config.get("description_md"),
-                    config.get("images"),
-                    config.get("license"),
-                    config.get("repo"),
                     config.get("tile"),
                     config.get("contributors"),
                     config.get("hidden") or False,
@@ -397,12 +390,6 @@ class InstallableExtension(BaseModel):
     active: Optional[bool] = False
     short_description: Optional[str] = None
     icon: Optional[str] = None
-    description_md: Optional[str] = None
-    images: List[str] = []
-    license: Optional[str] = None
-    repo: Optional[str] = None
-    tile: Optional[str] = None
-    contributors: Optional[List[str]] = None
     dependencies: List[str] = []
     is_admin_only: bool = False
     stars: int = 0
@@ -665,6 +652,7 @@ class InstallableExtension(BaseModel):
         for url in settings.lnbits_extensions_manifests:
             try:
                 manifest = await fetch_manifest(url)
+
                 for r in manifest.repos:
                     ext = await InstallableExtension.from_github_release(r)
                     if not ext:
