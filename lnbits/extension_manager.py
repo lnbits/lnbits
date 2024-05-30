@@ -224,6 +224,7 @@ class Extension(NamedTuple):
     is_admin_only: bool
     name: Optional[str] = None
     short_description: Optional[str] = None
+    config: Optional[str] = None
     tile: Optional[str] = None
     contributors: Optional[List[str]] = None
     hidden: bool = False
@@ -290,6 +291,7 @@ class ExtensionManager:
                     is_admin_only,
                     config.get("name"),
                     config.get("short_description"),
+                    config.get("config"),
                     config.get("tile"),
                     config.get("contributors"),
                     config.get("hidden") or False,
@@ -389,6 +391,7 @@ class InstallableExtension(BaseModel):
     name: str
     active: Optional[bool] = False
     short_description: Optional[str] = None
+    config: Optional[str] = None
     icon: Optional[str] = None
     dependencies: List[str] = []
     is_admin_only: bool = False

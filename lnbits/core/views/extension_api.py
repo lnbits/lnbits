@@ -359,7 +359,7 @@ async def get_extension_details(path: str):
         async with httpx.AsyncClient() as client:
             resp = await client.get(path)
             resp.raise_for_status()
-            return resp.text
+            return resp.json()
     except Exception as e:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)

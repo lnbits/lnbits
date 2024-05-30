@@ -118,7 +118,7 @@
               v-text="extension.shortDescription"
             ></div>
             <q-btn
-              v-if="extension.extendedDescription"
+              v-if="extension.config"
               @click="getExtensionConfig(extension)"
               flat
               dense
@@ -1400,7 +1400,7 @@
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/api/v1/extension/${extension.id}/details?path=${extension.extendedDescription}`,
+            `/api/v1/extension/${extension.id}/details?path=${extension.config}`,
             this.g.user.wallets[0].inkey
           )
           this.extensionConfig = extension
