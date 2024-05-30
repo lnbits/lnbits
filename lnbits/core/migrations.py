@@ -366,7 +366,8 @@ async def m014_set_deleted_wallets(db):
                 inkey = row[4].split(":")[1]
                 await db.execute(
                     """
-                    UPDATE wallets SET user = ?, adminkey = ?, inkey = ?, deleted = true
+                    UPDATE wallets SET
+                    "user" = ?, adminkey = ?, inkey = ?, deleted = true
                     WHERE id = ?
                     """,
                     (user, adminkey, inkey, row[0]),
@@ -512,3 +513,10 @@ async def m019_balances_view_based_on_wallets(db):
         GROUP BY apipayments.wallet
     """
     )
+
+
+async def m020_add_column_column_to_user_extensions(db):
+    """
+    Adds extra column to user extensions.
+    """
+    await db.execute("ALTER TABLE extensions ADD COLUMN extra TEXT")

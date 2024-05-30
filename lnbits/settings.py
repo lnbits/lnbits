@@ -63,11 +63,14 @@ class ExtensionsInstallSettings(LNbitsSettings):
 
 class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
-    lnbits_deactivated_extensions: list[str] = Field(default=[])
+    lnbits_deactivated_extensions: set[str] = Field(default=[])
     # upgraded extensions that require API redirects
-    lnbits_upgraded_extensions: list[str] = Field(default=[])
+    lnbits_upgraded_extensions: set[str] = Field(default=[])
     # list of redirects that extensions want to perform
     lnbits_extensions_redirects: list[Any] = Field(default=[])
+
+    # list of all extension ids
+    lnbits_all_extensions_ids: set[Any] = Field(default=[])
 
     def extension_upgrade_path(self, ext_id: str) -> Optional[str]:
         return next(
@@ -86,9 +89,9 @@ class ThemesSettings(LNbitsSettings):
     lnbits_site_description: Optional[str] = Field(
         default="The world's most powerful suite of bitcoin tools."
     )
-    LNBITS_SHOW_HOME_PAGE_ELEMENTS: bool = Field(default=True)
+    lnbits_show_home_page_elements: bool = Field(default=True)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
-    lnbits_custom_badge: str = Field(default=None)
+    lnbits_custom_badge: Optional[str] = Field(default=None)
     lnbits_custom_badge_color: str = Field(default="warning")
     lnbits_theme_options: list[str] = Field(
         default=[
@@ -101,7 +104,7 @@ class ThemesSettings(LNbitsSettings):
             "cyber",
         ]
     )
-    lnbits_custom_logo: str = Field(default=None)
+    lnbits_custom_logo: Optional[str] = Field(default=None)
     lnbits_ad_space_title: str = Field(default="Supported by")
     lnbits_ad_space: str = Field(
         default="https://shop.lnbits.com/;/static/images/bitcoin-shop-banner.png;/static/images/bitcoin-shop-banner.png,https://affil.trezor.io/aff_c?offer_id=169&aff_id=33845;/static/images/bitcoin-hardware-wallet.png;/static/images/bitcoin-hardware-wallet.png,https://opensats.org/;/static/images/open-sats.png;/static/images/open-sats.png"
@@ -119,7 +122,7 @@ class OpsSettings(LNbitsSettings):
     lnbits_service_fee: float = Field(default=0)
     lnbits_service_fee_ignore_internal: bool = Field(default=True)
     lnbits_service_fee_max: int = Field(default=0)
-    lnbits_service_fee_wallet: str = Field(default=None)
+    lnbits_service_fee_wallet: Optional[str] = Field(default=None)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
 
@@ -273,8 +276,8 @@ class FundingSourcesSettings(
 
 
 class WebPushSettings(LNbitsSettings):
-    lnbits_webpush_pubkey: str = Field(default=None)
-    lnbits_webpush_privkey: str = Field(default=None)
+    lnbits_webpush_pubkey: Optional[str] = Field(default=None)
+    lnbits_webpush_privkey: Optional[str] = Field(default=None)
 
 
 class NodeUISettings(LNbitsSettings):
@@ -481,13 +484,22 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
         case_sensitive = False
         json_loads = list_parse_fallback
 
-    def is_user_allowed(self, user_id: str):
+    def is_user_allowed(self, user_id: str) -> bool:
         return (
             len(self.lnbits_allowed_users) == 0
             or user_id in self.lnbits_allowed_users
             or user_id in self.lnbits_admin_users
             or user_id == self.super_user
         )
+
+    def is_admin_user(self, user_id: str) -> bool:
+        return user_id in self.lnbits_admin_users or user_id == self.super_user
+
+    def is_admin_extension(self, ext_id: str) -> bool:
+        return ext_id in self.lnbits_admin_extensions
+
+    def is_extension_id(self, ext_id: str) -> bool:
+        return ext_id in self.lnbits_all_extensions_ids
 
 
 class SuperSettings(EditableSettings):

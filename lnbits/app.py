@@ -16,7 +16,11 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.middleware.sessions import SessionMiddleware
 
-from lnbits.core.crud import get_dbversions, get_installed_extensions
+from lnbits.core.crud import (
+    get_dbversions,
+    get_installed_extensions,
+    update_installed_extension_state,
+)
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import (  # watchdog_task
     killswitch_task,
@@ -42,7 +46,6 @@ from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
 from .core.views.extension_api import add_installed_extension
-from .core.views.generic import update_installed_extension_state
 from .extension_manager import (
     Extension,
     InstallableExtension,
@@ -261,10 +264,10 @@ async def build_all_installed_extensions_list(
     MUST be installed by default (see LNBITS_EXTENSIONS_DEFAULT_INSTALL).
     """
     installed_extensions = await get_installed_extensions()
+    settings.lnbits_all_extensions_ids = {e.id for e in installed_extensions}
 
-    installed_extensions_ids = [e.id for e in installed_extensions]
     for ext_id in settings.lnbits_extensions_default_install:
-        if ext_id in installed_extensions_ids:
+        if ext_id in settings.lnbits_all_extensions_ids:
             continue
 
         ext_releases = await InstallableExtension.get_extension_releases(ext_id)
@@ -318,8 +321,7 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
 
     # mount routes for the new version
     core_app_extra.register_new_ext_routes(extension)
-    if extension.upgrade_hash:
-        ext.notify_upgrade()
+    ext.notify_upgrade(extension.upgrade_hash)
 
 
 def register_custom_extensions_path():

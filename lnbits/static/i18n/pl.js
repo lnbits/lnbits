@@ -9,6 +9,8 @@ window.localisation.pl = {
   transactions: 'Transakcje',
   dashboard: 'Panel kontrolny',
   node: 'Węzeł',
+  export_users: 'Eksportuj użytkowników',
+  no_users: 'Nie znaleziono użytkowników',
   total_capacity: 'Całkowita Pojemność',
   avg_channel_size: 'Średni rozmiar kanału',
   biggest_channel_size: 'Największy Rozmiar Kanału',
@@ -33,6 +35,8 @@ window.localisation.pl = {
   reset_defaults_tooltip: 'Wymaż wszystkie ustawienia i ustaw domyślne.',
   download_backup: 'Pobierz kopię zapasową bazy danych',
   name_your_wallet: 'Nazwij swój portfel %{name}',
+  wallet_topup_ok:
+    'Sukces w tworzeniu wirtualnych środków (%{amount} sats). Płatności zależą od rzeczywistych środków na źródle finansowania.',
   paste_invoice_label: 'Wklej fakturę, żądanie zapłaty lub kod lnurl *',
   lnbits_description:
     'Łatwy i lekki w konfiguracji, LNbits może działać w oparciu o dowolne źródło finansowania w sieci lightning czy nawet inną instancję LNbits! Możesz uruchomić instancję LNbits dla siebie lub dla innych. Każdy portfel ma swoje klucze API i nie ma ograniczeń jeśli chodzi o ilość portfeli. LNbits umożliwia dzielenie środków w celu zarządzania nimi, jest również dobrym narzędziem deweloperskim. Rozszerzenia zwiększają funkcjonalność LNbits co umożliwia eksperymentowanie z nowym technologiami w sieci lightning. Tworzenie rozszerzeń jest proste dlatego zachęcamy innych deweloperów do tworzenia dodatkowych funkcjonalności i wysyłanie do nas PR',
@@ -248,5 +252,6 @@ window.localisation.pl = {
   pay_from_wallet: 'Zapłać z portfela',
   show_qr: 'Pokaż kod QR',
   retry_install: 'Ponów instalację',
-  new_payment: 'Dokonaj nowej płatności'
+  new_payment: 'Dokonaj nowej płatności',
+  hide_empty_wallets: 'Ukryj puste portfele'
 }

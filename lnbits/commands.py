@@ -29,7 +29,6 @@ from .core.crud import (
     delete_wallet_by_id,
     delete_wallet_payment,
     get_dbversions,
-    get_inactive_extensions,
     get_installed_extension,
     get_installed_extensions,
     get_payments,
@@ -154,6 +153,7 @@ async def migrate_databases():
     # `installed_extensions` table has been created
     await load_disabled_extension_list()
 
+    # todo: revisit, use installed extensions
     for ext in get_valid_extensions(False):
         current_version = current_versions.get(ext.code, 0)
         try:
@@ -315,8 +315,8 @@ async def check_invalid_payments(
 
 async def load_disabled_extension_list() -> None:
     """Update list of extensions that have been explicitly disabled"""
-    inactive_extensions = await get_inactive_extensions()
-    settings.lnbits_deactivated_extensions += inactive_extensions
+    inactive_extensions = await get_installed_extensions(active=False)
+    settings.lnbits_deactivated_extensions.update([e.id for e in inactive_extensions])
 
 
 @extensions.command("list")

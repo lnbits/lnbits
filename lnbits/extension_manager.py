@@ -85,6 +85,39 @@ class ReleasePaymentInfo(BaseModel):
     payment_request: Optional[str] = None
 
 
+class PayToEnableInfo(BaseModel):
+    required: Optional[bool] = False
+    amount: Optional[int] = None
+    wallet: Optional[str] = None
+
+
+class UserExtensionInfo(BaseModel):
+    paid_to_enable: Optional[bool] = False
+    payment_hash_to_enable: Optional[str] = None
+
+
+class UserExtension(BaseModel):
+    extension: str
+    active: bool
+    extra: Optional[UserExtensionInfo] = None
+
+    @property
+    def is_paid(self) -> bool:
+        if not self.extra:
+            return False
+        return self.extra.paid_to_enable is True
+
+    @classmethod
+    def from_row(cls, data: dict) -> "UserExtension":
+        ext = UserExtension(**data)
+        ext.extra = (
+            UserExtensionInfo(**json.loads(data["_extra"] or "{}"))
+            if "_extra" in data
+            else None
+        )
+        return ext
+
+
 def download_url(url, save_path):
     with request.urlopen(url, timeout=60) as dl_file:
         with open(save_path, "wb") as out_file:
@@ -239,6 +272,7 @@ class ExtensionManager:
 
     @property
     def extensions(self) -> List[Extension]:
+        # todo: remove this property somehow, it is too expensive
         output: List[Extension] = []
 
         for extension_folder in self._extension_folders:
@@ -361,6 +395,7 @@ class ExtensionRelease(BaseModel):
 class InstallableExtension(BaseModel):
     id: str
     name: str
+    active: Optional[bool] = False
     short_description: Optional[str] = None
     icon: Optional[str] = None
     description_md: Optional[str] = None
@@ -376,6 +411,7 @@ class InstallableExtension(BaseModel):
     latest_release: Optional[ExtensionRelease] = None
     installed_release: Optional[ExtensionRelease] = None
     payments: List[ReleasePaymentInfo] = []
+    pay_to_enable: Optional[PayToEnableInfo] = None
     archive: Optional[str] = None
 
     @property
@@ -425,6 +461,12 @@ class InstallableExtension(BaseModel):
         if self.installed_release:
             return self.installed_release.version
         return ""
+
+    @property
+    def requires_payment(self) -> bool:
+        if not self.pay_to_enable:
+            return False
+        return self.pay_to_enable.required is True
 
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
@@ -493,22 +535,15 @@ class InstallableExtension(BaseModel):
         shutil.copytree(Path(self.ext_upgrade_dir), Path(self.ext_dir))
         logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
 
-    def notify_upgrade(self) -> None:
+    def notify_upgrade(self, upgrade_hash: Optional[str]) -> None:
         """
         Update the list of upgraded extensions. The middleware will perform
         redirects based on this
         """
+        if upgrade_hash:
+            settings.lnbits_upgraded_extensions.add(f"{self.hash}/{self.id}")
 
-        clean_upgraded_exts = list(
-            filter(
-                lambda old_ext: not old_ext.endswith(f"/{self.id}"),
-                settings.lnbits_upgraded_extensions,
-            )
-        )
-        settings.lnbits_upgraded_extensions = [
-            *clean_upgraded_exts,
-            f"{self.hash}/{self.id}",
-        ]
+        settings.lnbits_all_extensions_ids.add(self.id)
 
     def clean_extension_files(self):
         # remove downloaded archive
@@ -569,8 +604,11 @@ class InstallableExtension(BaseModel):
         ext = InstallableExtension(**data)
         if "installed_release" in meta:
             ext.installed_release = ExtensionRelease(**meta["installed_release"])
+        if meta.get("pay_to_enable"):
+            ext.pay_to_enable = PayToEnableInfo(**meta["pay_to_enable"])
         if meta.get("payments"):
             ext.payments = [ReleasePaymentInfo(**p) for p in meta["payments"]]
+
         return ext
 
     @classmethod
