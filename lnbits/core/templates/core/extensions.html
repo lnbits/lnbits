@@ -1423,6 +1423,11 @@
         ...e,
         inProgress: false
       }))
+      for (let i = 0; i < this.extensions.length; i++) {
+        if(this.extensions[i].id == 'gerty'){
+          console.log(this.extensions[i])
+        }
+      }
       this.filteredExtensions = this.extensions.concat([])
       for (let i = 0; i < this.filteredExtensions.length; i++) {
         if (this.filteredExtensions[i].isInstalled != false) {

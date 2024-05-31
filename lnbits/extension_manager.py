@@ -27,6 +27,7 @@ class ExplicitRelease(BaseModel):
     repo: Optional[str]
     icon: Optional[str]
     short_description: Optional[str]
+    config: Optional[str]
     min_lnbits_version: Optional[str]
     html_url: Optional[str]  # todo: release_url
     warning: Optional[str]
@@ -68,6 +69,7 @@ class GitHubRepo(BaseModel):
 class ExtensionConfig(BaseModel):
     name: str
     short_description: str
+    config: Optional[str] = ""
     tile: str = ""
     warning: Optional[str] = ""
     min_lnbits_version: Optional[str]
@@ -364,6 +366,7 @@ class ExtensionRelease(BaseModel):
             hash=e.hash,
             source_repo=source_repo,
             description=e.short_description,
+            config=e.config,
             min_lnbits_version=e.min_lnbits_version,
             is_version_compatible=e.is_version_compatible(),
             warning=e.warning,
@@ -621,6 +624,7 @@ class InstallableExtension(BaseModel):
                 id=github_release.id,
                 name=config.name,
                 short_description=config.short_description,
+                config=config.config,
                 stars=int(repo.stargazers_count),
                 icon=icon_to_github_url(
                     f"{github_release.organisation}/{github_release.repository}",
@@ -641,6 +645,7 @@ class InstallableExtension(BaseModel):
             name=e.name,
             archive=e.archive,
             short_description=e.short_description,
+            config=e.config,
             icon=e.icon,
             dependencies=e.dependencies,
         )
@@ -658,6 +663,9 @@ class InstallableExtension(BaseModel):
 
                 for r in manifest.repos:
                     ext = await InstallableExtension.from_github_release(r)
+                    logger.debug("installed_extensions")
+                    logger.debug(ext)
+                    logger.debug("installed_extensions")
                     if not ext:
                         continue
                     existing_ext = next(

@@ -93,6 +93,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
                 e.name = installed_ext.name
                 e.short_description = installed_ext.short_description
                 e.icon = installed_ext.icon
+                e.config = installed_ext.config
 
     except Exception as ex:
         logger.warning(ex)
@@ -111,6 +112,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
                 "name": ext.name,
                 "icon": ext.icon,
                 "shortDescription": ext.short_description,
+                "config": ext.config,
                 "stars": ext.stars,
                 "isFeatured": ext.featured,
                 "dependencies": ext.dependencies,
