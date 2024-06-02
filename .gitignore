@@ -18,6 +18,9 @@ htmlcov
 test-reports
 tests/data/*.sqlite3
 
+flatpak/.flatpak-builder
+flatpak/flatpak
+
 *.swo
 *.swp
 *.pyo
