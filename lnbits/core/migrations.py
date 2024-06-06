@@ -513,3 +513,10 @@ async def m019_balances_view_based_on_wallets(db):
         GROUP BY apipayments.wallet
     """
     )
+
+
+async def m020_add_column_column_to_user_extensions(db):
+    """
+    Adds extra column to user extensions.
+    """
+    await db.execute("ALTER TABLE extensions ADD COLUMN extra TEXT")

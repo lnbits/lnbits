@@ -1,4 +1,3 @@
-import sys
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, List, Optional, Union
@@ -11,7 +10,6 @@ from fastapi.routing import APIRouter
 from loguru import logger
 from pydantic.types import UUID4
 
-from lnbits.core.db import core_app_extra
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
@@ -24,11 +22,8 @@ from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
     create_wallet,
     get_dbversions,
-    get_inactive_extensions,
     get_installed_extensions,
     get_user,
-    update_installed_extension_state,
-    update_user_extension,
 )
 
 generic_router = APIRouter(
@@ -73,19 +68,8 @@ async def robots():
     return HTMLResponse(content=data, media_type="text/plain")
 
 
-@generic_router.get(
-    "/extensions", name="install.extensions", response_class=HTMLResponse
-)
-async def extensions_install(
-    request: Request,
-    user: User = Depends(check_user_exists),
-    activate: str = Query(None),
-    deactivate: str = Query(None),
-    enable: str = Query(None),
-    disable: str = Query(None),
-):
-    await toggle_extension(enable, disable, user.id)
-
+@generic_router.get("/extensions", name="extensions", response_class=HTMLResponse)
+async def extensions(request: Request, user: User = Depends(check_user_exists)):
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
@@ -100,6 +84,11 @@ async def extensions_install(
             installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
             if installed_ext:
                 e.installed_release = installed_ext.installed_release
+                if installed_ext.pay_to_enable and not user.admin:
+                    # not a security leak, but better not to share the wallet id
+                    installed_ext.pay_to_enable.wallet = None
+                e.pay_to_enable = installed_ext.pay_to_enable
+
                 # use the installed extension values
                 e.name = installed_ext.name
                 e.short_description = installed_ext.short_description
@@ -111,26 +100,10 @@ async def extensions_install(
         installed_exts_ids = []
 
     try:
-        ext_id = activate or deactivate
-        all_extensions = get_valid_extensions()
-        ext = next((e for e in all_extensions if e.code == ext_id), None)
-        if ext_id and user.admin:
-            if deactivate:
-                settings.lnbits_deactivated_extensions.add(deactivate)
-            elif activate:
-                # if extension never loaded (was deactivated on server startup)
-                if ext_id not in sys.modules.keys():
-                    # run extension start-up routine
-                    core_app_extra.register_new_ext_routes(ext)
-
-                settings.lnbits_deactivated_extensions.remove(activate)
-
-            await update_installed_extension_state(
-                ext_id=ext_id, active=activate is not None
-            )
-
-        all_ext_ids = [ext.code for ext in all_extensions]
-        inactive_extensions = await get_inactive_extensions()
+        all_ext_ids = [ext.code for ext in get_valid_extensions()]
+        inactive_extensions = [
+            e.id for e in await get_installed_extensions(active=False)
+        ]
         db_version = await get_dbversions()
         extensions = [
             {
@@ -152,6 +125,8 @@ async def extensions_install(
                 "installedRelease": (
                     dict(ext.installed_release) if ext.installed_release else None
                 ),
+                "payToEnable": (dict(ext.pay_to_enable) if ext.pay_to_enable else {}),
+                "isPaymentRequired": ext.requires_payment,
             }
             for ext in installable_exts
         ]
@@ -199,7 +174,7 @@ async def wallet(
     user_wallet = user.get_wallet(wallet_id)
     if not user_wallet or user_wallet.deleted:
         return template_renderer().TemplateResponse(
-            request, "error.html", {"err": "Wallet not found"}
+            request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
         )
 
     resp = template_renderer().TemplateResponse(
@@ -414,29 +389,3 @@ async def hex_to_uuid4(hex_value: str):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
         ) from exc
-
-
-async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
-    if extension_to_enable and extension_to_disable:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
-        )
-
-    # check if extension exists
-    if extension_to_enable or extension_to_disable:
-        ext = extension_to_enable or extension_to_disable
-        if ext not in [e.code for e in get_valid_extensions()]:
-            raise HTTPException(
-                HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
-            )
-
-    if extension_to_enable:
-        logger.info(f"Enabling extension: {extension_to_enable} for user {user_id}")
-        await update_user_extension(
-            user_id=user_id, extension=extension_to_enable, active=True
-        )
-    elif extension_to_disable:
-        logger.info(f"Disabling extension: {extension_to_disable} for user {user_id}")
-        await update_user_extension(
-            user_id=user_id, extension=extension_to_disable, active=False
-        )

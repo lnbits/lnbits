@@ -40,8 +40,14 @@ def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
             response.set_cookie("is_access_token_expired", "true")
             return response
 
+        status_code: int = (
+            exc.status_code
+            if isinstance(exc, HTTPException)
+            else HTTPStatus.INTERNAL_SERVER_ERROR
+        )
+
         return template_renderer().TemplateResponse(
-            request, "error.html", {"err": f"Error: {exc!s}"}
+            request, "error.html", {"err": f"Error: {exc!s}"}, status_code
         )
 
     return None

@@ -453,3 +453,8 @@ class BalanceDelta(BaseModel):
     @property
     def delta_msats(self):
         return self.node_balance_msats - self.lnbits_balance_msats
+
+
+class SimpleStatus(BaseModel):
+    success: bool
+    message: str

@@ -18,7 +18,7 @@ from lnbits.core.crud import (
     get_user_active_extensions_ids,
     get_wallet_for_key,
 )
-from lnbits.core.models import KeyType, User, WalletTypeInfo
+from lnbits.core.models import KeyType, SimpleStatus, User, WalletTypeInfo
 from lnbits.db import Filter, Filters, TFilterModel
 from lnbits.settings import AuthMethods, settings
 
@@ -210,26 +210,35 @@ def parse_filters(model: Type[TFilterModel]):
     return dependency
 
 
-async def _check_user_extension_access(user_id: str, current_path: str):
+async def check_user_extension_access(user_id: str, ext_id: str) -> SimpleStatus:
     """
     Check if the user has access to a particular extension.
     Raises HTTP Forbidden if the user is not allowed.
     """
-    path = current_path.split("/")
-    ext_id = path[3] if path[1] == "upgrades" else path[1]
     if settings.is_admin_extension(ext_id) and not settings.is_admin_user(user_id):
-        raise HTTPException(
-            HTTPStatus.FORBIDDEN,
-            f"User not authorized for extension '{ext_id}'.",
+        return SimpleStatus(
+            success=False, message=f"User not authorized for extension '{ext_id}'."
         )
 
     if settings.is_extension_id(ext_id):
         ext_ids = await get_user_active_extensions_ids(user_id)
         if ext_id not in ext_ids:
-            raise HTTPException(
-                HTTPStatus.FORBIDDEN,
-                f"User extension '{ext_id}' not enabled.",
+            return SimpleStatus(
+                success=False, message=f"User extension '{ext_id}' not enabled."
             )
+
+    return SimpleStatus(success=True, message="OK")
+
+
+async def _check_user_extension_access(user_id: str, current_path: str):
+    path = current_path.split("/")
+    ext_id = path[3] if path[1] == "upgrades" else path[1]
+    status = await check_user_extension_access(user_id, ext_id)
+    if not status.success:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            status.message,
+        )
 
 
 async def _get_account_from_token(access_token):

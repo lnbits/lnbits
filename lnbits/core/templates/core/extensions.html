@@ -188,10 +188,7 @@
               v-if="user.extensions.includes(extension.id) && extension.isActive && extension.isInstalled"
               flat
               color="grey-5"
-              type="a"
-              :href="['{{
-                url_for('install.extensions')
-              }}', '?disable=', extension.id].join('')"
+              @click="disableExtension(extension)"
               :label="$t('disable')"
             ></q-btn>
             <q-badge
@@ -199,15 +196,13 @@
               v-text="$t('admin_only')"
             >
             </q-badge>
+
             <q-btn
               v-else-if="extension.isInstalled && extension.isActive && !user.extensions.includes(extension.id)"
               flat
               color="primary"
-              type="a"
-              :href="['{{
-                url_for('install.extensions')
-              }}', '?enable=', extension.id].join('')"
-              :label="$t('enable')"
+              @click="enableExtensionForUser(extension)"
+              :label="$t(extension.isPaymentRequired ? 'pay_to_enable': 'enable')"
             >
               <q-tooltip>
                 <span v-text="$t('enable_extension_details')">
@@ -215,7 +210,7 @@
             ></q-btn>
 
             <q-btn
-              @click="showUpgrade(extension)"
+              @click="showManageExtension(extension)"
               flat
               color="primary"
               v-if="g.user.admin"
@@ -313,7 +308,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="showUpgradeDialog">
+  <q-dialog v-model="showManageExtensionDialog">
     <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
       <q-card-section>
         <div v-if="selectedRelease.paymentRequest">
@@ -352,10 +347,30 @@
       </div>
     </q-card>
     <q-card v-else class="q-pa-lg lnbits__dialog-card">
-      <q-card-section>
-        <div class="text-h6" v-text="selectedExtension?.name"></div>
-      </q-card-section>
-      <div class="col-12 col-md-5 q-gutter-y-md" v-if="selectedExtensionRepos">
+      <q-tabs
+        v-model="manageExtensionTab"
+        active-color="primary"
+        align="justify"
+      >
+        <q-tab
+          name="releases"
+          :label="$t('releases')"
+          @update="val => manageExtensionTab = val.name"
+        ></q-tab>
+
+        <q-tab
+          v-if="selectedExtension && selectedExtension.isInstalled"
+          name="sell"
+          :label="$t('sell')"
+          @update="val => manageExtensionTab = val.name"
+        ></q-tab>
+      </q-tabs>
+
+      <div
+        v-show="manageExtensionTab === 'releases'"
+        class="col-12 col-md-5 q-gutter-y-md q-mt-md"
+        v-if="selectedExtensionRepos"
+      >
         <q-card
           flat
           bordered
@@ -463,7 +478,7 @@
                             emit-value
                             v-model="release.wallet"
                             :options="g.user.walletOptions"
-                            label="Wallet *"
+                            :label="$t('wallet_required')"
                             class="q-mt-sm"
                           >
                           </q-select>
@@ -479,7 +494,7 @@
                           <q-btn
                             unelevated
                             color="primary"
-                            @click="showQRCode(release)"
+                            @click="showInstallQRCode(release)"
                             class="q-mt-sm float-right"
                             :label="$t('show_qr')"
                           ></q-btn>
@@ -556,31 +571,187 @@
             </q-card-section>
           </q-expansion-item>
         </q-card>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="selectedExtension?.isInstalled"
+            @click="showUninstall()"
+            flat
+            color="red"
+            v-text="$t('uninstall')"
+          ></q-btn>
+          <q-btn
+            v-else-if="selectedExtension?.hasDatabaseTables"
+            @click="showDropDb()"
+            flat
+            color="red"
+            :label="$t('drop_db')"
+          ></q-btn>
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            v-text="$t('close')"
+          ></q-btn>
+        </div>
       </div>
       <q-spinner v-else color="primary" size="2.55em"></q-spinner>
-      <div class="row q-mt-lg">
-        <q-btn
-          v-if="selectedExtension?.isInstalled"
-          @click="showUninstall()"
-          flat
-          color="red"
-          v-text="$t('uninstall')"
-        ></q-btn>
-        <q-btn
-          v-else-if="selectedExtension?.hasDatabaseTables"
-          @click="showDropDb()"
-          flat
-          color="red"
-          :label="$t('drop_db')"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('close')"
-        ></q-btn>
+      <div
+        v-if="selectedExtension"
+        v-show="manageExtensionTab === 'sell'"
+        class="col-12 col-md-5 q-gutter-y-md q-mt-md"
+      >
+        <q-toggle
+          v-model="selectedExtension.payToEnable.required"
+          :label="$t('sell_require')"
+          color="secondary"
+          style="max-height: 21px"
+        ></q-toggle>
+        <q-select
+          v-if="selectedExtension.payToEnable.required"
+          filled
+          dense
+          emit-value
+          v-model="selectedExtension.payToEnable.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+          class="q-mt-md"
+        ></q-select>
+        <q-input
+          v-if="selectedExtension.payToEnable.required"
+          filled
+          dense
+          v-model.number="selectedExtension.payToEnable.amount"
+          :label="$t('amount_sats')"
+          type="number"
+          min="1"
+          class="q-mt-md"
+        >
+        </q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            @click="updatePayToInstallData(selectedExtension)"
+            flat
+            color="green"
+            v-text="$t('update_payment')"
+          ></q-btn>
+
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            v-text="$t('close')"
+          ></q-btn>
+        </div>
       </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="showPayToEnableDialog">
+    <q-card v-if="selectedExtension" class="q-pa-md">
+      <q-card-section>
+        <p>
+          <span
+            v-text="$t('sell_info', {name: selectedExtension.name, amount: selectedExtension.payToEnable.amount})"
+          ></span>
+        </p>
+        <p>
+          <span v-text="$t('already_paid_question')"></span>
+          <q-badge
+            @click="enableExtension(selectedExtension)"
+            color="primary"
+            class="cursor-pointer"
+            rounded
+          >
+            <strong> <span v-text="$t('recheck')"></span> </strong
+          ></q-badge>
+        </p>
+      </q-card-section>
+      <q-card-section v-if="selectedExtension.payToEnable.showQRCode">
+        <div class="row q-mt-lg">
+          <div v-if="selectedExtension.payToEnable.paymentRequest" class="col">
+            <a
+              :href="'lightning:' + selectedExtension.payToEnable.paymentRequest"
+            >
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <lnbits-qrcode
+                  :value="'lightning:' + selectedExtension.payToEnable.paymentRequest.toUpperCase()"
+                ></lnbits-qrcode>
+              </q-responsive>
+            </a>
+          </div>
+          <div v-else class="col">
+            <q-spinner color="primary" size="2.55em"></q-spinner>
+          </div>
+        </div>
+        <div class="row q-mt-lg">
+          <div class="col">
+            <q-btn
+              v-if="selectedExtension.payToEnable.paymentRequest"
+              outline
+              color="grey"
+              @click="copyText(selectedExtension.payToEnable.paymentRequest)"
+              :label="$t('copy_invoice')"
+            ></q-btn>
+          </div>
+          <div class="col">
+            <q-btn
+              v-close-popup
+              flat
+              color="grey"
+              class="float-right q-ml-lg"
+              v-text="$t('close')"
+            ></q-btn>
+          </div>
+        </div>
+      </q-card-section>
+
+      <q-card-section v-else>
+        <div class="row q-mt-lg">
+          <div class="col">
+            <div>
+              <q-input
+                filled
+                dense
+                type="number"
+                v-model.number="selectedExtension.payToEnable.paidAmount"
+                :min="selectedExtension.payToEnable.amount"
+                suffix="sat"
+                class="q-mt-sm"
+              >
+              </q-input>
+              <q-select
+                filled
+                dense
+                v-model="selectedExtension.payToEnable.paymentWallet"
+                emit-value
+                :options="g.user.walletOptions"
+                :label="$t('wallet_required')"
+                class="q-mt-sm"
+              >
+              </q-select>
+              <q-separator class="q-mb-lg"></q-separator>
+              <q-btn
+                unelevated
+                color="primary"
+                class="q-mt-sm"
+                @click="payAndEnable(selectedExtension)"
+                :disabled="!selectedExtension.payToEnable.paymentWallet"
+                :label="$t('pay_from_wallet')"
+              ></q-btn>
+
+              <q-btn
+                unelevated
+                @click="showEnableQRCode(selectedExtension)"
+                color="primary"
+                class="q-mt-sm float-right"
+                :label="$t('show_qr')"
+              ></q-btn>
+            </div>
+          </div>
+        </div>
+      </q-card-section>
     </q-card>
   </q-dialog>
 </div>
@@ -592,10 +763,12 @@
       return {
         searchTerm: '',
         tab: 'all',
+        manageExtensionTab: 'releases',
         filteredExtensions: null,
         showUninstallDialog: false,
-        showUpgradeDialog: false,
+        showManageExtensionDialog: false,
         showDropDbDialog: false,
+        showPayToEnableDialog: false,
         dropDbExtensionId: '',
         selectedExtension: null,
         selectedExtensionRepos: null,
@@ -649,7 +822,7 @@
 
         const extension = this.selectedExtension
         extension.inProgress = true
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         release.payment_hash =
           release.payment_hash || this.getPaylinkHash(release.pay_link)
 
@@ -684,7 +857,7 @@
       },
       uninstallExtension: async function () {
         const extension = this.selectedExtension
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         this.showUninstallDialog = false
         extension.inProgress = true
         LNbits.api
@@ -717,7 +890,7 @@
 
       dropExtensionDb: async function () {
         const extension = this.selectedExtension
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         this.showDropDbDialog = false
         this.dropDbExtensionId = ''
         extension.inProgress = true
@@ -745,14 +918,96 @@
         const action = extension.isActive ? 'activate' : 'deactivate'
         LNbits.api
           .request(
-            'GET',
-            "{{ url_for('install.extensions') }}" +
-              '?' +
-              action +
-              '=' +
-              extension.id
+            'PUT',
+            `/api/v1/extension/${extension.id}/${action}`,
+            this.g.user.wallets[0].adminkey
           )
-          .then(response => {})
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: `Extension '${extension.id}' ${action}d!`
+            })
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+            extension.inProgress = false
+          })
+      },
+      enableExtensionForUser: function (extension) {
+        if (extension.isPaymentRequired) {
+          this.showPayToEnable(extension)
+          return
+        }
+        this.enableExtension(extension)
+      },
+      enableExtension: function (extension) {
+        LNbits.api
+          .request(
+            'PUT',
+            `/api/v1/extension/${extension.id}/enable`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Extension enabled!'
+            })
+            setTimeout(() => {
+              window.location.reload()
+            }, 300)
+          })
+          .catch(err => {
+            console.warn(err)
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      disableExtension: function (extension) {
+        LNbits.api
+          .request(
+            'PUT',
+            `/api/v1/extension/${extension.id}/disable`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Extension disabled!'
+            })
+            setTimeout(() => {
+              window.location.reload()
+            }, 300)
+          })
+          .catch(err => {
+            console.warn(error)
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      showPayToEnable: function (extension) {
+        this.selectedExtension = extension
+        this.selectedExtension.payToEnable.paidAmount =
+          extension.payToEnable.amount
+        this.selectedExtension.payToEnable.showQRCode = false
+        this.showPayToEnableDialog = true
+      },
+      updatePayToInstallData: function (extension) {
+        LNbits.api
+          .request(
+            'PUT',
+            `/api/v1/extension/${extension.id}/sell`,
+            this.g.user.wallets[0].adminkey,
+            {
+              required: extension.payToEnable.required,
+              amount: extension.payToEnable.amount,
+              wallet: extension.payToEnable.wallet
+            }
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Payment info updated!'
+            })
+            this.showManageExtensionDialog = false
+          })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
             extension.inProgress = false
@@ -760,7 +1015,7 @@
       },
 
       showUninstall: function () {
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         this.showUninstallDialog = true
         this.uninstallAndDropDb = false
       },
@@ -769,11 +1024,12 @@
         this.showDropDbDialog = true
       },
 
-      showUpgrade: async function (extension) {
+      showManageExtension: async function (extension) {
         this.selectedExtension = extension
         this.selectedRelease = null
         this.selectedExtensionRepos = null
-        this.showUpgradeDialog = true
+        this.manageExtensionTab = 'releases'
+        this.showManageExtensionDialog = true
 
         try {
           const {data} = await LNbits.api.request(
@@ -816,8 +1072,8 @@
       async payAndInstall(release) {
         try {
           this.selectedExtension.inProgress = true
-          this.showUpgradeDialog = false
-          const paymentInfo = await this.requestPayment(
+          this.showManageExtensionDialog = false
+          const paymentInfo = await this.requestPaymentForInstall(
             this.selectedExtension.id,
             release
           )
@@ -838,11 +1094,32 @@
           this.selectedExtension.inProgress = false
         }
       },
-      async showQRCode(release) {
+      async payAndEnable(extension) {
+        try {
+          const paymentInfo = await this.requestPaymentForEnable(
+            extension.id,
+            extension.payToEnable.paidAmount
+          )
+
+          const wallet = this.g.user.wallets.find(
+            w => w.id === extension.payToEnable.paymentWallet
+          )
+          const {data} = await LNbits.api.payInvoice(
+            wallet,
+            paymentInfo.payment_request
+          )
+          this.enableExtension(extension)
+          this.showPayToEnableDialog = false
+        } catch (err) {
+          console.warn(err)
+          LNbits.utils.notifyApiError(err)
+        }
+      },
+      async showInstallQRCode(release) {
         this.selectedRelease = release
 
         try {
-          const data = await this.requestPayment(
+          const data = await this.requestPaymentForInstall(
             this.selectedExtension.id,
             release
           )
@@ -865,10 +1142,44 @@
         }
       },
 
-      async requestPayment(extId, release) {
+      async showEnableQRCode(extension) {
+        try {
+          extension.payToEnable.showQRCode = true
+          this.selectedExtension = _.clone(extension)
+
+          const data = await this.requestPaymentForEnable(
+            extension.id,
+            extension.payToEnable.paidAmount
+          )
+          extension.payToEnable.paymentRequest = data.payment_request
+          this.selectedExtension = _.clone(extension)
+
+          const url = new URL(window.location)
+          url.protocol = url.protocol === 'https:' ? 'wss' : 'ws'
+          url.pathname = `/api/v1/ws/${data.payment_hash}`
+          const ws = new WebSocket(url)
+          ws.addEventListener('message', async ({data}) => {
+            const payment = JSON.parse(data)
+            if (payment.pending === false) {
+              this.$q.notify({
+                type: 'positive',
+                message: 'Invoice Paid!'
+              })
+
+              this.enableExtension(extension)
+              ws.close()
+            }
+          })
+        } catch (err) {
+          console.warn(err)
+          LNbits.utils.notifyApiError(err)
+        }
+      },
+
+      async requestPaymentForInstall(extId, release) {
         const {data} = await LNbits.api.request(
           'PUT',
-          `/api/v1/extension/invoice`,
+          `/api/v1/extension/${extId}/invoice/install`,
           this.g.user.wallets[0].adminkey,
           {
             ext_id: extId,
@@ -876,6 +1187,18 @@
             source_repo: release.source_repo,
             cost_sats: release.paidAmount,
             version: release.version
+          }
+        )
+        return data
+      },
+
+      async requestPaymentForEnable(extId, amount) {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/api/v1/extension/${extId}/invoice/enable`,
+          this.g.user.wallets[0].adminkey,
+          {
+            amount
           }
         )
         return data
