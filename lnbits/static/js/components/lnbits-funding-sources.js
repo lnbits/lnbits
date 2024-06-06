@@ -1,6 +1,14 @@
 Vue.component('lnbits-funding-sources', {
   mixins: [windowMixin],
   props: ['form-data', 'allowed-funding-sources'],
+  methods: {
+    getFundingSourceLabel(item) {
+      const fundingSource = this.rawFundingSources.find(
+        fundingSource => fundingSource[0] === item
+      )
+      return fundingSource ? fundingSource[1] : item
+    }
+  },
   computed: {
     fundingSources() {
       let tmp = []
@@ -150,42 +158,43 @@ Vue.component('lnbits-funding-sources', {
     }
   },
   template: `
-    <div class="funding-sources">
+      <div class="funding-sources">
         <h6 class="q-mt-xl q-mb-md">Funding Sources</h6>
         <div class="row">
           <div class="col-12">
             <p>Active Funding<small> (Requires server restart)</small></p>
             <q-select
-              filled
-              v-model="formData.lnbits_backend_wallet_class"
-              hint="Select the active funding wallet"
-              :options="allowedFundingSources"
+                filled
+                v-model="formData.lnbits_backend_wallet_class"
+                hint="Select the active funding wallet"
+                :options="allowedFundingSources"
+                :option-label="(item) => getFundingSourceLabel(item)"
             ></q-select>
           </div>
         </div>
         <q-list
-          class="q-mt-md"
-          v-for="(fund, idx) in allowedFundingSources"
-          :key="idx"
+            class="q-mt-md"
+            v-for="(fund, idx) in allowedFundingSources"
+            :key="idx"
         >
           <div v-if="fundingSources.get(fund) && fund === formData.lnbits_backend_wallet_class">
             <div class="row"
-              v-for="([key, prop], i) in Object.entries(fundingSources.get(fund))"
-              :key="i"
+                 v-for="([key, prop], i) in Object.entries(fundingSources.get(fund))"
+                 :key="i"
             >
               <div class="col-12">
                 <q-input
-                  filled
-                  type="text"
-                  class="q-mt-sm"
-                  v-model="formData[key]"
-                  :label="prop.label"
-                  :hint="prop.hint"
+                    filled
+                    type="text"
+                    class="q-mt-sm"
+                    v-model="formData[key]"
+                    :label="prop.label"
+                    :hint="prop.hint"
                 ></q-input>
               </div>
             </div>
           </div>
         </q-list>
-    </div>
-  `
+      </div>
+    `
 })
