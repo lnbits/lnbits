@@ -87,7 +87,7 @@
           <div class="col-9 q-pl-sm">
             <q-badge
               v-if="hasNewVersion(extension)"
-              @click="showExtensionDetails()"
+              @click="showExtensionDetails(extension.id, extension.latestRelease.details_link)"
               color="green"
               class="float-right cursor-pointer"
             >
@@ -233,7 +233,10 @@
 
         <div class="col-2">
           <div class="float-right">
-            <q-badge @click="showExtensionDetails()" class="cursor-pointer">
+            <q-badge
+              @click="showExtensionDetails(extension.id, extension.installedRelease.details_link)"
+              class="cursor-pointer"
+            >
               <q-icon
                 v-if="extension.installedRelease.details_link"
                 name="info"
@@ -1087,8 +1090,20 @@
         }
       },
 
-      showExtensionDetails: async function (extension) {
+      showExtensionDetails: async function (extId, detailsLink) {
         this.showExtensionDetailsDialog = true
+
+        if (!detailsLink) {
+          // todo: show a nice message
+          return
+        }
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/extension/${extId}/details?details_link=${detailsLink}`,
+          this.g.user.wallets[0].inkey
+        )
+        console.log('### data', data)
+        return data
       },
       async payAndInstall(release) {
         try {

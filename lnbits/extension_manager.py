@@ -211,6 +211,30 @@ async def fetch_release_payment_info(
         return None
 
 
+async def fetch_release_details(details_link: str) -> Optional[ReleasePaymentInfo]:
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(details_link)
+            resp.raise_for_status()
+            data = resp.json()
+            print("### release data 1", data)
+            if "description_md" in data:
+                resp = await client.get(data["description_md"])
+                if not resp.is_error:
+                    data["description_md"] = resp.text
+
+            if "terms_and_conditions_md" in data:
+                resp = await client.get(data["terms_and_conditions_md"])
+                if not resp.is_error:
+                    data["terms_and_conditions_md"] = resp.text
+
+            return data
+    except Exception as e:
+        logger.warning(e)
+        return None
+
+
 def icon_to_github_url(source_repo: str, path: Optional[str]) -> str:
     if not path:
         return ""
@@ -367,7 +391,7 @@ class ExtensionRelease(BaseModel):
             min_lnbits_version=e.min_lnbits_version,
             is_version_compatible=e.is_version_compatible(),
             warning=e.warning,
-            html_url=e.html_url, # todo: remove
+            html_url=e.html_url,  # todo: remove
             details_link=e.details_link,
             pay_link=e.pay_link,
             repo=e.repo,
@@ -741,6 +765,12 @@ class CreateExtension(BaseModel):
     version: str
     cost_sats: Optional[int] = 0
     payment_hash: Optional[str] = None
+
+
+class ExtensionDetailsRequest(BaseModel):
+    ext_id: str
+    source_repo: str
+    version: str
 
 
 def get_valid_extensions(include_deactivated: Optional[bool] = True) -> List[Extension]:
