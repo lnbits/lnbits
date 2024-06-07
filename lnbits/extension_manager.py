@@ -32,6 +32,7 @@ class ExplicitRelease(BaseModel):
     warning: Optional[str]
     info_notification: Optional[str]
     critical_notification: Optional[str]
+    details_link: Optional[str]
     pay_link: Optional[str]
 
     def is_version_compatible(self):
@@ -315,6 +316,7 @@ class ExtensionRelease(BaseModel):
     warning: Optional[str] = None
     repo: Optional[str] = None
     icon: Optional[str] = None
+    details_link: Optional[str] = None
 
     pay_link: Optional[str] = None
     cost_sats: Optional[int] = None
@@ -365,7 +367,8 @@ class ExtensionRelease(BaseModel):
             min_lnbits_version=e.min_lnbits_version,
             is_version_compatible=e.is_version_compatible(),
             warning=e.warning,
-            html_url=e.html_url,
+            html_url=e.html_url, # todo: remove
+            details_link=e.details_link,
             pay_link=e.pay_link,
             repo=e.repo,
             icon=e.icon,
