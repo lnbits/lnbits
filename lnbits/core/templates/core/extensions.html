@@ -839,10 +839,13 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-9">
+        <div class="col">
           <div v-html="selectedExtensionDetails.description_md"></div>
         </div>
-        <div class="col-3 q-pl-sm">
+      </div>
+      <q-separator></q-separator>
+      <div class="row">
+        <div class="col q-pt-sm">
           <b>
             <div>Contributors</div>
           </b>
@@ -854,11 +857,26 @@
                 rel="noopener noreferrer"
                 style="color: var(--q-primary); text-decoration: none"
               >
-                {% raw %} {{ contributor.name + ' - ' + contributor.role }}{%
-                endraw %}
+                <span
+                  v-text="contributor.name + ' - ' + contributor.role"
+                ></span>
               </a>
             </div>
           </small>
+        </div>
+        <div class="col q-pt-sm">
+          <div class="float-right">
+            <b>
+              <div>License</div>
+            </b>
+            <q-badge
+              color="primary"
+              v-text="selectedExtensionDetails.license"
+            ></q-badge>
+          </div>
+        </div>
+        <!-- <div class="row">
+        <div class="col q-pt-sm">
           <q-rating
             class="q-py-lg"
             v-model="maxStars"
@@ -879,6 +897,7 @@
             rel="noopener noreferrer"
           ></q-btn>
         </div>
+      </div> -->
       </div>
     </q-card>
   </q-dialog>
@@ -1208,7 +1227,7 @@
         this.selectedExtensionDetails = null
         this.showExtensionDetailsDialog = true
         this.slide = 0
-        this.fullscreen = 0
+        this.fullscreen = false
 
         if (!detailsLink) {
           // todo: show a nice message
@@ -1222,7 +1241,10 @@
         )
         console.log('### data', data)
         this.selectedExtensionDetails = data
-        this.selectedExtensionDetails.defaultImage = data.images[0]?.uri
+        this.selectedExtensionDetails.description_md =
+          LNbits.utils.convertMarkdown(data.description_md)
+        this.selectedExtensionDetails.terms_and_conditions_md =
+          LNbits.utils.convertMarkdown(data.terms_and_conditions_md)
       },
       async payAndInstall(release) {
         try {
