@@ -867,37 +867,37 @@
         <div class="col q-pt-sm">
           <div class="float-right">
             <b>
-              <div>License</div>
+              <span>License</span>
             </b>
             <q-badge
               color="primary"
               v-text="selectedExtensionDetails.license"
             ></q-badge>
           </div>
+          <br />
+
+          <div class="float-right">
+            <q-rating
+              class="q-py-lg"
+              v-model="maxStars"
+              disable
+              size="1.5em"
+              :max="5"
+              color="primary"
+              ><q-tooltip>
+                <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
+            ></q-rating>
+            <q-btn
+              size="xs"
+              color="primary"
+              label="Repo"
+              type="a"
+              :href="selectedExtensionDetails.repo"
+              target="_blank"
+              rel="noopener noreferrer"
+            ></q-btn>
+          </div>
         </div>
-        <!-- <div class="row">
-        <div class="col q-pt-sm">
-          <q-rating
-            class="q-py-lg"
-            v-model="maxStars"
-            disable
-            size="1.5em"
-            :max="5"
-            color="primary"
-            ><q-tooltip>
-              <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
-          ></q-rating>
-          <q-btn
-            size="xs"
-            color="primary"
-            label="Repo"
-            type="a"
-            :href="selectedExtensionDetails.repo"
-            target="_blank"
-            rel="noopener noreferrer"
-          ></q-btn>
-        </div>
-      </div> -->
       </div>
     </q-card>
   </q-dialog>
