@@ -805,6 +805,7 @@
             swipeable
             animated
             v-model="slide"
+            :fullscreen.sync="fullscreen"
             thumbnails
             infinite
             :autoplay="autoplay"
@@ -815,6 +816,19 @@
             @mouseleave="autoplay = true"
             height="300px"
           >
+            <template v-slot:control>
+              <q-carousel-control position="bottom-right" :offset="[18, 18]">
+                <q-btn
+                  push
+                  round
+                  dense
+                  color="white"
+                  text-color="primary"
+                  :icon="fullscreen ? 'fullscreen_exit' : 'fullscreen'"
+                  @click="fullscreen = !fullscreen"
+                ></q-btn>
+              </q-carousel-control>
+            </template>
             <q-carousel-slide
               v-for="(image, i) of selectedExtensionDetails.images"
               :img-src="image.uri"
@@ -871,13 +885,13 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-
   new Vue({
     el: '#vue',
 
     data: function () {
       return {
         slide: 0,
+        fullscreen: false,
         autoplay: true,
         searchTerm: '',
         tab: 'all',
@@ -1194,6 +1208,7 @@
         this.selectedExtensionDetails = null
         this.showExtensionDetailsDialog = true
         this.slide = 0
+        this.fullscreen = 0
 
         if (!detailsLink) {
           // todo: show a nice message
