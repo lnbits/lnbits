@@ -772,23 +772,56 @@
   </q-dialog>
 
   <q-dialog v-model="showExtensionDetailsDialog">
-    <q-card v-if="selectedExtensionDetails" class="q-pa-lg" style="width: 800px; max-width: 80vw">
+    <q-card
+      v-if="selectedExtensionDetails"
+      class="q-pa-lg"
+      style="width: 800px; max-width: 80vw"
+    >
       <div class="row">
         <div class="col-2 gt-md">
-          <q-img :src="selectedExtensionDetails.title" style="width: 100px" type="image"></q-img>
+          <q-img
+            :src="selectedExtensionDetails.title"
+            style="width: 100px"
+            type="image"
+          ></q-img>
         </div>
         <div class="col-9 q-pl-md">
           <h3 class="q-my-sm" v-text="selectedExtensionDetails.name"></h3>
-          <h6 class="q-my-sm" v-text="selectedExtensionDetails.short_description"></h6>
+          <h6
+            class="q-my-sm"
+            v-text="selectedExtensionDetails.short_description"
+          ></h6>
         </div>
         <div class="col-1">
-          <q-badge color="primary" v-text="selectedExtensionDetails.license"></q-badge>
+          <q-badge
+            color="primary"
+            v-text="selectedExtensionDetails.license"
+          ></q-badge>
         </div>
       </div>
       <div class="row q-my-lg">
-        <div class="col q-pr-md" v-for="image of selectedExtensionDetails.images">
-          <q-img style="cursor: pointer; max-height: 130px" :src="image.uri" type="image" @click="bigImage(image)"
-            loading="lazy"></q-img>
+        <div class="col q-pr-md">
+          <q-carousel
+            swipeable
+            animated
+            v-model="slide"
+            thumbnails
+            infinite
+            :autoplay="autoplay"
+            arrows
+            transition-prev="slide-right"
+            transition-next="slide-left"
+            @mouseenter="autoplay = false"
+            @mouseleave="autoplay = true"
+            height="300px"
+          >
+            <q-carousel-slide
+              v-for="(image, i) of selectedExtensionDetails.images"
+              :img-src="image.uri"
+              :key="i"
+              :name="i"
+            />
+          </q-carousel>
         </div>
       </div>
       <div class="row">
@@ -801,16 +834,36 @@
           </b>
           <small>
             <div v-for="contributor of selectedExtensionDetails.contributors">
-              <a :href="contributor.uri" target="_blank" rel="noopener noreferrer"
-                style="color: var(--q-primary);text-decoration: none;">
-                {% raw %} {{ contributor.name + ' - ' + contributor.role }}{% endraw %}
+              <a
+                :href="contributor.uri"
+                target="_blank"
+                rel="noopener noreferrer"
+                style="color: var(--q-primary); text-decoration: none"
+              >
+                {% raw %} {{ contributor.name + ' - ' + contributor.role }}{%
+                endraw %}
               </a>
             </div>
           </small>
-          <q-rating class="q-py-lg" v-model="maxStars" disable size="1.5em" :max="5" color="primary"><q-tooltip>
-              <span v-text="$t('extension_rating_soon')"></span> </q-tooltip></q-rating>
-          <q-btn size="xs" color="primary" label="Repo" type="a" :href="selectedExtensionDetails.repo" target="_blank"
-            rel="noopener noreferrer"></q-btn>
+          <q-rating
+            class="q-py-lg"
+            v-model="maxStars"
+            disable
+            size="1.5em"
+            :max="5"
+            color="primary"
+            ><q-tooltip>
+              <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
+          ></q-rating>
+          <q-btn
+            size="xs"
+            color="primary"
+            label="Repo"
+            type="a"
+            :href="selectedExtensionDetails.repo"
+            target="_blank"
+            rel="noopener noreferrer"
+          ></q-btn>
         </div>
       </div>
     </q-card>
@@ -818,10 +871,14 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
+
   new Vue({
     el: '#vue',
+
     data: function () {
       return {
+        slide: 0,
+        autoplay: true,
         searchTerm: '',
         tab: 'all',
         manageExtensionTab: 'releases',
@@ -833,6 +890,7 @@
         showPayToEnableDialog: false,
         dropDbExtensionId: '',
         selectedExtension: null,
+        selectedImage: null,
         selectedExtensionDetails: null,
         selectedExtensionRepos: null,
         selectedRelease: null,
@@ -1135,6 +1193,7 @@
       showExtensionDetails: async function (extId, detailsLink) {
         this.selectedExtensionDetails = null
         this.showExtensionDetailsDialog = true
+        this.slide = 0
 
         if (!detailsLink) {
           // todo: show a nice message
@@ -1148,6 +1207,7 @@
         )
         console.log('### data', data)
         this.selectedExtensionDetails = data
+        this.selectedExtensionDetails.defaultImage = data.images[0]?.uri
       },
       async payAndInstall(release) {
         try {
