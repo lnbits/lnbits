@@ -87,10 +87,16 @@
           <div class="col-9 q-pl-sm">
             <q-badge
               v-if="hasNewVersion(extension)"
+              @click="showExtensionDetails()"
               color="green"
-              class="float-right"
+              class="float-right cursor-pointer"
             >
-              <small v-text="$t('new_version')"></small>
+              <q-icon
+                v-if="extension.latestRelease.details_link"
+                name="info"
+                size="xs"
+              ></q-icon>
+              <small v-text="$t('new_version')" class="q-ml-sm"></small>
               <q-tooltip
                 ><span v-text="extension.latestRelease.version"></span
               ></q-tooltip>
@@ -228,7 +234,11 @@
         <div class="col-2">
           <div class="float-right">
             <q-badge @click="showExtensionDetails()" class="cursor-pointer">
-              <q-icon name="info" size="xs"></q-icon>
+              <q-icon
+                v-if="extension.installedRelease.details_link"
+                name="info"
+                size="xs"
+              ></q-icon>
               <div
                 v-if="extension.isInstalled && extension.installedRelease"
                 class="q-ml-sm"
