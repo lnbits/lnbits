@@ -146,6 +146,7 @@ async def api_extension_details(
         release_details = await fetch_release_details(details_link)
         assert release_details, "Cannot fetch details for release"
         release_details["icon"] = release.icon
+        release_details["repo"] = release.repo
         return release_details
     except AssertionError as exc:
         raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
