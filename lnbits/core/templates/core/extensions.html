@@ -226,15 +226,18 @@
         </div>
 
         <div class="col-2">
-          <div
-            v-if="extension.isInstalled && extension.installedRelease"
-            class="float-right"
-          >
-            <q-badge>
-              <span v-text="extension.installedRelease.version"></span>
-              <q-tooltip>
-                <span v-text="$t('extension_installed_version')"></span>
-              </q-tooltip>
+          <div class="float-right">
+            <q-badge @click="showExtensionDetails()" class="cursor-pointer">
+              <q-icon name="info" size="xs"></q-icon>
+              <div
+                v-if="extension.isInstalled && extension.installedRelease"
+                class="q-ml-sm"
+              >
+                <span v-text="extension.installedRelease.version"></span>
+                <q-tooltip>
+                  <span v-text="$t('extension_installed_version')"></span>
+                </q-tooltip>
+              </div>
             </q-badge>
           </div>
         </div>
@@ -754,6 +757,10 @@
       </q-card-section>
     </q-card>
   </q-dialog>
+
+  <q-dialog v-model="showExtensionDetailsDialog" position="top">
+    <h1>Extension Details</h1>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -767,6 +774,7 @@
         filteredExtensions: null,
         showUninstallDialog: false,
         showManageExtensionDialog: false,
+        showExtensionDetailsDialog: false,
         showDropDbDialog: false,
         showPayToEnableDialog: false,
         dropDbExtensionId: '',
@@ -1069,6 +1077,9 @@
         }
       },
 
+      showExtensionDetails: async function (extension) {
+        this.showExtensionDetailsDialog = true
+      },
       async payAndInstall(release) {
         try {
           this.selectedExtension.inProgress = true
