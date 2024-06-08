@@ -211,7 +211,7 @@ async def fetch_release_payment_info(
         return None
 
 
-async def fetch_release_details(details_link: str) -> Optional[ReleasePaymentInfo]:
+async def fetch_release_details(details_link: str) -> Optional[dict]:
 
     try:
         async with httpx.AsyncClient() as client:
