@@ -375,6 +375,7 @@ async def pay_invoice(
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
             # payment failed
+            logger.debug(f"payment failed {temp_id}, {payment.error_message}")
             async with db.connect() as conn:
                 await update_payment_status(
                     checking_id=temp_id,
