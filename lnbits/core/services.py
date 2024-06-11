@@ -285,11 +285,23 @@ async def pay_invoice(
             fee_reserve_total_msat = fee_reserve_total(
                 invoice.amount_msat, internal=False
             )
+
+            old_payment = await get_standalone_payment(temp_id, conn=conn)
+            if old_payment:
+                if old_payment.pending:
+                    raise PaymentError("Payment is still pending.", status="pending")
+                elif old_payment.success:
+                    raise PaymentError("Payment already paid.", status="success")
+                elif old_payment.failed:
+                    status = await old_payment.check_status()
+                    if status.paid:
+                        return old_payment.payment_hash
+
             logger.debug(f"creating temporary payment with id {temp_id}")
             # create a temporary payment here so we can check if
             # the balance is enough in the next step
             try:
-                new_payment = await create_payment(
+                new_payment = old_payment or await create_payment(
                     checking_id=temp_id,
                     fee=-abs(fee_reserve_total_msat),
                     conn=conn,
@@ -298,7 +310,7 @@ async def pay_invoice(
             except Exception as exc:
                 logger.error(f"could not create temporary payment: {exc}")
                 # happens if the same wallet tries to pay an invoice twice
-                raise PaymentError("Could not make payment.", status="failed") from exc
+                raise PaymentError("Could not make payment", status="failed") from exc
 
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
