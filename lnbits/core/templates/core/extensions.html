@@ -797,15 +797,7 @@
               v-text="selectedExtensionDetails.short_description"
             ></h6>
           </div>
-          <div class="col-3">
-            <q-btn
-              v-if="selectedExtensionDetails.terms_and_conditions_md"
-              @click="toggleTermsAndConditions()"
-              size="xs"
-              color="primary"
-              label="Terms and conditions"
-            ></q-btn>
-          </div>
+          <div class="col-3"></div>
         </div>
         <div class="row q-my-lg">
           <div class="col q-pr-md">
@@ -844,7 +836,7 @@
                 :name="i"
               >
                 <q-video
-                v-if="image.link"
+                  v-if="image.link"
                   class="absolute-full"
                   :src="image.link"
                 />
@@ -852,19 +844,27 @@
             </q-carousel>
           </div>
         </div>
-        <div v-if="selectedExtensionDetails.showTermsAndCondtions" class="row">
-          <div class="col">
-            <div
-              v-html="selectedExtensionDetails.terms_and_conditions_md"
-            ></div>
+
+        <div class="row">
+          <div
+            v-if="selectedExtensionDetails.showTermsAndCondtions"
+            class="col-8 q-pr-sm"
+          >
+            <div v-html="selectedExtensionDetails.terms_and_conditions_md"></div>
           </div>
-        </div>
-        <div v-else class="row">
-          <div class="col-8 q-pr-sm">
+          <div v-else class="col-8 q-pr-sm">
             <div v-html="selectedExtensionDetails.description_md"></div>
           </div>
           <div class="col-4 q-pl-sm" style="border-left: 1px solid grey">
             <div class="">
+              <q-btn
+                @click="toggleTermsAndConditions()"
+                size="xs"
+                color="primary"
+                :label="selectedExtensionDetails.showTermsAndCondtions? 'Back' : 'Terms and conditions'"
+              ></q-btn>
+            </div>
+            <div class="q-mt-md">
               <b>
                 <div>Contributors</div>
               </b>
@@ -1279,8 +1279,8 @@
           console.warn(error)
         }
       },
-      toggleTermsAndConditions: function () {
-        console.log('### toggleTermsAndConditions', toggleTermsAndConditions)
+      toggleTermsAndConditions() {
+        console.log('### toggleTermsAndConditions')
         if (!this.selectedExtensionDetails) return
         this.selectedExtensionDetails.showTermsAndCondtions =
           !this.selectedExtensionDetails.showTermsAndCondtions
