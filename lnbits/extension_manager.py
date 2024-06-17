@@ -146,21 +146,19 @@ async def fetch_github_repo_info(
     repo = await github_api_get(repo_url, error_msg)
     github_repo = GitHubRepo.parse_obj(repo)
 
-    config_url = f"https://raw.githubusercontent.com/{org}/{repository}/{github_repo.default_branch}/config.json"
     lates_release_url = (
         f"https://api.github.com/repos/{org}/{repository}/releases/latest"
     )
-
     error_msg = "Cannot fetch extension releases"
-    latest_github_release: Any = await github_api_get(lates_release_url, error_msg)
-    latest_release = GitHubRepoRelease.parse_obj(latest_github_release)
+    latest_release: Any = await github_api_get(lates_release_url, error_msg)
 
+    config_url = f"https://raw.githubusercontent.com/{org}/{repository}/{github_repo.default_branch}/config.json"
     error_msg = "Cannot fetch config for extension"
     config = await github_api_get(config_url, error_msg)
 
     return (
         github_repo,
-        latest_release,
+        GitHubRepoRelease.parse_obj(latest_release),
         ExtensionConfig.parse_obj(config),
     )
 
