@@ -1254,19 +1254,22 @@
         this.slide = 0
         this.fullscreen = false
 
-        // # todo: try catch
-        const {data} = await LNbits.api.request(
-          'GET',
-          `/api/v1/extension/${extId}/details?details_link=${detailsLink}`,
-          this.g.user.wallets[0].inkey
-        )
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/api/v1/extension/${extId}/details?details_link=${detailsLink}`,
+            this.g.user.wallets[0].inkey
+          )
 
-        this.selectedExtensionDetails = data
-        this.selectedExtensionDetails.description_md =
-          LNbits.utils.convertMarkdown(data.description_md)
-        this.selectedExtensionDetails.terms_and_conditions_md =
-          LNbits.utils.convertMarkdown(data.terms_and_conditions_md)
-        this.selectedExtensionDetails.showTermsAndCondtions = false
+          this.selectedExtensionDetails = data
+          this.selectedExtensionDetails.description_md =
+            LNbits.utils.convertMarkdown(data.description_md)
+          this.selectedExtensionDetails.terms_and_conditions_md =
+            LNbits.utils.convertMarkdown(data.terms_and_conditions_md)
+          this.selectedExtensionDetails.showTermsAndCondtions = false
+        } catch (error) {
+          console.warn(error)
+        }
       },
       toggleTermsAndConditions: function () {
         console.log('### toggleTermsAndConditions', toggleTermsAndConditions)
