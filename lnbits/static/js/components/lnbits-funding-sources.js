@@ -104,7 +104,7 @@ Vue.component('lnbits-funding-sources', {
         ],
         [
           'LNbitsWallet',
-          'LNBits',
+          'LNbits',
           {
             lnbits_endpoint: 'Endpoint',
             lnbits_key: 'Admin Key'
