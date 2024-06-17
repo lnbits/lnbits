@@ -396,7 +396,7 @@ class ExtensionRelease(BaseModel):
             min_lnbits_version=e.min_lnbits_version,
             is_version_compatible=e.is_version_compatible(),
             warning=e.warning,
-            html_url=e.html_url,  # todo: remove
+            html_url=e.html_url,
             details_link=e.details_link,
             pay_link=e.pay_link,
             repo=e.repo,
