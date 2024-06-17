@@ -166,7 +166,7 @@ window.localisation.jp = {
     '有効にすると、LNbitsからキルスイッチ信号が送信された場合に自動的に資金源をVoidWalletに切り替えます。更新後には手動で有効にする必要があります。',
   killswitch_interval: 'キルスイッチ間隔',
   killswitch_interval_desc:
-    'バックグラウンドタスクがステータスソースからLNBitsキルスイッチ信号を確認する頻度（分単位）。',
+    'バックグラウンドタスクがステータスソースからLNbitsキルスイッチ信号を確認する頻度（分単位）。',
   enable_watchdog: 'ウォッチドッグを有効にする',
   enable_watchdog_desc:
     '有効にすると、残高がLNbitsの残高より少ない場合に、資金源を自動的にVoidWalletに変更します。アップデート後は手動で有効にする必要があります。',

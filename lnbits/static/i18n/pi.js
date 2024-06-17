@@ -168,7 +168,7 @@ window.localisation.pi = {
     "If enabled it'll be changin' yer fundin' source to VoidWallet automatically if LNbits sends out a killswitch signal, ye will. Ye'll be needin' t' enable manually after an update, arr.",
   killswitch_interval: 'Killswitch Interval',
   killswitch_interval_desc:
-    "How oft th' background task should be checkin' fer th' LNBits killswitch signal from th' status source (in minutes).",
+    "How oft th' background task should be checkin' fer th' LNbits killswitch signal from th' status source (in minutes).",
   enable_watchdog: 'Enable Seadog',
   enable_watchdog_desc:
     "If enabled, it will swap yer treasure source t' VoidWallet on its own if yer balance be lower than th' LNbits balance. Ye'll need t' enable by hand after an update.",

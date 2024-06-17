@@ -171,7 +171,7 @@ window.localisation.de = {
     'Falls aktiviert, wird Ihre Zahlungsquelle automatisch auf VoidWallet umgestellt, wenn LNbits ein Killswitch-Signal sendet. Nach einem Update müssen Sie dies manuell wieder aktivieren.',
   killswitch_interval: 'Intervall für den Notausschalter',
   killswitch_interval_desc:
-    'Wie oft die Hintergrundaufgabe nach dem LNBits-Killswitch-Signal aus der Statusquelle suchen soll (in Minuten).',
+    'Wie oft die Hintergrundaufgabe nach dem LNbits-Killswitch-Signal aus der Statusquelle suchen soll (in Minuten).',
   enable_watchdog: 'Aktiviere Watchdog',
   enable_watchdog_desc:
     'Wenn aktiviert, wird Ihre Zahlungsquelle automatisch auf VoidWallet umgestellt, wenn Ihr Guthaben niedriger als das LNbits-Guthaben ist. Nach einem Update müssen Sie dies manuell aktivieren.',
