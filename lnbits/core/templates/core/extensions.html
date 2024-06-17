@@ -87,16 +87,17 @@
           <div class="col-9 q-pl-sm">
             <q-badge
               v-if="hasNewVersion(extension)"
-              @click="showExtensionDetails(extension.id, extension.latestRelease.details_link)"
+              @click="showExtensionDetails(extension.id, extension.latestRelease?.details_link)"
               color="green"
-              class="float-right cursor-pointer"
+              class="float-right"
+              :class="extension.latestRelease?.details_link ? 'cursor-pointer': ''"
             >
               <q-icon
-                v-if="extension.latestRelease.details_link"
+                v-if="extension.latestRelease?.details_link"
                 name="info"
                 size="xs"
               ></q-icon>
-              <small v-text="$t('new_version')" class="q-ml-sm"></small>
+              <small v-text="$t('new_version')" class="q-ma-xs"></small>
               <q-tooltip
                 ><span v-text="extension.latestRelease.version"></span
               ></q-tooltip>
@@ -232,21 +233,24 @@
         </div>
 
         <div class="col-2">
-          <div class="float-right">
+          <div
+            v-if="(extension.isInstalled && extension.installedRelease) || extension.details_link"
+            class="float-right"
+          >
             <q-badge
-              @click="showExtensionDetails(extension.id, extension.installedRelease.details_link)"
-              class="cursor-pointer"
+              @click="showExtensionDetails(extension.id, extension.details_link)"
+              :class="extension.details_link? 'cursor-pointer' : ''"
             >
               <q-icon
-                v-if="extension.installedRelease.details_link"
+                v-if="extension.details_link"
                 name="info"
                 size="xs"
               ></q-icon>
-              <div
-                v-if="extension.isInstalled && extension.installedRelease"
-                class="q-ml-sm"
-              >
-                <span v-text="extension.installedRelease.version"></span>
+              <div v-if="extension.installedRelease" class="q-ma-xs">
+                <span
+                  v-text="extension.installedRelease.version"
+                  class="q-mt-lg"
+                ></span>
                 <q-tooltip>
                   <span v-text="$t('extension_installed_version')"></span>
                 </q-tooltip>
@@ -978,6 +982,12 @@
           )
           .filter(e => (tab === 'featured' ? e.isFeatured : true))
           .filter(extensionNameContains(term))
+          .map(e => ({
+            ...e,
+            details_link:
+              e.installedRelease?.details_link || e.latestRelease?.details_link
+          }))
+        console.log('#### this.filteredExtensions ', this.filteredExtensions)
         this.tab = tab
       },
 
@@ -1236,22 +1246,21 @@
       },
 
       showExtensionDetails: async function (extId, detailsLink) {
+        if (!detailsLink) {
+          return
+        }
         this.selectedExtensionDetails = null
         this.showExtensionDetailsDialog = true
         this.slide = 0
         this.fullscreen = false
 
-        if (!detailsLink) {
-          // todo: show a nice message
-          return
-        }
         // # todo: try catch
         const {data} = await LNbits.api.request(
           'GET',
           `/api/v1/extension/${extId}/details?details_link=${detailsLink}`,
           this.g.user.wallets[0].inkey
         )
-        console.log('### data', data)
+
         this.selectedExtensionDetails = data
         this.selectedExtensionDetails.description_md =
           LNbits.utils.convertMarkdown(data.description_md)
