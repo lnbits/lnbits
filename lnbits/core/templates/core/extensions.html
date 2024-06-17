@@ -850,7 +850,9 @@
             v-if="selectedExtensionDetails.showTermsAndCondtions"
             class="col-8 q-pr-sm"
           >
-            <div v-html="selectedExtensionDetails.terms_and_conditions_md"></div>
+            <div
+              v-html="selectedExtensionDetails.terms_and_conditions_md"
+            ></div>
           </div>
           <div v-else class="col-8 q-pr-sm">
             <div v-html="selectedExtensionDetails.description_md"></div>
