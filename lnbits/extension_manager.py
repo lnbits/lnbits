@@ -58,6 +58,7 @@ class GitHubRepoRelease(BaseModel):
     tag_name: str
     zipball_url: str
     html_url: str
+    details_link: Optional[str]
 
 
 class GitHubRepo(BaseModel):
@@ -143,19 +144,22 @@ async def fetch_github_repo_info(
     repo = await github_api_get(repo_url, error_msg)
     github_repo = GitHubRepo.parse_obj(repo)
 
+    config_url = f"https://raw.githubusercontent.com/{org}/{repository}/{github_repo.default_branch}/config.json"
     lates_release_url = (
         f"https://api.github.com/repos/{org}/{repository}/releases/latest"
     )
-    error_msg = "Cannot fetch extension releases"
-    latest_release: Any = await github_api_get(lates_release_url, error_msg)
 
-    config_url = f"https://raw.githubusercontent.com/{org}/{repository}/{github_repo.default_branch}/config.json"
+    error_msg = "Cannot fetch extension releases"
+    latest_github_release: Any = await github_api_get(lates_release_url, error_msg)
+    latest_release = GitHubRepoRelease.parse_obj(latest_github_release)
+    latest_release.details_link = config_url
+
     error_msg = "Cannot fetch config for extension"
     config = await github_api_get(config_url, error_msg)
 
     return (
         github_repo,
-        GitHubRepoRelease.parse_obj(latest_release),
+        latest_release,
         ExtensionConfig.parse_obj(config),
     )
 
@@ -373,6 +377,7 @@ class ExtensionRelease(BaseModel):
             archive=r.zipball_url,
             source_repo=source_repo,
             is_github_release=True,
+            details_link=r.details_link,
             repo=f"https://github.com/{source_repo}",
             html_url=r.html_url,
         )
