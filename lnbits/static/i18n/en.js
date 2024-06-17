@@ -258,5 +258,7 @@ window.localisation.en = {
   sell_info:
     'The %{name} extension requires a payment of minimum %{amount} sats to enable.',
   hide_empty_wallets: 'Hide empty wallets',
-  recheck: 'Recheck'
+  recheck: 'Recheck',
+  contributors: 'Contributors',
+  license: 'License'
 }

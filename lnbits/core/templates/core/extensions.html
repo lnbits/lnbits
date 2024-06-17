@@ -876,7 +876,7 @@
             </div>
             <div class="q-mt-md">
               <b>
-                <div>Contributors</div>
+                <span v-text="$t('contributors')"></span>
               </b>
               <small>
                 <div
@@ -898,7 +898,7 @@
             <div class="q-pt-lg">
               <div>
                 <b>
-                  <span>License</span>
+                  <span v-text="$t('license')"></span>
                 </b>
                 <q-badge
                   color="primary"
@@ -922,7 +922,7 @@
                 <q-btn
                   size="xs"
                   color="primary"
-                  label="Repo"
+                  :label="$t('repository')"
                   type="a"
                   :href="selectedExtensionDetails.repo"
                   target="_blank"
