@@ -797,7 +797,15 @@
               v-text="selectedExtensionDetails.short_description"
             ></h6>
           </div>
-          <div class="col-3"></div>
+          <div class="col-3">
+            <q-btn
+              v-close-popup
+              flat
+              color="grey"
+              class="float-right q-ml-lg"
+              v-text="$t('close')"
+            ></q-btn>
+          </div>
         </div>
         <div v-if="selectedExtensionDetails.images?.length" class="row q-my-lg">
           <div class="col q-pr-md">
