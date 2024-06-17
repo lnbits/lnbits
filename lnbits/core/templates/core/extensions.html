@@ -854,63 +854,65 @@
           </div>
         </div>
         <div v-else class="row">
-          <div class="col">
+          <div class="col-8 q-pr-sm">
             <div v-html="selectedExtensionDetails.description_md"></div>
           </div>
-        </div>
-        <q-separator></q-separator>
-        <div class="row">
-          <div class="col q-pt-sm">
-            <b>
-              <div>Contributors</div>
-            </b>
-            <small>
-              <div v-for="contributor of selectedExtensionDetails.contributors">
-                <a
-                  :href="contributor.uri"
+          <div class="col-4 q-pl-sm" style="border-left: 1px solid grey">
+            <div class="">
+              <b>
+                <div>Contributors</div>
+              </b>
+              <small>
+                <div
+                  v-for="contributor of selectedExtensionDetails.contributors"
+                >
+                  <a
+                    :href="contributor.uri"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style="color: var(--q-primary); text-decoration: none"
+                  >
+                    <span
+                      v-text="contributor.name + ' - ' + contributor.role"
+                    ></span>
+                  </a>
+                </div>
+              </small>
+            </div>
+            <div class="q-pt-lg">
+              <div>
+                <b>
+                  <span>License</span>
+                </b>
+                <q-badge
+                  color="primary"
+                  v-text="selectedExtensionDetails.license"
+                ></q-badge>
+              </div>
+              <br />
+
+              <div>
+                <q-rating
+                  v-model="maxStars"
+                  disable
+                  size="1.5em"
+                  :max="5"
+                  color="primary"
+                  ><q-tooltip>
+                    <span
+                      v-text="$t('extension_rating_soon')"
+                    ></span> </q-tooltip
+                ></q-rating>
+                <q-btn
+                  size="xs"
+                  color="primary"
+                  label="Repo"
+                  type="a"
+                  :href="selectedExtensionDetails.repo"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style="color: var(--q-primary); text-decoration: none"
-                >
-                  <span
-                    v-text="contributor.name + ' - ' + contributor.role"
-                  ></span>
-                </a>
+                ></q-btn>
               </div>
-            </small>
-          </div>
-          <div class="col q-pt-sm">
-            <div class="float-right">
-              <b>
-                <span>License</span>
-              </b>
-              <q-badge
-                color="primary"
-                v-text="selectedExtensionDetails.license"
-              ></q-badge>
-            </div>
-            <br />
-
-            <div class="float-right">
-              <q-rating
-                class="q-py-lg"
-                v-model="maxStars"
-                disable
-                size="1.5em"
-                :max="5"
-                color="primary"
-                ><q-tooltip>
-                  <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
-              ></q-rating>
-              <q-btn
-                size="xs"
-                color="primary"
-                label="Repo"
-                type="a"
-                :href="selectedExtensionDetails.repo"
-                target="_blank"
-                rel="noopener noreferrer"
-              ></q-btn>
             </div>
           </div>
         </div>
