@@ -58,7 +58,9 @@ class GitHubRepoRelease(BaseModel):
     tag_name: str
     zipball_url: str
     html_url: str
-    details_link: Optional[str]
+
+    def details_link(self, source_repo: str) -> str:
+        return f"https://raw.githubusercontent.com/{source_repo}/{self.tag_name}/config.json"
 
 
 class GitHubRepo(BaseModel):
@@ -152,7 +154,6 @@ async def fetch_github_repo_info(
     error_msg = "Cannot fetch extension releases"
     latest_github_release: Any = await github_api_get(lates_release_url, error_msg)
     latest_release = GitHubRepoRelease.parse_obj(latest_github_release)
-    latest_release.details_link = config_url
 
     error_msg = "Cannot fetch config for extension"
     config = await github_api_get(config_url, error_msg)
@@ -222,7 +223,6 @@ async def fetch_release_details(details_link: str) -> Optional[dict]:
             resp = await client.get(details_link)
             resp.raise_for_status()
             data = resp.json()
-            print("### release data 1", data)
             if "description_md" in data:
                 resp = await client.get(data["description_md"])
                 if not resp.is_error:
@@ -377,7 +377,7 @@ class ExtensionRelease(BaseModel):
             archive=r.zipball_url,
             source_repo=source_repo,
             is_github_release=True,
-            details_link=r.details_link,
+            details_link=r.details_link(source_repo),
             repo=f"https://github.com/{source_repo}",
             html_url=r.html_url,
         )
@@ -645,18 +645,18 @@ class InstallableExtension(BaseModel):
             repo, latest_release, config = await fetch_github_repo_info(
                 github_release.organisation, github_release.repository
             )
-
+            source_repo = f"{github_release.organisation}/{github_release.repository}"
             return InstallableExtension(
                 id=github_release.id,
                 name=config.name,
                 short_description=config.short_description,
                 stars=int(repo.stargazers_count),
                 icon=icon_to_github_url(
-                    f"{github_release.organisation}/{github_release.repository}",
+                    source_repo,
                     config.tile,
                 ),
                 latest_release=ExtensionRelease.from_github_release(
-                    repo.html_url, latest_release
+                    source_repo, latest_release
                 ),
             )
         except Exception as e:

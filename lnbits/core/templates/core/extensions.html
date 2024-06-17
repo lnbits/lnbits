@@ -799,7 +799,7 @@
           </div>
           <div class="col-3"></div>
         </div>
-        <div class="row q-my-lg">
+        <div v-if="selectedExtensionDetails.images?.length" class="row q-my-lg">
           <div class="col q-pr-md">
             <q-carousel
               swipeable
@@ -881,7 +881,7 @@
                     style="color: var(--q-primary); text-decoration: none"
                   >
                     <span
-                      v-text="contributor.name + ' - ' + contributor.role"
+                      v-text="(contributor.name || contributor) + ' - ' + (contributor.role || 'dev')"
                     ></span>
                   </a>
                 </div>
@@ -997,7 +997,6 @@
             details_link:
               e.installedRelease?.details_link || e.latestRelease?.details_link
           }))
-        console.log('#### this.filteredExtensions ', this.filteredExtensions)
         this.tab = tab
       },
 
@@ -1282,7 +1281,6 @@
         }
       },
       toggleTermsAndConditions() {
-        console.log('### toggleTermsAndConditions')
         if (!this.selectedExtensionDetails) return
         this.selectedExtensionDetails.showTermsAndCondtions =
           !this.selectedExtensionDetails.showTermsAndCondtions
