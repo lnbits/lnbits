@@ -842,7 +842,13 @@
                 :img-src="image.uri"
                 :key="i"
                 :name="i"
-              />
+              >
+                <q-video
+                v-if="image.link"
+                  class="absolute-full"
+                  :src="image.link"
+                />
+              </q-carousel-slide>
             </q-carousel>
           </div>
         </div>
