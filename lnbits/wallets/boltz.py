@@ -24,6 +24,9 @@ from .base import (
 class BoltzWallet(Wallet):
     """Utilizing Boltz Client Standalone API"""
 
+    async def cleanup(self):
+        logger.warning("Cleaning up BoltzWallet...")
+
     def __init__(self):
         if not settings.boltz_client_endpoint:
             raise ValueError(
