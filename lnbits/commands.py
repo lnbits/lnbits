@@ -151,7 +151,7 @@ async def migrate_databases():
 
     # here is the first place we can be sure that the
     # `installed_extensions` table has been created
-    await load_disabled_extension_list()
+    await load_deactivated_extension_list()
 
     # todo: revisit, use installed extensions
     for ext in get_valid_extensions(False):
@@ -313,7 +313,7 @@ async def check_invalid_payments(
         click.echo(" ".join([w, str(data[0]), str(data[1] / 1000).ljust(10)]))
 
 
-async def load_disabled_extension_list() -> None:
+async def load_deactivated_extension_list() -> None:
     """Update list of extensions that have been explicitly disabled"""
     inactive_extensions = await get_installed_extensions(active=False)
     settings.lnbits_deactivated_extensions.update([e.id for e in inactive_extensions])
