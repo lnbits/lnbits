@@ -413,7 +413,10 @@ async def _create_external_payment(
         elif old_payment.failed:
             status = await old_payment.check_status()
             if status.paid:
-                return old_payment
+                raise PaymentError(
+                    "Failed payment was already paid on the fundingsource.",
+                    status="success",
+                )
 
     logger.debug(f"creating temporary payment with id {temp_id}")
     # create a temporary payment here so we can check if
