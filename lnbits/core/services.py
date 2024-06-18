@@ -648,7 +648,7 @@ async def check_transaction_status(
     if not payment:
         return PaymentPendingStatus()
 
-    if payment.status is PaymentState.SUCCESS.value:
+    if payment.status == PaymentState.SUCCESS.value:
         return PaymentSuccessStatus(fee_msat=payment.fee)
 
     return await payment.check_status()
