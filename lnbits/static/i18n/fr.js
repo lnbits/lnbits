@@ -173,7 +173,7 @@ window.localisation.fr = {
     'Si activé, il changera automatiquement votre source de financement en VoidWallet si LNbits envoie un signal de coupure. Vous devrez activer manuellement après une mise à jour.',
   killswitch_interval: 'Intervalle du Killswitch',
   killswitch_interval_desc:
-    "À quelle fréquence la tâche de fond doit-elle vérifier le signal d'arrêt d'urgence LNBits provenant de la source de statut (en minutes).",
+    "À quelle fréquence la tâche de fond doit-elle vérifier le signal d'arrêt d'urgence LNbits provenant de la source de statut (en minutes).",
   enable_watchdog: 'Activer le Watchdog',
   enable_watchdog_desc:
     'Si elle est activée, elle changera automatiquement votre source de financement en VoidWallet si votre solde est inférieur au solde LNbits. Vous devrez activer manuellement après une mise à jour.',

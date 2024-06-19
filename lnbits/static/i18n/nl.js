@@ -169,7 +169,7 @@ window.localisation.nl = {
     'Indien ingeschakeld, zal het uw financieringsbron automatisch wijzigen naar VoidWallet als LNbits een killswitch-signaal verzendt. U zult het na een update handmatig moeten inschakelen.',
   killswitch_interval: 'Uitschakelschakelaar-interval',
   killswitch_interval_desc:
-    'Hoe vaak de achtergrondtaak moet controleren op het LNBits killswitch signaal van de statusbron (in minuten).',
+    'Hoe vaak de achtergrondtaak moet controleren op het LNbits killswitch signaal van de statusbron (in minuten).',
   enable_watchdog: 'Inschakelen Watchdog',
   enable_watchdog_desc:
     'Indien ingeschakeld, wordt uw betaalbron automatisch gewijzigd naar VoidWallet als uw saldo lager is dan het saldo van LNbits. U zult dit na een update handmatig moeten inschakelen.',

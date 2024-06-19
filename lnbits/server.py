@@ -16,7 +16,7 @@ from lnbits.settings import set_cli_settings, settings
     }
 )
 @click.option("--port", default=settings.port, help="Port to listen on")
-@click.option("--host", default=settings.host, help="Host to run LNBits on")
+@click.option("--host", default=settings.host, help="Host to run LNbits on")
 @click.option(
     "--forwarded-allow-ips",
     default=settings.forwarded_allow_ips,
