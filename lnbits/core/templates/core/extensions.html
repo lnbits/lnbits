@@ -854,24 +854,19 @@
         </div>
 
         <div class="row">
-          <div
-            v-if="selectedExtensionDetails.showTermsAndCondtions"
-            class="col-8 q-pr-sm"
-          >
-            <div
-              v-html="selectedExtensionDetails.terms_and_conditions_md"
-            ></div>
-          </div>
-          <div v-else class="col-8 q-pr-sm">
+          <div class="col-8 q-pr-sm">
             <div v-html="selectedExtensionDetails.description_md"></div>
           </div>
           <div class="col-4 q-pl-sm" style="border-left: 1px solid grey">
             <div class="">
               <q-btn
-                @click="toggleTermsAndConditions()"
                 size="xs"
                 color="primary"
-                :label="selectedExtensionDetails.showTermsAndCondtions? 'Back' : 'Terms and conditions'"
+                label="Terms and conditions"
+                type="a"
+                :href="selectedExtensionDetails.terms_and_conditions_md"
+                target="_blank"
+                rel="noopener noreferrer"
               ></q-btn>
             </div>
             <div class="q-mt-md">
@@ -1281,17 +1276,9 @@
           this.selectedExtensionDetails = data
           this.selectedExtensionDetails.description_md =
             LNbits.utils.convertMarkdown(data.description_md)
-          this.selectedExtensionDetails.terms_and_conditions_md =
-            LNbits.utils.convertMarkdown(data.terms_and_conditions_md)
-          this.selectedExtensionDetails.showTermsAndCondtions = false
         } catch (error) {
           console.warn(error)
         }
-      },
-      toggleTermsAndConditions() {
-        if (!this.selectedExtensionDetails) return
-        this.selectedExtensionDetails.showTermsAndCondtions =
-          !this.selectedExtensionDetails.showTermsAndCondtions
       },
       async payAndInstall(release) {
         try {

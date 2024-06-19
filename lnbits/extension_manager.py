@@ -226,11 +226,6 @@ async def fetch_release_details(details_link: str) -> Optional[dict]:
                 if not resp.is_error:
                     data["description_md"] = resp.text
 
-            if "terms_and_conditions_md" in data:
-                resp = await client.get(data["terms_and_conditions_md"])
-                if not resp.is_error:
-                    data["terms_and_conditions_md"] = resp.text
-
             return data
     except Exception as e:
         logger.warning(e)
