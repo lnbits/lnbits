@@ -32,6 +32,7 @@ class ExplicitRelease(BaseModel):
     warning: Optional[str]
     info_notification: Optional[str]
     critical_notification: Optional[str]
+    details_link: Optional[str]
     pay_link: Optional[str]
 
     def is_version_compatible(self):
@@ -57,6 +58,9 @@ class GitHubRepoRelease(BaseModel):
     tag_name: str
     zipball_url: str
     html_url: str
+
+    def details_link(self, source_repo: str) -> str:
+        return f"https://raw.githubusercontent.com/{source_repo}/{self.tag_name}/config.json"
 
 
 class GitHubRepo(BaseModel):
@@ -210,6 +214,24 @@ async def fetch_release_payment_info(
         return None
 
 
+async def fetch_release_details(details_link: str) -> Optional[dict]:
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(details_link)
+            resp.raise_for_status()
+            data = resp.json()
+            if "description_md" in data:
+                resp = await client.get(data["description_md"])
+                if not resp.is_error:
+                    data["description_md"] = resp.text
+
+            return data
+    except Exception as e:
+        logger.warning(e)
+        return None
+
+
 def icon_to_github_url(source_repo: str, path: Optional[str]) -> str:
     if not path:
         return ""
@@ -315,6 +337,7 @@ class ExtensionRelease(BaseModel):
     warning: Optional[str] = None
     repo: Optional[str] = None
     icon: Optional[str] = None
+    details_link: Optional[str] = None
 
     pay_link: Optional[str] = None
     cost_sats: Optional[int] = None
@@ -347,6 +370,7 @@ class ExtensionRelease(BaseModel):
             archive=r.zipball_url,
             source_repo=source_repo,
             is_github_release=True,
+            details_link=r.details_link(source_repo),
             repo=f"https://github.com/{source_repo}",
             html_url=r.html_url,
         )
@@ -366,6 +390,7 @@ class ExtensionRelease(BaseModel):
             is_version_compatible=e.is_version_compatible(),
             warning=e.warning,
             html_url=e.html_url,
+            details_link=e.details_link,
             pay_link=e.pay_link,
             repo=e.repo,
             icon=e.icon,
@@ -613,18 +638,18 @@ class InstallableExtension(BaseModel):
             repo, latest_release, config = await fetch_github_repo_info(
                 github_release.organisation, github_release.repository
             )
-
+            source_repo = f"{github_release.organisation}/{github_release.repository}"
             return InstallableExtension(
                 id=github_release.id,
                 name=config.name,
                 short_description=config.short_description,
                 stars=int(repo.stargazers_count),
                 icon=icon_to_github_url(
-                    f"{github_release.organisation}/{github_release.repository}",
+                    source_repo,
                     config.tile,
                 ),
                 latest_release=ExtensionRelease.from_github_release(
-                    repo.html_url, latest_release
+                    source_repo, latest_release
                 ),
             )
         except Exception as e:
@@ -738,6 +763,12 @@ class CreateExtension(BaseModel):
     version: str
     cost_sats: Optional[int] = 0
     payment_hash: Optional[str] = None
+
+
+class ExtensionDetailsRequest(BaseModel):
+    ext_id: str
+    source_repo: str
+    version: str
 
 
 def get_valid_extensions(include_deactivated: Optional[bool] = True) -> List[Extension]:

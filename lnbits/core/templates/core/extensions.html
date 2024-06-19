@@ -87,10 +87,17 @@
           <div class="col-9 q-pl-sm">
             <q-badge
               v-if="hasNewVersion(extension)"
+              @click="showExtensionDetails(extension.id, extension.latestRelease?.details_link)"
               color="green"
               class="float-right"
+              :class="extension.latestRelease?.details_link ? 'cursor-pointer': ''"
             >
-              <small v-text="$t('new_version')"></small>
+              <q-icon
+                v-if="extension.latestRelease?.details_link"
+                name="info"
+                size="xs"
+              ></q-icon>
+              <small v-text="$t('new_version')" class="q-ma-xs"></small>
               <q-tooltip
                 ><span v-text="extension.latestRelease.version"></span
               ></q-tooltip>
@@ -227,14 +234,27 @@
 
         <div class="col-2">
           <div
-            v-if="extension.isInstalled && extension.installedRelease"
+            v-if="(extension.isInstalled && extension.installedRelease) || extension.details_link"
             class="float-right"
           >
-            <q-badge>
-              <span v-text="extension.installedRelease.version"></span>
-              <q-tooltip>
-                <span v-text="$t('extension_installed_version')"></span>
-              </q-tooltip>
+            <q-badge
+              @click="showExtensionDetails(extension.id, extension.details_link)"
+              :class="extension.details_link? 'cursor-pointer' : ''"
+            >
+              <q-icon
+                v-if="extension.details_link"
+                name="info"
+                size="xs"
+              ></q-icon>
+              <div v-if="extension.installedRelease" class="q-ma-xs">
+                <span
+                  v-text="extension.installedRelease.version"
+                  class="q-mt-lg"
+                ></span>
+                <q-tooltip>
+                  <span v-text="$t('extension_installed_version')"></span>
+                </q-tooltip>
+              </div>
             </q-badge>
           </div>
         </div>
@@ -754,23 +774,186 @@
       </q-card-section>
     </q-card>
   </q-dialog>
+
+  <q-dialog v-model="showExtensionDetailsDialog">
+    <q-card
+      v-if="selectedExtensionDetails"
+      class="q-pa-lg"
+      style="width: 800px; max-width: 80vw"
+    >
+      <q-card-section>
+        <div class="row">
+          <div class="col-2 gt-md">
+            <q-img
+              :src="selectedExtensionDetails.icon"
+              style="width: 100px"
+              type="image"
+            ></q-img>
+          </div>
+          <div class="col-7 q-pl-md">
+            <h3 class="q-my-sm" v-text="selectedExtensionDetails.name"></h3>
+            <h6
+              class="q-my-sm"
+              v-text="selectedExtensionDetails.short_description"
+            ></h6>
+          </div>
+          <div class="col-3">
+            <q-btn
+              v-close-popup
+              flat
+              color="grey"
+              class="float-right q-ml-lg"
+              v-text="$t('close')"
+            ></q-btn>
+          </div>
+        </div>
+        <div v-if="selectedExtensionDetails.images?.length" class="row q-my-lg">
+          <div class="col q-pr-md">
+            <q-carousel
+              swipeable
+              animated
+              v-model="slide"
+              :fullscreen.sync="fullscreen"
+              thumbnails
+              infinite
+              :autoplay="autoplay"
+              arrows
+              transition-prev="slide-right"
+              transition-next="slide-left"
+              @mouseenter="autoplay = false"
+              @mouseleave="autoplay = true"
+              height="300px"
+            >
+              <template v-slot:control>
+                <q-carousel-control position="bottom-right" :offset="[18, 18]">
+                  <q-btn
+                    push
+                    round
+                    dense
+                    color="white"
+                    text-color="primary"
+                    :icon="fullscreen ? 'fullscreen_exit' : 'fullscreen'"
+                    @click="fullscreen = !fullscreen"
+                  ></q-btn>
+                </q-carousel-control>
+              </template>
+              <q-carousel-slide
+                v-for="(image, i) of selectedExtensionDetails.images"
+                :img-src="image.uri"
+                :key="i"
+                :name="i"
+              >
+                <q-video
+                  v-if="image.link"
+                  class="absolute-full"
+                  :src="image.link"
+                />
+              </q-carousel-slide>
+            </q-carousel>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-8 q-pr-sm">
+            <div v-html="selectedExtensionDetails.description_md"></div>
+          </div>
+          <div class="col-4 q-pl-sm" style="border-left: 1px solid grey">
+            <div class="">
+              <q-btn
+                size="xs"
+                color="primary"
+                label="Terms and conditions"
+                type="a"
+                :href="selectedExtensionDetails.terms_and_conditions_md"
+                target="_blank"
+                rel="noopener noreferrer"
+              ></q-btn>
+            </div>
+            <div class="q-mt-md">
+              <b>
+                <span v-text="$t('contributors')"></span>
+              </b>
+              <small>
+                <div
+                  v-for="contributor of selectedExtensionDetails.contributors"
+                >
+                  <a
+                    :href="contributor.uri"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style="color: var(--q-primary); text-decoration: none"
+                  >
+                    <span
+                      v-text="(contributor.name || contributor) + ' - ' + (contributor.role || 'dev')"
+                    ></span>
+                  </a>
+                </div>
+              </small>
+            </div>
+            <div class="q-pt-lg">
+              <div>
+                <b>
+                  <span v-text="$t('license')"></span>
+                </b>
+                <q-badge
+                  color="primary"
+                  v-text="selectedExtensionDetails.license"
+                ></q-badge>
+              </div>
+              <br />
+
+              <div>
+                <q-rating
+                  v-model="maxStars"
+                  disable
+                  size="1.5em"
+                  :max="5"
+                  color="primary"
+                  ><q-tooltip>
+                    <span
+                      v-text="$t('extension_rating_soon')"
+                    ></span> </q-tooltip
+                ></q-rating>
+                <q-btn
+                  size="xs"
+                  color="primary"
+                  :label="$t('repository')"
+                  type="a"
+                  :href="selectedExtensionDetails.repo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                ></q-btn>
+              </div>
+            </div>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
   new Vue({
     el: '#vue',
+
     data: function () {
       return {
+        slide: 0,
+        fullscreen: false,
+        autoplay: true,
         searchTerm: '',
         tab: 'all',
         manageExtensionTab: 'releases',
         filteredExtensions: null,
         showUninstallDialog: false,
         showManageExtensionDialog: false,
+        showExtensionDetailsDialog: false,
         showDropDbDialog: false,
         showPayToEnableDialog: false,
         dropDbExtensionId: '',
         selectedExtension: null,
+        selectedImage: null,
+        selectedExtensionDetails: null,
         selectedExtensionRepos: null,
         selectedRelease: null,
         uninstallAndDropDb: false,
@@ -812,6 +995,11 @@
           )
           .filter(e => (tab === 'featured' ? e.isFeatured : true))
           .filter(extensionNameContains(term))
+          .map(e => ({
+            ...e,
+            details_link:
+              e.installedRelease?.details_link || e.latestRelease?.details_link
+          }))
         this.tab = tab
       },
 
@@ -1069,6 +1257,29 @@
         }
       },
 
+      showExtensionDetails: async function (extId, detailsLink) {
+        if (!detailsLink) {
+          return
+        }
+        this.selectedExtensionDetails = null
+        this.showExtensionDetailsDialog = true
+        this.slide = 0
+        this.fullscreen = false
+
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/api/v1/extension/${extId}/details?details_link=${detailsLink}`,
+            this.g.user.wallets[0].inkey
+          )
+
+          this.selectedExtensionDetails = data
+          this.selectedExtensionDetails.description_md =
+            LNbits.utils.convertMarkdown(data.description_md)
+        } catch (error) {
+          console.warn(error)
+        }
+      },
       async payAndInstall(release) {
         try {
           this.selectedExtension.inProgress = true

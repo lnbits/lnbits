@@ -37,6 +37,7 @@ from lnbits.extension_manager import (
     ReleasePaymentInfo,
     UserExtensionInfo,
     fetch_github_release_config,
+    fetch_release_details,
     fetch_release_payment_info,
     get_valid_extensions,
 )
@@ -125,6 +126,35 @@ async def api_install_extension(
                 f"Failed to install extension {ext_info.id} "
                 f"({ext_info.installed_version})."
             ),
+        ) from exc
+
+
+@extension_router.get("/{ext_id}/details", dependencies=[Depends(check_user_exists)])
+async def api_extension_details(
+    ext_id: str,
+    details_link: str,
+):
+
+    try:
+        all_releases = await InstallableExtension.get_extension_releases(ext_id)
+
+        release = next(
+            (r for r in all_releases if r.details_link == details_link), None
+        )
+        assert release, "Details not found for release"
+
+        release_details = await fetch_release_details(details_link)
+        assert release_details, "Cannot fetch details for release"
+        release_details["icon"] = release.icon
+        release_details["repo"] = release.repo
+        return release_details
+    except AssertionError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+            f"Failed to get details for extension {ext_id}.",
         ) from exc
 
 
