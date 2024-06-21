@@ -55,20 +55,25 @@
 </div>
 <div class="row q-col-gutter-md">
   <div
-    class="col-6 col-md-4 col-lg-3"
+    class="col-12 col-sm-6 col-md-6 col-lg-4"
     v-for="extension in filteredExtensions"
     :key="extension.id + extension.hash"
   >
     <q-card>
-      <q-card-section style="min-height: 140px" class="q-pb-none">
+      <q-card-section>
         <div class="row">
           <div class="col-3">
             <q-img
+              @click="showExtensionDetails(extension.id, extension.details_link)"
               v-if="extension.icon"
               :src="extension.icon"
               spinner-color="white"
-              style="max-width: 100%"
-            ></q-img>
+              style="cursor: pointer; max-width: 100%"
+            >
+              <q-tooltip>
+                <span v-text="extension.shortDescription"></span>
+              </q-tooltip>
+            </q-img>
             <div v-else>
               <q-icon
                 class="gt-sm"
@@ -84,56 +89,76 @@
               ></q-icon>
             </div>
           </div>
-          <div class="col-9 q-pl-sm">
+          <div class="col-9 q-pl-md">
+            <q-badge
+              v-if="extension.isInstalled"
+              @click="showManageExtension(extension)"
+              class="float-right"
+              color="transparent"
+              style="cursor: pointer"
+            >
+              <span v-text="extension.installedRelease.version"></span>
+              <q-tooltip
+                ><span v-text="extension.installedRelease.version"></span
+              ></q-tooltip>
+            </q-badge>
+            <div
+              class="text-h5"
+              style="cursor: pointer"
+              @click="showExtensionDetails(extension.id, extension.details_link)"
+              v-text="extension.name"
+            ></div>
+            <div>
+              <lnbits-extension-rating :rating="0" />
+            </div>
+            <q-toggle
+              size="xs"
+              v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
+              :label="extension.isActive ? $t('activated'):  $t('deactivated') "
+              color="secondary"
+              style=""
+              v-model="extension.isActive"
+              @input="toggleExtension(extension)"
+              ><q-tooltip>
+                &nbsp;
+                <span
+                  v-text="$t('activate_extension_details')"
+                ></span> </q-tooltip
+            ></q-toggle>
+            <div v-else>
+              <p
+                style="
+                  overflow: hidden;
+                  white-space: nowrap;
+                  text-overflow: ellipsis;
+                "
+                v-text="extension.shortDescription"
+              ></p>
+              <q-tooltip
+                ><span v-text="extension.shortDescription"></span
+              ></q-tooltip>
+            </div>
             <q-badge
               v-if="hasNewVersion(extension)"
-              @click="showExtensionDetails(extension.id, extension.latestRelease?.details_link)"
-              color="green"
+              @click="showManageExtension(extension)"
+              color="primary"
               class="float-right"
-              :class="extension.latestRelease?.details_link ? 'cursor-pointer': ''"
+              style="cursor: pointer"
             >
-              <q-icon
-                v-if="extension.latestRelease?.details_link"
-                name="info"
-                size="xs"
-              ></q-icon>
-              <small v-text="$t('new_version')" class="q-ma-xs"></small>
+              <span v-text="$t('new_version')"></span>
               <q-tooltip
                 ><span v-text="extension.latestRelease.version"></span
               ></q-tooltip>
             </q-badge>
-            <div
-              class="text-h5 gt-sm q-mt-sm q-mb-xs gt-sm"
-              v-text="extension.name"
-            ></div>
-            <div
-              class="text-h5 gt-sm q-mt-sm q-mb-xs lt-md"
-              style="min-height: 60px"
-              v-text="extension.name"
-            ></div>
-            <div
-              class="text-subtitle2 gt-sm"
-              style="font-size: 11px; height: 34px"
-              v-text="extension.shortDescription || extension.installedRelease?.description"
-            ></div>
-            <div
-              class="text-subtitle1 lt-md q-mt-sm q-mb-xs"
-              v-text="extension.name"
-            ></div>
-            <div
-              class="text-subtitle2 lt-md"
-              style="font-size: 9px; height: 34px"
-              v-text="extension.shortDescription"
-            ></div>
           </div>
         </div>
-        <div class="row q-pt-sm">
+        <div
+          id="dependencies"
+          class="row q-pt-sm"
+          v-if="extension.dependencies?.length"
+        >
           <div class="col">
-            <small
-              v-if="extension.dependencies?.length"
-              v-text="$t('extension_depends_on')"
-            ></small>
-            <small v-else>&nbsp;</small>
+            <small v-text="$t('extension_depends_on')"></small>
             <q-badge
               v-for="dep in extension.dependencies"
               :key="dep"
@@ -142,41 +167,6 @@
               <small v-text="dep"></small>
             </q-badge>
           </div>
-        </div>
-      </q-card-section>
-      <q-card-section>
-        <div>
-          <q-rating
-            class="gt-sm"
-            v-model="maxStars"
-            disable
-            size="1.5em"
-            :max="5"
-            color="primary"
-            ><q-tooltip>
-              <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
-          ></q-rating>
-          <q-rating
-            v-model="maxStars"
-            class="lt-md"
-            size="1.5em"
-            :max="5"
-            color="primary"
-            ><q-tooltip>
-              <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
-          ></q-rating>
-          <q-toggle
-            v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
-            :label="extension.isActive ? $t('activated'):  $t('deactivated') "
-            color="secondary"
-            style="max-height: 21px"
-            v-model="extension.isActive"
-            @input="toggleExtension(extension)"
-            ><q-tooltip>
-              <span
-                v-text="$t('activate_extension_details')"
-              ></span> </q-tooltip
-          ></q-toggle>
         </div>
       </q-card-section>
       <q-separator></q-separator>
@@ -233,29 +223,16 @@
         </div>
 
         <div class="col-2">
-          <div
-            v-if="(extension.isInstalled && extension.installedRelease) || extension.details_link"
-            class="float-right"
-          >
-            <q-badge
+          <div v-if="extension.details_link" class="float-right">
+            <q-btn
               @click="showExtensionDetails(extension.id, extension.details_link)"
-              :class="extension.details_link? 'cursor-pointer' : ''"
+              flat
+              :label="$t('more')"
             >
-              <q-icon
-                v-if="extension.details_link"
-                name="info"
-                size="xs"
-              ></q-icon>
-              <div v-if="extension.installedRelease" class="q-ma-xs">
-                <span
-                  v-text="extension.installedRelease.version"
-                  class="q-mt-lg"
-                ></span>
-                <q-tooltip>
-                  <span v-text="$t('extension_installed_version')"></span>
-                </q-tooltip>
-              </div>
-            </q-badge>
+              <q-tooltip>
+                <span v-text="extension.shortDescription"></span>
+              </q-tooltip>
+            </q-btn>
           </div>
         </div>
       </q-card-actions>
@@ -903,17 +880,7 @@
               <br />
 
               <div>
-                <q-rating
-                  v-model="maxStars"
-                  disable
-                  size="1.5em"
-                  :max="5"
-                  color="primary"
-                  ><q-tooltip>
-                    <span
-                      v-text="$t('extension_rating_soon')"
-                    ></span> </q-tooltip
-                ></q-rating>
+                <lnbits-extension-rating :rating="0" />
                 <q-btn
                   size="xs"
                   color="primary"
