@@ -1,3 +1,4 @@
+
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
@@ -32,6 +33,18 @@ new Vue({
     toggleDarkMode: function () {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
+    },
+    toggleGradient: async function () {
+      // Toggle the gradient choice state
+      this.gradientChoice = !this.gradientChoice;
+      this.$q.localStorage.getItem('lnbits.gradientBg') || false
+      if (this.gradientChoice) {
+        const rgbPrimaryColor = LNbits.utils.hexToRgb(LNbits.utils.getPaletteColor('primary'))
+        const gradientStyle = `linear-gradient(to bottom right, rgb(${rgbPrimaryColor.r * 0.5}, ${rgbPrimaryColor.g * 0.5}, ${rgbPrimaryColor.b * 0.5}), #0a0a0a)`;
+        document.body.style.setProperty('background', gradientStyle, 'important');
+      } else {
+        document.body.style.removeProperty('background');
+      }
     },
     reactionChoiceFunc: function () {
       this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)

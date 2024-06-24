@@ -422,7 +422,13 @@ window.LNbits = {
       converter.setFlavor('github')
       converter.setOption('simpleLineBreaks', true)
       return converter.makeHtml(text)
-    }
+    },
+    hexToRgb: function (hex) {
+      return Quasar.utils.colors.hexToRgb(hex)
+    },
+    getPaletteColor: function (color) {
+      return Quasar.utils.colors.getPaletteColor(color)
+    } 
   }
 }
 
@@ -432,6 +438,7 @@ window.windowMixin = {
     return {
       toggleSubs: true,
       reactionChoice: 'confettiBothSides',
+      gradientChoice: false,
       isUserAuthorized: false,
       g: {
         offline: !navigator.onLine,
@@ -513,6 +520,16 @@ window.windowMixin = {
     }
     this.reactionChoice =
       this.$q.localStorage.getItem('lnbits.reactions') || 'confettiBothSides'
+
+    this.gradientChoice =
+      this.$q.localStorage.getItem('lnbits.gradientBg') || false
+      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
+        const rgbPrimaryColor = LNbits.utils.hexToRgb(LNbits.utils.getPaletteColor('primary'))
+        const gradientStyle = `linear-gradient(to bottom right, rgb(${rgbPrimaryColor.r * 0.5}, ${rgbPrimaryColor.g * 0.5}, ${rgbPrimaryColor.b * 0.5}), #0a0a0a)`;
+        document.body.style.setProperty('background', gradientStyle, 'important');
+      } else {
+        document.body.style.removeProperty('background');
+      }
 
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
