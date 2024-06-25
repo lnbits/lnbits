@@ -43,7 +43,7 @@ new Vue({
         }
         darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
         primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
-        const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -80)}, #0a0a0a)`
+        const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
         document.body.style.setProperty(
           'background',
           gradientStyle,
