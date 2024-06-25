@@ -477,7 +477,7 @@ window.windowMixin = {
         )
         const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
         const style = document.createElement('style')
-        style.innerHTML = `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.lnbits__dialog-card), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }`
+        style.innerHTML = `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }`
         document.head.appendChild(style)
       }
     },
