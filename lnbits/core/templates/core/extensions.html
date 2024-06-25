@@ -778,8 +778,8 @@
   <q-dialog v-model="showExtensionDetailsDialog">
     <q-card
       v-if="selectedExtensionDetails"
-      class="q-pa-lg"
-      style="width: 800px; max-width: 80vw"
+      class="q-pa-sm"
+      style="width: 800px; max-width: 95vw"
     >
       <q-card-section>
         <div class="row">
@@ -790,14 +790,21 @@
               type="image"
             ></q-img>
           </div>
-          <div class="col-7 q-pl-md">
+          <div class="col-9 q-pl-md gt-xs">
             <h3 class="q-my-sm" v-text="selectedExtensionDetails.name"></h3>
             <h6
               class="q-my-sm"
               v-text="selectedExtensionDetails.short_description"
             ></h6>
           </div>
-          <div class="col-3">
+          <div class="col-9 q-pl-md lt-sm">
+            <h5 class="q-my-sm" v-text="selectedExtensionDetails.name"></h5>
+            <p
+              class="q-my-sm"
+              v-text="selectedExtensionDetails.short_description"
+            ></p>
+          </div>
+          <div class="col-1">
             <q-btn
               v-close-popup
               flat

@@ -559,3 +559,7 @@ video {
   background-size: contain;
   background-repeat: no-repeat;
 }
+
+.q-dialog__inner--minimized {
+  padding: 12px;
+}
