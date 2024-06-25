@@ -426,9 +426,15 @@ window.LNbits = {
     hexToRgb: function (hex) {
       return Quasar.utils.colors.hexToRgb(hex)
     },
+    hexDarken: function (hex, percent) {
+      return Quasar.utils.colors.lighten(hex, percent)
+    },
+    hexAlpha: function (hex, alpha) {
+      return Quasar.utils.colors.changeAlpha(hex, alpha)
+    },
     getPaletteColor: function (color) {
       return Quasar.utils.colors.getPaletteColor(color)
-    } 
+    }
   }
 }
 
@@ -438,7 +444,8 @@ window.windowMixin = {
     return {
       toggleSubs: true,
       reactionChoice: 'confettiBothSides',
-      gradientChoice: false,
+      gradientChoice:
+        this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
       g: {
         offline: !navigator.onLine,
@@ -457,6 +464,22 @@ window.windowMixin = {
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
+    },
+    applyGradient: function () {
+      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
+        darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
+        primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
+        const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -80)}, #0a0a0a)`
+        document.body.style.setProperty(
+          'background',
+          gradientStyle,
+          'important'
+        )
+        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
+        const style = document.createElement('style')
+        style.innerHTML = `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.lnbits__dialog-card), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }`
+        document.head.appendChild(style)
+      }
     },
     copyText: function (text, message, position) {
       var notify = this.$q.notify
@@ -521,15 +544,7 @@ window.windowMixin = {
     this.reactionChoice =
       this.$q.localStorage.getItem('lnbits.reactions') || 'confettiBothSides'
 
-    this.gradientChoice =
-      this.$q.localStorage.getItem('lnbits.gradientBg') || false
-      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
-        const rgbPrimaryColor = LNbits.utils.hexToRgb(LNbits.utils.getPaletteColor('primary'))
-        const gradientStyle = `linear-gradient(to bottom right, rgb(${rgbPrimaryColor.r * 0.5}, ${rgbPrimaryColor.g * 0.5}, ${rgbPrimaryColor.b * 0.5}), #0a0a0a)`;
-        document.body.style.setProperty('background', gradientStyle, 'important');
-      } else {
-        document.body.style.removeProperty('background');
-      }
+    this.applyGradient()
 
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
