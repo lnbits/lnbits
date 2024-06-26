@@ -92,6 +92,7 @@
           <div class="col-9 q-pl-md">
             <q-badge
 <<<<<<< HEAD
+<<<<<<< HEAD
               v-if="extension.isInstalled"
               @click="showManageExtension(extension)"
               class="float-right"
@@ -103,9 +104,15 @@
               v-if="hasNewVersion(extension)"
               @click="showExtensionDetails(extension.id, extension.latestRelease?.details_link)"
               color="green"
+=======
+              v-if="extension.isInstalled"
+              @click="showManageExtension(extension)"
+>>>>>>> cbe08614 (feat: improve on extension page layout (#2558))
               class="float-right"
-              :class="extension.latestRelease?.details_link ? 'cursor-pointer': ''"
+              color="transparent"
+              style="cursor: pointer"
             >
+<<<<<<< HEAD
               <q-icon
                 v-if="extension.latestRelease?.details_link"
                 name="info"
@@ -113,6 +120,9 @@
               ></q-icon>
               <small v-text="$t('new_version')" class="q-ma-xs"></small>
 >>>>>>> eacdd432 ([feat] Extension details page (#2544))
+=======
+              <span v-text="extension.installedRelease.version"></span>
+>>>>>>> cbe08614 (feat: improve on extension page layout (#2558))
               <q-tooltip
                 ><span v-text="extension.installedRelease.version"></span
               ></q-tooltip>
@@ -241,6 +251,7 @@
 
         <div class="col-2">
 <<<<<<< HEAD
+<<<<<<< HEAD
           <div v-if="extension.details_link" class="float-right">
             <q-btn
               @click="showExtensionDetails(extension.id, extension.details_link)"
@@ -257,9 +268,15 @@
             class="float-right"
           >
             <q-badge
+=======
+          <div v-if="extension.details_link" class="float-right">
+            <q-btn
+>>>>>>> cbe08614 (feat: improve on extension page layout (#2558))
               @click="showExtensionDetails(extension.id, extension.details_link)"
-              :class="extension.details_link? 'cursor-pointer' : ''"
+              flat
+              :label="$t('more')"
             >
+<<<<<<< HEAD
               <q-icon
                 v-if="extension.details_link"
                 name="info"
@@ -276,6 +293,12 @@
               </div>
             </q-badge>
 >>>>>>> eacdd432 ([feat] Extension details page (#2544))
+=======
+              <q-tooltip>
+                <span v-text="extension.shortDescription"></span>
+              </q-tooltip>
+            </q-btn>
+>>>>>>> cbe08614 (feat: improve on extension page layout (#2558))
           </div>
         </div>
       </q-card-actions>
@@ -1108,17 +1131,7 @@
               <br />
 
               <div>
-                <q-rating
-                  v-model="maxStars"
-                  disable
-                  size="1.5em"
-                  :max="5"
-                  color="primary"
-                  ><q-tooltip>
-                    <span
-                      v-text="$t('extension_rating_soon')"
-                    ></span> </q-tooltip
-                ></q-rating>
+                <lnbits-extension-rating :rating="0" />
                 <q-btn
                   size="xs"
                   color="primary"
