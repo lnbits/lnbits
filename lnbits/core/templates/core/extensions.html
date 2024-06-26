@@ -111,21 +111,35 @@
             <div>
               <lnbits-extension-rating :rating="0" />
             </div>
-            <q-toggle
-              size="xs"
-              v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
-              :label="extension.isActive ? $t('activated'):  $t('deactivated') "
-              color="secondary"
-              style=""
-              v-model="extension.isActive"
-              @input="toggleExtension(extension)"
-              ><q-tooltip>
-                &nbsp;
-                <span
-                  v-text="$t('activate_extension_details')"
-                ></span> </q-tooltip
-            ></q-toggle>
-            <div v-else>
+            <div style="justify-content: space-between; display: flex">
+              <q-toggle
+                size="xs"
+                v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
+                :label="extension.isActive ? $t('activated'):  $t('deactivated') "
+                color="secondary"
+                style=""
+                v-model="extension.isActive"
+                @input="toggleExtension(extension)"
+                ><q-tooltip>
+                  &nbsp;
+                  <span
+                    v-text="$t('activate_extension_details')"
+                  ></span> </q-tooltip
+              ></q-toggle>
+              <q-badge
+                v-if="hasNewVersion(extension)"
+                @click="showManageExtension(extension)"
+                color="primary"
+                class="float-right"
+                style="cursor: pointer; margin: 5px 0"
+              >
+                <span v-text="$t('new_version')"></span>
+                <q-tooltip
+                  ><span v-text="extension.latestRelease.version"></span
+                ></q-tooltip>
+              </q-badge>
+            </div>
+            <div>
               <p
                 style="
                   overflow: hidden;
@@ -138,18 +152,6 @@
                 ><span v-text="extension.shortDescription"></span
               ></q-tooltip>
             </div>
-            <q-badge
-              v-if="hasNewVersion(extension)"
-              @click="showManageExtension(extension)"
-              color="primary"
-              class="float-right"
-              style="cursor: pointer"
-            >
-              <span v-text="$t('new_version')"></span>
-              <q-tooltip
-                ><span v-text="extension.latestRelease.version"></span
-              ></q-tooltip>
-            </q-badge>
           </div>
         </div>
         <div
@@ -952,6 +954,7 @@
         }
 
         this.filteredExtensions = this.extensions
+          .filter(e => (tab === 'all' ? !e.isInstalled : true))
           .filter(e => (tab === 'installed' ? e.isInstalled : true))
           .filter(e =>
             tab === 'installed'
@@ -1003,6 +1006,7 @@
             this.filteredExtensions = this.extensions.concat([])
             this.handleTabChanged('installed')
             this.tab = 'installed'
+            window.location.reload()
           })
           .catch(err => {
             console.warn(err)
