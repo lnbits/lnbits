@@ -937,6 +937,7 @@
                 size="sm"
                 color="primary"
                 label="Repo"
+<<<<<<< HEAD
                 type="a"
                 :href="selectedExtensionDetails.repo"
                 target="_blank"
@@ -1091,11 +1092,15 @@
                 size="xs"
                 color="primary"
                 label="Terms and conditions"
+=======
+>>>>>>> 7f628948 (bug: carousel and adv desc fix (#2562))
                 type="a"
-                :href="selectedExtensionDetails.terms_and_conditions_md"
+                :href="selectedExtensionDetails.repo"
                 target="_blank"
                 rel="noopener noreferrer"
-              ></q-btn>
+                class="q-pr-xs"
+                ><q-tooltip>repository</q-tooltip></q-btn
+              >
             </div>
             <div class="q-mt-md">
               <b>
@@ -1145,11 +1150,18 @@
             </div>
           </div>
         </div>
+<<<<<<< HEAD
       </q-card-section>
     </q-card>
   </q-dialog>
 </div>
 >>>>>>> eacdd432 ([feat] Extension details page (#2544))
+=======
+      </div>
+    </q-card-section>
+  </q-card>
+</q-dialog>
+>>>>>>> 7f628948 (bug: carousel and adv desc fix (#2562))
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
   new Vue({
