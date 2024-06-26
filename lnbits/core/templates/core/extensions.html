@@ -881,52 +881,6 @@
                 ><q-tooltip>repository</q-tooltip></q-btn
               >
             </div>
-            <div class="q-mt-md">
-              <b>
-                <span v-text="$t('contributors')"></span>
-              </b>
-              <small>
-                <div
-                  v-for="contributor of selectedExtensionDetails.contributors"
-                >
-                  <a
-                    :href="contributor.uri"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style="color: var(--q-primary); text-decoration: none"
-                  >
-                    <span
-                      v-text="(contributor.name || contributor) + ' - ' + (contributor.role || 'dev')"
-                    ></span>
-                  </a>
-                </div>
-              </small>
-            </div>
-            <div class="q-pt-lg">
-              <div>
-                <b>
-                  <span v-text="$t('license')"></span>
-                </b>
-                <q-badge
-                  color="primary"
-                  v-text="selectedExtensionDetails.license"
-                ></q-badge>
-              </div>
-              <br />
-
-              <div>
-                <lnbits-extension-rating :rating="0" />
-                <q-btn
-                  size="xs"
-                  color="primary"
-                  :label="$t('repository')"
-                  type="a"
-                  :href="selectedExtensionDetails.repo"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                ></q-btn>
-              </div>
-            </div>
           </div>
         </div>
       </div>
