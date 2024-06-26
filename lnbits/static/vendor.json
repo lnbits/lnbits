@@ -37,6 +37,7 @@
     "js/components.js",
     "js/components/lnbits-funding-sources.js",
     "js/components/extension-settings.js",
+    "js/components/extension-rating.js",
     "js/components/payment-list.js",
     "js/components/payment-chart.js",
     "js/event-reactions.js",
