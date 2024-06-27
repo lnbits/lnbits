@@ -158,15 +158,16 @@ async def check_user_exists(
     return user
 
 
-async def fetch_user_id(
+async def authenticated_user_id(
     access_token: Annotated[Optional[str], Depends(check_access_token)],
     usr: Optional[UUID4] = None,
 ) -> Optional[str]:
+    if usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
+        return usr.hex
     if access_token:
         account = await _get_account_from_token(access_token)
         return account.id if account else None
-    if usr:
-        return usr.hex
+
 
     return None
 
