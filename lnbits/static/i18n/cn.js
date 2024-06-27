@@ -159,7 +159,7 @@ window.localisation.cn = {
     '如果启用，当LNbits发送终止信号时，系统将自动将您的资金来源更改为VoidWallet。更新后，您将需要手动启用。',
   killswitch_interval: 'Killswitch 间隔',
   killswitch_interval_desc:
-    '后台任务应该多久检查一次来自状态源的LNBits断路信号（以分钟为单位）。',
+    '后台任务应该多久检查一次来自状态源的LNbits断路信号（以分钟为单位）。',
   enable_watchdog: '启用看门狗',
   enable_watchdog_desc:
     '如果启用，当您的余额低于LNbits余额时，系统将自动将您的资金来源更改为VoidWallet。更新后您将需要手动启用。',

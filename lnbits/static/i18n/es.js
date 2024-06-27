@@ -169,7 +169,7 @@ window.localisation.es = {
     'Si está activado, cambiará automáticamente su fuente de financiamiento a VoidWallet si LNbits envía una señal de parada de emergencia. Necesitará activarlo manualmente después de una actualización.',
   killswitch_interval: 'Intervalo de Killswitch',
   killswitch_interval_desc:
-    'Con qué frecuencia la tarea en segundo plano debe verificar la señal de interruptor de emergencia de LNBits desde la fuente de estado (en minutos).',
+    'Con qué frecuencia la tarea en segundo plano debe verificar la señal de interruptor de emergencia de LNbits desde la fuente de estado (en minutos).',
   enable_watchdog: 'Activar Watchdog',
   enable_watchdog_desc:
     'Si está activado, cambiará automáticamente su fuente de financiamiento a VoidWallet si su saldo es inferior al saldo de LNbits. Tendrá que activarlo manualmente después de una actualización.',

@@ -169,7 +169,7 @@ window.localisation.it = {
     'Se attivato, cambierà automaticamente la tua fonte di finanziamento in VoidWallet se LNbits invia un segnale di killswitch. Dovrai attivare manualmente dopo un aggiornamento.',
   killswitch_interval: 'Intervallo Killswitch',
   killswitch_interval_desc:
-    'Quanto spesso il compito in background dovrebbe controllare il segnale di killswitch LNBits dalla fonte di stato (in minuti).',
+    'Quanto spesso il compito in background dovrebbe controllare il segnale di killswitch LNbits dalla fonte di stato (in minuti).',
   enable_watchdog: 'Attiva Watchdog',
   enable_watchdog_desc:
     'Se abilitato, cambierà automaticamente la tua fonte di finanziamento in VoidWallet se il tuo saldo è inferiore al saldo LNbits. Dovrai abilitarlo manualmente dopo un aggiornamento.',

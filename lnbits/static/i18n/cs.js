@@ -166,7 +166,7 @@ window.localisation.cs = {
     'Pokud je povoleno, automaticky změní zdroj financování na VoidWallet pokud LNbits odešle signál killswitch. Po aktualizaci budete muset povolit ručně.',
   killswitch_interval: 'Interval Killswitch',
   killswitch_interval_desc:
-    'Jak často by měl úkol na pozadí kontrolovat signál killswitch od LNBits ze zdroje stavu (v minutách).',
+    'Jak často by měl úkol na pozadí kontrolovat signál killswitch od LNbits ze zdroje stavu (v minutách).',
   enable_watchdog: 'Povolit Watchdog',
   enable_watchdog_desc:
     'Pokud je povoleno, automaticky změní zdroj financování na VoidWallet pokud je váš zůstatek nižší než zůstatek LNbits. Po aktualizaci budete muset povolit ručně.',

@@ -6,9 +6,9 @@ nav_order: 2
 
 # Basic installation
 
-You can choose between four package managers, `poetry` and `nix`
+The following sections explain how to install LNbits using varions package managers: `poetry`, `nix`, `Docker` and `Fly.io`.
 
-By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
+Note that by default LNbits uses SQLite as its database, which is simple and effective but you can configure it to use PostgreSQL instead which is also described in a section below.
 
 ## Option 1 (recommended): poetry
 

@@ -66,7 +66,7 @@ window.localisation.fi = {
   service_fee_max:
     'Palvelumaksu: %{amount} % tapahtumasta (enintään %{max} sat)',
   service_fee_tooltip:
-    'LNBits palvelimen ylläpitäjä veloittaa lähtevästä maksusta palvelumaksun.',
+    'LNbits palvelimen ylläpitäjä veloittaa lähtevästä maksusta palvelumaksun.',
   toggle_darkmode: 'Tumma näkymä',
   payment_reactions: 'Maksureaktiot',
   view_swagger_docs: 'Näytä LNbits Swagger API-dokumentit',

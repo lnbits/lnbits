@@ -137,6 +137,8 @@ class Wallet(ABC):
     def normalize_endpoint(self, endpoint: str, add_proto=True) -> str:
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         if add_proto:
+            if endpoint.startswith("ws://") or endpoint.startswith("wss://"):
+                return endpoint
             endpoint = (
                 f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
             )
