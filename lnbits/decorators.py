@@ -168,7 +168,6 @@ async def authenticated_user_id(
         account = await _get_account_from_token(access_token)
         return account.id if account else None
 
-
     return None
 
 
