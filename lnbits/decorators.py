@@ -1,7 +1,15 @@
 from http import HTTPStatus
 from typing import Annotated, Literal, Optional, Type, Union
 
-from fastapi import Cookie, Depends, Query, Request, Security
+from fastapi import (
+    Cookie,
+    Depends,
+    Query,
+    Request,
+    Security,
+    WebSocketException,
+    status,
+)
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.security import APIKeyHeader, APIKeyQuery, OAuth2PasswordBearer
@@ -41,9 +49,11 @@ class KeyChecker(SecurityBase):
         self,
         api_key: Optional[str] = None,
         expected_key_type: Optional[KeyType] = None,
+        is_websocket: bool = False,
     ):
         self.auto_error: bool = True
         self.expected_key_type = expected_key_type
+        self.is_websocket = is_websocket
         self._api_key = api_key
         if api_key:
             openapi_model = APIKey(
@@ -61,6 +71,11 @@ class KeyChecker(SecurityBase):
             )
         self.model: APIKey = openapi_model
 
+    def raise_error(self, status_code: int, detail: str):
+        if self.is_websocket:
+            raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+        raise HTTPException(status_code=status_code, detail=detail)
+
     async def __call__(self, request: Request) -> WalletTypeInfo:
 
         key_value = (
@@ -70,7 +85,7 @@ class KeyChecker(SecurityBase):
         )
 
         if not key_value:
-            raise HTTPException(
+            return self.raise_error(
                 status_code=HTTPStatus.UNAUTHORIZED,
                 detail="No Api Key provided.",
             )
@@ -78,13 +93,13 @@ class KeyChecker(SecurityBase):
         wallet = await get_wallet_for_key(key_value)
 
         if not wallet:
-            raise HTTPException(
+            return self.raise_error(
                 status_code=HTTPStatus.NOT_FOUND,
                 detail="Wallet not found.",
             )
 
         if self.expected_key_type is KeyType.admin and wallet.adminkey != key_value:
-            raise HTTPException(
+            return self.raise_error(
                 status_code=HTTPStatus.UNAUTHORIZED,
                 detail="Invalid adminkey.",
             )
@@ -116,6 +131,19 @@ async def require_admin_key(
     return await check(request)
 
 
+async def require_admin_key_ws(
+    request: Request,
+    api_key_header: str = Security(api_key_header),
+    api_key_query: str = Security(api_key_query),
+) -> WalletTypeInfo:
+    check: KeyChecker = KeyChecker(
+        api_key=api_key_header or api_key_query,
+        expected_key_type=KeyType.admin,
+        is_websocket=True,
+    )
+    return await check(request)
+
+
 async def require_invoice_key(
     request: Request,
     api_key_header: str = Security(api_key_header),
@@ -124,6 +152,19 @@ async def require_invoice_key(
     check: KeyChecker = KeyChecker(
         api_key=api_key_header or api_key_query,
         expected_key_type=KeyType.invoice,
+    )
+    return await check(request)
+
+
+async def require_invoice_key_ws(
+    request: Request,
+    api_key_header: str = Security(api_key_header),
+    api_key_query: str = Security(api_key_query),
+) -> WalletTypeInfo:
+    check: KeyChecker = KeyChecker(
+        api_key=api_key_header or api_key_query,
+        expected_key_type=KeyType.invoice,
+        is_websocket=True,
     )
     return await check(request)
 
