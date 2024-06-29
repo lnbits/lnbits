@@ -5,7 +5,6 @@ from fastapi import APIRouter, HTTPException, Request
 
 from lnbits.settings import settings
 import urllib.parse
-from ..models import OpenNodeWebhook
 from ..services import websocket_updater
 fundingsource_router = APIRouter(tags=["OpennodeWebhook"])
 

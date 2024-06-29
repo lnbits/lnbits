@@ -1,9 +1,7 @@
 import ast
 import asyncio
-import json
 from typing import AsyncGenerator, Optional
 
-from fastapi import WebSocket
 import httpx
 from loguru import logger
 from websockets.client import connect
