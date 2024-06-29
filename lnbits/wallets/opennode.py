@@ -1,9 +1,13 @@
+import ast
 import asyncio
+import json
 from typing import AsyncGenerator, Optional
 
+from fastapi import WebSocket
 import httpx
 from loguru import logger
-
+from websockets.client import connect
+from lnbits.helpers import url_for
 from lnbits.settings import settings
 
 from .base import (
@@ -15,8 +19,6 @@ from .base import (
     UnsupportedError,
     Wallet,
 )
-
-
 class OpenNodeWallet(Wallet):
     """https://developers.opennode.com/"""
 
@@ -75,12 +77,20 @@ class OpenNodeWallet(Wallet):
     ) -> InvoiceResponse:
         if description_hash or unhashed_description:
             raise UnsupportedError("description_hash")
+        # print({
+        #      "amount": amount,
+        #         "description": memo or "",
+        #         "callback_url": settings.lnbits_baseurl+url_for(endpoint="api/v1/opennode-webhook")
+        #         # "callback_url":'https://bb48-103-157-238-89.ngrok-free.app/api/v1/opennode-webhook'
 
+        # })
         r = await self.client.post(
             "/v1/charges",
             json={
                 "amount": amount,
                 "description": memo or "",
+                "callback_url": settings.lnbits_baseurl+url_for(endpoint="api/v1/opennode-webhook")
+                # "callback_url":'https://bb48-103-157-238-89.ngrok-free.app/api/v1/opennode-webhook'
             },
             timeout=40,
         )
@@ -119,7 +129,7 @@ class OpenNodeWallet(Wallet):
         if r.is_error:
             return PaymentPendingStatus()
         data = r.json()["data"]
-        statuses = {"processing": None, "paid": True, "unpaid": None}
+        statuses = { "paid": True, "expired": None}
         return PaymentStatus(statuses[data.get("status")])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
@@ -140,7 +150,31 @@ class OpenNodeWallet(Wallet):
         return PaymentStatus(statuses[data.get("status")], fee_msat)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue: asyncio.Queue = asyncio.Queue(0)
         while settings.lnbits_running:
-            value = await self.queue.get()
-            yield value
+            try:
+                # print(settings.lnbits_baseurl)
+                async with connect(
+                    settings.lnbits_baseurl.replace('http','ws').replace('https','wss')+url_for('api/v1/ws/opennode_ws'),
+                    # extra_headers=[("Authorization", self.headers["Authorization"])],
+                ) as ws:
+                    logger.info("connected to opennode invoices stream")
+                    while settings.lnbits_running:
+                        message = await ws.recv()
+                    
+                        message_dict=ast.literal_eval(message)
+                        print(message_dict)
+                        if (
+                            message_dict
+                            and message_dict.get("status") == "paid"
+                        ):
+                            logger.info(
+                                f'payment-received: {message_dict["id"]}'
+                            )
+                            yield message_dict["id"]
+
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to opennode invoices stream: '{exc}'"
+                    "retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
