@@ -1,6 +1,7 @@
 import ast
 import asyncio
 from typing import AsyncGenerator, Optional
+from urllib.parse import urlparse
 
 import httpx
 from loguru import logger
@@ -75,13 +76,15 @@ class OpenNodeWallet(Wallet):
     ) -> InvoiceResponse:
         if description_hash or unhashed_description:
             raise UnsupportedError("description_hash")
-        # print({
-        #      "amount": amount,
-        #         "description": memo or "",
-        #         "callback_url": settings.lnbits_baseurl+url_for(endpoint="api/v1/opennode-webhook")
-        #         # "callback_url":'https://bb48-103-157-238-89.ngrok-free.app/api/v1/opennode-webhook'
+        
+        print({
+             "amount": amount,
+                "description": memo or "",
+                "callback_url": settings.lnbits_baseurl+url_for(endpoint="api/v1/opennode-webhook")
+                # "callback_url":'https://bb48-103-157-238-89.ngrok-free.app/api/v1/opennode-webhook'
 
-        # })
+        })
+
         r = await self.client.post(
             "/v1/charges",
             json={
