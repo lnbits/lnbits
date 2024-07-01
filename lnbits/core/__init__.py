@@ -16,6 +16,7 @@ from .views.user_api import users_router
 from .views.wallet_api import wallet_router
 from .views.webpush_api import webpush_router
 from .views.websocket_api import websocket_router
+from .views.fundingsource_api import fundingsource_router
 
 # backwards compatibility for extensions
 core_app = APIRouter(tags=["Core"])
@@ -38,3 +39,4 @@ def init_core_routers(app: FastAPI):
     app.include_router(tinyurl_router)
     app.include_router(webpush_router)
     app.include_router(users_router)
+    app.include_router(fundingsource_router)
