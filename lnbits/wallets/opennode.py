@@ -1,7 +1,6 @@
 import ast
 import asyncio
 from typing import AsyncGenerator, Optional
-from urllib.parse import urlparse
 
 import httpx
 from loguru import logger
@@ -77,14 +76,7 @@ class OpenNodeWallet(Wallet):
         if description_hash or unhashed_description:
             raise UnsupportedError("description_hash")
         
-        print({
-             "amount": amount,
-                "description": memo or "",
-                "callback_url": settings.lnbits_baseurl+url_for(endpoint="api/v1/opennode-webhook")
-                # "callback_url":'https://bb48-103-157-238-89.ngrok-free.app/api/v1/opennode-webhook'
-
-        })
-
+        
         r = await self.client.post(
             "/v1/charges",
             json={
@@ -153,9 +145,8 @@ class OpenNodeWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:
             try:
-                # print(settings.lnbits_baseurl)
                 async with connect(
-                    settings.lnbits_baseurl.replace('http','ws').replace('https','wss')+url_for('api/v1/ws/opennode_ws'),
+                    settings.lnbits_baseurl.replace('http','ws').replace('https','ws')+url_for('api/v1/ws/opennode_ws'),
                     # extra_headers=[("Authorization", self.headers["Authorization"])],
                 ) as ws:
                     logger.info("connected to opennode invoices stream")
@@ -163,7 +154,6 @@ class OpenNodeWallet(Wallet):
                         message = await ws.recv()
                     
                         message_dict=ast.literal_eval(message)
-                        print(message_dict)
                         if (
                             message_dict
                             and message_dict.get("status") == "paid"

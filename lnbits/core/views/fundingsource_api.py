@@ -11,8 +11,6 @@ fundingsource_router = APIRouter(tags=["OpennodeWebhook"])
 
 def verify_signature(key:str,charge_id:str,received_signature:str):
     calculated_signature = hmac.new(key.encode(), charge_id.encode(), hashlib.sha256).hexdigest()
-    # print(calculated_signature)
-    # print(received_signature, hmac.compare_digest(received_signature, calculated_signature))
     return hmac.compare_digest(received_signature, calculated_signature)
 
 @fundingsource_router.post('/api/v1/opennode-webhook',name="OpennodeWebhook",description="Opennode Webhook Endpoint")
