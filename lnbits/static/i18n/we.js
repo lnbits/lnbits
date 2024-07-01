@@ -166,7 +166,7 @@ window.localisation.we = {
     'Os bydd yn galluogi, bydd yn newid eich ffynhonnell arian i VoidWallet yn awtomatig os bydd LNbits yn anfon arwydd killswitch. Bydd angen i chi alluogi â llaw ar ôl diweddariad.',
   killswitch_interval: 'Amlder Cyllell Dorri',
   killswitch_interval_desc:
-    "Pa mor aml y dylai'r dasg gefndir wirio am signal killswitch LNBits o'r ffynhonnell statws (mewn munudau).",
+    "Pa mor aml y dylai'r dasg gefndir wirio am signal killswitch LNbits o'r ffynhonnell statws (mewn munudau).",
   enable_watchdog: 'Galluogi Watchdog',
   enable_watchdog_desc:
     'Os bydd yn cael ei alluogi bydd yn newid eich ffynhonnell ariannu i VoidWallet yn awtomatig os bydd eich balans yn is na balans LNbits. Bydd angen i chi alluogi â llaw ar ôl diweddariad.',

@@ -165,7 +165,7 @@ window.localisation.en = {
     'If enabled it will change your funding source to VoidWallet automatically if LNbits sends out a killswitch signal. You will need to enable manually after an update.',
   killswitch_interval: 'Killswitch Interval',
   killswitch_interval_desc:
-    'How often the background task should check for the LNBits killswitch signal from the status source (in minutes).',
+    'How often the background task should check for the LNbits killswitch signal from the status source (in minutes).',
   enable_watchdog: 'Enable Watchdog',
   enable_watchdog_desc:
     'If enabled it will change your funding source to VoidWallet automatically if your balance is lower than the LNbits balance. You will need to enable manually after an update.',
@@ -258,5 +258,7 @@ window.localisation.en = {
   sell_info:
     'The %{name} extension requires a payment of minimum %{amount} sats to enable.',
   hide_empty_wallets: 'Hide empty wallets',
-  recheck: 'Recheck'
+  recheck: 'Recheck',
+  contributors: 'Contributors',
+  license: 'License'
 }

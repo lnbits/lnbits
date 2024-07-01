@@ -1,6 +1,14 @@
 Vue.component('lnbits-funding-sources', {
   mixins: [windowMixin],
   props: ['form-data', 'allowed-funding-sources'],
+  methods: {
+    getFundingSourceLabel(item) {
+      const fundingSource = this.rawFundingSources.find(
+        fundingSource => fundingSource[0] === item
+      )
+      return fundingSource ? fundingSource[1] : item
+    }
+  },
   computed: {
     fundingSources() {
       let tmp = []
@@ -14,6 +22,9 @@ Vue.component('lnbits-funding-sources', {
         tmp.push([key, tmpObj])
       }
       return new Map(tmp)
+    },
+    sortedAllowedFundingSources() {
+      return this.allowedFundingSources.sort()
     }
   },
   data() {
@@ -93,7 +104,7 @@ Vue.component('lnbits-funding-sources', {
         ],
         [
           'LNbitsWallet',
-          'LNBits',
+          'LNbits',
           {
             lnbits_endpoint: 'Endpoint',
             lnbits_key: 'Admin Key'
@@ -159,7 +170,8 @@ Vue.component('lnbits-funding-sources', {
               filled
               v-model="formData.lnbits_backend_wallet_class"
               hint="Select the active funding wallet"
-              :options="allowedFundingSources"
+              :options="sortedAllowedFundingSources"
+              :option-label="(item) => getFundingSourceLabel(item)"
             ></q-select>
           </div>
         </div>
