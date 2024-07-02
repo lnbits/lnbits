@@ -12,7 +12,7 @@ from fastapi.exceptions import HTTPException
 from loguru import logger
 from packaging import version
 
-from lnbits.core.models import Payment, User
+from lnbits.core.models import Payment, PaymentState, User
 from lnbits.core.services import check_admin_settings
 from lnbits.core.views.extension_api import (
     api_install_extension,
@@ -216,10 +216,12 @@ async def database_delete_wallet_payment(wallet: str, checking_id: str):
 @db.command("mark-payment-pending")
 @click.option("-c", "--checking-id", required=True, help="Payment checking Id.")
 @coro
-async def database_revert_payment(checking_id: str, pending: bool = True):
-    """Mark wallet as deleted"""
+async def database_revert_payment(checking_id: str):
+    """Mark payment as pending"""
     async with core_db.connect() as conn:
-        await update_payment_status(pending=pending, checking_id=checking_id, conn=conn)
+        await update_payment_status(
+            status=PaymentState.PENDING, checking_id=checking_id, conn=conn
+        )
 
 
 @db.command("cleanup-accounts")

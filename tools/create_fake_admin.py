@@ -55,7 +55,7 @@ cursor.execute(
     """
     INSERT INTO apipayments
       (wallet, checking_id, bolt11, hash, preimage,
-       amount, pending, memo, fee, extra, webhook, expiry)
+       amount, status, memo, fee, extra, webhook, expiry)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
     (
@@ -65,7 +65,7 @@ cursor.execute(
         "test_admin_internal",
         None,
         amount * 1000,
-        False,
+        "success",
         "test_admin_internal",
         0,
         None,
