@@ -18,10 +18,8 @@ from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import (
-    PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentStatus,
-    PaymentSuccessStatus,
 )
 
 
@@ -288,10 +286,6 @@ class Payment(FromRowModel):
         return self.checking_id.startswith("internal_")
 
     async def check_status(self) -> PaymentStatus:
-        if self.success:
-            return PaymentSuccessStatus(preimage=self.preimage, fee_msat=self.fee)
-        if self.failed:
-            return PaymentFailedStatus()
         if self.is_uncheckable:
             return PaymentPendingStatus()
         funding_source = get_funding_source()

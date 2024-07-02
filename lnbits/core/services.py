@@ -404,19 +404,30 @@ async def _create_external_payment(
 ) -> Payment:
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
 
+    # check if there is already a payment with the same checking_id
     old_payment = await get_standalone_payment(temp_id, conn=conn)
     if old_payment:
+        # fail on pending payments
         if old_payment.pending:
             raise PaymentError("Payment is still pending.", status="pending")
         if old_payment.success:
             raise PaymentError("Payment already paid.", status="success")
         if old_payment.failed:
             status = await old_payment.check_status()
-            if status.paid:
+            if status.success:
+                # payment was successful on the fundingsource
+                await update_payment_status(
+                    checking_id=temp_id, status=PaymentState.SUCCESS, conn=conn
+                )
                 raise PaymentError(
                     "Failed payment was already paid on the fundingsource.",
                     status="success",
                 )
+            if status.failed:
+                raise PaymentError(
+                    "Payment is failed node, retrying is not possible.", status="failed"
+                )
+            # status.pending fall through and try again
         return old_payment
 
     logger.debug(f"creating temporary payment with id {temp_id}")
