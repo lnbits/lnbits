@@ -408,32 +408,32 @@ async def _create_external_payment(
     if old_payment:
         if old_payment.pending:
             raise PaymentError("Payment is still pending.", status="pending")
-        elif old_payment.success:
+        if old_payment.success:
             raise PaymentError("Payment already paid.", status="success")
-        elif old_payment.failed:
+        if old_payment.failed:
             status = await old_payment.check_status()
             if status.paid:
                 raise PaymentError(
                     "Failed payment was already paid on the fundingsource.",
                     status="success",
                 )
+        return old_payment
 
     logger.debug(f"creating temporary payment with id {temp_id}")
     # create a temporary payment here so we can check if
     # the balance is enough in the next step
     try:
-        new_payment = old_payment or await create_payment(
+        new_payment = await create_payment(
             checking_id=temp_id,
             fee=-abs(fee_reserve_total_msat),
             conn=conn,
             **payment_kwargs,
         )
+        return new_payment
     except Exception as exc:
         logger.error(f"could not create temporary payment: {exc}")
         # happens if the same wallet tries to pay an invoice twice
         raise PaymentError("Could not make payment", status="failed") from exc
-
-    return new_payment
 
 
 def _check_wallet_balance(
