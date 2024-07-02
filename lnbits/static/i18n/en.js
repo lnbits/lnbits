@@ -61,7 +61,7 @@ window.localisation.en = {
   service_fee: 'Service fee: %{amount} % per transaction',
   service_fee_max: 'Service fee: %{amount} % per transaction (max %{max} sats)',
   service_fee_tooltip:
-    'Service fee charged by the LNbits server admin per outgoing transaction',
+    'Service fee charged by the LNbits server admin per transaction',
   toggle_darkmode: 'Toggle Dark Mode',
   payment_reactions: 'Payment Reactions',
   view_swagger_docs: 'View LNbits Swagger API docs',
