@@ -255,7 +255,7 @@ Vue.component('payment-list', {
                   @click="props.expand = !props.expand"
                 ></q-icon>
                 <q-icon
-                  v-if-else="props.row.isFailed"
+                  v-else-if="props.row.isFailed"
                   name="warning"
                   color="yellow"
                   @click="props.expand = !props.expand"
@@ -264,7 +264,6 @@ Vue.component('payment-list', {
                     ><span>failed</span
                   ></q-tooltip>
                 </q-icon>
-              </q-td>
                 <q-icon
                   v-else
                   name="settings_ethernet"
