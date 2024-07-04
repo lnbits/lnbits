@@ -158,7 +158,7 @@ async def check_user_exists(
     return user
 
 
-async def authenticated_user_id(
+async def optional_user_id(
     access_token: Annotated[Optional[str], Depends(check_access_token)],
     usr: Optional[UUID4] = None,
 ) -> Optional[str]:
