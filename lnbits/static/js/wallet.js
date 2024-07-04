@@ -542,7 +542,7 @@ new Vue({
     pasteToTextArea: function () {
       this.$refs.textArea.focus() // Set cursor to textarea
       navigator.clipboard.readText().then(text => {
-        this.$refs.textArea.value = text
+        this.parse.data.request = text.trim()
       })
     }
   },
