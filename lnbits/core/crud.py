@@ -2,7 +2,7 @@ import datetime
 import json
 from time import time
 from typing import Any, Dict, List, Literal, Optional
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import shortuuid
 from passlib.context import CryptContext
@@ -26,7 +26,6 @@ from lnbits.settings import (
 from .models import (
     Account,
     AccountFilters,
-    CreateUser,
     Payment,
     PaymentFilters,
     PaymentHistoryPoint,
@@ -42,63 +41,23 @@ from .models import (
 # --------
 
 
-async def create_user(
-    data: CreateUser, user_config: Optional[UserConfig] = None
-) -> User:
-    if not settings.new_accounts_allowed:
-        raise ValueError("Account creation is disabled.")
-    if await get_account_by_username(data.username):
-        raise ValueError("Username already exists.")
-
-    if data.email and await get_account_by_email(data.email):
-        raise ValueError("Email already exists.")
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-    user_id = uuid4().hex
-    tsph = db.timestamp_placeholder
-    now = int(time())
-    await db.execute(
-        f"""
-            INSERT INTO accounts
-            (id, email, username, pass, extra, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, {tsph}, {tsph})
-        """,
-        (
-            user_id,
-            data.email,
-            data.username,
-            pwd_context.hash(data.password),
-            json.dumps(dict(user_config)) if user_config else "{}",
-            now,
-            now,
-        ),
-    )
-    new_account = await get_account(user_id=user_id)
-    assert new_account, "Newly created account couldn't be retrieved"
-    return new_account
-
-
 async def create_account(
-    conn: Optional[Connection] = None,
     user_id: Optional[str] = None,
+    username: Optional[str] = None,
     email: Optional[str] = None,
+    password: Optional[str] = None,
     user_config: Optional[UserConfig] = None,
+    conn: Optional[Connection] = None,
 ) -> User:
-    if user_id:
-        user_uuid4 = UUID(hex=user_id, version=4)
-        assert user_uuid4.hex == user_id, "User ID is not valid UUID4 hex string"
-    else:
-        user_id = uuid4().hex
-
+    user_id = user_id or uuid4().hex
     extra = json.dumps(dict(user_config)) if user_config else "{}"
     now = int(time())
     await (conn or db).execute(
         f"""
-        INSERT INTO accounts (id, email, extra, created_at, updated_at)
-        VALUES (?, ?, ?, {db.timestamp_placeholder}, {db.timestamp_placeholder})
+        INSERT INTO accounts (id, username, pass, email, extra, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, {db.timestamp_placeholder}, {db.timestamp_placeholder})
         """,
-        (user_id, email, extra, now, now),
+        (user_id, username, password, email, extra, now, now),
     )
 
     new_account = await get_account(user_id=user_id, conn=conn)
