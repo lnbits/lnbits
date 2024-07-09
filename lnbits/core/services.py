@@ -6,12 +6,14 @@ from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import parse_qs, urlparse
+from uuid import UUID, uuid4
 
 import httpx
 from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
 from loguru import logger
+from passlib.context import CryptContext
 from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
 
@@ -50,6 +52,8 @@ from .crud import (
     create_wallet,
     delete_wallet_payment,
     get_account,
+    get_account_by_email,
+    get_account_by_username,
     get_payments,
     get_standalone_payment,
     get_super_settings,
@@ -62,7 +66,7 @@ from .crud import (
     update_super_user,
 )
 from .helpers import to_valid_user_id
-from .models import BalanceDelta, Payment, UserConfig, Wallet
+from .models import BalanceDelta, Payment, User, UserConfig, Wallet
 
 
 class PaymentError(Exception):
@@ -773,6 +777,33 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
     editable_settings = EditableSettings.from_dict(settings.dict())
 
     return await create_admin_settings(account.id, editable_settings.dict())
+
+
+async def create_user_account(
+    user_id: Optional[str] = None,
+    email: Optional[str] = None,
+    username: Optional[str] = None,
+    password: Optional[str] = None,
+    user_config: Optional[UserConfig] = None,
+) -> User:
+    if not settings.new_accounts_allowed:
+        raise ValueError("Account creation is disabled.")
+    if username and await get_account_by_username(username):
+        raise ValueError("Username already exists.")
+
+    if email and await get_account_by_email(email):
+        raise ValueError("Email already exists.")
+
+    if user_id:
+        user_uuid4 = UUID(hex=user_id, version=4)
+        assert user_uuid4.hex == user_id, "User ID is not valid UUID4 hex string"
+    else:
+        user_id = uuid4().hex
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    password = pwd_context.hash(password) if password else None
+
+    return await create_account(user_id, username, email, password, user_config)
 
 
 class WebsocketConnectionManager:
