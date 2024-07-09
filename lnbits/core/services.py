@@ -64,6 +64,7 @@ from .crud import (
     update_payment_details,
     update_payment_status,
     update_super_user,
+    update_user_extension,
 )
 from .helpers import to_valid_user_id
 from .models import BalanceDelta, Payment, User, UserConfig, Wallet
@@ -803,7 +804,12 @@ async def create_user_account(
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     password = pwd_context.hash(password) if password else None
 
-    return await create_account(user_id, username, email, password, user_config)
+    account = await create_account(user_id, username, email, password, user_config)
+
+    for ext_id in settings.lnbits_user_default_extensions:
+        await update_user_extension(user_id=account.id, extension=ext_id, active=True)
+
+    return account
 
 
 class WebsocketConnectionManager:
