@@ -2,7 +2,7 @@ FROM python:3.10-slim-bookworm
 
 RUN apt-get clean
 RUN apt-get update
-RUN apt-get install -y curl pkg-config build-essential libnss-myhostname
+RUN apt-get install -y curl pkg-config build-essential libnss-myhostname automake libtool libffi-dev libgmp-dev
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
