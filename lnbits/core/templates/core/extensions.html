@@ -841,13 +841,10 @@
           <div v-html="selectedExtensionDetails.description_md"></div>
         </div>
         <div class="col-sm-12 col-md-4 q-pl-sm">
-          <q-rating
-            v-model="maxStars"
-            disable
+          <lnbits-extension-rating
+            :rating="0"
             size="2.5em"
-            :max="5"
-            color="primary"
-          ></q-rating>
+          ></lnbits-extension-rating>
           <div class="q-mt-md">
             <b>
               <span v-text="$t('contributors')"></span>
@@ -867,7 +864,7 @@
               </div>
             </small>
           </div>
-          <div class="row q-pt-md">
+          <div class="q-pt-md">
             <div>
               <q-btn
                 size="sm"
@@ -881,27 +878,6 @@
                 ><q-tooltip>repository</q-tooltip></q-btn
               >
             </div>
-            <div class="q-mt-md">
-              <b>
-                <span v-text="$t('contributors')"></span>
-              </b>
-              <small>
-                <div
-                  v-for="contributor of selectedExtensionDetails.contributors"
-                >
-                  <a
-                    :href="contributor.uri"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style="color: var(--q-primary); text-decoration: none"
-                  >
-                    <span
-                      v-text="(contributor.name || contributor) + ' - ' + (contributor.role || 'dev')"
-                    ></span>
-                  </a>
-                </div>
-              </small>
-            </div>
             <div class="q-pt-lg">
               <div>
                 <b>
@@ -913,19 +889,6 @@
                 ></q-badge>
               </div>
               <br />
-
-              <div>
-                <lnbits-extension-rating :rating="0" />
-                <q-btn
-                  size="xs"
-                  color="primary"
-                  :label="$t('repository')"
-                  type="a"
-                  :href="selectedExtensionDetails.repo"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                ></q-btn>
-              </div>
             </div>
           </div>
         </div>
