@@ -253,9 +253,11 @@ class BlinkWallet(Wallet):
                 .get("walletById", {})
                 .get("transactionsByPaymentHash", [])
             )
-            fee = txs_data[0].get("settlementFee")
-            preimage = txs_data[0].get("settlementVia").get("preImage")
-            status = txs_data[0].get("status")
+            tx_data = next((t for t in txs_data if t.get("direction") == "SEND"), None)
+            assert tx_data, "No SEND data found."
+            fee = tx_data.get("settlementFee")
+            preimage = tx_data.get("settlementVia", {}).get("preImage")
+            status = tx_data.get("status")
 
             return PaymentStatus(
                 paid=statuses[status], fee_msat=fee * 1000, preimage=preimage
@@ -448,6 +450,7 @@ q = BlinkGrafqlQueries(
                   transactionsByPaymentHash(paymentHash: $transactionsByPaymentHash) {
                     settlementFee
                     status
+                    direction
                     settlementVia {
                       ... on SettlementViaLn {
                         preImage
