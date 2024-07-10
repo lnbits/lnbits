@@ -196,7 +196,6 @@ class BlinkWallet(Wallet):
 
         try:
             response = await self._graphql_query(data)
-            # logger.info(f"get_invoice_status response: {response}")
             if response.get("errors") is not None:
                 # msg = response["errors"][0]["message"]
                 # logger.info(msg)
@@ -205,7 +204,6 @@ class BlinkWallet(Wallet):
                 status = response["data"]["me"]["defaultAccount"]["walletById"][
                     "invoiceByPaymentHash"
                 ]["paymentStatus"]
-                # logger.info(status)
                 return PaymentStatus(statuses[status])
         except Exception as e:
             logger.warning(f"Error getting invoice status: {e}")
