@@ -78,7 +78,7 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 
 ### Blink
 
-For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary. You can generate an Blink.sv access token here: https://www.blink.sv/en/api
+For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary. You can generate a Blink API key after logging in or creating a new Blink account at: https://dashboard.blink.sv. For more info visit: https://dev.blink.sv/api/auth#create-an-api-key```
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **BlinkWallet**
 - `BLINK_API_ENDPOINT`: https://api.blink.sv/graphql
