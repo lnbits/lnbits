@@ -49,40 +49,47 @@ class BlinkWallet(Wallet):
             logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
-        # this will initialize the wallet id
-        await self._init_wallet_id()
+        try:
+            await self._init_wallet_id()
 
-        balance_query = """
-            query Me {
-            me {
-                defaultAccount {
-                wallets {
-                    walletCurrency
-                    balance
-                }
+            balance_query = """
+                query Me {
+                me {
+                    defaultAccount {
+                    wallets {
+                        walletCurrency
+                        balance
+                    }
+                    }
                 }
             }
-        }
-        """
-        payload = {"query": balance_query, "variables": {}}
-        response = await self._graphql_query(payload)
-        wallets = (
-            response.get("data", {})
-            .get("me", {})
-            .get("defaultAccount", {})
-            .get("wallets", [])
-        )
-        btc_balance = next(
-            (
-                wallet["balance"]
-                for wallet in wallets
-                if wallet["walletCurrency"] == "BTC"
-            ),
-            None,
-        )
-        assert btc_balance is not None
-        # multiply balance by 1000 to get msats balance
-        return StatusResponse(None, btc_balance * 1000)
+            """
+            payload = {"query": balance_query, "variables": {}}
+            response = await self._graphql_query(payload)
+            wallets = (
+                response.get("data", {})
+                .get("me", {})
+                .get("defaultAccount", {})
+                .get("wallets", [])
+            )
+            btc_balance = next(
+                (
+                    wallet["balance"]
+                    for wallet in wallets
+                    if wallet["walletCurrency"] == "BTC"
+                ),
+                None,
+            )
+            if btc_balance is None:
+                return StatusResponse("No BTC balance", 0)
+
+            # multiply balance by 1000 to get msats balance
+            return StatusResponse(None, btc_balance * 1000)
+        except ValueError as exc:
+            return StatusResponse(str(exc), 0)
+        except Exception as exc:
+            logger.warning(exc)
+            return StatusResponse(f"Unable to connect, got: '{exc}'", 0)
 
     async def create_invoice(
         self,
