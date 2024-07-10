@@ -1,6 +1,6 @@
 import asyncio
 import hashlib
-from typing import AsyncGenerator, Optional, Union
+from typing import AsyncGenerator, Optional
 
 import httpx
 from loguru import logger
@@ -34,12 +34,22 @@ class BlinkWallet(Wallet):
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
-        self.wallet_id = None
+        self._wallet_id = None
 
-    async def get_wallet_id(self) -> Union[str, StatusResponse]:
+    @property
+    def wallet_id(self):
+        if self._wallet_id:
+            return self._wallet_id
+        raise ValueError("Wallet id not initialized.")
+
+    async def get_wallet_id(self) -> str:
         """
         Get the defaultAccount wallet id, required for payments.
         """
+
+        if self._wallet_id:
+            return self._wallet_id
+
         try:
             payload = {
                 "query": "query me { me { defaultAccount { wallets { id walletCurrency }}}}",  # noqa: E501
@@ -55,14 +65,15 @@ class BlinkWallet(Wallet):
             btc_wallet_ids = [
                 wallet["id"] for wallet in wallets if wallet["walletCurrency"] == "BTC"
             ]
-            wallet_id = btc_wallet_ids[0]
+
             if not btc_wallet_ids:
-                return StatusResponse("BTC Wallet not found", 0)
-            else:
-                wallet_id = btc_wallet_ids[0]
-                return wallet_id
-        except (httpx.ConnectError, httpx.RequestError):
-            return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
+                raise ValueError("BTC Wallet not found")
+
+            self._wallet_id = btc_wallet_ids[0]
+            return self._wallet_id
+        except Exception as exc:
+            logger.warning(exc)
+            raise ValueError(f"Unable to connect to '{self.endpoint}'") from exc
 
     async def cleanup(self):
         try:
@@ -71,12 +82,8 @@ class BlinkWallet(Wallet):
             logger.warning(f"Error closing wallet connection: {e}")
 
     async def status(self) -> StatusResponse:
-        # is it possible to put this in the __init__ somehow?
-        if self.wallet_id is None:
-            ret = await self.get_wallet_id()
-            if isinstance(ret, StatusResponse):
-                return ret
-            self.wallet_id = ret
+        # this will initialize the wallet id
+        await self.get_wallet_id()
 
         balance_query = """
             query Me {
