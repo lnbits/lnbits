@@ -150,13 +150,13 @@ class BlinkWallet(Wallet):
             response.get("data", {})
             .get("lnInvoiceCreateOnBehalfOfRecipient", {})
             .get("invoice", {})
-            .get("paymentRequest", {})
+            .get("paymentRequest", None)
         )
         checking_id = (
             response.get("data", {})
             .get("lnInvoiceCreateOnBehalfOfRecipient", {})
             .get("invoice", {})
-            .get("paymentHash", {})
+            .get("paymentHash", None)
         )
 
         # logger.info(f"Created invoice: {payment_request}, checking_id: {checking_id}")
