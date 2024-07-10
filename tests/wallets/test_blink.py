@@ -4,8 +4,9 @@ import pytest
 from loguru import logger
 
 from lnbits.settings import settings
-from lnbits.wallets import BlinkWallet, get_funding_source
+from lnbits.wallets import BlinkWallet, get_funding_source, set_funding_source
 
+settings.lnbits_backend_wallet_class = "BlinkWallet"
 settings.blink_token = "mock"
 settings.blink_api_endpoint = "https://api.blink.sv/graphql"
 
@@ -21,9 +22,13 @@ if use_real_api:
     settings.blink_token = os.environ.get("BLINK_TOKEN")
 
 
+logger.info(
+    f"settings.lnbits_backend_wallet_class: {settings.lnbits_backend_wallet_class}"
+)
 logger.info(f"settings.blink_api_endpoint: {settings.blink_api_endpoint}")
 logger.info(f"settings.blink_token: {settings.blink_token}")
 
+set_funding_source()
 funding_source = get_funding_source()
 assert isinstance(funding_source, BlinkWallet)
 
@@ -54,7 +59,7 @@ async def test_environment_variables():
 @pytest.mark.asyncio
 async def test_get_wallet_id():
     if use_real_api:
-        wallet_id = await funding_source.get_wallet_id()
+        wallet_id = await funding_source._init_wallet_id()
         logger.info(f"test_get_wallet_id: {wallet_id}")
         assert wallet_id
     else:
@@ -135,6 +140,9 @@ async def test_outbound_invoice_payment(outbound_bolt11):
 
 @pytest.mark.asyncio
 async def test_get_payment_status(payhash):
-    payment_status = await funding_source.get_payment_status(payhash)
-    assert payment_status.paid
-    logger.info(f"test_get_payment_status: payment_status: {payment_status.paid}")
+    if use_real_api:
+        payment_status = await funding_source.get_payment_status(payhash)
+        assert payment_status.paid
+        logger.info(f"test_get_payment_status: payment_status: {payment_status.paid}")
+    else:
+        assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
