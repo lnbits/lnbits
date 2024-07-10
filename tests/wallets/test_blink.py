@@ -140,6 +140,9 @@ async def test_outbound_invoice_payment(outbound_bolt11):
 
 @pytest.mark.asyncio
 async def test_get_payment_status(payhash):
-    payment_status = await funding_source.get_payment_status(payhash)
-    assert payment_status.paid
-    logger.info(f"test_get_payment_status: payment_status: {payment_status.paid}")
+    if use_real_api:
+        payment_status = await funding_source.get_payment_status(payhash)
+        assert payment_status.paid
+        logger.info(f"test_get_payment_status: payment_status: {payment_status.paid}")
+    else:
+        assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
