@@ -293,7 +293,7 @@ class BlinkWallet(Wallet):
             "PAID": True,
             "SUCCESS": True,
         }
-        return PaymentStatus(statuses[status], fee_msat=fee * 1000, preimage=preimage)
+        return PaymentStatus(paid=statuses[status], fee_msat=fee * 1000, preimage=preimage)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         # https://dev.blink.sv/api/websocket
