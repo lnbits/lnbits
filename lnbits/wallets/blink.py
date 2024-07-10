@@ -275,15 +275,15 @@ class BlinkWallet(Wallet):
 
         response_data = response.get("data")
         assert response_data is not None
-        data = (
-            response_data.get("me")
-            .get("defaultAccount")
-            .get("walletById")
-            .get("transactionsByPaymentHash")
+        txs_data = (
+            response_data.get("me", {})
+            .get("defaultAccount", {})
+            .get("walletById", {})
+            .get("transactionsByPaymentHash", [])
         )
-        fee = data[0].get("settlementFee")
-        preimage = data[0].get("settlementVia").get("preImage")
-        status = data[0].get("status")
+        fee = txs_data[0].get("settlementFee")
+        preimage = txs_data[0].get("settlementVia").get("preImage")
+        status = txs_data[0].get("status")
         # logger.info(f"payment status fee: {fee}, preimage: {preimage}, status: {status}")  # noqa: E501
 
         statuses = {
@@ -293,7 +293,9 @@ class BlinkWallet(Wallet):
             "PAID": True,
             "SUCCESS": True,
         }
-        return PaymentStatus(paid=statuses[status], fee_msat=fee * 1000, preimage=preimage)
+        return PaymentStatus(
+            paid=statuses[status], fee_msat=fee * 1000, preimage=preimage
+        )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         # https://dev.blink.sv/api/websocket
