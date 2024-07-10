@@ -158,21 +158,30 @@ class BlinkWallet(Wallet):
             }
         }
         data = {"query": q.payment_query, "variables": payment_variables}
-        response = await self._graphql_query(data)
-        # logger.info(f'pay_invoice complete response: {response}')
-        errors = (
-            response.get("data", {}).get("lnInvoicePaymentSend", {}).get("errors", {})
-        )
-        if len(errors) > 0:
-            error_message = errors[0].get("message")
-            return PaymentResponse(False, None, None, None, error_message)
+        try:
+            response = await self._graphql_query(data)
 
-        checking_id = bolt11.decode(bolt11_invoice).payment_hash
-        # logger.info(f'pay_invoice complete checking_id: {checking_id}')
-        payment_status = await self.get_payment_status(checking_id)
-        fee_msat = payment_status.fee_msat
-        preimage = payment_status.preimage
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+            errors = (
+                response.get("data", {})
+                .get("lnInvoicePaymentSend", {})
+                .get("errors", {})
+            )
+            if len(errors) > 0:
+                error_message = errors[0].get("message")
+                return PaymentResponse(False, None, None, None, error_message)
+
+            checking_id = bolt11.decode(bolt11_invoice).payment_hash
+
+            payment_status = await self.get_payment_status(checking_id)
+            fee_msat = payment_status.fee_msat
+            preimage = payment_status.preimage
+            return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        except Exception as exc:
+            logger.info(f"Failed to pay invoice {bolt11_invoice}")
+            logger.warning(exc)
+            return PaymentResponse(
+                None, None, None, None, f"Unable to connect to {self.endpoint}."
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
 
