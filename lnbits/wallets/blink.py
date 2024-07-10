@@ -42,39 +42,6 @@ class BlinkWallet(Wallet):
             return self._wallet_id
         raise ValueError("Wallet id not initialized.")
 
-    async def get_wallet_id(self) -> str:
-        """
-        Get the defaultAccount wallet id, required for payments.
-        """
-
-        if self._wallet_id:
-            return self._wallet_id
-
-        try:
-            payload = {
-                "query": "query me { me { defaultAccount { wallets { id walletCurrency }}}}",  # noqa: E501
-                "variables": {},
-            }
-            response = await self._graphql_query(payload)
-            wallets = (
-                response.get("data", {})
-                .get("me", {})
-                .get("defaultAccount", {})
-                .get("wallets", [])
-            )
-            btc_wallet_ids = [
-                wallet["id"] for wallet in wallets if wallet["walletCurrency"] == "BTC"
-            ]
-
-            if not btc_wallet_ids:
-                raise ValueError("BTC Wallet not found")
-
-            self._wallet_id = btc_wallet_ids[0]
-            return self._wallet_id
-        except Exception as exc:
-            logger.warning(exc)
-            raise ValueError(f"Unable to connect to '{self.endpoint}'") from exc
-
     async def cleanup(self):
         try:
             await self.client.aclose()
@@ -83,7 +50,7 @@ class BlinkWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         # this will initialize the wallet id
-        await self.get_wallet_id()
+        await self._init_wallet_id()
 
         balance_query = """
             query Me {
@@ -333,3 +300,36 @@ class BlinkWallet(Wallet):
         response.raise_for_status()
         data = response.json()
         return data
+
+    async def _init_wallet_id(self) -> str:
+        """
+        Get the defaultAccount wallet id, required for payments.
+        """
+
+        if self._wallet_id:
+            return self._wallet_id
+
+        try:
+            payload = {
+                "query": "query me { me { defaultAccount { wallets { id walletCurrency }}}}",  # noqa: E501
+                "variables": {},
+            }
+            response = await self._graphql_query(payload)
+            wallets = (
+                response.get("data", {})
+                .get("me", {})
+                .get("defaultAccount", {})
+                .get("wallets", [])
+            )
+            btc_wallet_ids = [
+                wallet["id"] for wallet in wallets if wallet["walletCurrency"] == "BTC"
+            ]
+
+            if not btc_wallet_ids:
+                raise ValueError("BTC Wallet not found")
+
+            self._wallet_id = btc_wallet_ids[0]
+            return self._wallet_id
+        except Exception as exc:
+            logger.warning(exc)
+            raise ValueError(f"Unable to connect to '{self.endpoint}'") from exc
