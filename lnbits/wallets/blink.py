@@ -36,7 +36,7 @@ class BlinkWallet(Wallet):
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
         self.wallet_id = None
 
-    async def graphql_query(self, payload) -> dict:
+    async def _graphql_query(self, payload) -> dict:
         response = await self.client.post(self.endpoint, json=payload, timeout=10)
         data = response.json()
         return data
@@ -50,7 +50,7 @@ class BlinkWallet(Wallet):
                 "query": "query me { me { defaultAccount { wallets { id walletCurrency }}}}",  # noqa: E501
                 "variables": {},
             }
-            response = await self.graphql_query(payload)
+            response = await self._graphql_query(payload)
             wallets = (
                 response.get("data", {})
                 .get("me", {})
@@ -96,7 +96,7 @@ class BlinkWallet(Wallet):
         }
         """
         payload = {"query": balance_query, "variables": {}}
-        response = await self.graphql_query(payload)
+        response = await self._graphql_query(payload)
         wallets = (
             response.get("data", {})
             .get("me", {})
@@ -157,7 +157,7 @@ class BlinkWallet(Wallet):
         data = {"query": invoice_query, "variables": invoice_variables}
         # logger.info(f"create_invoice complete data: {data}")
 
-        response = await self.graphql_query(data)
+        response = await self._graphql_query(data)
         # logger.info(f"create_invoice complete response: {response}")
 
         errors = (
@@ -210,7 +210,7 @@ class BlinkWallet(Wallet):
             }
         }
         data = {"query": payment_query, "variables": payment_variables}
-        response = await self.graphql_query(data)
+        response = await self._graphql_query(data)
         # logger.info(f'pay_invoice complete response: {response}')
         errors = (
             response.get("data", {}).get("lnInvoicePaymentSend", {}).get("errors", {})
@@ -251,7 +251,7 @@ class BlinkWallet(Wallet):
 
         variables = {"paymentHash": checking_id, "walletId": self.wallet_id}
         data = {"query": status_query, "variables": variables}
-        response = await self.graphql_query(data)
+        response = await self._graphql_query(data)
         # logger.info(f"get_invoice_status response: {response}")
         if response.get("errors") is not None:
             # msg = response["errors"][0]["message"]
@@ -294,7 +294,7 @@ class BlinkWallet(Wallet):
         data = {"query": tx_query, "variables": variables}
 
         # logger.info(f"get_payment_status data: {data}\n\n")
-        response = await self.graphql_query(data)
+        response = await self._graphql_query(data)
         # logger.info(f"get_payment_status response: {response}")
 
         response_data = response.get("data")
