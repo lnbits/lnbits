@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import json
 from typing import AsyncGenerator, Optional
 
 import httpx
@@ -107,31 +108,41 @@ class BlinkWallet(Wallet):
 
         data = {"query": q.invoice_query, "variables": invoice_variables}
 
-        response = await self._graphql_query(data)
+        try:
+            response = await self._graphql_query(data)
 
-        errors = (
-            response.get("data", {})
-            .get("lnInvoiceCreateOnBehalfOfRecipient", {})
-            .get("errors", {})
-        )
-        if len(errors) > 0:
-            error_message = errors[0].get("message")
-            return InvoiceResponse(False, None, None, error_message)
+            errors = (
+                response.get("data", {})
+                .get("lnInvoiceCreateOnBehalfOfRecipient", {})
+                .get("errors", {})
+            )
+            if len(errors) > 0:
+                error_message = errors[0].get("message")
+                return InvoiceResponse(False, None, None, error_message)
 
-        payment_request = (
-            response.get("data", {})
-            .get("lnInvoiceCreateOnBehalfOfRecipient", {})
-            .get("invoice", {})
-            .get("paymentRequest", None)
-        )
-        checking_id = (
-            response.get("data", {})
-            .get("lnInvoiceCreateOnBehalfOfRecipient", {})
-            .get("invoice", {})
-            .get("paymentHash", None)
-        )
+            payment_request = (
+                response.get("data", {})
+                .get("lnInvoiceCreateOnBehalfOfRecipient", {})
+                .get("invoice", {})
+                .get("paymentRequest", None)
+            )
+            checking_id = (
+                response.get("data", {})
+                .get("lnInvoiceCreateOnBehalfOfRecipient", {})
+                .get("invoice", {})
+                .get("paymentHash", None)
+            )
 
-        return InvoiceResponse(True, checking_id, payment_request, None)
+            return InvoiceResponse(True, checking_id, payment_request, None)
+        except json.JSONDecodeError:
+            return InvoiceResponse(
+                False, None, None, "Server error: 'invalid json response'"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(
+                False, None, None, f"Unable to connect to {self.endpoint}."
+            )
 
     async def pay_invoice(
         self, bolt11_invoice: str, fee_limit_msat: int
