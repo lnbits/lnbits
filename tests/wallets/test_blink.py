@@ -22,7 +22,9 @@ if use_real_api:
     settings.blink_token = os.environ.get("BLINK_TOKEN")
 
 
-logger.info(f"settings.lnbits_backend_wallet_class: {settings.lnbits_backend_wallet_class}")
+logger.info(
+    f"settings.lnbits_backend_wallet_class: {settings.lnbits_backend_wallet_class}"
+)
 logger.info(f"settings.blink_api_endpoint: {settings.blink_api_endpoint}")
 logger.info(f"settings.blink_token: {settings.blink_token}")
 
