@@ -12,6 +12,7 @@ from starlette.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
+from lnbits.core.services import create_user_account
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import (
     create_access_token,
@@ -23,8 +24,6 @@ from lnbits.helpers import (
 from lnbits.settings import AuthMethods, settings
 
 from ..crud import (
-    create_account,
-    create_user,
     get_account,
     get_account_by_email,
     get_account_by_username_or_email,
@@ -166,7 +165,9 @@ async def register(data: CreateUser) -> JSONResponse:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
 
     try:
-        user = await create_user(data)
+        user = await create_user_account(
+            email=data.email, username=data.username, password=data.password
+        )
         return _auth_success_response(user.username)
 
     except ValueError as exc:
@@ -274,7 +275,7 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = 
     else:
         if not settings.new_accounts_allowed:
             raise HTTPException(HTTP_400_BAD_REQUEST, "Account creation is disabled.")
-        user = await create_account(email=email, user_config=user_config)
+        user = await create_user_account(email=email, user_config=user_config)
 
     if not user:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "User not found.")

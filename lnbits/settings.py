@@ -47,6 +47,7 @@ class UsersSettings(LNbitsSettings):
 
 class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: list[str] = Field(default=[])
+    lnbits_user_default_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
     lnbits_extensions_manifests: list[str] = Field(
         default=[
