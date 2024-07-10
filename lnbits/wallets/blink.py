@@ -212,37 +212,14 @@ class BlinkWallet(Wallet):
             return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        tx_query = """
-            query TransactionsByPaymentHash($walletId: WalletId!, $transactionsByPaymentHash: PaymentHash!) {
-                    me {
-                        defaultAccount {
-                        walletById(walletId: $walletId) {
-                            walletCurrency
-                            ... on BTCWallet {
-                            transactionsByPaymentHash(paymentHash: $transactionsByPaymentHash) {
-                                settlementFee
-                                status
-                                settlementVia {
-                                ... on SettlementViaLn {
-                                    preImage
-                                }
-                                }
-                            }
-                            }
-                        }
-                        }
-                    }
-            }
-            """  # noqa: E501
+
         variables = {
             "walletId": self.wallet_id,
             "transactionsByPaymentHash": checking_id,
         }
-        data = {"query": tx_query, "variables": variables}
+        data = {"query": q.tx_query, "variables": variables}
 
-        # logger.info(f"get_payment_status data: {data}\n\n")
         response = await self._graphql_query(data)
-        # logger.info(f"get_payment_status response: {response}")
 
         response_data = response.get("data")
         assert response_data is not None
@@ -320,6 +297,7 @@ class BlinkGrafqlQueries(BaseModel):
     payment_query: str
     status_query: str
     wallet_query: str
+    tx_query: str
 
 
 q = BlinkGrafqlQueries(
@@ -377,4 +355,26 @@ q = BlinkGrafqlQueries(
 
                 """,  # noqa: E501,
     wallet_query="query me { me { defaultAccount { wallets { id walletCurrency }}}}",
+    tx_query="""
+    query TransactionsByPaymentHash($walletId: WalletId!, $transactionsByPaymentHash: PaymentHash!) {
+            me {
+                defaultAccount {
+                walletById(walletId: $walletId) {
+                    walletCurrency
+                    ... on BTCWallet {
+                    transactionsByPaymentHash(paymentHash: $transactionsByPaymentHash) {
+                        settlementFee
+                        status
+                        settlementVia {
+                        ... on SettlementViaLn {
+                            preImage
+                        }
+                        }
+                    }
+                    }
+                }
+                }
+            }
+    }
+    """,  # noqa: E501
 )
