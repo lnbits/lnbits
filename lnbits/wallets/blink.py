@@ -272,7 +272,7 @@ class BlinkWallet(Wallet):
                         ack.get("type") == "connection_ack"
                     ), "Websocket connection not acknowledged."
 
-                    logger.info("Websocket connection not acknowledged.")
+                    logger.info("Websocket connection acknowledged.")
                     subscription_req = {
                         "id": subscription_id,
                         "type": "subscribe",
