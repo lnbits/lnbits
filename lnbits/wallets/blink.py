@@ -4,6 +4,7 @@ from typing import AsyncGenerator, Optional
 
 import httpx
 from loguru import logger
+from pydantic import BaseModel
 
 from lnbits import bolt11
 from lnbits.settings import settings
@@ -52,7 +53,7 @@ class BlinkWallet(Wallet):
         try:
             await self._init_wallet_id()
 
-            payload = {"query": q["balance_query"], "variables": {}}
+            payload = {"query": q.balance_query, "variables": {}}
             response = await self._graphql_query(payload)
             wallets = (
                 response.get("data", {})
@@ -104,7 +105,7 @@ class BlinkWallet(Wallet):
         else:
             invoice_variables["input"]["memo"] = memo or ""
 
-        data = {"query": q["invoice_query"], "variables": invoice_variables}
+        data = {"query": q.invoice_query, "variables": invoice_variables}
         # logger.info(f"create_invoice complete data: {data}")
 
         response = await self._graphql_query(data)
@@ -149,7 +150,7 @@ class BlinkWallet(Wallet):
                 "memo": "Payment memo",
             }
         }
-        data = {"query": q["payment_query"], "variables": payment_variables}
+        data = {"query": q.payment_query, "variables": payment_variables}
         response = await self._graphql_query(data)
         # logger.info(f'pay_invoice complete response: {response}')
         errors = (
@@ -175,7 +176,7 @@ class BlinkWallet(Wallet):
         }
 
         variables = {"paymentHash": checking_id, "walletId": self.wallet_id}
-        data = {"query": q["status_query"], "variables": variables}
+        data = {"query": q.status_query, "variables": variables}
         response = await self._graphql_query(data)
         # logger.info(f"get_invoice_status response: {response}")
         if response.get("errors") is not None:
@@ -269,7 +270,7 @@ class BlinkWallet(Wallet):
 
         try:
             payload = {
-                "query": q["wallet_query"],
+                "query": q.wallet_query,
                 "variables": {},
             }
             response = await self._graphql_query(payload)
@@ -293,8 +294,16 @@ class BlinkWallet(Wallet):
             raise ValueError(f"Unable to connect to '{self.endpoint}'") from exc
 
 
-q = {
-    "balance_query": """
+class BlinkGrafqlQueries(BaseModel):
+    balance_query: str
+    invoice_query: str
+    payment_query: str
+    status_query: str
+    wallet_query: str
+
+
+q = BlinkGrafqlQueries(
+    balance_query="""
                 query Me {
                 me {
                     defaultAccount {
@@ -306,7 +315,7 @@ q = {
                 }
             }
             """,
-    "invoice_query": """mutation LnInvoiceCreateOnBehalfOfRecipient($input: LnInvoiceCreateOnBehalfOfRecipientInput!) {
+    invoice_query="""mutation LnInvoiceCreateOnBehalfOfRecipient($input: LnInvoiceCreateOnBehalfOfRecipientInput!) {
         lnInvoiceCreateOnBehalfOfRecipient(input: $input) {
             invoice {
             paymentRequest
@@ -320,7 +329,7 @@ q = {
         }
         }
         """,  # noqa: E501
-    "payment_query": """mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
+    payment_query="""mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
             lnInvoicePaymentSend(input: $input) {
             status
                 errors {
@@ -331,7 +340,7 @@ q = {
                 }
             }
         """,
-    "status_query": """
+    status_query="""
                 query InvoiceByPaymentHash($walletId: WalletId!, $paymentHash: PaymentHash!) {
                 me {
                     defaultAccount {
@@ -347,5 +356,5 @@ q = {
                 }
 
                 """,  # noqa: E501,
-    "wallet_query": "query me { me { defaultAccount { wallets { id walletCurrency }}}}",
-}
+    wallet_query="query me { me { defaultAccount { wallets { id walletCurrency }}}}",
+)
