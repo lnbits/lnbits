@@ -54,7 +54,7 @@ async def test_environment_variables():
 @pytest.mark.asyncio
 async def test_get_wallet_id():
     if use_real_api:
-        wallet_id = await funding_source.get_wallet_id()
+        wallet_id = await funding_source._init_wallet_id()
         logger.info(f"test_get_wallet_id: {wallet_id}")
         assert wallet_id
     else:
