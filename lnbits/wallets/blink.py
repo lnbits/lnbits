@@ -106,10 +106,8 @@ class BlinkWallet(Wallet):
             invoice_variables["input"]["memo"] = memo or ""
 
         data = {"query": q.invoice_query, "variables": invoice_variables}
-        # logger.info(f"create_invoice complete data: {data}")
 
         response = await self._graphql_query(data)
-        # logger.info(f"create_invoice complete response: {response}")
 
         errors = (
             response.get("data", {})
@@ -118,7 +116,6 @@ class BlinkWallet(Wallet):
         )
         if len(errors) > 0:
             error_message = errors[0].get("message")
-            # logger.error(f"Error creating invoice: {error_message}")
             return InvoiceResponse(False, None, None, error_message)
 
         payment_request = (
@@ -134,7 +131,6 @@ class BlinkWallet(Wallet):
             .get("paymentHash", None)
         )
 
-        # logger.info(f"Created invoice: {payment_request}, checking_id: {checking_id}")
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(
@@ -257,8 +253,7 @@ class BlinkWallet(Wallet):
     async def _graphql_query(self, payload) -> dict:
         response = await self.client.post(self.endpoint, json=payload, timeout=10)
         response.raise_for_status()
-        data = response.json()
-        return data
+        return response.json()
 
     async def _init_wallet_id(self) -> str:
         """
