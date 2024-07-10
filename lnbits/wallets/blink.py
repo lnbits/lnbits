@@ -6,7 +6,7 @@ from typing import AsyncGenerator, Optional
 import httpx
 from loguru import logger
 from pydantic import BaseModel
-from websockets.client import connect
+from websockets.client import WebSocketClientProtocol, connect
 from websockets.typing import Subprotocol
 
 from lnbits import bolt11
@@ -46,6 +46,7 @@ class BlinkWallet(Wallet):
             "payload": {"X-API-KEY": settings.blink_token},
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+        self.ws: Optional[WebSocketClientProtocol] = None
         self._wallet_id = None
 
     @property
@@ -59,6 +60,12 @@ class BlinkWallet(Wallet):
             await self.client.aclose()
         except RuntimeError as e:
             logger.warning(f"Error closing wallet connection: {e}")
+
+        try:
+            if self.ws:
+                await self.ws.close(reason="Shutting down.")
+        except RuntimeError as e:
+            logger.warning(f"Error closing websocket connection: {e}")
 
     async def status(self) -> StatusResponse:
         try:
@@ -265,6 +272,7 @@ class BlinkWallet(Wallet):
                     self.ws_endpoint, subprotocols=[Subprotocol("graphql-transport-ws")]
                 ) as ws:
                     logger.info("Connected to blink invoices stream.")
+                    self.ws = ws
                     await ws.send(json.dumps(self.ws_auth))
                     confirmation = await ws.recv()
                     ack = json.loads(confirmation)
