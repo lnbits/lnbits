@@ -6,6 +6,8 @@ from typing import AsyncGenerator, Optional
 import httpx
 from loguru import logger
 from pydantic import BaseModel
+from websockets.client import WebSocketClientProtocol, connect
+from websockets.typing import Subprotocol
 
 from lnbits import bolt11
 from lnbits.settings import settings
@@ -27,15 +29,24 @@ class BlinkWallet(Wallet):
             raise ValueError(
                 "cannot initialize BlinkWallet: missing blink_api_endpoint"
             )
+        if not settings.blink_ws_endpoint:
+            raise ValueError("cannot initialize BlinkWallet: missing blink_ws_endpoint")
         if not settings.blink_token:
             raise ValueError("cannot initialize BlinkWallet: missing blink_token")
 
         self.endpoint = self.normalize_endpoint(settings.blink_api_endpoint)
+
         self.auth = {
             "X-API-KEY": settings.blink_token,
             "User-Agent": settings.user_agent,
         }
+        self.ws_endpoint = self.normalize_endpoint(settings.blink_ws_endpoint)
+        self.ws_auth = {
+            "type": "connection_init",
+            "payload": {"X-API-KEY": settings.blink_token},
+        }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
+        self.ws: Optional[WebSocketClientProtocol] = None
         self._wallet_id = None
 
     @property
@@ -49,6 +60,12 @@ class BlinkWallet(Wallet):
             await self.client.aclose()
         except RuntimeError as e:
             logger.warning(f"Error closing wallet connection: {e}")
+
+        try:
+            if self.ws:
+                await self.ws.close(reason="Shutting down.")
+        except RuntimeError as e:
+            logger.warning(f"Error closing websocket connection: {e}")
 
     async def status(self) -> StatusResponse:
         try:
@@ -248,11 +265,57 @@ class BlinkWallet(Wallet):
             return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        # https://dev.blink.sv/api/websocket
-        self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
-            value = await self.queue.get()
-            yield value
+        subscription_id = "blink_payment_stream"
+        while settings.lnbits_running:
+            try:
+                async with connect(
+                    self.ws_endpoint, subprotocols=[Subprotocol("graphql-transport-ws")]
+                ) as ws:
+                    logger.info("Connected to blink invoices stream.")
+                    self.ws = ws
+                    await ws.send(json.dumps(self.ws_auth))
+                    confirmation = await ws.recv()
+                    ack = json.loads(confirmation)
+                    assert (
+                        ack.get("type") == "connection_ack"
+                    ), "Websocket connection not acknowledged."
+
+                    logger.info("Websocket connection acknowledged.")
+                    subscription_req = {
+                        "id": subscription_id,
+                        "type": "subscribe",
+                        "payload": {"query": q.my_updates_query, "variables": {}},
+                    }
+                    await ws.send(json.dumps(subscription_req))
+
+                    while settings.lnbits_running:
+                        message = await ws.recv()
+                        resp = json.loads(message)
+                        if resp.get("id") != subscription_id:
+                            continue
+                        tx = (
+                            resp.get("payload", {})
+                            .get("data", {})
+                            .get("myUpdates", {})
+                            .get("update", {})
+                            .get("transaction", {})
+                        )
+                        if tx.get("direction") != "RECEIVE":
+                            continue
+
+                        if not tx.get("initiationVia"):
+                            continue
+
+                        payment_hash = tx.get("initiationVia").get("paymentHash")
+                        if payment_hash:
+                            yield payment_hash
+
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to blink invoices stream: '{exc}'"
+                    "retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
 
     async def _graphql_query(self, payload) -> dict:
         response = await self.client.post(self.endpoint, json=payload, timeout=10)
@@ -300,6 +363,7 @@ class BlinkGrafqlQueries(BaseModel):
     status_query: str
     wallet_query: str
     tx_query: str
+    my_updates_query: str
 
 
 q = BlinkGrafqlQueries(
@@ -395,5 +459,23 @@ q = BlinkGrafqlQueries(
             }
           }
         }
-    """,
+        """,
+    my_updates_query="""
+        subscription {
+          myUpdates {
+            update {
+              ... on LnUpdate {
+                transaction {
+                  initiationVia {
+                    ... on InitiationViaLn {
+                      paymentHash
+                    }
+                  }
+                  direction
+                }
+              }
+            }
+          }
+        }
+        """,
 )
