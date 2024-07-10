@@ -219,7 +219,7 @@ class LnPayFundingSource(LNbitsSettings):
 
 
 class BlinkFundingSource(LNbitsSettings):
-    blink_api_endpoint: Optional[str] = Field(default=None)
+    blink_api_endpoint: Optional[str] = Field(default="https://api.blink.sv/graphql")
     blink_token: Optional[str] = Field(default=None)
 
 
