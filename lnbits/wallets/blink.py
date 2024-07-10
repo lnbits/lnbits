@@ -52,19 +52,7 @@ class BlinkWallet(Wallet):
         try:
             await self._init_wallet_id()
 
-            balance_query = """
-                query Me {
-                me {
-                    defaultAccount {
-                    wallets {
-                        walletCurrency
-                        balance
-                    }
-                    }
-                }
-            }
-            """
-            payload = {"query": balance_query, "variables": {}}
+            payload = {"query": q["balance_query"], "variables": {}}
             response = await self._graphql_query(payload)
             wallets = (
                 response.get("data", {})
@@ -101,20 +89,6 @@ class BlinkWallet(Wallet):
     ) -> InvoiceResponse:
         # https://dev.blink.sv/api/btc-ln-receive
 
-        invoice_query = """mutation LnInvoiceCreateOnBehalfOfRecipient($input: LnInvoiceCreateOnBehalfOfRecipientInput!) {
-        lnInvoiceCreateOnBehalfOfRecipient(input: $input) {
-            invoice {
-            paymentRequest
-            paymentHash
-            paymentSecret
-            satoshis
-            }
-            errors {
-            message
-            }
-        }
-        }
-        """  # noqa: E501
         invoice_variables = {
             "input": {
                 "amount": amount,
@@ -130,7 +104,7 @@ class BlinkWallet(Wallet):
         else:
             invoice_variables["input"]["memo"] = memo or ""
 
-        data = {"query": invoice_query, "variables": invoice_variables}
+        data = {"query": q["invoice_query"], "variables": invoice_variables}
         # logger.info(f"create_invoice complete data: {data}")
 
         response = await self._graphql_query(data)
@@ -167,17 +141,7 @@ class BlinkWallet(Wallet):
     ) -> PaymentResponse:
         # https://dev.blink.sv/api/btc-ln-send
         # Future: add check fee estimate is < fee_limit_msat before paying invoice
-        payment_query = """mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
-            lnInvoicePaymentSend(input: $input) {
-            status
-                errors {
-                    message
-                    path
-                    code
-                    }
-                }
-            }
-        """  # noqa: E501
+
         payment_variables = {
             "input": {
                 "paymentRequest": bolt11_invoice,
@@ -185,7 +149,7 @@ class BlinkWallet(Wallet):
                 "memo": "Payment memo",
             }
         }
-        data = {"query": payment_query, "variables": payment_variables}
+        data = {"query": q["payment_query"], "variables": payment_variables}
         response = await self._graphql_query(data)
         # logger.info(f'pay_invoice complete response: {response}')
         errors = (
@@ -203,22 +167,7 @@ class BlinkWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        status_query = """
-                query InvoiceByPaymentHash($walletId: WalletId!, $paymentHash: PaymentHash!) {
-                me {
-                    defaultAccount {
-                    walletById(walletId: $walletId) {
-                        invoiceByPaymentHash(paymentHash: $paymentHash) {
-                        ... on LnInvoice {
-                            paymentStatus
-                        }
-                        }
-                    }
-                    }
-                }
-                }
 
-                """  # noqa: E501
         statuses = {
             "EXPIRED": False,
             "PENDING": None,
@@ -226,7 +175,7 @@ class BlinkWallet(Wallet):
         }
 
         variables = {"paymentHash": checking_id, "walletId": self.wallet_id}
-        data = {"query": status_query, "variables": variables}
+        data = {"query": q["status_query"], "variables": variables}
         response = await self._graphql_query(data)
         # logger.info(f"get_invoice_status response: {response}")
         if response.get("errors") is not None:
@@ -320,7 +269,7 @@ class BlinkWallet(Wallet):
 
         try:
             payload = {
-                "query": "query me { me { defaultAccount { wallets { id walletCurrency }}}}",  # noqa: E501
+                "query": q["wallet_query"],
                 "variables": {},
             }
             response = await self._graphql_query(payload)
@@ -342,3 +291,61 @@ class BlinkWallet(Wallet):
         except Exception as exc:
             logger.warning(exc)
             raise ValueError(f"Unable to connect to '{self.endpoint}'") from exc
+
+
+q = {
+    "balance_query": """
+                query Me {
+                me {
+                    defaultAccount {
+                    wallets {
+                        walletCurrency
+                        balance
+                    }
+                    }
+                }
+            }
+            """,
+    "invoice_query": """mutation LnInvoiceCreateOnBehalfOfRecipient($input: LnInvoiceCreateOnBehalfOfRecipientInput!) {
+        lnInvoiceCreateOnBehalfOfRecipient(input: $input) {
+            invoice {
+            paymentRequest
+            paymentHash
+            paymentSecret
+            satoshis
+            }
+            errors {
+            message
+            }
+        }
+        }
+        """,  # noqa: E501
+    "payment_query": """mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
+            lnInvoicePaymentSend(input: $input) {
+            status
+                errors {
+                    message
+                    path
+                    code
+                    }
+                }
+            }
+        """,
+    "status_query": """
+                query InvoiceByPaymentHash($walletId: WalletId!, $paymentHash: PaymentHash!) {
+                me {
+                    defaultAccount {
+                    walletById(walletId: $walletId) {
+                        invoiceByPaymentHash(paymentHash: $paymentHash) {
+                        ... on LnInvoice {
+                            paymentStatus
+                        }
+                        }
+                    }
+                    }
+                }
+                }
+
+                """,  # noqa: E501,
+    "wallet_query": "query me { me { defaultAccount { wallets { id walletCurrency }}}}",
+}
