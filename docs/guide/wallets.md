@@ -82,6 +82,7 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **BlinkWallet**
 - `BLINK_API_ENDPOINT`: https://api.blink.sv/graphql
+- `BLINK_WS_ENDPOINT`: wss://ws.blink.sv/graphql
 - `BLINK_TOKEN`: BlinkToken
 
 ### Alby
