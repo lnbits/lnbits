@@ -188,7 +188,7 @@ async def invoice_callback_dispatcher(checking_id: str):
         # credit service fee wallet
         service_fee_msat = service_fee(payment.amount, internal=False)
         print('>config',settings.lnbits_service_fee_wallet,service_fee_msat)
-        if settings.lnbits_service_fee_wallet and service_fee_msat:
+        if settings.lnbits_service_fee_wallet and service_fee_msat and service_fee_msat>=1000:
             print('service-fee-msat',service_fee_msat)
             _, payment_request = await create_invoice(
                     wallet_id=settings.lnbits_service_fee_wallet,
