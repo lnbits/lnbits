@@ -36,12 +36,6 @@ class BlinkWallet(Wallet):
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
         self.wallet_id = None
 
-    async def _graphql_query(self, payload) -> dict:
-        response = await self.client.post(self.endpoint, json=payload, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        return data
-
     async def get_wallet_id(self) -> Union[str, StatusResponse]:
         """
         Get the defaultAccount wallet id, required for payments.
@@ -326,3 +320,9 @@ class BlinkWallet(Wallet):
         while True:
             value = await self.queue.get()
             yield value
+
+    async def _graphql_query(self, payload) -> dict:
+        response = await self.client.post(self.endpoint, json=payload, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        return data
