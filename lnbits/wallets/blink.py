@@ -304,79 +304,96 @@ class BlinkGrafqlQueries(BaseModel):
 
 q = BlinkGrafqlQueries(
     balance_query="""
-                query Me {
-                me {
-                    defaultAccount {
-                    wallets {
-                        walletCurrency
-                        balance
-                    }
-                    }
-                }
+        query Me {
+          me {
+            defaultAccount {
+              wallets {
+                walletCurrency
+                balance
+              }
             }
-            """,
-    invoice_query="""mutation LnInvoiceCreateOnBehalfOfRecipient($input: LnInvoiceCreateOnBehalfOfRecipientInput!) {
-        lnInvoiceCreateOnBehalfOfRecipient(input: $input) {
+          }
+        }
+        """,
+    invoice_query="""
+        mutation LnInvoiceCreateOnBehalfOfRecipient(
+          $input: LnInvoiceCreateOnBehalfOfRecipientInput!
+        ) {
+          lnInvoiceCreateOnBehalfOfRecipient(input: $input) {
             invoice {
-            paymentRequest
-            paymentHash
-            paymentSecret
-            satoshis
+              paymentRequest
+              paymentHash
+              paymentSecret
+              satoshis
             }
             errors {
-            message
+              message
             }
+          }
         }
-        }
-        """,  # noqa: E501
-    payment_query="""mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
-            lnInvoicePaymentSend(input: $input) {
+        """,
+    payment_query="""
+        mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
+          lnInvoicePaymentSend(input: $input) {
             status
-                errors {
-                    message
-                    path
-                    code
-                    }
-                }
+            errors {
+              message
+              path
+              code
             }
+          }
+        }
         """,
     status_query="""
-                query InvoiceByPaymentHash($walletId: WalletId!, $paymentHash: PaymentHash!) {
-                me {
-                    defaultAccount {
-                    walletById(walletId: $walletId) {
-                        invoiceByPaymentHash(paymentHash: $paymentHash) {
-                        ... on LnInvoice {
-                            paymentStatus
-                        }
-                        }
-                    }
-                    }
+        query InvoiceByPaymentHash($walletId: WalletId!, $paymentHash: PaymentHash!) {
+          me {
+            defaultAccount {
+              walletById(walletId: $walletId) {
+                invoiceByPaymentHash(paymentHash: $paymentHash) {
+                  ... on LnInvoice {
+                    paymentStatus
+                  }
                 }
-                }
-
-                """,  # noqa: E501,
-    wallet_query="query me { me { defaultAccount { wallets { id walletCurrency }}}}",
-    tx_query="""
-    query TransactionsByPaymentHash($walletId: WalletId!, $transactionsByPaymentHash: PaymentHash!) {
-            me {
-                defaultAccount {
-                walletById(walletId: $walletId) {
-                    walletCurrency
-                    ... on BTCWallet {
-                    transactionsByPaymentHash(paymentHash: $transactionsByPaymentHash) {
-                        settlementFee
-                        status
-                        settlementVia {
-                        ... on SettlementViaLn {
-                            preImage
-                        }
-                        }
-                    }
-                    }
-                }
-                }
+              }
             }
-    }
-    """,  # noqa: E501
+          }
+        }
+        """,
+    wallet_query="""
+        query me {
+          me {
+            defaultAccount {
+              wallets {
+                id
+                walletCurrency
+              }
+            }
+          }
+        }
+        """,
+    tx_query="""
+        query TransactionsByPaymentHash(
+          $walletId: WalletId!
+          $transactionsByPaymentHash: PaymentHash!
+        ) {
+          me {
+            defaultAccount {
+              walletById(walletId: $walletId) {
+                walletCurrency
+                ... on BTCWallet {
+                  transactionsByPaymentHash(paymentHash: $transactionsByPaymentHash) {
+                    settlementFee
+                    status
+                    settlementVia {
+                      ... on SettlementViaLn {
+                        preImage
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+    """,
 )
