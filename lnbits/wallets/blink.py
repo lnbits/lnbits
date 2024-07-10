@@ -219,21 +219,6 @@ class BlinkWallet(Wallet):
         }
         data = {"query": q.tx_query, "variables": variables}
 
-        response = await self._graphql_query(data)
-
-        response_data = response.get("data")
-        assert response_data is not None
-        txs_data = (
-            response_data.get("me", {})
-            .get("defaultAccount", {})
-            .get("walletById", {})
-            .get("transactionsByPaymentHash", [])
-        )
-        fee = txs_data[0].get("settlementFee")
-        preimage = txs_data[0].get("settlementVia").get("preImage")
-        status = txs_data[0].get("status")
-        # logger.info(f"payment status fee: {fee}, preimage: {preimage}, status: {status}")  # noqa: E501
-
         statuses = {
             "FAILURE": False,
             "EXPIRED": False,
@@ -241,9 +226,28 @@ class BlinkWallet(Wallet):
             "PAID": True,
             "SUCCESS": True,
         }
-        return PaymentStatus(
-            paid=statuses[status], fee_msat=fee * 1000, preimage=preimage
-        )
+
+        try:
+            response = await self._graphql_query(data)
+
+            response_data = response.get("data")
+            assert response_data is not None
+            txs_data = (
+                response_data.get("me", {})
+                .get("defaultAccount", {})
+                .get("walletById", {})
+                .get("transactionsByPaymentHash", [])
+            )
+            fee = txs_data[0].get("settlementFee")
+            preimage = txs_data[0].get("settlementVia").get("preImage")
+            status = txs_data[0].get("status")
+
+            return PaymentStatus(
+                paid=statuses[status], fee_msat=fee * 1000, preimage=preimage
+            )
+        except Exception as e:
+            logger.error(f"Error getting payment status: {e}")
+            return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         # https://dev.blink.sv/api/websocket
