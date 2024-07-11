@@ -9,6 +9,7 @@ from lnbits.wallets.base import Wallet
 
 from .alby import AlbyWallet
 from .blink import BlinkWallet
+from .boltz import BoltzWallet
 from .breez import BreezSdkWallet
 from .cliche import ClicheWallet
 from .corelightning import CoreLightningWallet
@@ -30,7 +31,6 @@ from .phoenixd import PhoenixdWallet
 from .spark import SparkWallet
 from .void import VoidWallet
 from .zbd import ZBDWallet
-from .boltz import BoltzWallet
 
 
 def set_funding_source(class_name: Optional[str] = None):
