@@ -1,2 +1,0 @@
-[installer]
-no-binary = ["secp256k1"]
