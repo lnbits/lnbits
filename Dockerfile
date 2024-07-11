@@ -2,7 +2,7 @@ FROM python:3.10-slim-bookworm AS builder
 
 RUN apt-get clean
 RUN apt-get update
-RUN apt-get install -y curl pkg-config build-essential libnss-myhostname libsecp256k1-dev
+RUN apt-get install -y curl pkg-config build-essential libnss-myhostname libsecp256k1-dev automake libtool libffi-dev
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
@@ -25,7 +25,7 @@ FROM python:3.10-slim-bookworm
 
 # needed for backups postgresql-client version 14 (pg_dump)
 RUN apt-get update && apt-get -y upgrade && \
-    apt-get -y install gnupg2 curl lsb-release libsecp256k1-dev && \
+    apt-get -y install gnupg2 curl lsb-release libsecp256k1-dev libtool libffi-dev && \
     sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
     curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
