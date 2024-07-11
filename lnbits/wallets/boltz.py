@@ -1,6 +1,7 @@
 import asyncio
 from typing import AsyncGenerator, Optional
 
+from bolt11.decode import decode
 from grpc.aio import AioRpcError
 from loguru import logger
 
@@ -48,16 +49,13 @@ class BoltzWallet(Wallet):
         self.macaroon = load_macaroon(settings.boltz_client_macaroon)
         if settings.boltz_client_cert:
             cert = open(settings.boltz_client_cert, "rb").read()
-            grpc.aio.insecure_channel(settings.boltz_client_endpoint)
             creds = grpc.ssl_channel_credentials(cert)
-            auth_creds = grpc.metadata_call_credentials(self.metadata_callback)
-            composite_creds = grpc.composite_channel_credentials(creds, auth_creds)
-            channel = grpc.aio.secure_channel(
-                settings.boltz_client_endpoint, composite_creds
-            )
+            channel = grpc.aio.secure_channel(settings.boltz_client_endpoint, creds)
         else:
             channel = grpc.aio.insecure_channel(settings.boltz_client_endpoint)
         self.rpc = boltzrpc_pb2_grpc.BoltzStub(channel)
+        self.metadata = [("macaroon", self.macaroon)]
+        self.wallet_id: int = 0
 
     def metadata_callback(self, _, callback):
         callback([("macaroon", self.macaroon)], None)
@@ -65,9 +63,14 @@ class BoltzWallet(Wallet):
     async def status(self) -> StatusResponse:
         try:
             request = boltzrpc_pb2.GetWalletRequest(name=settings.boltz_client_wallet)
-            response: boltzrpc_pb2.Wallet = await self.rpc.GetWallet(request)
+            response: boltzrpc_pb2.Wallet = await self.rpc.GetWallet(
+                request, metadata=self.metadata
+            )
         except AioRpcError as exc:
+            print(exc)
             return StatusResponse(exc.details(), 0)
+
+        self.wallet_id = response.id
 
         return StatusResponse(None, response.balance.total * 1000)
 
@@ -83,13 +86,13 @@ class BoltzWallet(Wallet):
         request = boltzrpc_pb2.CreateReverseSwapRequest(
             amount=amount,
             pair=pair,
-            wallet=settings.boltz_client_wallet,
+            wallet_id=self.wallet_id,
             accept_zero_conf=True,
             external_pay=True,
         )
         response: boltzrpc_pb2.CreateReverseSwapResponse
         try:
-            response = await self.rpc.CreateReverseSwap(request)
+            response = await self.rpc.CreateReverseSwap(request, metadata=self.metadata)
         except AioRpcError as exc:
             return InvoiceResponse(ok=False, error_message=exc.details())
         return InvoiceResponse(
@@ -98,15 +101,26 @@ class BoltzWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
-        request = boltzrpc_pb2.CreateSwapRequest(
-            invoice=bolt11,
-            pair=pair,
-            wallet=settings.boltz_client_wallet,
-            send_from_internal=True,
-        )
         try:
+            pair_info: boltzrpc_pb2.PairInfo
+            pair_info = await self.rpc.GetPairInfo(pair, metadata=self.metadata)
+            invoice = decode(bolt11)
+
+            assert invoice.amount_msat, "amountless invoice"
+            service_fee: float = invoice.amount_msat * pair_info.fees.percentage / 100
+            if service_fee + pair_info.fees.miner_fees * 1000 > fee_limit_msat:
+                return PaymentResponse(
+                    ok=False, error_message="estimated fee exceeds limit"
+                )
+
+            request = boltzrpc_pb2.CreateSwapRequest(
+                invoice=bolt11,
+                pair=pair,
+                wallet_id=self.wallet_id,
+                send_from_internal=True,
+            )
             response: boltzrpc_pb2.CreateSwapResponse
-            response = await self.rpc.CreateSwap(request)
+            response = await self.rpc.CreateSwap(request, metadata=self.metadata)
         except AioRpcError as exc:
             return PaymentResponse(ok=False, error_message=exc.details())
 
@@ -132,7 +146,7 @@ class BoltzWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
-                boltzrpc_pb2.GetSwapInfoRequest(id=checking_id)
+                boltzrpc_pb2.GetSwapInfoRequest(id=checking_id), metadata=self.metadata
             )
         except AioRpcError:
             return PaymentPendingStatus()
@@ -146,7 +160,7 @@ class BoltzWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
-                boltzrpc_pb2.GetSwapInfoRequest(id=checking_id)
+                boltzrpc_pb2.GetSwapInfoRequest(id=checking_id), metadata=self.metadata
             )
         except AioRpcError:
             return PaymentPendingStatus()
@@ -163,7 +177,9 @@ class BoltzWallet(Wallet):
             try:
                 request = boltzrpc_pb2.GetSwapInfoRequest()
                 info: boltzrpc_pb2.GetSwapInfoResponse
-                async for info in self.rpc.GetSwapInfoStream(request):
+                async for info in self.rpc.GetSwapInfoStream(
+                    request, metadata=self.metadata
+                ):
                     reverse = info.reverse_swap
                     if reverse and reverse.state == boltzrpc_pb2.SUCCESSFUL:
                         yield reverse.id
