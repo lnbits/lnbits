@@ -23,7 +23,11 @@ from .base import (
 
 
 class BoltzWallet(Wallet):
-    """Utilizing Boltz Client Standalone API"""
+    """
+    Utilizing Boltz Client gRPC interface
+
+    gRPC Bindings can be updated by running lnbits/wallets/boltz_grpc_files/update.sh
+    """
 
     async def cleanup(self):
         logger.warning("Cleaning up BoltzWallet...")
@@ -32,10 +36,6 @@ class BoltzWallet(Wallet):
         if not settings.boltz_client_endpoint:
             raise ValueError(
                 "cannot initialize BoltzWallet: missing boltz_client_endpoint"
-            )
-        if not settings.boltz_client_macaroon:
-            raise ValueError(
-                "cannot initialize BoltzWallet: missing boltz_client_macaroon"
             )
         if not settings.boltz_client_wallet:
             raise ValueError(
@@ -46,15 +46,18 @@ class BoltzWallet(Wallet):
             settings.boltz_client_endpoint, add_proto=True
         )
 
-        self.macaroon = load_macaroon(settings.boltz_client_macaroon)
+        if settings.boltz_client_macaroon:
+            self.macaroon = load_macaroon(settings.boltz_client_macaroon)
+            self.metadata = [("macaroon", self.macaroon)]
+
         if settings.boltz_client_cert:
             cert = open(settings.boltz_client_cert, "rb").read()
             creds = grpc.ssl_channel_credentials(cert)
             channel = grpc.aio.secure_channel(settings.boltz_client_endpoint, creds)
         else:
             channel = grpc.aio.insecure_channel(settings.boltz_client_endpoint)
+
         self.rpc = boltzrpc_pb2_grpc.BoltzStub(channel)
-        self.metadata = [("macaroon", self.macaroon)]
         self.wallet_id: int = 0
 
     def metadata_callback(self, _, callback):
@@ -67,8 +70,11 @@ class BoltzWallet(Wallet):
                 request, metadata=self.metadata
             )
         except AioRpcError as exc:
-            print(exc)
-            return StatusResponse(exc.details(), 0)
+            return StatusResponse(
+                exc.details()
+                + " make sure you have macaroon and certificate configured, unless your client runs without",  # noqa: E501
+                0,
+            )
 
         self.wallet_id = response.id
 

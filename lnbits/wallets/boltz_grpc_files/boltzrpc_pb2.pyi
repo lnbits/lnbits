@@ -308,6 +308,7 @@ class ReverseSwapInfo(_message.Message):
         "chan_ids",
         "blinding_key",
         "created_at",
+        "paid_at",
         "service_fee",
         "onchain_fee",
         "routing_fee_msat",
@@ -331,6 +332,7 @@ class ReverseSwapInfo(_message.Message):
     CHAN_IDS_FIELD_NUMBER: _ClassVar[int]
     BLINDING_KEY_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    PAID_AT_FIELD_NUMBER: _ClassVar[int]
     SERVICE_FEE_FIELD_NUMBER: _ClassVar[int]
     ONCHAIN_FEE_FIELD_NUMBER: _ClassVar[int]
     ROUTING_FEE_MSAT_FIELD_NUMBER: _ClassVar[int]
@@ -353,6 +355,7 @@ class ReverseSwapInfo(_message.Message):
     chan_ids: _containers.RepeatedCompositeFieldContainer[ChannelId]
     blinding_key: str
     created_at: int
+    paid_at: int
     service_fee: int
     onchain_fee: int
     routing_fee_msat: int
@@ -377,6 +380,7 @@ class ReverseSwapInfo(_message.Message):
         chan_ids: _Optional[_Iterable[_Union[ChannelId, _Mapping]]] = ...,
         blinding_key: _Optional[str] = ...,
         created_at: _Optional[int] = ...,
+        paid_at: _Optional[int] = ...,
         service_fee: _Optional[int] = ...,
         onchain_fee: _Optional[int] = ...,
         routing_fee_msat: _Optional[int] = ...,

@@ -95,11 +95,14 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 
 ### Boltz
 
-This fundingsource is utilizing the boltz client standalone function. this makes it act like a lightning node while submarine swapping everything on liquid network. it is basically a liquid wallet. it needs a properly configured and running boltz client to work. https://docs.boltz.exchange/v/boltz-client
+This funding source connects to a running [boltz-client](https://docs.boltz.exchange/v/boltz-client) and handles all lightning payments through submarine swaps on the liquid network.
+You can configure the daemon to run in standalone mode by `standalone = True` in the config file or using the cli flag (`boltzd --standalone`).
+Once running, you can create a liquid wallet using `boltzcli wallet create lnbits lbtc`.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **BoltzWallet**
 - `BOLTZ_CLIENT_ENDPOINT`: 127.0.0.1:9002
-- `BOLTZ_CLIENT_MACAROON`: /file/path/admin.macaroon or Base64/Hex
+- `BOLTZ_CLIENT_MACAROON`: /home/bob/.boltz/macaroons/admin.macaroon or Base64/Hex
+- `BOLTZ_CLIENT_CERT`: /home/bob/.boltz/tls.cert or Base64/Hex
 - `BOLTZ_CLIENT_WALLET`: lnbits
 
 ### ZBD
