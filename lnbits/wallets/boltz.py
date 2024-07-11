@@ -103,15 +103,19 @@ class BoltzWallet(Wallet):
         pair = boltzrpc_pb2.Pair(**{"from": boltzrpc_pb2.LBTC})
         try:
             pair_info: boltzrpc_pb2.PairInfo
-            pair_info = await self.rpc.GetPairInfo(pair, metadata=self.metadata)
+            pair_request = boltzrpc_pb2.GetPairInfoRequest(
+                type=boltzrpc_pb2.SUBMARINE, pair=pair
+            )
+            pair_info = await self.rpc.GetPairInfo(pair_request, metadata=self.metadata)
             invoice = decode(bolt11)
 
             assert invoice.amount_msat, "amountless invoice"
             service_fee: float = invoice.amount_msat * pair_info.fees.percentage / 100
-            if service_fee + pair_info.fees.miner_fees * 1000 > fee_limit_msat:
-                return PaymentResponse(
-                    ok=False, error_message="estimated fee exceeds limit"
-                )
+            estimate = service_fee + pair_info.fees.miner_fees * 1000
+            if estimate > fee_limit_msat:
+                error = f"fee of {estimate} msat exceeds limit of {fee_limit_msat} msat"
+
+                return PaymentResponse(ok=False, error_message=error)
 
             request = boltzrpc_pb2.CreateSwapRequest(
                 invoice=bolt11,
@@ -127,7 +131,9 @@ class BoltzWallet(Wallet):
         try:
             info_request = boltzrpc_pb2.GetSwapInfoRequest(id=response.id)
             info: boltzrpc_pb2.GetSwapInfoResponse
-            async for info in self.rpc.GetSwapInfoStream(info_request):
+            async for info in self.rpc.GetSwapInfoStream(
+                info_request, metadata=self.metadata
+            ):
                 if info.swap.state == boltzrpc_pb2.SUCCESSFUL:
                     return PaymentResponse(
                         ok=True,
