@@ -132,7 +132,8 @@ Vue.component('lnbits-funding-sources', {
           'Boltz',
           {
             boltz_client_endpoint: 'Endpoint',
-            boltz_client_macaroon: 'Macaroon path or hex',
+            boltz_client_macaroon: 'Admin Macaroon path or hex',
+            boltz_client_cert: 'Certificate path or hex',
             boltz_client_wallet: 'Wallet Name'
           }
         ],
