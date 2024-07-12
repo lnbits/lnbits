@@ -252,6 +252,10 @@ class LnTipsFundingSource(LNbitsSettings):
     lntips_invoice_key: Optional[str] = Field(default=None)
 
 
+class NWCFundingSource(LNbitsSettings):
+    nwc_pairing_url: Optional[str] = Field(default=None)
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600)
 
@@ -272,6 +276,7 @@ class FundingSourcesSettings(
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
+    NWCFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
@@ -428,6 +433,8 @@ class SuperUserSettings(LNbitsSettings):
             "PhoenixdWallet",
             "VoidWallet",
             "ZBDWallet",
+            "NWCWallet",
+
         ]
     )
 

@@ -27,6 +27,7 @@ from .phoenixd import PhoenixdWallet
 from .spark import SparkWallet
 from .void import VoidWallet
 from .zbd import ZBDWallet
+from .nwc import NWCWallet
 
 
 def set_funding_source(class_name: Optional[str] = None):

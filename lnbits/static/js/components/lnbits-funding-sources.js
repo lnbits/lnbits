@@ -156,6 +156,13 @@ Vue.component('lnbits-funding-sources', {
             spark_url: 'Endpoint',
             spark_token: 'Token'
           }
+        ],
+        [
+          'NWCWallet',
+          'Nostr Wallet Connect',
+          {
+            nwc_pairing_url: 'Pairing URL'
+          }
         ]
       ]
     }
