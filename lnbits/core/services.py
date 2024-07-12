@@ -785,6 +785,7 @@ async def create_user_account(
     email: Optional[str] = None,
     username: Optional[str] = None,
     password: Optional[str] = None,
+    wallet_name: Optional[str] = None,
     user_config: Optional[UserConfig] = None,
 ) -> User:
     if not settings.new_accounts_allowed:
@@ -805,6 +806,7 @@ async def create_user_account(
     password = pwd_context.hash(password) if password else None
 
     account = await create_account(user_id, username, email, password, user_config)
+    await create_wallet(user_id=account.id, wallet_name=wallet_name)
 
     for ext_id in settings.lnbits_user_default_extensions:
         await update_user_extension(user_id=account.id, extension=ext_id, active=True)

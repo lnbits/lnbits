@@ -37,7 +37,7 @@ from lnbits.utils.exchange_rates import (
 )
 
 from ..crud import (
-    create_wallet,
+    get_wallets,
 )
 from ..services import create_user_account, perform_lnurlauth
 
@@ -69,8 +69,11 @@ async def api_create_account(data: CreateWallet) -> Wallet:
             status_code=HTTPStatus.FORBIDDEN,
             detail="Account creation is disabled.",
         )
-    account = await create_user_account()
-    return await create_wallet(user_id=account.id, wallet_name=data.name)
+    account = await create_user_account(wallet_name=data.name)
+    wallets = await get_wallets(account.id)
+    assert len(wallets) != 0, "Wallet not created for user."
+
+    return wallets[0]
 
 
 @api_router.get("/api/v1/lnurlscan/{code}")
