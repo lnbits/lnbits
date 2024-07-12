@@ -617,6 +617,10 @@ class NWCWallet(Wallet):
             self.connection_task.cancel()
         except Exception as e:
             logger.warning("Error cancelling connection task: "+str(e))
+        try:
+            self.pending_payments_lookup_task.cancel()
+        except Exception as e:
+            logger.warning("Error cancelling pending payments lookup task: "+str(e))
         # close the websocket
         try:
             await self.ws.close()
