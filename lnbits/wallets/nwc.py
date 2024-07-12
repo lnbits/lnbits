@@ -281,7 +281,7 @@ class NWCWallet(Wallet):
                         payment_data = await self._call("lookup_invoice",{
                             "payment_hash": payment["checking_id"]
                         })                        
-                        settled = "settled_at" in payment_data and payment_data["settled_at"] and int(payment_data["settled_at"]) > 0 and "preimage" in payment_data
+                        settled = "settled_at" in payment_data and payment_data["settled_at"] and int(payment_data["settled_at"]) > 0 and "preimage" in payment_data and payment_data["preimage"]
                         if settled:
                             logger.debug("Pending payment "+payment["checking_id"]+" settled")
                             payment["settled"] = True
@@ -722,7 +722,7 @@ class NWCWallet(Wallet):
                 payment_data = await self._call("lookup_invoice",{
                     "payment_hash": checking_id
                 })
-                settled = "settled_at" in payment_data and payment_data["settled_at"] and int(payment_data["settled_at"]) > 0 and "preimage" in payment_data
+                settled = "settled_at" in payment_data and payment_data["settled_at"] and int(payment_data["settled_at"]) > 0 and "preimage" in payment_data and payment_data["preimage"]
                 fee_msat = int(payment_data["fees_paid"])
                 preimage = payment_data.get("preimage", None)
                 return PaymentStatus(True if settled else None, fee_msat=fee_msat, preimage=preimage)
