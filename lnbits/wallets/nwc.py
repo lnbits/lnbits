@@ -105,7 +105,7 @@ class NWCWallet(Wallet):
         self.connection_task = asyncio.create_task(self._connect_to_relay())       
         
         # This task periodically checks and removes subscriptions and pending payments that have timed out
-        self.subscription_timeout_task = asyncio.create_task(self._handle_timeouts())
+        self.timeout_task = asyncio.create_task(self._handle_timeouts())
 
         # This task periodically checks if pending payments have been settled
         self.pending_payments_lookup_task = asyncio.create_task(self._handle_pending_payments())
@@ -610,7 +610,7 @@ class NWCWallet(Wallet):
         self.shutdown = True # Mark for shutdown
         # cancel all tasks
         try: 
-            self.subscription_timeout_task.cancel()
+            self.timeout_task.cancel()
         except Exception as e:
             logger.warning("Error cancelling subscription timeout task: "+str(e))       
         try:
