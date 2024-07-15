@@ -36,9 +36,6 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
-from ..crud import (
-    get_wallets,
-)
 from ..services import create_user_account, perform_lnurlauth
 
 # backwards compatibility for extension
@@ -70,10 +67,7 @@ async def api_create_account(data: CreateWallet) -> Wallet:
             detail="Account creation is disabled.",
         )
     account = await create_user_account(wallet_name=data.name)
-    wallets = await get_wallets(account.id)
-    assert len(wallets) != 0, "Wallet not created for user."
-
-    return wallets[0]
+    return account.wallets[0]
 
 
 @api_router.get("/api/v1/lnurlscan/{code}")
