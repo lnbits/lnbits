@@ -55,20 +55,25 @@
 </div>
 <div class="row q-col-gutter-md">
   <div
-    class="col-6 col-md-4 col-lg-3"
+    class="col-12 col-sm-6 col-md-6 col-lg-4"
     v-for="extension in filteredExtensions"
     :key="extension.id + extension.hash"
   >
     <q-card>
-      <q-card-section style="min-height: 140px" class="q-pb-none">
+      <q-card-section>
         <div class="row">
           <div class="col-3">
             <q-img
+              @click="showExtensionDetails(extension.id, extension.details_link)"
               v-if="extension.icon"
               :src="extension.icon"
               spinner-color="white"
-              style="max-width: 100%"
-            ></q-img>
+              style="cursor: pointer; max-width: 100%"
+            >
+              <q-tooltip>
+                <span v-text="extension.shortDescription"></span>
+              </q-tooltip>
+            </q-img>
             <div v-else>
               <q-icon
                 class="gt-sm"
@@ -84,49 +89,78 @@
               ></q-icon>
             </div>
           </div>
-          <div class="col-9 q-pl-sm">
+          <div class="col-9 q-pl-md">
             <q-badge
-              v-if="hasNewVersion(extension)"
-              color="green"
+              v-if="extension.isInstalled"
+              @click="showManageExtension(extension)"
               class="float-right"
+              color="transparent"
+              style="cursor: pointer"
             >
-              <small v-text="$t('new_version')"></small>
+              <span v-text="extension.installedRelease.version"></span>
               <q-tooltip
-                ><span v-text="extension.latestRelease.version"></span
+                ><span v-text="extension.installedRelease.version"></span
               ></q-tooltip>
             </q-badge>
             <div
-              class="text-h5 gt-sm q-mt-sm q-mb-xs gt-sm"
+              class="text-h5"
+              style="cursor: pointer"
+              @click="showExtensionDetails(extension.id, extension.details_link)"
               v-text="extension.name"
             ></div>
-            <div
-              class="text-h5 gt-sm q-mt-sm q-mb-xs lt-md"
-              style="min-height: 60px"
-              v-text="extension.name"
-            ></div>
-            <div
-              class="text-subtitle2 gt-sm"
-              style="font-size: 11px; height: 34px"
-              v-text="extension.shortDescription || extension.installedRelease?.description"
-            ></div>
-            <div
-              class="text-subtitle1 lt-md q-mt-sm q-mb-xs"
-              v-text="extension.name"
-            ></div>
-            <div
-              class="text-subtitle2 lt-md"
-              style="font-size: 9px; height: 34px"
-              v-text="extension.shortDescription"
-            ></div>
+            <div>
+              <lnbits-extension-rating :rating="0" />
+            </div>
+            <div style="justify-content: space-between; display: flex">
+              <q-toggle
+                size="xs"
+                v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
+                :label="extension.isActive ? $t('activated'):  $t('deactivated') "
+                color="secondary"
+                style=""
+                v-model="extension.isActive"
+                @input="toggleExtension(extension)"
+                ><q-tooltip>
+                  &nbsp;
+                  <span
+                    v-text="$t('activate_extension_details')"
+                  ></span> </q-tooltip
+              ></q-toggle>
+              <q-badge
+                v-if="hasNewVersion(extension)"
+                @click="showManageExtension(extension)"
+                color="primary"
+                class="float-right"
+                style="cursor: pointer; margin: 5px 0"
+              >
+                <span v-text="$t('new_version')"></span>
+                <q-tooltip
+                  ><span v-text="extension.latestRelease.version"></span
+                ></q-tooltip>
+              </q-badge>
+            </div>
+            <div>
+              <p
+                style="
+                  overflow: hidden;
+                  white-space: nowrap;
+                  text-overflow: ellipsis;
+                "
+                v-text="extension.shortDescription"
+              ></p>
+              <q-tooltip
+                ><span v-text="extension.shortDescription"></span
+              ></q-tooltip>
+            </div>
           </div>
         </div>
-        <div class="row q-pt-sm">
+        <div
+          id="dependencies"
+          class="row q-pt-sm"
+          v-if="extension.dependencies?.length"
+        >
           <div class="col">
-            <small
-              v-if="extension.dependencies?.length"
-              v-text="$t('extension_depends_on')"
-            ></small>
-            <small v-else>&nbsp;</small>
+            <small v-text="$t('extension_depends_on')"></small>
             <q-badge
               v-for="dep in extension.dependencies"
               :key="dep"
@@ -135,41 +169,6 @@
               <small v-text="dep"></small>
             </q-badge>
           </div>
-        </div>
-      </q-card-section>
-      <q-card-section>
-        <div>
-          <q-rating
-            class="gt-sm"
-            v-model="maxStars"
-            disable
-            size="1.5em"
-            :max="5"
-            color="primary"
-            ><q-tooltip>
-              <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
-          ></q-rating>
-          <q-rating
-            v-model="maxStars"
-            class="lt-md"
-            size="1.5em"
-            :max="5"
-            color="primary"
-            ><q-tooltip>
-              <span v-text="$t('extension_rating_soon')"></span> </q-tooltip
-          ></q-rating>
-          <q-toggle
-            v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
-            :label="extension.isActive ? $t('activated'):  $t('deactivated') "
-            color="secondary"
-            style="max-height: 21px"
-            v-model="extension.isActive"
-            @input="toggleExtension(extension)"
-            ><q-tooltip>
-              <span
-                v-text="$t('activate_extension_details')"
-              ></span> </q-tooltip
-          ></q-toggle>
         </div>
       </q-card-section>
       <q-separator></q-separator>
@@ -188,10 +187,7 @@
               v-if="user.extensions.includes(extension.id) && extension.isActive && extension.isInstalled"
               flat
               color="grey-5"
-              type="a"
-              :href="['{{
-                url_for('install.extensions')
-              }}', '?disable=', extension.id].join('')"
+              @click="disableExtension(extension)"
               :label="$t('disable')"
             ></q-btn>
             <q-badge
@@ -199,15 +195,13 @@
               v-text="$t('admin_only')"
             >
             </q-badge>
+
             <q-btn
               v-else-if="extension.isInstalled && extension.isActive && !user.extensions.includes(extension.id)"
               flat
               color="primary"
-              type="a"
-              :href="['{{
-                url_for('install.extensions')
-              }}', '?enable=', extension.id].join('')"
-              :label="$t('enable')"
+              @click="enableExtensionForUser(extension)"
+              :label="$t(extension.isPaymentRequired ? 'pay_to_enable': 'enable')"
             >
               <q-tooltip>
                 <span v-text="$t('enable_extension_details')">
@@ -215,7 +209,7 @@
             ></q-btn>
 
             <q-btn
-              @click="showUpgrade(extension)"
+              @click="showManageExtension(extension)"
               flat
               color="primary"
               v-if="g.user.admin"
@@ -231,333 +225,347 @@
         </div>
 
         <div class="col-2">
-          <div
-            v-if="extension.isInstalled && extension.installedRelease"
-            class="float-right"
-          >
-            <q-badge>
-              <span v-text="extension.installedRelease.version"></span>
+          <div v-if="extension.details_link" class="float-right">
+            <q-btn
+              @click="showExtensionDetails(extension.id, extension.details_link)"
+              flat
+              :label="$t('more')"
+            >
               <q-tooltip>
-                <span v-text="$t('extension_installed_version')"></span>
+                <span v-text="extension.shortDescription"></span>
               </q-tooltip>
-            </q-badge>
+            </q-btn>
           </div>
         </div>
       </q-card-actions>
     </q-card>
   </div>
-  <q-dialog v-model="showUninstallDialog">
-    <q-card class="q-pa-lg">
-      <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
-      <p>
-        <span v-text="$t('extension_uninstall_warning')"></span><br />
-        <span v-text="$t('confirm_continue')"></span>
-      </p>
+</div>
 
-      <div class="row q-mt-lg">
-        <q-checkbox
-          v-model="uninstallAndDropDb"
-          value="false"
-          label="Cleanup database tables"
-        >
-          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
-            ><span v-text="$t('extension_db_drop_info')"></span>
-          </q-tooltip>
-        </q-checkbox>
+<q-dialog v-model="showUninstallDialog">
+  <q-card class="q-pa-lg">
+    <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
+    <p>
+      <span v-text="$t('extension_uninstall_warning')"></span><br />
+      <span v-text="$t('confirm_continue')"></span>
+    </p>
+
+    <div class="row q-mt-lg">
+      <q-checkbox
+        v-model="uninstallAndDropDb"
+        value="false"
+        label="Cleanup database tables"
+      >
+        <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+          ><span v-text="$t('extension_db_drop_info')"></span>
+        </q-tooltip>
+      </q-checkbox>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn
+        outline
+        color="grey"
+        @click="uninstallExtension()"
+        v-text="$t('uninstall_confirm')"
+      ></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('cancel')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
+
+<q-dialog v-model="showDropDbDialog">
+  <q-card v-if="selectedExtension" class="q-pa-lg">
+    <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
+    <p><span v-text="$t('extension_db_drop_warning')"></span><br /></p>
+    <q-input
+      v-model="dropDbExtensionId"
+      :label="selectedExtension.id"
+    ></q-input>
+    <br />
+    <p v-text="$t('confirm_continue')"></p>
+
+    <div class="row q-mt-lg">
+      <q-btn
+        :disable="dropDbExtensionId !== selectedExtension.id"
+        outline
+        color="red"
+        @click="dropExtensionDb()"
+        v-text="$t('confirm')"
+      ></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('cancel')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
+
+<q-dialog v-model="showManageExtensionDialog">
+  <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
+    <q-card-section>
+      <div v-if="selectedRelease.paymentRequest">
+        <a :href="'lightning:' + selectedRelease.paymentRequest">
+          <q-responsive :ratio="1" class="q-mx-xl">
+            <lnbits-qrcode
+              :value="'lightning:' + selectedRelease.paymentRequest.toUpperCase()"
+            ></lnbits-qrcode>
+          </q-responsive>
+        </a>
       </div>
-      <div class="row q-mt-lg">
+      <div v-else>
+        <q-spinner color="primary" size="2.55em"></q-spinner>
+      </div>
+    </q-card-section>
+
+    <div class="row q-mt-lg">
+      <div class="col">
         <q-btn
+          v-if="selectedRelease.paymentRequest"
           outline
           color="grey"
-          @click="uninstallExtension()"
-          v-text="$t('uninstall_confirm')"
+          @click="copyText(selectedRelease.paymentRequest)"
+          :label="$t('copy_invoice')"
         ></q-btn>
+      </div>
+      <div class="col">
         <q-btn
           v-close-popup
           flat
           color="grey"
-          class="q-ml-auto"
-          v-text="$t('cancel')"
+          class="float-right q-ml-lg"
+          v-text="$t('close')"
         ></q-btn>
       </div>
-    </q-card>
-  </q-dialog>
+    </div>
+  </q-card>
+  <q-card v-else class="q-pa-lg lnbits__dialog-card">
+    <q-tabs v-model="manageExtensionTab" active-color="primary" align="justify">
+      <q-tab
+        name="releases"
+        :label="$t('releases')"
+        @update="val => manageExtensionTab = val.name"
+      ></q-tab>
 
-  <q-dialog v-model="showDropDbDialog">
-    <q-card v-if="selectedExtension" class="q-pa-lg">
-      <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
-      <p><span v-text="$t('extension_db_drop_warning')"></span><br /></p>
-      <q-input
-        v-model="dropDbExtensionId"
-        :label="selectedExtension.id"
-      ></q-input>
-      <br />
-      <p v-text="$t('confirm_continue')"></p>
+      <q-tab
+        v-if="selectedExtension && selectedExtension.isInstalled"
+        name="sell"
+        :label="$t('sell')"
+        @update="val => manageExtensionTab = val.name"
+      ></q-tab>
+    </q-tabs>
 
-      <div class="row q-mt-lg">
-        <q-btn
-          :disable="dropDbExtensionId !== selectedExtension.id"
-          outline
-          color="red"
-          @click="dropExtensionDb()"
-          v-text="$t('confirm')"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          v-text="$t('cancel')"
-        ></q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
-
-  <q-dialog v-model="showUpgradeDialog">
-    <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
-      <q-card-section>
-        <div v-if="selectedRelease.paymentRequest">
-          <a :href="'lightning:' + selectedRelease.paymentRequest">
-            <q-responsive :ratio="1" class="q-mx-xl">
-              <lnbits-qrcode
-                :value="'lightning:' + selectedRelease.paymentRequest.toUpperCase()"
-              ></lnbits-qrcode>
-            </q-responsive>
-          </a>
-        </div>
-        <div v-else>
-          <q-spinner color="primary" size="2.55em"></q-spinner>
-        </div>
-      </q-card-section>
-
-      <div class="row q-mt-lg">
-        <div class="col">
-          <q-btn
-            v-if="selectedRelease.paymentRequest"
-            outline
-            color="grey"
-            @click="copyText(selectedRelease.paymentRequest)"
-            :label="$t('copy_invoice')"
-          ></q-btn>
-        </div>
-        <div class="col">
-          <q-btn
-            v-close-popup
-            flat
-            color="grey"
-            class="float-right q-ml-lg"
-            v-text="$t('close')"
-          ></q-btn>
-        </div>
-      </div>
-    </q-card>
-    <q-card v-else class="q-pa-lg lnbits__dialog-card">
-      <q-card-section>
-        <div class="text-h6" v-text="selectedExtension?.name"></div>
-      </q-card-section>
-      <div class="col-12 col-md-5 q-gutter-y-md" v-if="selectedExtensionRepos">
-        <q-card
-          flat
-          bordered
-          class="my-card"
-          v-for="repoName of Object.keys(selectedExtensionRepos)"
+    <div
+      v-show="manageExtensionTab === 'releases'"
+      class="col-12 col-md-5 q-gutter-y-md q-mt-md"
+      v-if="selectedExtensionRepos"
+    >
+      <q-card
+        flat
+        bordered
+        class="my-card"
+        v-for="repoName of Object.keys(selectedExtensionRepos)"
+        :key="repoName"
+      >
+        <q-expansion-item
           :key="repoName"
+          group="repos"
+          :caption="repoName"
+          :content-inset-level="0.5"
+          :default-opened="selectedExtensionRepos[repoName].isInstalled"
         >
-          <q-expansion-item
-            :key="repoName"
-            group="repos"
-            :caption="repoName"
-            :content-inset-level="0.5"
-            :default-opened="selectedExtensionRepos[repoName].isInstalled"
-          >
-            <template v-slot:header>
-              <q-item-section avatar>
-                <q-avatar
-                  :icon="selectedExtensionRepos[repoName].isInstalled ? 'download_done': 'download'"
-                  :text-color="selectedExtensionRepos[repoName].isInstalled ? 'green' : ''"
-                />
-              </q-item-section>
+          <template v-slot:header>
+            <q-item-section avatar>
+              <q-avatar
+                :icon="selectedExtensionRepos[repoName].isInstalled ? 'download_done': 'download'"
+                :text-color="selectedExtensionRepos[repoName].isInstalled ? 'green' : ''"
+              />
+            </q-item-section>
 
-              <q-item-section>
-                <div class="row">
-                  <div class="col-10">
-                    <span v-text="$t('repository')"></span>
-                    <br />
-                    <small v-text="repoName"></small>
-                    <q-tooltip
-                      ><span
-                        v-text="selectedExtensionRepos[repoName].repo"
-                      ></span
-                    ></q-tooltip>
-                  </div>
-                  <div class="col-2"></div>
+            <q-item-section>
+              <div class="row">
+                <div class="col-10">
+                  <span v-text="$t('repository')"></span>
+                  <br />
+                  <small v-text="repoName"></small>
+                  <q-tooltip
+                    ><span v-text="selectedExtensionRepos[repoName].repo"></span
+                  ></q-tooltip>
                 </div>
-              </q-item-section>
-            </template>
+                <div class="col-2"></div>
+              </div>
+            </q-item-section>
+          </template>
 
-            <q-card-section class="q-pa-none">
-              <q-separator></q-separator>
+          <q-card-section class="q-pa-none">
+            <q-separator></q-separator>
 
-              <q-list>
-                <q-expansion-item
-                  v-for="release of selectedExtensionRepos[repoName].releases"
-                  :key="release.version"
-                  group="releases"
-                  @click="getGitHubReleaseDetails(release)"
-                  :icon="getReleaseIcon(release)"
-                  :label="release.description"
-                  :caption="release.version"
-                  :content-inset-level="0.5"
-                  :header-class="getReleaseIconColor(release)"
-                >
-                  <div v-if="release.inProgress">
-                    <q-spinner color="primary" size="2.55em"></q-spinner>
-                  </div>
-                  <div v-else-if="release.error">
-                    <q-icon
-                      class="gt-sm"
-                      name="error"
-                      color="pink"
-                      size="70px"
-                    ></q-icon>
-                    <span v-text="$t('release_details_error')"></span>
-                  </div>
-                  <q-card v-else>
-                    <q-card-section v-if="release.is_version_compatible">
-                      <span
-                        v-if="release.requiresPayment && !release.paid_sats"
-                        v-text="$t('extension_cost', {cost: release.cost_sats})"
-                        class="q-mb-lg"
-                      ></span>
-                      <span
-                        v-if="release.requiresPayment && release.paid_sats"
-                        class="q-mb-lg"
-                        v-text="$t('extension_paid_sats', {paid_sats: release.paid_sats})"
-                      ></span>
-                      <div
-                        v-if="!release.requiresPayment || (release.requiresPayment && release.paid_sats)"
-                      >
+            <q-list>
+              <q-expansion-item
+                v-for="release of selectedExtensionRepos[repoName].releases"
+                :key="release.version"
+                group="releases"
+                @click="getGitHubReleaseDetails(release)"
+                :icon="getReleaseIcon(release)"
+                :label="release.description"
+                :caption="release.version"
+                :content-inset-level="0.5"
+                :header-class="getReleaseIconColor(release)"
+              >
+                <div v-if="release.inProgress">
+                  <q-spinner color="primary" size="2.55em"></q-spinner>
+                </div>
+                <div v-else-if="release.error">
+                  <q-icon
+                    class="gt-sm"
+                    name="error"
+                    color="pink"
+                    size="70px"
+                  ></q-icon>
+                  <span v-text="$t('release_details_error')"></span>
+                </div>
+                <q-card v-else>
+                  <q-card-section v-if="release.is_version_compatible">
+                    <span
+                      v-if="release.requiresPayment && !release.paid_sats"
+                      v-text="$t('extension_cost', {cost: release.cost_sats})"
+                      class="q-mb-lg"
+                    ></span>
+                    <span
+                      v-if="release.requiresPayment && release.paid_sats"
+                      class="q-mb-lg"
+                      v-text="$t('extension_paid_sats', {paid_sats: release.paid_sats})"
+                    ></span>
+                    <div
+                      v-if="!release.requiresPayment || (release.requiresPayment && release.paid_sats)"
+                    >
+                      <q-btn
+                        v-if="!release.isInstalled"
+                        @click="installExtension(release)"
+                        color="primary unelevated mt-lg pt-lg"
+                        :label="$t('install')"
+                      ></q-btn>
+                    </div>
+
+                    <div v-if="release.requiresPayment && !release.paid_sats">
+                      <div v-if="!release.payment_hash">
+                        <q-input
+                          filled
+                          dense
+                          v-model.number="release.paidAmount"
+                          type="number"
+                          :min="release.cost_sats"
+                          suffix="sat"
+                          class="q-mt-sm"
+                        >
+                        </q-input>
+                        <q-select
+                          filled
+                          dense
+                          emit-value
+                          v-model="release.wallet"
+                          :options="g.user.walletOptions"
+                          :label="$t('wallet_required')"
+                          class="q-mt-sm"
+                        >
+                        </q-select>
                         <q-btn
-                          v-if="!release.isInstalled"
+                          unelevated
+                          color="primary"
+                          @click="payAndInstall(release)"
+                          :disabled="!release.wallet"
+                          class="q-mt-sm"
+                          :label="$t('pay_from_wallet')"
+                        ></q-btn>
+
+                        <q-btn
+                          unelevated
+                          color="primary"
+                          @click="showInstallQRCode(release)"
+                          class="q-mt-sm float-right"
+                          :label="$t('show_qr')"
+                        ></q-btn>
+                      </div>
+                      <div v-else>
+                        <br />
+                        <span
+                          class="q-mb-lg q-mt-lg"
+                          v-text="'There is a previous pending invoice for this release.'"
+                        ></span>
+                        <br />
+                        <q-btn
+                          unelevated
                           @click="installExtension(release)"
-                          color="primary unelevated mt-lg pt-lg"
-                          :label="$t('install')"
+                          color="primary"
+                          class="q-mt-sm"
+                          :label="$t('retry_install')"
                         ></q-btn>
-                      </div>
-
-                      <div v-if="release.requiresPayment && !release.paid_sats">
-                        <div v-if="!release.payment_hash">
-                          <q-input
-                            filled
-                            dense
-                            v-model.number="release.paidAmount"
-                            type="number"
-                            :min="release.cost_sats"
-                            suffix="sat"
-                            class="q-mt-sm"
-                          >
-                          </q-input>
-                          <q-select
-                            filled
-                            dense
-                            emit-value
-                            v-model="release.wallet"
-                            :options="g.user.walletOptions"
-                            label="Wallet *"
-                            class="q-mt-sm"
-                          >
-                          </q-select>
-                          <q-btn
-                            unelevated
-                            color="primary"
-                            @click="payAndInstall(release)"
-                            :disabled="!release.wallet"
-                            class="q-mt-sm"
-                            :label="$t('pay_from_wallet')"
-                          ></q-btn>
-
-                          <q-btn
-                            unelevated
-                            color="primary"
-                            @click="showQRCode(release)"
-                            class="q-mt-sm float-right"
-                            :label="$t('show_qr')"
-                          ></q-btn>
-                        </div>
-                        <div v-else>
-                          <br />
-                          <span
-                            class="q-mb-lg q-mt-lg"
-                            v-text="'There is a previous pending invoice for this release.'"
-                          ></span>
-                          <br />
-                          <q-btn
-                            unelevated
-                            @click="installExtension(release)"
-                            color="primary"
-                            class="q-mt-sm"
-                            :label="$t('retry_install')"
-                          ></q-btn>
-                          <q-btn
-                            unelevated
-                            @click="clearHangingInvoice(release)"
-                            color="primary"
-                            class="q-mt-sm float-right"
-                            :label="$t('new_payment')"
-                          ></q-btn>
-                        </div>
-                      </div>
-
-                      <div>
                         <q-btn
-                          v-if="release.isInstalled"
-                          @click="showUninstall()"
-                          :label="$t('uninstall')"
-                          flat
-                          color="red"
+                          unelevated
+                          @click="clearHangingInvoice(release)"
+                          color="primary"
+                          class="q-mt-sm float-right"
+                          :label="$t('new_payment')"
                         ></q-btn>
                       </div>
+                    </div>
 
-                      <a
-                        v-if="release.html_url"
-                        class="text-secondary float-right"
-                        :href="release.html_url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style="color: inherit"
-                        v-text="$t('release_notes')"
-                      ></a>
-                    </q-card-section>
-                    <q-card-section v-else>
-                      <span v-text="$t('extension_min_lnbits_version')"></span>
-                      <strong>
-                        <span v-text="release.min_lnbits_version"></span>
-                      </strong>
-                    </q-card-section>
-                    <q-card v-if="release.warning">
-                      <q-card-section>
-                        <div class="text-h6">
-                          <q-badge
-                            color="yellow"
-                            text-color="black"
-                            v-text="$t('warning')"
-                          >
-                          </q-badge>
-                        </div>
-                        <div class="text-subtitle2">
-                          <span v-text="release.warning"></span>
-                        </div>
-                      </q-card-section>
-                    </q-card>
+                    <div>
+                      <q-btn
+                        v-if="release.isInstalled"
+                        @click="showUninstall()"
+                        :label="$t('uninstall')"
+                        flat
+                        color="red"
+                      ></q-btn>
+                    </div>
 
-                    <q-separator></q-separator> </q-card
-                ></q-expansion-item>
-              </q-list>
-            </q-card-section>
-          </q-expansion-item>
-        </q-card>
-      </div>
-      <q-spinner v-else color="primary" size="2.55em"></q-spinner>
+                    <a
+                      v-if="release.html_url"
+                      class="text-secondary float-right"
+                      :href="release.html_url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style="color: inherit"
+                      v-text="$t('release_notes')"
+                    ></a>
+                  </q-card-section>
+                  <q-card-section v-else>
+                    <span v-text="$t('extension_min_lnbits_version')"></span>
+                    <strong>
+                      <span v-text="release.min_lnbits_version"></span>
+                    </strong>
+                  </q-card-section>
+                  <q-card v-if="release.warning">
+                    <q-card-section>
+                      <div class="text-h6">
+                        <q-badge
+                          color="yellow"
+                          text-color="black"
+                          v-text="$t('warning')"
+                        >
+                        </q-badge>
+                      </div>
+                      <div class="text-subtitle2">
+                        <span v-text="release.warning"></span>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+
+                  <q-separator></q-separator> </q-card
+              ></q-expansion-item>
+            </q-list>
+          </q-card-section>
+        </q-expansion-item>
+      </q-card>
       <div class="row q-mt-lg">
         <q-btn
           v-if="selectedExtension?.isInstalled"
@@ -581,23 +589,336 @@
           v-text="$t('close')"
         ></q-btn>
       </div>
-    </q-card>
-  </q-dialog>
-</div>
+    </div>
+    <q-spinner v-else color="primary" size="2.55em"></q-spinner>
+    <div
+      v-if="selectedExtension"
+      v-show="manageExtensionTab === 'sell'"
+      class="col-12 col-md-5 q-gutter-y-md q-mt-md"
+    >
+      <q-toggle
+        v-model="selectedExtension.payToEnable.required"
+        :label="$t('sell_require')"
+        color="secondary"
+        style="max-height: 21px"
+      ></q-toggle>
+      <q-select
+        v-if="selectedExtension.payToEnable.required"
+        filled
+        dense
+        emit-value
+        v-model="selectedExtension.payToEnable.wallet"
+        :options="g.user.walletOptions"
+        label="Wallet *"
+        class="q-mt-md"
+      ></q-select>
+      <q-input
+        v-if="selectedExtension.payToEnable.required"
+        filled
+        dense
+        v-model.number="selectedExtension.payToEnable.amount"
+        :label="$t('amount_sats')"
+        type="number"
+        min="1"
+        class="q-mt-md"
+      >
+      </q-input>
+      <div class="row q-mt-lg">
+        <q-btn
+          @click="updatePayToInstallData(selectedExtension)"
+          flat
+          color="green"
+          v-text="$t('update_payment')"
+        ></q-btn>
+
+        <q-btn
+          v-close-popup
+          flat
+          color="grey"
+          class="q-ml-auto"
+          v-text="$t('close')"
+        ></q-btn>
+      </div>
+    </div>
+  </q-card>
+</q-dialog>
+
+<q-dialog v-model="showPayToEnableDialog">
+  <q-card v-if="selectedExtension" class="q-pa-md">
+    <q-card-section>
+      <p>
+        <span
+          v-text="$t('sell_info', {name: selectedExtension.name, amount: selectedExtension.payToEnable.amount})"
+        ></span>
+      </p>
+      <p>
+        <span v-text="$t('already_paid_question')"></span>
+        <q-badge
+          @click="enableExtension(selectedExtension)"
+          color="primary"
+          class="cursor-pointer"
+          rounded
+        >
+          <strong> <span v-text="$t('recheck')"></span> </strong
+        ></q-badge>
+      </p>
+    </q-card-section>
+    <q-card-section v-if="selectedExtension.payToEnable.showQRCode">
+      <div class="row q-mt-lg">
+        <div v-if="selectedExtension.payToEnable.paymentRequest" class="col">
+          <a
+            :href="'lightning:' + selectedExtension.payToEnable.paymentRequest"
+          >
+            <q-responsive :ratio="1" class="q-mx-xl">
+              <lnbits-qrcode
+                :value="'lightning:' + selectedExtension.payToEnable.paymentRequest.toUpperCase()"
+              ></lnbits-qrcode>
+            </q-responsive>
+          </a>
+        </div>
+        <div v-else class="col">
+          <q-spinner color="primary" size="2.55em"></q-spinner>
+        </div>
+      </div>
+      <div class="row q-mt-lg">
+        <div class="col">
+          <q-btn
+            v-if="selectedExtension.payToEnable.paymentRequest"
+            outline
+            color="grey"
+            @click="copyText(selectedExtension.payToEnable.paymentRequest)"
+            :label="$t('copy_invoice')"
+          ></q-btn>
+        </div>
+        <div class="col">
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="float-right q-ml-lg"
+            v-text="$t('close')"
+          ></q-btn>
+        </div>
+      </div>
+    </q-card-section>
+
+    <q-card-section v-else>
+      <div class="row q-mt-lg">
+        <div class="col">
+          <div>
+            <q-input
+              filled
+              dense
+              type="number"
+              v-model.number="selectedExtension.payToEnable.paidAmount"
+              :min="selectedExtension.payToEnable.amount"
+              suffix="sat"
+              class="q-mt-sm"
+            >
+            </q-input>
+            <q-select
+              filled
+              dense
+              v-model="selectedExtension.payToEnable.paymentWallet"
+              emit-value
+              :options="g.user.walletOptions"
+              :label="$t('wallet_required')"
+              class="q-mt-sm"
+            >
+            </q-select>
+            <q-separator class="q-mb-lg"></q-separator>
+            <q-btn
+              unelevated
+              color="primary"
+              class="q-mt-sm"
+              @click="payAndEnable(selectedExtension)"
+              :disabled="!selectedExtension.payToEnable.paymentWallet"
+              :label="$t('pay_from_wallet')"
+            ></q-btn>
+
+            <q-btn
+              unelevated
+              @click="showEnableQRCode(selectedExtension)"
+              color="primary"
+              class="q-mt-sm float-right"
+              :label="$t('show_qr')"
+            ></q-btn>
+          </div>
+        </div>
+      </div>
+    </q-card-section>
+  </q-card>
+</q-dialog>
+
+<q-dialog v-model="showExtensionDetailsDialog">
+  <q-card
+    v-if="selectedExtensionDetails"
+    class="q-pa-sm"
+    style="width: 800px; max-width: 95vw"
+  >
+    <q-card-section>
+      <div class="row">
+        <div class="col-2 gt-md">
+          <q-img
+            :src="selectedExtensionDetails.icon"
+            style="width: 100px"
+            type="image"
+          ></q-img>
+        </div>
+        <div class="col-9 q-pl-md gt-xs">
+          <h3 class="q-my-sm" v-text="selectedExtensionDetails.name"></h3>
+          <h6
+            class="q-my-sm"
+            v-text="selectedExtensionDetails.short_description"
+          ></h6>
+        </div>
+        <div class="col-9 q-pl-md lt-sm">
+          <h5 class="q-my-sm" v-text="selectedExtensionDetails.name"></h5>
+          <p
+            class="q-my-sm"
+            v-text="selectedExtensionDetails.short_description"
+          ></p>
+        </div>
+        <div class="col-1">
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="float-right q-ml-lg"
+            v-text="$t('close')"
+          ></q-btn>
+        </div>
+      </div>
+      <div v-if="selectedExtensionDetails.images?.length" class="row q-my-lg">
+        <div class="col q-pr-md">
+          <q-carousel
+            navigation-position="top"
+            swipeable
+            animated
+            v-model="slide"
+            :fullscreen.sync="fullscreen"
+            thumbnails
+            infinite
+            :autoplay="autoplay"
+            arrows
+            transition-prev="slide-right"
+            transition-next="slide-left"
+            @mouseenter="autoplay = false"
+            @mouseleave="autoplay = true"
+            height="300px"
+          >
+            <template v-slot:control>
+              <q-carousel-control position="bottom-right" :offset="[18, 18]">
+                <q-btn
+                  push
+                  round
+                  dense
+                  color="white"
+                  text-color="primary"
+                  :icon="fullscreen ? 'fullscreen_exit' : 'fullscreen'"
+                  @click="fullscreen = !fullscreen"
+                ></q-btn>
+              </q-carousel-control>
+            </template>
+            <q-carousel-slide
+              v-for="(image, i) of selectedExtensionDetails.images"
+              :img-src="image.uri"
+              :key="i"
+              :name="i"
+            >
+              <q-video
+                v-if="image.link"
+                class="absolute-full"
+                :src="image.link"
+              />
+            </q-carousel-slide>
+          </q-carousel>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-sm-12 col-md-8 q-pr-sm">
+          <div v-html="selectedExtensionDetails.description_md"></div>
+        </div>
+        <div class="col-sm-12 col-md-4 q-pl-sm">
+          <lnbits-extension-rating
+            :rating="0"
+            size="2.5em"
+          ></lnbits-extension-rating>
+          <div class="q-mt-md">
+            <b>
+              <span v-text="$t('contributors')"></span>
+            </b>
+            <small>
+              <div v-for="contributor of selectedExtensionDetails.contributors">
+                <a
+                  :href="contributor.uri"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="color: var(--q-primary); text-decoration: none"
+                >
+                  <span
+                    v-text="(contributor.name || contributor) + ' - ' + (contributor.role || 'dev')"
+                  ></span>
+                </a>
+              </div>
+            </small>
+          </div>
+          <div class="q-pt-md">
+            <div>
+              <q-btn
+                size="sm"
+                color="primary"
+                label="Repo"
+                type="a"
+                :href="selectedExtensionDetails.repo"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="q-pr-xs"
+                ><q-tooltip>repository</q-tooltip></q-btn
+              >
+            </div>
+            <div class="q-pt-lg">
+              <div>
+                <b>
+                  <span v-text="$t('license')"></span>
+                </b>
+                <q-badge
+                  color="primary"
+                  v-text="selectedExtensionDetails.license"
+                ></q-badge>
+              </div>
+              <br />
+            </div>
+          </div>
+        </div>
+      </div>
+    </q-card-section>
+  </q-card>
+</q-dialog>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
   new Vue({
     el: '#vue',
+
     data: function () {
       return {
+        slide: 0,
+        fullscreen: false,
+        autoplay: true,
         searchTerm: '',
         tab: 'all',
+        manageExtensionTab: 'releases',
         filteredExtensions: null,
         showUninstallDialog: false,
-        showUpgradeDialog: false,
+        showManageExtensionDialog: false,
+        showExtensionDetailsDialog: false,
         showDropDbDialog: false,
+        showPayToEnableDialog: false,
         dropDbExtensionId: '',
         selectedExtension: null,
+        selectedImage: null,
+        selectedExtensionDetails: null,
         selectedExtensionRepos: null,
         selectedRelease: null,
         uninstallAndDropDb: false,
@@ -629,6 +950,7 @@
         }
 
         this.filteredExtensions = this.extensions
+          .filter(e => (tab === 'all' ? !e.isInstalled : true))
           .filter(e => (tab === 'installed' ? e.isInstalled : true))
           .filter(e =>
             tab === 'installed'
@@ -639,6 +961,11 @@
           )
           .filter(e => (tab === 'featured' ? e.isFeatured : true))
           .filter(extensionNameContains(term))
+          .map(e => ({
+            ...e,
+            details_link:
+              e.installedRelease?.details_link || e.latestRelease?.details_link
+          }))
         this.tab = tab
       },
 
@@ -649,7 +976,7 @@
 
         const extension = this.selectedExtension
         extension.inProgress = true
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         release.payment_hash =
           release.payment_hash || this.getPaylinkHash(release.pay_link)
 
@@ -675,6 +1002,7 @@
             this.filteredExtensions = this.extensions.concat([])
             this.handleTabChanged('installed')
             this.tab = 'installed'
+            window.location.reload()
           })
           .catch(err => {
             console.warn(err)
@@ -684,7 +1012,7 @@
       },
       uninstallExtension: async function () {
         const extension = this.selectedExtension
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         this.showUninstallDialog = false
         extension.inProgress = true
         LNbits.api
@@ -717,7 +1045,7 @@
 
       dropExtensionDb: async function () {
         const extension = this.selectedExtension
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         this.showDropDbDialog = false
         this.dropDbExtensionId = ''
         extension.inProgress = true
@@ -745,14 +1073,96 @@
         const action = extension.isActive ? 'activate' : 'deactivate'
         LNbits.api
           .request(
-            'GET',
-            "{{ url_for('install.extensions') }}" +
-              '?' +
-              action +
-              '=' +
-              extension.id
+            'PUT',
+            `/api/v1/extension/${extension.id}/${action}`,
+            this.g.user.wallets[0].adminkey
           )
-          .then(response => {})
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: `Extension '${extension.id}' ${action}d!`
+            })
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+            extension.inProgress = false
+          })
+      },
+      enableExtensionForUser: function (extension) {
+        if (extension.isPaymentRequired) {
+          this.showPayToEnable(extension)
+          return
+        }
+        this.enableExtension(extension)
+      },
+      enableExtension: function (extension) {
+        LNbits.api
+          .request(
+            'PUT',
+            `/api/v1/extension/${extension.id}/enable`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Extension enabled!'
+            })
+            setTimeout(() => {
+              window.location.reload()
+            }, 300)
+          })
+          .catch(err => {
+            console.warn(err)
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      disableExtension: function (extension) {
+        LNbits.api
+          .request(
+            'PUT',
+            `/api/v1/extension/${extension.id}/disable`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Extension disabled!'
+            })
+            setTimeout(() => {
+              window.location.reload()
+            }, 300)
+          })
+          .catch(err => {
+            console.warn(error)
+            LNbits.utils.notifyApiError(err)
+          })
+      },
+      showPayToEnable: function (extension) {
+        this.selectedExtension = extension
+        this.selectedExtension.payToEnable.paidAmount =
+          extension.payToEnable.amount
+        this.selectedExtension.payToEnable.showQRCode = false
+        this.showPayToEnableDialog = true
+      },
+      updatePayToInstallData: function (extension) {
+        LNbits.api
+          .request(
+            'PUT',
+            `/api/v1/extension/${extension.id}/sell`,
+            this.g.user.wallets[0].adminkey,
+            {
+              required: extension.payToEnable.required,
+              amount: extension.payToEnable.amount,
+              wallet: extension.payToEnable.wallet
+            }
+          )
+          .then(response => {
+            this.$q.notify({
+              type: 'positive',
+              message: 'Payment info updated!'
+            })
+            this.showManageExtensionDialog = false
+          })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
             extension.inProgress = false
@@ -760,7 +1170,7 @@
       },
 
       showUninstall: function () {
-        this.showUpgradeDialog = false
+        this.showManageExtensionDialog = false
         this.showUninstallDialog = true
         this.uninstallAndDropDb = false
       },
@@ -769,11 +1179,12 @@
         this.showDropDbDialog = true
       },
 
-      showUpgrade: async function (extension) {
+      showManageExtension: async function (extension) {
         this.selectedExtension = extension
         this.selectedRelease = null
         this.selectedExtensionRepos = null
-        this.showUpgradeDialog = true
+        this.manageExtensionTab = 'releases'
+        this.showManageExtensionDialog = true
 
         try {
           const {data} = await LNbits.api.request(
@@ -813,11 +1224,34 @@
         }
       },
 
+      showExtensionDetails: async function (extId, detailsLink) {
+        if (!detailsLink) {
+          return
+        }
+        this.selectedExtensionDetails = null
+        this.showExtensionDetailsDialog = true
+        this.slide = 0
+        this.fullscreen = false
+
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/api/v1/extension/${extId}/details?details_link=${detailsLink}`,
+            this.g.user.wallets[0].inkey
+          )
+
+          this.selectedExtensionDetails = data
+          this.selectedExtensionDetails.description_md =
+            LNbits.utils.convertMarkdown(data.description_md)
+        } catch (error) {
+          console.warn(error)
+        }
+      },
       async payAndInstall(release) {
         try {
           this.selectedExtension.inProgress = true
-          this.showUpgradeDialog = false
-          const paymentInfo = await this.requestPayment(
+          this.showManageExtensionDialog = false
+          const paymentInfo = await this.requestPaymentForInstall(
             this.selectedExtension.id,
             release
           )
@@ -838,11 +1272,32 @@
           this.selectedExtension.inProgress = false
         }
       },
-      async showQRCode(release) {
+      async payAndEnable(extension) {
+        try {
+          const paymentInfo = await this.requestPaymentForEnable(
+            extension.id,
+            extension.payToEnable.paidAmount
+          )
+
+          const wallet = this.g.user.wallets.find(
+            w => w.id === extension.payToEnable.paymentWallet
+          )
+          const {data} = await LNbits.api.payInvoice(
+            wallet,
+            paymentInfo.payment_request
+          )
+          this.enableExtension(extension)
+          this.showPayToEnableDialog = false
+        } catch (err) {
+          console.warn(err)
+          LNbits.utils.notifyApiError(err)
+        }
+      },
+      async showInstallQRCode(release) {
         this.selectedRelease = release
 
         try {
-          const data = await this.requestPayment(
+          const data = await this.requestPaymentForInstall(
             this.selectedExtension.id,
             release
           )
@@ -865,10 +1320,44 @@
         }
       },
 
-      async requestPayment(extId, release) {
+      async showEnableQRCode(extension) {
+        try {
+          extension.payToEnable.showQRCode = true
+          this.selectedExtension = _.clone(extension)
+
+          const data = await this.requestPaymentForEnable(
+            extension.id,
+            extension.payToEnable.paidAmount
+          )
+          extension.payToEnable.paymentRequest = data.payment_request
+          this.selectedExtension = _.clone(extension)
+
+          const url = new URL(window.location)
+          url.protocol = url.protocol === 'https:' ? 'wss' : 'ws'
+          url.pathname = `/api/v1/ws/${data.payment_hash}`
+          const ws = new WebSocket(url)
+          ws.addEventListener('message', async ({data}) => {
+            const payment = JSON.parse(data)
+            if (payment.pending === false) {
+              this.$q.notify({
+                type: 'positive',
+                message: 'Invoice Paid!'
+              })
+
+              this.enableExtension(extension)
+              ws.close()
+            }
+          })
+        } catch (err) {
+          console.warn(err)
+          LNbits.utils.notifyApiError(err)
+        }
+      },
+
+      async requestPaymentForInstall(extId, release) {
         const {data} = await LNbits.api.request(
           'PUT',
-          `/api/v1/extension/invoice`,
+          `/api/v1/extension/${extId}/invoice/install`,
           this.g.user.wallets[0].adminkey,
           {
             ext_id: extId,
@@ -876,6 +1365,18 @@
             source_repo: release.source_repo,
             cost_sats: release.paidAmount,
             version: release.version
+          }
+        )
+        return data
+      },
+
+      async requestPaymentForEnable(extId, amount) {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/api/v1/extension/${extId}/invoice/enable`,
+          this.g.user.wallets[0].adminkey,
+          {
+            amount
           }
         )
         return data

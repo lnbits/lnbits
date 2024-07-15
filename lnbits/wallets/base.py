@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional, Type
+from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple, Optional
 
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
@@ -18,6 +18,18 @@ class InvoiceResponse(NamedTuple):
     payment_request: Optional[str] = None
     error_message: Optional[str] = None
 
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def pending(self) -> bool:
+        return self.ok is None
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is False
+
 
 class PaymentResponse(NamedTuple):
     # when ok is None it means we don't know if this succeeded
@@ -27,11 +39,27 @@ class PaymentResponse(NamedTuple):
     preimage: Optional[str] = None
     error_message: Optional[str] = None
 
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def pending(self) -> bool:
+        return self.ok is None
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is False
+
 
 class PaymentStatus(NamedTuple):
     paid: Optional[bool] = None
     fee_msat: Optional[int] = None
     preimage: Optional[str] = None
+
+    @property
+    def success(self) -> bool:
+        return self.paid is True
 
     @property
     def pending(self) -> bool:
@@ -42,14 +70,11 @@ class PaymentStatus(NamedTuple):
         return self.paid is False
 
     def __str__(self) -> str:
-        if self.paid is True:
-            return "settled"
-        elif self.paid is False:
+        if self.success:
+            return "success"
+        if self.failed:
             return "failed"
-        elif self.paid is None:
-            return "still pending"
-        else:
-            return "unknown (should never happen)"
+        return "pending"
 
 
 class PaymentSuccessStatus(PaymentStatus):
@@ -65,10 +90,12 @@ class PaymentPendingStatus(PaymentStatus):
 
 
 class Wallet(ABC):
+
+    __node_cls__: Optional[type[Node]] = None
+
+    @abstractmethod
     async def cleanup(self):
         pass
-
-    __node_cls__: Optional[Type[Node]] = None
 
     @abstractmethod
     def status(self) -> Coroutine[None, None, StatusResponse]:
@@ -110,11 +137,13 @@ class Wallet(ABC):
     def normalize_endpoint(self, endpoint: str, add_proto=True) -> str:
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         if add_proto:
+            if endpoint.startswith("ws://") or endpoint.startswith("wss://"):
+                return endpoint
             endpoint = (
                 f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
             )
         return endpoint
 
 
-class Unsupported(Exception):
+class UnsupportedError(Exception):
     pass

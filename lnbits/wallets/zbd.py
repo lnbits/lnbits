@@ -13,7 +13,7 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    Unsupported,
+    UnsupportedError,
     Wallet,
 )
 
@@ -65,7 +65,7 @@ class ZBDWallet(Wallet):
     ) -> InvoiceResponse:
         # https://api.zebedee.io/v0/charges
         if description_hash or unhashed_description:
-            raise Unsupported("description_hash")
+            raise UnsupportedError("description_hash")
 
         msats_amount = amount * 1000
         data: Dict = {
@@ -154,6 +154,6 @@ class ZBDWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
+        while settings.lnbits_running:
             value = await self.queue.get()
             yield value

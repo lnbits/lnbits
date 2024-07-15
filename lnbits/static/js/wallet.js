@@ -1,95 +1,14 @@
-/* globals windowMixin, decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, Chart, decryptLnurlPayAES */
+/* globals windowMixin, decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, decryptLnurlPayAES */
 
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
-
-function generateChart(canvas, rawData) {
-  const data = rawData.reduce(
-    (previous, current) => {
-      previous.labels.push(current.date)
-      previous.income.push(current.income)
-      previous.spending.push(current.spending)
-      previous.cumulative.push(current.balance)
-      return previous
-    },
-    {
-      labels: [],
-      income: [],
-      spending: [],
-      cumulative: []
-    }
-  )
-
-  return new Chart(canvas.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: data.labels,
-      datasets: [
-        {
-          data: data.cumulative,
-          type: 'line',
-          label: 'balance',
-          backgroundColor: '#673ab7', // deep-purple
-          borderColor: '#673ab7',
-          borderWidth: 4,
-          pointRadius: 3,
-          fill: false
-        },
-        {
-          data: data.income,
-          type: 'bar',
-          label: 'in',
-          barPercentage: 0.75,
-          backgroundColor: window.Color('rgb(76,175,80)').alpha(0.5).rgbString() // green
-        },
-        {
-          data: data.spending,
-          type: 'bar',
-          label: 'out',
-          barPercentage: 0.75,
-          backgroundColor: window.Color('rgb(233,30,99)').alpha(0.5).rgbString() // pink
-        }
-      ]
-    },
-    options: {
-      title: {
-        text: 'Chart.js Combo Time Scale'
-      },
-      tooltips: {
-        mode: 'index',
-        intersect: false
-      },
-      scales: {
-        xAxes: [
-          {
-            type: 'time',
-            display: true,
-            //offset: true,
-            time: {
-              minUnit: 'hour',
-              stepSize: 3
-            }
-          }
-        ]
-      },
-      // performance tweaks
-      animation: {
-        duration: 0
-      },
-      elements: {
-        line: {
-          tension: 0
-        }
-      }
-    }
-  })
-}
 
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
   data: function () {
     return {
+      updatePayments: false,
       origin: window.location.origin,
       user: LNbits.map.user(window.user),
       receive: {
@@ -126,123 +45,11 @@ new Vue({
           camera: 'auto'
         }
       },
-      payments: [],
-      paymentsTable: {
-        columns: [
-          {
-            name: 'time',
-            align: 'left',
-            label: this.$t('memo') + '/' + this.$t('date'),
-            field: 'date',
-            sortable: true
-          },
-          {
-            name: 'amount',
-            align: 'right',
-            label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
-            field: 'sat',
-            sortable: true
-          }
-        ],
-        pagination: {
-          rowsPerPage: 10,
-          page: 1,
-          sortBy: 'time',
-          descending: true,
-          rowsNumber: 10
-        },
-        search: null,
-        loading: false
-      },
-      paymentsCSV: {
-        columns: [
-          {
-            name: 'pending',
-            align: 'left',
-            label: 'Pending',
-            field: 'pending'
-          },
-          {
-            name: 'memo',
-            align: 'left',
-            label: this.$t('memo'),
-            field: 'memo'
-          },
-          {
-            name: 'time',
-            align: 'left',
-            label: this.$t('date'),
-            field: 'date',
-            sortable: true
-          },
-          {
-            name: 'amount',
-            align: 'right',
-            label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
-            field: 'sat',
-            sortable: true
-          },
-          {
-            name: 'fee',
-            align: 'right',
-            label: this.$t('fee') + ' (m' + LNBITS_DENOMINATION + ')',
-            field: 'fee'
-          },
-          {
-            name: 'tag',
-            align: 'right',
-            label: this.$t('tag'),
-            field: 'tag'
-          },
-          {
-            name: 'payment_hash',
-            align: 'right',
-            label: this.$t('payment_hash'),
-            field: 'payment_hash'
-          },
-          {
-            name: 'payment_proof',
-            align: 'right',
-            label: this.$t('payment_proof'),
-            field: 'payment_proof'
-          },
-          {
-            name: 'webhook',
-            align: 'right',
-            label: this.$t('webhook'),
-            field: 'webhook'
-          },
-          {
-            name: 'fiat_currency',
-            align: 'right',
-            label: 'Fiat Currency',
-            field: row => row.extra.wallet_fiat_currency
-          },
-          {
-            name: 'fiat_amount',
-            align: 'right',
-            label: 'Fiat Amount',
-            field: row => row.extra.wallet_fiat_amount
-          }
-        ],
-        filter: null,
-        loading: false
-      },
-      paymentsChart: {
-        show: false,
-        group: {value: 'hour', label: 'Hour'},
-        groupOptions: [
-          {value: 'month', label: 'Month'},
-          {value: 'day', label: 'Day'},
-          {value: 'hour', label: 'Hour'}
-        ],
-        instance: null
-      },
       disclaimerDialog: {
         show: false,
         location: window.location
       },
-      balance: 0,
+      balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
       mobileSimple: false,
       credit: 0,
@@ -268,62 +75,20 @@ new Vue({
         )
       }
     },
-    filteredPayments: function () {
-      var q = this.paymentsTable.search
-      if (!q || q === '') return this.payments
-
-      return LNbits.utils.search(this.payments, q)
-    },
-    paymentsOmitter() {
-      if (this.$q.screen.lt.md && this.mobileSimple) {
-        return this.payments.length > 0 ? [this.payments[0]] : []
-      }
-      return this.payments
-    },
     canPay: function () {
       if (!this.parse.invoice) return false
       return this.parse.invoice.sat <= this.balance
-    },
-    pendingPaymentsExist: function () {
-      return this.payments.findIndex(payment => payment.pending) !== -1
     }
   },
   methods: {
     msatoshiFormat: function (value) {
       return LNbits.utils.formatSat(value / 1000)
     },
-    paymentTableRowKey: function (row) {
-      return row.payment_hash + row.amount
-    },
     closeCamera: function () {
       this.parse.camera.show = false
     },
     showCamera: function () {
       this.parse.camera.show = true
-    },
-    showChart: function () {
-      this.paymentsChart.show = true
-      LNbits.api
-        .request(
-          'GET',
-          '/api/v1/payments/history?group=' + this.paymentsChart.group.value,
-          this.g.wallet.adminkey
-        )
-        .then(response => {
-          this.$nextTick(() => {
-            if (this.paymentsChart.instance) {
-              this.paymentsChart.instance.destroy()
-            }
-            this.paymentsChart.instance = generateChart(
-              this.$refs.canvas,
-              response.data
-            )
-          })
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-          this.paymentsChart.show = false
-        })
     },
     focusInput(el) {
       this.$nextTick(() => this.$refs[el].focus())
@@ -359,8 +124,7 @@ new Vue({
       }, 10000)
     },
     onPaymentReceived: function (paymentHash) {
-      this.fetchPayments()
-
+      this.updatePayments = !this.updatePayments
       if (this.receive.paymentHash === paymentHash) {
         this.receive.show = false
         this.receive.paymentHash = null
@@ -407,8 +171,9 @@ new Vue({
               })
             }
           }
-
-          this.fetchPayments()
+        })
+        .then(() => {
+          this.updatePayments = !this.updatePayments
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -584,10 +349,10 @@ new Vue({
               .getPayment(this.g.wallet, response.data.payment_hash)
               .then(res => {
                 if (res.data.paid) {
-                  this.parse.show = false
-                  clearInterval(this.parse.paymentChecker)
                   dismissPaymentMsg()
-                  this.fetchPayments()
+                  clearInterval(this.parse.paymentChecker)
+                  this.updatePayments = !this.updatePayments
+                  this.parse.show = false
                 }
               })
           }, 2000)
@@ -595,6 +360,8 @@ new Vue({
         .catch(err => {
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
+          this.updatePayments = !this.updatePayments
+          this.parse.show = false
         })
     },
     payLnurl: function () {
@@ -627,7 +394,6 @@ new Vue({
                 if (res.data.paid) {
                   dismissPaymentMsg()
                   clearInterval(this.parse.paymentChecker)
-                  this.fetchPayments()
                   // show lnurlpay success action
                   if (response.data.success_action) {
                     switch (response.data.success_action.tag) {
@@ -740,25 +506,8 @@ new Vue({
               })
             })
             .catch(err => {
-              this.paymentsTable.loading = false
               LNbits.utils.notifyApiError(err)
             })
-        })
-    },
-    fetchPayments: function (props) {
-      const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
-      return LNbits.api
-        .getPayments(this.g.wallet, params)
-        .then(response => {
-          this.paymentsTable.loading = false
-          this.paymentsTable.pagination.rowsNumber = response.data.total
-          this.payments = response.data.data.map(obj => {
-            return LNbits.map.payment(obj)
-          })
-        })
-        .catch(err => {
-          this.paymentsTable.loading = false
-          LNbits.utils.notifyApiError(err)
         })
     },
     fetchBalance: function () {
@@ -785,44 +534,16 @@ new Vue({
         })
         .catch(e => console.error(e))
     },
-    formatFiat(currency, amount) {
-      return LNbits.utils.formatCurrency(amount, currency)
-    },
     updateBalanceCallback: function (res) {
-      this.balance += res.value
-    },
-    exportCSV: function () {
-      // status is important for export but it is not in paymentsTable
-      // because it is manually added with payment detail link and icons
-      // and would cause duplication in the list
-      const pagination = this.paymentsTable.pagination
-      const query = {
-        sortby: pagination.sortBy ?? 'time',
-        direction: pagination.descending ? 'desc' : 'asc'
+      if (res.success && wallet.id === res.wallet_id) {
+        this.balance += res.credit
       }
-      const params = new URLSearchParams(query)
-      LNbits.api.getPayments(this.g.wallet, params).then(response => {
-        const payments = response.data.data.map(LNbits.map.payment)
-        LNbits.utils.exportCSV(
-          this.paymentsCSV.columns,
-          payments,
-          this.g.wallet.name + '-payments'
-        )
-      })
     },
     pasteToTextArea: function () {
       this.$refs.textArea.focus() // Set cursor to textarea
       navigator.clipboard.readText().then(text => {
-        this.$refs.textArea.value = text
+        this.parse.data.request = text.trim()
       })
-    }
-  },
-  watch: {
-    payments: function () {
-      this.fetchBalance()
-    },
-    'paymentsChart.group': function () {
-      this.showChart()
     }
   },
   created: function () {
@@ -836,11 +557,15 @@ new Vue({
     if (this.$q.screen.lt.md) {
       this.mobileSimple = true
     }
-    this.fetchPayments()
-
     this.update.name = this.g.wallet.name
     this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
+    this.updateFiatBalance()
+  },
+  watch: {
+    updatePayments: function () {
+      this.fetchBalance()
+    }
   },
   mounted: function () {
     // show disclaimer
@@ -849,9 +574,9 @@ new Vue({
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
     // listen to incoming payments
-    LNbits.events.onInvoicePaid(this.g.wallet, payment =>
+    LNbits.events.onInvoicePaid(this.g.wallet, payment => {
       this.onPaymentReceived(payment.payment_hash)
-    )
+    })
     eventReactionWebocket(wallet.id)
   }
 })

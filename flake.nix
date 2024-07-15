@@ -37,6 +37,12 @@
             asgi-lifespan = prev.asgi-lifespan.overridePythonAttrs (
               old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
             );
+            pytest-md = prev.pytest-md.overridePythonAttrs (
+              old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
+            );
+            types-mock = prev.pytest-md.overridePythonAttrs (
+              old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
+            );
           });
         };
       });

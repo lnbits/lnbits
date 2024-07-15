@@ -27,10 +27,10 @@ async def api_public_payment_longpolling(payment_hash):
         invoice = bolt11.decode(payment.bolt11)
         if invoice.has_expired():
             return {"status": "expired"}
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Invalid bolt11 invoice."
-        )
+        ) from exc
 
     payment_queue = asyncio.Queue(0)
 
@@ -50,7 +50,7 @@ async def api_public_payment_longpolling(payment_hash):
         cancel_scope.cancel()
 
     cancel_scope = asyncio.create_task(payment_info_receiver())
-    asyncio.create_task(timeouter(cancel_scope))
+    asyncio.create_task(timeouter(cancel_scope))  # noqa: RUF006
 
     if response:
         return response

@@ -44,9 +44,18 @@ new Vue({
       isSuperUser: false,
       wallet: {},
       cancel: {},
-      topUpDialog: {
-        show: false
-      },
+      colors: [
+        'primary',
+        'secondary',
+        'accent',
+        'positive',
+        'negative',
+        'info',
+        'warning',
+        'red',
+        'yellow',
+        'orange'
+      ],
       tab: 'funding',
       needsRestart: false
     }
@@ -72,7 +81,6 @@ new Vue({
       let addUser = this.formAddAdmin
       let admin_users = this.formData.lnbits_admin_users
       if (addUser && addUser.length && !admin_users.includes(addUser)) {
-        //admin_users = [...admin_users, addUser]
         this.formData.lnbits_admin_users = [...admin_users, addUser]
         this.formAddAdmin = ''
       }
@@ -183,27 +191,6 @@ new Vue({
             icon: null
           })
           this.needsRestart = false
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
-    },
-    topupWallet() {
-      LNbits.api
-        .request(
-          'PUT',
-          '/admin/api/v1/topup/',
-          this.g.user.wallets[0].adminkey,
-          this.wallet
-        )
-        .then(response => {
-          this.$q.notify({
-            type: 'positive',
-            message:
-              'Success! Added ' + this.wallet.amount + ' to ' + this.wallet.id,
-            icon: null
-          })
-          this.wallet = {}
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)

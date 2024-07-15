@@ -13,6 +13,10 @@ from .base import (
 
 
 class VoidWallet(Wallet):
+
+    async def cleanup(self):
+        pass
+
     async def create_invoice(self, *_, **__) -> InvoiceResponse:
         return InvoiceResponse(
             ok=False, error_message="VoidWallet cannot create invoices."

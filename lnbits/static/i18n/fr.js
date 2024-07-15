@@ -9,6 +9,8 @@ window.localisation.fr = {
   transactions: 'Transactions',
   dashboard: 'Tableau de bord',
   node: 'Noeud',
+  export_users: 'Exporter les utilisateurs',
+  no_users: 'Aucun utilisateur trouvé',
   total_capacity: 'Capacité totale',
   avg_channel_size: 'Taille moyenne du canal',
   biggest_channel_size: 'Taille de canal maximale',
@@ -36,6 +38,8 @@ window.localisation.fr = {
     'Supprimer tous les paramètres et les réinitialiser aux valeurs par défaut.',
   download_backup: 'Télécharger la sauvegarde de la base de données',
   name_your_wallet: 'Nommez votre portefeuille %{name}',
+  wallet_topup_ok:
+    'Succès de la création de fonds virtuels (%{amount} sats). Les paiements dépendent des fonds réels sur la source de financement.',
   paste_invoice_label:
     'Coller une facture, une demande de paiement ou un code lnurl *',
   lnbits_description:
@@ -103,6 +107,7 @@ window.localisation.fr = {
     "Il s'agit d'un code QR LNURL-withdraw pour tout aspirer de ce portefeuille. Ne le partagez avec personne. Il est compatible avec balanceCheck et balanceNotify, de sorte que votre portefeuille peut continuer à retirer les fonds continuellement à partir d'ici après le premier retrait.",
   i_understand: "J'ai compris",
   copy_wallet_url: "Copier l'URL du portefeuille",
+  disclaimer_dialog_title: 'Important !',
   disclaimer_dialog:
     "La fonctionnalité de connexion sera publiée dans une future mise à jour, pour l'instant, assurez-vous de mettre cette page en favori pour accéder à votre portefeuille ultérieurement ! Ce service est en BETA, et nous ne sommes pas responsables des personnes qui perdent l'accès à leurs fonds.",
   no_transactions: 'Aucune transaction effectuée pour le moment',
@@ -168,7 +173,7 @@ window.localisation.fr = {
     'Si activé, il changera automatiquement votre source de financement en VoidWallet si LNbits envoie un signal de coupure. Vous devrez activer manuellement après une mise à jour.',
   killswitch_interval: 'Intervalle du Killswitch',
   killswitch_interval_desc:
-    "À quelle fréquence la tâche de fond doit-elle vérifier le signal d'arrêt d'urgence LNBits provenant de la source de statut (en minutes).",
+    "À quelle fréquence la tâche de fond doit-elle vérifier le signal d'arrêt d'urgence LNbits provenant de la source de statut (en minutes).",
   enable_watchdog: 'Activer le Watchdog',
   enable_watchdog_desc:
     'Si elle est activée, elle changera automatiquement votre source de financement en VoidWallet si votre solde est inférieur au solde LNbits. Vous devrez activer manuellement après une mise à jour.',
@@ -247,5 +252,14 @@ window.localisation.fr = {
   logout: 'Déconnexion',
   look_and_feel: 'Apparence',
   language: 'Langue',
-  color_scheme: 'Schéma de couleurs'
+  color_scheme: 'Schéma de couleurs',
+  extension_cost:
+    'Cette version nécessite un paiement minimum de %{cost} sats.',
+  extension_paid_sats: 'Vous avez déjà payé %{paid_sats} sats.',
+  release_details_error: "Impossible d'obtenir les détails de la version.",
+  pay_from_wallet: 'Payer depuis le portefeuille',
+  show_qr: 'Afficher le QR',
+  retry_install: "Réessayer l'installation",
+  new_payment: 'Effectuer un nouveau paiement',
+  hide_empty_wallets: 'Masquer les portefeuilles vides'
 }

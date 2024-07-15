@@ -27,6 +27,9 @@ class ClicheWallet(Wallet):
 
         self.endpoint = self.normalize_endpoint(settings.cliche_endpoint)
 
+    async def cleanup(self):
+        pass
+
     async def status(self) -> StatusResponse:
         try:
             ws = create_connection(self.endpoint)
@@ -163,10 +166,10 @@ class ClicheWallet(Wallet):
         )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             try:
                 ws = create_connection(self.endpoint)
-                while True:
+                while settings.lnbits_running:
                     r = ws.recv()
                     data = json.loads(r)
                     print(data)

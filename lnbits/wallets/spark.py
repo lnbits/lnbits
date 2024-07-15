@@ -77,12 +77,12 @@ class SparkWallet(Wallet):
                 httpx.HTTPError,
                 httpx.TimeoutException,
             ) as exc:
-                raise UnknownError(f"error connecting to spark: {exc}")
+                raise UnknownError(f"error connecting to spark: {exc}") from exc
 
             try:
                 data = r.json()
-            except Exception:
-                raise UnknownError(r.text)
+            except Exception as exc:
+                raise UnknownError(r.text) from exc
 
             if r.is_error:
                 if r.status_code == 401:
@@ -171,7 +171,7 @@ class SparkWallet(Wallet):
                 raise SparkError(
                     f"listpays({payment_hash}) returned an unexpected response:"
                     f" {listpays}"
-                )
+                ) from exc
 
             if pay["status"] == "failed":
                 return PaymentResponse(False, None, None, None, str(exc))
@@ -244,7 +244,7 @@ class SparkWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = f"/stream?access-key={self.token}"
 
-        while True:
+        while settings.lnbits_running:
             try:
                 async with self.client.stream("GET", url, timeout=None) as r:
                     async for line in r.aiter_lines():

@@ -6,8 +6,10 @@ format: prettier black ruff
 
 check: mypy pyright checkblack checkruff checkprettier checkbundle
 
+test: test-unit test-wallets test-api test-regtest
+
 prettier:
-	poetry run ./node_modules/.bin/prettier --write lnbits
+	poetry run ./node_modules/.bin/prettier --write .
 
 pyright:
 	poetry run ./node_modules/.bin/pyright
@@ -25,7 +27,7 @@ checkruff:
 	poetry run ruff check .
 
 checkprettier:
-	poetry run ./node_modules/.bin/prettier --check lnbits
+	poetry run ./node_modules/.bin/prettier --check .
 
 checkblack:
 	poetry run black --check .
@@ -36,23 +38,32 @@ checkeditorconfig:
 dev:
 	poetry run lnbits --reload
 
-test:
+test-wallets:
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
-	FAKE_WALLET_SECRET="ToTheMoon1" \
-	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
-	poetry run pytest
+	poetry run pytest tests/wallets
 
-test-real-wallet:
-	LNBITS_DATA_FOLDER="./tests/data" \
+test-unit:
+	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
-	poetry run pytest
+	poetry run pytest tests/unit
+
+test-api:
+	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
+	PYTHONUNBUFFERED=1 \
+	DEBUG=true \
+	poetry run pytest tests/api
+
+test-regtest:
+	PYTHONUNBUFFERED=1 \
+	DEBUG=true \
+	poetry run pytest tests/regtest
 
 test-migration:
 	LNBITS_ADMIN_UI=True \
-	make test
+	make test-api
 	HOST=0.0.0.0 \
 	PORT=5002 \
 	LNBITS_DATA_FOLDER="./tests/data" \

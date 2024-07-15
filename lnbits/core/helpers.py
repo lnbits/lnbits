@@ -18,11 +18,11 @@ async def migrate_extension_database(ext: Extension, current_version):
     try:
         ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
         ext_db = importlib.import_module(ext.module_name).db
-    except ImportError as e:
-        logger.error(e)
+    except ImportError as exc:
+        logger.error(exc)
         raise ImportError(
             f"Please make sure that the extension `{ext.code}` has a migrations file."
-        )
+        ) from exc
 
     async with ext_db.connect() as ext_conn:
         await run_migration(ext_conn, ext_migrations, ext.code, current_version)
@@ -77,7 +77,9 @@ async def _stop_extension_background_work(ext_id) -> bool:
         stop_fn_name = next((fn for fn in stop_fns if hasattr(old_module, fn)), None)
         assert stop_fn_name, "No stop function found for '{ext.module_name}'"
 
-        await getattr(old_module, stop_fn_name)()
+        stop_fn = getattr(old_module, stop_fn_name)
+        if stop_fn:
+            await stop_fn()
 
         logger.info(f"Stopped background work for extension '{ext.module_name}'.")
     except Exception as ex:
@@ -113,7 +115,7 @@ def to_valid_user_id(user_id: str) -> UUID:
         raise ValueError("User ID must have at least 128 bits")
     try:
         int(user_id, 16)
-    except Exception:
-        raise ValueError("Invalid hex string for User ID.")
+    except Exception as exc:
+        raise ValueError("Invalid hex string for User ID.") from exc
 
     return UUID(hex=user_id[:32], version=4)

@@ -8,12 +8,19 @@
   ></div>
   <div v-else class="col-12 col-md-4 col-lg-4 q-gutter-y-md">
     <div class="gt-sm">
-      <h3 class="q-my-none" v-if="'{{SITE_TITLE}}' == 'LNbits'">
+      <h3
+        class="q-my-none"
+        v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
+      >
         {{SITE_TITLE}}
       </h3>
-      <h5 class="q-my-md" v-if="'{{SITE_TITLE}}' == 'LNbits'">
+      <h5 class="q-my-md" v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'">
         {{SITE_TAGLINE}}
       </h5>
+      <div
+        v-html="formatDescription"
+        v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
+      ></div>
     </div>
     {% if lnurl and LNBITS_NEW_ACCOUNTS_ALLOWED and ("user-id-only" in
     LNBITS_AUTH_METHODS)%}
@@ -306,7 +313,7 @@
   </div>
 
   <div
-    v-if="'{{SITE_TITLE}}' != 'LNbits'"
+    v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'False'"
     class="col-12 col-md-5 col-lg-5 q-pt-xl"
   >
     <h3 class="q-my-none">{{SITE_TITLE}}</h3>
@@ -331,7 +338,7 @@
           outline
           color="grey"
           type="a"
-          href="https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK"
+          href="https://demo.lnbits.com/lnurlp/link/fH59GD"
           target="_blank"
           rel="noopener noreferrer"
           :label="$t('donate')"
@@ -525,23 +532,51 @@
             </a>
           </div>
         </div>
+        <div class="row">
+          <div class="col">
+            <a
+              href="https://phoenix.acinq.co/server"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <q-img
+                contain
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/phoenixd.png') }}' : '{{ static_url_for('static', 'images/phoenixdl.png') }}'"
+              ></q-img>
+            </a>
+          </div>
+          <div class="col q-pl-md"></div>
+        </div>
       </div>
     </div>
   </div>
-  {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
-  <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
-    <q-btn flat color="secondary" class="full-width q-mb-md"
-      >{{ AD_SPACE_TITLE }}</q-btn
-    >
+</div>
+{% if AD_SPACE %}
+<div class="row justify-center">
+  <q-btn flat color="secondary" class="full-width q-mb-md"
+    >{{ AD_SPACE_TITLE }}</q-btn
+  >
 
-    <a href="{{ AD[0] }}" class="q-ma-md">
-      <img v-if="($q.dark.isActive)" src="{{ AD[1] }}" style="max-width: 90%" />
-      <img v-else src="{{ AD[2] }}" style="max-width: 90%" />
+  {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
+  <div class="flex flex-center column">
+    <a href="{{ AD[0] }}">
+      <img
+        v-if="($q.dark.isActive)"
+        src="{{ AD[1] }}"
+        style="max-width: 420px"
+      />
+      <img v-else src="{{ AD[2] }}" style="max-width: 420px" />
     </a>
   </div>
-  {% endfor %} {% endif %}
+
+  {% endfor %}
 </div>
-<div v-if="'{{SITE_TITLE}}' == 'LNbits'" class="row gt-sm q-mt-xl">
+{% endif %}
+
+<div
+  v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
+  class="row gt-sm q-mt-xl"
+>
   <div class="col-1"></div>
   <div class="col-10 q-pl-xl">
     <span v-text="$t('lnbits_description')"></span>

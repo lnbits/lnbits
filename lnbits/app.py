@@ -1,36 +1,32 @@
 import asyncio
 import glob
 import importlib
-import logging
 import os
 import shutil
-import signal
 import sys
-import traceback
 from contextlib import asynccontextmanager
-from hashlib import sha256
-from http import HTTPStatus
 from pathlib import Path
 from typing import Callable, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import JSONResponse
 
-from lnbits.core.crud import get_dbversions, get_installed_extensions
+from lnbits.core.crud import (
+    get_dbversions,
+    get_installed_extensions,
+    update_installed_extension_state,
+)
 from lnbits.core.helpers import migrate_extension_database
-from lnbits.core.services import websocketUpdater
 from lnbits.core.tasks import (  # watchdog_task
     killswitch_task,
     wait_for_paid_invoices,
 )
+from lnbits.exceptions import register_exception_handlers
 from lnbits.settings import settings
 from lnbits.tasks import (
     cancel_all_tasks,
@@ -38,21 +34,24 @@ from lnbits.tasks import (
     register_invoice_listener,
 )
 from lnbits.utils.cache import cache
-from lnbits.wallets import get_wallet_class, set_wallet_class
+from lnbits.utils.logger import (
+    configure_logger,
+    initialize_server_websocket_logger,
+    log_server_info,
+)
+from lnbits.wallets import get_funding_source, set_funding_source
 
 from .commands import migrate_databases
 from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.services import check_admin_settings, check_webpush_settings
 from .core.views.extension_api import add_installed_extension
-from .core.views.generic import update_installed_extension_state
 from .extension_manager import (
     Extension,
     InstallableExtension,
     get_valid_extensions,
     version_parse,
 )
-from .helpers import template_renderer
 from .middleware import (
     CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,
@@ -70,6 +69,7 @@ from .tasks import (
 
 
 async def startup(app: FastAPI):
+    settings.lnbits_running = True
 
     # wait till migration is done
     await migrate_databases()
@@ -82,7 +82,7 @@ async def startup(app: FastAPI):
 
     # initialize WALLET
     try:
-        set_wallet_class()
+        set_funding_source()
     except Exception as e:
         logger.error(f"Error initializing {settings.lnbits_backend_wallet_class}: {e}")
         set_void_wallet_class()
@@ -98,21 +98,21 @@ async def startup(app: FastAPI):
         await check_installed_extensions(app)
         register_all_ext_routes(app)
 
-    if settings.lnbits_admin_ui:
-        initialize_server_logger()
-
     # initialize tasks
     register_async_tasks()
 
 
 async def shutdown():
+    logger.warning("LNbits shutting down...")
+    settings.lnbits_running = False
+
     # shutdown event
     cancel_all_tasks()
 
     # wait a bit to allow them to finish, so that cleanup can run without problems
     await asyncio.sleep(0.1)
-    WALLET = get_wallet_class()
-    await WALLET.cleanup()
+    funding_source = get_funding_source()
+    await funding_source.cleanup()
 
 
 @asynccontextmanager
@@ -139,8 +139,8 @@ def create_app() -> FastAPI:
     )
 
     # Allow registering new extensions routes without direct access to the `app` object
-    setattr(core_app_extra, "register_new_ext_routes", register_new_ext_routes(app))
-    setattr(core_app_extra, "register_new_ratelimiter", register_new_ratelimiter(app))
+    core_app_extra.register_new_ext_routes = register_new_ext_routes(app)
+    core_app_extra.register_new_ratelimiter = register_new_ratelimiter(app)
 
     # register static files
     static_path = Path("lnbits", "static")
@@ -178,56 +178,44 @@ def create_app() -> FastAPI:
 
 
 async def check_funding_source() -> None:
-    original_sigint_handler = signal.getsignal(signal.SIGINT)
+    funding_source = get_funding_source()
 
-    def signal_handler(signal, frame):
-        logger.debug(
-            f"SIGINT received, terminating LNbits. signal: {signal}, frame: {frame}"
-        )
-        sys.exit(1)
-
-    signal.signal(signal.SIGINT, signal_handler)
-
-    WALLET = get_wallet_class()
-
-    # fallback to void after 30 seconds of failures
-    sleep_time = 5
-    timeout = int(30 / sleep_time)
-
-    balance = 0
+    max_retries = settings.funding_source_max_retries
     retry_counter = 0
 
-    while True:
+    while settings.lnbits_running:
         try:
-            error_message, balance = await WALLET.status()
+            logger.info(f"Connecting to backend {funding_source.__class__.__name__}...")
+            error_message, balance = await funding_source.status()
             if not error_message:
                 retry_counter = 0
+                logger.success(
+                    f"✔️ Backend {funding_source.__class__.__name__} connected "
+                    f"and with a balance of {balance} msat."
+                )
                 break
-
             logger.error(
-                f"The backend for {WALLET.__class__.__name__} isn't "
+                f"The backend for {funding_source.__class__.__name__} isn't "
                 f"working properly: '{error_message}'",
                 RuntimeWarning,
             )
         except Exception as e:
-            logger.error(f"Error connecting to {WALLET.__class__.__name__}: {e}")
-            pass
+            logger.error(
+                f"Error connecting to {funding_source.__class__.__name__}: {e}"
+            )
 
-        if settings.lnbits_admin_ui and retry_counter == timeout:
+        if retry_counter >= max_retries:
             set_void_wallet_class()
-            WALLET = get_wallet_class()
+            funding_source = get_funding_source()
             break
-        else:
-            logger.warning(f"Retrying connection to backend in {sleep_time} seconds...")
-            retry_counter += 1
-            await asyncio.sleep(sleep_time)
 
-    signal.signal(signal.SIGINT, original_sigint_handler)
-
-    logger.success(
-        f"✔️ Backend {WALLET.__class__.__name__} connected "
-        f"and with a balance of {balance} msat."
-    )
+        retry_counter += 1
+        sleep_time = 0.25 * (2**retry_counter)
+        logger.warning(
+            f"Retrying connection to backend in {sleep_time} seconds... "
+            f"({retry_counter}/{max_retries})"
+        )
+        await asyncio.sleep(sleep_time)
 
 
 def set_void_wallet_class():
@@ -235,7 +223,7 @@ def set_void_wallet_class():
         "Fallback to VoidWallet, because the backend for "
         f"{settings.lnbits_backend_wallet_class} isn't working properly"
     )
-    set_wallet_class("VoidWallet")
+    set_funding_source("VoidWallet")
 
 
 async def check_installed_extensions(app: FastAPI):
@@ -276,10 +264,10 @@ async def build_all_installed_extensions_list(
     MUST be installed by default (see LNBITS_EXTENSIONS_DEFAULT_INSTALL).
     """
     installed_extensions = await get_installed_extensions()
+    settings.lnbits_all_extensions_ids = {e.id for e in installed_extensions}
 
-    installed_extensions_ids = [e.id for e in installed_extensions]
     for ext_id in settings.lnbits_extensions_default_install:
-        if ext_id in installed_extensions_ids:
+        if ext_id in settings.lnbits_all_extensions_ids:
             continue
 
         ext_releases = await InstallableExtension.get_extension_releases(ext_id)
@@ -314,7 +302,7 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
 
     zip_files = glob.glob(os.path.join(settings.lnbits_data_folder, "zips", "*.zip"))
 
-    if f"./{str(ext.zip_path)}" not in zip_files:
+    if f"./{ext.zip_path!s}" not in zip_files:
         await ext.download_archive()
     ext.extract_archive()
 
@@ -333,8 +321,7 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
 
     # mount routes for the new version
     core_app_extra.register_new_ext_routes(extension)
-    if extension.upgrade_hash:
-        ext.notify_upgrade()
+    ext.notify_upgrade(extension.upgrade_hash)
 
 
 def register_custom_extensions_path():
@@ -417,54 +404,7 @@ def register_all_ext_routes(app: FastAPI):
         try:
             register_ext_routes(app, ext)
         except Exception as e:
-            logger.error(f"Could not load extension `{ext.code}`: {str(e)}")
-
-
-def initialize_server_logger():
-    super_user_hash = sha256(settings.super_user.encode("utf-8")).hexdigest()
-
-    serverlog_queue = asyncio.Queue()
-
-    async def update_websocket_serverlog():
-        while True:
-            msg = await serverlog_queue.get()
-            await websocketUpdater(super_user_hash, msg)
-
-    create_permanent_task(update_websocket_serverlog)
-
-    logger.add(
-        lambda msg: serverlog_queue.put_nowait(msg),
-        format=Formatter().format,
-    )
-
-
-def log_server_info():
-    logger.info("Starting LNbits")
-    logger.info(f"Version: {settings.version}")
-    logger.info(f"Baseurl: {settings.lnbits_baseurl}")
-    logger.info(f"Host: {settings.host}")
-    logger.info(f"Port: {settings.port}")
-    logger.info(f"Debug: {settings.debug}")
-    logger.info(f"Site title: {settings.lnbits_site_title}")
-    logger.info(f"Funding source: {settings.lnbits_backend_wallet_class}")
-    logger.info(f"Data folder: {settings.lnbits_data_folder}")
-    logger.info(f"Database: {get_db_vendor_name()}")
-    logger.info(f"Service fee: {settings.lnbits_service_fee}")
-    logger.info(f"Service fee max: {settings.lnbits_service_fee_max}")
-    logger.info(f"Service fee wallet: {settings.lnbits_service_fee_wallet}")
-
-
-def get_db_vendor_name():
-    db_url = settings.lnbits_database_url
-    return (
-        "PostgreSQL"
-        if db_url and db_url.startswith("postgres://")
-        else (
-            "CockroachDB"
-            if db_url and db_url.startswith("cockroachdb://")
-            else "SQLite"
-        )
-    )
+            logger.error(f"Could not load extension `{ext.code}`: {e!s}")
 
 
 def register_async_tasks():
@@ -482,148 +422,7 @@ def register_async_tasks():
     # create_permanent_task(watchdog_task)
     create_permanent_task(killswitch_task)
 
-
-def register_exception_handlers(app: FastAPI):
-    @app.exception_handler(Exception)
-    async def exception_handler(request: Request, exc: Exception):
-        etype, _, tb = sys.exc_info()
-        traceback.print_exception(etype, exc, tb)
-        logger.error(f"Exception: {str(exc)}")
-        # Only the browser sends "text/html" request
-        # not fail proof, but everything else get's a JSON response
-        if (
-            request.headers
-            and "accept" in request.headers
-            and "text/html" in request.headers["accept"]
-        ):
-            return template_renderer().TemplateResponse(
-                request, "error.html", {"err": f"Error: {str(exc)}"}
-            )
-
-        return JSONResponse(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            content={"detail": str(exc)},
-        )
-
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
-    ):
-        logger.error(f"RequestValidationError: {str(exc)}")
-        # Only the browser sends "text/html" request
-        # not fail proof, but everything else get's a JSON response
-
-        if (
-            request.headers
-            and "accept" in request.headers
-            and "text/html" in request.headers["accept"]
-        ):
-            return template_renderer().TemplateResponse(
-                request,
-                "error.html",
-                {"err": f"Error: {str(exc)}"},
-            )
-
-        return JSONResponse(
-            status_code=HTTPStatus.BAD_REQUEST,
-            content={"detail": str(exc)},
-        )
-
-    @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException):
-        logger.error(f"HTTPException {exc.status_code}: {exc.detail}")
-        # Only the browser sends "text/html" request
-        # not fail proof, but everything else get's a JSON response
-
-        if (
-            request.headers
-            and "accept" in request.headers
-            and "text/html" in request.headers["accept"]
-        ):
-            if exc.headers and "token-expired" in exc.headers:
-                response = RedirectResponse("/")
-                response.delete_cookie("cookie_access_token")
-                response.delete_cookie("is_lnbits_user_authorized")
-                response.set_cookie("is_access_token_expired", "true")
-                return response
-
-            return template_renderer().TemplateResponse(
-                request,
-                "error.html",
-                {
-                    "request": request,
-                    "err": f"HTTP Error {exc.status_code}: {exc.detail}",
-                },
-            )
-
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"detail": exc.detail},
-        )
-
-
-def configure_logger() -> None:
-    logger.remove()
-    log_level: str = "DEBUG" if settings.debug else "INFO"
-    formatter = Formatter()
-    logger.add(sys.stdout, level=log_level, format=formatter.format)
-
-    if settings.enable_log_to_file:
-        logger.add(
-            Path(settings.lnbits_data_folder, "logs", "lnbits.log"),
-            rotation=settings.log_rotation,
-            retention=settings.log_retention,
-            level="INFO",
-            format=formatter.format,
-        )
-        logger.add(
-            Path(settings.lnbits_data_folder, "logs", "debug.log"),
-            rotation=settings.log_rotation,
-            retention=settings.log_retention,
-            level="DEBUG",
-            format=formatter.format,
-        )
-
-    logging.getLogger("uvicorn").handlers = [InterceptHandler()]
-    logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
-    logging.getLogger("uvicorn.error").handlers = [InterceptHandler()]
-    logging.getLogger("uvicorn.error").propagate = False
-
-    logging.getLogger("sqlalchemy").handlers = [InterceptHandler()]
-    logging.getLogger("sqlalchemy.engine.base").handlers = [InterceptHandler()]
-    logging.getLogger("sqlalchemy.engine.base").propagate = False
-    logging.getLogger("sqlalchemy.engine.base.Engine").handlers = [InterceptHandler()]
-    logging.getLogger("sqlalchemy.engine.base.Engine").propagate = False
-
-
-class Formatter:
-    def __init__(self):
-        self.padding = 0
-        self.minimal_fmt = (
-            "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | "
-            "<level>{message}</level>\n"
-        )
-        if settings.debug:
-            self.fmt = (
-                "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | "
-                "<level>{level: <4}</level> | "
-                "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
-                "<level>{message}</level>\n"
-            )
-        else:
-            self.fmt = self.minimal_fmt
-
-    def format(self, record):
-        function = "{function}".format(**record)
-        if function == "emit":  # uvicorn logs
-            return self.minimal_fmt
-        return self.fmt
-
-
-class InterceptHandler(logging.Handler):
-    def emit(self, record):
-        try:
-            level = logger.level(record.levelname).name
-        except ValueError:
-            level = record.levelno
-        logger.log(level, record.getMessage())
+    # server logs for websocket
+    if settings.lnbits_admin_ui:
+        server_log_task = initialize_server_websocket_logger()
+        create_permanent_task(server_log_task)

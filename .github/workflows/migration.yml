@@ -1,0 +1,37 @@
+name: migration
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "python version"
+        type: string
+        default: "3.10"
+
+jobs:
+  make:
+    name: migration (${{ inputs.python-version }})
+    strategy:
+      matrix:
+        os-version: ["ubuntu-latest"]
+    runs-on: ${{ matrix.os-version }}
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: lnbits
+          POSTGRES_PASSWORD: lnbits
+          POSTGRES_DB: migration
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/prepare
+        with:
+          python-version: ${{ inputs.python-version }}
+      - run: make test-migration

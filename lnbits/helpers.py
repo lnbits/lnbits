@@ -20,6 +20,19 @@ from .db import FilterModel
 from .extension_manager import get_valid_extensions
 
 
+def get_db_vendor_name():
+    db_url = settings.lnbits_database_url
+    return (
+        "PostgreSQL"
+        if db_url and db_url.startswith("postgres://")
+        else (
+            "CockroachDB"
+            if db_url and db_url.startswith("cockroachdb://")
+            else "SQLite"
+        )
+    )
+
+
 def urlsafe_short_hash() -> str:
     return shortuuid.uuid()
 
@@ -58,6 +71,11 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
     t.env.globals["LNBITS_DENOMINATION"] = settings.lnbits_denomination
     t.env.globals["SITE_TAGLINE"] = settings.lnbits_site_tagline
     t.env.globals["SITE_DESCRIPTION"] = settings.lnbits_site_description
+    t.env.globals["LNBITS_SHOW_HOME_PAGE_ELEMENTS"] = (
+        settings.lnbits_show_home_page_elements
+    )
+    t.env.globals["LNBITS_CUSTOM_BADGE"] = settings.lnbits_custom_badge
+    t.env.globals["LNBITS_CUSTOM_BADGE_COLOR"] = settings.lnbits_custom_badge_color
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.lnbits_theme_options
     t.env.globals["LNBITS_QR_LOGO"] = settings.lnbits_qr_logo
     t.env.globals["LNBITS_VERSION"] = settings.version

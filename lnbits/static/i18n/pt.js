@@ -9,6 +9,8 @@ window.localisation.pt = {
   transactions: 'Transações',
   dashboard: 'Painel de Controle',
   node: 'Nó',
+  export_users: 'Exportar Usuários',
+  no_users: 'Nenhum usuário encontrado',
   total_capacity: 'Capacidade Total',
   avg_channel_size: 'Tamanho Médio do Canal',
   biggest_channel_size: 'Maior Tamanho do Canal',
@@ -34,6 +36,8 @@ window.localisation.pt = {
     'Apagar todas as configurações e redefinir para os padrões.',
   download_backup: 'Fazer backup da base de dados',
   name_your_wallet: 'Nomeie sua carteira %{name}',
+  wallet_topup_ok:
+    'Sucesso ao criar fundos virtuais (%{amount} sats). Os pagamentos dependem dos fundos reais na fonte de financiamento.',
   paste_invoice_label: 'Cole uma fatura, pedido de pagamento ou código lnurl *',
   lnbits_description:
     'Fácil de configurar e leve, o LNbits pode ser executado em qualquer fonte de financiamento da Lightning Network e até mesmo o LNbits em si! Você pode executar o LNbits para si mesmo ou oferecer facilmente uma solução de custódia para outros. Cada carteira tem suas próprias chaves de API e não há limite para o número de carteiras que você pode criar. Ser capaz de particionar fundos torna o LNbits uma ferramenta útil para gerenciamento de dinheiro e como uma ferramenta de desenvolvimento. As extensões adicionam funcionalidades extras ao LNbits para que você possa experimentar uma série de tecnologias de ponta na rede lightning. Nós tornamos o desenvolvimento de extensões o mais fácil possível e, como um projeto gratuito e de código aberto, incentivamos as pessoas a desenvolver e enviar as suas próprias.',
@@ -99,6 +103,7 @@ window.localisation.pt = {
     'Este é um código QR de saque LNURL para sacar tudo desta carteira. Não o partilhe com ninguém. É compatível com balanceCheck e balanceNotify para que a sua carteira possa continuar levantando os fundos continuamente daqui após o primeiro saque.',
   i_understand: 'Eu entendo',
   copy_wallet_url: 'Copiar URL da carteira',
+  disclaimer_dialog_title: 'Importante!',
   disclaimer_dialog:
     'Funcionalidade de login a ser lançada numa atualização futura, por enquanto, certifique-se que marca esta página para acesso futuro à sua carteira! Este serviço está em BETA, e não nos responsabilizamos por pessoas que perderem o acesso aos fundos.',
   no_transactions: 'Ainda não foram feitas transações',
@@ -163,7 +168,7 @@ window.localisation.pt = {
     'Se ativado, ele mudará sua fonte de financiamento para VoidWallet automaticamente se o LNbits enviar um sinal de desativação. Você precisará ativar manualmente após uma atualização.',
   killswitch_interval: 'Intervalo do Killswitch',
   killswitch_interval_desc:
-    'Com que frequência a tarefa de fundo deve verificar o sinal de desativação do LNBits proveniente da fonte de status (em minutos).',
+    'Com que frequência a tarefa de fundo deve verificar o sinal de desativação do LNbits proveniente da fonte de status (em minutos).',
   enable_watchdog: 'Ativar Watchdog',
   enable_watchdog_desc:
     'Se ativado, mudará automaticamente a sua fonte de financiamento para VoidWallet caso o seu saldo seja inferior ao saldo LNbits. Você precisará ativar manualmente após uma atualização.',
@@ -240,5 +245,13 @@ window.localisation.pt = {
   logout: 'Sair',
   look_and_feel: 'Aparência e Sensação',
   language: 'Idioma',
-  color_scheme: 'Esquema de Cores'
+  color_scheme: 'Esquema de Cores',
+  extension_cost: 'Este lançamento requer um pagamento mínimo de %{cost} sats.',
+  extension_paid_sats: 'Você já pagou %{paid_sats} sats.',
+  release_details_error: 'Não é possível obter os detalhes da versão.',
+  pay_from_wallet: 'Pague da Carteira',
+  show_qr: 'Exibir QR',
+  retry_install: 'Reinstalar Tente Novamente',
+  new_payment: 'Realizar Novo Pagamento',
+  hide_empty_wallets: 'Ocultar carteiras vazias'
 }

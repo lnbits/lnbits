@@ -17,7 +17,7 @@ from lnbits.db import Connection, FilterModel, FromRowModel
 from lnbits.helpers import url_for
 from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
-from lnbits.wallets import get_wallet_class
+from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import PaymentPendingStatus, PaymentStatus
 
 
@@ -68,7 +68,7 @@ class Wallet(BaseWallet):
         return await get_standalone_payment(payment_hash)
 
 
-class WalletType(Enum):
+class KeyType(Enum):
     admin = 0
     invoice = 1
     invalid = 2
@@ -80,7 +80,7 @@ class WalletType(Enum):
 
 @dataclass
 class WalletTypeInfo:
-    wallet_type: WalletType
+    key_type: KeyType
     wallet: Wallet
 
 
@@ -95,6 +95,37 @@ class UserConfig(BaseModel):
     # - "lnbits": the user was created via register form (username/pass or user_id only)
     # - "google | github | ...": the user was created using an SSO provider
     provider: Optional[str] = "lnbits"  # auth provider
+
+
+class Account(FromRowModel):
+    id: str
+    is_super_user: Optional[bool] = False
+    is_admin: Optional[bool] = False
+    username: Optional[str] = None
+    email: Optional[str] = None
+    balance_msat: Optional[int] = 0
+    transaction_count: Optional[int] = 0
+    wallet_count: Optional[int] = 0
+    last_payment: Optional[datetime.datetime] = None
+
+
+class AccountFilters(FilterModel):
+    __search_fields__ = ["id", "email", "username"]
+    __sort_fields__ = [
+        "balance_msat",
+        "email",
+        "username",
+        "transaction_count",
+        "wallet_count",
+        "last_payment",
+    ]
+
+    id: str
+    last_payment: Optional[datetime.datetime] = None
+    transaction_count: Optional[int] = None
+    wallet_count: Optional[int] = None
+    username: Optional[str] = None
+    email: Optional[str] = None
 
 
 class User(BaseModel):
@@ -265,11 +296,11 @@ class Payment(FromRowModel):
             f"pending payment {self.checking_id}"
         )
 
-        WALLET = get_wallet_class()
+        funding_source = get_funding_source()
         if self.is_out:
-            status = await WALLET.get_payment_status(self.checking_id)
+            status = await funding_source.get_payment_status(self.checking_id)
         else:
-            status = await WALLET.get_invoice_status(self.checking_id)
+            status = await funding_source.get_invoice_status(self.checking_id)
 
         logger.debug(f"Status: {status}")
 
@@ -331,16 +362,6 @@ class PaymentHistoryPoint(BaseModel):
     balance: int
 
 
-class BalanceCheck(BaseModel):
-    wallet: str
-    service: str
-    url: str
-
-    @classmethod
-    def from_row(cls, row: Row):
-        return cls(wallet=row["wallet"], service=row["service"], url=row["url"])
-
-
 def _do_nothing(*_):
     pass
 
@@ -394,11 +415,10 @@ class CreateInvoice(BaseModel):
     description_hash: Optional[str] = None
     unhashed_description: Optional[str] = None
     expiry: Optional[int] = None
-    lnurl_callback: Optional[str] = None
-    lnurl_balance_check: Optional[str] = None
     extra: Optional[dict] = None
     webhook: Optional[str] = None
     bolt11: Optional[str] = None
+    lnurl_callback: Optional[str] = None
 
 
 class CreateTopup(BaseModel):
@@ -424,3 +444,17 @@ class WebPushSubscription(BaseModel):
     data: str
     host: str
     timestamp: str
+
+
+class BalanceDelta(BaseModel):
+    lnbits_balance_msats: int
+    node_balance_msats: int
+
+    @property
+    def delta_msats(self):
+        return self.node_balance_msats - self.lnbits_balance_msats
+
+
+class SimpleStatus(BaseModel):
+    success: bool
+    message: str

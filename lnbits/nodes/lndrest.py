@@ -4,7 +4,7 @@ import asyncio
 import base64
 import json
 from http import HTTPStatus
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from fastapi import HTTPException
 from httpx import HTTPStatusError
@@ -60,11 +60,13 @@ class LndRestNode(Node):
         )
         try:
             response.raise_for_status()
-        except HTTPStatusError as e:
-            json = e.response.json()
+        except HTTPStatusError as exc:
+            json = exc.response.json()
             if json:
                 error = json.get("error") or json
-                raise HTTPException(e.response.status_code, detail=error.get("message"))
+                raise HTTPException(
+                    exc.response.status_code, detail=error.get("message")
+                ) from exc
         return response.json()
 
     def get(self, path: str, **kwargs):
@@ -81,8 +83,8 @@ class LndRestNode(Node):
     async def connect_peer(self, uri: str):
         try:
             pubkey, host = uri.split("@")
-        except ValueError:
-            raise HTTPException(400, detail="Invalid peer URI")
+        except ValueError as exc:
+            raise HTTPException(400, detail="Invalid peer URI") from exc
         await self.request(
             "POST",
             "/v1/peers",
@@ -96,11 +98,11 @@ class LndRestNode(Node):
     async def disconnect_peer(self, peer_id: str):
         try:
             await self.request("DELETE", "/v1/peers/" + peer_id)
-        except HTTPException as e:
-            if "unable to disconnect" in e.detail:
+        except HTTPException as exc:
+            if "unable to disconnect" in exc.detail:
                 raise HTTPException(
                     HTTPStatus.BAD_REQUEST, detail="Peer is not connected"
-                )
+                ) from exc
             raise
 
     async def _get_peer_info(self, peer_id: str) -> NodePeerInfo:
@@ -174,9 +176,9 @@ class LndRestNode(Node):
                 status_code=HTTPStatus.BAD_REQUEST, detail="Channel point required"
             )
 
-        asyncio.create_task(self._close_channel(point, force))
+        asyncio.create_task(self._close_channel(point, force))  # noqa: RUF006
 
-    async def get_channels(self) -> List[NodeChannel]:
+    async def get_channels(self) -> list[NodeChannel]:
         normal, pending, closed = await asyncio.gather(
             self.get("/v1/channels"),
             self.get("/v1/channels/pending"),

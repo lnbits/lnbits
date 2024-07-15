@@ -12,7 +12,7 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    Unsupported,
+    UnsupportedError,
     Wallet,
 )
 
@@ -74,7 +74,7 @@ class OpenNodeWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         if description_hash or unhashed_description:
-            raise Unsupported("description_hash")
+            raise UnsupportedError("description_hash")
 
         r = await self.client.post(
             "/v1/charges",
@@ -141,6 +141,6 @@ class OpenNodeWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
+        while settings.lnbits_running:
             value = await self.queue.get()
             yield value

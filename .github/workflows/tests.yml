@@ -3,8 +3,9 @@ name: tests
 on:
   workflow_call:
     inputs:
-      make:
-        default: test
+      custom-pytest:
+        description: "Custom pytest arguments"
+        required: true
         type: string
       python-version:
         default: "3.9"
@@ -48,15 +49,24 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - name: Run Tests
+      - name: Run pytest
+        uses: pavelzw/pytest-action@v2
         env:
           LNBITS_DATABASE_URL: ${{ inputs.db-url }}
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
-        run: make ${{ inputs.make }}
+          PYTHONUNBUFFERED: 1
+          DEBUG: true
+        with:
+          verbose: true
+          job-summary: true
+          emoji: false
+          click-to-expand: true
+          custom-pytest: ${{ inputs.custom-pytest }}
+          report-title: "test (${{ inputs.python-version }}, ${{ inputs.db-url }})"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
+          verbose: false

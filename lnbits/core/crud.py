@@ -2,16 +2,19 @@ import datetime
 import json
 from time import time
 from typing import Any, Dict, List, Literal, Optional
-from urllib.parse import urlparse
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import shortuuid
 from passlib.context import CryptContext
 
 from lnbits.core.db import db
-from lnbits.core.models import WalletType
 from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
-from lnbits.extension_manager import InstallableExtension
+from lnbits.extension_manager import (
+    InstallableExtension,
+    PayToEnableInfo,
+    UserExtension,
+    UserExtensionInfo,
+)
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,
@@ -21,8 +24,8 @@ from lnbits.settings import (
 )
 
 from .models import (
-    BalanceCheck,
-    CreateUser,
+    Account,
+    AccountFilters,
     Payment,
     PaymentFilters,
     PaymentHistoryPoint,
@@ -38,63 +41,23 @@ from .models import (
 # --------
 
 
-async def create_user(
-    data: CreateUser, user_config: Optional[UserConfig] = None
-) -> User:
-    if not settings.new_accounts_allowed:
-        raise ValueError("Account creation is disabled.")
-    if await get_account_by_username(data.username):
-        raise ValueError("Username already exists.")
-
-    if data.email and await get_account_by_email(data.email):
-        raise ValueError("Email already exists.")
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-    user_id = uuid4().hex
-    tsph = db.timestamp_placeholder
-    now = int(time())
-    await db.execute(
-        f"""
-            INSERT INTO accounts
-            (id, email, username, pass, extra, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, {tsph}, {tsph})
-        """,
-        (
-            user_id,
-            data.email,
-            data.username,
-            pwd_context.hash(data.password),
-            json.dumps(dict(user_config)) if user_config else "{}",
-            now,
-            now,
-        ),
-    )
-    new_account = await get_account(user_id=user_id)
-    assert new_account, "Newly created account couldn't be retrieved"
-    return new_account
-
-
 async def create_account(
-    conn: Optional[Connection] = None,
     user_id: Optional[str] = None,
+    username: Optional[str] = None,
     email: Optional[str] = None,
+    password: Optional[str] = None,
     user_config: Optional[UserConfig] = None,
+    conn: Optional[Connection] = None,
 ) -> User:
-    if user_id:
-        user_uuid4 = UUID(hex=user_id, version=4)
-        assert user_uuid4.hex == user_id, "User ID is not valid UUID4 hex string"
-    else:
-        user_id = uuid4().hex
-
+    user_id = user_id or uuid4().hex
     extra = json.dumps(dict(user_config)) if user_config else "{}"
     now = int(time())
     await (conn or db).execute(
         f"""
-        INSERT INTO accounts (id, email, extra, created_at, updated_at)
-        VALUES (?, ?, ?, {db.timestamp_placeholder}, {db.timestamp_placeholder})
+        INSERT INTO accounts (id, username, pass, email, extra, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, {db.timestamp_placeholder}, {db.timestamp_placeholder})
         """,
-        (user_id, email, extra, now, now),
+        (user_id, username, password, email, extra, now, now),
     )
 
     new_account = await get_account(user_id=user_id, conn=conn)
@@ -147,6 +110,46 @@ async def update_account(
     return user
 
 
+async def delete_account(user_id: str, conn: Optional[Connection] = None) -> None:
+    await (conn or db).execute(
+        "DELETE from accounts WHERE id = ?",
+        (user_id,),
+    )
+
+
+async def get_accounts(
+    filters: Optional[Filters[AccountFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> Page[Account]:
+    return await (conn or db).fetch_page(
+        """
+        SELECT
+            accounts.id,
+            accounts.username,
+            accounts.email,
+            SUM(COALESCE((
+                SELECT balance FROM balances WHERE wallet = wallets.id
+            ), 0)) as balance_msat,
+            SUM((
+                SELECT COUNT(*) FROM apipayments WHERE wallet = wallets.id
+            )) as transaction_count,
+            (
+                SELECT COUNT(*) FROM wallets WHERE wallets.user = accounts.id
+            ) as wallet_count,
+            MAX((
+                SELECT time FROM apipayments
+                WHERE wallet = wallets.id ORDER BY time DESC LIMIT 1
+            )) as last_payment
+            FROM accounts LEFT JOIN wallets ON accounts.id = wallets.user
+        """,
+        [],
+        [],
+        filters=filters,
+        model=Account,
+        group_by=["accounts.id"],
+    )
+
+
 async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
@@ -168,14 +171,21 @@ async def delete_accounts_no_wallets(
     time_delta: int,
     conn: Optional[Connection] = None,
 ) -> None:
+    delta = int(time()) - time_delta
     await (conn or db).execute(
         f"""
         DELETE FROM accounts
         WHERE NOT EXISTS (
             SELECT wallets.id FROM wallets WHERE wallets.user = accounts.id
-        ) AND updated_at < {db.timestamp_placeholder}
+        ) AND (
+            (updated_at is null AND created_at < {db.timestamp_placeholder})
+            OR updated_at < {db.timestamp_placeholder}
+        )
         """,
-        (int(time()) - time_delta,),
+        (
+            delta,
+            delta,
+        ),
     )
 
 
@@ -276,10 +286,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
     )
 
     if user:
-        extensions = await (conn or db).fetchall(
-            """SELECT extension FROM extensions WHERE "user" = ? AND active""",
-            (user_id,),
-        )
+        extensions = await get_user_active_extensions_ids(user_id, conn)
         wallets = await (conn or db).fetchall(
             """
             SELECT *, COALESCE((
@@ -298,7 +305,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         username=user["username"],
         extensions=[
-            e[0] for e in extensions if User.is_extension_for_user(e[0], user["id"])
+            e for e in extensions if User.is_extension_for_user(e[0], user["id"])
         ],
         wallets=[Wallet(**w) for w in wallets],
         admin=user["id"] == settings.super_user
@@ -321,6 +328,7 @@ async def add_installed_extension(
         "installed_release": (
             dict(ext.installed_release) if ext.installed_release else None
         ),
+        "pay_to_enable": (dict(ext.pay_to_enable) if ext.pay_to_enable else None),
         "dependencies": ext.dependencies,
         "payments": [dict(p) for p in ext.payments] if ext.payments else None,
     }
@@ -330,8 +338,8 @@ async def add_installed_extension(
     await (conn or db).execute(
         """
         INSERT INTO installed_extensions
-        (id, version, name, short_description, icon, stars, meta)
-        VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET
+        (id, version, name, active, short_description, icon, stars, meta)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET
         (version, name, active, short_description, icon, stars, meta) =
         (?, ?, ?, ?, ?, ?, ?)
         """,
@@ -339,13 +347,14 @@ async def add_installed_extension(
             ext.id,
             version,
             ext.name,
+            ext.active,
             ext.short_description,
             ext.icon,
             ext.stars,
             json.dumps(meta),
             version,
             ext.name,
-            False,
+            ext.active,
             ext.short_description,
             ext.icon,
             ext.stars,
@@ -363,6 +372,17 @@ async def update_installed_extension_state(
         """,
         (active, ext_id),
     )
+
+
+async def update_extension_pay_to_enable(
+    ext_id: str, payment_info: PayToEnableInfo, conn: Optional[Connection] = None
+) -> None:
+    ext = await get_installed_extension(ext_id, conn)
+    if not ext:
+        return
+    ext.pay_to_enable = payment_info
+
+    await add_installed_extension(ext, conn)
 
 
 async def delete_installed_extension(
@@ -407,21 +427,44 @@ async def get_installed_extension(
 
 
 async def get_installed_extensions(
+    active: Optional[bool] = None,
     conn: Optional[Connection] = None,
 ) -> List["InstallableExtension"]:
     rows = await (conn or db).fetchall(
         "SELECT * FROM installed_extensions",
         (),
     )
-    return [InstallableExtension.from_row(row) for row in rows]
+    all_extensions = [InstallableExtension.from_row(row) for row in rows]
+    if active is None:
+        return all_extensions
+
+    return [e for e in all_extensions if e.active == active]
 
 
-async def get_inactive_extensions(*, conn: Optional[Connection] = None) -> List[str]:
-    inactive_extensions = await (conn or db).fetchall(
-        """SELECT id FROM installed_extensions WHERE NOT active""",
-        (),
+async def get_user_extension(
+    user_id: str, extension: str, conn: Optional[Connection] = None
+) -> Optional[UserExtension]:
+    row = await (conn or db).fetchone(
+        """
+            SELECT extension, active, extra as _extra FROM extensions
+            WHERE "user" = ? AND extension = ?
+        """,
+        (user_id, extension),
     )
-    return [ext[0] for ext in inactive_extensions]
+    return UserExtension.from_row(row) if row else None
+
+
+async def get_user_extensions(
+    user_id: str, conn: Optional[Connection] = None
+) -> List[UserExtension]:
+    rows = await (conn or db).fetchall(
+        """
+            SELECT extension, active, extra as _extra FROM extensions
+            WHERE "user" = ?
+        """,
+        (user_id,),
+    )
+    return [UserExtension.from_row(row) for row in rows]
 
 
 async def update_user_extension(
@@ -433,6 +476,32 @@ async def update_user_extension(
         ON CONFLICT ("user", extension) DO UPDATE SET active = ?
         """,
         (user_id, extension, active, active),
+    )
+
+
+async def get_user_active_extensions_ids(
+    user_id: str, conn: Optional[Connection] = None
+) -> List[str]:
+    rows = await (conn or db).fetchall(
+        """SELECT extension FROM extensions WHERE "user" = ? AND active""",
+        (user_id,),
+    )
+    return [e[0] for e in rows]
+
+
+async def update_user_extension_extra(
+    user_id: str,
+    extension: str,
+    extra: UserExtensionInfo,
+    conn: Optional[Connection] = None,
+) -> None:
+    extra_json = json.dumps(dict(extra))
+    await (conn or db).execute(
+        """
+        INSERT INTO extensions ("user", extension, extra) VALUES (?, ?, ?)
+        ON CONFLICT ("user", extension) DO UPDATE SET extra = ?
+        """,
+        (user_id, extension, extra_json, extra_json),
     )
 
 
@@ -500,16 +569,29 @@ async def update_wallet(
 
 
 async def delete_wallet(
-    *, user_id: str, wallet_id: str, conn: Optional[Connection] = None
+    *,
+    user_id: str,
+    wallet_id: str,
+    deleted: bool = True,
+    conn: Optional[Connection] = None,
 ) -> None:
     now = int(time())
     await (conn or db).execute(
         f"""
         UPDATE wallets
-        SET deleted = true, updated_at = {db.timestamp_placeholder}
+        SET deleted = ?, updated_at = {db.timestamp_placeholder}
         WHERE id = ? AND "user" = ?
         """,
-        (now, wallet_id, user_id),
+        (deleted, now, wallet_id, user_id),
+    )
+
+
+async def force_delete_wallet(
+    wallet_id: str, conn: Optional[Connection] = None
+) -> None:
+    await (conn or db).execute(
+        "DELETE FROM wallets WHERE id = ?",
+        (wallet_id,),
     )
 
 
@@ -536,14 +618,21 @@ async def delete_unused_wallets(
     time_delta: int,
     conn: Optional[Connection] = None,
 ) -> None:
+    delta = int(time()) - time_delta
     await (conn or db).execute(
         f"""
         DELETE FROM wallets
         WHERE (
             SELECT COUNT(*) FROM apipayments WHERE wallet = wallets.id
-        ) = 0 AND updated_at < {db.timestamp_placeholder}
+        ) = 0 AND (
+            (updated_at is null AND created_at < {db.timestamp_placeholder})
+            OR updated_at < {db.timestamp_placeholder}
+        )
         """,
-        (int(time()) - time_delta,),
+        (
+            delta,
+            delta,
+        ),
     )
 
 
@@ -561,9 +650,20 @@ async def get_wallet(
     return Wallet(**row) if row else None
 
 
+async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> List[Wallet]:
+    rows = await (conn or db).fetchall(
+        """
+        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
+        AS balance_msat FROM wallets WHERE "user" = ?
+        """,
+        (user_id,),
+    )
+
+    return [Wallet(**row) for row in rows]
+
+
 async def get_wallet_for_key(
     key: str,
-    key_type: WalletType = WalletType.invoice,
     conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
     row = await (conn or db).fetchone(
@@ -578,18 +678,10 @@ async def get_wallet_for_key(
     if not row:
         return None
 
-    if key_type == WalletType.admin and row["adminkey"] != key:
-        return None
-
     return Wallet(**row)
 
 
 async def get_total_balance(conn: Optional[Connection] = None):
-    row = await (conn or db).fetchone("SELECT SUM(balance) FROM balances")
-    return 0 if row[0] is None else row[0]
-
-
-async def get_active_wallet_total_balance(conn: Optional[Connection] = None):
     row = await (conn or db).fetchone("SELECT SUM(balance) FROM balances")
     return 0 if row[0] is None else row[0]
 
@@ -1040,73 +1132,6 @@ async def mark_webhook_sent(payment_hash: str, status: int) -> None:
     )
 
 
-# balance_check
-# -------------
-
-
-async def save_balance_check(
-    wallet_id: str, url: str, conn: Optional[Connection] = None
-):
-    domain = urlparse(url).netloc
-
-    await (conn or db).execute(
-        """
-        INSERT INTO balance_check (wallet, service, url) VALUES (?, ?, ?)
-        ON CONFLICT (wallet, service) DO UPDATE SET url = ?
-        """,
-        (wallet_id, domain, url, url),
-    )
-
-
-async def get_balance_check(
-    wallet_id: str, domain: str, conn: Optional[Connection] = None
-) -> Optional[BalanceCheck]:
-    row = await (conn or db).fetchone(
-        """
-        SELECT wallet, service, url
-        FROM balance_check
-        WHERE wallet = ? AND service = ?
-        """,
-        (wallet_id, domain),
-    )
-    return BalanceCheck.from_row(row) if row else None
-
-
-async def get_balance_checks(conn: Optional[Connection] = None) -> List[BalanceCheck]:
-    rows = await (conn or db).fetchall("SELECT wallet, service, url FROM balance_check")
-    return [BalanceCheck.from_row(row) for row in rows]
-
-
-# balance_notify
-# --------------
-
-
-async def save_balance_notify(
-    wallet_id: str, url: str, conn: Optional[Connection] = None
-):
-    await (conn or db).execute(
-        """
-        INSERT INTO balance_notify (wallet, url) VALUES (?, ?)
-        ON CONFLICT (wallet) DO UPDATE SET url = ?
-        """,
-        (wallet_id, url, url),
-    )
-
-
-async def get_balance_notify(
-    wallet_id: str, conn: Optional[Connection] = None
-) -> Optional[str]:
-    row = await (conn or db).fetchone(
-        """
-        SELECT url
-        FROM balance_notify
-        WHERE wallet = ?
-        """,
-        (wallet_id,),
-    )
-    return row[0] if row else None
-
-
 # admin
 # --------
 
@@ -1254,7 +1279,7 @@ async def get_webpush_subscription(
     endpoint: str, user: str
 ) -> Optional[WebPushSubscription]:
     row = await db.fetchone(
-        "SELECT * FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
+        """SELECT * FROM webpush_subscriptions WHERE endpoint = ? AND "user" = ?""",
         (
             endpoint,
             user,
@@ -1267,7 +1292,7 @@ async def get_webpush_subscriptions_for_user(
     user: str,
 ) -> List[WebPushSubscription]:
     rows = await db.fetchall(
-        "SELECT * FROM webpush_subscriptions WHERE user = ?",
+        """SELECT * FROM webpush_subscriptions WHERE "user" = ?""",
         (user,),
     )
     return [WebPushSubscription(**dict(row)) for row in rows]
@@ -1278,7 +1303,7 @@ async def create_webpush_subscription(
 ) -> WebPushSubscription:
     await db.execute(
         """
-        INSERT INTO webpush_subscriptions (endpoint, user, data, host)
+        INSERT INTO webpush_subscriptions (endpoint, "user", data, host)
         VALUES (?, ?, ?, ?)
         """,
         (
@@ -1293,17 +1318,19 @@ async def create_webpush_subscription(
     return subscription
 
 
-async def delete_webpush_subscription(endpoint: str, user: str) -> None:
-    await db.execute(
-        "DELETE FROM webpush_subscriptions WHERE endpoint = ? AND user = ?",
+async def delete_webpush_subscription(endpoint: str, user: str) -> int:
+    resp = await db.execute(
+        """DELETE FROM webpush_subscriptions WHERE endpoint = ? AND "user" = ?""",
         (
             endpoint,
             user,
         ),
     )
+    return resp.rowcount
 
 
-async def delete_webpush_subscriptions(endpoint: str) -> None:
-    await db.execute(
+async def delete_webpush_subscriptions(endpoint: str) -> int:
+    resp = await db.execute(
         "DELETE FROM webpush_subscriptions WHERE endpoint = ?", (endpoint,)
     )
+    return resp.rowcount

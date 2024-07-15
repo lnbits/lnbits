@@ -9,6 +9,8 @@ window.localisation.cs = {
   transactions: 'Transakce',
   dashboard: 'Přehled',
   node: 'Uzel',
+  export_users: 'Exportovat uživatele',
+  no_users: 'Nebyli nalezeni žádní uživatelé',
   total_capacity: 'Celková kapacita',
   avg_channel_size: 'Průmerná velikost kanálu',
   biggest_channel_size: 'Největší velikost kanálu',
@@ -33,6 +35,8 @@ window.localisation.cs = {
   reset_defaults_tooltip: 'Smazat všechna nastavení a obnovit výchozí.',
   download_backup: 'Stáhnout zálohu databáze',
   name_your_wallet: 'Pojmenujte svou %{name} peněženku',
+  wallet_topup_ok:
+    'Úspěšně vytvořeny virtuální prostředky (%{amount} sats). Platby závisí na skutečných prostředcích na zdrojovém účtu.',
   paste_invoice_label: 'Vložte fakturu, platební požadavek nebo lnurl kód *',
   lnbits_description:
     'Snadno nastavitelný a lehkotonážní, LNbits může běžet na jakémkoliv zdroji financování Lightning Network a dokonce LNbits samotné! LNbits můžete provozovat pro sebe, nebo snadno nabízet správu peněženek pro ostatní. Každá peněženka má své vlastní API klíče a není omezen počet peněženek, které můžete vytvořit. Možnost rozdělení prostředků dělá z LNbits užitečný nástroj pro správu peněz a jako vývojový nástroj. Rozšíření přidávají extra funkčnost k LNbits, takže můžete experimentovat s řadou špičkových technologií na lightning network. Vývoj rozšíření jsme učinili co nejjednodušší a jako svobodný a open-source projekt podporujeme lidi ve vývoji a zasílání vlastních rozšíření.',
@@ -99,6 +103,7 @@ window.localisation.cs = {
     'Toto je LNURL-withdraw QR kód pro vyčerpání všeho z této peněženky. Nesdílejte s nikým. Je kompatibilní s balanceCheck a balanceNotify, takže vaše peněženka může kontinuálně čerpat prostředky odsud po prvním výběru.',
   i_understand: 'Rozumím',
   copy_wallet_url: 'Kopírovat URL peněženky',
+  disclaimer_dialog_title: 'Důležité!',
   disclaimer_dialog:
     'Funkcionalita přihlášení bude vydána v budoucí aktualizaci, zatím si ujistěte, že jste si tuto stránku uložili do záložek pro budoucí přístup k vaší peněžence! Tato služba je v BETA verzi a nepřebíráme žádnou zodpovědnost za ztrátu přístupu k prostředkům.',
   no_transactions: 'Zatím žádné transakce',
@@ -161,7 +166,7 @@ window.localisation.cs = {
     'Pokud je povoleno, automaticky změní zdroj financování na VoidWallet pokud LNbits odešle signál killswitch. Po aktualizaci budete muset povolit ručně.',
   killswitch_interval: 'Interval Killswitch',
   killswitch_interval_desc:
-    'Jak často by měl úkol na pozadí kontrolovat signál killswitch od LNBits ze zdroje stavu (v minutách).',
+    'Jak často by měl úkol na pozadí kontrolovat signál killswitch od LNbits ze zdroje stavu (v minutách).',
   enable_watchdog: 'Povolit Watchdog',
   enable_watchdog_desc:
     'Pokud je povoleno, automaticky změní zdroj financování na VoidWallet pokud je váš zůstatek nižší než zůstatek LNbits. Po aktualizaci budete muset povolit ručně.',
@@ -238,5 +243,13 @@ window.localisation.cs = {
   logout: 'Odhlásit se',
   look_and_feel: 'Vzhled a chování',
   language: 'Jazyk',
-  color_scheme: 'Barevné schéma'
+  color_scheme: 'Barevné schéma',
+  extension_cost: 'Toto vydání vyžaduje minimální platbu %{cost} satoshi.',
+  extension_paid_sats: 'Již jste zaplatili %{paid_sats} sats.',
+  release_details_error: 'Nelze získat podrobnosti o vydání.',
+  pay_from_wallet: 'Platit z peněženky',
+  show_qr: 'Zobrazit QR',
+  retry_install: 'Zkusit znovu nainstalovat',
+  new_payment: 'Vytvořit novou platbu',
+  hide_empty_wallets: 'Skrýt prázdné peněženky'
 }

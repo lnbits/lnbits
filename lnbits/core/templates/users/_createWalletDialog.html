@@ -1,0 +1,23 @@
+<q-dialog v-model="createWalletDialog.show">
+  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <p>Create Wallet</p>
+    <div class="row">
+      <div class="col-12">
+        <q-form @submit="createWallet">
+          <lnbits-dynamic-fields
+            :options="createWalletDialog.fields"
+            v-model="createUserDialog.data"
+          ></lnbits-dynamic-fields>
+          <div class="row q-mt-lg">
+            <q-btn v-close-popup unelevated color="primary" type="submit"
+              >Create</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
+          </div>
+        </q-form>
+      </div>
+    </div>
+  </q-card>
+</q-dialog>

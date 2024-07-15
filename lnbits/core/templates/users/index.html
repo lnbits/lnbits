@@ -1,0 +1,116 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %} {% include "users/_walletDialog.html" %} {% include
+"users/_topupDialog.html" %} {% include "users/_createUserDialog.html" %} {%
+include "users/_createWalletDialog.html" %}
+
+<h3 class="text-subtitle q-my-none" v-text="$t('users')"></h3>
+
+<div class="row q-col-gutter-md justify-center">
+  <div class="col q-gutter-y-md" style="width: 300px">
+    <div style="width: 600px">
+      <canvas ref="chart1"></canvas>
+    </div>
+  </div>
+</div>
+<div class="row q-col-gutter-md justify-center">
+  <div class="col q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-sm">
+          <q-btn :label="$t('topup')" @click="topupDialog.show = true">
+            <q-tooltip
+              >{%raw%}{{ $t('add_funds_tooltip') }}{%endraw%}</q-tooltip
+            >
+          </q-btn>
+        </div>
+        <q-table
+          :data="users"
+          :row-key="usersTableRowKey"
+          :columns="usersTable.columns"
+          :pagination.sync="usersTable.pagination"
+          :no-data-label="$t('no_users')"
+          :filter="usersTable.search"
+          :loading="usersTable.loading"
+          @request="fetchUsers"
+        >
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th
+                v-for="col in props.cols"
+                v-text="col.label"
+                :key="col.name"
+                :props="props"
+              ></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr auto-width :props="props">
+              <q-td>
+                <q-btn
+                  round
+                  icon="list"
+                  size="sm"
+                  color="secondary"
+                  @click="fetchWallets(props.row.id)"
+                >
+                  <q-tooltip>Show Wallets</q-tooltip>
+                </q-btn>
+                <q-btn
+                  round
+                  icon="content_copy"
+                  size="sm"
+                  color="primary"
+                  @click="copyText(props.row.id)"
+                >
+                  <q-tooltip>Copy User ID</q-tooltip>
+                </q-btn>
+                <q-btn
+                  round
+                  v-if="!props.row.is_super_user"
+                  icon="build"
+                  size="sm"
+                  :color="props.row.is_admin ? 'primary' : ''"
+                  @click="toggleAdmin(props.row.id)"
+                >
+                  <q-tooltip>Toggle Admin</q-tooltip>
+                </q-btn>
+                <q-btn
+                  round
+                  v-if="props.row.is_super_user"
+                  icon="build"
+                  size="sm"
+                  color="positive"
+                >
+                  <q-tooltip>Super User</q-tooltip>
+                </q-btn>
+                <q-btn
+                  round
+                  icon="delete"
+                  size="sm"
+                  color="negative"
+                  @click="deleteUser(props.row.id, props)"
+                >
+                  <q-tooltip>Delete User</q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td
+                auto-width
+                v-text="formatSat(props.row.balance_msat)"
+              ></q-td>
+              <q-td auto-width v-text="props.row.wallet_count"></q-td>
+              <q-td auto-width v-text="props.row.transaction_count"></q-td>
+              <q-td auto-width v-text="props.row.username"></q-td>
+              <q-td auto-width v-text="props.row.email"></q-td>
+              <q-td auto-width v-text="props.row.last_payment"></q-td>
+            </q-tr>
+          </template>
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="{{ static_url_for('static', 'js/users.js') }}"></script>
+{% endblock %}

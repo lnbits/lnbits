@@ -9,6 +9,8 @@ window.localisation.de = {
   transactions: 'Transaktionen',
   dashboard: 'Armaturenbrett',
   node: 'Knoten',
+  export_users: 'Benutzer exportieren',
+  no_users: 'Keine Benutzer gefunden',
   total_capacity: 'Gesamtkapazität',
   avg_channel_size: 'Durchschn. Kanalgröße',
   biggest_channel_size: 'Größte Kanalgröße',
@@ -34,6 +36,8 @@ window.localisation.de = {
     'Alle Einstellungen auf die Standardeinstellungen zurücksetzen.',
   download_backup: 'Datenbank-Backup herunterladen',
   name_your_wallet: 'Vergib deiner %{name} Wallet einen Namen',
+  wallet_topup_ok:
+    'Erfolg beim Erstellen von virtuellen Mitteln (%{amount} Satoshis). Zahlungen hängen von den tatsächlichen Mitteln der Finanzierungsquelle ab.',
   paste_invoice_label:
     'Füge eine Rechnung, Zahlungsanforderung oder LNURL ein *',
   lnbits_description:
@@ -102,6 +106,7 @@ window.localisation.de = {
     'LNURL-withdraw QR-Code, der das Abziehen aller Geldmittel aus dieser Wallet erlaubt. Teile ihn mit niemandem! Kompatibel mit balanceCheck und balanceNotify, so dass dein Wallet die Sats nach dem ersten Abzug kontinuierlich von hier abziehen kann.',
   i_understand: 'Ich verstehe',
   copy_wallet_url: 'Wallet-URL kopieren',
+  disclaimer_dialog_title: 'Wichtig!',
   disclaimer_dialog:
     'Login-Funktionalität wird in einem zukünftigen Update veröffentlicht. Bis dahin ist die Speicherung der Wallet-URL als Lesezeichen absolut notwendig, um Zugriff auf die Wallet zu erhalten! Dieser Service ist in BETA und wir übernehmen keine Verantwortung für Verluste durch verlorene Zugriffe.',
   no_transactions: 'Keine Transaktionen',
@@ -166,7 +171,7 @@ window.localisation.de = {
     'Falls aktiviert, wird Ihre Zahlungsquelle automatisch auf VoidWallet umgestellt, wenn LNbits ein Killswitch-Signal sendet. Nach einem Update müssen Sie dies manuell wieder aktivieren.',
   killswitch_interval: 'Intervall für den Notausschalter',
   killswitch_interval_desc:
-    'Wie oft die Hintergrundaufgabe nach dem LNBits-Killswitch-Signal aus der Statusquelle suchen soll (in Minuten).',
+    'Wie oft die Hintergrundaufgabe nach dem LNbits-Killswitch-Signal aus der Statusquelle suchen soll (in Minuten).',
   enable_watchdog: 'Aktiviere Watchdog',
   enable_watchdog_desc:
     'Wenn aktiviert, wird Ihre Zahlungsquelle automatisch auf VoidWallet umgestellt, wenn Ihr Guthaben niedriger als das LNbits-Guthaben ist. Nach einem Update müssen Sie dies manuell aktivieren.',
@@ -245,5 +250,14 @@ window.localisation.de = {
   logout: 'Abmelden',
   look_and_feel: 'Aussehen und Verhalten',
   language: 'Sprache',
-  color_scheme: 'Farbschema'
+  color_scheme: 'Farbschema',
+  extension_cost:
+    'Diese Version erfordert eine Zahlung von mindestens %{cost} Sats.',
+  extension_paid_sats: 'Sie haben bereits %{paid_sats} Sats bezahlt.',
+  release_details_error: 'Kann die Details zur Veröffentlichung nicht abrufen.',
+  pay_from_wallet: 'Zahlen aus dem Geldbeutel',
+  show_qr: 'QR anzeigen',
+  retry_install: 'Installieren erneut versuchen',
+  new_payment: 'Neue Zahlung vornehmen',
+  hide_empty_wallets: 'Leere Geldbörsen verbergen'
 }

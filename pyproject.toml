@@ -1,8 +1,15 @@
 [tool.poetry]
 name = "lnbits"
-version = "0.12.4"
+version = "0.12.9"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
+readme = "README.md"
+repository = "https://github.com/lnbits/lnbits"
+homepage = "https://lnbits.com"
+packages = [
+  {include = "lnbits"},
+  {include = "lnbits/py.typed"},
+]
 
 [tool.poetry.dependencies]
 python = "^3.10 | ^3.9"
@@ -22,10 +29,10 @@ sqlalchemy-aio = "0.17.0"
 sse-starlette = "1.6.5"
 typing-extensions = "4.8.0"
 uvicorn = "0.23.2"
-uvloop = "0.17.0"
+uvloop = "0.19.0"
 websockets = "11.0.3"
 loguru = "0.7.2"
-grpcio = "1.58.0"
+grpcio = "1.62.2"
 protobuf = "4.24.3"
 pyln-client = "23.8"
 pywebpush = "1.14.0"
@@ -33,7 +40,7 @@ slowapi = "0.1.9"
 websocket-client = "1.6.3"
 pycryptodomex = "3.19.1"
 packaging = "23.1"
-bolt11 = "2.0.5"
+bolt11 = "2.0.6"
 # needed for new login methods: username-password, google-auth, github-auth
 bcrypt = "^4.1.1"
 python-jose = "^3.3.0"
@@ -75,6 +82,11 @@ types-python-jose = "^3.3.4.8"
 openai = "^1.12.0"
 json5 = "^0.9.17"
 asgi-lifespan = "^2.1.0"
+pytest-md = "^0.2.0"
+pytest-httpserver = "^1.0.10"
+pytest-mock = "^3.14.0"
+types-mock = "^5.1.0.20240311"
+mock = "^5.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -169,8 +181,14 @@ extend-exclude = [
 # I - isort
 # A - flake8-builtins
 # C - mccabe
-select = ["F", "E", "W", "I", "A", "C"]
-ignore = []
+# N - naming
+# UP - pyupgrade
+# RUF - ruff specific rules
+# B - bugbear
+select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B"]
+# UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
+# RUF012: mutable-class-default
+ignore = ["UP007", "RUF012"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
@@ -179,6 +197,12 @@ unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
+# needed for pydantic
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = [
+    "root_validator",
+]
+
 # Ignore unused imports in __init__.py files.
 [tool.ruff.lint.extend-per-file-ignores]
 "__init__.py" = ["F401", "F403"]
@@ -186,3 +210,12 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 [tool.ruff.lint.mccabe]
 # TODO: Decrease this to 10.
 max-complexity = 16
+
+[tool.ruff.lint.flake8-bugbear]
+# Allow default arguments like, e.g., `data: List[str] = fastapi.Query(None)`.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Body",
+    "lnbits.decorators.parse_filters"
+]

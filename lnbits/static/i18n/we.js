@@ -9,6 +9,8 @@ window.localisation.we = {
   transactions: 'Trafodion',
   dashboard: 'Panel Gweinyddol',
   node: 'Nod',
+  export_users: 'Allfor Defnyddwyr',
+  no_users: 'Heb ganfod defnyddwyr',
   total_capacity: 'Capasiti Cyfanswm',
   avg_channel_size: 'Maint Sianel Cyf.',
   biggest_channel_size: 'Maint Sianel Fwyaf',
@@ -33,6 +35,8 @@ window.localisation.we = {
   reset_defaults_tooltip: 'Dileu pob gosodiad ac ailosod i`r rhagosodiadau.',
   download_backup: 'Lawrlwytho copi wrth gefn cronfa ddata',
   name_your_wallet: 'Enwch eich waled %{name}',
+  wallet_topup_ok:
+    "Llwyddiant wrth greu cronfeydd rhithwir (%{amount} sats). Mae taliadau'n dibynnu ar gronfeydd gwirioneddol ar y ffynhonnell cyllido.",
   paste_invoice_label: 'Gludwch anfoneb, cais am daliad neu god lnurl *',
   lnbits_description:
     'Yn hawdd iw sefydlu ac yn ysgafn, gall LNbits redeg ar unrhyw ffynhonnell ariannu rhwydwaith mellt a hyd yn oed LNbits ei hun! Gallwch redeg LNbits i chi`ch hun, neu gynnig datrysiad ceidwad i eraill yn hawdd. Mae gan bob waled ei allweddi API ei hun ac nid oes cyfyngiad ar nifer y waledi y gallwch eu gwneud. Mae gallu rhannu cronfeydd yn gwneud LNbits yn arf defnyddiol ar gyfer rheoli arian ac fel offeryn datblygu. Mae estyniadau yn ychwanegu ymarferoldeb ychwanegol at LNbits fel y gallwch arbrofi gydag ystod o dechnolegau blaengar ar y rhwydwaith mellt. Rydym wedi gwneud datblygu estyniadau mor hawdd â phosibl, ac fel prosiect ffynhonnell agored am ddim, rydym yn annog pobl i ddatblygu a chyflwyno eu rhai eu hunain.',
@@ -99,6 +103,7 @@ window.localisation.we = {
     'Cod QR Tynnu`n ôl LNURL yw hwn ar gyfer slurpio popeth o`r waled hon. Peidiwch â rhannu gyda neb. Mae`n gydnaws â balanceCheck a balanceNotify felly efallai y bydd eich waled yn tynnu`r arian yn barhaus o`r fan hon ar ôl y codiad cyntaf.',
   i_understand: 'Rwy`n deall',
   copy_wallet_url: 'Copi URL waled',
+  disclaimer_dialog_title: 'Pwysig!',
   disclaimer_dialog:
     'Swyddogaeth mewngofnodi i`w ryddhau mewn diweddariad yn y dyfodol, am y tro, gwnewch yn siŵr eich bod yn rhoi nod tudalen ar y dudalen hon ar gyfer mynediad i`ch waled yn y dyfodol! Mae`r gwasanaeth hwn yn BETA, ac nid ydym yn gyfrifol am bobl sy`n colli mynediad at arian.',
   no_transactions: 'Dim trafodion wedi`u gwneud eto',
@@ -161,7 +166,7 @@ window.localisation.we = {
     'Os bydd yn galluogi, bydd yn newid eich ffynhonnell arian i VoidWallet yn awtomatig os bydd LNbits yn anfon arwydd killswitch. Bydd angen i chi alluogi â llaw ar ôl diweddariad.',
   killswitch_interval: 'Amlder Cyllell Dorri',
   killswitch_interval_desc:
-    "Pa mor aml y dylai'r dasg gefndir wirio am signal killswitch LNBits o'r ffynhonnell statws (mewn munudau).",
+    "Pa mor aml y dylai'r dasg gefndir wirio am signal killswitch LNbits o'r ffynhonnell statws (mewn munudau).",
   enable_watchdog: 'Galluogi Watchdog',
   enable_watchdog_desc:
     'Os bydd yn cael ei alluogi bydd yn newid eich ffynhonnell ariannu i VoidWallet yn awtomatig os bydd eich balans yn is na balans LNbits. Bydd angen i chi alluogi â llaw ar ôl diweddariad.',
@@ -239,5 +244,13 @@ window.localisation.we = {
   logout: 'Allgofnodi',
   look_and_feel: 'Edrych a Theimlo',
   language: 'Iaith',
-  color_scheme: 'Cynllun Lliw'
+  color_scheme: 'Cynllun Lliw',
+  extension_cost: "Mae'r rhyddhad hwn yn gofyn am daliad o leiaf %{cost} sats.",
+  extension_paid_sats: 'Rydych chi eisoes wedi talu %{paid_sats} sats.',
+  release_details_error: 'Methu cael manylion y rhyddhau.',
+  pay_from_wallet: "Talu o'r Waled",
+  show_qr: 'Dangos QR',
+  retry_install: 'Ailgeisio Gosod',
+  new_payment: 'Gwneud Taliad Newydd',
+  hide_empty_wallets: 'Cuddio waledau gwag'
 }

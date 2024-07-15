@@ -12,6 +12,7 @@ from starlette.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
+from lnbits.core.services import create_user_account
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import (
     create_access_token,
@@ -23,8 +24,6 @@ from lnbits.helpers import (
 from lnbits.settings import AuthMethods, settings
 
 from ..crud import (
-    create_account,
-    create_user,
     get_account,
     get_account_by_email,
     get_account_by_username_or_email,
@@ -68,11 +67,11 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
             raise HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
 
         return _auth_success_response(user.username, user.id)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        logger.debug(e)
-        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.")
+    except HTTPException as exc:
+        raise exc
+    except Exception as exc:
+        logger.debug(exc)
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.") from exc
 
 
 @auth_router.post("/usr", description="Login via the User ID")
@@ -86,11 +85,11 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
             raise HTTPException(HTTP_401_UNAUTHORIZED, "User ID does not exist.")
 
         return _auth_success_response(user.username or "", user.id)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        logger.debug(e)
-        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.")
+    except HTTPException as exc:
+        raise exc
+    except Exception as exc:
+        logger.debug(exc)
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.") from exc
 
 
 @auth_router.get("/{provider}", description="SSO Provider")
@@ -124,16 +123,16 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
             user_id = decrypt_internal_message(provider_sso.state)
         request.session.pop("user", None)
         return await _handle_sso_login(userinfo, user_id)
-    except HTTPException as e:
-        raise e
-    except ValueError as e:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
-    except Exception as e:
-        logger.debug(e)
+    except HTTPException as exc:
+        raise exc
+    except ValueError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
         raise HTTPException(
             HTTP_500_INTERNAL_SERVER_ERROR,
             f"Cannot authenticate user with {provider} Auth.",
-        )
+        ) from exc
 
 
 @auth_router.post("/logout")
@@ -166,14 +165,18 @@ async def register(data: CreateUser) -> JSONResponse:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid email.")
 
     try:
-        user = await create_user(data)
+        user = await create_user_account(
+            email=data.email, username=data.username, password=data.password
+        )
         return _auth_success_response(user.username)
 
-    except ValueError as e:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
-    except Exception as e:
-        logger.debug(e)
-        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user.")
+    except ValueError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
+        raise HTTPException(
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot create user."
+        ) from exc
 
 
 @auth_router.put("/password")
@@ -189,13 +192,13 @@ async def update_password(
 
     try:
         return await update_user_password(data)
-    except AssertionError as e:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
-    except Exception as e:
-        logger.debug(e)
+    except AssertionError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
         raise HTTPException(
             HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
-        )
+        ) from exc
 
 
 @auth_router.put("/update")
@@ -211,11 +214,13 @@ async def update(
 
     try:
         return await update_account(user.id, data.username, None, data.config)
-    except AssertionError as e:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
-    except Exception as e:
-        logger.debug(e)
-        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user.")
+    except AssertionError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
+        raise HTTPException(
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user."
+        ) from exc
 
 
 @auth_router.put("/first_install")
@@ -237,13 +242,13 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
         await update_user_password(super_user)
         settings.first_install = False
         return _auth_success_response(username=super_user.username)
-    except AssertionError as e:
-        raise HTTPException(HTTP_403_FORBIDDEN, str(e))
-    except Exception as e:
-        logger.debug(e)
+    except AssertionError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
         raise HTTPException(
             HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
-        )
+        ) from exc
 
 
 async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = None):
@@ -270,7 +275,7 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = 
     else:
         if not settings.new_accounts_allowed:
             raise HTTPException(HTTP_400_BAD_REQUEST, "Account creation is disabled.")
-        user = await create_account(email=email, user_config=user_config)
+        user = await create_user_account(email=email, user_config=user_config)
 
     if not user:
         raise HTTPException(HTTP_401_UNAUTHORIZED, "User not found.")
@@ -316,16 +321,16 @@ def _new_sso(provider: str) -> Optional[SSOBase]:
             logger.warning(f"{provider} auth allowed but not configured.")
             return None
 
-        SSOProviderClass = _find_auth_provider_class(provider)
-        ssoProvider = SSOProviderClass(
+        sso_provider_class = _find_auth_provider_class(provider)
+        sso_provider = sso_provider_class(
             client_id, client_secret, None, allow_insecure_http=True
         )
         if (
             discovery_url
-            and getattr(ssoProvider, "discovery_url", discovery_url) != discovery_url
+            and getattr(sso_provider, "discovery_url", discovery_url) != discovery_url
         ):
-            ssoProvider.discovery_url = discovery_url
-        return ssoProvider
+            sso_provider.discovery_url = discovery_url
+        return sso_provider
     except Exception as e:
         logger.warning(e)
 
@@ -337,9 +342,9 @@ def _find_auth_provider_class(provider: str) -> Callable:
     for module in sso_modules:
         try:
             provider_module = importlib.import_module(f"{module}.{provider}")
-            ProviderClass = getattr(provider_module, f"{provider.title()}SSO")
-            if ProviderClass:
-                return ProviderClass
+            provider_class = getattr(provider_module, f"{provider.title()}SSO")
+            if provider_class:
+                return provider_class
         except Exception:
             pass
 

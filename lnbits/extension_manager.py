@@ -32,6 +32,7 @@ class ExplicitRelease(BaseModel):
     warning: Optional[str]
     info_notification: Optional[str]
     critical_notification: Optional[str]
+    details_link: Optional[str]
     pay_link: Optional[str]
 
     def is_version_compatible(self):
@@ -58,6 +59,9 @@ class GitHubRepoRelease(BaseModel):
     zipball_url: str
     html_url: str
 
+    def details_link(self, source_repo: str) -> str:
+        return f"https://raw.githubusercontent.com/{source_repo}/{self.tag_name}/config.json"
+
 
 class GitHubRepo(BaseModel):
     stargazers_count: str
@@ -83,6 +87,39 @@ class ReleasePaymentInfo(BaseModel):
     pay_link: Optional[str] = None
     payment_hash: Optional[str] = None
     payment_request: Optional[str] = None
+
+
+class PayToEnableInfo(BaseModel):
+    required: Optional[bool] = False
+    amount: Optional[int] = None
+    wallet: Optional[str] = None
+
+
+class UserExtensionInfo(BaseModel):
+    paid_to_enable: Optional[bool] = False
+    payment_hash_to_enable: Optional[str] = None
+
+
+class UserExtension(BaseModel):
+    extension: str
+    active: bool
+    extra: Optional[UserExtensionInfo] = None
+
+    @property
+    def is_paid(self) -> bool:
+        if not self.extra:
+            return False
+        return self.extra.paid_to_enable is True
+
+    @classmethod
+    def from_row(cls, data: dict) -> "UserExtension":
+        ext = UserExtension(**data)
+        ext.extra = (
+            UserExtensionInfo(**json.loads(data["_extra"] or "{}"))
+            if "_extra" in data
+            else None
+        )
+        return ext
 
 
 def download_url(url, save_path):
@@ -177,6 +214,24 @@ async def fetch_release_payment_info(
         return None
 
 
+async def fetch_release_details(details_link: str) -> Optional[dict]:
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(details_link)
+            resp.raise_for_status()
+            data = resp.json()
+            if "description_md" in data:
+                resp = await client.get(data["description_md"])
+                if not resp.is_error:
+                    data["description_md"] = resp.text
+
+            return data
+    except Exception as e:
+        logger.warning(e)
+        return None
+
+
 def icon_to_github_url(source_repo: str, path: Optional[str]) -> str:
     if not path:
         return ""
@@ -235,6 +290,7 @@ class ExtensionManager:
 
     @property
     def extensions(self) -> List[Extension]:
+        # todo: remove this property somehow, it is too expensive
         output: List[Extension] = []
 
         for extension_folder in self._extension_folders:
@@ -281,6 +337,7 @@ class ExtensionRelease(BaseModel):
     warning: Optional[str] = None
     repo: Optional[str] = None
     icon: Optional[str] = None
+    details_link: Optional[str] = None
 
     pay_link: Optional[str] = None
     cost_sats: Optional[int] = None
@@ -313,6 +370,7 @@ class ExtensionRelease(BaseModel):
             archive=r.zipball_url,
             source_repo=source_repo,
             is_github_release=True,
+            details_link=r.details_link(source_repo),
             repo=f"https://github.com/{source_repo}",
             html_url=r.html_url,
         )
@@ -332,6 +390,7 @@ class ExtensionRelease(BaseModel):
             is_version_compatible=e.is_version_compatible(),
             warning=e.warning,
             html_url=e.html_url,
+            details_link=e.details_link,
             pay_link=e.pay_link,
             repo=e.repo,
             icon=e.icon,
@@ -353,6 +412,7 @@ class ExtensionRelease(BaseModel):
 class InstallableExtension(BaseModel):
     id: str
     name: str
+    active: Optional[bool] = False
     short_description: Optional[str] = None
     icon: Optional[str] = None
     dependencies: List[str] = []
@@ -362,6 +422,7 @@ class InstallableExtension(BaseModel):
     latest_release: Optional[ExtensionRelease] = None
     installed_release: Optional[ExtensionRelease] = None
     payments: List[ReleasePaymentInfo] = []
+    pay_to_enable: Optional[PayToEnableInfo] = None
     archive: Optional[str] = None
 
     @property
@@ -412,6 +473,12 @@ class InstallableExtension(BaseModel):
             return self.installed_release.version
         return ""
 
+    @property
+    def requires_payment(self) -> bool:
+        if not self.pay_to_enable:
+            return False
+        return self.pay_to_enable.required is True
+
     async def download_archive(self):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
         ext_zip_file = self.zip_path
@@ -428,9 +495,9 @@ class InstallableExtension(BaseModel):
 
             self._remember_payment_info()
 
-        except Exception as ex:
-            logger.warning(ex)
-            raise AssertionError("Cannot fetch extension archive file")
+        except Exception as exc:
+            logger.warning(exc)
+            raise AssertionError("Cannot fetch extension archive file") from exc
 
         archive_hash = file_hash(ext_zip_file)
         if self.installed_release.hash and self.installed_release.hash != archive_hash:
@@ -479,21 +546,15 @@ class InstallableExtension(BaseModel):
         shutil.copytree(Path(self.ext_upgrade_dir), Path(self.ext_dir))
         logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
 
-    def notify_upgrade(self) -> None:
+    def notify_upgrade(self, upgrade_hash: Optional[str]) -> None:
         """
         Update the list of upgraded extensions. The middleware will perform
         redirects based on this
         """
+        if upgrade_hash:
+            settings.lnbits_upgraded_extensions.add(f"{self.hash}/{self.id}")
 
-        clean_upgraded_exts = list(
-            filter(
-                lambda old_ext: not old_ext.endswith(f"/{self.id}"),
-                settings.lnbits_upgraded_extensions,
-            )
-        )
-        settings.lnbits_upgraded_extensions = clean_upgraded_exts + [
-            f"{self.hash}/{self.id}"
-        ]
+        settings.lnbits_all_extensions_ids.add(self.id)
 
     def clean_extension_files(self):
         # remove downloaded archive
@@ -554,12 +615,19 @@ class InstallableExtension(BaseModel):
         ext = InstallableExtension(**data)
         if "installed_release" in meta:
             ext.installed_release = ExtensionRelease(**meta["installed_release"])
+        if meta.get("pay_to_enable"):
+            ext.pay_to_enable = PayToEnableInfo(**meta["pay_to_enable"])
         if meta.get("payments"):
             ext.payments = [ReleasePaymentInfo(**p) for p in meta["payments"]]
+
         return ext
 
     @classmethod
-    def from_rows(cls, rows: List[Any] = []) -> List["InstallableExtension"]:
+    def from_rows(
+        cls, rows: Optional[List[Any]] = None
+    ) -> List["InstallableExtension"]:
+        if rows is None:
+            rows = []
         return [InstallableExtension.from_row(row) for row in rows]
 
     @classmethod
@@ -570,18 +638,18 @@ class InstallableExtension(BaseModel):
             repo, latest_release, config = await fetch_github_repo_info(
                 github_release.organisation, github_release.repository
             )
-
+            source_repo = f"{github_release.organisation}/{github_release.repository}"
             return InstallableExtension(
                 id=github_release.id,
                 name=config.name,
                 short_description=config.short_description,
                 stars=int(repo.stargazers_count),
                 icon=icon_to_github_url(
-                    f"{github_release.organisation}/{github_release.repository}",
+                    source_repo,
                     config.tile,
                 ),
                 latest_release=ExtensionRelease.from_github_release(
-                    repo.html_url, latest_release
+                    source_repo, latest_release
                 ),
             )
         except Exception as e:
@@ -639,7 +707,7 @@ class InstallableExtension(BaseModel):
                     extension_list += [ext]
                     extension_id_list += [e.id]
             except Exception as e:
-                logger.warning(f"Manifest {url} failed with '{str(e)}'")
+                logger.warning(f"Manifest {url} failed with '{e!s}'")
 
         return extension_list
 
@@ -666,7 +734,7 @@ class InstallableExtension(BaseModel):
                     extension_releases.append(explicit_release)
 
             except Exception as e:
-                logger.warning(f"Manifest {url} failed with '{str(e)}'")
+                logger.warning(f"Manifest {url} failed with '{e!s}'")
 
         return extension_releases
 
@@ -695,6 +763,12 @@ class CreateExtension(BaseModel):
     version: str
     cost_sats: Optional[int] = 0
     payment_hash: Optional[str] = None
+
+
+class ExtensionDetailsRequest(BaseModel):
+    ext_id: str
+    source_repo: str
+    version: str
 
 
 def get_valid_extensions(include_deactivated: Optional[bool] = True) -> List[Extension]:

@@ -9,6 +9,8 @@ window.localisation.es = {
   transactions: 'Transacciones',
   dashboard: 'Tablero de instrumentos',
   node: 'Nodo',
+  export_users: 'Exportar Usuarios',
+  no_users: 'No se encontraron usuarios',
   total_capacity: 'Capacidad Total',
   avg_channel_size: 'Tamaño Medio del Canal',
   biggest_channel_size: 'Tamaño del Canal Más Grande',
@@ -34,6 +36,8 @@ window.localisation.es = {
     'Borrar todas las configuraciones y restablecer a los valores predeterminados.',
   download_backup: 'Descargar copia de seguridad de la base de datos',
   name_your_wallet: 'Nombre de su billetera %{name}',
+  wallet_topup_ok:
+    'Éxito creando fondos virtuales (%{amount} sats). Los pagos dependen de los fondos reales en la fuente de financiación.',
   paste_invoice_label: 'Pegue la factura aquí',
   lnbits_description:
     'Fácil de instalar y liviano, LNbits puede ejecutarse en cualquier fuente de financiación de la red Lightning y hasta LNbits mismo! Puede ejecutar LNbits para usted mismo o ofrecer una solución competente a otros. Cada billetera tiene su propia clave API y no hay límite para la cantidad de billeteras que puede crear. La capacidad de particionar fondos hace de LNbits una herramienta útil para la administración de fondos y como herramienta de desarrollo. Las extensiones agregan funcionalidad adicional a LNbits, por lo que puede experimentar con una variedad de tecnologías de vanguardia en la red Lightning. Lo hemos hecho lo más simple posible para desarrollar extensiones y, como un proyecto gratuito y de código abierto, animamos a las personas a que se desarrollen a sí mismas y envíen sus propios contribuciones.',
@@ -99,6 +103,7 @@ window.localisation.es = {
     'Este es un código QR LNURL-withdraw para drenar todos los fondos de esta billetera. No lo comparta con nadie. Es compatible con balanceCheck y balanceNotify, por lo que su billetera puede continuar drenando los fondos de aquí después del primer drenaje.',
   i_understand: 'Lo entiendo',
   copy_wallet_url: 'Copiar URL de billetera',
+  disclaimer_dialog_title: '¡Importante!',
   disclaimer_dialog:
     'La funcionalidad de inicio de sesión se lanzará en una actualización futura, por ahora, asegúrese de guardar esta página como marcador para acceder a su billetera en el futuro. Este servicio está en BETA y no asumimos ninguna responsabilidad por personas que pierdan el acceso a sus fondos.',
   no_transactions: 'No hay transacciones todavía',
@@ -164,7 +169,7 @@ window.localisation.es = {
     'Si está activado, cambiará automáticamente su fuente de financiamiento a VoidWallet si LNbits envía una señal de parada de emergencia. Necesitará activarlo manualmente después de una actualización.',
   killswitch_interval: 'Intervalo de Killswitch',
   killswitch_interval_desc:
-    'Con qué frecuencia la tarea en segundo plano debe verificar la señal de interruptor de emergencia de LNBits desde la fuente de estado (en minutos).',
+    'Con qué frecuencia la tarea en segundo plano debe verificar la señal de interruptor de emergencia de LNbits desde la fuente de estado (en minutos).',
   enable_watchdog: 'Activar Watchdog',
   enable_watchdog_desc:
     'Si está activado, cambiará automáticamente su fuente de financiamiento a VoidWallet si su saldo es inferior al saldo de LNbits. Tendrá que activarlo manualmente después de una actualización.',
@@ -243,5 +248,13 @@ window.localisation.es = {
   logout: 'Cerrar sesión',
   look_and_feel: 'Apariencia',
   language: 'Idioma',
-  color_scheme: 'Esquema de colores'
+  color_scheme: 'Esquema de colores',
+  extension_cost: 'Esta versión requiere un pago mínimo de %{cost} sats.',
+  extension_paid_sats: 'Ya has pagado %{paid_sats} sats.',
+  release_details_error: 'No se pueden obtener los detalles de la versión.',
+  pay_from_wallet: 'Pagar desde la billetera',
+  show_qr: 'Mostrar QR',
+  retry_install: 'Reintentar Instalación',
+  new_payment: 'Realizar nuevo pago',
+  hide_empty_wallets: 'Ocultar billeteras vacías'
 }

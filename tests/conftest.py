@@ -26,9 +26,7 @@ from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import settings
 from tests.helpers import (
     clean_database,
-    get_hold_invoice,
     get_random_invoice_data,
-    get_real_invoice,
 )
 
 # override settings for tests
@@ -94,7 +92,7 @@ async def from_wallet(from_user):
 async def from_wallet_ws(from_wallet, test_client):
     # wait a bit in order to avoid receiving topup notification
     await asyncio.sleep(0.1)
-    with test_client.websocket_connect(f"/api/v1/ws/{from_wallet.id}") as ws:
+    with test_client.websocket_connect(f"/api/v1/ws/{from_wallet.inkey}") as ws:
         yield ws
 
 
@@ -133,7 +131,7 @@ async def to_wallet(to_user):
 async def to_wallet_ws(to_wallet, test_client):
     # wait a bit in order to avoid receiving topup notification
     await asyncio.sleep(0.1)
-    with test_client.websocket_connect(f"/api/v1/ws/{to_wallet.id}") as ws:
+    with test_client.websocket_connect(f"/api/v1/ws/{to_wallet.inkey}") as ws:
         yield ws
 
 
@@ -176,16 +174,9 @@ async def adminkey_headers_to(to_wallet):
 @pytest_asyncio.fixture(scope="session")
 async def invoice(to_wallet):
     data = await get_random_invoice_data()
-    invoiceData = CreateInvoice(**data)
-    invoice = await api_payments_create_invoice(invoiceData, to_wallet)
+    invoice_data = CreateInvoice(**data)
+    invoice = await api_payments_create_invoice(invoice_data, to_wallet)
     yield invoice
-    del invoice
-
-
-@pytest_asyncio.fixture(scope="function")
-async def real_invoice():
-    invoice = get_real_invoice(100)
-    yield {"bolt11": invoice["payment_request"]}
     del invoice
 
 
@@ -212,10 +203,3 @@ async def fake_payments(client, adminkey_headers_from):
 
     params = {"time[ge]": ts, "time[le]": time()}
     return fake_data, params
-
-
-@pytest_asyncio.fixture(scope="function")
-async def hold_invoice():
-    invoice = get_hold_invoice(100)
-    yield invoice
-    del invoice

@@ -8,14 +8,11 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_wallet
-from lnbits.core.models import CreateTopup, User
+from lnbits.core.models import User
 from lnbits.core.services import (
     get_balance_delta,
     update_cached_settings,
-    update_wallet_balance,
 )
 from lnbits.core.tasks import api_invoice_listeners
 from lnbits.decorators import check_admin, check_super_user
@@ -36,18 +33,7 @@ admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
     dependencies=[Depends(check_admin)],
 )
 async def api_auditor():
-    try:
-        delta, node_balance, total_balance = await get_balance_delta()
-        return {
-            "delta_msats": int(delta),
-            "node_balance_msats": int(node_balance),
-            "lnbits_balance_msats": int(total_balance),
-        }
-    except Exception:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail="Could not audit balance.",
-        )
+    return await get_balance_delta()
 
 
 @admin_router.get(
@@ -101,30 +87,6 @@ async def api_delete_settings() -> None:
 )
 async def api_restart_server() -> dict[str, str]:
     server_restart.set()
-    return {"status": "Success"}
-
-
-@admin_router.put(
-    "/api/v1/topup",
-    name="Topup",
-    status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_super_user)],
-)
-async def api_topup_balance(data: CreateTopup) -> dict[str, str]:
-    try:
-        await get_wallet(data.id)
-    except Exception:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="wallet does not exist."
-        )
-
-    if settings.lnbits_backend_wallet_class == "VoidWallet":
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="VoidWallet active"
-        )
-
-    await update_wallet_balance(wallet_id=data.id, amount=int(data.amount))
-
     return {"status": "Success"}
 
 

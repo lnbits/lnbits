@@ -9,7 +9,7 @@ from hashlib import sha256
 from os import path
 from sqlite3 import Row
 from time import time
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import httpx
 from loguru import logger
@@ -36,8 +36,8 @@ class LNbitsSettings(BaseModel):
 
 
 class UsersSettings(LNbitsSettings):
-    lnbits_admin_users: List[str] = Field(default=[])
-    lnbits_allowed_users: List[str] = Field(default=[])
+    lnbits_admin_users: list[str] = Field(default=[])
+    lnbits_allowed_users: list[str] = Field(default=[])
     lnbits_allow_new_accounts: bool = Field(default=True)
 
     @property
@@ -46,9 +46,10 @@ class UsersSettings(LNbitsSettings):
 
 
 class ExtensionsSettings(LNbitsSettings):
-    lnbits_admin_extensions: List[str] = Field(default=[])
+    lnbits_admin_extensions: list[str] = Field(default=[])
+    lnbits_user_default_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
-    lnbits_extensions_manifests: List[str] = Field(
+    lnbits_extensions_manifests: list[str] = Field(
         default=[
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         ]
@@ -56,18 +57,21 @@ class ExtensionsSettings(LNbitsSettings):
 
 
 class ExtensionsInstallSettings(LNbitsSettings):
-    lnbits_extensions_default_install: List[str] = Field(default=[])
+    lnbits_extensions_default_install: list[str] = Field(default=[])
     # required due to GitHUb rate-limit
     lnbits_ext_github_token: str = Field(default="")
 
 
 class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
-    lnbits_deactivated_extensions: List[str] = Field(default=[])
+    lnbits_deactivated_extensions: set[str] = Field(default=[])
     # upgraded extensions that require API redirects
-    lnbits_upgraded_extensions: List[str] = Field(default=[])
+    lnbits_upgraded_extensions: set[str] = Field(default=[])
     # list of redirects that extensions want to perform
-    lnbits_extensions_redirects: List[Any] = Field(default=[])
+    lnbits_extensions_redirects: list[Any] = Field(default=[])
+
+    # list of all extension ids
+    lnbits_all_extensions_ids: set[Any] = Field(default=[])
 
     def extension_upgrade_path(self, ext_id: str) -> Optional[str]:
         return next(
@@ -83,9 +87,14 @@ class InstalledExtensionsSettings(LNbitsSettings):
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
-    lnbits_site_description: str = Field(default=None)
+    lnbits_site_description: Optional[str] = Field(
+        default="The world's most powerful suite of bitcoin tools."
+    )
+    lnbits_show_home_page_elements: bool = Field(default=True)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
-    lnbits_theme_options: List[str] = Field(
+    lnbits_custom_badge: Optional[str] = Field(default=None)
+    lnbits_custom_badge_color: str = Field(default="warning")
+    lnbits_theme_options: list[str] = Field(
         default=[
             "classic",
             "freedom",
@@ -96,13 +105,13 @@ class ThemesSettings(LNbitsSettings):
             "cyber",
         ]
     )
-    lnbits_custom_logo: str = Field(default=None)
+    lnbits_custom_logo: Optional[str] = Field(default=None)
     lnbits_ad_space_title: str = Field(default="Supported by")
     lnbits_ad_space: str = Field(
-        default="https://shop.lnbits.com/;/static/images/lnbits-shop-light.png;/static/images/lnbits-shop-dark.png"
+        default="https://shop.lnbits.com/;/static/images/bitcoin-shop-banner.png;/static/images/bitcoin-shop-banner.png,https://affil.trezor.io/aff_c?offer_id=169&aff_id=33845;/static/images/bitcoin-hardware-wallet.png;/static/images/bitcoin-hardware-wallet.png,https://opensats.org/;/static/images/open-sats.png;/static/images/open-sats.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
-    lnbits_allowed_currencies: List[str] = Field(default=[])
+    lnbits_allowed_currencies: list[str] = Field(default=[])
     lnbits_default_accounting_currency: Optional[str] = Field(default=None)
     lnbits_qr_logo: str = Field(default="/static/images/logos/lnbits.png")
 
@@ -114,7 +123,7 @@ class OpsSettings(LNbitsSettings):
     lnbits_service_fee: float = Field(default=0)
     lnbits_service_fee_ignore_internal: bool = Field(default=True)
     lnbits_service_fee_max: int = Field(default=0)
-    lnbits_service_fee_wallet: str = Field(default=None)
+    lnbits_service_fee_wallet: Optional[str] = Field(default=None)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
 
@@ -122,8 +131,8 @@ class OpsSettings(LNbitsSettings):
 class SecuritySettings(LNbitsSettings):
     lnbits_rate_limit_no: str = Field(default="200")
     lnbits_rate_limit_unit: str = Field(default="minute")
-    lnbits_allowed_ips: List[str] = Field(default=[])
-    lnbits_blocked_ips: List[str] = Field(default=[])
+    lnbits_allowed_ips: list[str] = Field(default=[])
+    lnbits_blocked_ips: list[str] = Field(default=[])
     lnbits_notifications: bool = Field(default=False)
     lnbits_killswitch: bool = Field(default=False)
     lnbits_killswitch_interval: int = Field(default=60)
@@ -152,7 +161,7 @@ class FakeWalletFundingSource(LNbitsSettings):
 
 
 class LNbitsFundingSource(LNbitsSettings):
-    lnbits_endpoint: str = Field(default="https://legend.lnbits.com")
+    lnbits_endpoint: str = Field(default="https://demo.lnbits.com")
     lnbits_key: Optional[str] = Field(default=None)
     lnbits_admin_key: Optional[str] = Field(default=None)
     lnbits_invoice_key: Optional[str] = Field(default=None)
@@ -164,6 +173,7 @@ class ClicheFundingSource(LNbitsSettings):
 
 class CoreLightningFundingSource(LNbitsSettings):
     corelightning_rpc: Optional[str] = Field(default=None)
+    corelightning_pay_command: str = Field(default="pay")
     clightning_rpc: Optional[str] = Field(default=None)
 
 
@@ -211,6 +221,11 @@ class LnPayFundingSource(LNbitsSettings):
 class ZBDFundingSource(LNbitsSettings):
     zbd_api_endpoint: Optional[str] = Field(default="https://api.zebedee.io/v0/")
     zbd_api_key: Optional[str] = Field(default=None)
+
+
+class PhoenixdFundingSource(LNbitsSettings):
+    phoenixd_api_endpoint: Optional[str] = Field(default="http://localhost:9740/")
+    phoenixd_api_password: Optional[str] = Field(default=None)
 
 
 class AlbyFundingSource(LNbitsSettings):
@@ -261,6 +276,7 @@ class FundingSourcesSettings(
     LnPayFundingSource,
     AlbyFundingSource,
     ZBDFundingSource,
+    PhoenixdFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
@@ -270,8 +286,8 @@ class FundingSourcesSettings(
 
 
 class WebPushSettings(LNbitsSettings):
-    lnbits_webpush_pubkey: str = Field(default=None)
-    lnbits_webpush_privkey: str = Field(default=None)
+    lnbits_webpush_pubkey: Optional[str] = Field(default=None)
+    lnbits_webpush_privkey: Optional[str] = Field(default=None)
 
 
 class NodeUISettings(LNbitsSettings):
@@ -295,7 +311,7 @@ class AuthMethods(Enum):
 class AuthSettings(LNbitsSettings):
     auth_token_expire_minutes: int = Field(default=525600)
     auth_all_methods = [a.value for a in AuthMethods]
-    auth_allowed_methods: List[str] = Field(
+    auth_allowed_methods: list[str] = Field(
         default=[
             AuthMethods.user_id_only.value,
             AuthMethods.username_and_password.value,
@@ -386,6 +402,7 @@ class EnvSettings(LNbitsSettings):
     log_retention: str = Field(default="3 months")
     server_startup_time: int = Field(default=time())
     cleanup_wallets_days: int = Field(default=90)
+    funding_source_max_retries: int = Field(default=4)
 
     @property
     def has_default_extension_path(self) -> bool:
@@ -404,21 +421,22 @@ class PersistenceSettings(LNbitsSettings):
 
 
 class SuperUserSettings(LNbitsSettings):
-    lnbits_allowed_funding_sources: List[str] = Field(
+    lnbits_allowed_funding_sources: list[str] = Field(
         default=[
-            "VoidWallet",
-            "FakeWallet",
-            "CoreLightningWallet",
-            "CoreLightningRestWallet",
-            "LndRestWallet",
-            "EclairWallet",
-            "LndWallet",
-            "LnTipsWallet",
-            "LNPayWallet",
             "AlbyWallet",
-            "ZBDWallet",
+            "FakeWallet",
+            "CoreLightningRestWallet",
+            "CoreLightningWallet",
+            "EclairWallet",
             "LNbitsWallet",
+            "LndRestWallet",
+            "LNPayWallet",
+            "LnTipsWallet",
+            "LndWallet",
             "OpenNodeWallet",
+            "PhoenixdWallet",
+            "VoidWallet",
+            "ZBDWallet",
             "BreezSdkWallet",
         ]
     )
@@ -431,6 +449,12 @@ class TransientSettings(InstalledExtensionsSettings):
     #  - are not persisted in the `settings` table when the settings are updated
     #  - are cleared on server restart
     first_install: bool = Field(default=False)
+
+    # Indicates that the server should continue to run.
+    # When set to false it indicates that the shutdown procedure is ongoing.
+    # If false no new tasks, threads, etc should be started.
+    # Long running while loops should use this flag instead of `while True:`
+    lnbits_running: bool = Field(default=True)
 
     @classmethod
     def readonly_fields(cls):
@@ -461,7 +485,7 @@ class ReadOnlySettings(
 
 class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
     @classmethod
-    def from_row(cls, row: Row) -> "Settings":
+    def from_row(cls, row: Row) -> Settings:
         data = dict(row)
         return cls(**data)
 
@@ -471,13 +495,22 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
         case_sensitive = False
         json_loads = list_parse_fallback
 
-    def is_user_allowed(self, user_id: str):
+    def is_user_allowed(self, user_id: str) -> bool:
         return (
             len(self.lnbits_allowed_users) == 0
             or user_id in self.lnbits_allowed_users
             or user_id in self.lnbits_admin_users
             or user_id == self.super_user
         )
+
+    def is_admin_user(self, user_id: str) -> bool:
+        return user_id in self.lnbits_admin_users or user_id == self.super_user
+
+    def is_admin_extension(self, ext_id: str) -> bool:
+        return ext_id in self.lnbits_admin_extensions
+
+    def is_extension_id(self, ext_id: str) -> bool:
+        return ext_id in self.lnbits_all_extensions_ids
 
 
 class SuperSettings(EditableSettings):
@@ -486,7 +519,7 @@ class SuperSettings(EditableSettings):
 
 class AdminSettings(EditableSettings):
     is_super_user: bool
-    lnbits_allowed_funding_sources: Optional[List[str]]
+    lnbits_allowed_funding_sources: Optional[list[str]]
 
 
 def set_cli_settings(**kwargs):
@@ -515,7 +548,7 @@ def send_admin_user_to_saas():
             except Exception as e:
                 logger.error(
                     "error sending super_user to saas:"
-                    f" {settings.lnbits_saas_callback}. Error: {str(e)}"
+                    f" {settings.lnbits_saas_callback}. Error: {e!s}"
                 )
 
 
@@ -541,10 +574,10 @@ if not settings.lnbits_admin_ui:
         logger.debug(f"{key}: {value}")
 
 
-def get_wallet_class():
+def get_funding_source():
     """
     Backwards compatibility
     """
-    from lnbits.wallets import get_wallet_class
+    from lnbits.wallets import get_funding_source
 
-    return get_wallet_class()
+    return get_funding_source()

@@ -17,7 +17,7 @@ assert os.getenv("OPENAI_API_KEY"), "OPENAI_API_KEY env var not set"
 
 
 def load_language(lang: str) -> dict:
-    s = open(f"lnbits/static/i18n/{lang}.js", "rt").read()
+    s = open(f"lnbits/static/i18n/{lang}.js").read()
     prefix = "window.localisation.%s = {\n" % lang
     assert s.startswith(prefix)
     s = s[len(prefix) - 2 :]
@@ -27,7 +27,7 @@ def load_language(lang: str) -> dict:
 
 
 def save_language(lang: str, data) -> None:
-    with open(f"lnbits/static/i18n/{lang}.js", "wt") as f:
+    with open(f"lnbits/static/i18n/{lang}.js", "w") as f:
         f.write("window.localisation.%s = {\n" % lang)
         row = 0
         for k, v in data.items():
@@ -76,14 +76,14 @@ def translate_string(lang_from, lang_to, text):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a language expert that speaks all languages in the world. You are about to translate text from English to another language. The text is a part of the software you are translating. If the given text contains a phrase enclosed by curly preceded with a percent sign, do not translate the given phrase, just keep it verbatim. So for example, the phrase %{amount} translated to target language should still be kept as %{amount}. Never output anything else, just the translated string.",  # noqa: E501
+                    "content": "You are a language expert who speaks all the languages of the world perfectly. You are tasked with translating a text from English into another language. The text is part of the software you are working on. If the text contains a phrase enclosed in curly braces and preceded by a percent sign, do not translate this phrase; instead, keep it verbatim. For instance, the phrase %{amount} should remain %{amount} in the target language. Your output should only be the translated string, nothing more.",  # noqa: E501
                 },
                 {
                     "role": "user",
                     "content": f"Translate the following string from English to {target}: {text}",  # noqa: E501
                 },
             ],
-            model="gpt-4-1106-preview",  # aka GPT-4 Turbo
+            model="gpt-4o",
         )
         assert chat_completion.choices[0].message.content, "No response from GPT-4"
         translated = chat_completion.choices[0].message.content.strip()

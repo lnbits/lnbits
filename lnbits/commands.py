@@ -29,7 +29,6 @@ from .core.crud import (
     delete_wallet_by_id,
     delete_wallet_payment,
     get_dbversions,
-    get_inactive_extensions,
     get_installed_extension,
     get_installed_extensions,
     get_payments,
@@ -83,7 +82,7 @@ def get_super_user() -> Optional[str]:
             "Superuser id not found. Please check that the file "
             + f"'{superuser_file.absolute()}' exists and has read permissions."
         )
-    with open(superuser_file, "r") as file:
+    with open(superuser_file) as file:
         return file.readline()
 
 
@@ -124,7 +123,8 @@ def database_migrate():
 
 
 async def db_migrate():
-    asyncio.create_task(migrate_databases())
+    task = asyncio.create_task(migrate_databases())
+    await task
 
 
 async def migrate_databases():
@@ -153,6 +153,7 @@ async def migrate_databases():
     # `installed_extensions` table has been created
     await load_disabled_extension_list()
 
+    # todo: revisit, use installed extensions
     for ext in get_valid_extensions(False):
         current_version = current_versions.get(ext.code, 0)
         try:
@@ -205,7 +206,7 @@ async def database_delete_wallet(wallet: str):
 @click.option("-c", "--checking-id", required=True, help="Payment checking Id.")
 @coro
 async def database_delete_wallet_payment(wallet: str, checking_id: str):
-    """Mark wallet as deleted"""
+    """Delete wallet payment"""
     async with core_db.connect() as conn:
         await delete_wallet_payment(
             wallet_id=wallet, checking_id=checking_id, conn=conn
@@ -314,8 +315,8 @@ async def check_invalid_payments(
 
 async def load_disabled_extension_list() -> None:
     """Update list of extensions that have been explicitly disabled"""
-    inactive_extensions = await get_inactive_extensions()
-    settings.lnbits_deactivated_extensions += inactive_extensions
+    inactive_extensions = await get_installed_extensions(active=False)
+    settings.lnbits_deactivated_extensions.update([e.id for e in inactive_extensions])
 
 
 @extensions.command("list")
@@ -492,7 +493,7 @@ async def extensions_uninstall(
         click.echo(f"Failed to uninstall '{extension}' Error: '{ex.detail}'.")
         return False, ex.detail
     except Exception as ex:
-        click.echo(f"Failed to uninstall '{extension}': {str(ex)}.")
+        click.echo(f"Failed to uninstall '{extension}': {ex!s}.")
         return False, str(ex)
 
 
@@ -530,7 +531,7 @@ async def install_extension(
         click.echo(f"Failed to install '{extension}' Error: '{ex.detail}'.")
         return False, ex.detail
     except Exception as ex:
-        click.echo(f"Failed to install '{extension}': {str(ex)}.")
+        click.echo(f"Failed to install '{extension}': {ex!s}.")
         return False, str(ex)
 
 
@@ -582,7 +583,7 @@ async def update_extension(
         click.echo(f"Failed to update '{extension}' Error: '{ex.detail}.")
         return False, ex.detail
     except Exception as ex:
-        click.echo(f"Failed to update '{extension}': {str(ex)}.")
+        click.echo(f"Failed to update '{extension}': {ex!s}.")
         return False, str(ex)
 
 
@@ -605,7 +606,7 @@ async def _select_release(
         return latest_repo_releases[source_repo]
 
     if len(latest_repo_releases) == 1:
-        return latest_repo_releases[list(latest_repo_releases.keys())[0]]
+        return latest_repo_releases[next(iter(latest_repo_releases.keys()))]
 
     repos = list(latest_repo_releases.keys())
     repos.sort()

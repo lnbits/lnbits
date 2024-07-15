@@ -9,6 +9,8 @@ window.localisation.kr = {
   transactions: '거래 내역',
   dashboard: '현황판',
   node: '노드',
+  export_users: '사용자 내보내기',
+  no_users: '사용자가 없습니다',
   total_capacity: '총 용량',
   avg_channel_size: '평균 채널 용량',
   biggest_channel_size: '가장 큰 채널 용량',
@@ -34,9 +36,11 @@ window.localisation.kr = {
     '설정했던 내용들을 모두 지우고, 기본 설정으로 돌아갑니다.',
   download_backup: '데이터베이스 백업 다운로드',
   name_your_wallet: '사용할 %{name}지갑의 이름을 정하세요',
+  wallet_topup_ok:
+    '성공적으로 가상 자금을 생성했습니다 (%{amount} sats). 지급은 자금 원천의 실제 자금에 따라 달라집니다.',
   paste_invoice_label: '인보이스, 결제 요청, 혹은 lnurl 코드를 붙여넣으세요 *',
   lnbits_description:
-    '설정이 쉽고 가벼운 LNBits는 어떤 라이트닝 네트워크의 예산 자원 위에서든 돌아갈 수 있습니다, 그리고 다른 LNBits 지갑들입니다. 스스로 사용하기 위해, 또는 다른 사람들에게 수탁형 솔루션을 제공하기 위해 LNBits를 운영할 수 있습니다. 각 지갑들은 자신만의 API key를 가지며, 생성 가능한 지갑의 수에는 제한이 없습니다. 자금을 분할할 수 있는 기능으로 인해, LNBits는 자금 운영 도구로써뿐만 아니라 개발 도구로써도 유용합니다. 확장 기능들은 LNBits에 여러분들이 라이트닝 네트워크의 다양한 최신 기술들을 수행해볼 수 있게 하는 추가 기능을 제공합니다. LNBits 개발진들은 확장 기능들의 개발 또한 가능한 쉽게 만들었으며, 무료 오픈 소스 프로젝트답게 사람들이 자신만의 확장 기능들을 개발하고 제출하기를 응원합니다.',
+    '설정이 쉽고 가벼운 LNbits는 어떤 라이트닝 네트워크의 예산 자원 위에서든 돌아갈 수 있습니다, 그리고 다른 LNbits 지갑들입니다. 스스로 사용하기 위해, 또는 다른 사람들에게 수탁형 솔루션을 제공하기 위해 LNbits를 운영할 수 있습니다. 각 지갑들은 자신만의 API key를 가지며, 생성 가능한 지갑의 수에는 제한이 없습니다. 자금을 분할할 수 있는 기능으로 인해, LNbits는 자금 운영 도구로써뿐만 아니라 개발 도구로써도 유용합니다. 확장 기능들은 LNbits에 여러분들이 라이트닝 네트워크의 다양한 최신 기술들을 수행해볼 수 있게 하는 추가 기능을 제공합니다. LNbits 개발진들은 확장 기능들의 개발 또한 가능한 쉽게 만들었으며, 무료 오픈 소스 프로젝트답게 사람들이 자신만의 확장 기능들을 개발하고 제출하기를 응원합니다.',
   export_to_phone: 'QR 코드를 이용해 모바일 기기로 내보내기',
   export_to_phone_desc:
     '이 QR 코드는 선택된 지갑의 최대 접근 권한을 가진 전체 URL을 담고 있습니다. 스캔 후, 모바일 기기에서 지갑을 열 수 있습니다.',
@@ -58,7 +62,7 @@ window.localisation.kr = {
   service_fee: '서비스 수수료: 거래액의 %{amount} %',
   service_fee_max: '서비스 수수료: 거래액의 %{amount} % (최대 %{max} sats)',
   service_fee_tooltip:
-    '지불 결제 시마다 LNBits 서버 관리자에게 납부되는 서비스 수수료',
+    '지불 결제 시마다 LNbits 서버 관리자에게 납부되는 서비스 수수료',
   toggle_darkmode: '다크 모드 전환',
   payment_reactions: '결제 반응',
   view_swagger_docs: 'LNbits Swagger API 문서를 봅니다',
@@ -98,6 +102,7 @@ window.localisation.kr = {
     '이는 선택된 지갑으로부터 모든 자금을 인출하는 LNURL-withdraw QR 코드입니다. 그 누구와도 공유하지 마세요. balanceCheck 및 balanceNotify 기능과 호환되며, 당신의 지갑은 첫 출금 이후로도 계속 자금을 끌어당기고 있을 수 있습니다.',
   i_understand: '이해하였습니다',
   copy_wallet_url: '지갑 URL 복사하기',
+  disclaimer_dialog_title: '중요!',
   disclaimer_dialog:
     '로그인 기능은 향후 업데이트를 통해 지원될 계획이지만, 현재로써는 이 페이지에 향후 다시 접속하기 위해 북마크 설정하는 것을 잊지 마세요! 이 서비스는 아직 BETA 과정에 있고, LNbits 개발자들은 자금 손실에 대해 전혀 책임을 지지 않습니다.',
   no_transactions: '아직 아무런 거래도 이루어지지 않았습니다',
@@ -237,5 +242,13 @@ window.localisation.kr = {
   logout: '로그아웃',
   look_and_feel: '외관과 느낌',
   language: '언어',
-  color_scheme: '색상 구성'
+  color_scheme: '색상 구성',
+  extension_cost: '이 버전은 최소 %{cost} sats의 지불이 필요합니다.',
+  extension_paid_sats: '당신은 이미 %{paid_sats} sats를 지불했습니다.',
+  release_details_error: '릴리스 세부 정보를 가져올 수 없습니다.',
+  pay_from_wallet: '지갑에서 결제하다',
+  show_qr: 'QR 보기',
+  retry_install: '다시 설치하세요',
+  new_payment: '새로운 결제하기',
+  hide_empty_wallets: '빈 지갑 숨기기'
 }

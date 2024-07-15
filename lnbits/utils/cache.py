@@ -6,6 +6,8 @@ from typing import Any, NamedTuple, Optional
 
 from loguru import logger
 
+from lnbits.settings import settings
+
 
 class Cached(NamedTuple):
     value: Any
@@ -52,7 +54,7 @@ class Cache:
             return value
 
     async def invalidate_forever(self):
-        while True:
+        while settings.lnbits_running:
             try:
                 await asyncio.sleep(self.interval)
                 ts = time()

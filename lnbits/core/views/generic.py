@@ -1,40 +1,30 @@
-import asyncio
-import sys
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, List, Optional, Union
 from urllib.parse import urlparse
 
-from fastapi import Cookie, Depends, Query, Request, status
+from fastapi import Cookie, Depends, Query, Request
 from fastapi.exceptions import HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from loguru import logger
 from pydantic.types import UUID4
 
-from lnbits.core.db import core_app_extra, db
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.decorators import check_admin, check_user_exists
-from lnbits.helpers import template_renderer, url_for
+from lnbits.helpers import template_renderer
 from lnbits.settings import settings
-from lnbits.wallets import get_wallet_class
+from lnbits.wallets import get_funding_source
 
 from ...extension_manager import InstallableExtension, get_valid_extensions
 from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
-    create_account,
     create_wallet,
-    get_balance_check,
     get_dbversions,
-    get_inactive_extensions,
     get_installed_extensions,
     get_user,
-    save_balance_notify,
-    update_installed_extension_state,
-    update_user_extension,
 )
-from ..services import pay_invoice, redeem_lnurl_withdraw
 
 generic_router = APIRouter(
     tags=["Core NON-API Website Routes"], include_in_schema=False
@@ -78,19 +68,8 @@ async def robots():
     return HTMLResponse(content=data, media_type="text/plain")
 
 
-@generic_router.get(
-    "/extensions", name="install.extensions", response_class=HTMLResponse
-)
-async def extensions_install(
-    request: Request,
-    user: User = Depends(check_user_exists),
-    activate: str = Query(None),
-    deactivate: str = Query(None),
-    enable: str = Query(None),
-    disable: str = Query(None),
-):
-    await toggle_extension(enable, disable, user.id)
-
+@generic_router.get("/extensions", name="extensions", response_class=HTMLResponse)
+async def extensions(request: Request, user: User = Depends(check_user_exists)):
     try:
         installed_exts: List["InstallableExtension"] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
@@ -105,6 +84,11 @@ async def extensions_install(
             installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
             if installed_ext:
                 e.installed_release = installed_ext.installed_release
+                if installed_ext.pay_to_enable and not user.admin:
+                    # not a security leak, but better not to share the wallet id
+                    installed_ext.pay_to_enable.wallet = None
+                e.pay_to_enable = installed_ext.pay_to_enable
+
                 # use the installed extension values
                 e.name = installed_ext.name
                 e.short_description = installed_ext.short_description
@@ -116,30 +100,10 @@ async def extensions_install(
         installed_exts_ids = []
 
     try:
-        ext_id = activate or deactivate
-        all_extensions = get_valid_extensions()
-        ext = next((e for e in all_extensions if e.code == ext_id), None)
-        if ext_id and user.admin:
-            if deactivate and deactivate not in settings.lnbits_deactivated_extensions:
-                settings.lnbits_deactivated_extensions += [deactivate]
-            elif activate:
-                # if extension never loaded (was deactivated on server startup)
-                if ext_id not in sys.modules.keys():
-                    # run extension start-up routine
-                    core_app_extra.register_new_ext_routes(ext)
-
-                settings.lnbits_deactivated_extensions = list(
-                    filter(
-                        lambda e: e != activate, settings.lnbits_deactivated_extensions
-                    )
-                )
-
-            await update_installed_extension_state(
-                ext_id=ext_id, active=activate is not None
-            )
-
-        all_ext_ids = [ext.code for ext in all_extensions]
-        inactive_extensions = await get_inactive_extensions()
+        all_ext_ids = [ext.code for ext in get_valid_extensions()]
+        inactive_extensions = [
+            e.id for e in await get_installed_extensions(active=False)
+        ]
         db_version = await get_dbversions()
         extensions = [
             {
@@ -161,6 +125,8 @@ async def extensions_install(
                 "installedRelease": (
                     dict(ext.installed_release) if ext.installed_release else None
                 ),
+                "payToEnable": (dict(ext.pay_to_enable) if ext.pay_to_enable else {}),
+                "isPaymentRequired": ext.requires_payment,
             }
             for ext in installable_exts
         ]
@@ -176,9 +142,11 @@ async def extensions_install(
                 "extensions": extensions,
             },
         )
-    except Exception as e:
-        logger.warning(e)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
 
 
 @generic_router.get(
@@ -206,7 +174,7 @@ async def wallet(
     user_wallet = user.get_wallet(wallet_id)
     if not user_wallet or user_wallet.deleted:
         return template_renderer().TemplateResponse(
-            request, "error.html", {"err": "Wallet not found"}
+            request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
         )
 
     resp = template_renderer().TemplateResponse(
@@ -240,115 +208,6 @@ async def account(
         {
             "user": user.dict(),
         },
-    )
-
-
-@generic_router.get("/withdraw", response_class=JSONResponse)
-async def lnurl_full_withdraw(request: Request):
-    usr_param = request.query_params.get("usr")
-    if not usr_param:
-        return {"status": "ERROR", "reason": "usr parameter not provided."}
-
-    user = await get_user(usr_param)
-    if not user:
-        return {"status": "ERROR", "reason": "User does not exist."}
-
-    wal_param = request.query_params.get("wal")
-    if not wal_param:
-        return {"status": "ERROR", "reason": "wal parameter not provided."}
-
-    wallet = user.get_wallet(wal_param)
-    if not wallet:
-        return {"status": "ERROR", "reason": "Wallet does not exist."}
-
-    return {
-        "tag": "withdrawRequest",
-        "callback": url_for("/withdraw/cb", external=True, usr=user.id, wal=wallet.id),
-        "k1": "0",
-        "minWithdrawable": 1000 if wallet.withdrawable_balance else 0,
-        "maxWithdrawable": wallet.withdrawable_balance,
-        "defaultDescription": (
-            f"{settings.lnbits_site_title} balance withdraw from {wallet.id[0:5]}"
-        ),
-        "balanceCheck": url_for("/withdraw", external=True, usr=user.id, wal=wallet.id),
-    }
-
-
-@generic_router.get("/withdraw/cb", response_class=JSONResponse)
-async def lnurl_full_withdraw_callback(request: Request):
-    usr_param = request.query_params.get("usr")
-    if not usr_param:
-        return {"status": "ERROR", "reason": "usr parameter not provided."}
-
-    user = await get_user(usr_param)
-    if not user:
-        return {"status": "ERROR", "reason": "User does not exist."}
-
-    wal_param = request.query_params.get("wal")
-    if not wal_param:
-        return {"status": "ERROR", "reason": "wal parameter not provided."}
-
-    wallet = user.get_wallet(wal_param)
-    if not wallet:
-        return {"status": "ERROR", "reason": "Wallet does not exist."}
-
-    pr = request.query_params.get("pr")
-    if not pr:
-        return {"status": "ERROR", "reason": "payment_request not provided."}
-
-    async def pay():
-        try:
-            await pay_invoice(wallet_id=wallet.id, payment_request=pr)
-        except Exception:
-            pass
-
-    asyncio.create_task(pay())
-
-    balance_notify = request.query_params.get("balanceNotify")
-    if balance_notify:
-        await save_balance_notify(wallet.id, balance_notify)
-
-    return {"status": "OK"}
-
-
-@generic_router.get("/withdraw/notify/{service}")
-async def lnurl_balance_notify(request: Request, service: str):
-    wal_param = request.query_params.get("wal")
-    if not wal_param:
-        return {"status": "ERROR", "reason": "wal parameter not provided."}
-
-    bc = await get_balance_check(wal_param, service)
-    if bc:
-        await redeem_lnurl_withdraw(bc.wallet, bc.url)
-
-
-@generic_router.get(
-    "/lnurlwallet", response_class=RedirectResponse, name="core.lnurlwallet"
-)
-async def lnurlwallet(request: Request):
-    async with db.connect() as conn:
-        account = await create_account(conn=conn)
-        user = await get_user(account.id, conn=conn)
-        assert user, "Newly created user not found."
-        wallet = await create_wallet(user_id=user.id, conn=conn)
-
-    lightning_param = request.query_params.get("lightning")
-    if not lightning_param:
-        return {"status": "ERROR", "reason": "lightning parameter not provided."}
-
-    asyncio.create_task(
-        redeem_lnurl_withdraw(
-            wallet.id,
-            lightning_param,
-            "LNbits initial funding: voucher redeem.",
-            {"tag": "lnurlwallet"},
-            5,  # wait 5 seconds before sending the invoice to the service
-        )
-    )
-
-    return RedirectResponse(
-        f"/wallet?usr={user.id}&wal={wallet.id}",
-        status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
 
 
@@ -452,8 +311,8 @@ async def node(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_node_ui:
         raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 
-    WALLET = get_wallet_class()
-    _, balance = await WALLET.status()
+    funding_source = get_funding_source()
+    _, balance = await funding_source.status()
 
     return template_renderer().TemplateResponse(
         request,
@@ -472,8 +331,8 @@ async def node_public(request: Request):
     if not settings.lnbits_public_node_ui:
         raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 
-    WALLET = get_wallet_class()
-    _, balance = await WALLET.status()
+    funding_source = get_funding_source()
+    _, balance = await funding_source.status()
 
     return template_renderer().TemplateResponse(
         request,
@@ -486,12 +345,12 @@ async def node_public(request: Request):
 
 
 @generic_router.get("/admin", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_admin)):
+async def admin_index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
-    WALLET = get_wallet_class()
-    _, balance = await WALLET.status()
+    funding_source = get_funding_source()
+    _, balance = await funding_source.status()
 
     return template_renderer().TemplateResponse(
         request,
@@ -505,36 +364,28 @@ async def index(request: Request, user: User = Depends(check_admin)):
     )
 
 
+@generic_router.get("/users", response_class=HTMLResponse)
+async def users_index(request: Request, user: User = Depends(check_admin)):
+    if not settings.lnbits_admin_ui:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+
+    return template_renderer().TemplateResponse(
+        "users/index.html",
+        {
+            "request": request,
+            "user": user.dict(),
+            "settings": settings.dict(),
+            "currencies": list(currencies.keys()),
+        },
+    )
+
+
 @generic_router.get("/uuidv4/{hex_value}")
 async def hex_to_uuid4(hex_value: str):
     try:
         user_id = to_valid_user_id(hex_value).hex
         return RedirectResponse(url=f"/wallet?usr={user_id}")
-    except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
-
-
-async def toggle_extension(extension_to_enable, extension_to_disable, user_id):
-    if extension_to_enable and extension_to_disable:
+    except Exception as exc:
         raise HTTPException(
-            HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
-        )
-
-    # check if extension exists
-    if extension_to_enable or extension_to_disable:
-        ext = extension_to_enable or extension_to_disable
-        if ext not in [e.code for e in get_valid_extensions()]:
-            raise HTTPException(
-                HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
-            )
-
-    if extension_to_enable:
-        logger.info(f"Enabling extension: {extension_to_enable} for user {user_id}")
-        await update_user_extension(
-            user_id=user_id, extension=extension_to_enable, active=True
-        )
-    elif extension_to_disable:
-        logger.info(f"Disabling extension: {extension_to_disable} for user {user_id}")
-        await update_user_extension(
-            user_id=user_id, extension=extension_to_disable, active=False
-        )
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc

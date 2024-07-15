@@ -16,7 +16,7 @@ from lnbits.settings import set_cli_settings, settings
     }
 )
 @click.option("--port", default=settings.port, help="Port to listen on")
-@click.option("--host", default=settings.host, help="Host to run LNBits on")
+@click.option("--host", default=settings.host, help="Host to run LNbits on")
 @click.option(
     "--forwarded-allow-ips",
     default=settings.forwarded_allow_ips,
@@ -24,14 +24,16 @@ from lnbits.settings import set_cli_settings, settings
 )
 @click.option("--ssl-keyfile", default=None, help="Path to SSL keyfile")
 @click.option("--ssl-certfile", default=None, help="Path to SSL certificate")
-@click.pass_context
+@click.option(
+    "--reload", is_flag=True, default=False, help="Enable auto-reload for development"
+)
 def main(
-    ctx,
     port: int,
     host: str,
     forwarded_allow_ips: str,
     ssl_keyfile: str,
     ssl_certfile: str,
+    reload: bool,
 ):
     """Launched with `poetry run lnbits` at root level"""
 
@@ -46,21 +48,6 @@ def main(
 
     set_cli_settings(host=host, port=port, forwarded_allow_ips=forwarded_allow_ips)
 
-    # this beautiful beast parses all command line arguments and
-    # passes them to the uvicorn server
-    d = {}
-    for a in ctx.args:
-        item = a.split("=")
-        if len(item) > 1:  # argument like --key=value
-            print(a, item)
-            d[item[0].strip("--").replace("-", "_")] = (
-                int(item[1])  # need to convert to int if it's a number
-                if item[1].isdigit()
-                else item[1]
-            )
-        else:
-            d[a.strip("--")] = True  # argument like --key
-
     while True:
         config = uvicorn.Config(
             "lnbits.__main__:app",
@@ -70,7 +57,7 @@ def main(
             forwarded_allow_ips=forwarded_allow_ips,
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
-            **d
+            reload=reload or False,
         )
 
         server = uvicorn.Server(config=config)

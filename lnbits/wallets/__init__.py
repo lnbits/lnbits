@@ -24,26 +24,27 @@ from .lndrest import LndRestWallet
 from .lnpay import LNPayWallet
 from .lntips import LnTipsWallet
 from .opennode import OpenNodeWallet
+from .phoenixd import PhoenixdWallet
 from .spark import SparkWallet
 from .void import VoidWallet
 from .zbd import ZBDWallet
 
 
-def set_wallet_class(class_name: Optional[str] = None):
+def set_funding_source(class_name: Optional[str] = None):
     backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
-    wallet_class = getattr(wallets_module, backend_wallet_class)
-    global WALLET
-    WALLET = wallet_class()
-    if WALLET.__node_cls__:
-        set_node_class(WALLET.__node_cls__(WALLET))
+    funding_source_constructor = getattr(wallets_module, backend_wallet_class)
+    global funding_source
+    funding_source = funding_source_constructor()
+    if funding_source.__node_cls__:
+        set_node_class(funding_source.__node_cls__(funding_source))
 
 
-def get_wallet_class() -> Wallet:
-    return WALLET
+def get_funding_source() -> Wallet:
+    return funding_source
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
-FAKE_WALLET = FakeWallet()
+fake_wallet = FakeWallet()
 
 # initialize as fake wallet
-WALLET: Wallet = FAKE_WALLET
+funding_source: Wallet = fake_wallet

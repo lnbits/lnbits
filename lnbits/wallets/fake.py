@@ -37,10 +37,13 @@ class FakeWallet(Wallet):
     privkey: str = hashlib.pbkdf2_hmac(
         "sha256",
         secret.encode(),
-        ("FakeWallet").encode(),
+        b"FakeWallet",
         2048,
         32,
     ).hex()
+
+    async def cleanup(self):
+        pass
 
     async def status(self) -> StatusResponse:
         logger.info(
@@ -130,6 +133,6 @@ class FakeWallet(Wallet):
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             value: Bolt11 = await self.queue.get()
             yield value.payment_hash

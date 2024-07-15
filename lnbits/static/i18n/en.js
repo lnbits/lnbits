@@ -9,6 +9,8 @@ window.localisation.en = {
   transactions: 'Transactions',
   dashboard: 'Dashboard',
   node: 'Node',
+  export_users: 'Export Users',
+  no_users: 'No users found',
   total_capacity: 'Total Capacity',
   avg_channel_size: 'Avg. Channel Size',
   biggest_channel_size: 'Biggest Channel Size',
@@ -33,6 +35,8 @@ window.localisation.en = {
   reset_defaults_tooltip: 'Delete all settings and reset to defaults.',
   download_backup: 'Download database backup',
   name_your_wallet: 'Name your %{name} wallet',
+  wallet_topup_ok:
+    'Success creating virtual funds (%{amount} sats). Payments depend on actual funds on funding source.',
   paste_invoice_label: 'Paste an invoice, payment request or lnurl code *',
   lnbits_description:
     'Easy to set up and lightweight, LNbits can run on any Lightning Network funding source and even LNbits itself! You can run LNbits for yourself, or easily offer a custodian solution for others. Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool. Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.',
@@ -98,11 +102,8 @@ window.localisation.en = {
   i_understand: 'I understand',
   copy_wallet_url: 'Copy wallet URL',
   disclaimer_dialog_title: 'Important!',
-  disclaimer_dialog: `You *must* save your  login credentials to be able to access your wallet again.If you lose them, you will lose access to your wallet and funds.
-
-Find your  login credentials on your account settings page.
-
-This service is in BETA. LNbits holds no responsibility for loss of access to funds.`,
+  disclaimer_dialog:
+    'You *must* save your  login credentials to be able to access your wallet again. If you lose them, you will lose access to your wallet and funds.\n\nFind your  login credentials on your account settings page.\n\nThis service is in BETA. LNbits holds no responsibility for loss of access to funds.',
   no_transactions: 'No transactions made yet',
   manage: 'Manage',
   extensions: 'Extensions',
@@ -117,6 +118,7 @@ This service is in BETA. LNbits holds no responsibility for loss of access to fu
   uninstall: 'Uninstall',
   drop_db: 'Remove Data',
   enable: 'Enable',
+  pay_to_enable: 'Pay To Enable',
   enable_extension_details: 'Enable extension for current user',
   disable: 'Disable',
   installed: 'Installed',
@@ -143,6 +145,7 @@ This service is in BETA. LNbits holds no responsibility for loss of access to fu
   payment_hash: 'Payment Hash',
   fee: 'Fee',
   amount: 'Amount',
+  amount_sats: 'Amount (sats)',
   tag: 'Tag',
   unit: 'Unit',
   description: 'Description',
@@ -162,7 +165,7 @@ This service is in BETA. LNbits holds no responsibility for loss of access to fu
     'If enabled it will change your funding source to VoidWallet automatically if LNbits sends out a killswitch signal. You will need to enable manually after an update.',
   killswitch_interval: 'Killswitch Interval',
   killswitch_interval_desc:
-    'How often the background task should check for the LNBits killswitch signal from the status source (in minutes).',
+    'How often the background task should check for the LNbits killswitch signal from the status source (in minutes).',
   enable_watchdog: 'Enable Watchdog',
   enable_watchdog_desc:
     'If enabled it will change your funding source to VoidWallet automatically if your balance is lower than the LNbits balance. You will need to enable manually after an update.',
@@ -244,7 +247,18 @@ This service is in BETA. LNbits holds no responsibility for loss of access to fu
   extension_paid_sats: 'You have already paid %{paid_sats} sats.',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
+  wallet_required: 'Wallet *',
   show_qr: 'Show QR',
   retry_install: 'Retry Install',
-  new_payment: 'Make New Payment'
+  new_payment: 'Make New Payment',
+  update_payment: 'Update Payment',
+  already_paid_question: 'Have you already paid?',
+  sell: 'Sell',
+  sell_require: 'Ask payment to enable extension',
+  sell_info:
+    'The %{name} extension requires a payment of minimum %{amount} sats to enable.',
+  hide_empty_wallets: 'Hide empty wallets',
+  recheck: 'Recheck',
+  contributors: 'Contributors',
+  license: 'License'
 }

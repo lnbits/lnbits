@@ -6,9 +6,9 @@ nav_order: 2
 
 # Basic installation
 
-You can choose between four package managers, `poetry` and `nix`
+The following sections explain how to install LNbits using varions package managers: `poetry`, `nix`, `Docker` and `Fly.io`.
 
-By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
+Note that by default LNbits uses SQLite as its database, which is simple and effective but you can configure it to use PostgreSQL instead which is also described in a section below.
 
 ## Option 1 (recommended): poetry
 
@@ -16,6 +16,7 @@ Mininum poetry version has is ^1.2, but it is recommended to use latest poetry. 
 Make sure you have Python 3.9 or 3.10 installed.
 
 ### install python on ubuntu
+
 ```sh
 # for making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version
 sudo apt update
@@ -25,6 +26,7 @@ sudo apt install python3.9 python3.9-distutils
 ```
 
 ### install poetry
+
 ```sh
 curl -sSL https://install.python-poetry.org | python3 -
 # Once the above poetry install is completed, use the installation path printed to terminal and replace in the following command
@@ -56,6 +58,7 @@ poetry run lnbits
 # adding --debug in the start-up command above to help your troubleshooting and generate a more verbose output
 # Note that you have to add the line DEBUG=true in your .env file, too.
 ```
+
 #### Updating the server
 
 ```
@@ -97,7 +100,7 @@ nix run
 Ideally you would set the environment via the `.env` file,
 but you can also set the env variables or pass command line arguments:
 
-``` sh
+```sh
 # .env variables are currently passed when running, but LNbits can be managed with the admin UI.
 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
 
@@ -108,13 +111,16 @@ SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/ln
 ## Option 3: Docker
 
 use latest version from docker hub
+
 ```sh
 docker pull lnbits/lnbits
 wget https://raw.githubusercontent.com/lnbits/lnbits/main/.env.example -O .env
 mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
 ```
+
 build the image yourself
+
 ```sh
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
@@ -157,7 +163,7 @@ You'll be prompted to enter an app name, region, postgres (choose no), deploy no
 
 You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings.
 
-Note: Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`. Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://legend.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://legend.lnbits.com"`.
+Note: Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`. Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://demo.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://demo.lnbits.com"`.
 
 Note: Don't enter secret environment variables here. Fly.io offers secrets (via the `fly secrets` command) that are exposed as environment variables in your runtime. So, for example, if using the LND_REST funding source, you can run `fly secrets set LND_REST_MACAROON=<hex_macaroon_data>`.
 
@@ -254,11 +260,10 @@ You might also need to install additional packages or perform additional setup s
 
 Take a look at [Polar](https://lightningpolar.com/) for an excellent way of spinning up a Lightning Network dev environment.
 
-
-
 # Additional guides
 
 ## SQLite to PostgreSQL migration
+
 If you already have LNbits installed and running, on an SQLite database, we **highly** recommend you migrate to postgres if you are planning to run LNbits on scale.
 
 There's a script included that can do the migration easy. You should have Postgres already installed and there should be a password for the user (see Postgres install guide above). Additionally, your LNbits instance should run once on postgres to implement the database schema before the migration works:
@@ -279,7 +284,6 @@ make migration
 ```
 
 Hopefully, everything works and get migrated... Launch LNbits again and check if everything is working properly.
-
 
 ## LNbits as a systemd service
 
@@ -440,6 +444,15 @@ server {
     proxy_set_header X-Forwarded-Host $host;
     proxy_set_header X-Forwarded-Proto $scheme;
 
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_pass_request_headers on;
+
+    # WebSocket support
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+
     listen [::]:443 ssl;
     listen 443 ssl;
     ssl_certificate /etc/letsencrypt/live/lnbits.org/fullchain.pem;
@@ -457,28 +470,36 @@ service restart nginx
 ```
 
 ## Using https without reverse proxy
+
 The most common way of using LNbits via https is to use a reverse proxy such as Caddy, nginx, or ngriok. However, you can also run LNbits via https without additional software. This is useful for development purposes or if you want to use LNbits in your local network.
 
 We have to create a self-signed certificate using `mkcert`. Note that this certificate is not "trusted" by most browsers but that's fine (since you know that you have created it) and encryption is always better than clear text.
 
 #### Install mkcert
+
 You can find the install instructions for `mkcert` [here](https://github.com/FiloSottile/mkcert).
 
 Install mkcert on Ubuntu:
+
 ```sh
 sudo apt install libnss3-tools
 curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64"
 chmod +x mkcert-v*-linux-amd64
 sudo cp mkcert-v*-linux-amd64 /usr/local/bin/mkcert
 ```
+
 #### Create certificate
+
 To create a certificate, first `cd` into your LNbits folder and execute the following command on Linux:
+
 ```sh
 openssl req -new -newkey rsa:4096 -x509 -sha256 -days 3650 -nodes -out cert.pem -keyout key.pem
 ```
+
 This will create two new files (`key.pem` and `cert.pem `).
 
 Alternatively, you can use mkcert ([more info](https://kifarunix.com/how-to-create-self-signed-ssl-certificate-with-mkcert-on-ubuntu-18-04/)):
+
 ```sh
 # add your local IP (192.x.x.x) as well if you want to use it in your local network
 mkcert localhost 127.0.0.1 ::1
@@ -489,7 +510,6 @@ You can then pass the certificate files to uvicorn when you start LNbits:
 ```sh
 poetry run uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./key.pem --ssl-certfile ./cert.pem
 ```
-
 
 ## LNbits running on Umbrel behind Tor
 
@@ -502,7 +522,7 @@ To install using docker you first need to build the docker image as:
 ```
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-docker build -t lnbits-legend .
+docker build -t lnbits/lnbits .
 ```
 
 You can launch the docker in a different directory, but make sure to copy `.env.example` from lnbits there
@@ -514,6 +534,7 @@ cp <lnbits_repo>/.env.example .env
 and change the configuration in `.env` as required.
 
 Then create the data directory
+
 ```
 mkdir data
 ```
@@ -521,7 +542,7 @@ mkdir data
 Then the image can be run as:
 
 ```
-docker run --detach --publish 5000:5000 --name lnbits-legend -e "LNBITS_BACKEND_WALLET_CLASS='FakeWallet'" --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
+docker run --detach --publish 5000:5000 --name lnbits -e "LNBITS_BACKEND_WALLET_CLASS='FakeWallet'" --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits
 ```
 
 Finally you can access your lnbits on your machine at port 5000.

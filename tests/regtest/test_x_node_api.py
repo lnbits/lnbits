@@ -9,15 +9,18 @@ from lnbits import bolt11
 from lnbits.nodes.base import ChannelPoint, ChannelState, NodeChannel
 from tests.conftest import pytest_asyncio, settings
 
-from ...helpers import (
-    WALLET,
+from ..helpers import (
+    funding_source,
     get_random_invoice_data,
+)
+from .helpers import (
     get_unconnected_node_uri,
     mine_blocks,
 )
 
 pytestmark = pytest.mark.skipif(
-    WALLET.__node_cls__ is None, reason="Cant test if node implementation isnt avilable"
+    funding_source.__node_cls__ is None,
+    reason="Cant test if node implementation isnt available",
 )
 
 

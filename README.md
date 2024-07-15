@@ -1,22 +1,16 @@
-
 <picture >
   <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png"  style="width:300px">
   <img src="https://i.imgur.com/fyKPgVT.png" style="width:300px">
 </picture>
 
-<b>(BETA)</b> 
-
-[![license-badge]](LICENSE) [![docs-badge]][docs]
-
+![phase: beta](https://img.shields.io/badge/phase-beta-C41E3A) [![license-badge]](LICENSE) [![docs-badge]][docs] ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-08A04B) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) [<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)
 ![Lightning network wallet](https://i.imgur.com/DeIiO0y.png)
 
 # The world's most powerful suite of bitcoin tools.
 
-## Run for yourself, for others, or as part of a stack. 
+## Run for yourself, for others, or as part of a stack.
 
-(Join us on [https://t.me/lnbits](https://t.me/lnbits))
-
-LNbits is beta, for responsible disclosure of any concerns please contact an admin in [https://t.me/lnbits](https://t.me/lnbits)
+LNbits is beta, for responsible disclosure of any concerns please contact an admin in the community chat.
 
 LNbits is a Python server that sits on top of any funding source. It can be used as:
 
@@ -36,7 +30,7 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 
 ## Running LNbits
 
-Test on our demo server [legend.lnbits.com](https://legend.lnbits.com), or on [lnbits.com](https://lnbits.com) software as a service, where you can spin up an LNbits instance for 21sats per hr.
+Test on our demo server [demo.lnbits.com](https://demo.lnbits.com), or on [lnbits.com](https://lnbits.com) software as a service, where you can spin up an LNbits instance for 21sats per hr.
 
 See the [install guide](https://github.com/lnbits/lnbits/blob/main/docs/guide/installation.md) for details on installation and setup.
 
@@ -50,7 +44,7 @@ LNbits is packaged with tools to help manage funds, such as a table of transacti
 
 Extend YOUR LNbits to meet YOUR needs.
 
-All non-core features are installed as extensions, reducing your code base and making your LNbits unique to you. Extend your LNbits install in any direction, and even create and share your own extensions. 
+All non-core features are installed as extensions, reducing your code base and making your LNbits unique to you. Extend your LNbits install in any direction, and even create and share your own extensions.
 
 <img src="https://i.imgur.com/aEBpwJF.png" style="width:800px">
 
@@ -74,7 +68,7 @@ As well as working great in a browser, LNbits has native IoS and Android apps as
 
 ## Tip us
 
-If you like this project [send some tip love](https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
+If you like this project [send some tip love](https://demo.lnbits.com/lnurlp/link/fH59GD)!
 
 [docs]: https://github.com/lnbits/lnbits/wiki
 [docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg

@@ -17,7 +17,7 @@ def get_translation_ids_from_source():
     p2 = re.compile(r'\$t\("([^"]*)"')
     ids = []
     for fn in files:
-        with open(fn, "rt") as f:
+        with open(fn) as f:
             text = f.read()
             m1 = re.findall(p1, text)
             m2 = re.findall(p2, text)
@@ -30,7 +30,7 @@ def get_translation_ids_from_source():
 
 def get_translation_ids_for_language(language):
     ids = []
-    for line in open(f"lnbits/static/i18n/{language}.js", "rt"):
+    for line in open(f"lnbits/static/i18n/{language}.js"):
         # extract ids from lines like that start with exactly 2 spaces
         if line.startswith("  ") and not line.startswith("   "):
             m = line[2:].split(":")[0]

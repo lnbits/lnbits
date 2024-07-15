@@ -5,7 +5,6 @@ import httpx
 from loguru import logger
 
 from lnbits.core.crud import (
-    get_balance_notify,
     get_wallet,
     get_webpush_subscriptions_for_user,
     mark_webhook_sent,
@@ -16,7 +15,7 @@ from lnbits.core.services import (
     send_payment_notification,
     switch_to_voidwallet,
 )
-from lnbits.settings import get_wallet_class, settings
+from lnbits.settings import get_funding_source, settings
 from lnbits.tasks import send_push_notification
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = {}
@@ -27,9 +26,12 @@ async def killswitch_task():
     killswitch will check lnbits-status repository for a signal from
     LNbits and will switch to VoidWallet if the killswitch is triggered.
     """
-    while True:
-        WALLET = get_wallet_class()
-        if settings.lnbits_killswitch and WALLET.__class__.__name__ != "VoidWallet":
+    while settings.lnbits_running:
+        funding_source = get_funding_source()
+        if (
+            settings.lnbits_killswitch
+            and funding_source.__class__.__name__ != "VoidWallet"
+        ):
             with httpx.Client() as client:
                 try:
                     r = client.get(settings.lnbits_status_manifest, timeout=4)
@@ -54,11 +56,15 @@ async def watchdog_task():
     Registers a watchdog which will check lnbits balance and nodebalance
     and will switch to VoidWallet if the watchdog delta is reached.
     """
-    while True:
-        WALLET = get_wallet_class()
-        if settings.lnbits_watchdog and WALLET.__class__.__name__ != "VoidWallet":
+    while settings.lnbits_running:
+        funding_source = get_funding_source()
+        if (
+            settings.lnbits_watchdog
+            and funding_source.__class__.__name__ != "VoidWallet"
+        ):
             try:
-                delta, *_ = await get_balance_delta()
+                balance = await get_balance_delta()
+                delta = balance.delta_msats
                 logger.debug(f"Running watchdog task. current delta: {delta}")
                 if delta + settings.lnbits_watchdog_delta <= 0:
                     logger.error(f"Switching to VoidWallet. current delta: {delta}")
@@ -70,10 +76,9 @@ async def watchdog_task():
 
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
     """
-    This task dispatches events to all api_invoice_listeners,
-    webhooks, push notifications and balance notifications.
+    This worker dispatches events to all extensions and dispatches webhooks.
     """
-    while True:
+    while settings.lnbits_running:
         payment = await invoice_paid_queue.get()
         logger.trace("received invoice paid event")
         # dispatch api_invoice_listeners
@@ -85,28 +90,6 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
             await dispatch_webhook(payment)
-        # dispatch balance_notify
-        url = await get_balance_notify(payment.wallet_id)
-        if url:
-            headers = {"User-Agent": settings.user_agent}
-            async with httpx.AsyncClient(headers=headers) as client:
-                try:
-                    r = await client.post(url, timeout=4)
-                    r.raise_for_status()
-                    await mark_webhook_sent(payment.payment_hash, r.status_code)
-                except httpx.HTTPStatusError as exc:
-                    status_code = exc.response.status_code
-                    await mark_webhook_sent(payment.payment_hash, status_code)
-                    logger.warning(
-                        f"balance_notify returned a bad status_code: {status_code} "
-                        f"while requesting {exc.request.url!r}."
-                    )
-                    logger.warning(exc)
-                except httpx.RequestError as exc:
-                    await mark_webhook_sent(payment.payment_hash, -1)
-                    logger.warning(f"Could not send balance_notify to {url}")
-                    logger.warning(exc)
-
         # dispatch push notification
         await send_payment_push_notification(payment)
 

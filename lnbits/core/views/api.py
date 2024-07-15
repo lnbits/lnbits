@@ -25,8 +25,8 @@ from lnbits.core.models import (
 from lnbits.decorators import (
     WalletTypeInfo,
     check_user_exists,
-    get_key_type,
     require_admin_key,
+    require_invoice_key,
 )
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
@@ -37,10 +37,9 @@ from lnbits.utils.exchange_rates import (
 )
 
 from ..crud import (
-    create_account,
     create_wallet,
 )
-from ..services import perform_lnurlauth
+from ..services import create_user_account, perform_lnurlauth
 
 # backwards compatibility for extension
 # TODO: remove api_payment and pay_invoice imports from extensions
@@ -67,19 +66,21 @@ async def api_wallets(user: User = Depends(check_user_exists)) -> List[BaseWalle
 async def api_create_account(data: CreateWallet) -> Wallet:
     if not settings.new_accounts_allowed:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
+            status_code=HTTPStatus.FORBIDDEN,
             detail="Account creation is disabled.",
         )
-    account = await create_account()
+    account = await create_user_account()
     return await create_wallet(user_id=account.id, wallet_name=data.name)
 
 
 @api_router.get("/api/v1/lnurlscan/{code}")
-async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_lnurlscan(
+    code: str, wallet: WalletTypeInfo = Depends(require_invoice_key)
+):
     try:
         url = str(lnurl_decode(code))
         domain = urlparse(url).netloc
-    except Exception:
+    except Exception as exc:
         # parse internet identifier (user@domain.com)
         name_domain = code.split("@")
         if len(name_domain) == 2 and len(name_domain[1].split(".")) >= 2:
@@ -94,7 +95,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
         else:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="invalid lnurl"
-            )
+            ) from exc
 
     # params is what will be returned to the client
     params: Dict = {"domain": domain}
@@ -119,14 +120,14 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
 
         try:
             data = json.loads(r.text)
-        except json.decoder.JSONDecodeError:
+        except json.decoder.JSONDecodeError as exc:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                 detail={
                     "domain": domain,
                     "message": f"got invalid response '{r.text[:200]}'",
                 },
-            )
+            ) from exc
 
         try:
             tag: str = data.get("tag")
@@ -185,7 +186,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                     "domain": domain,
                     "message": f"lnurl JSON response invalid: {exc}",
                 },
-            )
+            ) from exc
 
     return params
 
