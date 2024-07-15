@@ -74,8 +74,8 @@ else:
                     "or breez_greenlight_device_cert"
                 )
             return breez_sdk.GreenlightCredentials(  # pyright: ignore[reportUnboundVariable]
-                device_key=list(device_key_bytes),
-                device_cert=list(device_cert_bytes),
+                developer_key=list(device_key_bytes),
+                developer_cert=list(device_cert_bytes),
             )
         return None
 
