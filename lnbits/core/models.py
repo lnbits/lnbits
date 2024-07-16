@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from sqlite3 import Row
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
@@ -64,7 +64,7 @@ class Wallet(BaseWallet):
             linking_key, curve=SECP256k1, hashfunc=hashlib.sha256
         )
 
-    async def get_payment(self, payment_hash: str) -> Optional["Payment"]:
+    async def get_payment(self, payment_hash: str) -> Optional[Payment]:
         from .crud import get_standalone_payment
 
         return await get_standalone_payment(payment_hash)
@@ -134,8 +134,8 @@ class User(BaseModel):
     id: str
     email: Optional[str] = None
     username: Optional[str] = None
-    extensions: List[str] = []
-    wallets: List[Wallet] = []
+    extensions: list[str] = []
+    wallets: list[Wallet] = []
     admin: bool = False
     super_user: bool = False
     has_password: bool = False
@@ -144,10 +144,10 @@ class User(BaseModel):
     updated_at: Optional[int] = None
 
     @property
-    def wallet_ids(self) -> List[str]:
+    def wallet_ids(self) -> list[str]:
         return [wallet.id for wallet in self.wallets]
 
-    def get_wallet(self, wallet_id: str) -> Optional["Wallet"]:
+    def get_wallet(self, wallet_id: str) -> Optional[Wallet]:
         w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
         return w[0] if w else None
 
@@ -210,7 +210,7 @@ class Payment(FromRowModel):
     preimage: str
     payment_hash: str
     expiry: Optional[float]
-    extra: Dict = {}
+    extra: dict = {}
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
@@ -351,7 +351,7 @@ class PaymentFilters(FilterModel):
     preimage: str
     payment_hash: str
     expiry: Optional[datetime.datetime]
-    extra: Dict = {}
+    extra: dict = {}
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
