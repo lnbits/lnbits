@@ -47,8 +47,11 @@ class BoltzWallet(Wallet):
         )
 
         if settings.boltz_client_macaroon:
-            self.macaroon = load_macaroon(settings.boltz_client_macaroon)
-            self.metadata = [("macaroon", self.macaroon)]
+            self.metadata = [
+                ("macaroon", load_macaroon(settings.boltz_client_macaroon))
+            ]
+        else:
+            self.metadata = None
 
         if settings.boltz_client_cert:
             cert = open(settings.boltz_client_cert, "rb").read()
@@ -59,9 +62,6 @@ class BoltzWallet(Wallet):
 
         self.rpc = boltzrpc_pb2_grpc.BoltzStub(channel)
         self.wallet_id: int = 0
-
-    def metadata_callback(self, _, callback):
-        callback([("macaroon", self.macaroon)], None)
 
     async def status(self) -> StatusResponse:
         try:
@@ -160,11 +160,17 @@ class BoltzWallet(Wallet):
             response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
                 boltzrpc_pb2.GetSwapInfoRequest(id=checking_id), metadata=self.metadata
             )
+            swap = response.reverse_swap
         except AioRpcError:
             return PaymentPendingStatus()
-        if response.reverse_swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
-            return PaymentSuccessStatus()
-        elif response.reverse_swap.state == boltzrpc_pb2.SwapState.PENDING:
+        if swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
+            return PaymentSuccessStatus(
+                fee_msat=(
+                    (swap.service_fee + swap.onchain_fee) * 1000 + swap.routing_fee_msat
+                ),
+                preimage=swap.preimage,
+            )
+        elif swap.state == boltzrpc_pb2.SwapState.PENDING:
             return PaymentPendingStatus()
 
         return PaymentFailedStatus()
@@ -174,12 +180,15 @@ class BoltzWallet(Wallet):
             response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
                 boltzrpc_pb2.GetSwapInfoRequest(id=checking_id), metadata=self.metadata
             )
+            swap = response.swap
         except AioRpcError:
             return PaymentPendingStatus()
-
-        if response.swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
-            return PaymentSuccessStatus()
-        elif response.swap.state == boltzrpc_pb2.SwapState.PENDING:
+        if swap.state == boltzrpc_pb2.SwapState.SUCCESSFUL:
+            return PaymentSuccessStatus(
+                fee_msat=(swap.service_fee + swap.onchain_fee) * 1000,
+                preimage=swap.preimage,
+            )
+        elif swap.state == boltzrpc_pb2.SwapState.PENDING:
             return PaymentPendingStatus()
 
         return PaymentFailedStatus()
