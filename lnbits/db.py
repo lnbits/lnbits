@@ -369,9 +369,15 @@ class FromRowModel(BaseModel):
         return cls(**dict(row))
 
 
+FromRowModel.update_forward_refs()
+
+
 class FilterModel(BaseModel):
     __search_fields__: list[str] = []
     __sort_fields__: Optional[list[str]] = None
+
+
+FilterModel.update_forward_refs()
 
 
 T = TypeVar("T")
@@ -383,6 +389,9 @@ TFilterModel = TypeVar("TFilterModel", bound=FilterModel)
 class Page(BaseModel, Generic[T]):
     data: list[T]
     total: int
+
+
+Page.update_forward_refs()
 
 
 class Filter(BaseModel, Generic[TFilterModel]):
@@ -432,6 +441,9 @@ class Filter(BaseModel, Generic[TFilterModel]):
         else:
             stmt = [f"{self.field} {self.op.as_sql} {placeholder}"] * len(self.values)
         return " OR ".join(stmt)
+
+
+Filter.update_forward_refs()
 
 
 class Filters(BaseModel, Generic[TFilterModel]):
@@ -507,3 +519,6 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if self.search and self.model:
             values.append(f"%{self.search}%")
         return tuple(values)
+
+
+Filters.update_forward_refs()

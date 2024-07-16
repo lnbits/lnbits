@@ -35,6 +35,9 @@ class LNbitsSettings(BaseModel):
         return val
 
 
+LNbitsSettings.update_forward_refs()
+
+
 class UsersSettings(LNbitsSettings):
     lnbits_admin_users: list[str] = Field(default=[])
     lnbits_allowed_users: list[str] = Field(default=[])
@@ -43,6 +46,9 @@ class UsersSettings(LNbitsSettings):
     @property
     def new_accounts_allowed(self) -> bool:
         return self.lnbits_allow_new_accounts and len(self.lnbits_allowed_users) == 0
+
+
+UsersSettings.update_forward_refs()
 
 
 class ExtensionsSettings(LNbitsSettings):
@@ -56,10 +62,16 @@ class ExtensionsSettings(LNbitsSettings):
     )
 
 
+ExtensionsSettings.update_forward_refs()
+
+
 class ExtensionsInstallSettings(LNbitsSettings):
     lnbits_extensions_default_install: list[str] = Field(default=[])
     # required due to GitHUb rate-limit
     lnbits_ext_github_token: str = Field(default="")
+
+
+ExtensionsInstallSettings.update_forward_refs()
 
 
 class InstalledExtensionsSettings(LNbitsSettings):
@@ -82,6 +94,9 @@ class InstalledExtensionsSettings(LNbitsSettings):
     def extension_upgrade_hash(self, ext_id: str) -> Optional[str]:
         path = settings.extension_upgrade_path(ext_id)
         return path.split("/")[0] if path else None
+
+
+InstalledExtensionsSettings.update_forward_refs()
 
 
 class ThemesSettings(LNbitsSettings):
@@ -116,6 +131,9 @@ class ThemesSettings(LNbitsSettings):
     lnbits_qr_logo: str = Field(default="/static/images/logos/lnbits.png")
 
 
+ThemesSettings.update_forward_refs()
+
+
 class OpsSettings(LNbitsSettings):
     lnbits_baseurl: str = Field(default="http://127.0.0.1:5000/")
     lnbits_reserve_fee_min: int = Field(default=2000)
@@ -126,6 +144,9 @@ class OpsSettings(LNbitsSettings):
     lnbits_service_fee_wallet: Optional[str] = Field(default=None)
     lnbits_hide_api: bool = Field(default=False)
     lnbits_denomination: str = Field(default="sats")
+
+
+OpsSettings.update_forward_refs()
 
 
 class SecuritySettings(LNbitsSettings):
@@ -156,8 +177,14 @@ class SecuritySettings(LNbitsSettings):
         )
 
 
+SecuritySettings.update_forward_refs()
+
+
 class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")
+
+
+FakeWalletFundingSource.update_forward_refs()
 
 
 class LNbitsFundingSource(LNbitsSettings):
@@ -167,8 +194,14 @@ class LNbitsFundingSource(LNbitsSettings):
     lnbits_invoice_key: Optional[str] = Field(default=None)
 
 
+LNbitsFundingSource.update_forward_refs()
+
+
 class ClicheFundingSource(LNbitsSettings):
     cliche_endpoint: Optional[str] = Field(default=None)
+
+
+ClicheFundingSource.update_forward_refs()
 
 
 class CoreLightningFundingSource(LNbitsSettings):
@@ -177,15 +210,24 @@ class CoreLightningFundingSource(LNbitsSettings):
     clightning_rpc: Optional[str] = Field(default=None)
 
 
+CoreLightningFundingSource.update_forward_refs()
+
+
 class CoreLightningRestFundingSource(LNbitsSettings):
     corelightning_rest_url: Optional[str] = Field(default=None)
     corelightning_rest_macaroon: Optional[str] = Field(default=None)
     corelightning_rest_cert: Optional[str] = Field(default=None)
 
 
+CoreLightningRestFundingSource.update_forward_refs()
+
+
 class EclairFundingSource(LNbitsSettings):
     eclair_url: Optional[str] = Field(default=None)
     eclair_pass: Optional[str] = Field(default=None)
+
+
+EclairFundingSource.update_forward_refs()
 
 
 class LndRestFundingSource(LNbitsSettings):
@@ -201,6 +243,9 @@ class LndRestFundingSource(LNbitsSettings):
     lnd_rest_invoice_macaroon: Optional[str] = Field(default=None)
 
 
+LndRestFundingSource.update_forward_refs()
+
+
 class LndGrpcFundingSource(LNbitsSettings):
     lnd_grpc_endpoint: Optional[str] = Field(default=None)
     lnd_grpc_cert: Optional[str] = Field(default=None)
@@ -211,6 +256,9 @@ class LndGrpcFundingSource(LNbitsSettings):
     lnd_grpc_macaroon_encrypted: Optional[str] = Field(default=None)
 
 
+LndGrpcFundingSource.update_forward_refs()
+
+
 class LnPayFundingSource(LNbitsSettings):
     lnpay_api_endpoint: Optional[str] = Field(default=None)
     lnpay_api_key: Optional[str] = Field(default=None)
@@ -218,9 +266,15 @@ class LnPayFundingSource(LNbitsSettings):
     lnpay_admin_key: Optional[str] = Field(default=None)
 
 
+LnPayFundingSource.update_forward_refs()
+
+
 class ZBDFundingSource(LNbitsSettings):
     zbd_api_endpoint: Optional[str] = Field(default="https://api.zebedee.io/v0/")
     zbd_api_key: Optional[str] = Field(default=None)
+
+
+ZBDFundingSource.update_forward_refs()
 
 
 class PhoenixdFundingSource(LNbitsSettings):
@@ -228,9 +282,15 @@ class PhoenixdFundingSource(LNbitsSettings):
     phoenixd_api_password: Optional[str] = Field(default=None)
 
 
+PhoenixdFundingSource.update_forward_refs()
+
+
 class AlbyFundingSource(LNbitsSettings):
     alby_api_endpoint: Optional[str] = Field(default="https://api.getalby.com/")
     alby_access_token: Optional[str] = Field(default=None)
+
+
+AlbyFundingSource.update_forward_refs()
 
 
 class OpenNodeFundingSource(LNbitsSettings):
@@ -240,9 +300,15 @@ class OpenNodeFundingSource(LNbitsSettings):
     opennode_invoice_key: Optional[str] = Field(default=None)
 
 
+OpenNodeFundingSource.update_forward_refs()
+
+
 class SparkFundingSource(LNbitsSettings):
     spark_url: Optional[str] = Field(default=None)
     spark_token: Optional[str] = Field(default=None)
+
+
+SparkFundingSource.update_forward_refs()
 
 
 class LnTipsFundingSource(LNbitsSettings):
@@ -252,8 +318,14 @@ class LnTipsFundingSource(LNbitsSettings):
     lntips_invoice_key: Optional[str] = Field(default=None)
 
 
+LnTipsFundingSource.update_forward_refs()
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600)
+
+
+LightningSettings.update_forward_refs()
 
 
 class FundingSourcesSettings(
@@ -276,9 +348,15 @@ class FundingSourcesSettings(
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
 
+FundingSourcesSettings.update_forward_refs()
+
+
 class WebPushSettings(LNbitsSettings):
     lnbits_webpush_pubkey: Optional[str] = Field(default=None)
     lnbits_webpush_privkey: Optional[str] = Field(default=None)
+
+
+WebPushSettings.update_forward_refs()
 
 
 class NodeUISettings(LNbitsSettings):
@@ -289,6 +367,9 @@ class NodeUISettings(LNbitsSettings):
     # can be used to disable the transactions tab in the node ui
     # (recommended for large cln nodes)
     lnbits_node_ui_transactions: bool = Field(default=False)
+
+
+NodeUISettings.update_forward_refs()
 
 
 class AuthMethods(Enum):
@@ -313,9 +394,15 @@ class AuthSettings(LNbitsSettings):
         return method.value in self.auth_allowed_methods
 
 
+AuthSettings.update_forward_refs()
+
+
 class GoogleAuthSettings(LNbitsSettings):
     google_client_id: str = Field(default="")
     google_client_secret: str = Field(default="")
+
+
+GoogleAuthSettings.update_forward_refs()
 
 
 class GitHubAuthSettings(LNbitsSettings):
@@ -323,10 +410,16 @@ class GitHubAuthSettings(LNbitsSettings):
     github_client_secret: str = Field(default="")
 
 
+GitHubAuthSettings.update_forward_refs()
+
+
 class KeycloakAuthSettings(LNbitsSettings):
     keycloak_discovery_url: str = Field(default="")
     keycloak_client_id: str = Field(default="")
     keycloak_client_secret: str = Field(default="")
+
+
+KeycloakAuthSettings.update_forward_refs()
 
 
 class EditableSettings(
@@ -369,9 +462,15 @@ class EditableSettings(
                 prop.pop("env_names", None)
 
 
+EditableSettings.update_forward_refs()
+
+
 class UpdateSettings(EditableSettings):
     class Config:
         extra = Extra.forbid
+
+
+UpdateSettings.update_forward_refs()
 
 
 class EnvSettings(LNbitsSettings):
@@ -400,15 +499,24 @@ class EnvSettings(LNbitsSettings):
         return self.lnbits_extensions_path == "lnbits"
 
 
+EnvSettings.update_forward_refs()
+
+
 class SaaSSettings(LNbitsSettings):
     lnbits_saas_callback: Optional[str] = Field(default=None)
     lnbits_saas_secret: Optional[str] = Field(default=None)
     lnbits_saas_instance_id: Optional[str] = Field(default=None)
 
 
+SaaSSettings.update_forward_refs()
+
+
 class PersistenceSettings(LNbitsSettings):
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str = Field(default=None)
+
+
+PersistenceSettings.update_forward_refs()
 
 
 class SuperUserSettings(LNbitsSettings):
@@ -432,6 +540,9 @@ class SuperUserSettings(LNbitsSettings):
     )
 
 
+SuperUserSettings.update_forward_refs()
+
+
 class TransientSettings(InstalledExtensionsSettings):
     # Transient Settings:
     #  - are initialized, updated and used at runtime
@@ -449,6 +560,9 @@ class TransientSettings(InstalledExtensionsSettings):
     @classmethod
     def readonly_fields(cls):
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
+
+
+TransientSettings.update_forward_refs()
 
 
 class ReadOnlySettings(
@@ -471,6 +585,9 @@ class ReadOnlySettings(
     @classmethod
     def readonly_fields(cls):
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
+
+
+ReadOnlySettings.update_forward_refs()
 
 
 class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
@@ -503,13 +620,22 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
         return ext_id in self.lnbits_all_extensions_ids
 
 
+Settings.update_forward_refs()
+
+
 class SuperSettings(EditableSettings):
     super_user: str
+
+
+SuperSettings.update_forward_refs()
 
 
 class AdminSettings(EditableSettings):
     is_super_user: bool
     lnbits_allowed_funding_sources: Optional[list[str]]
+
+
+AdminSettings.update_forward_refs()
 
 
 def set_cli_settings(**kwargs):

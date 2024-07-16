@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import hashlib
 import hmac
@@ -6,7 +8,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from sqlite3 import Row
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
@@ -27,6 +29,9 @@ class BaseWallet(BaseModel):
     adminkey: str
     inkey: str
     balance_msat: int
+
+
+BaseWallet.update_forward_refs()
 
 
 class Wallet(BaseWallet):
@@ -62,10 +67,13 @@ class Wallet(BaseWallet):
             linking_key, curve=SECP256k1, hashfunc=hashlib.sha256
         )
 
-    async def get_payment(self, payment_hash: str) -> Optional["Payment"]:
+    async def get_payment(self, payment_hash: str) -> Optional[Payment]:
         from .crud import get_standalone_payment
 
         return await get_standalone_payment(payment_hash)
+
+
+Wallet.update_forward_refs()
 
 
 class KeyType(Enum):
@@ -97,6 +105,9 @@ class UserConfig(BaseModel):
     provider: Optional[str] = "lnbits"  # auth provider
 
 
+UserConfig.update_forward_refs()
+
+
 class Account(FromRowModel):
     id: str
     is_super_user: Optional[bool] = False
@@ -107,6 +118,9 @@ class Account(FromRowModel):
     transaction_count: Optional[int] = 0
     wallet_count: Optional[int] = 0
     last_payment: Optional[datetime.datetime] = None
+
+
+Account.update_forward_refs()
 
 
 class AccountFilters(FilterModel):
@@ -128,12 +142,15 @@ class AccountFilters(FilterModel):
     email: Optional[str] = None
 
 
+AccountFilters.update_forward_refs()
+
+
 class User(BaseModel):
     id: str
     email: Optional[str] = None
     username: Optional[str] = None
-    extensions: List[str] = []
-    wallets: List[Wallet] = []
+    extensions: list[str] = []
+    wallets: list[Wallet] = []
     admin: bool = False
     super_user: bool = False
     has_password: bool = False
@@ -142,10 +159,10 @@ class User(BaseModel):
     updated_at: Optional[int] = None
 
     @property
-    def wallet_ids(self) -> List[str]:
+    def wallet_ids(self) -> list[str]:
         return [wallet.id for wallet in self.wallets]
 
-    def get_wallet(self, wallet_id: str) -> Optional["Wallet"]:
+    def get_wallet(self, wallet_id: str) -> Optional[Wallet]:
         w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
         return w[0] if w else None
 
@@ -160,6 +177,9 @@ class User(BaseModel):
         return False
 
 
+User.update_forward_refs()
+
+
 class CreateUser(BaseModel):
     email: Optional[str] = Query(default=None)
     username: str = Query(default=..., min_length=2, max_length=20)
@@ -167,11 +187,17 @@ class CreateUser(BaseModel):
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
 
 
+CreateUser.update_forward_refs()
+
+
 class UpdateUser(BaseModel):
     user_id: str
     email: Optional[str] = Query(default=None)
     username: Optional[str] = Query(default=..., min_length=2, max_length=20)
     config: Optional[UserConfig] = None
+
+
+UpdateUser.update_forward_refs()
 
 
 class UpdateUserPassword(BaseModel):
@@ -182,19 +208,31 @@ class UpdateUserPassword(BaseModel):
     username: Optional[str] = Query(default=..., min_length=2, max_length=20)
 
 
+UpdateUserPassword.update_forward_refs()
+
+
 class UpdateSuperuserPassword(BaseModel):
     username: str = Query(default=..., min_length=2, max_length=20)
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
 
 
+UpdateSuperuserPassword.update_forward_refs()
+
+
 class LoginUsr(BaseModel):
     usr: str
+
+
+LoginUsr.update_forward_refs()
 
 
 class LoginUsernamePassword(BaseModel):
     username: str
     password: str
+
+
+LoginUsernamePassword.update_forward_refs()
 
 
 class Payment(FromRowModel):
@@ -208,7 +246,7 @@ class Payment(FromRowModel):
     preimage: str
     payment_hash: str
     expiry: Optional[float]
-    extra: Dict = {}
+    extra: dict = {}
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
@@ -337,6 +375,9 @@ class Payment(FromRowModel):
         await delete_wallet_payment(self.checking_id, self.wallet_id, conn=conn)
 
 
+Payment.update_forward_refs()
+
+
 class PaymentFilters(FilterModel):
     __search_fields__ = ["memo", "amount"]
 
@@ -349,10 +390,13 @@ class PaymentFilters(FilterModel):
     preimage: str
     payment_hash: str
     expiry: Optional[datetime.datetime]
-    extra: Dict = {}
+    extra: dict = {}
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
+
+
+PaymentFilters.update_forward_refs()
 
 
 class PaymentHistoryPoint(BaseModel):
@@ -360,6 +404,9 @@ class PaymentHistoryPoint(BaseModel):
     income: int
     spending: int
     balance: int
+
+
+PaymentHistoryPoint.update_forward_refs()
 
 
 def _do_nothing(*_):
@@ -383,18 +430,30 @@ class TinyURL(BaseModel):
         return cls(**dict(row))
 
 
+TinyURL.update_forward_refs()
+
+
 class ConversionData(BaseModel):
     from_: str = "sat"
     amount: float
     to: str = "usd"
 
 
+ConversionData.update_forward_refs()
+
+
 class Callback(BaseModel):
     callback: str
 
 
+Callback.update_forward_refs()
+
+
 class DecodePayment(BaseModel):
     data: str
+
+
+DecodePayment.update_forward_refs()
 
 
 class CreateLnurl(BaseModel):
@@ -404,6 +463,9 @@ class CreateLnurl(BaseModel):
     comment: Optional[str] = None
     description: Optional[str] = None
     unit: Optional[str] = None
+
+
+CreateLnurl.update_forward_refs()
 
 
 class CreateInvoice(BaseModel):
@@ -421,21 +483,36 @@ class CreateInvoice(BaseModel):
     lnurl_callback: Optional[str] = None
 
 
+CreateInvoice.update_forward_refs()
+
+
 class CreateTopup(BaseModel):
     id: str
     amount: int
+
+
+CreateTopup.update_forward_refs()
 
 
 class CreateLnurlAuth(BaseModel):
     callback: str
 
 
+CreateLnurlAuth.update_forward_refs()
+
+
 class CreateWallet(BaseModel):
     name: Optional[str] = None
 
 
+CreateWallet.update_forward_refs()
+
+
 class CreateWebPushSubscription(BaseModel):
     subscription: str
+
+
+CreateWebPushSubscription.update_forward_refs()
 
 
 class WebPushSubscription(BaseModel):
@@ -444,6 +521,9 @@ class WebPushSubscription(BaseModel):
     data: str
     host: str
     timestamp: str
+
+
+WebPushSubscription.update_forward_refs()
 
 
 class BalanceDelta(BaseModel):
@@ -455,6 +535,12 @@ class BalanceDelta(BaseModel):
         return self.node_balance_msats - self.lnbits_balance_msats
 
 
+BalanceDelta.update_forward_refs()
+
+
 class SimpleStatus(BaseModel):
     success: bool
     message: str
+
+
+SimpleStatus.update_forward_refs()
