@@ -37,6 +37,12 @@
             asgi-lifespan = prev.asgi-lifespan.overridePythonAttrs (
               old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
             );
+            dnspython = prev.dnspython.overridePythonAttrs (
+              old: { buildInputs = (old.buildInputs or []) ++ [ prev.hatchling ]; }
+            );
+            jinja2 = prev.jinja2.overridePythonAttrs (
+              old: { buildInputs = (old.buildInputs or []) ++ [ prev.flit-core ]; }
+            );
             pytest-md = prev.pytest-md.overridePythonAttrs (
               old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
             );
