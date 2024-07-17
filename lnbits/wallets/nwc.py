@@ -301,7 +301,7 @@ class NWCWallet(Wallet):
             if msg[0] == "OK": # Event status message
                 event_id = msg[1]
                 status = msg[2]
-                info = msg[3] or ""               
+                info = (msg[3] or "") if len(msg) > 3 else ""
                 if not status:
                     # close subscription and pass an exception if the event was rejected by the relay
                     subscription = await self._close_subscription_by_eventid(event_id)
@@ -341,11 +341,12 @@ class NWCWallet(Wallet):
                         result_type = content.get("result_type","")
                         error = content.get("error", None)
                         result = content.get("result", None)
-                        if result_type != subscription["method"]: # ensure the result is for the expected method
-                            raise Exception("Unexpected result type")
                         if error: # if an error occurred, pass the error to the future
                             subscription["future"].set_exception(Exception(error["code"]+" "+error["message"]))
                         else:
+                            # ensure the result is for the expected method
+                            if result_type != subscription["method"]:
+                                raise Exception("Unexpected result type")
                             if not result: 
                                 raise Exception("Malformed response")
                             else:
@@ -688,19 +689,19 @@ class NWCWallet(Wallet):
             resp = await self._call("pay_invoice", {
                 "invoice": bolt11            
             })
-            preimage = str(resp["preimage"])
+            preimage = resp.get("preimage",None)
             # pay_invoice doesn't return payment data, so we need to call lookup_invoice too (if supported)
             info = await self._get_info()
             if "lookup_invoice" in info["supported_methods"]:
                 payment_data = await self._call("lookup_invoice",{
                     "invoice": bolt11
                 })
-                settled = "preimage" in payment_data  and payment_data["preimage"]
+                settled =  payment_data.get("settled_at", None) and payment_data.get("preimage", None)
                 checking_id = str(payment_data["payment_hash"])
                 if not settled:
                     return PaymentResponse(None, checking_id, None, None, None)
                 else:
-                    fee_msat = int(payment_data["fees_paid"])
+                    fee_msat = payment_data.get("fees_paid",None)
                     return PaymentResponse(True, checking_id, fee_msat, preimage, None)
             else: # if not supported, we compute the payment_hash
                 preimage_byte = bytes.fromhex(preimage)
@@ -722,10 +723,16 @@ class NWCWallet(Wallet):
                 payment_data = await self._call("lookup_invoice",{
                     "payment_hash": checking_id
                 })
-                settled = "settled_at" in payment_data and payment_data["settled_at"] and int(payment_data["settled_at"]) > 0 and "preimage" in payment_data and payment_data["preimage"]
-                fee_msat = int(payment_data["fees_paid"])
+                settled = payment_data.get("settled_at", None) and payment_data.get("preimage", None)
+                fee_msat = payment_data.get("fees_paid",None)
                 preimage = payment_data.get("preimage", None)
-                return PaymentStatus(True if settled else None, fee_msat=fee_msat, preimage=preimage)
+                created_at = int(payment_data.get("created_at", time.time()))
+                expires_at = int(payment_data.get("expires_at", created_at + 3600))
+                expired = expires_at and time.time() > expires_at
+                if expired and not settled:
+                    return PaymentStatus(False, fee_msat=fee_msat, preimage=preimage)
+                else:
+                    return PaymentStatus(True if settled else None, fee_msat=fee_msat, preimage=preimage)
             else:
                 return PaymentStatus(None, fee_msat=None, preimage=None)
         except Exception as e:
