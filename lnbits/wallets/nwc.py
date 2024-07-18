@@ -593,7 +593,27 @@ class NWCWallet(Wallet):
                 # Send the request
                 await self._send(["REQ", sub_id, sub_filter])
                 # Wait for the response
-                self.info = await future # cache
+                service_info = await future 
+                # Get account info when possible
+                if "get_info" in service_info["supported_methods"]:
+                    try:
+                        account_info = await self._call("get_info",{})
+                        # cache
+                        self.info = service_info
+                        self.info["alias"] = account_info.get("alias", "")
+                        self.info["color"] = account_info.get("color", "")
+                        self.info["pubkey"] = account_info.get("pubkey", "")
+                        self.info["network"] = account_info.get("network", "")
+                        self.info["block_height"] = account_info.get("block_height", 0)
+                        self.info["block_hash"] = account_info.get("block_hash", "")
+                        self.info["supported_methods"] = account_info.get("methods",service_info.get("supported_methods",["pay_invoice"]))
+                    except Exception as e:
+                        # If there is an error, fallback to using service info
+                        logger.error("Error getting account info: "+str(e)+" Using service info only")
+                        self.info = service_info
+                else:
+                    # get_info is not supported, so we will make do with the service info
+                    self.info = service_info # cache
             except Exception as e: 
                 logger.error("Error getting info: "+str(e))
                 # The error could mean that the service provider does not provide an info note
