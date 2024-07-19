@@ -521,15 +521,21 @@
           </div>
           <div class="col q-pl-md"></div>
         </div>
-       
-          <div class="row">
-            <div class="col">
-              <a href="https://nwc.dev/" target="_blank" rel="noopener noreferrer">
-                <q-img contain
-                  :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/nwc.png') }}' : '{{ static_url_for('static', 'images/nwcl.png') }}'"></q-img>
-              </a>
-           </div>
+
+        <div class="row">
+          <div class="col">
+            <a
+              href="https://nwc.dev/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <q-img
+                contain
+                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/nwc.png') }}' : '{{ static_url_for('static', 'images/nwcl.png') }}'"
+              ></q-img>
+            </a>
           </div>
+        </div>
       </div>
     </div>
   </div>

@@ -5,7 +5,7 @@
       "settings": {
         "nwc_pairing_url": "nostr+walletconnect://be927be01ce2b3ab0fc33ffec6c6ab590381d7fc883a392d163d3966fc5840b3?relay=ws://127.0.0.1:8555&secret=d1b1d3b0f4a1fcba4c15094d34ff0569cae3c8c7af939b3473ccd564cce3bfa3"
       },
-      "mock_settings":{
+      "mock_settings": {
         "service_public_key": "be927be01ce2b3ab0fc33ffec6c6ab590381d7fc883a392d163d3966fc5840b3",
         "service_private_key": "ad6a224c9c2f2a7ac7181092348d99671a94f28974e331e0f0afe3bcdab72bed",
         "user_public_key": "bef38893a567e717110478cc5729f4bf881727f5a7d7859edad2b2b21ee81f7e",
@@ -163,7 +163,8 @@
                     "method": "make_invoice",
                     "params": {
                       "amount": 555000,
-                      "description": "Test Invoice"}
+                      "description": "Test Invoice"
+                    }
                   },
                   "response_type": "json",
                   "response": {
@@ -290,7 +291,7 @@
             }
           }
         },
-       
+
         {
           "description": "error",
           "call_params": {

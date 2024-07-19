@@ -442,7 +442,6 @@ class SuperUserSettings(LNbitsSettings):
             "VoidWallet",
             "ZBDWallet",
             "NWCWallet",
-
         ]
     )
 
