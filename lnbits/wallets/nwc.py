@@ -21,7 +21,8 @@ from Cryptodome.Cipher import AES
 import base64
 import random
 from typing import Union
- 
+from bolt11 import decode as bolt11_decode
+
 class NWCWallet(Wallet):
     """
     A funding source that connects to a Nostr Wallet Connect (NWC) service provider. 
@@ -708,24 +709,28 @@ class NWCWallet(Wallet):
         try:
             resp = await self._call("pay_invoice", {
                 "invoice": bolt11            
-            })
+            }) 
             preimage = resp.get("preimage",None)
+            invoice_data = bolt11_decode(bolt11)
+            payment_hash = invoice_data.payment_hash
             # pay_invoice doesn't return payment data, so we need to call lookup_invoice too (if supported)
             info = await self._get_info()
             if "lookup_invoice" in info["supported_methods"]:
-                payment_data = await self._call("lookup_invoice",{
-                    "invoice": bolt11
-                })
-                settled =  payment_data.get("settled_at", None) and payment_data.get("preimage", None)
-                checking_id = str(payment_data["payment_hash"])
-                if not settled:
-                    return PaymentResponse(None, checking_id, None, None, None)
-                else:
-                    fee_msat = payment_data.get("fees_paid",None)
-                    return PaymentResponse(True, checking_id, fee_msat, preimage, None)
-            else: # if not supported, we compute the payment_hash
-                preimage_byte = bytes.fromhex(preimage)
-                payment_hash = hashlib.sha256(preimage_byte).hexdigest()
+                try:
+                    payment_data = await self._call("lookup_invoice",{
+                        "invoice": bolt11
+                    })
+                    settled =  payment_data.get("settled_at", None) and payment_data.get("preimage", None)
+                    if not settled:
+                        return PaymentResponse(None, payment_hash, None, None, None)
+                    else:
+                        fee_msat = payment_data.get("fees_paid",None)
+                        return PaymentResponse(True, payment_hash, fee_msat, preimage, None)
+                except Exception as e:
+                    # Workaround: some nwc service providers might not store the invoice right away,
+                    # so this call may raise an exception. We will assume the payment is pending anyway
+                    return PaymentResponse(None, payment_hash, None, None, None)
+            else: # if not supported, we assume it succeeded
                 return PaymentResponse(True, payment_hash, None, preimage, None)
 
         except Exception as e:
