@@ -111,6 +111,15 @@ Vue.component('lnbits-funding-sources', {
           }
         ],
         [
+          'BlinkWallet',
+          'Blink',
+          {
+            blink_api_endpoint: 'Endpoint',
+            blink_ws_endpoint: 'WebSocket',
+            blink_token: 'Key'
+          }
+        ],
+        [
           'AlbyWallet',
           'Alby',
           {
