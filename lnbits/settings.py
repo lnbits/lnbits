@@ -218,6 +218,12 @@ class LnPayFundingSource(LNbitsSettings):
     lnpay_admin_key: Optional[str] = Field(default=None)
 
 
+class BlinkFundingSource(LNbitsSettings):
+    blink_api_endpoint: Optional[str] = Field(default="https://api.blink.sv/graphql")
+    blink_ws_endpoint: Optional[str] = Field(default="wss://ws.blink.sv/graphql")
+    blink_token: Optional[str] = Field(default=None)
+
+
 class ZBDFundingSource(LNbitsSettings):
     zbd_api_endpoint: Optional[str] = Field(default="https://api.zebedee.io/v0/")
     zbd_api_key: Optional[str] = Field(default=None)
@@ -266,6 +272,7 @@ class FundingSourcesSettings(
     LndRestFundingSource,
     LndGrpcFundingSource,
     LnPayFundingSource,
+    BlinkFundingSource,
     AlbyFundingSource,
     ZBDFundingSource,
     PhoenixdFundingSource,
@@ -415,14 +422,15 @@ class SuperUserSettings(LNbitsSettings):
     lnbits_allowed_funding_sources: list[str] = Field(
         default=[
             "AlbyWallet",
-            "FakeWallet",
+            "BlinkWallet",
             "CoreLightningRestWallet",
             "CoreLightningWallet",
             "EclairWallet",
-            "LNbitsWallet",
-            "LndRestWallet",
+            "FakeWallet",
             "LNPayWallet",
+            "LNbitsWallet",
             "LnTipsWallet",
+            "LndRestWallet",
             "LndWallet",
             "OpenNodeWallet",
             "PhoenixdWallet",
