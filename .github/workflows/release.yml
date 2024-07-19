@@ -43,6 +43,10 @@ jobs:
   pypi:
     runs-on: ubuntu-latest
     steps:
+      - name: Install dependencies for building secp256k1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential automake libtool libffi-dev libgmp-dev
       - uses: actions/checkout@v4
       - name: Build and publish to pypi
         uses: JRubics/poetry-publish@v1.15

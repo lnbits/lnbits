@@ -36,11 +36,7 @@ from lnbits.utils.exchange_rates import (
     satoshis_amount_as_fiat,
 )
 
-from ..crud import (
-    create_account,
-    create_wallet,
-)
-from ..services import perform_lnurlauth
+from ..services import create_user_account, perform_lnurlauth
 
 # backwards compatibility for extension
 # TODO: remove api_payment and pay_invoice imports from extensions
@@ -70,8 +66,8 @@ async def api_create_account(data: CreateWallet) -> Wallet:
             status_code=HTTPStatus.FORBIDDEN,
             detail="Account creation is disabled.",
         )
-    account = await create_account()
-    return await create_wallet(user_id=account.id, wallet_name=data.name)
+    account = await create_user_account(wallet_name=data.name)
+    return account.wallets[0]
 
 
 @api_router.get("/api/v1/lnurlscan/{code}")
