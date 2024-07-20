@@ -4,7 +4,7 @@ import hashlib
 import json
 import random
 import time
-from typing import AsyncGenerator, Dict, Optional, Union
+from typing import AsyncGenerator, Dict, List, Optional, Union
 from urllib.parse import parse_qs, unquote, urlparse
 
 import secp256k1
@@ -325,6 +325,97 @@ class NWCWallet(Wallet):
                 payment for payment in self.pending_payments if not payment["settled"]
             ]
 
+    async def _on_ok_message(self, msg: List[str]):
+        """
+        Handles OK messages from the relay.
+        """
+        event_id = msg[1]
+        status = msg[2]
+        info = (msg[3] or "") if len(msg) > 3 else ""
+        if not status:
+            # close subscription and pass an exception
+            # if the event was rejected by the relay
+            subscription = await self._close_subscription_by_eventid(event_id)
+            if subscription:  # Check if the subscription exists first
+                subscription["future"].set_exception(Exception(info))
+
+    async def _on_event_message(self, msg: List[str]):
+        """
+        Handles EVENT messages from the relay.
+        """
+        sub_id = msg[1]
+        event = msg[2]
+        if not self._verify_event(
+            event
+        ):  # Ensure the event is valid (do not trust relays)
+            raise Exception("Invalid event signature")
+        tags = event["tags"]
+        if event["kind"] == 13194:  # An info event
+            # info events are handled specially,
+            # they are stored in the subscriptions list
+            # using the subscription id for both sub_id and event_id
+            subscription = await self._close_subscription_by_eventid(
+                sub_id
+            )  # sub_id is the event_id for info events
+            if subscription:  # Check if the subscription exists first
+                if (
+                    subscription["method"] != "info_sub"
+                ):  # Ensure the subscription is for an info event
+                    raise Exception("Unexpected info event")
+                # create an info dictionary with the supported
+                # methods that is passed to the future
+                content = event["content"]
+                subscription["future"].set_result(
+                    {"supported_methods": content.split(" ")}
+                )
+        else:  # A response event
+            subscription = None
+            # find the first "e" tag that is handled by
+            # a registered subscription
+            # Note: usually we expect only one "e" tag, but we are
+            # handling multiple "e" tags just in case
+            for tag in tags:
+                if tag[0] == "e":
+                    subscription = await self._close_subscription_by_eventid(
+                        tag[1]
+                    )
+                    if subscription:
+                        break
+            # if a subscription was found, pass the result to the future
+            if subscription:
+                content = self._decrypt_content(event["content"])
+                content = json.loads(content)
+                result_type = content.get("result_type", "")
+                error = content.get("error", None)
+                result = content.get("result", None)
+                if error:  # if an error occurred, pass the error to the future
+                    subscription["future"].set_exception(
+                        Exception(error["code"] +
+                                    " " + error["message"])
+                    )
+                else:
+                    # ensure the result is for the expected method
+                    if result_type != subscription["method"]:
+                        raise Exception("Unexpected result type")
+                    if not result:
+                        raise Exception("Malformed response")
+                    else:
+                        subscription["future"].set_result(result)
+
+    async def _on_closed_message(self, msg: List[str]):
+        """
+        Handles CLOSED messages from the relay.
+        """
+        # The change is reflected in the subscriptions list.
+        sub_id = msg[1]
+        info = msg[2] or ""
+        if info:
+            logger.warning(
+                "Subscription " + sub_id + " closed remotely: " + info
+            )
+        # Note: sendEvent=false because the action was initiated by the relay
+        await self._close_subscription_by_subid(sub_id, send_event=False)
+
     async def _on_message(self, ws, message: str):
         """
         Handle incoming messages from the relay.
@@ -332,87 +423,15 @@ class NWCWallet(Wallet):
         try:
             msg = json.loads(message)
             if msg[0] == "OK":  # Event status message
-                event_id = msg[1]
-                status = msg[2]
-                info = (msg[3] or "") if len(msg) > 3 else ""
-                if not status:
-                    # close subscription and pass an exception
-                    # if the event was rejected by the relay
-                    subscription = await self._close_subscription_by_eventid(event_id)
-                    if subscription:  # Check if the subscription exists first
-                        subscription["future"].set_exception(Exception(info))
+                await self._on_ok_message(msg)
             elif msg[0] == "EVENT":  # Event message
-                sub_id = msg[1]
-                event = msg[2]
-                if not self._verify_event(
-                    event
-                ):  # Ensure the event is valid (do not trust relays)
-                    raise Exception("Invalid event signature")
-                tags = event["tags"]
-                if event["kind"] == 13194:  # An info event
-                    # info events are handled specially,
-                    # they are stored in the subscriptions list
-                    # using the subscription id for both sub_id and event_id
-                    subscription = await self._close_subscription_by_eventid(
-                        sub_id
-                    )  # sub_id is the event_id for info events
-                    if subscription:  # Check if the subscription exists first
-                        if (
-                            subscription["method"] != "info_sub"
-                        ):  # Ensure the subscription is for an info event
-                            raise Exception("Unexpected info event")
-                        # create an info dictionary with the supported
-                        # methods that is passed to the future
-                        content = event["content"]
-                        subscription["future"].set_result(
-                            {"supported_methods": content.split(" ")}
-                        )
-                else:  # A response event
-                    subscription = None
-                    # find the first "e" tag that is handled by
-                    # a registered subscription
-                    # Note: usually we expect only one "e" tag, but we are
-                    # handling multiple "e" tags just in case
-                    for tag in tags:
-                        if tag[0] == "e":
-                            subscription = await self._close_subscription_by_eventid(
-                                tag[1]
-                            )
-                            if subscription:
-                                break
-                    # if a subscription was found, pass the result to the future
-                    if subscription:
-                        content = self._decrypt_content(event["content"])
-                        content = json.loads(content)
-                        result_type = content.get("result_type", "")
-                        error = content.get("error", None)
-                        result = content.get("result", None)
-                        if error:  # if an error occurred, pass the error to the future
-                            subscription["future"].set_exception(
-                                Exception(error["code"] + " " + error["message"])
-                            )
-                        else:
-                            # ensure the result is for the expected method
-                            if result_type != subscription["method"]:
-                                raise Exception("Unexpected result type")
-                            if not result:
-                                raise Exception("Malformed response")
-                            else:
-                                subscription["future"].set_result(result)
+                await self._on_event_message(msg)
             elif msg[0] == "EOSE":
                 # Do nothing. No need to handle this message type for NWC
                 pass
             elif msg[0] == "CLOSED":
                 # Subscription was closed remotely.
-                # The change is reflected in the subscriptions list.
-                sub_id = msg[1]
-                info = msg[2] or ""
-                if info:
-                    logger.warning(
-                        "Subscription " + sub_id + " closed remotely: " + info
-                    )
-                # Note: sendEvent=false because the action was initiated by the relay
-                await self._close_subscription_by_subid(sub_id, send_event=False)
+                await self._on_closed_message(msg)
             elif msg[0] == "NOTICE":
                 # A message from the relay, mostly useless, but we log it anyway
                 logger.info("Notice from relay " + self.relay + ": " + str(msg[1]))
