@@ -24,23 +24,25 @@ def encrypt_content(priv_key, dest_pub_key, content):
     shared = p.tweak_mul(bytes.fromhex(priv_key)).serialize()[1:]
     iv = Random.new().read(AES.block_size)
     aes = AES.new(shared, AES.MODE_CBC, iv)
-    pad = lambda s: s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
+    def pad(s):
+        return s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
     content = pad(content).encode("utf-8")
-    encryptedB64 = base64.b64encode(aes.encrypt(content)).decode("ascii")
-    ivB64 = base64.b64encode(iv).decode("ascii")
-    encryptedContent = encryptedB64 + "?iv=" + ivB64
-    return encryptedContent
+    encrypted_b64 = base64.b64encode(aes.encrypt(content)).decode("ascii")
+    iv_b64 = base64.b64encode(iv).decode("ascii")
+    encrypted_content = encrypted_b64 + "?iv=" + iv_b64
+    return encrypted_content
 
 
 def decrypt_content(priv_key, source_pub_key, content):
     p = secp256k1.PublicKey(bytes.fromhex("02" + source_pub_key), True)
     shared = p.tweak_mul(bytes.fromhex(priv_key)).serialize()[1:]
-    (encryptedContentB64, ivB64) = content.split("?iv=")
-    encryptedContent = base64.b64decode(encryptedContentB64.encode("ascii"))
-    iv = base64.b64decode(ivB64.encode("ascii"))
+    (encrypted_content_b64, iv_b64) = content.split("?iv=")
+    encrypted_content = base64.b64decode(encrypted_content_b64.encode("ascii"))
+    iv = base64.b64decode(iv_b64.encode("ascii"))
     aes = AES.new(shared, AES.MODE_CBC, iv)
-    decrypted = aes.decrypt(encryptedContent).decode("utf-8")
-    unpad = lambda s: s[: -ord(s[len(s) - 1 :])]
+    decrypted = aes.decrypt(encrypted_content).decode("utf-8")
+    def unpad(s):
+        return s[:-ord(s[-1])]
     return unpad(decrypted)
 
 

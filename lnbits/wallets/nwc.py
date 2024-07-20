@@ -86,12 +86,14 @@ class NWCWallet(Wallet):
 
         # Create temporary subscriptions, stored until the response is received/expires
         self.subscriptions = {}
-        # Timeout in seconds after which a subscription is closed if no response is received
+        # Timeout in seconds after which a subscription is closed
+        # if no response is received
         self.subscription_timeout = 10
         # Incremental counter to generate unique subscription ids for the connection
         self.subscriptions_count = 0
 
-        # pending payments for paid_invoices_stream. They are tracked until they expire or are settled
+        # pending payments for paid_invoices_stream.
+        # They are tracked until they expire or are settled
         self.pending_payments = []
         # interval in seconds between checks for pending payments
         self.pending_payments_lookup_interval = 10
@@ -111,7 +113,8 @@ class NWCWallet(Wallet):
         # This task handles connection and reconnection to the relay
         self.connection_task = asyncio.create_task(self._connect_to_relay())
 
-        # This task periodically checks and removes subscriptions and pending payments that have timed out
+        # This task periodically checks and removes subscriptions
+        # and pending payments that have timed out
         self.timeout_task = asyncio.create_task(self._handle_timeouts())
 
         # This task periodically checks if pending payments have been settled
@@ -171,16 +174,16 @@ class NWCWallet(Wallet):
         """
         subid = "lnbits" + str(self.subscriptions_count)
         self.subscriptions_count += 1
-        maxLength = 64
+        max_length = 64
         chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        n = maxLength - len(subid)
+        n = max_length - len(subid)
         if n > 0:
-            for i in range(n):
+            for _ in range(n):
                 subid += chars[random.randint(0, len(chars) - 1)]
         return subid
 
     async def _close_subscription_by_subid(
-        self, sub_id: str, sendEvent: bool = True
+        self, sub_id: str, send_event: bool = True
     ) -> Dict:
         """
         Closes a subscription by its sub_id.
@@ -197,8 +200,9 @@ class NWCWallet(Wallet):
         for subscription in self.subscriptions.values():
             if subscription["sub_id"] == sub_id:
                 sub_to_close = subscription
-                # send CLOSE event to the relay if the subscription is not already closed and sendEvent is True
-                if not subscription["closed"] and sendEvent:
+                # send CLOSE event to the relay if the subscription
+                # is not already closed and sendEvent is True
+                if not subscription["closed"] and send_event:
                     await self._send(["CLOSE", sub_id])
                 # mark as closed
                 subscription["closed"] = True
@@ -208,7 +212,7 @@ class NWCWallet(Wallet):
             self.subscriptions.pop(sub_to_close["event_id"], None)
         return sub_to_close
 
-    async def _close_subscription_by_eventid(self, event_id, sendEvent=True) -> Dict:
+    async def _close_subscription_by_eventid(self, event_id, send_event=True) -> Dict:
         """
         Closes a subscription associated to an event_id.
 
@@ -223,8 +227,9 @@ class NWCWallet(Wallet):
         # find and remove the subscription
         subscription = self.subscriptions.pop(event_id, None)
         if subscription:
-            # send CLOSE event to the relay if the subscription is not already closed and sendEvent is True
-            if not subscription["closed"] and sendEvent:
+            # send CLOSE event to the relay if the subscription
+            # is not already closed and sendEvent is True
+            if not subscription["closed"] and send_event:
                 await self._send(["CLOSE", subscription["sub_id"]])
             # mark as closed
             subscription["closed"] = True
@@ -242,7 +247,8 @@ class NWCWallet(Wallet):
 
     async def _handle_timeouts(self):
         """
-        Periodically checks if any subscriptions and pending payments have timed out, and removes them.
+        Periodically checks if any subscriptions and pending
+        payments have timed out, and removes them.
         """
         try:
             while not self._is_shutting_down():
@@ -261,7 +267,8 @@ class NWCWallet(Wallet):
                                 "Subscription " + subscription["sub_id"] + " timed out"
                             )
                             subscriptions_to_close.append(subscription["sub_id"])
-                            # if not already closed, pass the "time out" exception to the future
+                            # if not already closed, pass the "time out"
+                            # exception to the future
                             if not subscription["closed"]:
                                 subscription["future"].set_exception(
                                     Exception("timed out")
@@ -329,7 +336,8 @@ class NWCWallet(Wallet):
                 status = msg[2]
                 info = (msg[3] or "") if len(msg) > 3 else ""
                 if not status:
-                    # close subscription and pass an exception if the event was rejected by the relay
+                    # close subscription and pass an exception
+                    # if the event was rejected by the relay
                     subscription = await self._close_subscription_by_eventid(event_id)
                     if subscription:  # Check if the subscription exists first
                         subscription["future"].set_exception(Exception(info))
@@ -342,7 +350,8 @@ class NWCWallet(Wallet):
                     raise Exception("Invalid event signature")
                 tags = event["tags"]
                 if event["kind"] == 13194:  # An info event
-                    # info events are handled specially, they are stored in the subscriptions list
+                    # info events are handled specially,
+                    # they are stored in the subscriptions list
                     # using the subscription id for both sub_id and event_id
                     subscription = await self._close_subscription_by_eventid(
                         sub_id
@@ -352,15 +361,18 @@ class NWCWallet(Wallet):
                             subscription["method"] != "info_sub"
                         ):  # Ensure the subscription is for an info event
                             raise Exception("Unexpected info event")
-                        # create an info dictionary with the supported methods that is passed to the future
+                        # create an info dictionary with the supported
+                        # methods that is passed to the future
                         content = event["content"]
                         subscription["future"].set_result(
                             {"supported_methods": content.split(" ")}
                         )
                 else:  # A response event
                     subscription = None
-                    # find the first "e" tag that is handled by a registered subscription
-                    # Note: usually we expect only one "e" tag, but we are handling multiple "e" tags just in case
+                    # find the first "e" tag that is handled by
+                    # a registered subscription
+                    # Note: usually we expect only one "e" tag, but we are
+                    # handling multiple "e" tags just in case
                     for tag in tags:
                         if tag[0] == "e":
                             subscription = await self._close_subscription_by_eventid(
@@ -400,7 +412,7 @@ class NWCWallet(Wallet):
                         "Subscription " + sub_id + " closed remotely: " + info
                     )
                 # Note: sendEvent=false because the action was initiated by the relay
-                await self._close_subscription_by_subid(sub_id, sendEvent=False)
+                await self._close_subscription_by_subid(sub_id, send_event=False)
             elif msg[0] == "NOTICE":
                 # A message from the relay, mostly useless, but we log it anyway
                 logger.info("Notice from relay " + self.relay + ": " + str(msg[1]))
@@ -435,7 +447,8 @@ class NWCWallet(Wallet):
             except Exception as e:
                 logger.error("Error connecting to NWC relay: " + str(e))
             # the connection was closed, so we set the connected flag to False
-            # this will make the methods calling _wait_for_connection() to wait until the connection is re-established
+            # this will make the methods calling _wait_for_connection()
+            # to wait until the connection is re-established
             self.connected = False
             if not self._is_shutting_down():
                 # Wait some time before reconnecting
@@ -459,13 +472,14 @@ class NWCWallet(Wallet):
         iv = Random.new().read(AES.block_size)
         aes = AES.new(shared, AES.MODE_CBC, iv)
         # padding
-        pad = lambda s: s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
+        def pad(s):
+            return s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
         content = pad(content).encode("utf-8")
         # Encrypt
-        encryptedB64 = base64.b64encode(aes.encrypt(content)).decode("ascii")
-        ivB64 = base64.b64encode(iv).decode("ascii")
-        encryptedContent = encryptedB64 + "?iv=" + ivB64
-        return encryptedContent
+        encrypted_b64 = base64.b64encode(aes.encrypt(content)).decode("ascii")
+        iv_b64 = base64.b64encode(iv).decode("ascii")
+        encrypted_content = encrypted_b64 + "?iv=" + iv_b64
+        return encrypted_content
 
     def _decrypt_content(self, content: str) -> str:
         """
@@ -481,13 +495,14 @@ class NWCWallet(Wallet):
             bytes.fromhex(self.account_private_key_hex)
         ).serialize()[1:]
         # extract iv and content
-        (encryptedContentB64, ivB64) = content.split("?iv=")
-        encryptedContent = base64.b64decode(encryptedContentB64.encode("ascii"))
-        iv = base64.b64decode(ivB64.encode("ascii"))
+        (encrypted_content_b64, iv_b64) = content.split("?iv=")
+        encrypted_content = base64.b64decode(encrypted_content_b64.encode("ascii"))
+        iv = base64.b64decode(iv_b64.encode("ascii"))
         # Decrypt
         aes = AES.new(shared, AES.MODE_CBC, iv)
-        decrypted = aes.decrypt(encryptedContent).decode("utf-8")
-        unpad = lambda s: s[: -ord(s[len(s) - 1 :])]
+        decrypted = aes.decrypt(encrypted_content).decode("utf-8")
+        def unpad(s):
+            return s[:-ord(s[-1])]
         return unpad(decrypted)
 
     def _verify_event(self, event: Dict) -> bool:
@@ -513,8 +528,8 @@ class NWCWallet(Wallet):
         event_id = hashlib.sha256(signature_data.encode()).hexdigest()
         if event_id != event["id"]:  # Invalid event id
             return False
-        pubkeyHex = event["pubkey"]
-        pubkey = secp256k1.PublicKey(bytes.fromhex("02" + pubkeyHex), True)
+        pubkey_hex = event["pubkey"]
+        pubkey = secp256k1.PublicKey(bytes.fromhex("02" + pubkey_hex), True)
         if not pubkey.schnorr_verify(
             bytes.fromhex(event_id), bytes.fromhex(event["sig"]), None, raw=True
         ):
@@ -595,7 +610,8 @@ class NWCWallet(Wallet):
         sub_id = self._get_new_subid()
         # register a future to receive the response asynchronously
         future = asyncio.get_event_loop().create_future()
-        # Check if the subscription already exists (this means there is a bug somewhere, should not happen)
+        # Check if the subscription already exists
+        # (this means there is a bug somewhere, should not happen)
         if event["id"] in self.subscriptions:
             raise Exception("Subscription for this event id already exists?")
         # Store the subscription in the list
@@ -665,11 +681,13 @@ class NWCWallet(Wallet):
                         )
                         self.info = service_info
                 else:
-                    # get_info is not supported, so we will make do with the service info
+                    # get_info is not supported,
+                    # so we will make do with the service info
                     self.info = service_info  # cache
             except Exception as e:
                 logger.error("Error getting info: " + str(e))
-                # The error could mean that the service provider does not provide an info note
+                # The error could mean that the service provider does
+                # not provide an info note
                 # So we just assume it supports the bare minimum to be Nip47 compliant
                 self.info = {
                     "supported_methods": ["pay_invoice"],
@@ -768,7 +786,8 @@ class NWCWallet(Wallet):
             preimage = resp.get("preimage", None)
             invoice_data = bolt11_decode(bolt11)
             payment_hash = invoice_data.payment_hash
-            # pay_invoice doesn't return payment data, so we need to call lookup_invoice too (if supported)
+            # pay_invoice doesn't return payment data, so we need
+            # to call lookup_invoice too (if supported)
             info = await self._get_info()
             if "lookup_invoice" in info["supported_methods"]:
                 try:
@@ -786,8 +805,9 @@ class NWCWallet(Wallet):
                             True, payment_hash, fee_msat, preimage, None
                         )
                 except Exception:
-                    # Workaround: some nwc service providers might not store the invoice right away,
-                    # so this call may raise an exception. We will assume the payment is pending anyway
+                    # Workaround: some nwc service providers might not store the invoice
+                    # right away, so this call may raise an exception.
+                    # We will assume the payment is pending anyway
                     return PaymentResponse(None, payment_hash, None, None, None)
             else:  # if not supported, we assume it succeeded
                 return PaymentResponse(True, payment_hash, None, preimage, None)
