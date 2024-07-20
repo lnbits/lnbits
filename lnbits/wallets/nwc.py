@@ -376,9 +376,7 @@ class NWCWallet(Wallet):
             # handling multiple "e" tags just in case
             for tag in tags:
                 if tag[0] == "e":
-                    subscription = await self._close_subscription_by_eventid(
-                        tag[1]
-                    )
+                    subscription = await self._close_subscription_by_eventid(tag[1])
                     if subscription:
                         break
             # if a subscription was found, pass the result to the future
@@ -390,8 +388,7 @@ class NWCWallet(Wallet):
                 result = content.get("result", None)
                 if error:  # if an error occurred, pass the error to the future
                     subscription["future"].set_exception(
-                        Exception(error["code"] +
-                                    " " + error["message"])
+                        Exception(error["code"] + " " + error["message"])
                     )
                 else:
                     # ensure the result is for the expected method
@@ -410,9 +407,7 @@ class NWCWallet(Wallet):
         sub_id = msg[1]
         info = msg[2] or ""
         if info:
-            logger.warning(
-                "Subscription " + sub_id + " closed remotely: " + info
-            )
+            logger.warning("Subscription " + sub_id + " closed remotely: " + info)
         # Note: sendEvent=false because the action was initiated by the relay
         await self._close_subscription_by_subid(sub_id, send_event=False)
 
@@ -490,9 +485,11 @@ class NWCWallet(Wallet):
         # random iv (16B)
         iv = Random.new().read(AES.block_size)
         aes = AES.new(shared, AES.MODE_CBC, iv)
+
         # padding
         def pad(s):
             return s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
+
         content = pad(content).encode("utf-8")
         # Encrypt
         encrypted_b64 = base64.b64encode(aes.encrypt(content)).decode("ascii")
@@ -520,8 +517,10 @@ class NWCWallet(Wallet):
         # Decrypt
         aes = AES.new(shared, AES.MODE_CBC, iv)
         decrypted = aes.decrypt(encrypted_content).decode("utf-8")
+
         def unpad(s):
-            return s[:-ord(s[-1])]
+            return s[: -ord(s[-1])]
+
         return unpad(decrypted)
 
     def _verify_event(self, event: Dict) -> bool:

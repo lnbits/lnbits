@@ -24,8 +24,10 @@ def encrypt_content(priv_key, dest_pub_key, content):
     shared = p.tweak_mul(bytes.fromhex(priv_key)).serialize()[1:]
     iv = Random.new().read(AES.block_size)
     aes = AES.new(shared, AES.MODE_CBC, iv)
+
     def pad(s):
         return s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
+
     content = pad(content).encode("utf-8")
     encrypted_b64 = base64.b64encode(aes.encrypt(content)).decode("ascii")
     iv_b64 = base64.b64encode(iv).decode("ascii")
@@ -41,8 +43,10 @@ def decrypt_content(priv_key, source_pub_key, content):
     iv = base64.b64decode(iv_b64.encode("ascii"))
     aes = AES.new(shared, AES.MODE_CBC, iv)
     decrypted = aes.decrypt(encrypted_content).decode("utf-8")
+
     def unpad(s):
-        return s[:-ord(s[-1])]
+        return s[: -ord(s[-1])]
+
     return unpad(decrypted)
 
 
