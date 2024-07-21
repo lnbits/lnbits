@@ -4,15 +4,15 @@ import hashlib
 import json
 import random
 import time
-from typing import AsyncGenerator, Dict, List, Optional, Union,cast
+from typing import AsyncGenerator, Dict, List, Optional, Union, cast
 from urllib.parse import parse_qs, unquote, urlparse
 
 import secp256k1
-from websockets.client import connect as ws_connect
 from bolt11 import decode as bolt11_decode
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from loguru import logger
+from websockets.client import connect as ws_connect
 
 from lnbits.settings import settings
 
@@ -151,14 +151,14 @@ class NWCWallet(Wallet):
         """
         return self.shutdown or not settings.lnbits_running
 
-    async def _send(self, data: List[Union[str,Dict]]):
+    async def _send(self, data: List[Union[str, Dict]]):
         """
         Sends data to the NWC relay.
 
         Args:
             data (Dict): The data to be sent.
         """
-     
+
         if self._is_shutting_down():
             logger.warning("Trying to send data while shutting down")
             return
@@ -216,7 +216,9 @@ class NWCWallet(Wallet):
             self.subscriptions.pop(sub_to_close["event_id"], None)
         return sub_to_close
 
-    async def _close_subscription_by_eventid(self, event_id, send_event=True) -> Optional[Dict]:
+    async def _close_subscription_by_eventid(
+        self, event_id, send_event=True
+    ) -> Optional[Dict]:
         """
         Closes a subscription associated to an event_id.
 
@@ -501,8 +503,7 @@ class NWCWallet(Wallet):
 
         content_bytes = pad(content).encode("utf-8")
         # Encrypt
-        encrypted_b64 = base64.b64encode(
-            aes.encrypt(content_bytes)).decode("ascii")
+        encrypted_b64 = base64.b64encode(aes.encrypt(content_bytes)).decode("ascii")
         iv_b64 = base64.b64encode(iv).decode("ascii")
         encrypted_content = encrypted_b64 + "?iv=" + iv_b64
         return encrypted_content
@@ -757,7 +758,7 @@ class NWCWallet(Wallet):
         desc_hash = None
         if description_hash:
             desc_hash = description_hash.hex()
-            desc = (unhashed_description or "".encode()).decode()
+            desc = (unhashed_description or b"").decode()
         elif unhashed_description:
             desc = unhashed_description.decode()
             desc_hash = hashlib.sha256(desc.encode()).hexdigest()

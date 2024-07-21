@@ -6,9 +6,10 @@ from typing import Dict, cast
 
 import pytest
 import secp256k1
-from websockets.server import serve as ws_serve
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
+from websockets.server import serve as ws_serve
+
 from lnbits.wallets.nwc import NWCWallet
 from tests.wallets.helpers import (
     WalletTest,
@@ -82,7 +83,8 @@ async def run(data: WalletTest):
 
     wallet = None
     mock_settings = data.funding_source.mock_settings
-    if mock_settings is None: return
+    if mock_settings is None:
+        return
 
     async def handler(websocket, path):
         async for message in websocket:
