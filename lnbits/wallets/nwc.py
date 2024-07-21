@@ -4,11 +4,11 @@ import hashlib
 import json
 import random
 import time
-from typing import AsyncGenerator, Dict, List, Optional, Union
+from typing import AsyncGenerator, Dict, List, Optional, Union,cast
 from urllib.parse import parse_qs, unquote, urlparse
 
 import secp256k1
-import websockets
+from websockets.client import connect as ws_connect
 from bolt11 import decode as bolt11_decode
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
@@ -151,15 +151,19 @@ class NWCWallet(Wallet):
         """
         return self.shutdown or not settings.lnbits_running
 
-    async def _send(self, data: Dict):
+    async def _send(self, data: List[Union[str,Dict]]):
         """
         Sends data to the NWC relay.
 
         Args:
             data (Dict): The data to be sent.
         """
+     
         if self._is_shutting_down():
             logger.warning("Trying to send data while shutting down")
+            return
+        if not self.ws:
+            logger.warning("Trying to send data without a connection")
             return
         await self._wait_for_connection()  # ensure the connection is established
         tx = self._json_dumps(data)
@@ -184,7 +188,7 @@ class NWCWallet(Wallet):
 
     async def _close_subscription_by_subid(
         self, sub_id: str, send_event: bool = True
-    ) -> Dict:
+    ) -> Optional[Dict]:
         """
         Closes a subscription by its sub_id.
 
@@ -212,7 +216,7 @@ class NWCWallet(Wallet):
             self.subscriptions.pop(sub_to_close["event_id"], None)
         return sub_to_close
 
-    async def _close_subscription_by_eventid(self, event_id, send_event=True) -> Dict:
+    async def _close_subscription_by_eventid(self, event_id, send_event=True) -> Optional[Dict]:
         """
         Closes a subscription associated to an event_id.
 
@@ -339,12 +343,12 @@ class NWCWallet(Wallet):
             if subscription:  # Check if the subscription exists first
                 subscription["future"].set_exception(Exception(info))
 
-    async def _on_event_message(self, msg: List[str]):
+    async def _on_event_message(self, msg: List[Union[str, Dict]]):
         """
         Handles EVENT messages from the relay.
         """
-        sub_id = msg[1]
-        event = msg[2]
+        sub_id = cast(str, msg[1])
+        event = cast(Dict, msg[2])
         if not self._verify_event(
             event
         ):  # Ensure the event is valid (do not trust relays)
@@ -445,7 +449,7 @@ class NWCWallet(Wallet):
         ):  # Reconnect until the wallet is shutting down
             logger.debug("Creating new connection...")
             try:
-                async with websockets.connect(self.relay) as ws:
+                async with ws_connect(self.relay) as ws:
                     self.ws = ws
                     self.connected = True
                     while (
@@ -453,7 +457,12 @@ class NWCWallet(Wallet):
                     ):  # receive messages until the wallet is shutting down
                         try:
                             reply = await ws.recv()
-                            await self._on_message(ws, reply)
+                            reply_str = ""
+                            if isinstance(reply, bytes):
+                                reply_str = reply.decode("utf-8")
+                            else:
+                                reply_str = reply
+                            await self._on_message(ws, reply_str)
                         except Exception as e:
                             logger.debug("Error receiving message: " + str(e))
                             break
@@ -490,9 +499,10 @@ class NWCWallet(Wallet):
         def pad(s):
             return s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
 
-        content = pad(content).encode("utf-8")
+        content_bytes = pad(content).encode("utf-8")
         # Encrypt
-        encrypted_b64 = base64.b64encode(aes.encrypt(content)).decode("ascii")
+        encrypted_b64 = base64.b64encode(
+            aes.encrypt(content_bytes)).decode("ascii")
         iv_b64 = base64.b64encode(iv).decode("ascii")
         encrypted_content = encrypted_b64 + "?iv=" + iv_b64
         return encrypted_content
@@ -730,7 +740,8 @@ class NWCWallet(Wallet):
             logger.warning("Error cancelling pending payments lookup task: " + str(e))
         # close the websocket
         try:
-            await self.ws.close()
+            if self.ws:
+                await self.ws.close()
         except Exception as e:
             logger.warning("Error closing wallet connection: " + str(e))
 
@@ -746,17 +757,17 @@ class NWCWallet(Wallet):
         desc_hash = None
         if description_hash:
             desc_hash = description_hash.hex()
-            desc = unhashed_description or ""
+            desc = (unhashed_description or "".encode()).decode()
         elif unhashed_description:
             desc = unhashed_description.decode()
             desc_hash = hashlib.sha256(desc.encode()).hexdigest()
         else:
-            desc = memo
+            desc = memo or ""
         try:
             info = await self._get_info()
             if "make_invoice" not in info["supported_methods"]:
                 return InvoiceResponse(
-                    None,
+                    False,
                     None,
                     None,
                     "make_invoice is not supported by this NWC service.",

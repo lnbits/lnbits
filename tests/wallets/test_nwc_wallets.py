@@ -2,14 +2,14 @@ import base64
 import hashlib
 import json
 import time
-from typing import Dict
+from typing import Dict, cast
 
 import pytest
 import secp256k1
-import websockets
+from websockets.server import serve as ws_serve
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
-
+from lnbits.wallets.nwc import NWCWallet
 from tests.wallets.helpers import (
     WalletTest,
     build_test_id,
@@ -82,6 +82,7 @@ async def run(data: WalletTest):
 
     wallet = None
     mock_settings = data.funding_source.mock_settings
+    if mock_settings is None: return
 
     async def handler(websocket, path):
         async for message in websocket:
@@ -130,7 +131,8 @@ async def run(data: WalletTest):
                             pass
                 if mock:
                     sub_id = None
-                    for subscription in wallet.subscriptions.values():
+                    nwcwallet = cast(NWCWallet, wallet)
+                    for subscription in nwcwallet.subscriptions.values():
                         if subscription["event_id"] == event["id"]:
                             sub_id = subscription["sub_id"]
                             break
@@ -166,11 +168,13 @@ async def run(data: WalletTest):
                         + json_dumps(content["params"])
                     )
 
-    async with websockets.serve(handler, "localhost", mock_settings["port"]) as server:
-        await server.start_serving()
-        wallet = load_funding_source(data.funding_source)
-        await check_assertions(wallet, data)
-        await wallet.cleanup()
+    if mock_settings is not None:
+        async with ws_serve(handler, "localhost", mock_settings["port"]) as server:
+            await server.start_serving()
+            wallet = load_funding_source(data.funding_source)
+            await check_assertions(wallet, data)
+            nwcwallet = cast(NWCWallet, wallet)
+            await nwcwallet.cleanup()
 
 
 @pytest.mark.asyncio
