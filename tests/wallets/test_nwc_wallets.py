@@ -77,6 +77,85 @@ def sign_event(pub_key, priv_key, event):
     return event
 
 
+async def handle(wallet, mock_settings, data, websocket, path):
+    async for message in websocket:
+        if not wallet:
+            continue
+        msg = json.loads(message)
+        if msg[0] == "REQ":
+            sub_id = msg[1]
+            sub_filter = msg[2]
+            kinds = sub_filter["kinds"]
+            if 13194 in kinds:  # Send info event
+                event = {
+                    "kind": 13194,
+                    "content": " ".join(mock_settings["supported_methods"]),
+                    "created_at": int(time.time()),
+                    "tags": [],
+                }
+                sign_event(
+                    mock_settings["service_public_key"],
+                    mock_settings["service_private_key"],
+                    event,
+                )
+                await websocket.send(json.dumps(["EVENT", sub_id, event]))
+        elif msg[0] == "EVENT":
+            event = msg[1]
+            decrypted_content = decrypt_content(
+                mock_settings["service_private_key"],
+                mock_settings["user_public_key"],
+                event["content"],
+            )
+            content = json.loads(decrypted_content)
+            mock = None
+            for m in data.mocks:
+                rb = m.request_body
+                if rb and rb["method"] == content["method"]:
+                    p1 = rb["params"]
+                    p2 = content["params"]
+                    p1 = json_dumps({k: v for k, v in p1.items() if v is not None})
+                    p2 = json_dumps({k: v for k, v in p2.items() if v is not None})
+                    if p1 == p2:
+                        mock = m
+                        break
+            if mock:
+                sub_id = None
+                nwcwallet = cast(NWCWallet, wallet)
+                for subscription in nwcwallet.subscriptions.values():
+                    if subscription["event_id"] == event["id"]:
+                        sub_id = subscription["sub_id"]
+                        break
+                if sub_id:
+                    response = mock.response
+                    encrypted_content = encrypt_content(
+                        mock_settings["service_private_key"],
+                        mock_settings["user_public_key"],
+                        json_dumps(response),
+                    )
+                    response_event = {
+                        "kind": 23195,
+                        "content": encrypted_content,
+                        "created_at": int(time.time()),
+                        "tags": [
+                            ["e", event["id"]],
+                            ["p", mock_settings["user_public_key"]],
+                        ],
+                    }
+                    sign_event(
+                        mock_settings["service_public_key"],
+                        mock_settings["service_private_key"],
+                        response_event,
+                    )
+                    await websocket.send(json.dumps(["EVENT", sub_id, response_event]))
+            else:
+                raise Exception(
+                    "No mock found for "
+                    + content["method"]
+                    + " "
+                    + json_dumps(content["params"])
+                )
+
+
 async def run(data: WalletTest):
     if data.skip:
         pytest.skip()
@@ -87,88 +166,7 @@ async def run(data: WalletTest):
         return
 
     async def handler(websocket, path):
-        async for message in websocket:
-            if not wallet:
-                continue
-            msg = json.loads(message)
-            if msg[0] == "REQ":
-                sub_id = msg[1]
-                sub_filter = msg[2]
-                kinds = sub_filter["kinds"]
-                if 13194 in kinds:  # Send info event
-                    event = {
-                        "kind": 13194,
-                        "content": " ".join(mock_settings["supported_methods"]),
-                        "created_at": int(time.time()),
-                        "tags": [],
-                    }
-                    sign_event(
-                        mock_settings["service_public_key"],
-                        mock_settings["service_private_key"],
-                        event,
-                    )
-                    await websocket.send(json.dumps(["EVENT", sub_id, event]))
-            elif msg[0] == "EVENT":
-                event = msg[1]
-                decrypted_content = decrypt_content(
-                    mock_settings["service_private_key"],
-                    mock_settings["user_public_key"],
-                    event["content"],
-                )
-                content = json.loads(decrypted_content)
-                mock = None
-                for m in data.mocks:
-                    rb = m.request_body
-                    if rb and rb["method"] == content["method"]:
-                        p1 = rb["params"]
-                        p2 = content["params"]
-                        p1 = {k: v for k, v in p1.items() if v is not None}
-                        p2 = {k: v for k, v in p2.items() if v is not None}
-                        p1 = json_dumps(p1)
-                        p2 = json_dumps(p2)
-                        if p1 == p2:
-                            mock = m
-                            break
-                        else:
-                            pass
-                if mock:
-                    sub_id = None
-                    nwcwallet = cast(NWCWallet, wallet)
-                    for subscription in nwcwallet.subscriptions.values():
-                        if subscription["event_id"] == event["id"]:
-                            sub_id = subscription["sub_id"]
-                            break
-                    if sub_id:
-                        response = mock.response
-                        encrypted_content = encrypt_content(
-                            mock_settings["service_private_key"],
-                            mock_settings["user_public_key"],
-                            json_dumps(response),
-                        )
-                        response_event = {
-                            "kind": 23195,
-                            "content": encrypted_content,
-                            "created_at": int(time.time()),
-                            "tags": [
-                                ["e", event["id"]],
-                                ["p", mock_settings["user_public_key"]],
-                            ],
-                        }
-                        sign_event(
-                            mock_settings["service_public_key"],
-                            mock_settings["service_private_key"],
-                            response_event,
-                        )
-                        await websocket.send(
-                            json.dumps(["EVENT", sub_id, response_event])
-                        )
-                else:
-                    raise Exception(
-                        "No mock found for "
-                        + content["method"]
-                        + " "
-                        + json_dumps(content["params"])
-                    )
+        return await handle(wallet, mock_settings, data, websocket, path)
 
     if mock_settings is not None:
         async with ws_serve(handler, "localhost", mock_settings["port"]) as server:
