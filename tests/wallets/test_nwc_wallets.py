@@ -8,6 +8,7 @@ import pytest
 import secp256k1
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import pad, unpad
 from websockets.server import serve as ws_serve
 
 from lnbits.wallets.nwc import NWCWallet
@@ -26,11 +27,10 @@ def encrypt_content(priv_key, dest_pub_key, content):
     iv = Random.new().read(AES.block_size)
     aes = AES.new(shared, AES.MODE_CBC, iv)
 
-    def pad(s):
-        return s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
+    content_bytes = content.encode("utf-8")
+    content_bytes = pad(content_bytes, AES.block_size)
 
-    content = pad(content).encode("utf-8")
-    encrypted_b64 = base64.b64encode(aes.encrypt(content)).decode("ascii")
+    encrypted_b64 = base64.b64encode(aes.encrypt(content_bytes)).decode("ascii")
     iv_b64 = base64.b64encode(iv).decode("ascii")
     encrypted_content = encrypted_b64 + "?iv=" + iv_b64
     return encrypted_content
@@ -43,12 +43,9 @@ def decrypt_content(priv_key, source_pub_key, content):
     encrypted_content = base64.b64decode(encrypted_content_b64.encode("ascii"))
     iv = base64.b64decode(iv_b64.encode("ascii"))
     aes = AES.new(shared, AES.MODE_CBC, iv)
-    decrypted = aes.decrypt(encrypted_content).decode("utf-8")
-
-    def unpad(s):
-        return s[: -ord(s[-1])]
-
-    return unpad(decrypted)
+    decrypted_bytes = aes.decrypt(encrypted_content)
+    decrypted_bytes = unpad(decrypted_bytes, AES.block_size)
+    return decrypted_bytes.decode("utf-8")
 
 
 def json_dumps(data):

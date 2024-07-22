@@ -11,6 +11,7 @@ import secp256k1
 from bolt11 import decode as bolt11_decode
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import pad, unpad
 from loguru import logger
 from websockets.client import connect as ws_connect
 
@@ -497,11 +498,11 @@ class NWCWallet(Wallet):
         iv = Random.new().read(AES.block_size)
         aes = AES.new(shared, AES.MODE_CBC, iv)
 
-        # padding
-        def pad(s):
-            return s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
+        content_bytes = content.encode("utf-8")
 
-        content_bytes = pad(content).encode("utf-8")
+        # padding
+        content_bytes = pad(content_bytes, AES.block_size)
+
         # Encrypt
         encrypted_b64 = base64.b64encode(aes.encrypt(content_bytes)).decode("ascii")
         iv_b64 = base64.b64encode(iv).decode("ascii")
@@ -527,12 +528,11 @@ class NWCWallet(Wallet):
         iv = base64.b64decode(iv_b64.encode("ascii"))
         # Decrypt
         aes = AES.new(shared, AES.MODE_CBC, iv)
-        decrypted = aes.decrypt(encrypted_content).decode("utf-8")
+        decrypted_bytes = aes.decrypt(encrypted_content)
+        decrypted_bytes = unpad(decrypted_bytes, AES.block_size)
+        decrypted = decrypted_bytes.decode("utf-8")
 
-        def unpad(s):
-            return s[: -ord(s[-1])]
-
-        return unpad(decrypted)
+        return decrypted
 
     def _verify_event(self, event: Dict) -> bool:
         """
