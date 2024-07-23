@@ -192,7 +192,7 @@ class LndWallet(Wallet):
         checking_id = None
 
         if statuses[resp.status] is True:  # SUCCEEDED
-            fee_msat = -resp.htlcs[-1].route.total_fees_msat
+            fee_msat = resp.htlcs[-1].route.total_fees_msat
             preimage = resp.payment_preimage
             checking_id = resp.payment_hash
         elif statuses[resp.status] is False:
@@ -258,7 +258,7 @@ class LndWallet(Wallet):
             async for payment in resp:
                 if len(payment.htlcs) and statuses[payment.status]:
                     return PaymentSuccessStatus(
-                        fee_msat=-payment.htlcs[-1].route.total_fees_msat,
+                        fee_msat=payment.htlcs[-1].route.total_fees_msat,
                         preimage=bytes_to_hex(payment.htlcs[-1].preimage),
                     )
                 return PaymentStatus(statuses[payment.status])

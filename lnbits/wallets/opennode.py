@@ -107,7 +107,7 @@ class OpenNodeWallet(Wallet):
 
         data = r.json()["data"]
         checking_id = data["id"]
-        fee_msat = -data["fee"] * 1000
+        fee_msat = data["fee"] * 1000
 
         if data["status"] != "paid":
             return PaymentResponse(None, checking_id, fee_msat, None, "payment failed")
@@ -136,7 +136,7 @@ class OpenNodeWallet(Wallet):
             "error": None,
             "failed": False,
         }
-        fee_msat = -data.get("fee") * 1000
+        fee_msat = data.get("fee") * 1000
         return PaymentStatus(statuses[data.get("status")], fee_msat)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

@@ -3,9 +3,9 @@ import hashlib
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 
-from lnbits import bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -61,7 +61,7 @@ class ZBDWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
         # https://api.zebedee.io/v0/charges
 
@@ -96,14 +96,12 @@ class ZBDWallet(Wallet):
         payment_request = data["invoice"]["request"]
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(
-        self, bolt11_invoice: str, fee_limit_msat: int
-    ) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://api.zebedee.io/v0/payments
         r = await self.client.post(
             "payments",
             json={
-                "invoice": bolt11_invoice,
+                "invoice": bolt11,
                 "description": "",
                 "amount": "",
                 "internalId": "",
@@ -118,8 +116,8 @@ class ZBDWallet(Wallet):
 
         data = r.json()
 
-        checking_id = bolt11.decode(bolt11_invoice).payment_hash
-        fee_msat = -int(data["data"]["fee"])
+        checking_id = bolt11_decode(bolt11).payment_hash
+        fee_msat = int(data["data"]["fee"])
         preimage = data["data"]["preimage"]
 
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
