@@ -162,7 +162,7 @@ class PhoenixdWallet(Wallet):
                 return PaymentResponse(None, None, None, None, error_message)
 
             checking_id = data["paymentHash"]
-            fee_msat = -int(data["routingFeeSat"])
+            fee_msat = int(data["routingFeeSat"])
             preimage = data["paymentPreimage"]
 
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)

@@ -132,9 +132,7 @@ class AlbyWallet(Wallet):
                 return PaymentResponse(None, None, None, None, error_message)
 
             checking_id = data["payment_hash"]
-            # todo: confirm with bitkarrot that having the minus is fine
-            # other funding sources return a positive fee value
-            fee_msat = -data["fee"]
+            fee_msat = data["fee"]
             preimage = data["payment_preimage"]
 
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)

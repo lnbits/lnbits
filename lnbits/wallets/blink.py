@@ -4,12 +4,12 @@ import json
 from typing import AsyncGenerator, Optional
 
 import httpx
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 from pydantic import BaseModel
 from websockets.client import WebSocketClientProtocol, connect
 from websockets.typing import Subprotocol
 
-from lnbits import bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -161,15 +161,13 @@ class BlinkWallet(Wallet):
                 False, None, None, f"Unable to connect to {self.endpoint}."
             )
 
-    async def pay_invoice(
-        self, bolt11_invoice: str, fee_limit_msat: int
-    ) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://dev.blink.sv/api/btc-ln-send
         # Future: add check fee estimate is < fee_limit_msat before paying invoice
 
         payment_variables = {
             "input": {
-                "paymentRequest": bolt11_invoice,
+                "paymentRequest": bolt11,
                 "walletId": self.wallet_id,
                 "memo": "Payment memo",
             }
@@ -187,14 +185,14 @@ class BlinkWallet(Wallet):
                 error_message = errors[0].get("message")
                 return PaymentResponse(False, None, None, None, error_message)
 
-            checking_id = bolt11.decode(bolt11_invoice).payment_hash
+            checking_id = bolt11_decode(bolt11).payment_hash
 
             payment_status = await self.get_payment_status(checking_id)
             fee_msat = payment_status.fee_msat
             preimage = payment_status.preimage
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)
         except Exception as exc:
-            logger.info(f"Failed to pay invoice {bolt11_invoice}")
+            logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
                 None, None, None, None, f"Unable to connect to {self.endpoint}."

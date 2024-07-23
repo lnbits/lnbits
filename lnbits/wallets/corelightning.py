@@ -229,7 +229,7 @@ class CoreLightningWallet(Wallet):
             if payment_resp["payment_hash"] == checking_id:
                 status = payment_resp["status"]
                 if status == "complete":
-                    fee_msat = -int(
+                    fee_msat = int(
                         payment_resp["amount_sent_msat"] - payment_resp["amount_msat"]
                     )
 
