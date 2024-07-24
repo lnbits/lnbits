@@ -32,6 +32,36 @@ new Vue({
     toggleDarkMode: function () {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
+      if (!this.$q.dark.isActive && this.gradientChoice) {
+        this.toggleGradient()
+      }
+    },
+    applyGradient: function () {
+      if (this.gradientChoice) {
+        if (!this.$q.dark.isActive) {
+          this.toggleDarkMode()
+        }
+        darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
+        primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
+        const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
+        document.body.style.setProperty(
+          'background',
+          gradientStyle,
+          'important'
+        )
+        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
+        const style = document.createElement('style')
+        style.innerHTML = `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.lnbits__dialog-card), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }`
+        document.head.appendChild(style)
+        this.$q.localStorage.set('lnbits.gradientBg', true)
+      } else {
+        document.body.style.removeProperty('background')
+        this.$q.localStorage.set('lnbits.gradientBg', false)
+      }
+    },
+    toggleGradient: function () {
+      this.gradientChoice = !this.gradientChoice
+      this.applyGradient()
     },
     reactionChoiceFunc: function () {
       this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
@@ -39,6 +69,24 @@ new Vue({
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
+      this.setColors()
+      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
+        this.applyGradient()
+      }
+    },
+    setColors: function () {
+      this.$q.localStorage.set(
+        'lnbits.primaryColor',
+        LNbits.utils.getPaletteColor('primary')
+      )
+      this.$q.localStorage.set(
+        'lnbits.secondaryColor',
+        LNbits.utils.getPaletteColor('secondary')
+      )
+      this.$q.localStorage.set(
+        'lnbits.darkBgColor',
+        LNbits.utils.getPaletteColor('dark')
+      )
     },
     updateAccount: async function () {
       try {
@@ -117,6 +165,9 @@ new Vue({
       if (!this.user.config) this.user.config = {}
     } catch (e) {
       LNbits.utils.notifyApiError(e)
+    }
+    if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
+      this.applyGradient()
     }
   }
 })
