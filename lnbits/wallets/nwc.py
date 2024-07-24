@@ -536,13 +536,13 @@ class NWCWallet(Wallet):
 
     def _verify_event(self, event: Dict) -> bool:
         """
-        Signs the event (in place) with the service secret
+        Verify the event signature
 
         Args:
-            event (Dict): The event to be signed.
+            event (Dict): The event to verify.
 
         Returns:
-            Dict: The input event with the signature added.
+            bool: True if the event signature is valid, False otherwise.
         """
         signature_data = self._json_dumps(
             [
