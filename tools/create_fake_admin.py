@@ -55,8 +55,8 @@ cursor.execute(
     """
     INSERT INTO apipayments
       (wallet, checking_id, bolt11, hash, preimage,
-       amount, status, memo, fee, extra, webhook, expiry)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       amount, status, memo, fee, extra, webhook, expiry, pending)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
     (
         wallet_id,
@@ -71,6 +71,7 @@ cursor.execute(
         None,
         "",
         expiration_date,
+        False,  # TODO: remove this in next release
     ),
 )
 
