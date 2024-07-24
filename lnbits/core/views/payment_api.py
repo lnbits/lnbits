@@ -52,13 +52,12 @@ from ..crud import (
     get_payments_paginated,
     get_standalone_payment,
     get_wallet_for_key,
-    update_pending_payments,
 )
 from ..services import (
-    check_transaction_status,
     create_invoice,
     fee_reserve_total,
     pay_invoice,
+    update_pending_payments,
 )
 from ..tasks import api_invoice_listeners
 
@@ -402,15 +401,8 @@ async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
-    await check_transaction_status(payment.wallet_id, payment_hash)
-    payment = await get_standalone_payment(
-        payment_hash, wallet_id=wallet.id if wallet else None
-    )
-    if not payment:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
-        )
-    elif not payment.pending:
+
+    if payment.success:
         if wallet and wallet.id == payment.wallet_id:
             return {"paid": True, "preimage": payment.preimage, "details": payment}
         return {"paid": True, "preimage": payment.preimage}
@@ -424,12 +416,12 @@ async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
 
     if wallet and wallet.id == payment.wallet_id:
         return {
-            "paid": not payment.pending,
+            "paid": payment.success,
             "status": f"{status!s}",
             "preimage": payment.preimage,
             "details": payment,
         }
-    return {"paid": not payment.pending, "preimage": payment.preimage}
+    return {"paid": payment.success, "preimage": payment.preimage}
 
 
 @payment_router.post("/decode", status_code=HTTPStatus.OK)

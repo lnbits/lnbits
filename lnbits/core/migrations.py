@@ -520,3 +520,31 @@ async def m020_add_column_column_to_user_extensions(db):
     Adds extra column to user extensions.
     """
     await db.execute("ALTER TABLE extensions ADD COLUMN extra TEXT")
+
+
+async def m021_add_success_failed_to_apipayments(db):
+    """
+    Adds success and failed columns to apipayments.
+    """
+    await db.execute("ALTER TABLE apipayments ADD COLUMN status TEXT DEFAULT 'pending'")
+    #  set all not pending to success true, failed payments were deleted until now
+    await db.execute("UPDATE apipayments SET status = 'success' WHERE NOT pending")
+
+    await db.execute("DROP VIEW balances")
+    await db.execute(
+        """
+        CREATE VIEW balances AS
+        SELECT apipayments.wallet,
+               SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+        FROM wallets
+        LEFT JOIN apipayments ON apipayments.wallet = wallets.id
+        WHERE (wallets.deleted = false OR wallets.deleted is NULL)
+        AND (
+            (apipayments.status = 'success' AND apipayments.amount > 0)
+            OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
+        )
+        GROUP BY apipayments.wallet
+    """
+    )
+    # TODO: drop column in next release
+    # await db.execute("ALTER TABLE apipayments DROP COLUMN pending")

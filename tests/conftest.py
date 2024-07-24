@@ -19,7 +19,7 @@ from lnbits.core.crud import (
     get_user,
     update_payment_status,
 )
-from lnbits.core.models import CreateInvoice
+from lnbits.core.models import CreateInvoice, PaymentState
 from lnbits.core.services import update_wallet_balance
 from lnbits.core.views.payment_api import api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
@@ -199,7 +199,9 @@ async def fake_payments(client, adminkey_headers_from):
             "/api/v1/payments", headers=adminkey_headers_from, json=invoice.dict()
         )
         assert response.is_success
-        await update_payment_status(response.json()["checking_id"], pending=False)
+        await update_payment_status(
+            response.json()["checking_id"], status=PaymentState.SUCCESS
+        )
 
     params = {"time[ge]": ts, "time[le]": time()}
     return fake_data, params
