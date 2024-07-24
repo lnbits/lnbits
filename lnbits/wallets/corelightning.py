@@ -158,7 +158,6 @@ class CoreLightningWallet(Wallet):
             }
 
             r = await run_sync(lambda: self.ln.call(self.pay, payload))
-
             fee_msat = r["amount_msat"] - r["amount_sent_msat"]
             return PaymentResponse(
                 True, r["payment_hash"], fee_msat, r["payment_preimage"], None
@@ -224,17 +223,14 @@ class CoreLightningWallet(Wallet):
                 # no payment with this payment_hash is found
                 return PaymentFailedStatus()
 
-            payment_resp = r["pays"][-1]
+            res = r["pays"][-1]
 
-            if payment_resp["payment_hash"] == checking_id:
-                status = payment_resp["status"]
+            if res["payment_hash"] == checking_id:
+                status = res["status"]
                 if status == "complete":
-                    fee_msat = int(
-                        payment_resp["amount_msat"] - payment_resp["amount_send_msat"]
-                    )
-
+                    fee_msat = res["amount_msat"] - res["amount_sent_msat"]
                     return PaymentSuccessStatus(
-                        fee_msat=fee_msat, preimage=payment_resp["preimage"]
+                        fee_msat=fee_msat, preimage=res["preimage"]
                     )
                 elif status == "failed":
                     return PaymentFailedStatus()
