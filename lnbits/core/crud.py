@@ -903,8 +903,8 @@ async def create_payment(
         """
         INSERT INTO apipayments
           (wallet, checking_id, bolt11, hash, preimage,
-           amount, status, memo, fee, extra, webhook, expiry)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           amount, status, memo, fee, extra, webhook, expiry, pending)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             wallet_id,
@@ -923,6 +923,7 @@ async def create_payment(
             ),
             webhook,
             db.datetime_to_timestamp(expiry) if expiry else None,
+            False,  # TODO: remove this in next release
         ),
     )
 
