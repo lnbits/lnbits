@@ -175,7 +175,7 @@ async def check_pending_payments():
 
 async def invoice_callback_dispatcher(checking_id: str):
     """
-    Takes incoming payments, sets pending=False, and dispatches them to
+    Takes an incoming payment, checks its status, and dispatches it to
     invoice_listeners from core and extensions.
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
@@ -183,7 +183,7 @@ async def invoice_callback_dispatcher(checking_id: str):
         logger.trace(
             f"invoice listeners: sending invoice callback for payment {checking_id}"
         )
-        await payment.set_pending(False)
+        await payment.check_status()
         for name, send_chan in invoice_listeners.items():
             logger.trace(f"invoice listeners: sending to `{name}`")
             await send_chan.put(payment)

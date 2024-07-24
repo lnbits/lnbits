@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any, List, Optional, Type
 
 import jinja2
+import jwt
 import shortuuid
-from jose import jwt
 from pydantic import BaseModel
 from pydantic.schema import field_schema
 
