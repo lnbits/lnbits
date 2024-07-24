@@ -158,7 +158,7 @@ async def check_pending_payments():
                         checking_id=payment.checking_id,
                         fee=status.fee_msat,
                         preimage=status.preimage,
-                        status=PaymentState.SUCCESS
+                        status=PaymentState.SUCCESS,
                     )
                     logger.debug(f"{prefix} success {payment.checking_id}")
                 else:
@@ -186,7 +186,7 @@ async def invoice_callback_dispatcher(checking_id: str):
             checking_id=payment.checking_id,
             fee=status.fee_msat,
             preimage=status.preimage,
-            status=PaymentState.SUCCESS
+            status=PaymentState.SUCCESS,
         )
         for name, send_chan in invoice_listeners.items():
             logger.trace(f"invoice listeners: sending to `{name}`")
