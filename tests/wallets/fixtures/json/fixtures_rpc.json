@@ -769,7 +769,7 @@
                             "htlcs": [
                               {
                                 "route": {
-                                  "total_fees_msat": -50
+                                  "total_fees_msat": 50
                                 }
                               }
                             ],
@@ -796,12 +796,12 @@
                             "htlcs": [
                               {
                                 "route": {
-                                  "total_fees_msat": -100
+                                  "total_fees_msat": 100
                                 }
                               },
                               {
                                 "route": {
-                                  "total_fees_msat": -50
+                                  "total_fees_msat": 50
                                 }
                               }
                             ],
@@ -1910,13 +1910,13 @@
                           "htlcs": [
                             {
                               "route": {
-                                "total_fees_msat": -100
+                                "total_fees_msat": 100
                               },
                               "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
                             },
                             {
                               "route": {
-                                "total_fees_msat": -50
+                                "total_fees_msat": 50
                               },
                               "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
                             }
@@ -2180,7 +2180,7 @@
                           "htlcs": [
                             {
                               "route": {
-                                "total_fees_msat": -50
+                                "total_fees_msat": 50
                               },
                               "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
                             }
@@ -2208,7 +2208,7 @@
                           "htlcs": [
                             {
                               "route": {
-                                "total_fees_msat": -50
+                                "total_fees_msat": 50
                               },
                               "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
                             }
@@ -2236,7 +2236,7 @@
                           "htlcs": [
                             {
                               "route": {
-                                "total_fees_msat": -50
+                                "total_fees_msat": 50
                               },
                               "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
                             }

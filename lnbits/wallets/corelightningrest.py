@@ -199,7 +199,7 @@ class CoreLightningRestWallet(Wallet):
 
             checking_id = data["payment_hash"]
             preimage = data["payment_preimage"]
-            fee_msat = data["msatoshi_sent"] - data["msatoshi"]
+            fee_msat = data["msatoshi"] - data["msatoshi_sent"]
 
             return PaymentResponse(status, checking_id, fee_msat, preimage, None)
         except httpx.HTTPStatusError as exc:
@@ -265,8 +265,8 @@ class CoreLightningRestWallet(Wallet):
             fee_msat, preimage = None, None
             if self.statuses[pay["status"]]:
                 # cut off "msat" and convert to int
-                fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(
-                    pay["amount_msat"][:-4]
+                fee_msat = int(pay["amount_msat"][:-4]) - int(
+                    pay["amount_sent_msat"][:-4]
                 )
                 preimage = pay["preimage"]
 
