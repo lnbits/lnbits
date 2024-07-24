@@ -1,12 +1,12 @@
 from http import HTTPStatus
 from typing import Annotated, Literal, Optional, Type, Union
 
+import jwt
 from fastapi import Cookie, Depends, Query, Request, Security
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.security import APIKeyHeader, APIKeyQuery, OAuth2PasswordBearer
 from fastapi.security.base import SecurityBase
-from jose import ExpiredSignatureError, JWTError, jwt
 from loguru import logger
 from pydantic.types import UUID4
 
@@ -256,7 +256,7 @@ async def _check_user_extension_access(user_id: str, current_path: str):
 
 async def _get_account_from_token(access_token):
     try:
-        payload = jwt.decode(access_token, settings.auth_secret_key, "HS256")
+        payload = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
         if "sub" in payload and payload.get("sub"):
             return await get_account_by_username(str(payload.get("sub")))
         if "usr" in payload and payload.get("usr"):
@@ -265,10 +265,10 @@ async def _get_account_from_token(access_token):
             return await get_account_by_email(str(payload.get("email")))
 
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Data missing for access token.")
-    except ExpiredSignatureError as exc:
+    except jwt.ExpiredSignatureError as exc:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Session expired.", {"token-expired": "true"}
         ) from exc
-    except JWTError as exc:
+    except jwt.PyJWTError as exc:
         logger.debug(exc)
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid access token.") from exc
