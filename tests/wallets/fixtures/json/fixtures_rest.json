@@ -1303,7 +1303,7 @@
                   "response_type": "json",
                   "response": {
                     "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
-                    "routingFeeSat": -50,
+                    "routingFeeSat": 50,
                     "paymentPreimage": "0000000000000000000000000000000000000000000000000000000000000000"
                   }
                 }
@@ -1690,7 +1690,7 @@
                   "response_type": "json",
                   "response": {
                     "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
-                    "routingFeeSat": -50
+                    "routingFeeSat": 50
                   }
                 }
               ]

@@ -159,7 +159,7 @@ class CoreLightningWallet(Wallet):
 
             r = await run_sync(lambda: self.ln.call(self.pay, payload))
 
-            fee_msat = r["amount_sent_msat"] - r["amount_msat"]
+            fee_msat = r["amount_msat"] - r["amount_sent_msat"]
             return PaymentResponse(
                 True, r["payment_hash"], fee_msat, r["payment_preimage"], None
             )
@@ -230,7 +230,7 @@ class CoreLightningWallet(Wallet):
                 status = payment_resp["status"]
                 if status == "complete":
                     fee_msat = int(
-                        payment_resp["amount_sent_msat"] - payment_resp["amount_msat"]
+                        payment_resp["amount_msat"] - payment_resp["amount_send_msat"]
                     )
 
                     return PaymentSuccessStatus(
