@@ -546,4 +546,5 @@ async def m021_add_success_failed_to_apipayments(db):
         GROUP BY apipayments.wallet
     """
     )
-    await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
+    # TODO: drop column in next release
+    # await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
