@@ -212,7 +212,7 @@ class EclairWallet(Wallet):
 
             fee_msat, preimage = None, None
             if data["status"]["type"] == "sent":
-                fee_msat = data["status"]["feesPaid"]
+                fee_msat = abs(data["status"]["feesPaid"])
                 preimage = data["status"]["paymentPreimage"]
 
             statuses = {

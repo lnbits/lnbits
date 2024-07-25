@@ -139,7 +139,7 @@ class LNPayWallet(Wallet):
 
         data = r.json()
         preimage = data["payment_preimage"]
-        fee_msat = data["fee_msat"]
+        fee_msat = abs(data["fee_msat"])
         statuses = {0: None, 1: True, -1: False}
         return PaymentStatus(statuses[data["settled"]], fee_msat, preimage)
 

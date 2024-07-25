@@ -117,7 +117,7 @@ class ZBDWallet(Wallet):
         data = r.json()
 
         checking_id = bolt11_decode(bolt11).payment_hash
-        fee_msat = int(data["data"]["fee"])
+        fee_msat = abs(int(data["data"]["fee"]))
         preimage = data["data"]["preimage"]
 
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)

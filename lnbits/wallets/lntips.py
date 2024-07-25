@@ -117,7 +117,7 @@ class LnTipsWallet(Wallet):
 
         data = r.json()["details"]
         checking_id = data["payment_hash"]
-        fee_msat = data["fee"]
+        fee_msat = abs(data["fee"])
         preimage = data["preimage"]
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 

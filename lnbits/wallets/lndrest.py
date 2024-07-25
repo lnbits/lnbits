@@ -182,7 +182,7 @@ class LndRestWallet(Wallet):
                 return PaymentResponse(False, None, None, None, payment_error)
 
             checking_id = base64.b64decode(data["payment_hash"]).hex()
-            fee_msat = int(data["payment_route"]["total_fees_msat"])
+            fee_msat = abs(int(data["payment_route"]["total_fees_msat"]))
             preimage = base64.b64decode(data["payment_preimage"]).hex()
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)
         except KeyError as exc:
@@ -260,7 +260,7 @@ class LndRestWallet(Wallet):
                     if payment is not None and payment.get("status"):
                         return PaymentStatus(
                             paid=statuses[payment["status"]],
-                            fee_msat=payment.get("fee_msat"),
+                            fee_msat=abs(payment.get("fee_msat")),
                             preimage=payment.get("payment_preimage"),
                         )
                     else:

@@ -124,7 +124,7 @@ class ClicheWallet(Wallet):
             if data.get("method") == "payment_succeeded":
                 payment_ok = True
                 checking_id = data["params"]["payment_hash"]
-                fee_msat = data["params"]["fee_msatoshi"]
+                fee_msat = abs(data["params"]["fee_msatoshi"])
                 preimage = data["params"]["preimage"]
                 continue
 
@@ -161,7 +161,7 @@ class ClicheWallet(Wallet):
         statuses = {"pending": None, "complete": True, "failed": False}
         return PaymentStatus(
             statuses[payment["status"]],
-            payment.get("fee_msatoshi"),
+            abs(payment.get("fee_msatoshi")),
             payment.get("preimage"),
         )
 

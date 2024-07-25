@@ -150,7 +150,7 @@ class SparkWallet(Wallet):
                 bolt11=bolt11,
                 maxfee=fee_limit_msat,
             )
-            fee_msat = int(r["msatoshi_sent"] - r["msatoshi"])
+            fee_msat = abs(int(r["msatoshi_sent"] - r["msatoshi"]))
             preimage = r["payment_preimage"]
             return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
 
@@ -187,7 +187,7 @@ class SparkWallet(Wallet):
                 # this may result in an error if it was paid previously
                 # our database won't allow the same payment_hash to be added twice
                 # this is good
-                fee_msat = int(r["msatoshi_sent"] - r["msatoshi"])
+                fee_msat = abs(int(r["msatoshi_sent"] - r["msatoshi"]))
                 preimage = r["payment_preimage"]
                 return PaymentResponse(
                     True, r["payment_hash"], fee_msat, preimage, None
@@ -229,8 +229,9 @@ class SparkWallet(Wallet):
         if r["pays"][0]["payment_hash"] == checking_id:
             status = r["pays"][0]["status"]
             if status == "complete":
-                fee_msat = int(r["pays"][0]["amount_sent_msat"][0:-4]) - int(
-                    r["pays"][0]["amount_msat"][0:-4]
+                fee_msat = abs(
+                    int(r["pays"][0]["amount_sent_msat"][0:-4])
+                    - int(r["pays"][0]["amount_msat"][0:-4])
                 )
                 return PaymentSuccessStatus(
                     fee_msat=fee_msat, preimage=r["pays"][0]["preimage"]
