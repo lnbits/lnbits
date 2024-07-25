@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 from uuid import UUID, uuid4
 
 import httpx
+from bolt11 import MilliSatoshi
 from bolt11 import decode as bolt11_decode
 from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
@@ -50,7 +51,6 @@ from .crud import (
     create_admin_settings,
     create_payment,
     create_wallet,
-    delete_wallet_payment,
     get_account,
     get_account_by_email,
     get_account_by_username,
@@ -67,7 +67,7 @@ from .crud import (
     update_user_extension,
 )
 from .helpers import to_valid_user_id
-from .models import BalanceDelta, Payment, User, UserConfig, Wallet
+from .models import BalanceDelta, Payment, PaymentState, User, UserConfig, Wallet
 
 
 class PaymentError(Exception):
@@ -283,32 +283,19 @@ async def pay_invoice(
             new_payment = await create_payment(
                 checking_id=internal_id,
                 fee=0 + abs(fee_reserve_total_msat),
-                pending=False,
+                status=PaymentState.SUCCESS,
                 conn=conn,
                 **payment_kwargs,
             )
         else:
-            fee_reserve_total_msat = fee_reserve_total(
-                invoice.amount_msat, internal=False
+            new_payment = await _create_external_payment(
+                temp_id, invoice.amount_msat, conn=conn, **payment_kwargs
             )
-            logger.debug(f"creating temporary payment with id {temp_id}")
-            # create a temporary payment here so we can check if
-            # the balance is enough in the next step
-            try:
-                new_payment = await create_payment(
-                    checking_id=temp_id,
-                    fee=-abs(fee_reserve_total_msat),
-                    conn=conn,
-                    **payment_kwargs,
-                )
-            except Exception as exc:
-                logger.error(f"could not create temporary payment: {exc}")
-                # happens if the same wallet tries to pay an invoice twice
-                raise PaymentError("Could not make payment.", status="failed") from exc
 
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
         assert wallet, "Wallet for balancecheck could not be fetched"
+        fee_reserve_total_msat = fee_reserve_total(invoice.amount_msat, internal=False)
         _check_wallet_balance(wallet, fee_reserve_total_msat, internal_checking_id)
 
     if extra and "tag" in extra:
@@ -325,7 +312,9 @@ async def pay_invoice(
         # the payer has enough to deduct from
         async with db.connect() as conn:
             await update_payment_status(
-                checking_id=internal_checking_id, pending=False, conn=conn
+                checking_id=internal_checking_id,
+                status=PaymentState.SUCCESS,
+                conn=conn,
             )
         await send_payment_notification(wallet, new_payment)
 
@@ -350,15 +339,18 @@ async def pay_invoice(
                 f" {payment.checking_id})"
             )
 
-        logger.debug(f"backend: pay_invoice finished {temp_id}")
-        logger.debug(f"backend: pay_invoice response {payment}")
+        logger.debug(f"backend: pay_invoice finished {temp_id}, {payment}")
         if payment.checking_id and payment.ok is not False:
             # payment.ok can be True (paid) or None (pending)!
             logger.debug(f"updating payment {temp_id}")
             async with db.connect() as conn:
                 await update_payment_details(
                     checking_id=temp_id,
-                    pending=payment.ok is not True,
+                    status=(
+                        PaymentState.SUCCESS
+                        if payment.ok is True
+                        else PaymentState.PENDING
+                    ),
                     fee=-(
                         abs(payment.fee_msat if payment.fee_msat else 0)
                         + abs(service_fee_msat)
@@ -376,10 +368,13 @@ async def pay_invoice(
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
             # payment failed
-            logger.warning("backend sent payment failure")
+            logger.debug(f"payment failed {temp_id}, {payment.error_message}")
             async with db.connect() as conn:
-                logger.debug(f"deleting temporary payment {temp_id}")
-                await delete_wallet_payment(temp_id, wallet_id, conn=conn)
+                await update_payment_status(
+                    checking_id=temp_id,
+                    status=PaymentState.FAILED,
+                    conn=conn,
+                )
             raise PaymentError(
                 f"Payment failed: {payment.error_message}"
                 or "Payment failed, but backend didn't give us an error message.",
@@ -401,9 +396,60 @@ async def pay_invoice(
             checking_id="service_fee" + temp_id,
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
-            pending=False,
+            status=PaymentState.SUCCESS,
         )
     return invoice.payment_hash
+
+
+async def _create_external_payment(
+    temp_id: str,
+    amount_msat: MilliSatoshi,
+    conn: Optional[Connection],
+    **payment_kwargs,
+) -> Payment:
+    fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
+
+    # check if there is already a payment with the same checking_id
+    old_payment = await get_standalone_payment(temp_id, conn=conn)
+    if old_payment:
+        # fail on pending payments
+        if old_payment.pending:
+            raise PaymentError("Payment is still pending.", status="pending")
+        if old_payment.success:
+            raise PaymentError("Payment already paid.", status="success")
+        if old_payment.failed:
+            status = await old_payment.check_status()
+            if status.success:
+                # payment was successful on the fundingsource
+                await update_payment_status(
+                    checking_id=temp_id, status=PaymentState.SUCCESS, conn=conn
+                )
+                raise PaymentError(
+                    "Failed payment was already paid on the fundingsource.",
+                    status="success",
+                )
+            if status.failed:
+                raise PaymentError(
+                    "Payment is failed node, retrying is not possible.", status="failed"
+                )
+            # status.pending fall through and try again
+        return old_payment
+
+    logger.debug(f"creating temporary payment with id {temp_id}")
+    # create a temporary payment here so we can check if
+    # the balance is enough in the next step
+    try:
+        new_payment = await create_payment(
+            checking_id=temp_id,
+            fee=-abs(fee_reserve_total_msat),
+            conn=conn,
+            **payment_kwargs,
+        )
+        return new_payment
+    except Exception as exc:
+        logger.error(f"could not create temporary payment: {exc}")
+        # happens if the same wallet tries to pay an invoice twice
+        raise PaymentError("Could not make payment", status="failed") from exc
 
 
 def _check_wallet_balance(
@@ -617,12 +663,11 @@ async def check_transaction_status(
     )
     if not payment:
         return PaymentPendingStatus()
-    if not payment.pending:
-        # note: before, we still checked the status of the payment again
+
+    if payment.status == PaymentState.SUCCESS.value:
         return PaymentSuccessStatus(fee_msat=payment.fee)
 
-    status: PaymentStatus = await payment.check_status()
-    return status
+    return await payment.check_status()
 
 
 # WARN: this same value must be used for balance check and passed to
@@ -680,7 +725,9 @@ async def update_wallet_balance(wallet_id: str, amount: int):
     async with db.connect() as conn:
         checking_id = await check_internal(payment_hash, conn=conn)
         assert checking_id, "newly created checking_id cannot be retrieved"
-        await update_payment_status(checking_id=checking_id, pending=False, conn=conn)
+        await update_payment_status(
+            checking_id=checking_id, status=PaymentState.SUCCESS, conn=conn
+        )
         # notify receiver asynchronously
         from lnbits.tasks import internal_invoice_queue
 
@@ -856,3 +903,23 @@ async def get_balance_delta() -> BalanceDelta:
         lnbits_balance_msats=lnbits_balance,
         node_balance_msats=status.balance_msat,
     )
+
+
+async def update_pending_payments(wallet_id: str):
+    pending_payments = await get_payments(
+        wallet_id=wallet_id,
+        pending=True,
+        exclude_uncheckable=True,
+    )
+    for payment in pending_payments:
+        status = await payment.check_status()
+        if status.failed:
+            await update_payment_status(
+                checking_id=payment.checking_id,
+                status=PaymentState.FAILED,
+            )
+        elif status.success:
+            await update_payment_status(
+                checking_id=payment.checking_id,
+                status=PaymentState.SUCCESS,
+            )

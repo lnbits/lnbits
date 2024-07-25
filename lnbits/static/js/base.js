@@ -247,7 +247,7 @@ window.LNbits = {
     payment: function (data) {
       obj = {
         checking_id: data.checking_id,
-        pending: data.pending,
+        status: data.status,
         amount: data.amount,
         fee: data.fee,
         memo: data.memo,
@@ -280,7 +280,9 @@ window.LNbits = {
       obj.fsat = new Intl.NumberFormat(window.LOCALE).format(obj.sat)
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0
-      obj.isPaid = !obj.pending
+      obj.isPending = obj.status === 'pending'
+      obj.isPaid = obj.status === 'success'
+      obj.isFailed = obj.status === 'failed'
       obj._q = [obj.memo, obj.sat].join(' ').toLowerCase()
       return obj
     }
