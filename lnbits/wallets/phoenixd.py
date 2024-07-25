@@ -162,7 +162,7 @@ class PhoenixdWallet(Wallet):
                 return PaymentResponse(None, None, None, None, error_message)
 
             checking_id = data["paymentHash"]
-            fee_msat = int(data["routingFeeSat"])
+            fee_msat = abs(int(data["routingFeeSat"]))
             preimage = data["paymentPreimage"]
 
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)
@@ -190,7 +190,7 @@ class PhoenixdWallet(Wallet):
             data = r.json()
 
             if data["isPaid"]:
-                fee_msat = data["fees"]
+                fee_msat = abs(data["fees"])
                 preimage = data["preimage"]
                 return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
 
@@ -208,7 +208,7 @@ class PhoenixdWallet(Wallet):
             data = r.json()
 
             if data["isPaid"]:
-                fee_msat = data["fees"]
+                fee_msat = abs(data["fees"])
                 preimage = data["preimage"]
                 return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
 
