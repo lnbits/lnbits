@@ -161,7 +161,7 @@ class ClicheWallet(Wallet):
         statuses = {"pending": None, "complete": True, "failed": False}
         return PaymentStatus(
             statuses[payment["status"]],
-            abs(payment.get("fee_msatoshi")),
+            abs(payment.get("fee_msatoshi", 0)),
             payment.get("preimage"),
         )
 

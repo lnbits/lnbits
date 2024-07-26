@@ -260,7 +260,7 @@ class LndRestWallet(Wallet):
                     if payment is not None and payment.get("status"):
                         return PaymentStatus(
                             paid=statuses[payment["status"]],
-                            fee_msat=abs(payment.get("fee_msat")),
+                            fee_msat=abs(payment.get("fee_msat", 0)),
                             preimage=payment.get("payment_preimage"),
                         )
                     else:

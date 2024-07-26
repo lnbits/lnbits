@@ -104,7 +104,7 @@ class BlinkWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
         # https://dev.blink.sv/api/btc-ln-receive
 
@@ -188,7 +188,7 @@ class BlinkWallet(Wallet):
             checking_id = bolt11_decode(bolt11).payment_hash
 
             payment_status = await self.get_payment_status(checking_id)
-            fee_msat = payment_status.fee_msat
+            fee_msat = abs(payment_status.fee_msat or 0)
             preimage = payment_status.preimage
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)
         except Exception as exc:
