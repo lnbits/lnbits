@@ -206,8 +206,8 @@ exchange_rate_providers = {
     "blockchain": Provider(
         "Blockchain",
         "blockchain.com",
-        "https://blockchain.info/tobtc?currency={TO}&value=1",
-        lambda data, replacements: 1 / data,
+        "https://blockchain.info/tobtc?currency={TO}&value=1000000",
+        lambda data, replacements: 1000000 / data,
     ),
     "exir": Provider(
         "Exir",
