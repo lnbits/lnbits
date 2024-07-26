@@ -3,6 +3,7 @@ from typing import Dict, Union
 from urllib.parse import urlencode
 
 import pytest
+from loguru import logger
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
@@ -34,14 +35,27 @@ def httpserver_listen_address():
     ids=build_test_id,
 )
 async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
-    if test_data.skip:
-        pytest.skip()
+    test_id = build_test_id(test_data)
+    logger.info(f"[{test_id}]: test start")
+    try:
+        if test_data.skip:
+            logger.info(f"[{test_id}]: test skip")
+            pytest.skip()
 
-    for mock in test_data.mocks:
-        _apply_mock(httpserver, mock)
+        logger.info(f"[{test_id}]: apply {len(test_data.mocks)} mocks")
+        for mock in test_data.mocks:
+            _apply_mock(httpserver, mock)
 
-    wallet = load_funding_source(test_data.funding_source)
-    await check_assertions(wallet, test_data)
+        logger.info(f"[{test_id}]: load funding source")
+        wallet = load_funding_source(test_data.funding_source)
+
+        logger.info(f"[{test_id}]: check assertions")
+        await check_assertions(wallet, test_data)
+    except Exception as exc:
+        logger.info(f"[{test_id}]: test failed: {exc}")
+        raise exc
+    finally:
+        logger.info(f"[{test_id}]: test end")
 
 
 def _apply_mock(httpserver: HTTPServer, mock: Mock):
