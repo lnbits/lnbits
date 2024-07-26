@@ -249,6 +249,20 @@ exchange_rate_providers = {
         lambda data, replacements: data["result"]["XXBTZ" + replacements["TO"]]["c"][0],
         ["czk"],
     ),
+    "bitpay": Provider(
+        "BitPay",
+        "bitpay.com",
+        "https://bitpay.com/rates",
+        lambda data, replacements: next(
+            i["rate"] for i in data["data"] if i["code"] == replacements["TO"]
+        ),
+    ),
+    "yadio": Provider(
+        "yadio",
+        "yadio.io",
+        "https://api.yadio.io/exrates/{FROM}",
+        lambda data, replacements: data[replacements["FROM"]][replacements["TO"]],
+    ),
 }
 
 
