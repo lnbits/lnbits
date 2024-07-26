@@ -19,12 +19,25 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
-    PaymentFailedStatus,
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
     Wallet,
 )
+
+
+class NWCError(Exception):
+    """
+    An exception from NWC
+    """
+
+    def __init__(self, code: str, message: str):
+        self.code = code
+        self.message = message
+        super().__init__(self.__str__())
+
+    def __str__(self):
+        return f"{self.code} {self.message}"
 
 
 class NWCWallet(Wallet):
@@ -33,40 +46,9 @@ class NWCWallet(Wallet):
     https://nwc.dev/
     """
 
-    def _parse_nwc(self, nwc) -> Dict:
-        """
-        Parses a NWC URL (nostr+walletconnect://...) and extracts relevant information.
-
-        Args:
-            nwc (str): The Nostr Wallet Connect URL to be parsed.
-
-        Returns:
-            Dict[str, str]: A dict containing:'pubkey', 'relay', and 'secret'.
-            If the URL is invalid, an exception is raised.
-
-        Example:
-            >>> _parse_nwc("nostr+walletconnect://000000...000000?relay=example.com&secret=123")
-            {'pubkey': '000000...000000', 'relay': 'example.com', 'secret': '123'}
-        """
-        data = {}
-        prefix = "nostr+walletconnect://"
-        if nwc and nwc.startswith(prefix):
-            nwc = nwc[len(prefix) :]
-            parsed_url = urlparse(nwc)
-            data["pubkey"] = parsed_url.path
-            query_params = parse_qs(parsed_url.query)
-            for key, value in query_params.items():
-                if key in ["relay", "secret"] and value:
-                    data[key] = unquote(value[0])
-            if "pubkey" not in data or "relay" not in data or "secret" not in data:
-                raise ValueError("Invalid NWC pairing url")
-        else:
-            raise ValueError("Invalid NWC pairing url")
-        return data
-
     def __init__(self):
         # Parse pairing url (if invalid an exception is raised)
-        nwc_data = self._parse_nwc(settings.nwc_pairing_url)
+        nwc_data = parse_nwc(settings.nwc_pairing_url)
 
         # Extract keys (used to sign nwc events+identify NWC user)
         self.account_private_key = secp256k1.PrivateKey(
@@ -132,20 +114,6 @@ class NWCWallet(Wallet):
             + self.service_pubkey_hex
         )
 
-    def _json_dumps(self, data: Union[Dict, list]) -> str:
-        """
-        Converts a Python dictionary to a JSON string with compact encoding.
-
-        Args:
-            data (Dict): The dictionary to be converted.
-
-        Returns:
-            str: The compact JSON string.
-        """
-        if isinstance(data, Dict):
-            data = {k: v for k, v in data.items() if v is not None}
-        return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
-
     def _is_shutting_down(self) -> bool:
         """
         Returns True if the wallet is shutting down.
@@ -167,7 +135,7 @@ class NWCWallet(Wallet):
             logger.warning("Trying to send data without a connection")
             return
         await self._wait_for_connection()  # ensure the connection is established
-        tx = self._json_dumps(data)
+        tx = json_dumps(data)
         await self.ws.send(tx)
 
     def _get_new_subid(self) -> str:
@@ -394,9 +362,8 @@ class NWCWallet(Wallet):
                 error = content.get("error", None)
                 result = content.get("result", None)
                 if error:  # if an error occurred, pass the error to the future
-                    subscription["future"].set_exception(
-                        Exception(error["code"] + " " + error["message"])
-                    )
+                    nwc_exception = NWCError(error["code"], error["message"])
+                    subscription["future"].set_exception(nwc_exception)
                 else:
                     # ensure the result is for the expected method
                     if result_type != subscription["method"]:
@@ -544,7 +511,7 @@ class NWCWallet(Wallet):
         Returns:
             bool: True if the event signature is valid, False otherwise.
         """
-        signature_data = self._json_dumps(
+        signature_data = json_dumps(
             [
                 0,
                 event["pubkey"],
@@ -575,7 +542,7 @@ class NWCWallet(Wallet):
         Returns:
             Dict: The input event with the signature added.
         """
-        signature_data = self._json_dumps(
+        signature_data = json_dumps(
             [
                 0,
                 self.account_public_key_hex,
@@ -612,7 +579,7 @@ class NWCWallet(Wallet):
         await self._wait_for_connection()
         logger.debug("Calling " + method + " with params: " + str(params))
         # Prepare the content
-        content = self._json_dumps(
+        content = json_dumps(
             {
                 "method": method,
                 "params": params,
@@ -634,7 +601,7 @@ class NWCWallet(Wallet):
             "kinds": [23195],
             "#p": [self.account_public_key_hex],
             "#e": [event["id"]],
-            "since": int(time.time()),
+            "since": event["created_at"],
         }
         sub_id = self._get_new_subid()
         # register a future to receive the response asynchronously
@@ -752,7 +719,7 @@ class NWCWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs
+        **kwargs,
     ) -> InvoiceResponse:
         desc = ""
         desc_hash = None
@@ -819,28 +786,26 @@ class NWCWallet(Wallet):
             # pay_invoice doesn't return payment data, so we need
             # to call lookup_invoice too (if supported)
             info = await self._get_info()
-            if "lookup_invoice" in info["supported_methods"]:
-                try:
-                    payment_data = await self._call(
-                        "lookup_invoice", {"invoice": bolt11}
-                    )
-                    settled = payment_data.get("settled_at", None) and payment_data.get(
-                        "preimage", None
-                    )
-                    if not settled:
-                        return PaymentResponse(None, payment_hash, None, None, None)
-                    else:
-                        fee_msat = payment_data.get("fees_paid", None)
-                        return PaymentResponse(
-                            True, payment_hash, fee_msat, preimage, None
-                        )
-                except Exception:
-                    # Workaround: some nwc service providers might not store the invoice
-                    # right away, so this call may raise an exception.
-                    # We will assume the payment is pending anyway
-                    return PaymentResponse(None, payment_hash, None, None, None)
-            else:  # if not supported, we assume it succeeded
+
+            if "lookup_invoice" not in info["supported_methods"]:
+                # if not supported, we assume it succeeded
                 return PaymentResponse(True, payment_hash, None, preimage, None)
+
+            try:
+                payment_data = await self._call("lookup_invoice", {"invoice": bolt11})
+                settled = payment_data.get("settled_at", None) and payment_data.get(
+                    "preimage", None
+                )
+                if not settled:
+                    return PaymentResponse(None, payment_hash, None, None, None)
+                else:
+                    fee_msat = payment_data.get("fees_paid", None)
+                    return PaymentResponse(True, payment_hash, fee_msat, preimage, None)
+            except Exception:
+                # Workaround: some nwc service providers might not store the invoice
+                # right away, so this call may raise an exception.
+                # We will assume the payment is pending anyway
+                return PaymentResponse(None, payment_hash, None, None, None)
 
         except Exception as e:
             return PaymentResponse(ok=False, error_message=str(e))
@@ -871,11 +836,65 @@ class NWCWallet(Wallet):
                     )
             else:
                 return PaymentStatus(None, fee_msat=None, preimage=None)
+        except NWCError as e:
+            logger.error("Error getting payment status: " + str(e))
+            failed = e.code == "NOT_FOUND"
+            return PaymentStatus(
+                None if not failed else False, fee_msat=None, preimage=None
+            )
         except Exception as e:
             logger.error("Error getting payment status: " + str(e))
-            return PaymentFailedStatus()
+            # assume pending (eg. exception due to network error)
+            return PaymentStatus(None, fee_msat=None, preimage=None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while not self._is_shutting_down():
             value = await self.paid_invoices_queue.get()
             yield value
+
+
+def parse_nwc(nwc) -> Dict:
+    """
+    Parses a NWC URL (nostr+walletconnect://...) and extracts relevant information.
+
+    Args:
+        nwc (str): The Nostr Wallet Connect URL to be parsed.
+
+    Returns:
+        Dict[str, str]: A dict containing:'pubkey', 'relay', and 'secret'.
+        If the URL is invalid, an exception is raised.
+
+    Example:
+        >>> parse_nwc("nostr+walletconnect://000000...000000?relay=example.com&secret=123")
+        {'pubkey': '000000...000000', 'relay': 'example.com', 'secret': '123'}
+    """
+    data = {}
+    prefix = "nostr+walletconnect://"
+    if nwc and nwc.startswith(prefix):
+        nwc = nwc[len(prefix) :]
+        parsed_url = urlparse(nwc)
+        data["pubkey"] = parsed_url.path
+        query_params = parse_qs(parsed_url.query)
+        for key, value in query_params.items():
+            if key in ["relay", "secret"] and value:
+                data[key] = unquote(value[0])
+        if "pubkey" not in data or "relay" not in data or "secret" not in data:
+            raise ValueError("Invalid NWC pairing url")
+    else:
+        raise ValueError("Invalid NWC pairing url")
+    return data
+
+
+def json_dumps(data: Union[Dict, list]) -> str:
+    """
+    Converts a Python dictionary to a JSON string with compact encoding.
+
+    Args:
+        data (Dict): The dictionary to be converted.
+
+    Returns:
+        str: The compact JSON string.
+    """
+    if isinstance(data, Dict):
+        data = {k: v for k, v in data.items() if v is not None}
+    return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
