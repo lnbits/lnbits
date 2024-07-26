@@ -198,7 +198,7 @@ class CoreLightningRestWallet(Wallet):
                 )
 
             checking_id = data["payment_hash"]
-            preimage = data["payment_pre:mage"]
+            preimage = data["payment_preimage"]
             fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
             return PaymentResponse(status, checking_id, fee_msat, preimage, None)
