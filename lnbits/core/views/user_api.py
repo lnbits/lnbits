@@ -84,10 +84,10 @@ async def api_users_toggle_admin(user_id: str) -> None:
             settings.lnbits_admin_users.remove(user_id)
         else:
             settings.lnbits_admin_users.append(user_id)
-            update_settings = EditableSettings(
-                lnbits_admin_users=settings.lnbits_admin_users
-            )
-            await update_admin_settings(update_settings)
+        update_settings = EditableSettings(
+            lnbits_admin_users=settings.lnbits_admin_users
+        )
+        await update_admin_settings(update_settings)
     except Exception as exc:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
