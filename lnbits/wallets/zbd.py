@@ -79,8 +79,7 @@ class ZBDWallet(Wallet):
         elif unhashed_description:
             data["description"] = hashlib.sha256(unhashed_description).hexdigest()
         else:
-            desc = memo or ""
-            data["description"] = desc
+            data["description"] = memo or ""
 
         r = await self.client.post(
             "charges",
