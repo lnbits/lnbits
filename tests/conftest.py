@@ -25,7 +25,6 @@ from lnbits.core.views.payment_api import api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import settings
 from tests.helpers import (
-    clean_database,
     get_random_invoice_data,
 )
 
@@ -47,7 +46,6 @@ def event_loop():
 # use session scope to run once before and once after all tests
 @pytest_asyncio.fixture(scope="session")
 async def app():
-    clean_database(settings)
     app = create_app()
     async with LifespanManager(app) as manager:
         settings.first_install = False

@@ -1,5 +1,5 @@
 # Python script to migrate an LNbits SQLite DB to Postgres
-# All credits to @Fritz446 for the awesome work
+# credits to @Fritz446 for the awesome work
 
 # pip install psycopg2 OR psycopg2-binary
 
@@ -9,9 +9,13 @@ import sqlite3
 import sys
 from typing import List, Optional
 
-import psycopg2
-
 from lnbits.settings import settings
+
+try:
+    import psycopg2
+except ImportError:
+    print("Please install psycopg2")
+    sys.exit(1)
 
 sqfolder = settings.lnbits_data_folder
 db_url = settings.lnbits_database_url
@@ -55,8 +59,8 @@ def check_db_versions(sqdb):
             version = dbpost[key]
             if value != version:
                 raise Exception(
-                    f"sqlite database version ({value}) of {key} doesn't match postgres"
-                    f" database version {version}"
+                    f"sqlite database version ({value}) of {key} doesn't match "
+                    f"postgres database version {version}"
                 )
 
     connection = postgres.connection

@@ -199,10 +199,7 @@ async def get_user_password(user_id: str) -> Optional[str]:
         "SELECT pass FROM accounts WHERE id = :user",
         {"user": user_id},
     )
-    if not row:
-        return None
-
-    return row[0]
+    return row.get("pass")
 
 
 # TODO: refactor not a crud function
@@ -488,7 +485,7 @@ async def get_user_active_extensions_ids(
         """,
         {"user": user_id},
     )
-    return [e[0] for e in rows]
+    return [e.get("extension", "") for e in rows]
 
 
 async def update_user_extension_extra(
@@ -682,7 +679,7 @@ async def get_wallet_for_key(
 
 async def get_total_balance(conn: Optional[Connection] = None):
     row = await (conn or db).fetchone("SELECT SUM(balance) FROM balances")
-    return 0 if row[0] is None else row[0]
+    return row.get("balance", 0)
 
 
 # wallet payments
@@ -1066,10 +1063,13 @@ async def get_payments_history(
         results.insert(
             0,
             PaymentHistoryPoint(
-                balance=balance, date=row[0], income=row[1], spending=row[2]
+                balance=balance,
+                date=row.get("date", 0),
+                income=row.get("income", 0),
+                spending=row.get("spending", 0),
             ),
         )
-        balance -= row.income - row.spending
+        balance -= row.get("income", 0) - row.get("spending", 0)
     return results
 
 
