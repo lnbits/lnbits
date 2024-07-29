@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "0.12.10"
+version = "0.12.11"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 readme = "README.md"
@@ -43,7 +43,7 @@ packaging = "23.1"
 bolt11 = "2.0.6"
 # needed for new login methods: username-password, google-auth, github-auth
 bcrypt = "^4.1.1"
-python-jose = "^3.3.0"
+pyjwt = "^2.8.0"
 passlib = "^1.7.4"
 itsdangerous = "^2.1.2"
 fastapi-sso = "^0.9.1"
@@ -75,7 +75,6 @@ ruff = "^0.3.2"
 # we want to use 0.10.3 because newer versions are broken on nix
 rpds-py = "0.10.3"
 types-passlib = "^1.7.7.13"
-types-python-jose = "^3.3.4.8"
 openai = "^1.12.0"
 json5 = "^0.9.17"
 asgi-lifespan = "^2.1.0"
