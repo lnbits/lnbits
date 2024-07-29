@@ -144,36 +144,31 @@ class Connection(Compat):
             query = query.replace("?", "%s")
         return query
 
-    def rewrite_values(self, values):
+    def rewrite_values(self, values: dict) -> dict:
         # strip html
         clean_regex = re.compile("<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
-
-        # tuple to list and back to tuple
-        raw_values = [values] if isinstance(values, str) else list(values)
-        values = []
-        for raw_value in raw_values:
+        clean_values: dict = {}
+        for key, raw_value in values.items():
             if isinstance(raw_value, str):
-                values.append(re.sub(clean_regex, "", raw_value))
+                clean_values[key] = re.sub(clean_regex, "", raw_value)
             elif isinstance(raw_value, datetime.datetime):
                 ts = raw_value.timestamp()
                 if self.type == SQLITE:
-                    values.append(int(ts))
+                    clean_values[key] = int(ts)
                 else:
-                    values.append(ts)
+                    clean_values[key] = ts
             else:
-                values.append(raw_value)
-        return tuple(values)
+                clean_values[key] = raw_value
+        return clean_values
 
-    async def fetchall(self, query: str, values: tuple = ()) -> list:
-        result = await self.conn.execute(
-            text(self.rewrite_query(query)), self.rewrite_values(values)
-        )
+    async def fetchall(self, query: str, values: Optional[dict] = None) -> list:
+        params = self.rewrite_values(values) if values else {}
+        result = await self.conn.execute(text(self.rewrite_query(query)), params)
         return result.fetchall()
 
-    async def fetchone(self, query: str, values: tuple = ()):
-        result = await self.conn.execute(
-            text(self.rewrite_query(query)), self.rewrite_values(values)
-        )
+    async def fetchone(self, query: str, values: Optional[dict] = None):
+        params = self.rewrite_values(values) if values else {}
+        result = await self.conn.execute(text(self.rewrite_query(query)), params)
         row = result.fetchone()
         result.close()
         return row
@@ -182,7 +177,7 @@ class Connection(Compat):
         self,
         query: str,
         where: Optional[list[str]] = None,
-        values: Optional[list[str]] = None,
+        values: Optional[dict] = None,
         filters: Optional[Filters] = None,
         model: Optional[type[TRowModel]] = None,
         group_by: Optional[list[str]] = None,
@@ -235,10 +230,9 @@ class Connection(Compat):
             total=count,
         )
 
-    async def execute(self, query: str, values: tuple = ()):
-        return await self.conn.execute(
-            text(self.rewrite_query(query)), self.rewrite_values(values)
-        )
+    async def execute(self, query: str, values: Optional[dict] = None):
+        params = self.rewrite_values(values) if values else {}
+        return await self.conn.execute(text(self.rewrite_query(query)), params)
 
 
 class Database(Compat):
@@ -280,21 +274,23 @@ class Database(Compat):
                 if self.schema:
                     if self.type in {POSTGRES, COCKROACH}:
                         await wconn.execute(
-                            f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
+                            f"CREATE SCHEMA IF NOT EXISTS {self.schema}", {}
                         )
                     elif self.type == SQLITE:
-                        await wconn.execute(f"ATTACH '{self.path}' AS {self.schema}")
+                        await wconn.execute(
+                            f"ATTACH '{self.path}' AS {self.schema}", {}
+                        )
 
                 yield wconn
         finally:
             self.lock.release()
 
-    async def fetchall(self, query: str, values: tuple = ()) -> list:
+    async def fetchall(self, query: str, values: Optional[dict] = None) -> list:
         async with self.connect() as conn:
             result = await conn.execute(query, values)
             return result.fetchall()
 
-    async def fetchone(self, query: str, values: tuple = ()):
+    async def fetchone(self, query: str, values: Optional[dict] = None):
         async with self.connect() as conn:
             result = await conn.execute(query, values)
             row = result.fetchone()
@@ -305,7 +301,7 @@ class Database(Compat):
         self,
         query: str,
         where: Optional[list[str]] = None,
-        values: Optional[list[str]] = None,
+        values: Optional[dict] = None,
         filters: Optional[Filters] = None,
         model: Optional[type[TRowModel]] = None,
         group_by: Optional[list[str]] = None,
@@ -313,7 +309,7 @@ class Database(Compat):
         async with self.connect() as conn:
             return await conn.fetch_page(query, where, values, filters, model, group_by)
 
-    async def execute(self, query: str, values: tuple = ()):
+    async def execute(self, query: str, values: Optional[dict] = None):
         async with self.connect() as conn:
             return await conn.execute(query, values)
 
@@ -394,9 +390,8 @@ class Page(BaseModel, Generic[T]):
 class Filter(BaseModel, Generic[TFilterModel]):
     field: str
     op: Operator = Operator.EQ
-    values: list[Any]
-
     model: Optional[type[TFilterModel]]
+    values: Optional[dict] = None
 
     @classmethod
     def parse_query(cls, key: str, raw_values: list[Any], model: type[TFilterModel]):
@@ -415,27 +410,25 @@ class Filter(BaseModel, Generic[TFilterModel]):
 
         if field in model.__fields__:
             compare_field = model.__fields__[field]
-            values = []
+            values: dict = {}
             for raw_value in raw_values:
                 validated, errors = compare_field.validate(raw_value, {}, loc="none")
                 if errors:
                     raise ValidationError(errors=[errors], model=model)
-                values.append(validated)
+                values[field](validated)
         else:
             raise ValueError("Unknown filter field")
 
         return cls(field=field, op=op, values=values, model=model)
 
-    @property
-    def statement(self):
-        assert self.model, "Model is required for statement generation"
-        placeholder = get_placeholder(self.model, self.field)
-        if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
-            placeholders = ", ".join([placeholder] * len(self.values))
-            stmt = [f"{self.field} {self.op.as_sql} ({placeholders})"]
-        else:
-            stmt = [f"{self.field} {self.op.as_sql} {placeholder}"] * len(self.values)
-        return " OR ".join(stmt)
+    # @property
+    # def statement(self):
+    #     if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
+    #         placeholders = ", ".join([placeholder] * len(self.values))
+    #         stmt = [f"{self.field} {self.op.as_sql} ({placeholders})"]
+    #     else:
+    #         stmt = [f"{self.field} {self.op.as_sql} {placeholder}"] * len(self.values)
+    #     return " OR ".join(stmt)
 
 
 class Filters(BaseModel, Generic[TFilterModel]):
@@ -481,18 +474,15 @@ class Filters(BaseModel, Generic[TFilterModel]):
     def where(self, where_stmts: Optional[list[str]] = None) -> str:
         if not where_stmts:
             where_stmts = []
-        if self.filters:
-            for page_filter in self.filters:
-                where_stmts.append(page_filter.statement)
+        # if self.filters:
+        #     for page_filter in self.filters:
+        #         where_stmts.append(page_filter.statement)
         if self.search and self.model:
+            fields = self.model.__search_fields__
             if DB_TYPE == POSTGRES:
-                where_stmts.append(
-                    f"lower(concat({', '.join(self.model.__search_fields__)})) LIKE ?"
-                )
+                where_stmts.append(f"lower(concat({', '.join(fields)})) LIKE :search")
             elif DB_TYPE == SQLITE:
-                where_stmts.append(
-                    f"lower({'||'.join(self.model.__search_fields__)}) LIKE ?"
-                )
+                where_stmts.append(f"lower({'||'.join(fields)}) LIKE :search")
         if where_stmts:
             return "WHERE " + " AND ".join(where_stmts)
         return ""
@@ -502,12 +492,14 @@ class Filters(BaseModel, Generic[TFilterModel]):
             return f"ORDER BY {self.sortby} {self.direction or 'asc'}"
         return ""
 
-    def values(self, values: Optional[list[str]] = None) -> tuple:
+    def values(self, values: Optional[dict] = None) -> dict:
         if not values:
-            values = []
+            values = {}
         if self.filters:
             for page_filter in self.filters:
-                values.extend(page_filter.values)
+                if page_filter.values:
+                    for key, value in page_filter.values.items():
+                        values[key] = value
         if self.search and self.model:
-            values.append(f"%{self.search}%")
-        return tuple(values)
+            values["search"] = f"%{self.search}%"
+        return values
