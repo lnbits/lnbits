@@ -62,7 +62,6 @@ from .middleware import (
 )
 from .requestvars import g
 from .tasks import (
-    check_pending_payments,
     create_task,
     internal_invoice_listener,
     invoice_listener,
@@ -410,7 +409,7 @@ def register_async_tasks(app: FastAPI):
     if not settings.lnbits_extensions_deactivate_all:
         create_task(check_and_register_extensions(app))
 
-    create_permanent_task(check_pending_payments)
+    # create_permanent_task(check_pending_payments)
     create_permanent_task(invoice_listener)
     create_permanent_task(internal_invoice_listener)
     create_permanent_task(cache.invalidate_forever)
