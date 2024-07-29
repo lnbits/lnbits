@@ -482,9 +482,7 @@ class NWCConnection:
         """
         sub_id = cast(str, msg[1])
         event = cast(Dict, msg[2])
-        if not verify_event(
-            event
-        ):  # Ensure the event is valid (do not trust relays)
+        if not verify_event(event):  # Ensure the event is valid (do not trust relays)
             raise Exception("Invalid event signature")
         tags = event["tags"]
         if event["kind"] == 13194:  # An info event
@@ -518,7 +516,9 @@ class NWCConnection:
                         break
             # if a subscription was found, pass the result to the future
             if subscription:
-                content = decrypt_content(event["content"], self.service_pubkey, self.account_private_key_hex)
+                content = decrypt_content(
+                    event["content"], self.service_pubkey, self.account_private_key_hex
+                )
                 content = json.loads(content)
                 result_type = content.get("result_type", "")
                 error = content.get("error", None)
@@ -631,7 +631,9 @@ class NWCConnection:
             }
         )
         # Encrypt
-        content = encrypt_content(content, self.service_pubkey, self.account_private_key_hex)
+        content = encrypt_content(
+            content, self.service_pubkey, self.account_private_key_hex
+        )
         # Prepare the NWC event
         event = {
             "kind": 23194,
@@ -802,7 +804,9 @@ def json_dumps(data: Union[Dict, list]) -> str:
     return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
 
 
-def encrypt_content(content: str, service_pubkey: secp256k1.PublicKey, account_private_key_hex: str) -> str:
+def encrypt_content(
+    content: str, service_pubkey: secp256k1.PublicKey, account_private_key_hex: str
+) -> str:
     """
     Encrypts the content to be sent to the service.
 
@@ -827,13 +831,15 @@ def encrypt_content(content: str, service_pubkey: secp256k1.PublicKey, account_p
     content_bytes = pad(content_bytes, AES.block_size)
 
     # Encrypt
-    encrypted_b64 = base64.b64encode(
-        aes.encrypt(content_bytes)).decode("ascii")
+    encrypted_b64 = base64.b64encode(aes.encrypt(content_bytes)).decode("ascii")
     iv_b64 = base64.b64encode(iv).decode("ascii")
     encrypted_content = encrypted_b64 + "?iv=" + iv_b64
     return encrypted_content
 
-def decrypt_content(content: str, service_pubkey: secp256k1.PublicKey, account_private_key_hex: str) -> str:
+
+def decrypt_content(
+    content: str, service_pubkey: secp256k1.PublicKey, account_private_key_hex: str
+) -> str:
     """
     Decrypts the content coming from the service.
 
@@ -850,8 +856,7 @@ def decrypt_content(content: str, service_pubkey: secp256k1.PublicKey, account_p
     ).serialize()[1:]
     # extract iv and content
     (encrypted_content_b64, iv_b64) = content.split("?iv=")
-    encrypted_content = base64.b64decode(
-        encrypted_content_b64.encode("ascii"))
+    encrypted_content = base64.b64decode(encrypted_content_b64.encode("ascii"))
     iv = base64.b64decode(iv_b64.encode("ascii"))
     # Decrypt
     aes = AES.new(shared, AES.MODE_CBC, iv)
@@ -860,6 +865,7 @@ def decrypt_content(content: str, service_pubkey: secp256k1.PublicKey, account_p
     decrypted = decrypted_bytes.decode("utf-8")
 
     return decrypted
+
 
 def verify_event(event: Dict) -> bool:
     """
@@ -893,7 +899,9 @@ def verify_event(event: Dict) -> bool:
     return True
 
 
-def sign_event( event: Dict, account_public_key_hex: str, account_private_key: secp256k1.PrivateKey) -> Dict:
+def sign_event(
+    event: Dict, account_public_key_hex: str, account_private_key: secp256k1.PrivateKey
+) -> Dict:
     """
     Signs the event (in place) with the service secret
 
@@ -920,9 +928,7 @@ def sign_event( event: Dict, account_public_key_hex: str, account_private_key: s
     event["pubkey"] = account_public_key_hex
 
     signature = (
-        account_private_key.schnorr_sign(
-            bytes.fromhex(event_id), None, raw=True
-        )
+        account_private_key.schnorr_sign(bytes.fromhex(event_id), None, raw=True)
     ).hex()
     event["sig"] = signature
     return event
