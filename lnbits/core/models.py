@@ -7,7 +7,6 @@ import json
 import time
 from dataclasses import dataclass
 from enum import Enum
-from sqlite3 import Row
 from typing import Callable, Optional
 
 from ecdsa import SECP256k1, SigningKey
@@ -238,7 +237,7 @@ class Payment(FromRowModel):
         return self.status == PaymentState.FAILED.value
 
     @classmethod
-    def from_row(cls, row: Row):
+    def from_row(cls, row: dict):
         return cls(
             checking_id=row["checking_id"],
             payment_hash=row["hash"] or "0" * 64,
@@ -341,7 +340,7 @@ class TinyURL(BaseModel):
     time: float
 
     @classmethod
-    def from_row(cls, row: Row):
+    def from_row(cls, row: dict):
         return cls(**dict(row))
 
 

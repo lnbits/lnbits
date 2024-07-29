@@ -7,11 +7,11 @@ import re
 import time
 from contextlib import asynccontextmanager
 from enum import Enum
-from sqlite3 import Row
 from typing import Any, Generic, Literal, Optional, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 from sqlalchemy.sql import text
 
@@ -23,31 +23,16 @@ SQLITE = "SQLITE"
 
 if settings.lnbits_database_url:
     database_uri = settings.lnbits_database_url
-
     if database_uri.startswith("cockroachdb://"):
         DB_TYPE = COCKROACH
     else:
+        if not database_uri.startswith("postgresql+asyncpg://"):
+            raise ValueError(
+                "Please use the 'postgresql+asyncpg://...' "
+                "format for the database URL."
+            )
         DB_TYPE = POSTGRES
 
-    from psycopg2.extensions import DECIMAL, new_type, register_type
-
-    def _parse_timestamp(value, _):
-        if value is None:
-            return None
-        f = "%Y-%m-%d %H:%M:%S.%f"
-        if "." not in value:
-            f = "%Y-%m-%d %H:%M:%S"
-        return time.mktime(datetime.datetime.strptime(value, f).timetuple())
-
-    register_type(
-        new_type(
-            DECIMAL.values,
-            "DEC2FLOAT",
-            lambda value, curs: float(value) if value is not None else None,
-        )
-    )
-
-    register_type(new_type((1184, 1114), "TIMESTAMP2INT", _parse_timestamp))
 else:
     if not os.path.isdir(settings.lnbits_data_folder):
         os.mkdir(settings.lnbits_data_folder)
@@ -161,15 +146,17 @@ class Connection(Compat):
                 clean_values[key] = raw_value
         return clean_values
 
-    async def fetchall(self, query: str, values: Optional[dict] = None) -> list:
+    async def fetchall(self, query: str, values: Optional[dict] = None) -> list[dict]:
         params = self.rewrite_values(values) if values else {}
         result = await self.conn.execute(text(self.rewrite_query(query)), params)
-        return result.fetchall()
+        row = result.mappings().all()
+        result.close()
+        return row
 
-    async def fetchone(self, query: str, values: Optional[dict] = None):
+    async def fetchone(self, query: str, values: Optional[dict] = None) -> dict:
         params = self.rewrite_values(values) if values else {}
         result = await self.conn.execute(text(self.rewrite_query(query)), params)
-        row = result.fetchone()
+        row = result.mappings().first()
         result.close()
         return row
 
@@ -209,9 +196,9 @@ class Connection(Compat):
         if rows:
             # no need for extra query if no pagination is specified
             if filters.offset or filters.limit:
-                count = await self.fetchone(
+                result = await self.fetchone(
                     f"""
-                    SELECT COUNT(*) FROM (
+                    SELECT COUNT(*) as count FROM (
                         {query}
                         {clause}
                         {group_by_string}
@@ -219,20 +206,22 @@ class Connection(Compat):
                     """,
                     parsed_values,
                 )
-                count = int(count[0])
+                count = int(result.get("count", 0))
             else:
                 count = len(rows)
         else:
             count = 0
 
         return Page(
-            data=[model.from_row(row) for row in rows] if model else rows,
+            data=[model.from_row(row) for row in rows] if model else [],
             total=count,
         )
 
     async def execute(self, query: str, values: Optional[dict] = None):
         params = self.rewrite_values(values) if values else {}
-        return await self.conn.execute(text(self.rewrite_query(query)), params)
+        result = await self.conn.execute(text(self.rewrite_query(query)), params)
+        await self.conn.commit()
+        return result
 
 
 class Database(Compat):
@@ -257,6 +246,28 @@ class Database(Compat):
         self.engine: AsyncEngine = create_async_engine(
             database_uri, echo=settings.debug_database
         )
+
+        if self.type in {POSTGRES, COCKROACH}:
+
+            @event.listens_for(self.engine.sync_engine, "connect")
+            def register_custom_types(dbapi_connection, *_):
+                def _parse_timestamp(value):
+                    if value is None:
+                        return None
+                    f = "%Y-%m-%d %H:%M:%S.%f"
+                    if "." not in value:
+                        f = "%Y-%m-%d %H:%M:%S"
+                    return time.mktime(datetime.datetime.strptime(value, f).timetuple())
+
+                dbapi_connection.run_async(
+                    lambda connection: connection.set_type_codec(
+                        "TIMESTAMP",
+                        encoder=datetime.datetime.timestamp,
+                        decoder=_parse_timestamp,
+                        schema="pg_catalog",
+                    )
+                )
+
         self.lock = asyncio.Lock()
 
         logger.trace(f"database {self.type} added for {self.name}")
@@ -274,28 +285,22 @@ class Database(Compat):
                 if self.schema:
                     if self.type in {POSTGRES, COCKROACH}:
                         await wconn.execute(
-                            f"CREATE SCHEMA IF NOT EXISTS {self.schema}", {}
+                            f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
                         )
                     elif self.type == SQLITE:
-                        await wconn.execute(
-                            f"ATTACH '{self.path}' AS {self.schema}", {}
-                        )
+                        await wconn.execute(f"ATTACH '{self.path}' AS {self.schema}")
 
                 yield wconn
         finally:
             self.lock.release()
 
-    async def fetchall(self, query: str, values: Optional[dict] = None) -> list:
+    async def fetchall(self, query: str, values: Optional[dict] = None) -> list[dict]:
         async with self.connect() as conn:
-            result = await conn.execute(query, values)
-            return result.fetchall()
+            return await conn.fetchall(query, values)
 
-    async def fetchone(self, query: str, values: Optional[dict] = None):
+    async def fetchone(self, query: str, values: Optional[dict] = None) -> dict:
         async with self.connect() as conn:
-            result = await conn.execute(query, values)
-            row = result.fetchone()
-            result.close()
-            return row
+            return await conn.fetchone(query, values)
 
     async def fetch_page(
         self,
@@ -367,8 +372,8 @@ class Operator(Enum):
 
 class FromRowModel(BaseModel):
     @classmethod
-    def from_row(cls, row: Row):
-        return cls(**dict(row))
+    def from_row(cls, row: dict):
+        return cls(**row)
 
 
 class FilterModel(BaseModel):
@@ -421,14 +426,14 @@ class Filter(BaseModel, Generic[TFilterModel]):
 
         return cls(field=field, op=op, values=values, model=model)
 
-    # @property
-    # def statement(self):
-    #     if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
-    #         placeholders = ", ".join([placeholder] * len(self.values))
-    #         stmt = [f"{self.field} {self.op.as_sql} ({placeholders})"]
-    #     else:
-    #         stmt = [f"{self.field} {self.op.as_sql} {placeholder}"] * len(self.values)
-    #     return " OR ".join(stmt)
+    @property
+    def statement(self):
+        if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
+            placeholders = ", ".join([])
+            stmt = [f"{self.field} {self.op.as_sql} ({placeholders})"]
+        else:
+            stmt = [f"{self.field} {self.op.as_sql} :{self.field}"]
+        return " OR ".join(stmt)
 
 
 class Filters(BaseModel, Generic[TFilterModel]):
@@ -474,9 +479,9 @@ class Filters(BaseModel, Generic[TFilterModel]):
     def where(self, where_stmts: Optional[list[str]] = None) -> str:
         if not where_stmts:
             where_stmts = []
-        # if self.filters:
-        #     for page_filter in self.filters:
-        #         where_stmts.append(page_filter.statement)
+        if self.filters:
+            for page_filter in self.filters:
+                where_stmts.append(page_filter.statement)
         if self.search and self.model:
             fields = self.model.__search_fields__
             if DB_TYPE == POSTGRES:
