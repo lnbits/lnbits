@@ -356,6 +356,7 @@ class Callback(BaseModel):
 
 class DecodePayment(BaseModel):
     data: str
+    filter_fields: Optional[list[str]] = []
 
 
 class CreateLnurl(BaseModel):
