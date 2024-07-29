@@ -12,9 +12,8 @@ from typing import Any, Generic, Literal, Optional, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
-from sqlalchemy import create_engine
-from sqlalchemy_aio.base import AsyncConnection
-from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
+from sqlalchemy.sql import text
 
 from lnbits.settings import settings
 
@@ -133,9 +132,8 @@ class Compat:
 
 
 class Connection(Compat):
-    def __init__(self, conn: AsyncConnection, txn, typ, name, schema):
+    def __init__(self, conn: AsyncConnection, typ, name, schema):
         self.conn = conn
-        self.txn = txn
         self.type = typ
         self.name = name
         self.schema = schema
@@ -168,16 +166,16 @@ class Connection(Compat):
 
     async def fetchall(self, query: str, values: tuple = ()) -> list:
         result = await self.conn.execute(
-            self.rewrite_query(query), self.rewrite_values(values)
+            text(self.rewrite_query(query)), self.rewrite_values(values)
         )
-        return await result.fetchall()
+        return result.fetchall()
 
     async def fetchone(self, query: str, values: tuple = ()):
         result = await self.conn.execute(
-            self.rewrite_query(query), self.rewrite_values(values)
+            text(self.rewrite_query(query)), self.rewrite_values(values)
         )
-        row = await result.fetchone()
-        await result.close()
+        row = result.fetchone()
+        result.close()
         return row
 
     async def fetch_page(
@@ -239,7 +237,7 @@ class Connection(Compat):
 
     async def execute(self, query: str, values: tuple = ()):
         return await self.conn.execute(
-            self.rewrite_query(query), self.rewrite_values(values)
+            text(self.rewrite_query(query)), self.rewrite_values(values)
         )
 
 
@@ -253,7 +251,7 @@ class Database(Compat):
             self.path = os.path.join(
                 settings.lnbits_data_folder, f"{self.name}.sqlite3"
             )
-            database_uri = f"sqlite:///{self.path}"
+            database_uri = f"sqlite+aiosqlite:///{self.path}"
         else:
             database_uri = settings.lnbits_database_url
 
@@ -262,8 +260,8 @@ class Database(Compat):
         else:
             self.schema = None
 
-        self.engine = create_engine(
-            database_uri, strategy=ASYNCIO_STRATEGY, echo=settings.debug_database
+        self.engine: AsyncEngine = create_async_engine(
+            database_uri, echo=settings.debug_database
         )
         self.lock = asyncio.Lock()
 
@@ -273,34 +271,34 @@ class Database(Compat):
     async def connect(self):
         await self.lock.acquire()
         try:
-            async with self.engine.connect() as conn:  # type: ignore
-                async with conn.begin() as txn:
-                    wconn = Connection(conn, txn, self.type, self.name, self.schema)
+            async with self.engine.connect() as conn:
+                if not conn:
+                    raise Exception("Could not connect to the database")
 
-                    if self.schema:
-                        if self.type in {POSTGRES, COCKROACH}:
-                            await wconn.execute(
-                                f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
-                            )
-                        elif self.type == SQLITE:
-                            await wconn.execute(
-                                f"ATTACH '{self.path}' AS {self.schema}"
-                            )
+                wconn = Connection(conn, self.type, self.name, self.schema)
 
-                    yield wconn
+                if self.schema:
+                    if self.type in {POSTGRES, COCKROACH}:
+                        await wconn.execute(
+                            f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
+                        )
+                    elif self.type == SQLITE:
+                        await wconn.execute(f"ATTACH '{self.path}' AS {self.schema}")
+
+                yield wconn
         finally:
             self.lock.release()
 
     async def fetchall(self, query: str, values: tuple = ()) -> list:
         async with self.connect() as conn:
             result = await conn.execute(query, values)
-            return await result.fetchall()
+            return result.fetchall()
 
     async def fetchone(self, query: str, values: tuple = ()):
         async with self.connect() as conn:
             result = await conn.execute(query, values)
-            row = await result.fetchone()
-            await result.close()
+            row = result.fetchone()
+            result.close()
             return row
 
     async def fetch_page(
