@@ -118,7 +118,7 @@ async def handle(wallet, mock_settings, data, websocket, path):
             if mock:
                 sub_id = None
                 nwcwallet = cast(NWCWallet, wallet)
-                for subscription in nwcwallet.subscriptions.values():
+                for subscription in nwcwallet.conn.subscriptions.values():
                     if subscription["event_id"] == event["id"]:
                         sub_id = subscription["sub_id"]
                         break
