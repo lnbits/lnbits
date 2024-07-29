@@ -5,11 +5,12 @@ from pathlib import Path
 from typing import Any, List, Optional, Type
 
 import jinja2
+import jwt
 import shortuuid
-from jose import jwt
 from pydantic import BaseModel
 from pydantic.schema import field_schema
 
+from lnbits.db import get_placeholder
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.nodes import get_node_class
 from lnbits.requestvars import g
@@ -178,9 +179,12 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     :param table_name: Name of the table
     :param model: Pydantic model
     """
-    placeholders = ", ".join(["?"] * len(model.dict().keys()))
+    placeholders = []
+    for field in model.dict().keys():
+        placeholders.append(get_placeholder(model, field))
     fields = ", ".join(model.dict().keys())
-    return f"INSERT INTO {table_name} ({fields}) VALUES ({placeholders})"
+    values = ", ".join(placeholders)
+    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
 
 
 def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?") -> str:
@@ -190,7 +194,11 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
     :param model: Pydantic model
     :param where: Where string, default to `WHERE id = ?`
     """
-    query = ", ".join([f"{field} = ?" for field in model.dict().keys()])
+    fields = []
+    for field in model.dict().keys():
+        placeholder = get_placeholder(model, field)
+        fields.append(f"{field} = {placeholder}")
+    query = ", ".join(fields)
     return f"UPDATE {table_name} SET {query} {where}"
 
 
@@ -223,3 +231,10 @@ def decrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
     if not m:
         return None
     return AESCipher(key=settings.auth_secret_key).decrypt(m)
+
+
+def filter_dict_keys(data: dict, filter_keys: Optional[list[str]]) -> dict:
+    if not filter_keys:
+        # return shallow clone of the dict even if there are no filters
+        return {**data}
+    return {key: data[key] for key in filter_keys if key in data}

@@ -9,6 +9,7 @@ from lnbits.wallets.base import Wallet
 
 from .alby import AlbyWallet
 from .blink import BlinkWallet
+from .breez import BreezSdkWallet
 from .cliche import ClicheWallet
 from .corelightning import CoreLightningWallet
 

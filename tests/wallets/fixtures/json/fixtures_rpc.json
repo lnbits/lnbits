@@ -378,7 +378,7 @@
                           "expiry": null,
                           "exposeprivatechannels": true,
                           "label": "test-label",
-                          "msatoshi": 555000
+                          "amount_msat": 555000
                         }
                       },
                       "response_type": "json",
@@ -470,7 +470,7 @@
                           "expiry": null,
                           "exposeprivatechannels": true,
                           "label": "test-label",
-                          "msatoshi": 555000
+                          "amount_msat": 555000
                         }
                       },
                       "response_type": "exception",
@@ -491,7 +491,7 @@
                           "expiry": null,
                           "exposeprivatechannels": true,
                           "label": "test-label",
-                          "msatoshi": 555000
+                          "amount_msat": 555000
                         }
                       },
                       "response_type": "json",
@@ -559,7 +559,7 @@
                           "expiry": null,
                           "exposeprivatechannels": true,
                           "label": "test-label",
-                          "msatoshi": 555000
+                          "amount_msat": 555000
                         }
                       },
                       "response_type": "json",
@@ -601,7 +601,7 @@
                           "expiry": null,
                           "exposeprivatechannels": true,
                           "label": "test-label",
-                          "msatoshi": 555000
+                          "amount_msat": 555000
                         }
                       },
                       "response_type": "exception",

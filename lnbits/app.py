@@ -63,6 +63,7 @@ from .middleware import (
 from .requestvars import g
 from .tasks import (
     check_pending_payments,
+    create_task,
     internal_invoice_listener,
     invoice_listener,
 )
@@ -93,13 +94,8 @@ async def startup(app: FastAPI):
     # register core routes
     init_core_routers(app)
 
-    # check extensions after restart
-    if not settings.lnbits_extensions_deactivate_all:
-        await check_installed_extensions(app)
-        register_all_ext_routes(app)
-
     # initialize tasks
-    register_async_tasks()
+    register_async_tasks(app)
 
 
 async def shutdown():
@@ -210,7 +206,7 @@ async def check_funding_source() -> None:
             break
 
         retry_counter += 1
-        sleep_time = 0.25 * (2**retry_counter)
+        sleep_time = min(0.25 * (2**retry_counter), 60)
         logger.warning(
             f"Retrying connection to backend in {sleep_time} seconds... "
             f"({retry_counter}/{max_retries})"
@@ -399,22 +395,28 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     app.include_router(router=ext_route, prefix=prefix)
 
 
-def register_all_ext_routes(app: FastAPI):
+async def check_and_register_extensions(app: FastAPI):
+    await check_installed_extensions(app)
     for ext in get_valid_extensions(False):
         try:
             register_ext_routes(app, ext)
-        except Exception as e:
-            logger.error(f"Could not load extension `{ext.code}`: {e!s}")
+        except Exception as exc:
+            logger.error(f"Could not load extension `{ext.code}`: {exc!s}")
 
 
-def register_async_tasks():
+def register_async_tasks(app: FastAPI):
+
+    # check extensions after restart
+    if not settings.lnbits_extensions_deactivate_all:
+        create_task(check_and_register_extensions(app))
+
     create_permanent_task(check_pending_payments)
     create_permanent_task(invoice_listener)
     create_permanent_task(internal_invoice_listener)
     create_permanent_task(cache.invalidate_forever)
 
     # core invoice listener
-    invoice_queue = asyncio.Queue(5)
+    invoice_queue: asyncio.Queue = asyncio.Queue(5)
     register_invoice_listener(invoice_queue, "core")
     create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
 

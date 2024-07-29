@@ -5,6 +5,7 @@
       "settings": {
         "corelightning_rest_url": "http://127.0.0.1:8555",
         "corelightning_rest_macaroon": "eNcRyPtEdMaCaRoOn",
+        "corelightning_rest_cert": false,
         "user_agent": "LNbits/Tests"
       }
     },

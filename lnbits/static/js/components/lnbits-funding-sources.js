@@ -172,6 +172,17 @@ Vue.component('lnbits-funding-sources', {
           {
             nwc_pairing_url: 'Pairing URL'
           }
+        ],
+        [
+          'BreezSdkWallet',
+          'Breez SDK',
+          {
+            breez_api_key: 'Breez API Key',
+            breez_greenlight_seed: 'Greenlight Seed',
+            breez_greenlight_device_key: 'Greenlight Device Key',
+            breez_greenlight_device_cert: 'Greenlight Device Cert',
+            breez_greenlight_invite_code: 'Greenlight Invite Code'
+          }
         ]
       ]
     }

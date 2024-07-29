@@ -191,6 +191,7 @@ class Provider(NamedTuple):
     domain: str
     api_url: str
     getter: Callable
+    exclude_to: list = []
 
 
 exchange_rate_providers = {
@@ -200,30 +201,34 @@ exchange_rate_providers = {
         "binance.com",
         "https://api.binance.com/api/v3/ticker/price?symbol={FROM}{TO}",
         lambda data, replacements: data["price"],
+        ["czk"],
     ),
     "blockchain": Provider(
         "Blockchain",
         "blockchain.com",
-        "https://blockchain.info/tobtc?currency={TO}&value=1",
-        lambda data, replacements: 1 / data,
+        "https://blockchain.info/tobtc?currency={TO}&value=1000000",
+        lambda data, replacements: 1000000 / data,
     ),
     "exir": Provider(
         "Exir",
         "exir.io",
         "https://api.exir.io/v1/ticker?symbol={from}-{to}",
         lambda data, replacements: data["last"],
+        ["czk", "eur"],
     ),
     "bitfinex": Provider(
         "Bitfinex",
         "bitfinex.com",
         "https://api.bitfinex.com/v1/pubticker/{from}{to}",
         lambda data, replacements: data["last_price"],
+        ["czk"],
     ),
     "bitstamp": Provider(
         "Bitstamp",
         "bitstamp.net",
         "https://www.bitstamp.net/api/v2/ticker/{from}{to}/",
         lambda data, replacements: data["last"],
+        ["czk"],
     ),
     "coinbase": Provider(
         "Coinbase",
@@ -242,6 +247,21 @@ exchange_rate_providers = {
         "kraken.com",
         "https://api.kraken.com/0/public/Ticker?pair=XBT{TO}",
         lambda data, replacements: data["result"]["XXBTZ" + replacements["TO"]]["c"][0],
+        ["czk"],
+    ),
+    "bitpay": Provider(
+        "BitPay",
+        "bitpay.com",
+        "https://bitpay.com/rates",
+        lambda data, replacements: next(
+            i["rate"] for i in data["data"] if i["code"] == replacements["TO"]
+        ),
+    ),
+    "yadio": Provider(
+        "yadio",
+        "yadio.io",
+        "https://api.yadio.io/exrates/{FROM}",
+        lambda data, replacements: data[replacements["FROM"]][replacements["TO"]],
     ),
 }
 
@@ -255,6 +275,9 @@ async def btc_price(currency: str) -> float:
     }
 
     async def fetch_price(provider: Provider):
+        if currency.lower() in provider.exclude_to:
+            raise Exception(f"Provider {provider.name} does not support {currency}.")
+
         url = provider.api_url.format(**replacements)
         try:
             headers = {"User-Agent": settings.user_agent}

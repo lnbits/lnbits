@@ -39,24 +39,28 @@ dev:
 	poetry run lnbits --reload
 
 test-wallets:
+	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
 	poetry run pytest tests/wallets
 
 test-unit:
+	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
 	poetry run pytest tests/unit
 
 test-api:
+	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
 	poetry run pytest tests/api
 
 test-regtest:
+	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
 	poetry run pytest tests/regtest

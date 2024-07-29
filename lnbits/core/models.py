@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import hashlib
 import hmac
@@ -6,19 +8,21 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from sqlite3 import Row
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
-from loguru import logger
 from pydantic import BaseModel
 
-from lnbits.db import Connection, FilterModel, FromRowModel
+from lnbits.db import FilterModel, FromRowModel
 from lnbits.helpers import url_for
 from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
-from lnbits.wallets.base import PaymentPendingStatus, PaymentStatus
+from lnbits.wallets.base import (
+    PaymentPendingStatus,
+    PaymentStatus,
+)
 
 
 class BaseWallet(BaseModel):
@@ -62,7 +66,7 @@ class Wallet(BaseWallet):
             linking_key, curve=SECP256k1, hashfunc=hashlib.sha256
         )
 
-    async def get_payment(self, payment_hash: str) -> Optional["Payment"]:
+    async def get_payment(self, payment_hash: str) -> Optional[Payment]:
         from .crud import get_standalone_payment
 
         return await get_standalone_payment(payment_hash)
@@ -132,8 +136,8 @@ class User(BaseModel):
     id: str
     email: Optional[str] = None
     username: Optional[str] = None
-    extensions: List[str] = []
-    wallets: List[Wallet] = []
+    extensions: list[str] = []
+    wallets: list[Wallet] = []
     admin: bool = False
     super_user: bool = False
     has_password: bool = False
@@ -142,10 +146,10 @@ class User(BaseModel):
     updated_at: Optional[int] = None
 
     @property
-    def wallet_ids(self) -> List[str]:
+    def wallet_ids(self) -> list[str]:
         return [wallet.id for wallet in self.wallets]
 
-    def get_wallet(self, wallet_id: str) -> Optional["Wallet"]:
+    def get_wallet(self, wallet_id: str) -> Optional[Wallet]:
         w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
         return w[0] if w else None
 
@@ -197,9 +201,20 @@ class LoginUsernamePassword(BaseModel):
     password: str
 
 
+class PaymentState(str, Enum):
+    PENDING = "pending"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+    def __str__(self) -> str:
+        return self.value
+
+
 class Payment(FromRowModel):
-    checking_id: str
+    status: str
+    # TODO should be removed in the future, backward compatibility
     pending: bool
+    checking_id: str
     amount: int
     fee: int
     memo: Optional[str]
@@ -208,10 +223,18 @@ class Payment(FromRowModel):
     preimage: str
     payment_hash: str
     expiry: Optional[float]
-    extra: Dict = {}
+    extra: dict = {}
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
+
+    @property
+    def success(self) -> bool:
+        return self.status == PaymentState.SUCCESS.value
+
+    @property
+    def failed(self) -> bool:
+        return self.status == PaymentState.FAILED.value
 
     @classmethod
     def from_row(cls, row: Row):
@@ -221,7 +244,9 @@ class Payment(FromRowModel):
             bolt11=row["bolt11"] or "",
             preimage=row["preimage"] or "0" * 64,
             extra=json.loads(row["extra"] or "{}"),
-            pending=row["pending"],
+            status=row["status"],
+            # TODO should be removed in the future, backward compatibility
+            pending=row["status"] == PaymentState.PENDING.value,
             amount=row["amount"],
             fee=row["fee"],
             memo=row["memo"],
@@ -262,79 +287,15 @@ class Payment(FromRowModel):
     def is_uncheckable(self) -> bool:
         return self.checking_id.startswith("internal_")
 
-    async def update_status(
-        self,
-        status: PaymentStatus,
-        conn: Optional[Connection] = None,
-    ) -> None:
-        from .crud import update_payment_details
-
-        await update_payment_details(
-            checking_id=self.checking_id,
-            pending=status.pending,
-            fee=status.fee_msat,
-            preimage=status.preimage,
-            conn=conn,
-        )
-
-    async def set_pending(self, pending: bool) -> None:
-        from .crud import update_payment_status
-
-        self.pending = pending
-
-        await update_payment_status(self.checking_id, pending)
-
-    async def check_status(
-        self,
-        conn: Optional[Connection] = None,
-    ) -> PaymentStatus:
+    async def check_status(self) -> PaymentStatus:
         if self.is_uncheckable:
             return PaymentPendingStatus()
-
-        logger.debug(
-            f"Checking {'outgoing' if self.is_out else 'incoming'} "
-            f"pending payment {self.checking_id}"
-        )
-
         funding_source = get_funding_source()
         if self.is_out:
             status = await funding_source.get_payment_status(self.checking_id)
         else:
             status = await funding_source.get_invoice_status(self.checking_id)
-
-        logger.debug(f"Status: {status}")
-
-        if self.is_in and status.pending and self.is_expired and self.expiry:
-            expiration_date = datetime.datetime.fromtimestamp(self.expiry)
-            logger.debug(
-                f"Deleting expired incoming pending payment {self.checking_id}: "
-                f"expired {expiration_date}"
-            )
-            await self.delete(conn)
-        # wait at least 15 minutes before deleting failed outgoing payments
-        elif self.is_out and status.failed:
-            if self.time + 900 < int(time.time()):
-                logger.warning(
-                    f"Deleting outgoing failed payment {self.checking_id}: {status}"
-                )
-                await self.delete(conn)
-            else:
-                logger.warning(
-                    f"Tried to delete outgoing payment {self.checking_id}: "
-                    "skipping because it's not old enough"
-                )
-        elif not status.pending:
-            logger.info(
-                f"Marking '{'in' if self.is_in else 'out'}' "
-                f"{self.checking_id} as not pending anymore: {status}"
-            )
-            await self.update_status(status, conn=conn)
         return status
-
-    async def delete(self, conn: Optional[Connection] = None) -> None:
-        from .crud import delete_wallet_payment
-
-        await delete_wallet_payment(self.checking_id, self.wallet_id, conn=conn)
 
 
 class PaymentFilters(FilterModel):
@@ -349,7 +310,7 @@ class PaymentFilters(FilterModel):
     preimage: str
     payment_hash: str
     expiry: Optional[datetime.datetime]
-    extra: Dict = {}
+    extra: dict = {}
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
@@ -395,6 +356,7 @@ class Callback(BaseModel):
 
 class DecodePayment(BaseModel):
     data: str
+    filter_fields: Optional[list[str]] = []
 
 
 class CreateLnurl(BaseModel):
