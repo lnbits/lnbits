@@ -334,7 +334,6 @@ class NWCConnection:
         Args:
             data (Dict): The data to be sent.
         """
-
         if self._is_shutting_down():
             logger.warning("Trying to send data while shutting down")
             return
@@ -483,7 +482,7 @@ class NWCConnection:
         """
         sub_id = cast(str, msg[1])
         event = cast(Dict, msg[2])
-        if not self._verify_event(
+        if not verify_event(
             event
         ):  # Ensure the event is valid (do not trust relays)
             raise Exception("Invalid event signature")
@@ -519,7 +518,7 @@ class NWCConnection:
                         break
             # if a subscription was found, pass the result to the future
             if subscription:
-                content = self._decrypt_content(event["content"])
+                content = decrypt_content(event["content"], self.service_pubkey, self.account_private_key_hex)
                 content = json.loads(content)
                 result_type = content.get("result_type", "")
                 error = content.get("error", None)
@@ -611,123 +610,6 @@ class NWCConnection:
                 logger.debug("Reconnecting to NWC relay in 5 seconds...")
                 await asyncio.sleep(5)
 
-    def _encrypt_content(self, content: str) -> str:
-        """
-        Encrypts the content to be sent to the service.
-
-        Args:
-            content (str): The content to be encrypted.
-
-        Returns:
-            str: The encrypted content.
-        """
-        shared = self.service_pubkey.tweak_mul(
-            bytes.fromhex(self.account_private_key_hex)
-        ).serialize()[1:]
-        # random iv (16B)
-        iv = Random.new().read(AES.block_size)
-        aes = AES.new(shared, AES.MODE_CBC, iv)
-
-        content_bytes = content.encode("utf-8")
-
-        # padding
-        content_bytes = pad(content_bytes, AES.block_size)
-
-        # Encrypt
-        encrypted_b64 = base64.b64encode(aes.encrypt(content_bytes)).decode("ascii")
-        iv_b64 = base64.b64encode(iv).decode("ascii")
-        encrypted_content = encrypted_b64 + "?iv=" + iv_b64
-        return encrypted_content
-
-    def _decrypt_content(self, content: str) -> str:
-        """
-        Decrypts the content coming from the service.
-
-        Args:
-            content (str): The encrypted content.
-
-        Returns:
-            str: The decrypted content.
-        """
-        shared = self.service_pubkey.tweak_mul(
-            bytes.fromhex(self.account_private_key_hex)
-        ).serialize()[1:]
-        # extract iv and content
-        (encrypted_content_b64, iv_b64) = content.split("?iv=")
-        encrypted_content = base64.b64decode(encrypted_content_b64.encode("ascii"))
-        iv = base64.b64decode(iv_b64.encode("ascii"))
-        # Decrypt
-        aes = AES.new(shared, AES.MODE_CBC, iv)
-        decrypted_bytes = aes.decrypt(encrypted_content)
-        decrypted_bytes = unpad(decrypted_bytes, AES.block_size)
-        decrypted = decrypted_bytes.decode("utf-8")
-
-        return decrypted
-
-    def _verify_event(self, event: Dict) -> bool:
-        """
-        Verify the event signature
-
-        Args:
-            event (Dict): The event to verify.
-
-        Returns:
-            bool: True if the event signature is valid, False otherwise.
-        """
-        signature_data = json_dumps(
-            [
-                0,
-                event["pubkey"],
-                event["created_at"],
-                event["kind"],
-                event["tags"],
-                event["content"],
-            ]
-        )
-        event_id = hashlib.sha256(signature_data.encode()).hexdigest()
-        if event_id != event["id"]:  # Invalid event id
-            return False
-        pubkey_hex = event["pubkey"]
-        pubkey = secp256k1.PublicKey(bytes.fromhex("02" + pubkey_hex), True)
-        if not pubkey.schnorr_verify(
-            bytes.fromhex(event_id), bytes.fromhex(event["sig"]), None, raw=True
-        ):
-            return False
-        return True
-
-    def _sign_event(self, event: Dict) -> Dict:
-        """
-        Signs the event (in place) with the service secret
-
-        Args:
-            event (Dict): The event to be signed.
-
-        Returns:
-            Dict: The input event with the signature added.
-        """
-        signature_data = json_dumps(
-            [
-                0,
-                self.account_public_key_hex,
-                event["created_at"],
-                event["kind"],
-                event["tags"],
-                event["content"],
-            ]
-        )
-
-        event_id = hashlib.sha256(signature_data.encode()).hexdigest()
-        event["id"] = event_id
-        event["pubkey"] = self.account_public_key_hex
-
-        signature = (
-            self.account_private_key.schnorr_sign(
-                bytes.fromhex(event_id), None, raw=True
-            )
-        ).hex()
-        event["sig"] = signature
-        return event
-
     async def call(self, method: str, params: Dict) -> Dict:
         """
         Call a NWC method.
@@ -749,7 +631,7 @@ class NWCConnection:
             }
         )
         # Encrypt
-        content = self._encrypt_content(content)
+        content = encrypt_content(content, self.service_pubkey, self.account_private_key_hex)
         # Prepare the NWC event
         event = {
             "kind": 23194,
@@ -758,7 +640,7 @@ class NWCConnection:
             "tags": [["p", self.service_pubkey_hex]],
         }
         # Sign
-        self._sign_event(event)
+        sign_event(event, self.account_public_key_hex, self.account_private_key)
         # Subscribe for a response to this event
         sub_filter = {
             "kinds": [23195],
@@ -918,3 +800,129 @@ def json_dumps(data: Union[Dict, list]) -> str:
     if isinstance(data, Dict):
         data = {k: v for k, v in data.items() if v is not None}
     return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+
+
+def encrypt_content(content: str, service_pubkey: secp256k1.PublicKey, account_private_key_hex: str) -> str:
+    """
+    Encrypts the content to be sent to the service.
+
+    Args:
+        content (str): The content to be encrypted.
+        service_pubkey (secp256k1.PublicKey): The service provider's public key.
+        account_private_key_hex (str): The account private key in hex format.
+
+    Returns:
+        str: The encrypted content.
+    """
+    shared = service_pubkey.tweak_mul(
+        bytes.fromhex(account_private_key_hex)
+    ).serialize()[1:]
+    # random iv (16B)
+    iv = Random.new().read(AES.block_size)
+    aes = AES.new(shared, AES.MODE_CBC, iv)
+
+    content_bytes = content.encode("utf-8")
+
+    # padding
+    content_bytes = pad(content_bytes, AES.block_size)
+
+    # Encrypt
+    encrypted_b64 = base64.b64encode(
+        aes.encrypt(content_bytes)).decode("ascii")
+    iv_b64 = base64.b64encode(iv).decode("ascii")
+    encrypted_content = encrypted_b64 + "?iv=" + iv_b64
+    return encrypted_content
+
+def decrypt_content(content: str, service_pubkey: secp256k1.PublicKey, account_private_key_hex: str) -> str:
+    """
+    Decrypts the content coming from the service.
+
+    Args:
+        content (str): The encrypted content.
+        service_pubkey (secp256k1.PublicKey): The service provider's public key.
+        account_private_key_hex (str): The account private key in hex format.
+
+    Returns:
+        str: The decrypted content.
+    """
+    shared = service_pubkey.tweak_mul(
+        bytes.fromhex(account_private_key_hex)
+    ).serialize()[1:]
+    # extract iv and content
+    (encrypted_content_b64, iv_b64) = content.split("?iv=")
+    encrypted_content = base64.b64decode(
+        encrypted_content_b64.encode("ascii"))
+    iv = base64.b64decode(iv_b64.encode("ascii"))
+    # Decrypt
+    aes = AES.new(shared, AES.MODE_CBC, iv)
+    decrypted_bytes = aes.decrypt(encrypted_content)
+    decrypted_bytes = unpad(decrypted_bytes, AES.block_size)
+    decrypted = decrypted_bytes.decode("utf-8")
+
+    return decrypted
+
+def verify_event(event: Dict) -> bool:
+    """
+    Verify the event signature
+
+    Args:
+        event (Dict): The event to verify.
+
+    Returns:
+        bool: True if the event signature is valid, False otherwise.
+    """
+    signature_data = json_dumps(
+        [
+            0,
+            event["pubkey"],
+            event["created_at"],
+            event["kind"],
+            event["tags"],
+            event["content"],
+        ]
+    )
+    event_id = hashlib.sha256(signature_data.encode()).hexdigest()
+    if event_id != event["id"]:  # Invalid event id
+        return False
+    pubkey_hex = event["pubkey"]
+    pubkey = secp256k1.PublicKey(bytes.fromhex("02" + pubkey_hex), True)
+    if not pubkey.schnorr_verify(
+        bytes.fromhex(event_id), bytes.fromhex(event["sig"]), None, raw=True
+    ):
+        return False
+    return True
+
+
+def sign_event( event: Dict, account_public_key_hex: str, account_private_key: secp256k1.PrivateKey) -> Dict:
+    """
+    Signs the event (in place) with the service secret
+
+    Args:
+        event (Dict): The event to be signed.
+        account_public_key_hex (str): The account public key in hex format.
+        account_private_key (secp256k1.PrivateKey): The account private key.
+
+    Returns:
+        Dict: The input event with the signature added.
+    """
+    signature_data = json_dumps(
+        [
+            0,
+            account_public_key_hex,
+            event["created_at"],
+            event["kind"],
+            event["tags"],
+            event["content"],
+        ]
+    )
+    event_id = hashlib.sha256(signature_data.encode()).hexdigest()
+    event["id"] = event_id
+    event["pubkey"] = account_public_key_hex
+
+    signature = (
+        account_private_key.schnorr_sign(
+            bytes.fromhex(event_id), None, raw=True
+        )
+    ).hex()
+    event["sig"] = signature
+    return event
