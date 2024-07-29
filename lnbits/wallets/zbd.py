@@ -68,7 +68,6 @@ class ZBDWallet(Wallet):
         msats_amount = amount * 1000
         data: Dict = {
             "amount": f"{msats_amount}",
-            "description": "",
             "expiresIn": 3600,
             "callbackUrl": "",
             "internalId": "",
