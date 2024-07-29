@@ -56,7 +56,8 @@ new Vue({
       update: {
         name: null,
         currency: null
-      }
+      },
+      showKeys: false
     }
   },
   computed: {

@@ -7,8 +7,18 @@
   <q-card-section>
     <strong>Node URL: </strong><em v-text="origin"></em><br />
     <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
-    <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
-    <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
+    <strong>Admin key: </strong
+    ><em v-text="showKeys ? `{{ wallet.adminkey }}` : '****************'"></em
+    ><br />
+    <strong>Invoice/read key: </strong
+    ><em v-text="showKeys ? `{{wallet.inkey}}` : '****************'"></em><br />
+    <q-toggle
+      v-model="showKeys"
+      checked-icon="visibility"
+      color="green"
+      label="Show API keys"
+      unchecked-icon="visibility_off"
+    ></q-toggle>
   </q-card-section>
   <q-expansion-item
     group="api"
