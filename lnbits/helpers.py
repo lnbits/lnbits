@@ -225,14 +225,13 @@ def decrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
     return AESCipher(key=settings.auth_secret_key).decrypt(m)
 
 
-def filter_dict_keys(data: dict, filter: Optional[list[str]] = []) -> dict:
-    if not filter or len(filter) == 0:
+def filter_dict_keys(data: dict, filter_fields: Optional[list[str]]) -> dict:
+    if not filter_fields or len(filter_fields) == 0:
         return {**data}
     _data = {}
-    for key in filter:
+    for key in filter_fields:
         if key not in data:
             continue
         _data[key] = data[key]
 
     return _data
-
