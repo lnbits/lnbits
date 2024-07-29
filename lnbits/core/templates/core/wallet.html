@@ -159,6 +159,14 @@
                         :options="{width:240}"
                       ></qrcode>
                     </q-card-section>
+                    <q-card-actions class="flex-center q-pb-md">
+                      <q-btn
+                        unelevated
+                        color="primary"
+                        :label="$t('copy_wallet_url')"
+                        @click="copyText('{{request.base_url}}wallet?usr={{user.id}}&wal={{wallet.id}}')"
+                      ></q-btn>
+                    </q-card-actions>
                   </q-card>
                 </q-expansion-item>
                 <q-separator></q-separator>
