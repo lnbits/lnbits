@@ -368,10 +368,10 @@ async def test_get_payments_history(client, adminkey_headers_from, fake_payments
     data = response.json()
     assert len(data) == 1
     assert data[0]["spending"] == sum(
-        payment.amount * 1000 for payment in fake_data if payment.out
+        int(payment.amount * 1000) for payment in fake_data if payment.out
     )
     assert data[0]["income"] == sum(
-        payment.amount * 1000 for payment in fake_data if not payment.out
+        int(payment.amount * 1000) for payment in fake_data if not payment.out
     )
 
     response = await client.get(
