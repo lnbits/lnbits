@@ -57,7 +57,8 @@ new Vue({
         name: null,
         currency: null
       },
-      showKeys: false
+      inkeyHidden: true,
+      adminkeyHidden: true
     }
   },
   computed: {
