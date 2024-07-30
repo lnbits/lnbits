@@ -101,7 +101,7 @@ class CoreLightningWallet(Wallet):
             if unhashed_description and not self.supports_description_hash:
                 raise UnsupportedError("unhashed_description")
             r: dict = self.ln.invoice(  # type: ignore
-                msatoshi=msat,
+                amount_msat=msat,
                 label=label,
                 description=(
                     unhashed_description.decode() if unhashed_description else memo
