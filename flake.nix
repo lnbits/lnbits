@@ -2,7 +2,7 @@
   description = "LNbits, free and open-source Lightning wallet and accounts system";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
     poetry2nix = {
       url = "github:nix-community/poetry2nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -33,22 +33,6 @@
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
             wallycore = prev.wallycore.override { preferWheel = true; };
-            # remove the following override when https://github.com/nix-community/poetry2nix/pull/1563 is merged
-            asgi-lifespan = prev.asgi-lifespan.overridePythonAttrs (
-              old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
-            );
-            dnspython = prev.dnspython.overridePythonAttrs (
-              old: { buildInputs = (old.buildInputs or []) ++ [ prev.hatchling ]; }
-            );
-            jinja2 = prev.jinja2.overridePythonAttrs (
-              old: { buildInputs = (old.buildInputs or []) ++ [ prev.flit-core ]; }
-            );
-            pytest-md = prev.pytest-md.overridePythonAttrs (
-              old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
-            );
-            types-mock = prev.pytest-md.overridePythonAttrs (
-              old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
-            );
           });
         };
       });

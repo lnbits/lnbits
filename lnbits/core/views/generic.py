@@ -75,7 +75,7 @@ async def robots():
 @generic_router.get("/extensions", name="extensions", response_class=HTMLResponse)
 async def extensions(request: Request, user: User = Depends(check_user_exists)):
     try:
-        installed_exts: List["InstallableExtension"] = await get_installed_extensions()
+        installed_exts: List[InstallableExtension] = await get_installed_extensions()
         installed_exts_ids = [e.id for e in installed_exts]
 
         installable_exts = await InstallableExtension.get_installable_extensions()
