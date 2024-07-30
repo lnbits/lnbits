@@ -222,25 +222,25 @@ class NWCWallet(Wallet):
         except NWCError as e:
             logger.error("Error paying invoice: " + str(e))
             failure_codes = [
-                "RATE_LIMITED", 
-                "NOT_IMPLEMENTED", 
-                "INSUFFICIENT_BALANCE", 
-                "QUOTA_EXCEEDED", 
-                "RESTRICTED", 
-                "UNAUTHORIZED", 
-                "INTERNAL", 
-                "OTHER", 
-                "PAYMENT_FAILED"
+                "RATE_LIMITED",
+                "NOT_IMPLEMENTED",
+                "INSUFFICIENT_BALANCE",
+                "QUOTA_EXCEEDED",
+                "RESTRICTED",
+                "UNAUTHORIZED",
+                "INTERNAL",
+                "OTHER",
+                "PAYMENT_FAILED",
             ]
             failed = e.code in failure_codes
-            return PaymentStatus(
-                None if not failed else False, fee_msat=None, preimage=None, 
-                error_message=e.message if failed else None
+            return PaymentResponse(
+                None if not failed else False,
+                error_message=e.message if failed else None,
             )
         except Exception as e:
             logger.error("Error paying invoice: " + str(e))
             # assume pending
-            return PaymentStatus(None, fee_msat=None, preimage=None)
+            return PaymentResponse(None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)
