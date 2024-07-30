@@ -53,10 +53,11 @@ async def create_account(
     user_id = user_id or uuid4().hex
     extra = json.dumps(dict(user_config)) if user_config else "{}"
     now = int(time())
+    now_ph = db.timestamp_placeholder("now")
     await (conn or db).execute(
-        """
+        f"""
         INSERT INTO accounts (id, username, pass, email, extra, created_at, updated_at)
-        VALUES (:user, :username, :password, :email, :extra, :now, :now)
+        VALUES (:user, :username, :password, :email, :extra, {now_ph}, {now_ph})
         """,
         {
             "user": user_id,
@@ -98,10 +99,11 @@ async def update_account(
     extra = user_config or user.config
 
     now = int(time())
+    now_ph = db.timestamp_placeholder("now")
     await db.execute(
-        """
+        f"""
             UPDATE accounts SET (username, email, extra, updated_at) =
-            (:username, :email, :extra, :now)
+            (:username, :email, :extra, {now_ph})
             WHERE id = :user
         """,
         {
@@ -181,13 +183,13 @@ async def delete_accounts_no_wallets(
 ) -> None:
     delta = int(time()) - time_delta
     await (conn or db).execute(
-        """
+        f"""
         DELETE FROM accounts
         WHERE NOT EXISTS (
             SELECT wallets.id FROM wallets WHERE wallets.user = accounts.id
         ) AND (
             (updated_at is null AND created_at < :delta)
-            OR updated_at < :delta
+            OR updated_at < {db.timestamp_placeholder("delta")}
         )
         """,
         {"delta": delta},
@@ -225,9 +227,10 @@ async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     now = int(time())
+    now_ph = db.timestamp_placeholder("now")
     await db.execute(
-        """
-        UPDATE accounts SET pass = :pass, updated_at = :now
+        f"""
+        UPDATE accounts SET pass = :pass, updated_at = {now_ph}
         WHERE id = :user
         """,
         {
@@ -517,10 +520,11 @@ async def create_wallet(
 ) -> Wallet:
     wallet_id = uuid4().hex
     now = int(time())
+    now_ph = db.timestamp_placeholder("now")
     await (conn or db).execute(
-        """
+        f"""
         INSERT INTO wallets (id, name, "user", adminkey, inkey, created_at, updated_at)
-        VALUES (:wallet, :name, :user, :adminkey, :inkey, :now, :now)
+        VALUES (:wallet, :name, :user, :adminkey, :inkey, {now_ph}, {now_ph})
         """,
         {
             "wallet": wallet_id,
@@ -545,7 +549,7 @@ async def update_wallet(
     conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
     set_clause = []
-    set_clause.append("updated_at = :now")
+    set_clause.append(f"updated_at = {db.timestamp_placeholder('now')}")
     values: dict = {
         "wallet": wallet_id,
         "now": int(time()),
@@ -576,9 +580,9 @@ async def delete_wallet(
 ) -> None:
     now = int(time())
     await (conn or db).execute(
-        """
+        f"""
         UPDATE wallets
-        SET deleted = :deleted, updated_at = :now
+        SET deleted = :deleted, updated_at = {db.timestamp_placeholder('now')}
         WHERE id = :wallet AND "user" = :user
         """,
         {"wallet": wallet_id, "user": user_id, "deleted": deleted, "now": now},
@@ -599,9 +603,9 @@ async def delete_wallet_by_id(
 ) -> Optional[int]:
     now = int(time())
     result = await (conn or db).execute(
-        """
+        f"""
         UPDATE wallets
-        SET deleted = true, updated_at = :now
+        SET deleted = true, updated_at = {db.timestamp_placeholder('now')}
         WHERE id = :wallet
         """,
         {"wallet": wallet_id, "now": now},
@@ -771,7 +775,7 @@ async def get_payments_paginated(
     clause: List[str] = []
 
     if since is not None:
-        clause.append("time > :time")
+        clause.append(f"time > {db.timestamp_placeholder('time')}")
 
     if wallet_id:
         clause.append("wallet = :wallet")
@@ -858,7 +862,7 @@ async def delete_expired_invoices(
         f"""
         DELETE FROM apipayments
         WHERE status = '{PaymentState.PENDING}' AND amount > 0
-        AND time < :delta
+        AND time < {db.timestamp_placeholder("delta")}
         """,
         {"delta": int(time() - 2592000)},
     )
@@ -867,7 +871,7 @@ async def delete_expired_invoices(
         f"""
         DELETE FROM apipayments
         WHERE status = '{PaymentState.PENDING}' AND amount > 0
-        AND expiry < :now
+        AND expiry < {db.timestamp_placeholder("now")}
         """,
         {"now": int(time())},
     )
@@ -898,13 +902,14 @@ async def create_payment(
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     assert previous_payment is None, "Payment already exists"
 
+    expiry_ph = db.timestamp_placeholder("expiry")
     await (conn or db).execute(
-        """
+        f"""
         INSERT INTO apipayments
           (wallet, checking_id, bolt11, hash, preimage,
            amount, status, memo, fee, extra, webhook, expiry, pending)
           VALUES (:wallet, :checking_id, :bolt11, :hash, :preimage,
-           :amount, :status, :memo, :fee, :extra, :webhook, :expiry, :pending)
+           :amount, :status, :memo, :fee, :extra, :webhook, {expiry_ph}, :pending)
         """,
         {
             "wallet": wallet_id,
@@ -922,7 +927,7 @@ async def create_payment(
                 else None
             ),
             "webhook": webhook,
-            "expiry": db.datetime_to_timestamp(expiry) if expiry else None,
+            "expiry": expiry if expiry else None,
             "pending": False,  # TODO: remove this in next release
         },
     )
@@ -1021,12 +1026,6 @@ async def get_payments_history(
 ) -> List[PaymentHistoryPoint]:
     if not filters:
         filters = Filters()
-    where = [f"(status = '{PaymentState.SUCCESS}' OR amount < 0)"]
-    values: dict = {
-        "wallet": wallet_id,
-    }
-    if wallet_id:
-        where.append("wallet = :wallet")
 
     if DB_TYPE == SQLITE and group in sqlite_formats:
         date_trunc = f"strftime('{sqlite_formats[group]}', time, 'unixepoch')"
@@ -1041,11 +1040,12 @@ async def get_payments_history(
                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income,
                SUM(CASE WHEN amount < 0 THEN abs(amount) + abs(fee) ELSE 0 END) spending
         FROM apipayments
-        {filters.where(where)}
+        WHERE wallet = :wallet AND (status = '{PaymentState.SUCCESS}' OR amount < 0)
         GROUP BY date
         ORDER BY date DESC
         """,
-        filters.values(values),
+        {"wallet": wallet_id},
+        # filters.values(values),
     )
     if wallet_id:
         wallet = await get_wallet(wallet_id)

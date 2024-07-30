@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.10"]
-        db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
+        db-url: ["", "postgresql+asyncpg://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
       custom-pytest: "poetry run pytest tests/api"
@@ -31,7 +31,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.10"]
-        db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
+        db-url: ["", "postgresql+asyncpg://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
       custom-pytest: "poetry run pytest tests/wallets"
@@ -45,7 +45,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.10"]
-        db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
+        db-url: ["", "postgresql+asyncpg://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
       custom-pytest: "poetry run pytest tests/unit"

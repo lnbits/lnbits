@@ -14,8 +14,8 @@ from lnbits.db import POSTGRES
 @pytest.mark.asyncio
 async def test_date_conversion(db):
     if db.type == POSTGRES:
-        row = await db.fetchone("SELECT now()::date")
-        assert row and isinstance(row[0], date)
+        row = await db.fetchone("SELECT now()::date as now")
+        assert row and isinstance(row.get("now"), date)
 
 
 # make test to create wallet and delete wallet

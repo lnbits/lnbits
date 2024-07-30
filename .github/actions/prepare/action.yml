@@ -46,7 +46,10 @@ runs:
 
     - name: Install the project dependencies
       shell: bash
-      run: poetry install
+      run: |
+        poetry install
+        # needed for conv tests
+        poetry add psycopg2-binary
 
     - name: Use Node.js ${{ inputs.node-version }}
       if: ${{ (inputs.npm == 'true') }}

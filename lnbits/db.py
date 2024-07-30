@@ -40,13 +40,13 @@ else:
     DB_TYPE = SQLITE
 
 
-def compat_timestamp_placeholder():
+def compat_timestamp_placeholder(key: str):
     if DB_TYPE == POSTGRES:
-        return "to_timestamp(?)"
+        return f"to_timestamp(:{key})"
     elif DB_TYPE == COCKROACH:
-        return "cast(? AS timestamp)"
+        return f"cast(:{key} AS timestamp)"
     else:
-        return "?"
+        return f":{key}"
 
 
 def get_placeholder(model: Any, field: str) -> str:
@@ -111,9 +111,8 @@ class Compat:
             return "BIGINT"
         return "INT"
 
-    @property
-    def timestamp_placeholder(self) -> str:
-        return compat_timestamp_placeholder()
+    def timestamp_placeholder(self, key: str) -> str:
+        return compat_timestamp_placeholder(key)
 
 
 class Connection(Compat):
@@ -257,7 +256,9 @@ class Database(Compat):
                     f = "%Y-%m-%d %H:%M:%S.%f"
                     if "." not in value:
                         f = "%Y-%m-%d %H:%M:%S"
-                    return time.mktime(datetime.datetime.strptime(value, f).timetuple())
+                    return int(
+                        time.mktime(datetime.datetime.strptime(value, f).timetuple())
+                    )
 
                 dbapi_connection.run_async(
                     lambda connection: connection.set_type_codec(
@@ -420,7 +421,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
                 validated, errors = compare_field.validate(raw_value, {}, loc="none")
                 if errors:
                     raise ValidationError(errors=[errors], model=model)
-                values[field](validated)
+                values[field] = validated
         else:
             raise ValueError("Unknown filter field")
 
@@ -428,9 +429,14 @@ class Filter(BaseModel, Generic[TFilterModel]):
 
     @property
     def statement(self):
-        if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
-            placeholders = ", ".join([])
-            stmt = [f"{self.field} {self.op.as_sql} ({placeholders})"]
+        if self.op in (Operator.INCLUDE, Operator.EXCLUDE) and self.values:
+            placeholders = []
+            for key in self.values.keys():
+                if self.model and self.model.__fields__[key].type_ == datetime.datetime:
+                    placeholders.append(compat_timestamp_placeholder(self.field))
+                else:
+                    placeholders.append(f":{key}")
+            stmt = [f"{self.field} {self.op.as_sql} ({', '.join(placeholders)})"]
         else:
             stmt = [f"{self.field} {self.op.as_sql} :{self.field}"]
         return " OR ".join(stmt)

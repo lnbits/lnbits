@@ -12,7 +12,7 @@ from typing import List, Optional
 from lnbits.settings import settings
 
 try:
-    import psycopg2
+    import psycopg2  # type: ignore
 except ImportError:
     print("Please install psycopg2")
     sys.exit(1)
