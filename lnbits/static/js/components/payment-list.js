@@ -36,10 +36,10 @@ Vue.component('payment-list', {
       paymentsCSV: {
         columns: [
           {
-            name: 'pending',
+            name: 'status',
             align: 'left',
-            label: 'Pending',
-            field: 'pending'
+            label: 'Status',
+            field: 'status'
           },
           {
             name: 'memo',
@@ -158,9 +158,8 @@ Vue.component('payment-list', {
       const params = new URLSearchParams(query)
       LNbits.api.getPayments(this.wallet, params).then(response => {
         const payments = response.data.data.map(LNbits.map.payment)
-        const paymentColumns = this.paymentsCSV.columns
         if (detailed) {
-          paymentColumns.push({
+          this.paymentsCSV.columns.push({
             name: 'items',
             align: 'right',
             label: 'Items',
@@ -212,13 +211,15 @@ Vue.component('payment-list', {
           </div>
           <div class="gt-sm col-auto">
             <q-btn-dropdown
+              outline
+              class="q-mr-sm"
               color="grey"
               :label="$t('export_csv')"
               split
-              @click="exportCSV"
+              @click="exportCSV(false)"
             >
               <q-list>
-                <q-item clickable v-close-popup @click="exportCSV">
+                <q-item clickable v-close-popup @click="exportCSV(false)">
                   <q-item-section>
                     <q-item-label>Basic CSV Export</q-item-label>
                   </q-item-section>
