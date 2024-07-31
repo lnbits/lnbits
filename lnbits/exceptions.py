@@ -90,7 +90,7 @@ def register_http_exception_handler(app: FastAPI):
 def register_payment_error_handler(app: FastAPI):
     @app.exception_handler(PaymentError)
     async def payment_error_handler(request: Request, exc: PaymentError):
-        logger.error(f"PaymentError: {exc.message}, {exc.status}")
+        logger.error(f"{exc.message}, {exc.status}")
         return JSONResponse(
             status_code=520,
             content={"detail": exc.message, "status": exc.status},
@@ -100,7 +100,7 @@ def register_payment_error_handler(app: FastAPI):
 def register_invoice_error_handler(app: FastAPI):
     @app.exception_handler(InvoiceError)
     async def invoice_error_handler(request: Request, exc: InvoiceError):
-        logger.error(f"InvoiceError: {exc.message}, Status: {exc.status}")
+        logger.error(f"{exc.message}, Status: {exc.status}")
         return JSONResponse(
             status_code=520,
             content={"detail": exc.message, "status": exc.status},

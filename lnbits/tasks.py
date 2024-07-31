@@ -110,8 +110,8 @@ async def internal_invoice_listener():
     """
     while settings.lnbits_running:
         checking_id = await internal_invoice_queue.get()
-        logger.info("> got internal payment notification", checking_id)
-        create_task(invoice_callback_dispatcher(checking_id))
+        logger.info(f"got an internal payment notification {checking_id}")
+        create_task(invoice_callback_dispatcher(checking_id, is_internal=True))
 
 
 async def invoice_listener():
@@ -123,7 +123,7 @@ async def invoice_listener():
     """
     funding_source = get_funding_source()
     async for checking_id in funding_source.paid_invoices_stream():
-        logger.info("> got a payment notification", checking_id)
+        logger.info(f"got a payment notification {checking_id}")
         create_task(invoice_callback_dispatcher(checking_id))
 
 
@@ -171,16 +171,13 @@ async def check_pending_payments():
         await asyncio.sleep(60 * 30)  # every 30 minutes
 
 
-async def invoice_callback_dispatcher(checking_id: str):
+async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = False):
     """
     Takes an incoming payment, checks its status, and dispatches it to
     invoice_listeners from core and extensions.
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
     if payment and payment.is_in:
-        logger.trace(
-            f"invoice listeners: sending invoice callback for payment {checking_id}"
-        )
         status = await payment.check_status()
         await update_payment_details(
             checking_id=payment.checking_id,
@@ -188,6 +185,8 @@ async def invoice_callback_dispatcher(checking_id: str):
             preimage=status.preimage,
             status=PaymentState.SUCCESS,
         )
+        internal = "internal" if is_internal else ""
+        logger.success(f"{internal} invoice {checking_id} settled")
         for name, send_chan in invoice_listeners.items():
             logger.trace(f"invoice listeners: sending to `{name}`")
             await send_chan.put(payment)
