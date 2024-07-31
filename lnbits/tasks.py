@@ -133,8 +133,14 @@ async def check_pending_payments():
     the backend and also to delete expired invoices. Incoming payments will be
     checked only once, outgoing pending payments will be checked regularly.
     """
+    sleep_time = 60 * 30  # 30 minutes
 
     while settings.lnbits_running:
+        funding_source = get_funding_source()
+        if funding_source.__class__.__name__ == "VoidWallet":
+            logger.warning("Task: skipping pending check for VoidWallet")
+            await asyncio.sleep(sleep_time)
+            continue
         start_time = time.time()
         pending_payments = await get_payments(
             since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
@@ -168,7 +174,7 @@ async def check_pending_payments():
                 f"Task: pending check finished for {count} payments"
                 f" (took {time.time() - start_time:0.3f} s)"
             )
-        await asyncio.sleep(60 * 30)  # every 30 minutes
+        await asyncio.sleep(sleep_time)
 
 
 async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = False):
