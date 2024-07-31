@@ -85,6 +85,8 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
                 return checking_id
 
     async def pay():
+        # wait a sec to paid_invoices_stream to start listening
+        await asyncio.sleep(3)
         pay_real_invoice(invoice["payment_request"])
         return True
 
