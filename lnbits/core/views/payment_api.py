@@ -40,7 +40,7 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import generate_filter_params_openapi
+from lnbits.helpers import filter_dict_keys, generate_filter_params_openapi
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
@@ -433,7 +433,8 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
             return JSONResponse({"domain": url})
         else:
             invoice = bolt11.decode(payment_str)
-            return JSONResponse(invoice.data)
+            filtered_data = filter_dict_keys(invoice.data, data.filter_fields)
+            return JSONResponse(filtered_data)
     except Exception as exc:
         return JSONResponse(
             {"message": f"Failed to decode: {exc!s}"},
