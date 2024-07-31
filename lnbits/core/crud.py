@@ -1037,13 +1037,14 @@ async def get_payments_history(
     values = {
         "wallet": wallet_id,
     }
+    where = [f"wallet = :wallet AND (status = '{PaymentState.SUCCESS}' OR amount < 0)"]
     transactions = await db.fetchall(
         f"""
         SELECT {date_trunc} date,
                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income,
                SUM(CASE WHEN amount < 0 THEN abs(amount) + abs(fee) ELSE 0 END) spending
         FROM apipayments
-        WHERE wallet = :wallet AND (status = '{PaymentState.SUCCESS}' OR amount < 0)
+        {filters.where(where)}
         GROUP BY date
         ORDER BY date DESC
         """,
