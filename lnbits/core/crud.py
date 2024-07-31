@@ -1034,6 +1034,9 @@ async def get_payments_history(
     else:
         raise ValueError(f"Invalid group value: {group}")
 
+    values = {
+        "wallet": wallet_id,
+    }
     transactions = await db.fetchall(
         f"""
         SELECT {date_trunc} date,
@@ -1044,8 +1047,7 @@ async def get_payments_history(
         GROUP BY date
         ORDER BY date DESC
         """,
-        {"wallet": wallet_id},
-        # filters.values(values),
+        filters.values(values),
     )
     if wallet_id:
         wallet = await get_wallet(wallet_id)

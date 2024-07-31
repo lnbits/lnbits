@@ -74,10 +74,10 @@ def configure_logger() -> None:
     logging.getLogger("uvicorn.error").propagate = False
 
     logging.getLogger("sqlalchemy").handlers = [InterceptHandler()]
-    logging.getLogger("sqlalchemy.engine.base").handlers = [InterceptHandler()]
-    logging.getLogger("sqlalchemy.engine.base").propagate = False
-    logging.getLogger("sqlalchemy.engine.base.Engine").handlers = [InterceptHandler()]
-    logging.getLogger("sqlalchemy.engine.base.Engine").propagate = False
+    logging.getLogger("sqlalchemy.engine").handlers = [InterceptHandler()]
+    logging.getLogger("sqlalchemy.engine").propagate = False
+    logging.getLogger("sqlalchemy.engine.Engine").handlers = [InterceptHandler()]
+    logging.getLogger("sqlalchemy.engine.Engine").propagate = False
 
 
 class Formatter:
