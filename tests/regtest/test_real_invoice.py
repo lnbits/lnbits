@@ -91,7 +91,8 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     found, paid = await asyncio.gather(listen(), pay())
     assert paid
     assert found == invoice["payment_hash"]
-    await asyncio.sleep(8)
+    print("sleeeping")
+    await asyncio.sleep(10)
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
     )
