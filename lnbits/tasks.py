@@ -110,6 +110,7 @@ async def internal_invoice_listener():
     """
     while settings.lnbits_running:
         checking_id = await internal_invoice_queue.get()
+        logger.info(f"got an internal payment notification {checking_id}")
         create_task(invoice_callback_dispatcher(checking_id, internal=True))
 
 
@@ -122,6 +123,7 @@ async def invoice_listener():
     """
     funding_source = get_funding_source()
     async for checking_id in funding_source.paid_invoices_stream():
+        logger.info(f"got a payment notification {checking_id}")
         create_task(invoice_callback_dispatcher(checking_id))
 
 
