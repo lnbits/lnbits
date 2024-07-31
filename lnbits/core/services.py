@@ -365,7 +365,7 @@ async def pay_invoice(
                 )
                 if wallet and updated:
                     await send_payment_notification(wallet, updated)
-                logger.debug(f"payment successful {payment.checking_id}")
+                logger.success(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
             # payment failed
             logger.debug(f"payment failed {temp_id}, {payment.error_message}")

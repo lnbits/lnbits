@@ -80,19 +80,18 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     assert not payment_status["paid"]
 
     async def listen():
-        found_checking_id = False
         async for checking_id in get_funding_source().paid_invoices_stream():
             if checking_id == invoice["checking_id"]:
-                found_checking_id = True
-                return
-        assert found_checking_id
+                return checking_id
 
     async def pay():
-        await asyncio.sleep(3)
         pay_real_invoice(invoice["payment_request"])
+        return True
 
-    await asyncio.gather(listen(), pay())
-    await asyncio.sleep(3)
+    found, paid = await asyncio.gather(listen(), pay())
+    assert paid
+    assert found == invoice["payment_hash"]
+    await asyncio.sleep(8)
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
     )
