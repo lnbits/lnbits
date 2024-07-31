@@ -82,6 +82,9 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     async def listen():
         async for checking_id in get_funding_source().paid_invoices_stream():
             if checking_id == invoice["checking_id"]:
+                # wait for the backend to update the payment status,
+                # this was flaky on 6 for some backends
+                await asyncio.sleep(10)
                 return checking_id
 
     async def pay():
@@ -93,9 +96,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     found, paid = await asyncio.gather(listen(), pay())
     assert paid
     assert found == invoice["payment_hash"]
-    # wait for the backend to update the payment status,
-    # this was flaky on 6 for some backends
-    await asyncio.sleep(10)
+
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
     )
@@ -301,6 +302,9 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     async def listen():
         async for checking_id in get_funding_source().paid_invoices_stream():
             if checking_id == invoice["checking_id"]:
+                # wait for the backend to update the payment status,
+                # this was flaky on 6 for some backends
+                await asyncio.sleep(10)
                 return checking_id
 
     async def pay():
@@ -312,10 +316,6 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     found, paid = await asyncio.gather(listen(), pay())
     assert paid
     assert found == invoice["payment_hash"]
-
-    # wait for the backend to update the payment status,
-    # this was flaky on 6 for some backends
-    await asyncio.sleep(10)
 
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
