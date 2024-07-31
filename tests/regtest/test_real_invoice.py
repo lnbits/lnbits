@@ -303,11 +303,11 @@ async def test_receive_real_invoice_set_pending_and_check_state(
                 return
         assert found_checking_id
         # wait a sec for lnbits to process the payment and test it to success
-        await asyncio.sleep(5)
+        await asyncio.sleep(6)
 
     async def pay():
         # wait a sec to paid_invoices_stream to start listening
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
         pay_real_invoice(invoice["payment_request"])
 
     await asyncio.gather(listen(), pay())
