@@ -163,7 +163,7 @@ Vue.component('payment-list', {
             name: 'items',
             align: 'right',
             label: 'Items',
-            field: row => (row.tag === 'tpos' && row.extra.details) || null
+            field: row => row.extra?.details
           })
         }
         LNbits.utils.exportCSV(
