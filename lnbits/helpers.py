@@ -225,8 +225,8 @@ def decrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
     return AESCipher(key=settings.auth_secret_key).decrypt(m)
 
 
-def filter_dict_keys(data: dict, filter_fields: Optional[list[str]]) -> dict:
-    if not filter_fields:
+def filter_dict_keys(data: dict, filter_keys: Optional[list[str]]) -> dict:
+    if not filter_keys:
         # return shallow clone of the dict even if there are no filters
         return {**data}
     return {key: data[key] for key in filter_keys if key in data}
