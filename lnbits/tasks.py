@@ -110,7 +110,7 @@ async def internal_invoice_listener():
     """
     while settings.lnbits_running:
         checking_id = await internal_invoice_queue.get()
-        await create_task(invoice_callback_dispatcher(checking_id, internal=True))
+        create_task(invoice_callback_dispatcher(checking_id, internal=True))
 
 
 async def invoice_listener():
@@ -122,7 +122,7 @@ async def invoice_listener():
     """
     funding_source = get_funding_source()
     async for checking_id in funding_source.paid_invoices_stream():
-        await create_task(invoice_callback_dispatcher(checking_id))
+        create_task(invoice_callback_dispatcher(checking_id))
 
 
 async def check_pending_payments():
