@@ -229,10 +229,4 @@ def filter_dict_keys(data: dict, filter_fields: Optional[list[str]]) -> dict:
     if not filter_fields:
         # return shallow clone of the dict even if there are no filters
         return {**data}
-    _data = {}
-    for key in filter_fields:
-        if key not in data:
-            continue
-        _data[key] = data[key]
-
-    return _data
+    return {key: data[key] for key in filter_keys if key in data}
