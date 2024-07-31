@@ -204,9 +204,9 @@ def parse_filters(model: Type[TFilterModel]):
     ):
         params = request.query_params
         filters = []
-        for key in params.keys():
+        for i, key in enumerate(params.keys()):
             try:
-                filters.append(Filter.parse_query(key, params.getlist(key), model))
+                filters.append(Filter.parse_query(key, params.getlist(key), model, i))
             except ValueError:
                 continue
 

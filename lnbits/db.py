@@ -9,7 +9,6 @@ from contextlib import asynccontextmanager
 from enum import Enum
 from typing import Any, Generic, Literal, Optional, TypeVar
 
-import shortuuid
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
 from sqlalchemy import event
@@ -191,7 +190,7 @@ class Connection(Compat):
             {filters.order_by()}
             {filters.pagination()}
             """,
-            parsed_values,
+            self.rewrite_values(parsed_values),
         )
         if rows:
             # no need for extra query if no pagination is specified
@@ -401,7 +400,9 @@ class Filter(BaseModel, Generic[TFilterModel]):
     values: Optional[dict] = None
 
     @classmethod
-    def parse_query(cls, key: str, raw_values: list[Any], model: type[TFilterModel]):
+    def parse_query(
+        cls, key: str, raw_values: list[Any], model: type[TFilterModel], i: int = 0
+    ):
         # Key format:
         # key[operator]
         # e.g. name[eq]
@@ -422,7 +423,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
                 validated, errors = compare_field.validate(raw_value, {}, loc="none")
                 if errors:
                     raise ValidationError(errors=[errors], model=model)
-                values[f"{field}__{shortuuid.uuid()}"] = validated
+                values[f"{field}__{i}"] = validated
         else:
             raise ValueError("Unknown filter field")
 

@@ -184,7 +184,7 @@ async def fake_payments(client, adminkey_headers_from):
     # we have to wait a second to ensure a different timestamp than previous invoices
     if DB_TYPE == SQLITE:
         await asyncio.sleep(1)
-    ts = int(time())
+    ts = time()
 
     fake_data = [
         CreateInvoice(amount=10, memo="aaaa", out=False),
@@ -201,5 +201,5 @@ async def fake_payments(client, adminkey_headers_from):
         assert data["checking_id"]
         await update_payment_status(data["checking_id"], status=PaymentState.SUCCESS)
 
-    params = {"time[ge]": ts, "time[le]": int(time()) + 1}
+    params = {"time[ge]": ts, "time[le]": time()}
     return fake_data, params
