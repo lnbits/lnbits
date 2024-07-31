@@ -44,7 +44,6 @@ git checkout main
 poetry env use python3.9
 poetry install --only main
 
-mkdir data
 cp .env.example .env
 # set funding source amongst other options
 nano .env
