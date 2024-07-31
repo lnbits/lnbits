@@ -22,7 +22,7 @@ from lnbits.core.crud import (
 from lnbits.core.models import CreateInvoice, PaymentState
 from lnbits.core.services import update_wallet_balance
 from lnbits.core.views.payment_api import api_payments_create_invoice
-from lnbits.db import Database
+from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import settings
 from tests.helpers import (
     get_random_invoice_data,
@@ -182,7 +182,8 @@ async def invoice(to_wallet):
 async def fake_payments(client, adminkey_headers_from):
     # Because sqlite only stores timestamps with milliseconds
     # we have to wait a second to ensure a different timestamp than previous invoices
-    await asyncio.sleep(1)
+    if DB_TYPE == SQLITE:
+        await asyncio.sleep(1)
     ts = int(time())
 
     fake_data = [
@@ -200,5 +201,5 @@ async def fake_payments(client, adminkey_headers_from):
         assert data["checking_id"]
         await update_payment_status(data["checking_id"], status=PaymentState.SUCCESS)
 
-    params = {"time[ge]": ts, "time[le]": int(time())}
+    params = {"time[ge]": ts, "time[le]": int(time()) + 1}
     return fake_data, params
