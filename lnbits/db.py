@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from enum import Enum
 from typing import Any, Generic, Literal, Optional, TypeVar
 
+import shortuuid
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
 from sqlalchemy import event
@@ -263,7 +264,7 @@ class Database(Compat):
                 dbapi_connection.run_async(
                     lambda connection: connection.set_type_codec(
                         "TIMESTAMP",
-                        encoder=datetime.datetime.timestamp,
+                        encoder=datetime.datetime,
                         decoder=_parse_timestamp,
                         schema="pg_catalog",
                     )
@@ -421,7 +422,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
                 validated, errors = compare_field.validate(raw_value, {}, loc="none")
                 if errors:
                     raise ValidationError(errors=[errors], model=model)
-                values[field] = validated
+                values[f"{field}__{shortuuid.uuid()}"] = validated
         else:
             raise ValueError("Unknown filter field")
 
@@ -429,16 +430,17 @@ class Filter(BaseModel, Generic[TFilterModel]):
 
     @property
     def statement(self):
-        if self.op in (Operator.INCLUDE, Operator.EXCLUDE) and self.values:
-            placeholders = []
-            for key in self.values.keys():
-                if self.model and self.model.__fields__[key].type_ == datetime.datetime:
-                    placeholders.append(compat_timestamp_placeholder(key))
-                else:
-                    placeholders.append(f":{key}")
-            stmt = [f"{self.field} {self.op.as_sql} ({', '.join(placeholders)})"]
-        else:
-            stmt = [f"{self.field} {self.op.as_sql} :{self.field}"]
+        stmt = []
+        for key in self.values.keys() if self.values else []:
+            clean_key = key.split("__")[0]
+            if (
+                self.model
+                and self.model.__fields__[clean_key].type_ == datetime.datetime
+            ):
+                placeholder = compat_timestamp_placeholder(key)
+            else:
+                placeholder = f":{key}"
+            stmt.append(f"{clean_key} {self.op.as_sql} {placeholder}")
         return " OR ".join(stmt)
 
 

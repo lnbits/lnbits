@@ -367,7 +367,6 @@ async def test_get_payments_history(client, adminkey_headers_from, fake_payments
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    print(data)
     assert data[0]["income"] == sum(
         [int(payment.amount * 1000) for payment in fake_data if not payment.out]
     )
