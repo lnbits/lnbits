@@ -36,8 +36,9 @@ jobs:
         run: |
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
-          chmod +x ./tests
-          ./tests
+          git checkout contribute-back-from-boltz-fork
+          chmod +x ./start-regtest
+          ./start-regtest
           sudo chmod -R a+rwx .
 
       - uses: ./.github/actions/prepare
