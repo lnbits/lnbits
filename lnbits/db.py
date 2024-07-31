@@ -433,7 +433,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
             placeholders = []
             for key in self.values.keys():
                 if self.model and self.model.__fields__[key].type_ == datetime.datetime:
-                    placeholders.append(compat_timestamp_placeholder(self.field))
+                    placeholders.append(compat_timestamp_placeholder(key))
                 else:
                     placeholders.append(f":{key}")
             stmt = [f"{self.field} {self.op.as_sql} ({', '.join(placeholders)})"]
