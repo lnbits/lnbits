@@ -183,7 +183,8 @@ async def invoice_callback_dispatcher(checking_id: str):
             preimage=status.preimage,
             status=PaymentState.SUCCESS,
         )
-        logger.success(f"invoice {checking_id} settled")
+        interal = "internal" if payment.is_uncheckable else ""
+        logger.success(f"{interal} invoice {checking_id} settled")
         for name, send_chan in invoice_listeners.items():
             logger.trace(f"invoice listeners: sending to `{name}`")
             await send_chan.put(payment)
