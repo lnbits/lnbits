@@ -110,7 +110,7 @@ async def internal_invoice_listener():
     """
     while settings.lnbits_running:
         checking_id = await internal_invoice_queue.get()
-        await create_task(invoice_callback_dispatcher(checking_id))
+        await create_task(invoice_callback_dispatcher(checking_id, internal=True))
 
 
 async def invoice_listener():
@@ -169,7 +169,7 @@ async def check_pending_payments():
         await asyncio.sleep(60 * 30)  # every 30 minutes
 
 
-async def invoice_callback_dispatcher(checking_id: str):
+async def invoice_callback_dispatcher(checking_id: str, internal: bool = False):
     """
     Takes an incoming payment, checks its status, and dispatches it to
     invoice_listeners from core and extensions.
@@ -183,7 +183,7 @@ async def invoice_callback_dispatcher(checking_id: str):
             preimage=status.preimage,
             status=PaymentState.SUCCESS,
         )
-        interal = "internal" if payment.is_uncheckable else ""
+        interal = "internal" if internal else ""
         logger.success(f"{interal} invoice {checking_id} settled")
         for name, send_chan in invoice_listeners.items():
             logger.trace(f"invoice listeners: sending to `{name}`")
