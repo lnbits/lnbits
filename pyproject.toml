@@ -38,7 +38,7 @@ pywebpush = "1.14.0"
 slowapi = "0.1.9"
 websocket-client = "1.6.3"
 pycryptodomex = "3.19.1"
-packaging = "23.1"
+packaging = "24.0"
 bolt11 = "2.0.6"
 # needed for new login methods: username-password, google-auth, github-auth
 bcrypt = "^4.1.1"
