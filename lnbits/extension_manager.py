@@ -552,6 +552,7 @@ class InstallableExtension(BaseModel):
         redirects based on this
         """
         if upgrade_hash:
+            #bug
             settings.lnbits_upgraded_extensions.add(f"{self.hash}/{self.id}")
 
         settings.lnbits_all_extensions_ids.add(self.id)
@@ -769,6 +770,31 @@ class ExtensionDetailsRequest(BaseModel):
     ext_id: str
     source_repo: str
     version: str
+
+
+def activate_extension_settings(ext_id: str, ext_redirects: List[dict]):
+    from_path_redirects = [r["from_path"] for r in ext_redirects]
+    existing_redirects = [
+        r["ext_id"]
+        for r in settings.lnbits_extensions_redirects
+        if r["from_path"] in from_path_redirects
+    ]
+
+    assert len(existing_redirects) == 0, (
+        f" Cannot redirect for extension '{ext_id}'."
+        f" Already mapped by {existing_redirects}"
+    )
+    settings.lnbits_deactivated_extensions.discard(ext_id)
+    for r in ext_redirects:
+        r["ext_id"] = ext_id
+        settings.lnbits_extensions_redirects.append(r)
+
+
+def deactivate_extension_settings(ext_id: str):
+    settings.lnbits_deactivated_extensions.add(ext_id)
+    settings.lnbits_extensions_redirects = [
+        r for r in settings.lnbits_extensions_redirects if r["ext_id"] != ext_id
+    ]
 
 
 def get_valid_extensions(include_deactivated: Optional[bool] = True) -> List[Extension]:
