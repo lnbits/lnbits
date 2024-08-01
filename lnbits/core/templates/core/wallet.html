@@ -319,13 +319,11 @@
             <q-input
               ref="setAmount"
               filled
+              :pattern="receive.unit === 'sat' ? '\\d*' : '\\d*\\.?\\d*'"
+              inputmode="numeric"
               dense
               v-model.number="receive.data.amount"
               :label="$t('amount') + ' (' + receive.unit + ') *'"
-              :mask="receive.unit != 'sat' ? '#.##' : '#'"
-              fill-mask="0"
-              reverse-fill-mask
-              :step="receive.unit != 'sat' ? '0.01' : '1'"
               :min="receive.minMax[0]"
               :max="receive.minMax[1]"
               :readonly="receive.lnurl && receive.lnurl.fixed"
