@@ -1,0 +1,44 @@
+name: release-rc
+
+on:
+  push:
+    tags:
+      - "*-rc[0-9]"
+
+permissions:
+  contents: write
+
+jobs:
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create github release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+        run: |
+          gh release create "$tag" --generate-notes --prerelease
+
+  docker:
+    needs: [ release ]
+    uses: ./.github/workflows/docker.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+  pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies for building secp256k1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential automake libtool libffi-dev libgmp-dev
+      - uses: actions/checkout@v4
+      - name: Build and publish to pypi
+        uses: JRubics/poetry-publish@v1.15
+        with:
+          pypi_token: ${{ secrets.PYPI_API_KEY }}
