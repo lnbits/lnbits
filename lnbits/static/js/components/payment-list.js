@@ -36,10 +36,10 @@ Vue.component('payment-list', {
       paymentsCSV: {
         columns: [
           {
-            name: 'pending',
+            name: 'status',
             align: 'left',
-            label: 'Pending',
-            field: 'pending'
+            label: 'Status',
+            field: 'status'
           },
           {
             name: 'memo',
@@ -146,7 +146,7 @@ Vue.component('payment-list', {
     paymentTableRowKey: function (row) {
       return row.payment_hash + row.amount
     },
-    exportCSV: function () {
+    exportCSV(detailed = false) {
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
@@ -158,6 +158,14 @@ Vue.component('payment-list', {
       const params = new URLSearchParams(query)
       LNbits.api.getPayments(this.wallet, params).then(response => {
         const payments = response.data.data.map(LNbits.map.payment)
+        if (detailed) {
+          this.paymentsCSV.columns.push({
+            name: 'items',
+            align: 'right',
+            label: 'Items',
+            field: row => row.extra?.details
+          })
+        }
         LNbits.utils.exportCSV(
           this.paymentsCSV.columns,
           payments,
@@ -202,7 +210,28 @@ Vue.component('payment-list', {
             ></h5>
           </div>
           <div class="gt-sm col-auto">
-            <q-btn flat color="grey" @click="exportCSV" :label="$t('export_csv')" ></q-btn>
+            <q-btn-dropdown
+              outline
+              class="q-mr-sm"
+              color="grey"
+              :label="$t('export_csv')"
+              split
+              @click="exportCSV(false)"
+            >
+              <q-list>
+                <q-item clickable v-close-popup @click="exportCSV(false)">
+                  <q-item-section>
+                    <q-item-label>Basic CSV Export</q-item-label>
+                  </q-item-section>
+                </q-item>
+
+                <q-item clickable v-close-popup @click="exportCSV(true)">
+                  <q-item-section>
+                    <q-item-label>Detailed CSV Export</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-btn-dropdown>
             <payment-chart :wallet="wallet" />
           </div>
         </div>
