@@ -130,7 +130,8 @@ else:
 
             try:
                 seed = breez_sdk.mnemonic_to_seed(settings.breez_greenlight_seed)
-                self.sdk_services = breez_sdk.connect(self.config, seed, SDKListener())
+                connect_request = breez_sdk.ConnectRequest(self.config, seed)
+                self.sdk_services = breez_sdk.connect(connect_request, SDKListener())
             except Exception as exc:
                 raise ValueError(f"cannot initialize BreezSdkWallet: {exc!s}") from exc
 
