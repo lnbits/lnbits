@@ -28,8 +28,11 @@ else:
 
     from .base import (
         InvoiceResponse,
+        PaymentFailedStatus,
+        PaymentPendingStatus,
         PaymentResponse,
         PaymentStatus,
+        PaymentSuccessStatus,
         StatusResponse,
         UnsupportedError,
         Wallet,
@@ -225,23 +228,27 @@ else:
         async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
             payment: breez_sdk.Payment = self.sdk_services.payment_by_hash(checking_id)
             if payment is None:
-                return PaymentStatus(None)
-            assert payment.payment_type == breez_sdk.PaymentType.RECEIVED
-            return PaymentStatus(payment.status == breez_sdk.PaymentStatus.COMPLETE)
+                return PaymentPendingStatus()
+            if payment.payment_type != breez_sdk.PaymentType.RECEIVED:
+                raise ValueError(f"unexpected payment type: {payment.status}")
+            if payment.status == breez_sdk.PaymentStatus.COMPLETE:
+                return PaymentSuccessStatus()
+            return PaymentPendingStatus()
 
         async def get_payment_status(self, checking_id: str) -> PaymentStatus:
             payment: breez_sdk.Payment = self.sdk_services.payment_by_hash(checking_id)
             if payment is None:
-                return PaymentStatus(None)
-            assert payment.payment_type == breez_sdk.PaymentType.SENT
+                return PaymentPendingStatus()
+            if payment.payment_type != breez_sdk.PaymentType.SENT:
+                raise ValueError(f"unexpected payment type: {payment.status}")
             if payment.status == breez_sdk.PaymentStatus.COMPLETE:
-                return PaymentStatus(
-                    True, payment.fee_msat, payment.details.data.payment_preimage
+                return PaymentSuccessStatus(
+                    fee_msat=payment.fee_msat,
+                    preimage=payment.details.data.payment_preimage,
                 )
             elif payment.status == breez_sdk.PaymentStatus.FAILED:
-                return PaymentStatus(False)
-            else:
-                return PaymentStatus(None)
+                return PaymentFailedStatus()
+            return PaymentPendingStatus()
 
         async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
             while True:
