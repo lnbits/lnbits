@@ -397,6 +397,11 @@ async def hex_to_uuid4(hex_value: str):
 
 @generic_router.get("/lnurlwallet", response_class=RedirectResponse)
 async def lnurlwallet(request: Request):
+    """
+    If a user doesn't have a Lightning Network wallet and scans the LNURLw QR code with
+    their smartphone camera, or a QR scanner app, they can follow the link provided to
+    claim their satoshis and get an instant LNbits wallet! lnbits/withdraw docs
+    """
 
     lightning_param = request.query_params.get("lightning")
     if not lightning_param:
