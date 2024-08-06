@@ -10,7 +10,7 @@ import shortuuid
 from pydantic import BaseModel
 from pydantic.schema import field_schema
 
-from lnbits.db import compat_timestamp_placeholder
+from lnbits.db import get_placeholder
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.nodes import get_node_class
 from lnbits.requestvars import g
@@ -181,10 +181,7 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     """
     placeholders = []
     for field in model.dict().keys():
-        if model.__fields__[field].type_ == datetime:
-            placeholders.append(compat_timestamp_placeholder())
-        else:
-            placeholders.append("?")
+        placeholders.append(get_placeholder(model.__fields__[field].type_))
     fields = ", ".join(model.dict().keys())
     values = ", ".join(placeholders)
     return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
@@ -199,10 +196,7 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
     """
     fields = []
     for field in model.dict().keys():
-        if model.__fields__[field].type_ == datetime:
-            fields.append(f"{field} = {compat_timestamp_placeholder()}")
-        else:
-            fields.append(f"{field} = ?")
+        fields.append(get_placeholder(model.__fields__[field].type_))
     query = ", ".join(fields)
     return f"UPDATE {table_name} SET {query} {where}"
 
