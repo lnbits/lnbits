@@ -83,12 +83,12 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         async for checking_id in get_funding_source().paid_invoices_stream():
             if checking_id == invoice["checking_id"]:
                 # wait for the backend to update the payment status
-                await asyncio.sleep(3)
+                await asyncio.sleep(5)
                 return checking_id
 
     async def pay():
         # wait a sec to paid_invoices_stream to start listening
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
         pay_real_invoice(invoice["payment_request"])
         return True
 
@@ -302,12 +302,12 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         async for checking_id in get_funding_source().paid_invoices_stream():
             if checking_id == invoice["checking_id"]:
                 # wait for the backend to update the payment status
-                await asyncio.sleep(3)
+                await asyncio.sleep(5)
                 return checking_id
 
     async def pay():
         # wait a sec to paid_invoices_stream to start listening
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
         pay_real_invoice(invoice["payment_request"])
         return True
 
