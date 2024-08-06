@@ -445,7 +445,6 @@ class SuperUserSettings(LNbitsSettings):
         default=[
             "AlbyWallet",
             "BoltzWallet",
-            "FakeWallet",
             "BlinkWallet",
             "BreezSdkWallet",
             "CoreLightningRestWallet",
