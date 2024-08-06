@@ -196,7 +196,8 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
     """
     fields = []
     for field in model.dict().keys():
-        fields.append(get_placeholder(model.__fields__[field].type_))
+        placeholder = get_placeholder(model.__fields__[field].type_)
+        fields.append(f"{field} = {placeholder}")
     query = ", ".join(fields)
     return f"UPDATE {table_name} SET {query} {where}"
 
