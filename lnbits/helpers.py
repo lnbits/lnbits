@@ -181,7 +181,7 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     """
     placeholders = []
     for field in model.dict().keys():
-        placeholders.append(get_placeholder(model.__fields__[field].type_))
+        placeholders.append(get_placeholder(model, field))
     fields = ", ".join(model.dict().keys())
     values = ", ".join(placeholders)
     return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
@@ -196,7 +196,7 @@ def update_query(table_name: str, model: BaseModel, where: str = "WHERE id = ?")
     """
     fields = []
     for field in model.dict().keys():
-        placeholder = get_placeholder(model.__fields__[field].type_)
+        placeholder = get_placeholder(model, field)
         fields.append(f"{field} = {placeholder}")
     query = ", ".join(fields)
     return f"UPDATE {table_name} SET {query} {where}"

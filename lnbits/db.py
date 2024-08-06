@@ -65,7 +65,8 @@ def compat_timestamp_placeholder():
         return "?"
 
 
-def get_placeholder(type_: type) -> str:
+def get_placeholder(model: Any, field: str) -> str:
+    type_ = model.__fields__[field].type_
     if type_ == datetime.datetime:
         return compat_timestamp_placeholder()
     else:
@@ -430,7 +431,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
     @property
     def statement(self):
         assert self.model, "Model is required for statement generation"
-        placeholder = get_placeholder(self.model.__fields__[self.field].type_)
+        placeholder = get_placeholder(self.model, self.field)
         if self.op in (Operator.INCLUDE, Operator.EXCLUDE):
             placeholders = ", ".join([placeholder] * len(self.values))
             stmt = [f"{self.field} {self.op.as_sql} ({placeholders})"]
