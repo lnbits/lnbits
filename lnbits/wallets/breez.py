@@ -136,6 +136,7 @@ else:
                 connect_request = breez_sdk.ConnectRequest(self.config, seed)
                 self.sdk_services = breez_sdk.connect(connect_request, SDKListener())
             except Exception as exc:
+                logger.warning(exc)
                 raise ValueError(f"cannot initialize BreezSdkWallet: {exc!s}") from exc
 
         async def cleanup(self):
@@ -159,30 +160,37 @@ else:
         ) -> InvoiceResponse:
             # if description_hash or unhashed_description:
             #     raise UnsupportedError("description_hash and unhashed_description")
-
-            if description_hash and not unhashed_description:
-                raise UnsupportedError(
-                    "'description_hash' unsupported by Greenlight, provide"
-                    " 'unhashed_description'"
-                )
-            breez_invoice: breez_sdk.ReceivePaymentResponse = (
-                self.sdk_services.receive_payment(
-                    breez_sdk.ReceivePaymentRequest(
-                        amount * 1000,  # breez uses msat
-                        unhashed_description.decode() if unhashed_description else memo,
-                        preimage=kwargs.get("preimage"),
-                        opening_fee_params=None,
-                        use_description_hash=True if unhashed_description else None,
+            try:
+                if description_hash and not unhashed_description:
+                    raise UnsupportedError(
+                        "'description_hash' unsupported by Greenlight, provide"
+                        " 'unhashed_description'"
+                    )
+                breez_invoice: breez_sdk.ReceivePaymentResponse = (
+                    self.sdk_services.receive_payment(
+                        breez_sdk.ReceivePaymentRequest(
+                            amount * 1000,  # breez uses msat
+                            (
+                                unhashed_description.decode()
+                                if unhashed_description
+                                else memo
+                            ),
+                            preimage=kwargs.get("preimage"),
+                            opening_fee_params=None,
+                            use_description_hash=True if unhashed_description else None,
+                        )
                     )
                 )
-            )
 
-            return InvoiceResponse(
-                True,
-                breez_invoice.ln_invoice.payment_hash,
-                breez_invoice.ln_invoice.bolt11,
-                None,
-            )
+                return InvoiceResponse(
+                    True,
+                    breez_invoice.ln_invoice.payment_hash,
+                    breez_invoice.ln_invoice.bolt11,
+                    None,
+                )
+            except Exception as e:
+                logger.warning(e)
+                return InvoiceResponse(False, None, None, str(e))
 
         async def pay_invoice(
             self, bolt11: str, fee_limit_msat: int
@@ -196,7 +204,7 @@ else:
                 )
                 payment: breez_sdk.Payment = send_payment_response.payment
             except Exception as exc:
-                logger.info(exc)
+                logger.warning(exc)
                 try:
                     # try to report issue to Breez to improve LSP routing
                     self.sdk_services.report_issue(
@@ -211,9 +219,9 @@ else:
                     False, None, None, None, f"payment failed: {exc}"
                 )
 
-            assert (
-                payment.status == breez_sdk.PaymentStatus.COMPLETE
-            ), "payment is pending"
+            if payment.status != breez_sdk.PaymentStatus.COMPLETE:
+                return PaymentResponse(False, None, None, None, "payment is pending")
+
             # let's use the payment_hash as the checking_id
             checking_id = invoice.payment_hash
 
@@ -226,29 +234,45 @@ else:
             )
 
         async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-            payment: breez_sdk.Payment = self.sdk_services.payment_by_hash(checking_id)
-            if payment is None:
+            try:
+                payment: breez_sdk.Payment = self.sdk_services.payment_by_hash(
+                    checking_id
+                )
+                if payment is None:
+                    return PaymentPendingStatus()
+                if payment.payment_type != breez_sdk.PaymentType.RECEIVED:
+                    logger.warning(f"unexpected payment type: {payment.status}")
+                    return PaymentPendingStatus()
+                if payment.status == breez_sdk.PaymentStatus.FAILED:
+                    return PaymentFailedStatus()
+                if payment.status == breez_sdk.PaymentStatus.COMPLETE:
+                    return PaymentSuccessStatus()
                 return PaymentPendingStatus()
-            if payment.payment_type != breez_sdk.PaymentType.RECEIVED:
-                raise ValueError(f"unexpected payment type: {payment.status}")
-            if payment.status == breez_sdk.PaymentStatus.COMPLETE:
-                return PaymentSuccessStatus()
-            return PaymentPendingStatus()
+            except Exception as exc:
+                logger.warning(exc)
+                return PaymentPendingStatus()
 
         async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-            payment: breez_sdk.Payment = self.sdk_services.payment_by_hash(checking_id)
-            if payment is None:
-                return PaymentPendingStatus()
-            if payment.payment_type != breez_sdk.PaymentType.SENT:
-                raise ValueError(f"unexpected payment type: {payment.status}")
-            if payment.status == breez_sdk.PaymentStatus.COMPLETE:
-                return PaymentSuccessStatus(
-                    fee_msat=payment.fee_msat,
-                    preimage=payment.details.data.payment_preimage,
+            try:
+                payment: breez_sdk.Payment = self.sdk_services.payment_by_hash(
+                    checking_id
                 )
-            elif payment.status == breez_sdk.PaymentStatus.FAILED:
-                return PaymentFailedStatus()
-            return PaymentPendingStatus()
+                if payment is None:
+                    return PaymentPendingStatus()
+                if payment.payment_type != breez_sdk.PaymentType.SENT:
+                    logger.warning(f"unexpected payment type: {payment.status}")
+                    return PaymentPendingStatus()
+                if payment.status == breez_sdk.PaymentStatus.COMPLETE:
+                    return PaymentSuccessStatus(
+                        fee_msat=payment.fee_msat,
+                        preimage=payment.details.data.payment_preimage,
+                    )
+                if payment.status == breez_sdk.PaymentStatus.FAILED:
+                    return PaymentFailedStatus()
+                return PaymentPendingStatus()
+            except Exception as exc:
+                logger.warning(exc)
+                return PaymentPendingStatus()
 
         async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
             while True:
