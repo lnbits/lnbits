@@ -139,12 +139,13 @@ async def invoice_listener() -> None:
 
 
 def wait_for_paid_invoices(
-    func: Callable[[Payment], Coroutine], task_name: str
+    invoice_listener_name: str,
+    func: Callable[[Payment], Coroutine],
 ) -> Callable[[], Coroutine]:
 
     async def wrapper() -> None:
         invoice_queue: asyncio.Queue = asyncio.Queue()
-        register_invoice_listener(invoice_queue, task_name)
+        register_invoice_listener(invoice_queue, invoice_listener_name)
         while settings.lnbits_running:
             payment = await invoice_queue.get()
             await func(payment)
