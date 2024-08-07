@@ -1,0 +1,418 @@
+{
+  "funding_sources": {
+    "nwc-bad": {
+      "description": "NWC service that supports only pay_invoice",
+      "wallet_class": "NWCWallet",
+      "settings": {
+        "nwc_pairing_url": "nostr+walletconnect://be927be01ce2b3ab0fc33ffec6c6ab590381d7fc883a392d163d3966fc5840b3?relay=ws://127.0.0.1:8555&secret=d1b1d3b0f4a1fcba4c15094d34ff0569cae3c8c7af939b3473ccd564cce3bfa3"
+      },
+      "mock_settings": {
+        "service_public_key": "be927be01ce2b3ab0fc33ffec6c6ab590381d7fc883a392d163d3966fc5840b3",
+        "service_private_key": "ad6a224c9c2f2a7ac7181092348d99671a94f28974e331e0f0afe3bcdab72bed",
+        "user_public_key": "bef38893a567e717110478cc5729f4bf881727f5a7d7859edad2b2b21ee81f7e",
+        "user_private_key": "d1b1d3b0f4a1fcba4c15094d34ff0569cae3c8c7af939b3473ccd564cce3bfa3",
+        "port": 8555,
+        "supported_methods": ["pay_invoice"]
+      }
+    }
+  },
+  "functions": {
+    "status": {
+      "mocks": {
+        "nwc-bad": {
+          "get_balance": {}
+        }
+      },
+      "tests": [
+        {
+          "description": "success",
+          "call_params": {},
+          "expect": {
+            "error_message": null,
+            "balance_msat": 0
+          },
+          "mocks": {
+            "nwc-bad": {}
+          }
+        }
+      ]
+    },
+    "create_invoice": {
+      "mocks": {
+        "nwc-bad": {
+          "make_invoice": {}
+        }
+      },
+      "tests": [
+        {
+          "description": "success",
+          "call_params": {
+            "amount": 555,
+            "memo": "Test Invoice",
+            "label": "test-label"
+          },
+          "expect": {
+            "error_message": "make_invoice is not supported by this NWC service.",
+            "success": false
+          },
+          "mocks": {
+            "nwc-bad": {}
+          }
+        }
+      ]
+    },
+    "pay_invoice": {
+      "mocks": {
+        "nwc-bad": {
+          "pay_invoice": {},
+          "lookup_invoice": {}
+        }
+      },
+      "tests": [
+        {
+          "description": "success",
+          "call_params": {
+            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+            "fee_limit_msat": 25000
+          },
+          "expect": {
+            "error_message": null,
+            "success": true,
+            "pending": false,
+            "failed": false,
+            "checking_id": "66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925",
+            "fee_msat": 50,
+            "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          "mocks": {
+            "nwc-bad": {
+              "pay_invoice": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "method": "pay_invoice",
+                    "params": {
+                      "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                    }
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "result_type": "pay_invoice",
+                    "result": {
+                      "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "failed",
+          "call_params": {
+            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+            "fee_limit_msat": 25000
+          },
+          "expect": {
+            "success": false,
+            "pending": false,
+            "failed": true,
+            "checking_id": null,
+            "fee_msat": null,
+            "preimage": null
+          },
+          "mocks": {
+            "nwc-bad": {
+              "pay_invoice": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "method": "pay_invoice",
+                    "params": {
+                      "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                    }
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "result_type": "pay_invoice",
+                    "error": {
+                      "code": "TEST ERROR",
+                      "message": "test-error"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "error",
+          "call_params": {
+            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+            "fee_limit_msat": 25000
+          },
+          "expect": {
+            "success": false,
+            "pending": true,
+            "failed": false,
+            "checking_id": null,
+            "fee_msat": null,
+            "preimage": null,
+            "error_message": "TEST ERROR test-error"
+          },
+          "mocks": {
+            "nwc-bad": {
+              "pay_invoice": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "method": "pay_invoice",
+                    "params": {
+                      "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu"
+                    }
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "result_type": "pay_invoice",
+                    "error": {
+                      "code": "TEST ERROR",
+                      "message": "test-error"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "get_invoice_status": {
+      "mocks": {
+        "nwc-bad": {
+          "lookup_invoice": {}
+        }
+      },
+      "tests": [
+        {
+          "description": "paid",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "success": false,
+            "failed": false,
+            "pending": true
+          },
+          "mocks": {
+            "nwc-bad": {
+              "lookup_invoice": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "method": "lookup_invoice",
+                    "params": {
+                      "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    }
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "result_type": "lookup_invoice",
+                    "result": {
+                      "type": "incoming",
+                      "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                      "description": "Test Invoice",
+                      "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                      "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                      "amount": 123,
+                      "fees_paid": 123,
+                      "created_at": 0,
+                      "expires_at": 0,
+                      "settled_at": 1,
+                      "metadata": {}
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "failed",
+          "description1": "pending should be false in the 'expect', this is a bug",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "success": false,
+            "failed": false,
+            "pending": true
+          },
+          "mocks": {
+            "nwc-bad": [
+              {
+                "description": "nwc.py doesn't handle the 'failed' status for `get_invoice_status`"
+              }
+            ]
+          }
+        },
+        {
+          "description": "pending",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "success": false,
+            "failed": false,
+            "pending": true
+          },
+          "mocks": {
+            "nwc-bad": {
+              "lookup_invoice": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "method": "lookup_invoice",
+                    "params": {
+                      "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    }
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "result_type": "lookup_invoice",
+                    "result": {
+                      "type": "incoming",
+                      "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                      "description": "Test Invoice",
+                      "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                      "amount": 123,
+                      "fees_paid": 0,
+                      "created_at": 0,
+                      "expires_at": 0,
+                      "metadata": {}
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "get_payment_status": {
+      "mocks": {
+        "nwc-bad": {
+          "lookup_invoice": {}
+        }
+      },
+      "tests": [
+        {
+          "description": "paid",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "fee_msat": null,
+            "preimage": null,
+            "success": false,
+            "failed": false,
+            "pending": true
+          },
+          "mocks": {
+            "nwc-bad": {
+              "lookup_invoice": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "method": "lookup_invoice",
+                    "params": {
+                      "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    }
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "result_type": "lookup_invoice",
+                    "result": {
+                      "type": "incoming",
+                      "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                      "description": "Test Invoice",
+                      "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                      "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                      "amount": 123,
+                      "fees_paid": 1000,
+                      "created_at": 0,
+                      "expires_at": 0,
+                      "settled_at": 1,
+                      "metadata": {}
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "failed",
+          "description1": "pending should be false in the 'expect', this is a bug",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "preimage": null,
+            "success": false,
+            "failed": true,
+            "pending": true
+          },
+          "mocks": {
+            "nwc-bad": [
+              {
+                "description": "nwc.py doesn't handle the 'failed' status for `get_payment_status`"
+              }
+            ]
+          }
+        },
+        {
+          "description": "pending",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "preimage": null,
+            "success": false,
+            "failed": false,
+            "pending": true
+          },
+          "mocks": {
+            "nwc-bad": {
+              "lookup_invoice": [
+                {
+                  "request_type": "json",
+                  "request_body": {
+                    "method": "lookup_invoice",
+                    "params": {
+                      "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                    }
+                  },
+                  "response_type": "json",
+                  "response": {
+                    "result_type": "lookup_invoice",
+                    "result": {
+                      "type": "incoming",
+                      "invoice": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                      "description": "Test Invoice",
+                      "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                      "amount": 123,
+                      "fees_paid": 0,
+                      "created_at": 0,
+                      "expires_at": 0,
+                      "metadata": {}
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

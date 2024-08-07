@@ -167,6 +167,13 @@ Vue.component('lnbits-funding-sources', {
           }
         ],
         [
+          'NWCWallet',
+          'Nostr Wallet Connect',
+          {
+            nwc_pairing_url: 'Pairing URL'
+          }
+        ],
+        [
           'BreezSdkWallet',
           'Breez SDK',
           {

@@ -8,6 +8,7 @@ class FundingSourceConfig(BaseModel):
     skip: Optional[bool]
     wallet_class: str
     settings: dict
+    mock_settings: Optional[dict]
 
 
 class FunctionMock(BaseModel):

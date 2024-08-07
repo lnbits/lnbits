@@ -124,3 +124,12 @@ A Greenlight invite code or Greenlight partner certificate/key can be used to re
 ### Cliche Wallet
 
 - `CLICHE_ENDPOINT`: ws://127.0.0.1:12000
+
+### Nostr Wallet Connect (NWC)
+
+To use NWC as funding source in LNbits you'll need a pairing URL (also known as pairing secret) from a NWC service provider. You can find a list of providers [here](https://github.com/getAlby/awesome-nwc?tab=readme-ov-file#nwc-wallets).
+
+You can configure Nostr Wallet Connect in the admin ui or using the following environment variables:
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **NWCWallet**
+- `NWC_PAIRING_URL`: **nostr+walletconnect://...your...pairing...secret...**
