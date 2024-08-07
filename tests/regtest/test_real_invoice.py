@@ -7,9 +7,10 @@ from lnbits import bolt11
 from lnbits.core.crud import get_standalone_payment, update_payment_details
 from lnbits.core.models import CreateInvoice, Payment, PaymentState
 from lnbits.core.services import fee_reserve_total, get_balance_delta
+from lnbits.tasks import create_task, wait_for_paid_invoices
 from lnbits.wallets import get_funding_source
 
-from ..helpers import is_fake, is_regtest
+from ..helpers import FakeError, is_fake, is_regtest
 from .helpers import (
     cancel_invoice,
     get_real_invoice,
@@ -79,33 +80,30 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     payment_status = response.json()
     assert not payment_status["paid"]
 
-    async def listen():
-        async for checking_id in get_funding_source().paid_invoices_stream():
-            if checking_id == invoice["checking_id"]:
-                # wait for the backend to update the payment status
-                await asyncio.sleep(5)
-                return checking_id
+    async def on_paid(payment: Payment):
 
-    async def pay():
-        # wait a sec to paid_invoices_stream to start listening
-        await asyncio.sleep(2)
-        pay_real_invoice(invoice["payment_request"])
-        return True
+        assert payment.checking_id == invoice["payment_hash"]
 
-    checking_id, paid = await asyncio.gather(listen(), pay())
-    assert paid
-    assert checking_id == invoice["payment_hash"]
+        response = await client.get(
+            f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
+        )
+        assert response.status_code < 300
+        payment_status = response.json()
+        assert payment_status["paid"]
 
-    response = await client.get(
-        f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
-    )
-    assert response.status_code < 300
-    payment_status = response.json()
-    assert payment_status["paid"]
+        await asyncio.sleep(1)
+        balance = await get_node_balance_sats()
+        assert balance - prev_balance == create_invoice.amount
 
-    await asyncio.sleep(1)
-    balance = await get_node_balance_sats()
-    assert balance - prev_balance == create_invoice.amount
+        # exit out of infinite loop
+        raise FakeError()
+
+    task = create_task(wait_for_paid_invoices("test_create_invoice", on_paid)())
+    pay_real_invoice(invoice["payment_request"])
+
+    # wait for the task to exit
+    with pytest.raises(FakeError):
+        await task
 
 
 @pytest.mark.asyncio
@@ -298,45 +296,38 @@ async def test_receive_real_invoice_set_pending_and_check_state(
     payment_status = response.json()
     assert not payment_status["paid"]
 
-    async def listen():
-        async for checking_id in get_funding_source().paid_invoices_stream():
-            if checking_id == invoice["checking_id"]:
-                # wait for the backend to update the payment status
-                await asyncio.sleep(5)
-                return checking_id
+    async def on_paid(payment: Payment):
+        assert payment.checking_id == invoice["payment_hash"]
 
-    async def pay():
-        # wait a sec to paid_invoices_stream to start listening
-        await asyncio.sleep(2)
-        pay_real_invoice(invoice["payment_request"])
-        return True
+        response = await client.get(
+            f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
+        )
+        assert response.status_code < 300
+        payment_status = response.json()
+        assert payment_status["paid"]
 
-    checking_id, paid = await asyncio.gather(listen(), pay())
-    assert paid
-    assert checking_id == invoice["payment_hash"]
+        assert payment
+        assert payment.pending is False
 
-    response = await client.get(
-        f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
-    )
-    assert response.status_code < 300
-    payment_status = response.json()
-    assert payment_status["paid"]
+        # set the incoming invoice to pending
+        await update_payment_details(payment.checking_id, status=PaymentState.PENDING)
 
-    # get the incoming payment from the db
-    payment = await get_standalone_payment(invoice["payment_hash"], incoming=True)
-    assert payment
-    assert payment.pending is False
+        payment_pending = await get_standalone_payment(
+            invoice["payment_hash"], incoming=True
+        )
+        assert payment_pending
+        assert payment_pending.pending is True
+        assert payment_pending.success is False
+        assert payment_pending.failed is False
 
-    # set the incoming invoice to pending
-    await update_payment_details(payment.checking_id, status=PaymentState.PENDING)
+        # exit out of infinite loop
+        raise FakeError()
 
-    payment_pending = await get_standalone_payment(
-        invoice["payment_hash"], incoming=True
-    )
-    assert payment_pending
-    assert payment_pending.pending is True
-    assert payment_pending.success is False
-    assert payment_pending.failed is False
+    task = create_task(wait_for_paid_invoices("test_create_invoice", on_paid)())
+    pay_real_invoice(invoice["payment_request"])
+
+    with pytest.raises(FakeError):
+        await task
 
 
 @pytest.mark.asyncio
