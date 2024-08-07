@@ -972,7 +972,6 @@ async def update_payment_details(
         f"UPDATE apipayments SET {', '.join(set_clause)} WHERE checking_id = ?",
         tuple(set_variables),
     )
-    return
 
 
 async def update_payment_extra(
