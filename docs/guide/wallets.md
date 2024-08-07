@@ -127,7 +127,7 @@ A Greenlight invite code or Greenlight partner certificate/key can be used to re
 
 ### Nostr Wallet Connect (NWC)
 
-To use NWC as funding source in lnbits you'll need a pairing URL (also known as pairing secret) from a NWC service provider. You can find a list of providers [here](https://github.com/getAlby/awesome-nwc?tab=readme-ov-file#nwc-wallets).
+To use NWC as funding source in LNbits you'll need a pairing URL (also known as pairing secret) from a NWC service provider. You can find a list of providers [here](https://github.com/getAlby/awesome-nwc?tab=readme-ov-file#nwc-wallets).
 
 You can configure Nostr Wallet Connect in the admin ui or using the following environment variables:
 
