@@ -217,6 +217,8 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
             preimage=status.preimage,
             status=PaymentState.SUCCESS,
         )
+        payment = await get_standalone_payment(checking_id, incoming=True)
+        assert payment, "updated payment not found"
         internal = "internal" if is_internal else ""
         logger.success(f"{internal} invoice {checking_id} settled")
         for name, send_chan in invoice_listeners.items():
