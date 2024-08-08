@@ -67,6 +67,7 @@ __all__ = [
     "LndRestWallet",
     "LNPayWallet",
     "LnTipsWallet",
+    "NWCWallet",
     "OpenNodeWallet",
     "PhoenixdWallet",
     "SparkWallet",
