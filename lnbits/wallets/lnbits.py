@@ -126,8 +126,12 @@ class LNbitsWallet(Wallet):
             payment: PaymentStatus = await self.get_payment_status(checking_id)
 
             success = True if payment.success else None
+            fee_msat = abs(payment.fee_msat or 0)
             return PaymentResponse(
-                success, checking_id, payment.fee_msat, payment.preimage
+                ok=success,
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=payment.preimage,
             )
 
         except httpx.HTTPStatusError as exc:
@@ -190,8 +194,10 @@ class LNbitsWallet(Wallet):
                 return PaymentPendingStatus()
 
             return PaymentSuccessStatus(
-                fee_msat=data["details"]["fee"], preimage=data["preimage"]
+                fee_msat=abs(data["details"].get("fee", 0)),
+                preimage=data.get("preimage"),
             )
+
         except Exception:
             return PaymentPendingStatus()
 
