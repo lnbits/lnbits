@@ -9,6 +9,7 @@ from lnbits.wallets.base import Wallet
 
 from .alby import AlbyWallet
 from .blink import BlinkWallet
+from .boltz import BoltzWallet
 from .breez import BreezSdkWallet
 from .cliche import ClicheWallet
 from .corelightning import CoreLightningWallet
@@ -55,6 +56,7 @@ funding_source: Wallet = fake_wallet
 __all__ = [
     "AlbyWallet",
     "BlinkWallet",
+    "BoltzWallet",
     "BreezSdkWallet",
     "ClicheWallet",
     "CoreLightningWallet",
