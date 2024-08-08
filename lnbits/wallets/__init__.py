@@ -56,6 +56,7 @@ funding_source: Wallet = fake_wallet
 __all__ = [
     "AlbyWallet",
     "BlinkWallet",
+    "BoltzWallet",
     "BreezSdkWallet",
     "ClicheWallet",
     "CoreLightningWallet",
