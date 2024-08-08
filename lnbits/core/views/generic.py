@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, List, Optional, Union
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from fastapi import Cookie, Depends, Query, Request
@@ -416,17 +416,28 @@ async def lnurlwallet(request: Request):
         res1 = await client.get(lnurl, timeout=2)
         res1.raise_for_status()
         data1 = res1.json()
+        if data1.get("tag") != "withdrawRequest":
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="Invalid lnurl. Expected tag=withdrawRequest",
+            )
+        if not data1.get("maxWithdrawable"):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="Invalid lnurl. Expected maxWithdrawable",
+            )
         account = await create_account()
         wallet = await create_wallet(user_id=account.id)
         _, payment_request = await create_invoice(
             wallet_id=wallet.id,
             amount=data1.get("maxWithdrawable") / 1000,
-            memo=data1.get("defaultDescription"),
+            memo=data1.get("defaultDescription", "lnurl wallet withdraw"),
         )
-        res2 = await client.get(
-            f"{data1.get('callback')}?k1={data1.get('k1')}&pr={payment_request}",
-            timeout=2,
-        )
+        url = data1.get("callback")
+        params = {"k1": data1.get("k1"), "pr": payment_request}
+        callback = url + ("&" if urlparse(url).query else "?") + urlencode(params)
+
+        res2 = await client.get(callback, timeout=2)
         res2.raise_for_status()
 
     return RedirectResponse(
