@@ -54,7 +54,7 @@ def get_placeholder(model: Any, field: str) -> str:
     if type_ == datetime.datetime:
         return compat_timestamp_placeholder(field)
     else:
-        return "?"
+        return f":{field}"
 
 
 class Compat:
