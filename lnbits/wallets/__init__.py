@@ -50,3 +50,26 @@ fake_wallet = FakeWallet()
 
 # initialize as fake wallet
 funding_source: Wallet = fake_wallet
+
+
+__all__ = [
+    "AlbyWallet",
+    "BlinkWallet",
+    "BreezSdkWallet",
+    "ClicheWallet",
+    "CoreLightningWallet",
+    "CLightningWallet",
+    "CoreLightningRestWallet",
+    "EclairWallet",
+    "FakeWallet",
+    "LNbitsWallet",
+    "LndWallet",
+    "LndRestWallet",
+    "LNPayWallet",
+    "LnTipsWallet",
+    "OpenNodeWallet",
+    "PhoenixdWallet",
+    "SparkWallet",
+    "VoidWallet",
+    "ZBDWallet",
+]

@@ -202,10 +202,6 @@ classmethod-decorators = [
     "root_validator",
 ]
 
-# Ignore unused imports in __init__.py files.
-[tool.ruff.lint.extend-per-file-ignores]
-"__init__.py" = ["F401", "F403"]
-
 [tool.ruff.lint.mccabe]
 # TODO: Decrease this to 10.
 max-complexity = 16
