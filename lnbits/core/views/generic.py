@@ -1,17 +1,20 @@
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, List, Optional, Union
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
+import httpx
 from fastapi import Cookie, Depends, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.routing import APIRouter
+from lnurl import decode as lnurl_decode
 from loguru import logger
 from pydantic.types import UUID4
 
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
+from lnbits.core.services import create_invoice
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
@@ -20,6 +23,7 @@ from lnbits.wallets import get_funding_source
 from ...extension_manager import InstallableExtension, get_valid_extensions
 from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
+    create_account,
     create_wallet,
     get_dbversions,
     get_installed_extensions,
@@ -389,3 +393,53 @@ async def hex_to_uuid4(hex_value: str):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
         ) from exc
+
+
+@generic_router.get("/lnurlwallet", response_class=RedirectResponse)
+async def lnurlwallet(request: Request):
+    """
+    If a user doesn't have a Lightning Network wallet and scans the LNURLw QR code with
+    their smartphone camera, or a QR scanner app, they can follow the link provided to
+    claim their satoshis and get an instant LNbits wallet! lnbits/withdraw docs
+    """
+
+    lightning_param = request.query_params.get("lightning")
+    if not lightning_param:
+        return {"status": "ERROR", "reason": "lightning parameter not provided."}
+    if not settings.lnbits_allow_new_accounts:
+        return {"status": "ERROR", "reason": "New accounts are not allowed."}
+
+    lnurl = lnurl_decode(lightning_param)
+
+    async with httpx.AsyncClient() as client:
+
+        res1 = await client.get(lnurl, timeout=2)
+        res1.raise_for_status()
+        data1 = res1.json()
+        if data1.get("tag") != "withdrawRequest":
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="Invalid lnurl. Expected tag=withdrawRequest",
+            )
+        if not data1.get("maxWithdrawable"):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="Invalid lnurl. Expected maxWithdrawable",
+            )
+        account = await create_account()
+        wallet = await create_wallet(user_id=account.id)
+        _, payment_request = await create_invoice(
+            wallet_id=wallet.id,
+            amount=data1.get("maxWithdrawable") / 1000,
+            memo=data1.get("defaultDescription", "lnurl wallet withdraw"),
+        )
+        url = data1.get("callback")
+        params = {"k1": data1.get("k1"), "pr": payment_request}
+        callback = url + ("&" if urlparse(url).query else "?") + urlencode(params)
+
+        res2 = await client.get(callback, timeout=2)
+        res2.raise_for_status()
+
+    return RedirectResponse(
+        f"/wallet?usr={account.id}&wal={wallet.id}",
+    )
