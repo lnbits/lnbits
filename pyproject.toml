@@ -32,8 +32,8 @@ uvicorn = "0.23.2"
 uvloop = "0.19.0"
 websockets = "11.0.3"
 loguru = "0.7.2"
-grpcio = "1.62.2"
-protobuf = "4.24.3"
+grpcio = "1.65.4"
+protobuf = "5.26.1"
 pyln-client = "24.5"
 pywebpush = "1.14.0"
 slowapi = "0.1.9"
@@ -86,6 +86,7 @@ pytest-httpserver = "^1.0.10"
 pytest-mock = "^3.14.0"
 types-mock = "^5.1.0.20240311"
 mock = "^5.1.0"
+grpcio-tools = "^1.65.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
