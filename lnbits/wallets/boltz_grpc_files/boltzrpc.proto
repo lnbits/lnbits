@@ -34,10 +34,21 @@ service Boltz {
     rpc ListSwaps (ListSwapsRequest) returns (ListSwapsResponse);
 
     /*
+    Returns stats of all swaps, reverse swaps, and chain swaps in the database.
+    */
+    rpc GetStats (GetStatsRequest) returns (GetStatsResponse);
+
+    /*
     Refund a failed swap manually.
-    This is only required when no refund address has been set or the swap does not have an associated wallet.
+    This is only required when no refund address has been set and the swap does not have an associated wallet.
     */
     rpc RefundSwap (RefundSwapRequest) returns (GetSwapInfoResponse);
+
+    /*
+    Claim swaps manually.
+    This is only required when no claim address has been set and the swap does not have an associated wallet.
+    */
+    rpc ClaimSwaps (ClaimSwapsRequest) returns (ClaimSwapsResponse);
 
     /*
     Gets all available information about a swap from the database.
@@ -346,6 +357,8 @@ message GetInfoResponse {
     repeated string refundable_swaps = 12;
     // the currently authenticated tenant
     optional Tenant tenant = 13;
+    // swaps that need a manual interaction to claim
+    repeated string claimable_swaps = 14;
 
     string symbol = 1 [deprecated = true];
     string lnd_pubkey = 3 [deprecated = true];
@@ -387,12 +400,17 @@ message GetServiceInfoResponse {
     Limits limits = 2;
 }
 
+enum IncludeSwaps {
+    ALL = 0;
+    MANUAL = 1;
+    AUTO = 2;
+}
 
 message ListSwapsRequest {
     optional Currency from = 1;
     optional Currency to = 2;
-    optional bool is_auto = 3;
     optional SwapState state = 4;
+    IncludeSwaps include = 5;
 }
 message ListSwapsResponse {
     repeated SwapInfo swaps = 1;
@@ -400,12 +418,33 @@ message ListSwapsResponse {
     repeated ReverseSwapInfo reverse_swaps = 3;
     repeated ChainSwapInfo chain_swaps = 4;
 }
+
+message GetStatsRequest {
+    IncludeSwaps include = 1;
+}
+
+message GetStatsResponse {
+    SwapStats stats = 1;
+}
+
 message RefundSwapRequest {
     string id = 1;
     oneof destination {
         string address = 2;
         uint64 wallet_id = 3;
     }
+}
+
+message ClaimSwapsRequest {
+    repeated string swap_ids = 1;
+    oneof destination {
+        string address = 2;
+        uint64 wallet_id = 3;
+    }
+}
+
+message ClaimSwapsResponse {
+    string transaction_id = 1;
 }
 
 message GetSwapInfoRequest {
@@ -445,6 +484,9 @@ message CreateSwapRequest {
     optional uint64 wallet_id = 6;
     // invoice to use for the swap. if not set, the daemon will get a new invoice from the lightning node
     optional string invoice = 7;
+    // Boltz does not accept 0-conf for Liquid transactions with a fee of 0.01 sat/vByte;
+    // when `zero_conf` is enabled, a fee of 0.1 sat/vByte will be used for Liquid lockup transactions
+    optional bool zero_conf = 8;
 }
 message CreateSwapResponse {
     string id = 1;
@@ -486,6 +528,8 @@ message CreateReverseSwapRequest {
     optional bool return_immediately = 7;
     // If set, the daemon will not pay the invoice of the swap and return the invoice to be paid. This implicitly sets `return_immediately` to true.
     optional bool external_pay = 8;
+    // Description of the invoice which will be created for the swap
+    optional string description = 9;
 }
 message CreateReverseSwapResponse {
     string id = 1;
@@ -517,6 +561,9 @@ message CreateChainSwapRequest {
     optional bool accept_zero_conf = 7;
     // If set, the daemon will not pay the swap from an internal wallet.
     optional bool external_pay = 8;
+    // Boltz does not accept 0-conf for Liquid transactions with a fee of 0.01 sat/vByte;
+    // when `lockup_zero_conf` is enabled, a fee of 0.1 sat/vByte will be used for Liquid lockup transactions
+    optional bool lockup_zero_conf = 9;
 }
 
 message ChainSwapInfo {
@@ -572,6 +619,7 @@ message SwapStats {
     uint64 avg_fees = 3;
     uint64 avg_amount = 4;
     uint64 count = 5;
+    uint64 success_count = 6;
 }
 
 message Budget {

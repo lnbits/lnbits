@@ -38,6 +38,12 @@ class SwapType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     REVERSE: _ClassVar[SwapType]
     CHAIN: _ClassVar[SwapType]
 
+class IncludeSwaps(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    ALL: _ClassVar[IncludeSwaps]
+    MANUAL: _ClassVar[IncludeSwaps]
+    AUTO: _ClassVar[IncludeSwaps]
+
 READ: MacaroonAction
 WRITE: MacaroonAction
 PENDING: SwapState
@@ -51,6 +57,9 @@ LBTC: Currency
 SUBMARINE: SwapType
 REVERSE: SwapType
 CHAIN: SwapType
+ALL: IncludeSwaps
+MANUAL: IncludeSwaps
+AUTO: IncludeSwaps
 
 class CreateTenantRequest(_message.Message):
     __slots__ = ("name",)
@@ -412,6 +421,7 @@ class GetInfoResponse(_message.Message):
         "block_heights",
         "refundable_swaps",
         "tenant",
+        "claimable_swaps",
         "symbol",
         "lnd_pubkey",
         "block_height",
@@ -426,6 +436,7 @@ class GetInfoResponse(_message.Message):
     BLOCK_HEIGHTS_FIELD_NUMBER: _ClassVar[int]
     REFUNDABLE_SWAPS_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
+    CLAIMABLE_SWAPS_FIELD_NUMBER: _ClassVar[int]
     SYMBOL_FIELD_NUMBER: _ClassVar[int]
     LND_PUBKEY_FIELD_NUMBER: _ClassVar[int]
     BLOCK_HEIGHT_FIELD_NUMBER: _ClassVar[int]
@@ -439,6 +450,7 @@ class GetInfoResponse(_message.Message):
     block_heights: BlockHeights
     refundable_swaps: _containers.RepeatedScalarFieldContainer[str]
     tenant: Tenant
+    claimable_swaps: _containers.RepeatedScalarFieldContainer[str]
     symbol: str
     lnd_pubkey: str
     block_height: int
@@ -454,6 +466,7 @@ class GetInfoResponse(_message.Message):
         block_heights: _Optional[_Union[BlockHeights, _Mapping]] = ...,
         refundable_swaps: _Optional[_Iterable[str]] = ...,
         tenant: _Optional[_Union[Tenant, _Mapping]] = ...,
+        claimable_swaps: _Optional[_Iterable[str]] = ...,
         symbol: _Optional[str] = ...,
         lnd_pubkey: _Optional[str] = ...,
         block_height: _Optional[int] = ...,
@@ -540,19 +553,19 @@ class GetServiceInfoResponse(_message.Message):
     ) -> None: ...
 
 class ListSwapsRequest(_message.Message):
-    __slots__ = ("to", "is_auto", "state")
+    __slots__ = ("to", "state", "include")
     FROM_FIELD_NUMBER: _ClassVar[int]
     TO_FIELD_NUMBER: _ClassVar[int]
-    IS_AUTO_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
+    INCLUDE_FIELD_NUMBER: _ClassVar[int]
     to: Currency
-    is_auto: bool
     state: SwapState
+    include: IncludeSwaps
     def __init__(
         self,
         to: _Optional[_Union[Currency, str]] = ...,
-        is_auto: bool = ...,
         state: _Optional[_Union[SwapState, str]] = ...,
+        include: _Optional[_Union[IncludeSwaps, str]] = ...,
         **kwargs
     ) -> None: ...
 
@@ -578,6 +591,18 @@ class ListSwapsResponse(_message.Message):
         chain_swaps: _Optional[_Iterable[_Union[ChainSwapInfo, _Mapping]]] = ...,
     ) -> None: ...
 
+class GetStatsRequest(_message.Message):
+    __slots__ = ("include",)
+    INCLUDE_FIELD_NUMBER: _ClassVar[int]
+    include: IncludeSwaps
+    def __init__(self, include: _Optional[_Union[IncludeSwaps, str]] = ...) -> None: ...
+
+class GetStatsResponse(_message.Message):
+    __slots__ = ("stats",)
+    STATS_FIELD_NUMBER: _ClassVar[int]
+    stats: SwapStats
+    def __init__(self, stats: _Optional[_Union[SwapStats, _Mapping]] = ...) -> None: ...
+
 class RefundSwapRequest(_message.Message):
     __slots__ = ("id", "address", "wallet_id")
     ID_FIELD_NUMBER: _ClassVar[int]
@@ -592,6 +617,27 @@ class RefundSwapRequest(_message.Message):
         address: _Optional[str] = ...,
         wallet_id: _Optional[int] = ...,
     ) -> None: ...
+
+class ClaimSwapsRequest(_message.Message):
+    __slots__ = ("swap_ids", "address", "wallet_id")
+    SWAP_IDS_FIELD_NUMBER: _ClassVar[int]
+    ADDRESS_FIELD_NUMBER: _ClassVar[int]
+    WALLET_ID_FIELD_NUMBER: _ClassVar[int]
+    swap_ids: _containers.RepeatedScalarFieldContainer[str]
+    address: str
+    wallet_id: int
+    def __init__(
+        self,
+        swap_ids: _Optional[_Iterable[str]] = ...,
+        address: _Optional[str] = ...,
+        wallet_id: _Optional[int] = ...,
+    ) -> None: ...
+
+class ClaimSwapsResponse(_message.Message):
+    __slots__ = ("transaction_id",)
+    TRANSACTION_ID_FIELD_NUMBER: _ClassVar[int]
+    transaction_id: str
+    def __init__(self, transaction_id: _Optional[str] = ...) -> None: ...
 
 class GetSwapInfoRequest(_message.Message):
     __slots__ = ("id",)
@@ -646,6 +692,7 @@ class CreateSwapRequest(_message.Message):
         "refund_address",
         "wallet_id",
         "invoice",
+        "zero_conf",
     )
     AMOUNT_FIELD_NUMBER: _ClassVar[int]
     PAIR_FIELD_NUMBER: _ClassVar[int]
@@ -653,12 +700,14 @@ class CreateSwapRequest(_message.Message):
     REFUND_ADDRESS_FIELD_NUMBER: _ClassVar[int]
     WALLET_ID_FIELD_NUMBER: _ClassVar[int]
     INVOICE_FIELD_NUMBER: _ClassVar[int]
+    ZERO_CONF_FIELD_NUMBER: _ClassVar[int]
     amount: int
     pair: Pair
     send_from_internal: bool
     refund_address: str
     wallet_id: int
     invoice: str
+    zero_conf: bool
     def __init__(
         self,
         amount: _Optional[int] = ...,
@@ -667,6 +716,7 @@ class CreateSwapRequest(_message.Message):
         refund_address: _Optional[str] = ...,
         wallet_id: _Optional[int] = ...,
         invoice: _Optional[str] = ...,
+        zero_conf: bool = ...,
     ) -> None: ...
 
 class CreateSwapResponse(_message.Message):
@@ -729,6 +779,7 @@ class CreateReverseSwapRequest(_message.Message):
         "wallet_id",
         "return_immediately",
         "external_pay",
+        "description",
     )
     AMOUNT_FIELD_NUMBER: _ClassVar[int]
     ADDRESS_FIELD_NUMBER: _ClassVar[int]
@@ -738,6 +789,7 @@ class CreateReverseSwapRequest(_message.Message):
     WALLET_ID_FIELD_NUMBER: _ClassVar[int]
     RETURN_IMMEDIATELY_FIELD_NUMBER: _ClassVar[int]
     EXTERNAL_PAY_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     amount: int
     address: str
     accept_zero_conf: bool
@@ -746,6 +798,7 @@ class CreateReverseSwapRequest(_message.Message):
     wallet_id: int
     return_immediately: bool
     external_pay: bool
+    description: str
     def __init__(
         self,
         amount: _Optional[int] = ...,
@@ -756,6 +809,7 @@ class CreateReverseSwapRequest(_message.Message):
         wallet_id: _Optional[int] = ...,
         return_immediately: bool = ...,
         external_pay: bool = ...,
+        description: _Optional[str] = ...,
     ) -> None: ...
 
 class CreateReverseSwapResponse(_message.Message):
@@ -795,6 +849,7 @@ class CreateChainSwapRequest(_message.Message):
         "to_wallet_id",
         "accept_zero_conf",
         "external_pay",
+        "lockup_zero_conf",
     )
     AMOUNT_FIELD_NUMBER: _ClassVar[int]
     PAIR_FIELD_NUMBER: _ClassVar[int]
@@ -804,6 +859,7 @@ class CreateChainSwapRequest(_message.Message):
     TO_WALLET_ID_FIELD_NUMBER: _ClassVar[int]
     ACCEPT_ZERO_CONF_FIELD_NUMBER: _ClassVar[int]
     EXTERNAL_PAY_FIELD_NUMBER: _ClassVar[int]
+    LOCKUP_ZERO_CONF_FIELD_NUMBER: _ClassVar[int]
     amount: int
     pair: Pair
     to_address: str
@@ -812,6 +868,7 @@ class CreateChainSwapRequest(_message.Message):
     to_wallet_id: int
     accept_zero_conf: bool
     external_pay: bool
+    lockup_zero_conf: bool
     def __init__(
         self,
         amount: _Optional[int] = ...,
@@ -822,6 +879,7 @@ class CreateChainSwapRequest(_message.Message):
         to_wallet_id: _Optional[int] = ...,
         accept_zero_conf: bool = ...,
         external_pay: bool = ...,
+        lockup_zero_conf: bool = ...,
     ) -> None: ...
 
 class ChainSwapInfo(_message.Message):
@@ -974,17 +1032,26 @@ class LightningChannel(_message.Message):
     ) -> None: ...
 
 class SwapStats(_message.Message):
-    __slots__ = ("total_fees", "total_amount", "avg_fees", "avg_amount", "count")
+    __slots__ = (
+        "total_fees",
+        "total_amount",
+        "avg_fees",
+        "avg_amount",
+        "count",
+        "success_count",
+    )
     TOTAL_FEES_FIELD_NUMBER: _ClassVar[int]
     TOTAL_AMOUNT_FIELD_NUMBER: _ClassVar[int]
     AVG_FEES_FIELD_NUMBER: _ClassVar[int]
     AVG_AMOUNT_FIELD_NUMBER: _ClassVar[int]
     COUNT_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS_COUNT_FIELD_NUMBER: _ClassVar[int]
     total_fees: int
     total_amount: int
     avg_fees: int
     avg_amount: int
     count: int
+    success_count: int
     def __init__(
         self,
         total_fees: _Optional[int] = ...,
@@ -992,6 +1059,7 @@ class SwapStats(_message.Message):
         avg_fees: _Optional[int] = ...,
         avg_amount: _Optional[int] = ...,
         count: _Optional[int] = ...,
+        success_count: _Optional[int] = ...,
     ) -> None: ...
 
 class Budget(_message.Message):
