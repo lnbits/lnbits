@@ -95,6 +95,7 @@ class BoltzWallet(Wallet):
             wallet_id=self.wallet_id,
             accept_zero_conf=True,
             external_pay=True,
+            description=memo,
         )
         response: boltzrpc_pb2.CreateReverseSwapResponse
         try:
