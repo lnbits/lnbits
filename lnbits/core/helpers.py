@@ -6,12 +6,19 @@ from uuid import UUID
 import httpx
 from loguru import logger
 
+from lnbits.core import migrations as core_migrations
+from lnbits.core.crud import (
+    get_dbversions,
+    get_installed_extensions,
+    update_migration_version,
+)
 from lnbits.core.db import db as core_db
-from lnbits.db import Connection
-from lnbits.extension_manager import Extension
+from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
+from lnbits.extension_manager import (
+    Extension,
+    get_valid_extensions,
+)
 from lnbits.settings import settings
-
-from .crud import update_migration_version
 
 
 async def migrate_extension_database(ext: Extension, current_version):
@@ -119,3 +126,46 @@ def to_valid_user_id(user_id: str) -> UUID:
         raise ValueError("Invalid hex string for User ID.") from exc
 
     return UUID(hex=user_id[:32], version=4)
+
+
+async def load_disabled_extension_list() -> None:
+    """Update list of extensions that have been explicitly disabled"""
+    inactive_extensions = await get_installed_extensions(active=False)
+    settings.lnbits_deactivated_extensions.update([e.id for e in inactive_extensions])
+
+
+async def migrate_databases():
+    """Creates the necessary databases if they don't exist already; or migrates them."""
+
+    async with core_db.connect() as conn:
+        exists = False
+        if conn.type == SQLITE:
+            exists = await conn.fetchone(
+                "SELECT * FROM sqlite_master WHERE type='table' AND name='dbversions'"
+            )
+        elif conn.type in {POSTGRES, COCKROACH}:
+            exists = await conn.fetchone(
+                "SELECT * FROM information_schema.tables WHERE table_schema = 'public'"
+                " AND table_name = 'dbversions'"
+            )
+
+        if not exists:
+            await core_migrations.m000_create_migrations_table(conn)
+
+        current_versions = await get_dbversions(conn)
+        core_version = current_versions.get("core", 0)
+        await run_migration(conn, core_migrations, "core", core_version)
+
+    # here is the first place we can be sure that the
+    # `installed_extensions` table has been created
+    await load_disabled_extension_list()
+
+    # todo: revisit, use installed extensions
+    for ext in get_valid_extensions(False):
+        current_version = current_versions.get(ext.code, 0)
+        try:
+            await migrate_extension_database(ext, current_version)
+        except Exception as e:
+            logger.exception(f"Error migrating extension {ext.code}: {e}")
+
+    logger.info("✔️ All migrations done.")
