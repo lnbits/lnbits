@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@chenfengyuan/vue-qrcode": "1.0.2",
-    "axios": "^1.6.0",
+    "axios": "^1.7.4",
     "chart.js": "2.9",
     "moment": "^2.29.4",
     "quasar": "1.13.2",
