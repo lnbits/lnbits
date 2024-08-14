@@ -13,6 +13,10 @@ class LnurlErrorResponseHandler(APIRoute):
     LNURL errors always return with status 200 and
     a JSON response with `status="ERROR"` and a `reason` key.
     Helps to catch HTTPException and return a valid lnurl error response
+
+    Example:
+    withdraw_lnurl_router = APIRouter(prefix="/api/v1/lnurl")
+    withdraw_lnurl_router.route_class = LnurlErrorResponseHandler
     """
 
     def get_route_handler(self) -> Callable:
