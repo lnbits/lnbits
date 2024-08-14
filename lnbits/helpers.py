@@ -12,6 +12,7 @@ import shortuuid
 from packaging import version
 from pydantic.schema import field_schema
 
+from lnbits.db import Database
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.nodes import get_node_class
 from lnbits.requestvars import g
@@ -255,3 +256,24 @@ def file_hash(filename):
         while n := f.readinto(mv):
             h.update(mv[:n])
     return h.hexdigest()
+
+
+async def delete_table_column(
+    db: Database, table: str, table_name: str, columns_to_keep: list[str]
+):
+    """
+    Helper function to delete columns from a table works on sqlite and postgres
+    :param db: Database connection
+    :param table: Table name
+    :param table_name: Table name with schema
+    :param fields: List of columns to keep
+    """
+    await db.execute(
+        f"""
+        CREATE TABLE {table_name}_backup AS
+        SELECT {", ".join(columns_to_keep)} FROM {table_name}
+        """
+    )
+    await db.execute(f"DROP TABLE {table_name}")
+    # NOTE using `{table_name}` for the RENAME TO clause will not work in sqlite
+    await db.execute(f"ALTER TABLE {table_name}_backup RENAME {table}")
