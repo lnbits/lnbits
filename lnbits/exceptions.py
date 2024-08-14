@@ -1,44 +1,16 @@
 import sys
 import traceback
 from http import HTTPStatus
-from typing import Callable, Optional
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse, Response
-from fastapi.routing import APIRoute
 from loguru import logger
 
 from lnbits.core.services import InvoiceError, PaymentError
 
 from .helpers import template_renderer
-
-
-class LnurlErrorResponseHandler(APIRoute):
-    """
-    Custom APIRoute class to handle LNURL errors.
-    LNURL errors always return with status 200 and
-    a JSON responses with an `error` key.
-    now we can just catch the HTTPException and be sure
-    we return a JSON response with the error message.
-    """
-
-    def get_route_handler(self) -> Callable:
-        original_route_handler = super().get_route_handler()
-
-        async def custom_route_handler(request: Request) -> Response:
-            try:
-                response = await original_route_handler(request)
-                return response
-            except HTTPException as exc:
-                logger.debug(f"HTTPException: {exc}")
-                response = JSONResponse(
-                    status_code=200,
-                    content={"status": "ERROR", "reason": f"{exc.detail}"},
-                )
-                return response
-
-        return custom_route_handler
 
 
 def register_exception_handlers(app: FastAPI):
