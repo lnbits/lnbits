@@ -128,6 +128,7 @@ class BoltzWallet(Wallet):
                 invoice=bolt11,
                 pair=pair,
                 wallet_id=self.wallet_id,
+                zero_conf=True,
                 send_from_internal=True,
             )
             response: boltzrpc_pb2.CreateSwapResponse
