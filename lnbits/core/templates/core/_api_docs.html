@@ -19,6 +19,13 @@
             <strong>Wallet ID: </strong><em>{{ wallet.id }}</em>
           </q-item-label>
         </q-item-section>
+        <q-item-section side>
+          <q-icon
+            name="content_copy"
+            class="cursor-pointer"
+            @click="copyText('{{ wallet.id }}')"
+          ></q-icon>
+        </q-item-section>
       </q-item>
       <q-item dense class="q-pa-none">
         <q-item-section>
@@ -30,11 +37,18 @@
           </q-item-label>
         </q-item-section>
         <q-item-section side>
-          <q-icon
-            :name="adminkeyHidden ? 'visibility_off' : 'visibility'"
-            class="cursor-pointer float-right"
-            @click="adminkeyHidden = !adminkeyHidden"
-          ></q-icon>
+          <div>
+            <q-icon
+              :name="adminkeyHidden ? 'visibility_off' : 'visibility'"
+              class="cursor-pointer"
+              @click="adminkeyHidden = !adminkeyHidden"
+            ></q-icon>
+            <q-icon
+              name="content_copy"
+              class="cursor-pointer q-ml-sm"
+              @click="copyText('{{ wallet.adminkey }}')"
+            ></q-icon>
+          </div>
         </q-item-section>
       </q-item>
       <q-item dense class="q-pa-none">
@@ -47,11 +61,18 @@
           </q-item-label>
         </q-item-section>
         <q-item-section side>
-          <q-icon
-            :name="inkeyHidden ? 'visibility_off' : 'visibility'"
-            class="cursor-pointer float-right"
-            @click="inkeyHidden = !inkeyHidden"
-          ></q-icon>
+          <div>
+            <q-icon
+              :name="inkeyHidden ? 'visibility_off' : 'visibility'"
+              class="cursor-pointer"
+              @click="inkeyHidden = !inkeyHidden"
+            ></q-icon>
+            <q-icon
+              name="content_copy"
+              class="cursor-pointer q-ml-sm"
+              @click="copyText('{{ wallet.inkey }}')"
+            ></q-icon>
+          </div>
         </q-item-section>
       </q-item>
     </q-list>
