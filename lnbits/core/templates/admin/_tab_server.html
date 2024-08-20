@@ -1,7 +1,6 @@
 <q-tab-panel name="server">
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none">Server Management</h6>
-    <br />
     <div>
       <div class="row">
         <div class="col-md-6">
@@ -13,21 +12,8 @@
           ></q-input>
           <br />
         </div>
-        <div class="col">
-          <p>Server Info</p>
-          <ul>
-            <li
-              v-if="settings.lnbits_data_folder"
-              v-text="'SQlite: ' + settings.lnbits_data_folder"
-            ></li>
-            <li
-              v-if="settings.lnbits_database_url"
-              v-text="'Postgres: ' + settings.lnbits_database_url"
-            ></li>
-          </ul>
-          <br />
-        </div>
       </div>
+      <h6 class="q-my-none">Currency Settings</h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <p>Allowed currencies</p>
