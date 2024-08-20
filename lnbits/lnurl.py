@@ -6,7 +6,7 @@ from fastapi.routing import APIRoute
 from lnurl import LnurlErrorResponse, decode, encode, handle
 from loguru import logger
 
-from lnbits.exceptions import InvoiceError, PaymentError
+from lnbits.core.services import InvoiceError, PaymentError
 
 
 class LnurlErrorResponseHandler(APIRoute):
