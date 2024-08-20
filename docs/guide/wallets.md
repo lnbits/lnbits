@@ -93,6 +93,18 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `ALBY_API_ENDPOINT`: https://api.getalby.com/
 - `ALBY_ACCESS_TOKEN`: AlbyAccessToken
 
+### Boltz
+
+This funding source connects to a running [boltz-client](https://docs.boltz.exchange/v/boltz-client) and handles all lightning payments through submarine swaps on the liquid network.
+You can configure the daemon to run in standalone mode by `standalone = True` in the config file or using the cli flag (`boltzd --standalone`).
+Once running, you can create a liquid wallet using `boltzcli wallet create lnbits lbtc`.
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **BoltzWallet**
+- `BOLTZ_CLIENT_ENDPOINT`: 127.0.0.1:9002
+- `BOLTZ_CLIENT_MACAROON`: /home/bob/.boltz/macaroons/admin.macaroon or Base64/Hex
+- `BOLTZ_CLIENT_CERT`: /home/bob/.boltz/tls.cert or Base64/Hex
+- `BOLTZ_CLIENT_WALLET`: lnbits
+
 ### ZBD
 
 For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary. You can generate an ZBD API Key here: https://zbd.dev/docs/dashboard/projects/api

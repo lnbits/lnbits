@@ -1,0 +1,742 @@
+syntax = "proto3";
+
+package boltzrpc;
+option go_package = "github.com/BoltzExchange/boltz-client/boltzrpc";
+import "google/protobuf/empty.proto";
+
+service Boltz {
+    /*
+    Gets general information about the daemon like the chain of the lightning node it is connected to
+    and the IDs of pending swaps.
+     */
+    rpc GetInfo (GetInfoRequest) returns (GetInfoResponse);
+
+    /*
+    Fetches the latest limits and fees from the Boltz backend API it is connected to.
+    */
+    rpc GetServiceInfo (GetServiceInfoRequest) returns (GetServiceInfoResponse) {
+        option deprecated = true;
+    };
+
+    /*
+    Fetches information about a specific pair for a chain swap.
+    */
+    rpc GetPairInfo (GetPairInfoRequest) returns (PairInfo);
+
+    /*
+    Fetches all available pairs for submarine and reverse swaps.
+    */
+    rpc GetPairs (google.protobuf.Empty) returns (GetPairsResponse);
+
+    /*
+    Returns a list of all swaps, reverse swaps, and chain swaps in the database.
+    */
+    rpc ListSwaps (ListSwapsRequest) returns (ListSwapsResponse);
+
+    /*
+    Returns stats of all swaps, reverse swaps, and chain swaps in the database.
+    */
+    rpc GetStats (GetStatsRequest) returns (GetStatsResponse);
+
+    /*
+    Refund a failed swap manually.
+    This is only required when no refund address has been set and the swap does not have an associated wallet.
+    */
+    rpc RefundSwap (RefundSwapRequest) returns (GetSwapInfoResponse);
+
+    /*
+    Claim swaps manually.
+    This is only required when no claim address has been set and the swap does not have an associated wallet.
+    */
+    rpc ClaimSwaps (ClaimSwapsRequest) returns (ClaimSwapsResponse);
+
+    /*
+    Gets all available information about a swap from the database.
+    */
+    rpc GetSwapInfo (GetSwapInfoRequest) returns (GetSwapInfoResponse);
+
+    /*
+    Returns the entire history of the swap if is still pending and streams updates in real time.
+    If the swap id is empty or "*" updates for all swaps will be streamed.
+    */
+    rpc GetSwapInfoStream (GetSwapInfoRequest) returns (stream GetSwapInfoResponse);
+
+    /*
+    This is a wrapper for channel creation swaps. The daemon only returns the ID, timeout block height and lockup address.
+    The Boltz backend takes care of the rest. When an amount of onchain coins that is in the limits is sent to the address
+    before the timeout block height, the daemon creates a new lightning invoice, sends it to the Boltz backend which
+    will try to pay it and if that is not possible, create a new channel to make the swap succeed.
+    */
+    rpc Deposit (DepositRequest) returns (DepositResponse) { option deprecated = true; }
+
+    /*
+    Creates a new swap from onchain to lightning.
+    */
+    rpc CreateSwap (CreateSwapRequest) returns (CreateSwapResponse);
+
+    /*
+    Create a new swap from onchain to a new lightning channel. The daemon will only accept the invoice payment if the HTLCs
+    is coming trough a new channel channel opened by Boltz.
+    */
+    rpc CreateChannel (CreateChannelRequest) returns (CreateSwapResponse) { option deprecated = true; };
+
+    /*
+    Creates a new reverse swap from lightning to onchain. If `accept_zero_conf` is set to true in the request, the daemon
+    will not wait until the lockup transaction from Boltz is confirmed in a block, but will claim it instantly.
+    */
+    rpc CreateReverseSwap (CreateReverseSwapRequest) returns (CreateReverseSwapResponse);
+
+    /*
+    Creates a new chain swap from one chain to another. If `accept_zero_conf` is set to true in the request, the daemon
+    will not wait until the lockup transaction from Boltz is confirmed in a block, but will claim it instantly.
+    */
+    rpc CreateChainSwap (CreateChainSwapRequest) returns (ChainSwapInfo);
+
+    /*
+    Creates a new liquid wallet and returns the mnemonic.
+     */
+    rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse);
+
+    /*
+    Imports an existing wallet.
+     */
+    rpc ImportWallet (ImportWalletRequest) returns (Wallet);
+
+    /*
+    Sets the subaccount of a wallet. Not supported for readonly wallets.
+     */
+    rpc SetSubaccount (SetSubaccountRequest) returns (Subaccount);
+
+    /*
+    Returns all subaccounts for a given wallet. Not supported for readonly wallets.
+     */
+    rpc GetSubaccounts (GetSubaccountsRequest) returns (GetSubaccountsResponse);
+
+    /*
+    Returns all available wallets.
+     */
+    rpc GetWallets (GetWalletsRequest) returns (Wallets);
+
+    /*
+    Returns the current balance and subaccount of a wallet.
+     */
+    rpc GetWallet (GetWalletRequest) returns (Wallet);
+
+    /*
+    Returns the credentials of a wallet. The password will be required if the wallet is encrypted.
+     */
+    rpc GetWalletCredentials (GetWalletCredentialsRequest) returns (WalletCredentials);
+
+    /*
+    Removes a wallet.
+     */
+    rpc RemoveWallet (RemoveWalletRequest) returns (RemoveWalletResponse);
+
+    /*
+    Gracefully stops the daemon.
+     */
+    rpc Stop(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+    /*
+    Unlocks the server. This will be required on startup if there are any encrypted wallets.
+     */
+    rpc Unlock(UnlockRequest) returns (google.protobuf.Empty);
+
+    /*
+    Check if the password is correct.
+     */
+    rpc VerifyWalletPassword(VerifyWalletPasswordRequest) returns (VerifyWalletPasswordResponse);
+
+    /*
+    Changes the password for wallet encryption.
+     */
+    rpc ChangeWalletPassword(ChangeWalletPasswordRequest) returns (google.protobuf.Empty);
+
+    /*
+    Creates a new tenant which can be used to bake restricted macaroons.
+     */
+    rpc CreateTenant(CreateTenantRequest) returns (Tenant);
+
+    /*
+    Returns all tenants.
+     */
+    rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
+
+    /*
+    Get a specifiy tenant.
+     */
+    rpc GetTenant(GetTenantRequest) returns (Tenant);
+
+    /*
+    Bakes a new macaroon with the specified permissions.
+    The macaroon can also be restricted to a specific tenant. In this case,
+    - any swap or wallet created with the returned macaroon will belong to this tenant and can not be accessed by other tenants.
+    - the lightning node connected to the daemon can not be used to pay or create invoices for swaps.
+     */
+    rpc BakeMacaroon(BakeMacaroonRequest) returns (BakeMacaroonResponse);
+}
+
+message CreateTenantRequest {
+    string name = 1;
+}
+
+message ListTenantsRequest {}
+message ListTenantsResponse {
+    repeated Tenant tenants = 1;
+}
+
+message GetTenantRequest {
+    string name = 1;
+}
+
+message Tenant {
+    uint64 id = 1;
+    string name = 2;
+}
+
+enum MacaroonAction {
+    READ = 0;
+    WRITE = 1;
+}
+
+message MacaroonPermissions {
+    MacaroonAction action = 2;
+}
+
+message BakeMacaroonRequest {
+    optional uint64 tenant_id = 1;
+    repeated MacaroonPermissions permissions = 2;
+}
+message BakeMacaroonResponse {
+    string macaroon = 1;
+}
+
+enum SwapState {
+    PENDING = 0;
+    SUCCESSFUL= 1;
+
+    // Unknown client error. Check the error field of the message for more information
+    ERROR = 2;
+
+    // Unknown server error. Check the status field of the message for more information
+    SERVER_ERROR = 3;
+
+    // Client refunded locked coins after the HTLC timed out
+    REFUNDED = 4;
+
+    // Client noticed that the HTLC timed out but didn't find any outputs to refund
+    ABANDONED = 5;
+}
+
+enum Currency {
+    BTC = 0;
+    LBTC = 1;
+}
+
+message Pair {
+    Currency from = 1;
+    Currency to = 2;
+}
+
+message SwapInfo {
+    string id = 1;
+    Pair pair = 22;
+
+    SwapState state = 2;
+    string error = 3;
+
+    // Latest status message of the Boltz backend
+    string status = 4;
+    string private_key = 5;
+    string preimage = 6;
+    string redeem_script = 7;
+    string invoice = 8;
+    string lockup_address = 9;
+    uint64 expected_amount = 10;
+    uint32 timeout_block_height = 11;
+    string lockup_transaction_id = 12;
+    /*
+    If the swap times out or fails for some other reason, the damon will automatically refund the coins sent to the
+    `lockup_address` back to the configured wallet or the address specified in the `refund_address` field.
+    */
+    string refund_transaction_id = 13;
+    optional string refund_address = 19;
+
+    repeated ChannelId chan_ids = 14;
+    optional string blinding_key = 15;
+    int64 created_at = 16;
+    optional uint64 service_fee = 17;
+    optional uint64 onchain_fee = 18;
+    // internal wallet which was used to pay the swap
+    optional uint64 wallet_id = 20;
+    uint64 tenant_id = 21;
+}
+
+enum SwapType {
+    SUBMARINE = 0;
+    REVERSE = 1;
+    CHAIN = 2;
+}
+
+message GetPairInfoRequest {
+    SwapType type = 1;
+    Pair pair = 2;
+}
+
+message PairInfo {
+    Pair pair = 1;
+    SwapFees fees = 2;
+    Limits limits = 3;
+    string hash = 4;
+}
+
+/*
+Channel creations are an optional extension to a submarine swap in the data types of boltz-client.
+*/
+message ChannelCreationInfo {
+    option deprecated = true;
+    // ID of the swap to which this channel channel belongs
+    string swap_id = 1;
+    string status = 2;
+    uint32 inbound_liquidity = 3;
+    bool private = 4;
+    string funding_transaction_id = 5;
+    uint32 funding_transaction_vout = 6;
+}
+message CombinedChannelSwapInfo {
+    option deprecated = true;
+    SwapInfo swap = 1;
+    ChannelCreationInfo channel_creation = 2;
+}
+
+message ReverseSwapInfo {
+    string id = 1;
+
+    SwapState state = 2;
+    string error = 3;
+
+    // Latest status message of the Boltz backend
+    string status = 4;
+    string private_key = 5;
+    string preimage = 6;
+    string redeem_script = 7;
+    string invoice = 8;
+    string claim_address = 9;
+    int64 onchain_amount = 10;
+    uint32 timeout_block_height = 11;
+    string lockup_transaction_id = 12;
+    string claim_transaction_id = 13;
+    Pair pair = 14;
+    repeated ChannelId chan_ids = 15;
+    optional string blinding_key = 16;
+    int64 created_at = 17;
+    optional int64 paid_at = 23; // the time when the invoice was paid
+    optional uint64 service_fee = 18;
+    optional uint64 onchain_fee = 19;
+    optional uint64 routing_fee_msat = 20;
+    bool external_pay = 21;
+    uint64 tenant_id = 22;
+}
+
+message BlockHeights {
+    uint32 btc = 1;
+    optional uint32 liquid = 2;
+}
+
+message GetInfoRequest {}
+message GetInfoResponse {
+    string version = 9;
+    string node = 10;
+    string network = 2;
+    string node_pubkey = 7;
+    // one of: running, disabled, error
+    string auto_swap_status = 11;
+    // mapping of the currency to the latest block height.
+    BlockHeights block_heights = 8;
+    // swaps that need a manual interaction to refund
+    repeated string refundable_swaps = 12;
+    // the currently authenticated tenant
+    optional Tenant tenant = 13;
+    // swaps that need a manual interaction to claim
+    repeated string claimable_swaps = 14;
+
+    string symbol = 1 [deprecated = true];
+    string lnd_pubkey = 3 [deprecated = true];
+    uint32 block_height = 4 [deprecated = true];
+    repeated string pending_swaps = 5 [deprecated = true];
+    repeated string pending_reverse_swaps = 6 [deprecated = true];
+}
+
+message Limits {
+    uint64 minimal = 1;
+    uint64 maximal = 2;
+    uint64 maximal_zero_conf_amount = 3;
+}
+
+message SwapFees {
+    double percentage = 1;
+    uint64 miner_fees = 2;
+}
+
+message GetPairsResponse {
+    repeated PairInfo submarine = 1;
+    repeated PairInfo reverse = 2;
+    repeated PairInfo chain = 3;
+}
+
+message MinerFees {
+    uint32 normal = 1;
+    uint32 reverse = 2;
+}
+message Fees {
+    float percentage = 1;
+    MinerFees miner = 2;
+}
+
+message GetServiceInfoRequest {}
+
+message GetServiceInfoResponse {
+    Fees fees = 1;
+    Limits limits = 2;
+}
+
+enum IncludeSwaps {
+    ALL = 0;
+    MANUAL = 1;
+    AUTO = 2;
+}
+
+message ListSwapsRequest {
+    optional Currency from = 1;
+    optional Currency to = 2;
+    optional SwapState state = 4;
+    IncludeSwaps include = 5;
+}
+message ListSwapsResponse {
+    repeated SwapInfo swaps = 1;
+    repeated CombinedChannelSwapInfo channel_creations = 2;
+    repeated ReverseSwapInfo reverse_swaps = 3;
+    repeated ChainSwapInfo chain_swaps = 4;
+}
+
+message GetStatsRequest {
+    IncludeSwaps include = 1;
+}
+
+message GetStatsResponse {
+    SwapStats stats = 1;
+}
+
+message RefundSwapRequest {
+    string id = 1;
+    oneof destination {
+        string address = 2;
+        uint64 wallet_id = 3;
+    }
+}
+
+message ClaimSwapsRequest {
+    repeated string swap_ids = 1;
+    oneof destination {
+        string address = 2;
+        uint64 wallet_id = 3;
+    }
+}
+
+message ClaimSwapsResponse {
+    string transaction_id = 1;
+}
+
+message GetSwapInfoRequest {
+    string id = 1;
+}
+message GetSwapInfoResponse {
+    SwapInfo swap = 1;
+    ChannelCreationInfo channel_creation = 2;
+    ReverseSwapInfo reverse_swap = 3;
+    ChainSwapInfo chain_swap = 4;
+}
+
+message DepositRequest {
+    /*
+    Percentage of inbound liquidity the channel that is opened in case the invoice cannot be paid should have.
+    25 by default.
+    */
+    uint32 inbound_liquidity = 1;
+}
+message DepositResponse {
+    string id = 1;
+    string address = 2;
+    uint32 timeout_block_height = 3;
+}
+
+message CreateSwapRequest {
+    uint64 amount = 1;
+    Pair pair = 2;
+    // not yet supported
+    // repeated string chan_ids = 3;
+
+    // the daemon will pay the swap using the onchain wallet specified in the `wallet` field or any wallet otherwise.
+    bool send_from_internal = 4;
+    // address where the coins should go if the swap fails. Refunds will go to any of the daemons wallets otherwise.
+    optional string refund_address = 5;
+    // wallet to pay swap from. only used if `send_from_internal` is set to true
+    optional uint64 wallet_id = 6;
+    // invoice to use for the swap. if not set, the daemon will get a new invoice from the lightning node
+    optional string invoice = 7;
+    // Boltz does not accept 0-conf for Liquid transactions with a fee of 0.01 sat/vByte;
+    // when `zero_conf` is enabled, a fee of 0.1 sat/vByte will be used for Liquid lockup transactions
+    optional bool zero_conf = 8;
+}
+message CreateSwapResponse {
+    string id = 1;
+    string address = 2;
+    uint64 expected_amount = 3;
+    string bip21 = 4;
+    // lockup transaction id. Only populated when `send_from_internal` was specified in the request
+    string tx_id = 5;
+    uint32 timeout_block_height = 6;
+    float timeout_hours = 7;
+}
+
+message CreateChannelRequest {
+    int64 amount = 1;
+
+    /*
+    Percentage of inbound liquidity the channel that is opened should have.
+    25 by default.
+    */
+    uint32 inbound_liquidity = 2;
+    bool private = 3;
+};
+
+message CreateReverseSwapRequest {
+    // amount of satoshis to swap
+    uint64 amount = 1;
+    // If no value is set, the daemon will query a new address from the lightning node
+    string address = 2;
+    // Whether the daemon should broadcast the claim transaction immediately after the lockup transaction is in the mempool.
+    // Should only be used for smaller amounts as it involves trust in boltz.
+    bool accept_zero_conf = 3;
+    Pair pair = 4;
+    // a list of channel ids which are allowed for paying the invoice. can be in either cln or lnd style.
+    repeated string chan_ids = 5;
+    // wallet from which the onchain address should be generated - only considered if `address` is not set
+    optional uint64 wallet_id = 6;
+    // Whether the daemon should return immediately after creating the swap or wait until the swap is successful or failed.
+    // It will always return immediately if `accept_zero_conf` is not set.
+    optional bool return_immediately = 7;
+    // If set, the daemon will not pay the invoice of the swap and return the invoice to be paid. This implicitly sets `return_immediately` to true.
+    optional bool external_pay = 8;
+    // Description of the invoice which will be created for the swap
+    optional string description = 9;
+}
+message CreateReverseSwapResponse {
+    string id = 1;
+    string lockup_address = 2;
+
+    // Only populated when zero-conf is accepted and return_immediately is set to false
+    optional uint64 routing_fee_milli_sat = 3;
+    // Only populated when zero-conf is accepted and return_immediately is set to false
+    optional string claim_transaction_id = 4;
+    // Invoice to be paid. Only populated when `external_pay` is set to true
+    optional string invoice = 5;
+}
+
+message CreateChainSwapRequest {
+    // Amount of satoshis to swap. It is the amount expected to be sent to the lockup address.
+    uint64 amount = 1;
+    Pair pair = 2;
+    // Address where funds will be swept to if the swap succeeds
+    optional string to_address = 3;
+    // Address where the coins should be refunded to if the swap fails.
+    optional string refund_address = 4;
+    // Wallet from which the swap should be paid from. Ignored if `external_pay` is set to true.
+    // If the swap fails, funds will be refunded to this wallet as well.
+    optional uint64 from_wallet_id = 5;
+    // Wallet where the the funds will go if the swap succeeds.
+    optional uint64 to_wallet_id = 6;
+    // Whether the daemon should broadcast the claim transaction immediately after the lockup transaction is in the mempool.
+    // Should only be used for smaller amounts as it involves trust in Boltz.
+    optional bool accept_zero_conf = 7;
+    // If set, the daemon will not pay the swap from an internal wallet.
+    optional bool external_pay = 8;
+    // Boltz does not accept 0-conf for Liquid transactions with a fee of 0.01 sat/vByte;
+    // when `lockup_zero_conf` is enabled, a fee of 0.1 sat/vByte will be used for Liquid lockup transactions
+    optional bool lockup_zero_conf = 9;
+}
+
+message ChainSwapInfo {
+    string id = 1;
+    Pair pair = 2;
+    SwapState state = 3;
+    string error = 4;
+    string status = 5;
+    string preimage = 6;
+    bool is_auto = 8;
+    optional uint64 service_fee = 9;
+    double service_fee_percent = 10;
+    optional uint64 onchain_fee = 11;
+    int64 created_at = 12;
+    uint64 tenant_id = 13;
+    ChainSwapData from_data = 14;
+    ChainSwapData to_data = 15;
+}
+
+message ChainSwapData {
+    string id = 1;
+    Currency currency = 2;
+    string private_key = 3;
+    string their_public_key = 4;
+    uint64 amount = 6;
+    uint32 timeout_block_height = 7;
+    optional string lockup_transaction_id = 8;
+    optional string transaction_id = 9;
+    optional uint64 wallet_id = 20;
+    optional string address = 12;
+    optional string blinding_key = 13;
+    string lockup_address = 14;
+}
+
+message ChannelId {
+    // cln style: 832347x2473x1
+    string cln = 1;
+    // lnd style: 915175205006540801
+    uint64 lnd = 2;
+}
+
+message LightningChannel {
+    ChannelId id = 1;
+    uint64 capacity = 2;
+    uint64 outbound_sat = 3;
+    uint64 inbound_sat = 4;
+    string peer_id = 5;
+}
+
+message SwapStats {
+    uint64 total_fees = 1;
+    uint64 total_amount = 2;
+    uint64 avg_fees = 3;
+    uint64 avg_amount = 4;
+    uint64 count = 5;
+    uint64 success_count = 6;
+}
+
+message Budget {
+    uint64 total = 1;
+    int64 remaining = 2;
+    int64 start_date = 3;
+    int64 end_date = 4;
+}
+
+message WalletCredentials {
+    // only one of these is allowed to be present
+    optional string mnemonic = 1;
+    optional string xpub = 2;
+    optional string core_descriptor = 3;
+
+    // only used in combination with mnemonic
+    optional uint64 subaccount = 4;
+}
+
+message WalletParams {
+    string name = 1;
+    Currency currency = 2;
+    // the password to encrypt the wallet with. If there are existing encrypted wallets, the same password has to be used.
+    optional string password = 3;
+}
+
+message ImportWalletRequest {
+    WalletCredentials credentials = 1;
+    WalletParams params = 2;
+}
+
+message CreateWalletRequest {
+    WalletParams params = 2;
+}
+
+message CreateWalletResponse {
+    string mnemonic = 1;
+    Wallet wallet = 2;
+}
+
+message SetSubaccountRequest {
+    uint64 wallet_id = 1;
+    // The subaccount to use. If not set, a new one will be created.
+    optional uint64 subaccount = 2;
+}
+
+message GetSubaccountsRequest {
+    uint64 wallet_id = 1;
+}
+
+message GetSubaccountsResponse {
+    optional uint64 current = 1;
+    repeated Subaccount subaccounts = 2;
+}
+
+message ImportWalletResponse {}
+
+message GetWalletsRequest {
+    optional Currency currency = 1;
+    optional bool include_readonly = 2;
+}
+
+message GetWalletRequest {
+    optional string name = 1;
+    optional uint64 id = 2;
+}
+
+message GetWalletCredentialsRequest {
+    uint64 id = 1;
+    optional string password = 2;
+}
+
+message RemoveWalletRequest {
+    uint64 id = 1;
+}
+
+
+message Wallet {
+    uint64 id = 1;
+    string name = 2;
+    Currency currency = 3;
+    bool readonly = 4;
+    Balance balance = 5;
+    uint64 tenant_id = 6;
+}
+
+message Wallets {
+    repeated Wallet wallets = 1;
+}
+
+message Balance {
+    uint64 total = 1;
+    uint64 confirmed = 2;
+    uint64 unconfirmed = 3;
+}
+
+message Subaccount {
+    Balance balance = 1;
+    uint64 pointer = 2;
+    string type = 3;
+}
+
+message RemoveWalletResponse {}
+
+message UnlockRequest {
+    string password = 1;
+}
+
+message VerifyWalletPasswordRequest {
+    string password = 1;
+}
+
+message VerifyWalletPasswordResponse {
+    bool correct = 1;
+}
+
+message ChangeWalletPasswordRequest {
+    string old = 1;
+    string new = 2;
+}
