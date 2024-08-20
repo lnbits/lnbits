@@ -33,6 +33,7 @@ from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     allowed_currencies,
     fiat_amount_as_satoshis,
+    get_fiat_rate_satoshis,
     satoshis_amount_as_fiat,
 )
 
@@ -198,6 +199,12 @@ async def api_perform_lnurlauth(
             status_code=HTTPStatus.SERVICE_UNAVAILABLE, detail=err.reason
         )
     return ""
+
+
+@api_router.get("/api/v1/rate/{currency}")
+async def api_check_fiat_rate(currency: str) -> Dict[str, float]:
+    rate = await get_fiat_rate_satoshis(currency)
+    return {"rate": rate}
 
 
 @api_router.get("/api/v1/currencies")
