@@ -6,6 +6,8 @@ from fastapi.routing import APIRoute
 from lnurl import LnurlErrorResponse, decode, encode, handle
 from loguru import logger
 
+from lnbits.exceptions import InvoiceError, PaymentError
+
 
 class LnurlErrorResponseHandler(APIRoute):
     """
@@ -25,6 +27,13 @@ class LnurlErrorResponseHandler(APIRoute):
         async def custom_route_handler(request: Request) -> Response:
             try:
                 response = await original_route_handler(request)
+                return response
+            except (InvoiceError, PaymentError) as exc:
+                logger.debug(f"Wallet Error: {exc}")
+                response = JSONResponse(
+                    status_code=200,
+                    content={"status": "ERROR", "reason": f"{exc.message}"},
+                )
                 return response
             except HTTPException as exc:
                 logger.debug(f"HTTPException: {exc}")
