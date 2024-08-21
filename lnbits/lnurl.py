@@ -24,7 +24,7 @@ class LnurlErrorResponseHandler(APIRoute):
     def get_route_handler(self) -> Callable:
         original_route_handler = super().get_route_handler()
 
-        async def custom_route_handler(request: Request) -> Response:
+        async def lnurl_route_handler(request: Request) -> Response:
             try:
                 response = await original_route_handler(request)
                 return response
@@ -42,8 +42,18 @@ class LnurlErrorResponseHandler(APIRoute):
                     content={"status": "ERROR", "reason": f"{exc.detail}"},
                 )
                 return response
+            except Exception as exc:
+                logger.error("Unknown Error:", exc)
+                response = JSONResponse(
+                    status_code=200,
+                    content={
+                        "status": "ERROR",
+                        "reason": f"UNKNOWN ERROR: {exc!s}",
+                    },
+                )
+                return response
 
-        return custom_route_handler
+        return lnurl_route_handler
 
 
 __all__ = [
