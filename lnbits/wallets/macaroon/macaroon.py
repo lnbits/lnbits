@@ -2,6 +2,7 @@ import base64
 
 from loguru import logger
 
+from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
 
 
@@ -40,6 +41,9 @@ def load_macaroon(macaroon: str) -> str:
 if __name__ == "__main__":
     macaroon = input("Enter macaroon: ")
     macaroon = load_macaroon(macaroon)
-    macaroon = AESCipher(description="encryption").encrypt(macaroon.encode())
+    macaroon = AESCipher(
+        key=settings.auth_secret_key,
+        description="encryption"
+    ).encrypt(macaroon.encode())
     logger.info("Encrypted macaroon:")
     logger.info(macaroon)

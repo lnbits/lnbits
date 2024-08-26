@@ -80,7 +80,10 @@ class LndWallet(Wallet):
         )
         encrypted_macaroon = settings.lnd_grpc_macaroon_encrypted
         if encrypted_macaroon:
-            macaroon = AESCipher(description="macaroon decryption").decrypt(
+            macaroon = AESCipher(
+                key=settings.auth_secret_key,
+                description="macaroon decryption"
+            ).decrypt(
                 encrypted_macaroon
             )
         if not macaroon:
