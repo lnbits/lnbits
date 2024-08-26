@@ -42,8 +42,7 @@ if __name__ == "__main__":
     macaroon = input("Enter macaroon: ")
     macaroon = load_macaroon(macaroon)
     macaroon = AESCipher(
-        key=settings.auth_secret_key,
-        description="encryption"
+        key=settings.auth_secret_key, description="encryption"
     ).encrypt(macaroon.encode())
     logger.info("Encrypted macaroon:")
     logger.info(macaroon)

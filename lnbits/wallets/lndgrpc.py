@@ -81,11 +81,8 @@ class LndWallet(Wallet):
         encrypted_macaroon = settings.lnd_grpc_macaroon_encrypted
         if encrypted_macaroon:
             macaroon = AESCipher(
-                key=settings.auth_secret_key,
-                description="macaroon decryption"
-            ).decrypt(
-                encrypted_macaroon
-            )
+                key=settings.auth_secret_key, description="macaroon decryption"
+            ).decrypt(encrypted_macaroon)
         if not macaroon:
             raise ValueError(
                 "cannot initialize LndWallet: "
