@@ -73,7 +73,7 @@ Vue.component('lnbits-funding-sources', {
             lnd_grpc_endpoint: 'Endpoint',
             lnd_grpc_cert: 'Certificate',
             lnd_grpc_port: 'Port',
-            lnd_grpc_admin_macaroon: 'Admin Macaroon',
+            lnd_grpc_macaroon: 'Macaroon',
             lnd_grpc_macaroon_encrypted: 'Encrypted Macaroon'
           }
         ],
