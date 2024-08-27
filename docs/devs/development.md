@@ -11,18 +11,30 @@ Thanks for contributing :)
 
 # Run
 
-This starts the lnbits uvicorn server
+Follow the [Basic installation: Option 1 (recommended): poetry](https://docs.lnbits.org/guide/installation.html#option-1-recommended-poetry)
+guide to install poetry and other dependencies.
+
+Then you can start LNbits uvicorn server with:
 
 ```bash
 poetry run lnbits
 ```
 
-This starts the lnbits uvicorn with hot reloading.
+Or you can use the following to start uvicorn with hot reloading enabled:
 
 ```bash
 make dev
 # or
 poetry run lnbits --reload
+```
+
+You might need the following extra dependencies on clean installation of Debian:
+
+```
+sudo apt install nodejs
+sudo apt install npm
+npm install
+sudo apt-get install autoconf libtool libpg-dev
 ```
 
 # Precommit hooks
