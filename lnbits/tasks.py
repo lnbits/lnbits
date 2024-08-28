@@ -6,6 +6,7 @@ import uuid
 from http import HTTPStatus
 from typing import Dict, List, Optional
 
+from lnbits.core.services import create_invoice, fee_reserve, pay_invoice, service_fee
 from loguru import logger
 from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
@@ -184,6 +185,26 @@ async def invoice_callback_dispatcher(checking_id: str):
             f"invoice listeners: sending invoice callback for payment {checking_id}"
         )
         await payment.set_pending(False)
+        # credit service fee wallet
+        service_fee_msat = service_fee(payment.amount, internal=False)
+        print('>config',settings.lnbits_service_fee_wallet,service_fee_msat)
+        if settings.lnbits_service_fee_wallet and service_fee_msat and service_fee_msat>=1000:
+            print('service-fee-msat',service_fee_msat)
+            _, payment_request = await create_invoice(
+                    wallet_id=settings.lnbits_service_fee_wallet,
+                    amount=int(service_fee_msat/1000),
+                    internal=True,
+                    memo="service_fee_invoice"+payment.checking_id,
+            )
+            if payment_request:
+                await pay_invoice(
+                    payment_request=payment_request,
+                    wallet_id=payment.wallet_id,
+                    description="service_fee"+payment.checking_id,
+                    extra=payment.extra,
+                )
+              
+        
         for name, send_chan in invoice_listeners.items():
             logger.trace(f"invoice listeners: sending to `{name}`")
             await send_chan.put(payment)
