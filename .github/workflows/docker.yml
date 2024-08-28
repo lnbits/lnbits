@@ -24,4 +24,5 @@ jobs:
         with:
           context: ./
           push: true
+          platforms: linux/arm64/v8
           tags: ghcr.io/kiddokodes/lnbits:latest
