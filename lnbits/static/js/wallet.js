@@ -225,6 +225,7 @@ new Vue({
         this.parse.data.request = this.parse.data.request.slice(6)
       } else if (req.indexOf('lightning=lnurl1') !== -1) {
         this.parse.data.request = this.parse.data.request
+          .toLowerCase()
           .split('lightning=')[1]
           .split('&')[0]
       }
