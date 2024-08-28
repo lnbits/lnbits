@@ -118,7 +118,7 @@ class OpenNodeWallet(Wallet):
         if r.is_error:
             return PaymentPendingStatus()
         data = r.json()["data"]
-        statuses = { "paid": True, "expired": None}
+        statuses = { "paid": True,"unpaid":None "expired": None}
         return PaymentStatus(statuses[data.get("status")])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
