@@ -76,12 +76,12 @@ poetry install --only main
 # Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
 sh <(curl -L https://nixos.org/nix/install) --daemon
 
-# Enable nix-command and flakes experimental features for nix:
+# Enable nix-command and flakes experimental features for nix (you may need to nano into /etc/nix/nix.conf and add 'experimental-features = nix-command flakes' manually):
 echo 'experimental-features = nix-command flakes' >> /etc/nix/nix.conf
 
-# Add cachix for cached binaries
-nix-env -iA cachix -f https://cachix.org/api/v1/install
-cachix use lnbits
+# Add cachix for cached binaries (you may need to install cachix `sudo apt install nix-bin`)
+nix-env -iA cachix -f https://cachix.org/api/v1/install # Permissions might be needed, it will inform you how.
+cachix use lnbits # Result should be https://lnbits.cachix.org binary cache in /home/ubuntu/.config/nix/nix.conf
 
 # Clone and build LNbits
 git clone https://github.com/lnbits/lnbits.git
