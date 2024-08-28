@@ -5,18 +5,14 @@ from typing import AsyncGenerator, Optional
 import httpx
 from loguru import logger
 from websockets.client import connect
+
 from lnbits.helpers import url_for
 from lnbits.settings import settings
 
-from .base import (
-    InvoiceResponse,
-    PaymentPendingStatus,
-    PaymentResponse,
-    PaymentStatus,
-    StatusResponse,
-    UnsupportedError,
-    Wallet,
-)
+from .base import (InvoiceResponse, PaymentPendingStatus, PaymentResponse,
+                   PaymentStatus, StatusResponse, UnsupportedError, Wallet)
+
+
 class OpenNodeWallet(Wallet):
     """https://developers.opennode.com/"""
 
@@ -73,10 +69,10 @@ class OpenNodeWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        if description_hash or unhashed_description:
-            raise UnsupportedError("description_hash")
-        
-        
+        #if description_hash or unhashed_description:
+           # raise UnsupportedError("description_hash")
+
+
         r = await self.client.post(
             "/v1/charges",
             json={
@@ -152,7 +148,7 @@ class OpenNodeWallet(Wallet):
                     logger.info("connected to opennode invoices stream")
                     while settings.lnbits_running:
                         message = await ws.recv()
-                    
+
                         message_dict=ast.literal_eval(message)
                         if (
                             message_dict
