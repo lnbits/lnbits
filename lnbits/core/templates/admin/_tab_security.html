@@ -173,7 +173,7 @@
                   @remove="removeBlockedIPs(blocked_ip)"
                   color="primary"
                   text-color="white"
-                  v-text="blocked_ip"
+                  :label="blocked_ip"
                 ></q-chip>
               </div>
               <br />
@@ -202,7 +202,7 @@
                   @remove="removeAllowedIPs(allowed_ip)"
                   color="primary"
                   text-color="white"
-                  v-text="allowed_ip"
+                  :label="allowed_ip"
                 ></q-chip>
               </div>
               <br />
