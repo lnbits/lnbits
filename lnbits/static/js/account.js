@@ -37,44 +37,37 @@ new Vue({
       }
     },
     applyGradient: function () {
+      darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
+      primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
       if (this.gradientChoice) {
         if (!this.$q.dark.isActive) {
           this.toggleDarkMode()
         }
-        darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
-        primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
-
         document.body.style.setProperty(
           'background-image',
           gradientStyle,
           'important'
         )
-
         const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
         const style = document.createElement('style')
-        style.setAttribute('id', 'gradientStyles')
-
         style.innerHTML =
           `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
           `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
           `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
-
         this.$q.localStorage.set('lnbits.gradientBg', true)
       } else {
-        document.body.style.removeProperty('background-image', 'important')
-        const existingStyle = document.getElementById('gradientStyles')
-        if (existingStyle) {
-          existingStyle.remove()
-        }
-
         this.$q.localStorage.set('lnbits.gradientBg', false)
       }
     },
     toggleGradient: function () {
       this.gradientChoice = !this.gradientChoice
       this.applyGradient()
+      if (!this.gradientChoice) {
+        window.location.reload()
+      }
+      this.gradientChoice = this.$q.localStorage.getItem('lnbits.gradientBg')
     },
     reactionChoiceFunc: function () {
       this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
