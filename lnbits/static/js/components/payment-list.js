@@ -255,6 +255,16 @@ Vue.component('payment-list', {
                   @click="props.expand = !props.expand"
                 ></q-icon>
                 <q-icon
+                  v-else-if="props.row.isFailed"
+                  name="warning"
+                  color="yellow"
+                  @click="props.expand = !props.expand"
+                >
+                  <q-tooltip
+                    ><span>failed</span
+                  ></q-tooltip>
+                </q-icon>
+                <q-icon
                   v-else
                   name="settings_ethernet"
                   color="grey"
@@ -319,7 +329,7 @@ Vue.component('payment-list', {
                 <q-dialog v-model="props.expand" :props="props" position="top">
                   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
                     <div class="text-center q-mb-lg">
-                      <div v-if="props.row.isIn && props.row.pending">
+                      <div v-if="props.row.isIn && props.row.isPending">
                         <q-icon name="settings_ethernet" color="grey"></q-icon>
                         <span v-text="$t('invoice_waiting')"></span>
                         <lnbits-payment-details
@@ -353,6 +363,13 @@ Vue.component('payment-list', {
                           ></q-btn>
                         </div>
                       </div>
+                      <div v-else-if="props.row.isOut && props.row.isPending">
+                        <q-icon name="settings_ethernet" color="grey"></q-icon>
+                        <span v-text="$t('outgoing_payment_pending')"></span>
+                        <lnbits-payment-details
+                          :payment="props.row"
+                        ></lnbits-payment-details>
+                      </div>
                       <div v-else-if="props.row.isPaid && props.row.isIn">
                         <q-icon
                           size="18px"
@@ -375,9 +392,9 @@ Vue.component('payment-list', {
                           :payment="props.row"
                         ></lnbits-payment-details>
                       </div>
-                      <div v-else-if="props.row.isOut && props.row.pending">
-                        <q-icon name="settings_ethernet" color="grey"></q-icon>
-                        <span v-text="$t('outgoing_payment_pending')"></span>
+                      <div v-else-if="props.row.isFailed">
+                        <q-icon name="warning" color="yellow"></q-icon>
+                        <span>Payment failed</span>
                         <lnbits-payment-details
                           :payment="props.row"
                         ></lnbits-payment-details>

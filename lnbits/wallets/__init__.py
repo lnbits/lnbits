@@ -9,6 +9,8 @@ from lnbits.wallets.base import Wallet
 
 from .alby import AlbyWallet
 from .blink import BlinkWallet
+from .boltz import BoltzWallet
+from .breez import BreezSdkWallet
 from .cliche import ClicheWallet
 from .corelightning import CoreLightningWallet
 
@@ -23,6 +25,7 @@ from .lndgrpc import LndWallet
 from .lndrest import LndRestWallet
 from .lnpay import LNPayWallet
 from .lntips import LnTipsWallet
+from .nwc import NWCWallet
 from .opennode import OpenNodeWallet
 from .phoenixd import PhoenixdWallet
 from .spark import SparkWallet
@@ -48,3 +51,28 @@ fake_wallet = FakeWallet()
 
 # initialize as fake wallet
 funding_source: Wallet = fake_wallet
+
+
+__all__ = [
+    "AlbyWallet",
+    "BlinkWallet",
+    "BoltzWallet",
+    "BreezSdkWallet",
+    "ClicheWallet",
+    "CoreLightningWallet",
+    "CLightningWallet",
+    "CoreLightningRestWallet",
+    "EclairWallet",
+    "FakeWallet",
+    "LNbitsWallet",
+    "LndWallet",
+    "LndRestWallet",
+    "LNPayWallet",
+    "LnTipsWallet",
+    "NWCWallet",
+    "OpenNodeWallet",
+    "PhoenixdWallet",
+    "SparkWallet",
+    "VoidWallet",
+    "ZBDWallet",
+]

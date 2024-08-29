@@ -5,10 +5,77 @@
   :content-inset-level="0.5"
 >
   <q-card-section>
-    <strong>Node URL: </strong><em v-text="origin"></em><br />
-    <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
-    <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
-    <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
+    <q-list>
+      <q-item dense class="q-pa-none">
+        <q-item-section>
+          <q-item-label>
+            <strong>Node URL: </strong><em v-text="origin"></em>
+          </q-item-label>
+        </q-item-section>
+      </q-item>
+      <q-item dense class="q-pa-none">
+        <q-item-section>
+          <q-item-label>
+            <strong>Wallet ID: </strong><em>{{ wallet.id }}</em>
+          </q-item-label>
+        </q-item-section>
+        <q-item-section side>
+          <q-icon
+            name="content_copy"
+            class="cursor-pointer"
+            @click="copyText('{{ wallet.id }}')"
+          ></q-icon>
+        </q-item-section>
+      </q-item>
+      <q-item dense class="q-pa-none">
+        <q-item-section>
+          <q-item-label>
+            <strong>Admin key: </strong
+            ><em
+              v-text="adminkeyHidden ? '****************' : `{{ wallet.adminkey }}`"
+            ></em>
+          </q-item-label>
+        </q-item-section>
+        <q-item-section side>
+          <div>
+            <q-icon
+              :name="adminkeyHidden ? 'visibility_off' : 'visibility'"
+              class="cursor-pointer"
+              @click="adminkeyHidden = !adminkeyHidden"
+            ></q-icon>
+            <q-icon
+              name="content_copy"
+              class="cursor-pointer q-ml-sm"
+              @click="copyText('{{ wallet.adminkey }}')"
+            ></q-icon>
+          </div>
+        </q-item-section>
+      </q-item>
+      <q-item dense class="q-pa-none">
+        <q-item-section>
+          <q-item-label>
+            <strong>Invoice/read key: </strong
+            ><em
+              v-text="inkeyHidden ? '****************' : `{{ wallet.inkey }}`"
+            ></em>
+          </q-item-label>
+        </q-item-section>
+        <q-item-section side>
+          <div>
+            <q-icon
+              :name="inkeyHidden ? 'visibility_off' : 'visibility'"
+              class="cursor-pointer"
+              @click="inkeyHidden = !inkeyHidden"
+            ></q-icon>
+            <q-icon
+              name="content_copy"
+              class="cursor-pointer q-ml-sm"
+              @click="copyText('{{ wallet.inkey }}')"
+            ></q-icon>
+          </div>
+        </q-item-section>
+      </q-item>
+    </q-list>
   </q-card-section>
   <q-expansion-item
     group="api"

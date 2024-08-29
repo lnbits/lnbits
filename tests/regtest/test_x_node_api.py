@@ -160,7 +160,8 @@ async def test_peer_management(node_client):
 
     response = await node_client.delete(f"/node/api/v1/peers/{peer_id}")
     assert response.status_code == 200
-    await asyncio.sleep(0.1)
+    # lndrest is slow to remove the peer
+    await asyncio.sleep(0.3)
 
     response = await node_client.get("/node/api/v1/peers")
     assert response.status_code == 200

@@ -128,6 +128,16 @@ Vue.component('lnbits-funding-sources', {
           }
         ],
         [
+          'BoltzWallet',
+          'Boltz',
+          {
+            boltz_client_endpoint: 'Endpoint',
+            boltz_client_macaroon: 'Admin Macaroon path or hex',
+            boltz_client_cert: 'Certificate path or hex',
+            boltz_client_wallet: 'Wallet Name'
+          }
+        ],
+        [
           'ZBDWallet',
           'ZBD',
           {
@@ -164,6 +174,24 @@ Vue.component('lnbits-funding-sources', {
           {
             spark_url: 'Endpoint',
             spark_token: 'Token'
+          }
+        ],
+        [
+          'NWCWallet',
+          'Nostr Wallet Connect',
+          {
+            nwc_pairing_url: 'Pairing URL'
+          }
+        ],
+        [
+          'BreezSdkWallet',
+          'Breez SDK',
+          {
+            breez_api_key: 'Breez API Key',
+            breez_greenlight_seed: 'Greenlight Seed',
+            breez_greenlight_device_key: 'Greenlight Device Key',
+            breez_greenlight_device_cert: 'Greenlight Device Cert',
+            breez_greenlight_invite_code: 'Greenlight Invite Code'
           }
         ]
       ]

@@ -12,15 +12,15 @@
   "devDependencies": {
     "concat": "^1.0.3",
     "minify": "^9.2.0",
-    "prettier": "^3.2.5",
+    "prettier": "^3.3.3",
     "pyright": "1.1.289",
     "sass": "^1.60.0"
   },
   "dependencies": {
     "@chenfengyuan/vue-qrcode": "1.0.2",
-    "axios": "^1.6.0",
-    "chart.js": "2.9",
-    "moment": "^2.29.4",
+    "axios": "^1.7.5",
+    "chart.js": "^2.9.4",
+    "moment": "^2.30.1",
     "quasar": "1.13.2",
     "showdown": "^2.1.0",
     "underscore": "^1.13.6",

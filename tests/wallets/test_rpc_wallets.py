@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from loguru import logger
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models import BaseWallet
@@ -24,19 +25,35 @@ from tests.wallets.helpers import (
     ids=build_test_id,
 )
 async def test_wallets(mocker: MockerFixture, test_data: WalletTest):
-    if test_data.skip:
-        pytest.skip()
+    test_id = build_test_id(test_data)
+    logger.info(f"[{test_id}]: test start")
 
-    for mock in test_data.mocks:
-        _apply_rpc_mock(mocker, mock)
+    try:
+        if test_data.skip:
+            logger.info(f"[{test_id}]: test skip")
+            pytest.skip()
 
-    wallet = load_funding_source(test_data.funding_source)
+        logger.info(f"[{test_id}]: apply {len(test_data.mocks)} mocks")
+        for mock in test_data.mocks:
+            _apply_rpc_mock(mocker, mock)
 
-    expected_calls = _spy_mocks(mocker, test_data, wallet)
+        logger.info(f"[{test_id}]: load funding source")
+        wallet = load_funding_source(test_data.funding_source)
 
-    await check_assertions(wallet, test_data)
+        logger.info(f"[{test_id}]: spy mocks")
+        expected_calls = _spy_mocks(mocker, test_data, wallet)
 
-    _check_calls(expected_calls)
+        logger.info(f"[{test_id}]: check assertions")
+        await check_assertions(wallet, test_data)
+
+        logger.info(f"[{test_id}]: check calls")
+        _check_calls(expected_calls)
+
+    except Exception as exc:
+        logger.info(f"[{test_id}]: test failed: {exc}")
+        raise exc
+    finally:
+        logger.info(f"[{test_id}]: test end")
 
 
 def _apply_rpc_mock(mocker: MockerFixture, mock: RpcMock):

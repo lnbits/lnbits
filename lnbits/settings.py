@@ -258,6 +258,25 @@ class LnTipsFundingSource(LNbitsSettings):
     lntips_invoice_key: Optional[str] = Field(default=None)
 
 
+class NWCFundingSource(LNbitsSettings):
+    nwc_pairing_url: Optional[str] = Field(default=None)
+
+
+class BreezSdkFundingSource(LNbitsSettings):
+    breez_api_key: Optional[str] = Field(default=None)
+    breez_greenlight_seed: Optional[str] = Field(default=None)
+    breez_greenlight_invite_code: Optional[str] = Field(default=None)
+    breez_greenlight_device_key: Optional[str] = Field(default=None)
+    breez_greenlight_device_cert: Optional[str] = Field(default=None)
+
+
+class BoltzFundingSource(LNbitsSettings):
+    boltz_client_endpoint: Optional[str] = Field(default="127.0.0.1:9002")
+    boltz_client_macaroon: Optional[str] = Field(default=None)
+    boltz_client_wallet: Optional[str] = Field(default="lnbits")
+    boltz_client_cert: Optional[str] = Field(default=None)
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600)
 
@@ -274,11 +293,14 @@ class FundingSourcesSettings(
     LnPayFundingSource,
     BlinkFundingSource,
     AlbyFundingSource,
+    BoltzFundingSource,
     ZBDFundingSource,
     PhoenixdFundingSource,
     OpenNodeFundingSource,
     SparkFundingSource,
     LnTipsFundingSource,
+    NWCFundingSource,
+    BreezSdkFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
@@ -422,7 +444,9 @@ class SuperUserSettings(LNbitsSettings):
     lnbits_allowed_funding_sources: list[str] = Field(
         default=[
             "AlbyWallet",
+            "BoltzWallet",
             "BlinkWallet",
+            "BreezSdkWallet",
             "CoreLightningRestWallet",
             "CoreLightningWallet",
             "EclairWallet",
@@ -436,6 +460,7 @@ class SuperUserSettings(LNbitsSettings):
             "PhoenixdWallet",
             "VoidWallet",
             "ZBDWallet",
+            "NWCWallet",
         ]
     )
 

@@ -214,8 +214,6 @@ def add_ip_block_middleware(app: FastAPI):
             )
         return await call_next(request)
 
-    app.middleware("http")(block_allow_ip_middleware)
-
 
 def add_first_install_middleware(app: FastAPI):
     @app.middleware("http")
@@ -228,5 +226,3 @@ def add_first_install_middleware(app: FastAPI):
         ):
             return RedirectResponse("/first_install")
         return await call_next(request)
-
-    app.middleware("http")(first_install_middleware)

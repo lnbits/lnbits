@@ -10,6 +10,10 @@ from lnbits.db import DB_TYPE, POSTGRES, FromRowModel
 from lnbits.wallets import get_funding_source, set_funding_source
 
 
+class FakeError(Exception):
+    pass
+
+
 class DbTestModel(FromRowModel):
     id: int
     name: str
