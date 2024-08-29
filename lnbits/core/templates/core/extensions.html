@@ -471,6 +471,7 @@
                           filled
                           dense
                           emit-value
+                          map-options
                           v-model="release.wallet"
                           :options="g.user.walletOptions"
                           :label="$t('wallet_required')"
@@ -607,6 +608,7 @@
         filled
         dense
         emit-value
+        map-options
         v-model="selectedExtension.payToEnable.wallet"
         :options="g.user.walletOptions"
         label="Wallet *"
@@ -721,6 +723,7 @@
               dense
               v-model="selectedExtension.payToEnable.paymentWallet"
               emit-value
+              map-options
               :options="g.user.walletOptions"
               :label="$t('wallet_required')"
               class="q-mt-sm"
