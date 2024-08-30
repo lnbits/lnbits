@@ -12,18 +12,8 @@ from fastapi.exceptions import HTTPException
 from loguru import logger
 from packaging import version
 
-from lnbits.core.models import Payment, PaymentState, User
-from lnbits.core.services import check_admin_settings
-from lnbits.core.views.extension_api import (
-    api_install_extension,
-    api_uninstall_extension,
-)
-from lnbits.settings import settings
-from lnbits.wallets.base import Wallet
-
-from .core import db as core_db
-from .core import migrations as core_migrations
-from .core.crud import (
+from lnbits.core import db as core_db
+from lnbits.core.crud import (
     delete_accounts_no_wallets,
     delete_unused_wallets,
     delete_wallet_by_id,
@@ -35,14 +25,20 @@ from .core.crud import (
     remove_deleted_wallets,
     update_payment_status,
 )
-from .core.helpers import migrate_extension_database, run_migration
-from .db import COCKROACH, POSTGRES, SQLITE
-from .extension_manager import (
+from lnbits.core.helpers import migrate_databases
+from lnbits.core.models import Payment, PaymentState, User
+from lnbits.core.services import check_admin_settings
+from lnbits.core.views.extension_api import (
+    api_install_extension,
+    api_uninstall_extension,
+)
+from lnbits.extension_manager import (
     CreateExtension,
     ExtensionRelease,
     InstallableExtension,
-    get_valid_extensions,
 )
+from lnbits.settings import settings
+from lnbits.wallets.base import Wallet
 
 
 def coro(f):
@@ -120,48 +116,6 @@ def database_migrate():
     """Migrate databases"""
     loop = asyncio.get_event_loop()
     loop.run_until_complete(migrate_databases())
-
-
-async def db_migrate():
-    task = asyncio.create_task(migrate_databases())
-    await task
-
-
-async def migrate_databases():
-    """Creates the necessary databases if they don't exist already; or migrates them."""
-
-    async with core_db.connect() as conn:
-        exists = False
-        if conn.type == SQLITE:
-            exists = await conn.fetchone(
-                "SELECT * FROM sqlite_master WHERE type='table' AND name='dbversions'"
-            )
-        elif conn.type in {POSTGRES, COCKROACH}:
-            exists = await conn.fetchone(
-                "SELECT * FROM information_schema.tables WHERE table_schema = 'public'"
-                " AND table_name = 'dbversions'"
-            )
-
-        if not exists:
-            await core_migrations.m000_create_migrations_table(conn)
-
-        current_versions = await get_dbversions(conn)
-        core_version = current_versions.get("core", 0)
-        await run_migration(conn, core_migrations, "core", core_version)
-
-    # here is the first place we can be sure that the
-    # `installed_extensions` table has been created
-    await load_disabled_extension_list()
-
-    # todo: revisit, use installed extensions
-    for ext in get_valid_extensions(False):
-        current_version = current_versions.get(ext.code, 0)
-        try:
-            await migrate_extension_database(ext, current_version)
-        except Exception as e:
-            logger.exception(f"Error migrating extension {ext.code}: {e}")
-
-    logger.info("✔️ All migrations done.")
 
 
 @db.command("versions")
@@ -313,12 +267,6 @@ async def check_invalid_payments(
     for w in invalid_wallets:
         data = invalid_wallets[f"{w}"]
         click.echo(" ".join([w, str(data[0]), str(data[1] / 1000).ljust(10)]))
-
-
-async def load_disabled_extension_list() -> None:
-    """Update list of extensions that have been explicitly disabled"""
-    inactive_extensions = await get_installed_extensions(active=False)
-    settings.lnbits_deactivated_extensions.update([e.id for e in inactive_extensions])
 
 
 @extensions.command("list")
@@ -696,7 +644,7 @@ async def _can_run_operation(url) -> bool:
     elif url:
         click.echo(
             "The option '--url' has been provided,"
-            + f" but no server found runnint at '{url}'"
+            f" but no server found running at '{url}'"
         )
         return False
 
