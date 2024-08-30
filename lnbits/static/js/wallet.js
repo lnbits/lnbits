@@ -221,9 +221,9 @@ new Vue({
       let req = this.parse.data.request.toLowerCase()
 
       if (req.startsWith('lightning:')) {
-        this.parse.data.request = this.parse.data.request.slice(10)
+        this.parse.data.request = req.slice(10)
       } else if (req.startsWith('lnurl:')) {
-        this.parse.data.request = this.parse.data.request.slice(6)
+        this.parse.data.request = req.slice(6)
       } else if (req.includes('lightning=lnurl1')) {
         this.parse.data.request = req.split('lightning=')[1].split('&')[0]
       }
