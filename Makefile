@@ -7,7 +7,7 @@ check: mypy pyright checkblack checkruff checkprettier checkbundle
 test: test-unit test-wallets test-api test-regtest
 
 install:
-	poetry install --only main
+	poetry install --only main --all-extras
 
 bundle:
 	npm install
