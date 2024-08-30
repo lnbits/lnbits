@@ -8,9 +8,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from loguru import logger
 
-from lnbits.core.services import InvoiceError, PaymentError
-
 from .helpers import template_renderer
+
+
+class PaymentError(Exception):
+    def __init__(self, message: str, status: str = "pending"):
+        self.message = message
+        self.status = status
+
+
+class InvoiceError(Exception):
+    def __init__(self, message: str, status: str = "pending"):
+        self.message = message
+        self.status = status
 
 
 def register_exception_handlers(app: FastAPI):

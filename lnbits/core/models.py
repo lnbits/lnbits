@@ -12,12 +12,13 @@ from typing import Callable, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from lnbits.db import FilterModel, FromRowModel
 from lnbits.helpers import url_for
 from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
+from lnbits.utils.exchange_rates import allowed_currencies
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import (
     PaymentPendingStatus,
@@ -381,6 +382,14 @@ class CreateInvoice(BaseModel):
     webhook: Optional[str] = None
     bolt11: Optional[str] = None
     lnurl_callback: Optional[str] = None
+
+    @validator("unit")
+    @classmethod
+    def unit_is_from_allowed_currencies(cls, v):
+        if v != "sat" and v not in allowed_currencies():
+            raise ValueError("The provided unit is not supported")
+
+        return v
 
 
 class CreateTopup(BaseModel):

@@ -323,6 +323,7 @@ window.LNbits = {
       return this.formatSat(value / 1000)
     },
     notifyApiError: function (error) {
+      console.error(error)
       var types = {
         400: 'warning',
         401: 'warning',
