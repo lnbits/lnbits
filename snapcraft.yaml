@@ -1,0 +1,48 @@
+name: lnbits
+base: core20
+version: '1.0'
+summary: LNbits - Lightweight Wallet System
+description: |
+  LNbits is a lightweight, extensible, and open-source lightning wallet system.
+
+confinement: strict
+grade: stable
+
+parts:
+  lnbits:
+    plugin: python
+    source: https://github.com/lnbits/lnbits.git
+    source-branch: main
+    build-packages:
+      - python3.9
+      - python3.9-distutils
+      - git
+    python-packages:
+      - poetry
+    override-pull: |
+      # Set up Python and Poetry directly
+      curl -sSL https://install.python-poetry.org | python3.9 -
+    override-stage: |
+      # Copy the .env.example file from the correct source location
+      cp $SNAPCRAFT_PART_SRC/.env.example $SNAPCRAFT_STAGE/lnbits/.env
+      sed -i 's/^LNBITS_ADMIN_UI=.*/LNBITS_ADMIN_UI=true/' $SNAPCRAFT_STAGE/lnbits/.env
+      sed -i "s|^LNBITS_DATA_FOLDER=.*|LNBITS_DATA_FOLDER=\"$SNAP_USER_COMMON/snaplnbits/data\"|" $SNAPCRAFT_STAGE/lnbits/.env
+      sed -i 's/^HOST=.*/HOST=0.0.0.0/' $SNAPCRAFT_STAGE/lnbits/.env
+      
+      # Create the directory for data storage
+      mkdir -p $SNAPCRAFT_STAGE/snaplnbits/data
+
+      # Create the run-lnbits.sh script
+      echo '#!/bin/sh' > $SNAPCRAFT_STAGE/lnbits/run-lnbits.sh
+      echo 'cd $SNAP/lnbits && poetry run lnbits' >> $SNAPCRAFT_STAGE/lnbits/run-lnbits.sh
+      chmod +x $SNAPCRAFT_STAGE/lnbits/run-lnbits.sh
+
+apps:
+  lnbits:
+    command: lnbits/run-lnbits.sh
+    environment:
+      PATH: "$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/.local/bin"
+      LNBITS_DATA_FOLDER: "$SNAP_USER_COMMON/snaplnbits/data"
+    plugs: 
+      - network
+      - home
