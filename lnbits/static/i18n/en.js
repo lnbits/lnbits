@@ -241,6 +241,8 @@ window.localisation.en = {
   back: 'Back',
   logout: 'Logout',
   look_and_feel: 'Look and Feel',
+  toggle_gradient: 'Toggle Gradient',
+  gradient_background: 'Gradient Background',
   language: 'Language',
   color_scheme: 'Color Scheme',
   extension_cost: 'This release requires a payment of minimum %{cost} sats.',
