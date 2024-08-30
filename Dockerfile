@@ -57,6 +57,8 @@ COPY --from=builder /app/.venv .venv
 COPY --from=builder /app/lnbits/static/bundle.min.js lnbits/static
 COPY --from=builder /app/lnbits/static/bundle.min.css lnbits/static
 
+RUN poetry install --only main --all-extras
+
 RUN mkdir data
 
 ENV LNBITS_PORT="5000"
