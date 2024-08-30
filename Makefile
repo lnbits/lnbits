@@ -6,6 +6,20 @@ check: mypy pyright checkblack checkruff checkprettier checkbundle
 
 test: test-unit test-wallets test-api test-regtest
 
+install:
+	poetry install --only main
+
+bundle:
+	npm install
+	npm run sass
+	npm run vendor_copy
+	npm run vendor_json
+	poetry run ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
+	npm run vendor_bundle_css
+	npm run vendor_minify_css
+	npm run vendor_bundle_js
+	npm run vendor_minify_js
+
 prettier:
 	poetry run ./node_modules/.bin/prettier --write .
 
@@ -98,17 +112,6 @@ bak:
 
 sass:
 	npm run sass
-
-bundle:
-	npm install
-	npm run sass
-	npm run vendor_copy
-	npm run vendor_json
-	poetry run ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
-	npm run vendor_bundle_css
-	npm run vendor_minify_css
-	npm run vendor_bundle_js
-	npm run vendor_minify_js
 
 install-pre-commit-hook:
 	@echo "Installing pre-commit hook to git"

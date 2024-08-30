@@ -13,22 +13,27 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # Only copy the files required to install the dependencies
-COPY pyproject.toml poetry.lock ./
+COPY Makefile package.json package-lock.json pyproject.toml poetry.lock ./
 
-RUN mkdir data
 
 ENV POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=1 \
     POETRY_VIRTUALENVS_CREATE=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-RUN poetry install --only main
+# bundle files
+RUN mkdir -p lnbits/static/css lnbits/static/vendor
+COPY lnbits/static/scss/ ./lnbits/static/scss/
+COPY lnbits/static/js/ ./lnbits/static/js/
+COPY lnbits/static/i18n/ ./lnbits/static/i18n/
+
+RUN make build
 
 FROM python:3.10-slim-bookworm
 
 # needed for backups postgresql-client version 14 (pg_dump)
 RUN apt-get update && apt-get -y upgrade && \
-    apt-get -y install gnupg2 curl lsb-release && \
+    apt-get -y install gnupg2 curl lsb-release libnss-myhostname && \
     sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
     curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
@@ -49,9 +54,8 @@ WORKDIR /app
 
 COPY . .
 COPY --from=builder /app/.venv .venv
-
-RUN make
-RUN make build
+COPY --from=builder /app/lnbits/static/bundle.min.js lnbits/static
+COPY --from=builder /app/lnbits/static/bundle.min.css lnbits/static
 
 RUN mkdir data
 
