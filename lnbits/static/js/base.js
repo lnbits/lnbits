@@ -425,6 +425,18 @@ window.LNbits = {
       converter.setFlavor('github')
       converter.setOption('simpleLineBreaks', true)
       return converter.makeHtml(text)
+    },
+    hexToRgb: function (hex) {
+      return Quasar.utils.colors.hexToRgb(hex)
+    },
+    hexDarken: function (hex, percent) {
+      return Quasar.utils.colors.lighten(hex, percent)
+    },
+    hexAlpha: function (hex, alpha) {
+      return Quasar.utils.colors.changeAlpha(hex, alpha)
+    },
+    getPaletteColor: function (color) {
+      return Quasar.utils.colors.getPaletteColor(color)
     }
   }
 }
@@ -435,6 +447,8 @@ window.windowMixin = {
     return {
       toggleSubs: true,
       reactionChoice: 'confettiBothSides',
+      gradientChoice:
+        this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
       g: {
         offline: !navigator.onLine,
@@ -453,6 +467,25 @@ window.windowMixin = {
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
+    },
+    applyGradient: function () {
+      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
+        darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
+        primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
+        const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
+        document.body.style.setProperty(
+          'background-image',
+          gradientStyle,
+          'important'
+        )
+        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
+        const style = document.createElement('style')
+        style.innerHTML =
+          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
+          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
+          `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
+        document.head.appendChild(style)
+      }
     },
     copyText: function (text, message, position) {
       var notify = this.$q.notify
@@ -516,6 +549,8 @@ window.windowMixin = {
     }
     this.reactionChoice =
       this.$q.localStorage.getItem('lnbits.reactions') || 'confettiBothSides'
+
+    this.applyGradient()
 
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 

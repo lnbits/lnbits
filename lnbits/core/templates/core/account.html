@@ -375,6 +375,27 @@
                 </div>
                 <div class="row q-mb-md">
                   <div class="col-4">
+                    <span v-text="$t('gradient_background')"></span>
+                  </div>
+                  <div class="col-8">
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      @click="toggleGradient"
+                      icon="gradient"
+                      size="sm"
+                      v-model="gradientChoice"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('toggle_gradient')"></span
+                      ></q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+
+                <div class="row q-mb-md">
+                  <div class="col-4">
                     <span v-text="$t('toggle_darkmode')"></span>
                   </div>
                   <div class="col-8">
