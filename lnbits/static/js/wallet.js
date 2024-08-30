@@ -219,20 +219,16 @@ new Vue({
     decodeRequest: function () {
       this.parse.show = true
       let req = this.parse.data.request.toLowerCase()
-      if (this.parse.data.request.toLowerCase().startsWith('lightning:')) {
-        this.parse.data.request = this.parse.data.request.slice(10)
-      } else if (this.parse.data.request.toLowerCase().startsWith('lnurl:')) {
-        this.parse.data.request = this.parse.data.request.slice(6)
-      } else if (req.indexOf('lightning=lnurl1') !== -1) {
-        this.parse.data.request = this.parse.data.request
-          .split('lightning=')[1]
-          .split('&')[0]
+
+      if (req.startsWith('lightning:')) {
+        this.parse.data.request = req.slice(10)
+      } else if (req.startsWith('lnurl:')) {
+        this.parse.data.request = req.slice(6)
+      } else if (req.includes('lightning=lnurl1')) {
+        this.parse.data.request = req.split('lightning=')[1].split('&')[0]
       }
 
-      if (
-        this.parse.data.request.toLowerCase().startsWith('lnurl1') ||
-        this.parse.data.request.match(/[\w.+-~_]+@[\w.+-~_]/)
-      ) {
+      if (req.startsWith('lnurl1') || req.match(/[\w.+-~_]+@[\w.+-~_]/)) {
         LNbits.api
           .request(
             'GET',
