@@ -25,6 +25,7 @@ from lnbits.decorators import (
     check_user_extension_access,
     require_admin_key,
 )
+from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.helpers import url_for
 from lnbits.lnurl import LnurlErrorResponse
 from lnbits.lnurl import decode as decode_lnurl
@@ -68,18 +69,6 @@ from .crud import (
 )
 from .helpers import to_valid_user_id
 from .models import BalanceDelta, Payment, PaymentState, User, UserConfig, Wallet
-
-
-class PaymentError(Exception):
-    def __init__(self, message: str, status: str = "pending"):
-        self.message = message
-        self.status = status
-
-
-class InvoiceError(Exception):
-    def __init__(self, message: str, status: str = "pending"):
-        self.message = message
-        self.status = status
 
 
 async def calculate_fiat_amounts(
