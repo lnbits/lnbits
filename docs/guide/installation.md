@@ -14,7 +14,7 @@ Note that by default LNbits uses SQLite as its database, which is simple and eff
 
 ```sh
 wget https://raw.githubusercontent.com/lnbits/lnbits/lnbits.sh
-chmod +x lnbits.sh 
+chmod +x lnbits.sh
 ./lnbits.sh # To install and also run
 
 # After installation, alternatively to run you can use 'poetry run lnbits' where you can do port changes etc
