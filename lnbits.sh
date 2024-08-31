@@ -44,6 +44,7 @@ poetry install --only main
 
 # Set environment variables for LNbits
 export LNBITS_ADMIN_UI=true
+export HOST=0.0.0.0
 
 # Run LNbits
 poetry run lnbits
