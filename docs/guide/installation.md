@@ -10,7 +10,16 @@ The following sections explain how to install LNbits using varions package manag
 
 Note that by default LNbits uses SQLite as its database, which is simple and effective but you can configure it to use PostgreSQL instead which is also described in a section below.
 
-## Option 1 (recommended): poetry
+## Option 1: install script
+
+```sh
+wget https://raw.githubusercontent.com/lnbits/lnbits/lnbits.sh
+chmod +x lnbits.sh 
+./lnbits.sh # To install and also to run
+# After installation, alternatively to run you can use 'poetry run lnbits' where you can do port chages etc. See next option for examples
+```
+
+## Option 2: compile
 
 Mininum poetry version has is ^1.2, but it is recommended to use latest poetry. (including OSX)
 Make sure you have Python 3.9 or 3.10 installed.
@@ -18,7 +27,7 @@ Make sure you have Python 3.9 or 3.10 installed.
 ### install python on ubuntu
 
 ```sh
-# for making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version
+# For making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version
 sudo apt update
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
@@ -69,7 +78,7 @@ poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```
 
-## Option 2: Nix
+## Option 3: Nix
 
 ```sh
 # Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
@@ -107,7 +116,7 @@ LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
 SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
 ```
 
-## Option 3: Docker
+## Option 4: Docker
 
 use latest version from docker hub
 
@@ -129,7 +138,7 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
 ```
 
-## Option 4: Fly.io
+## Option 5: Fly.io
 
 Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.
 
