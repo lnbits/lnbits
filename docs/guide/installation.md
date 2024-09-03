@@ -10,19 +10,7 @@ The following sections explain how to install LNbits using varions package manag
 
 Note that by default LNbits uses SQLite as its database, which is simple and effective but you can configure it to use PostgreSQL instead which is also described in a section below.
 
-## Option 1: install script
-
-```sh
-wget https://raw.githubusercontent.com/lnbits/lnbits/lnbits.sh &&
-chmod +x lnbits.sh &&
-./lnbits.sh
-```
-
-Now visit `0.0.0.0:5000` to make a super-user account.
-
-`./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `poetry run lnbits` (see next option).
-
-## Option 2: compile
+## Option 1: compile
 
 Mininum poetry version has is ^1.2, but it is recommended to use latest poetry. (including OSX)
 Make sure you have Python 3.9 or 3.10 installed.
@@ -80,6 +68,18 @@ git pull
 poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```
+
+## Option 2: install script
+
+```sh
+wget https://raw.githubusercontent.com/lnbits/lnbits/lnbits.sh &&
+chmod +x lnbits.sh &&
+./lnbits.sh
+```
+
+Now visit `0.0.0.0:5000` to make a super-user account.
+
+`./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `poetry run lnbits` (see next option).
 
 ## Option 3: Nix
 
