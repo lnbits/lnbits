@@ -38,10 +38,10 @@ Vue.component('payment-list', {
       paymentsCSV: {
         columns: [
           {
-            name: 'status',
+            name: 'pending',
             align: 'left',
-            label: 'Status',
-            field: 'status'
+            label: 'Pending',
+            field: 'pending'
           },
           {
             name: 'memo',
