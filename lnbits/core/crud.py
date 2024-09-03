@@ -1,7 +1,6 @@
-import datetime
 import json
 from time import time
-from typing import Dict, List, Literal, Optional
+from typing import Any, Literal, Optional
 from uuid import uuid4
 
 import shortuuid
@@ -27,6 +26,7 @@ from lnbits.settings import (
 from .models import (
     Account,
     AccountFilters,
+    CreatePayment,
     Payment,
     PaymentFilters,
     PaymentHistoryPoint,
@@ -37,9 +37,6 @@ from .models import (
     Wallet,
     WebPushSubscription,
 )
-
-# accounts
-# --------
 
 
 async def create_account(
@@ -430,7 +427,7 @@ async def get_installed_extension(
 async def get_installed_extensions(
     active: Optional[bool] = None,
     conn: Optional[Connection] = None,
-) -> List[InstallableExtension]:
+) -> list[InstallableExtension]:
     rows = await (conn or db).fetchall(
         "SELECT * FROM installed_extensions",
     )
@@ -456,7 +453,7 @@ async def get_user_extension(
 
 async def get_user_extensions(
     user_id: str, conn: Optional[Connection] = None
-) -> List[UserExtension]:
+) -> list[UserExtension]:
     rows = await (conn or db).fetchall(
         """
             SELECT extension, active, extra as _extra FROM extensions
@@ -481,7 +478,7 @@ async def update_user_extension(
 
 async def get_user_active_extensions_ids(
     user_id: str, conn: Optional[Connection] = None
-) -> List[str]:
+) -> list[str]:
     rows = await (conn or db).fetchall(
         """
         SELECT extension FROM extensions WHERE "user" = :user AND active
@@ -650,7 +647,7 @@ async def get_wallet(
     return Wallet(**row) if row else None
 
 
-async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> List[Wallet]:
+async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> list[Wallet]:
     rows = await (conn or db).fetchall(
         """
         SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
@@ -772,7 +769,7 @@ async def get_payments_paginated(
         "wallet": wallet_id,
         "time": since,
     }
-    clause: List[str] = []
+    clause: list[str] = []
 
     if since is not None:
         clause.append(f"time > {db.timestamp_placeholder('time')}")
@@ -882,23 +879,13 @@ async def delete_expired_invoices(
 
 
 async def create_payment(
-    *,
-    wallet_id: str,
     checking_id: str,
-    payment_request: str,
-    payment_hash: str,
-    amount: int,
-    memo: str,
-    fee: int = 0,
+    data: CreatePayment,
     status: PaymentState = PaymentState.PENDING,
-    preimage: Optional[str] = None,
-    expiry: Optional[datetime.datetime] = None,
-    extra: Optional[Dict] = None,
-    webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
     # we don't allow the creation of the same invoice twice
-    # note: this can be removed if the db uniquess constarints are set appropriately
+    # note: this can be removed if the db uniqueness constraints are set appropriately
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     assert previous_payment is None, "Payment already exists"
 
@@ -912,27 +899,27 @@ async def create_payment(
            :amount, :status, :memo, :fee, :extra, :webhook, {expiry_ph}, :pending)
         """,
         {
-            "wallet": wallet_id,
+            "wallet": data.wallet_id,
             "checking_id": checking_id,
-            "bolt11": payment_request,
-            "hash": payment_hash,
-            "preimage": preimage,
-            "amount": amount,
+            "bolt11": data.payment_request,
+            "hash": data.payment_hash,
+            "preimage": data.preimage,
+            "amount": data.amount,
             "status": status.value,
-            "memo": memo,
-            "fee": fee,
+            "memo": data.memo,
+            "fee": data.fee,
             "extra": (
-                json.dumps(extra)
-                if extra and extra != {} and isinstance(extra, dict)
+                json.dumps(data.extra)
+                if data.extra and data.extra != {} and isinstance(data.extra, dict)
                 else None
             ),
-            "webhook": webhook,
-            "expiry": expiry if expiry else None,
+            "webhook": data.webhook,
+            "expiry": data.expiry if data.expiry else None,
             "pending": False,  # TODO: remove this in next release
         },
     )
 
-    new_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
+    new_payment = await get_wallet_payment(data.wallet_id, data.payment_hash, conn=conn)
     assert new_payment, "Newly created payment couldn't be retrieved"
 
     return new_payment
@@ -963,7 +950,7 @@ async def update_payment_details(
         "preimage": preimage,
     }
 
-    set_clause: List[str] = []
+    set_clause: list[str] = []
     if new_checking_id is not None:
         set_clause.append("checking_id = :checking_id")
     if status is not None:
@@ -1023,7 +1010,7 @@ async def get_payments_history(
     wallet_id: Optional[str] = None,
     group: DateTrunc = "day",
     filters: Optional[Filters] = None,
-) -> List[PaymentHistoryPoint]:
+) -> list[PaymentHistoryPoint]:
     if not filters:
         filters = Filters()
 
@@ -1249,7 +1236,7 @@ async def get_tinyurl(tinyurl_id: str) -> Optional[TinyURL]:
     return TinyURL.from_row(row) if row else None
 
 
-async def get_tinyurl_by_url(url: str) -> List[TinyURL]:
+async def get_tinyurl_by_url(url: str) -> list[TinyURL]:
     rows = await db.fetchall(
         "SELECT * FROM tiny_url WHERE url = :url",
         {"url": url},
@@ -1301,7 +1288,7 @@ async def get_webpush_subscription(
 
 async def get_webpush_subscriptions_for_user(
     user: str,
-) -> List[WebPushSubscription]:
+) -> list[WebPushSubscription]:
     rows = await db.fetchall(
         """SELECT * FROM webpush_subscriptions WHERE "user" = :user""",
         {"user": user},
