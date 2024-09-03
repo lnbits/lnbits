@@ -3,11 +3,17 @@
 # Check install has not already run
 if [ ! -d lnbits/data ]; then
 
+  # Check Python version
+  if python3 -c "import sys; exit(0 if sys.version_info >= (3, 9) else 1)" ; then
+    echo "Python version is 3.9 or higher ... OK"
+  else
+    echo "Python version is lower than 3.9 ... FAIL"
+    exit 1
+  fi
+
   # Update package list and install prerequisites
   sudo apt update
-  sudo apt install -y software-properties-common curl git
-  sudo add-apt-repository -y ppa:deadsnakes/ppa
-  sudo apt install -y python3.9 python3.9-distutils
+  sudo apt install -y curl git
 
   # Install Poetry
   curl -sSL https://install.python-poetry.org | python3 -
@@ -26,12 +32,10 @@ if [ ! -d lnbits/data ]; then
     # Check out the main branch
     git checkout main
   fi
-  # Set up the Poetry environment to use Python 3.9
-  poetry env use python3.9
 
   # Make data folder
   mkdir data
-  
+
   # Copy the .env.example to .env
   cp .env.example .env
 elif [ ! -d lnbits/wallets ]; then # Another check its not being run from the wrong directory
