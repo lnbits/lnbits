@@ -12,51 +12,51 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.10 | ^3.9"
+python = "^3.12 | ^3.11 | ^3.10 | ^3.9"
 bech32 = "1.2.0"
 click = "8.1.7"
-ecdsa = "0.18.0"
-fastapi = "0.109.2"
-httpx = "0.25.0"
+ecdsa = "0.19.0"
+fastapi = "0.112.0"
+httpx = "0.27.0"
 jinja2 = "3.1.4"
-lnurl = "0.4.2"
-psycopg2-binary = "2.9.7"
+lnurl = "0.5.2"
+psycopg2-binary = "2.9.9"
 pydantic = "1.10.17"
 pyqrcode = "1.2.1"
-shortuuid = "1.0.11"
+shortuuid = "1.0.13"
 sqlalchemy = "1.3.24"
 sqlalchemy-aio = "0.17.0"
-sse-starlette = "1.6.5"
-typing-extensions = "4.8.0"
-uvicorn = "0.23.2"
+sse-starlette = "1.8.2"
+typing-extensions = "4.12.2"
+uvicorn = "0.30.5"
 uvloop = "0.19.0"
 websockets = "11.0.3"
 loguru = "0.7.2"
-grpcio = "1.65.4"
-protobuf = "5.26.1"
+grpcio = "1.65.5"
+protobuf = "5.27.3"
 pyln-client = "24.5"
-pywebpush = "1.14.0"
+pywebpush = "1.14.1"
 slowapi = "0.1.9"
-websocket-client = "1.6.3"
-pycryptodomex = "3.19.1"
-packaging = "23.1"
-bolt11 = "2.0.6"
+websocket-client = "1.8.0"
+pycryptodomex = "3.20.0"
+packaging = "24.0"
+bolt11 = "2.1.0"
 # needed for new login methods: username-password, google-auth, github-auth
-bcrypt = "^4.1.1"
-pyjwt = "^2.8.0"
-passlib = "^1.7.4"
-itsdangerous = "^2.1.2"
-fastapi-sso = "^0.9.1"
+bcrypt = "4.2.0"
+pyjwt = "2.9.0"
+passlib = "1.7.4"
+itsdangerous = "2.2.0"
+fastapi-sso = "0.15.0"
 # needed for boltz, lnurldevice, watchonly extensions
-embit = "0.7.0"
+embit = "0.8.0"
 # needed for cashu, lnurlp, nostrclient, nostrmarket, nostrrelay extensions
 secp256k1 = "0.14.0"
 # keep for backwards compatibility with lnurlp and cashu
 environs = "9.5.0"
 # needed for scheduler extension
-python-crontab = "3.0.0"
+python-crontab = "3.2.0"
 # needed for liquid support boltz
-wallycore = {version = "^1.0.0", optional = true}
+wallycore = {version = "1.3.0", optional = true}
 # needed for breez funding source
 breez-sdk = {version = "0.5.2", optional = true}
 
@@ -65,28 +65,26 @@ breez = ["breez-sdk"]
 liquid = ["wallycore"]
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.3.0"
-pytest-asyncio = "^0.21.0"
-pytest = "^7.3.2"
+black = "^24.8.0"
+# we are stuck with pytest-asyncio 0.21.x because of https://github.com/pytest-dev/pytest-asyncio/issues/706
+pytest-asyncio = "^0.21.2"
+pytest = "^8.3.2"
 pytest-cov = "^4.1.0"
-mypy = "^1.5.1"
-types-protobuf = "^4.24.0.2"
-pre-commit = "^3.2.2"
-openapi-spec-validator = "^0.6.0"
-ruff = "^0.3.2"
-# not our dependency but needed indirectly by openapi-spec-validator
-# we want to use 0.10.3 because newer versions are broken on nix
-rpds-py = "0.10.3"
-types-passlib = "^1.7.7.13"
-openai = "^1.12.0"
-json5 = "^0.9.17"
+mypy = "^1.11.1"
+types-protobuf = "^5.27.0.20240626"
+pre-commit = "^3.8.0"
+openapi-spec-validator = "^0.7.1"
+ruff = "^0.5.7"
+types-passlib = "^1.7.7.20240327"
+openai = "^1.39.0"
+json5 = "^0.9.25"
 asgi-lifespan = "^2.1.0"
 pytest-md = "^0.2.0"
-pytest-httpserver = "^1.0.10"
+pytest-httpserver = "^1.1.0"
 pytest-mock = "^3.14.0"
-types-mock = "^5.1.0.20240311"
+types-mock = "^5.1.0.20240425"
 mock = "^5.1.0"
-grpcio-tools = "^1.65.4"
+grpcio-tools = "^1.65.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
