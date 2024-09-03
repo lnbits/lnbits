@@ -219,7 +219,6 @@ new Vue({
     decodeRequest: function () {
       this.parse.show = true
       let req = this.parse.data.request.toLowerCase()
-
       if (req.startsWith('lightning:')) {
         this.parse.data.request = req.slice(10)
       } else if (req.startsWith('lnurl:')) {
@@ -227,7 +226,7 @@ new Vue({
       } else if (req.includes('lightning=lnurl1')) {
         this.parse.data.request = req.split('lightning=')[1].split('&')[0]
       }
-
+      req = this.parse.data.request
       if (req.startsWith('lnurl1') || req.match(/[\w.+-~_]+@[\w.+-~_]/)) {
         LNbits.api
           .request(
