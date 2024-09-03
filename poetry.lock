@@ -1350,13 +1350,13 @@ rediscluster = ["redis (>=4.2.0,!=4.5.2,!=4.5.3)"]
 
 [[package]]
 name = "lnurl"
-version = "0.5.2"
+version = "0.5.3"
 description = "LNURL implementation for Python."
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "lnurl-0.5.2-py3-none-any.whl", hash = "sha256:befd612ddb83665cd9f28b90be0e605db47d949b2bd803675f408b29f13401cd"},
-    {file = "lnurl-0.5.2.tar.gz", hash = "sha256:fd72ad3acd05fd506bbb394ae451d927ffa38abd96dfd2785be012a0c8636380"},
+    {file = "lnurl-0.5.3-py3-none-any.whl", hash = "sha256:feaf6c60b0b7f104894ef3accbd30d23d52e038c2797c58432baea7f4a8aa952"},
+    {file = "lnurl-0.5.3.tar.gz", hash = "sha256:60154bcfdbb98fb143eeca970a16d73a582f28e057a826b5f222259411c497fe"},
 ]
 
 [package.dependencies]
@@ -3128,4 +3128,4 @@ liquid = ["wallycore"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12 | ^3.11 | ^3.10 | ^3.9"
-content-hash = "e6a3fb46cf5644aa43881f1f7814933f115c40d52e93a9c38f8dd268fde76f4a"
+content-hash = "0702abeeb1186947baff11e048a82fcba55ea18343b342da681107eddaf4b996"
