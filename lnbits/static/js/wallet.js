@@ -218,7 +218,8 @@ new Vue({
     },
     decodeRequest: function () {
       this.parse.show = true
-      let req = this.parse.data.request.toLowerCase()
+      this.parse.data.request = this.parse.data.request.trim().toLowerCase()
+      let req = this.parse.data.request
       if (req.startsWith('lightning:')) {
         this.parse.data.request = req.slice(10)
       } else if (req.startsWith('lnurl:')) {
