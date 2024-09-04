@@ -242,6 +242,7 @@ Vue.component('payment-list', {
           <div class="gt-sm col-auto">
             <q-btn-dropdown
               outline
+              persistent
               class="q-mr-sm"
               color="grey"
               :label="$t('export_csv')"
@@ -252,6 +253,7 @@ Vue.component('payment-list', {
                 <q-item>
                   <q-item-section>
                     <q-input
+                    @keydown.enter="addFilterTag"
                       filled
                       dense
                       v-model="exportTagName"
@@ -261,7 +263,6 @@ Vue.component('payment-list', {
                     >
                       <q-btn
                         @click="addFilterTag"
-                        @keydown.enter="addFilterTag"
                         dense
                         flat
                         icon="add"
