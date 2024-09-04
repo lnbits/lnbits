@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Union
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -118,71 +118,11 @@ class ExtensionsRedirectMiddleware:
             return
 
         req_headers = scope["headers"] if "headers" in scope else []
-        redirect = self._find_redirect(scope["path"], req_headers)
+        redirect = settings.find_extension_redirect(scope["path"], req_headers)
         if redirect:
-            scope["path"] = self._new_path(redirect, scope["path"])
+            scope["path"] = redirect.new_path_from(scope["path"])
 
         await self.app(scope, receive, send)
-
-    def _find_redirect(self, path: str, req_headers: List[Tuple[bytes, bytes]]):
-        return next(
-            (
-                r
-                for r in settings.lnbits_extensions_redirects
-                if self._redirect_matches(r, path, req_headers)
-            ),
-            None,
-        )
-
-    def _redirect_matches(
-        self, redirect: dict, path: str, req_headers: List[Tuple[bytes, bytes]]
-    ) -> bool:
-        if "from_path" not in redirect:
-            return False
-        header_filters = (
-            redirect["header_filters"] if "header_filters" in redirect else {}
-        )
-        return self._has_common_path(redirect["from_path"], path) and self._has_headers(
-            header_filters, req_headers
-        )
-
-    def _has_headers(
-        self, filter_headers: dict, req_headers: List[Tuple[bytes, bytes]]
-    ) -> bool:
-        for h in filter_headers:
-            if not self._has_header(req_headers, (str(h), str(filter_headers[h]))):
-                return False
-        return True
-
-    def _has_header(
-        self, req_headers: List[Tuple[bytes, bytes]], header: Tuple[str, str]
-    ) -> bool:
-        for h in req_headers:
-            if (
-                h[0].decode().lower() == header[0].lower()
-                and h[1].decode() == header[1]
-            ):
-                return True
-        return False
-
-    def _has_common_path(self, redirect_path: str, req_path: str) -> bool:
-        redirect_path_elements = redirect_path.split("/")
-        req_path_elements = req_path.split("/")
-        if len(redirect_path) > len(req_path):
-            return False
-        sub_path = req_path_elements[: len(redirect_path_elements)]
-        return redirect_path == "/".join(sub_path)
-
-    def _new_path(self, redirect: dict, req_path: str) -> str:
-        from_path = redirect["from_path"].split("/")
-        redirect_to = redirect["redirect_to_path"].split("/")
-        req_tail_path = req_path.split("/")[len(from_path) :]
-
-        elements = [
-            e for e in ([redirect["ext_id"], *redirect_to, *req_tail_path]) if e != ""
-        ]
-
-        return "/" + "/".join(elements)
 
 
 def add_ratelimit_middleware(app: FastAPI):

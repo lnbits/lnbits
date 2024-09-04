@@ -49,7 +49,6 @@ from .core.views.extension_api import add_installed_extension
 from .extension_manager import (
     Extension,
     InstallableExtension,
-    activate_extension_paths,
     get_valid_extensions,
     version_parse,
 )
@@ -383,7 +382,7 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
     if hasattr(ext_module, f"{ext.code}_redirect_paths"):
         ext_redirects = getattr(ext_module, f"{ext.code}_redirect_paths")
-        activate_extension_paths(ext.code, ext_redirects)
+        settings.activate_extension_paths(ext.code, ext_redirects)
 
     logger.trace(f"adding route for extension {ext_module}")
 

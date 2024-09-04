@@ -36,8 +36,6 @@ from lnbits.extension_manager import (
     PayToEnableInfo,
     ReleasePaymentInfo,
     UserExtensionInfo,
-    activate_extension_paths,
-    deactivate_extension_paths,
     fetch_github_release_config,
     fetch_release_details,
     fetch_release_payment_info,
@@ -280,7 +278,7 @@ async def api_activate_extension(ext_id: str) -> SimpleStatus:
             # run extension start-up routine
             core_app_extra.register_new_ext_routes(ext)
 
-        activate_extension_paths(ext_id, [])
+        settings.activate_extension_paths(ext_id)
 
         await update_installed_extension_state(ext_id=ext_id, active=True)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' activated.")
@@ -301,7 +299,7 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
         ext = next((e for e in all_extensions if e.code == ext_id), None)
         assert ext, f"Extension '{ext_id}' doesn't exist."
 
-        deactivate_extension_paths(ext_id)
+        settings.deactivate_extension_paths(ext_id)
 
         await update_installed_extension_state(ext_id=ext_id, active=False)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' deactivated.")
