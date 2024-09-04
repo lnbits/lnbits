@@ -91,9 +91,9 @@ class RedirectPath(BaseModel):
         return "/" + "/".join(elements)
 
     def redirect_matches(self, path: str, req_headers: list[tuple[str, str]]) -> bool:
-        return self.has_common_path(path) and self.has_headers(req_headers)
+        return self._has_common_path(path) and self._has_headers(req_headers)
 
-    def has_common_path(self, req_path: str) -> bool:
+    def _has_common_path(self, req_path: str) -> bool:
         if len(self.from_path) > len(req_path):
             return False
 
@@ -103,13 +103,13 @@ class RedirectPath(BaseModel):
         sub_path = req_path_elements[: len(redirect_path_elements)]
         return self.from_path == "/".join(sub_path)
 
-    def has_headers(self, req_headers: list[tuple[str, str]]) -> bool:
+    def _has_headers(self, req_headers: list[tuple[str, str]]) -> bool:
         for h in self.header_filters:
-            if not self.has_header(req_headers, (str(h), str(self.header_filters[h]))):
+            if not self._has_header(req_headers, (str(h), str(self.header_filters[h]))):
                 return False
         return True
 
-    def has_header(
+    def _has_header(
         self, req_headers: list[tuple[str, str]], header: tuple[str, str]
     ) -> bool:
         for h in req_headers:
