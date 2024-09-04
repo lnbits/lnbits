@@ -284,6 +284,11 @@ window.LNbits = {
       obj.isPaid = obj.status === 'success'
       obj.isFailed = obj.status === 'failed'
       obj._q = [obj.memo, obj.sat].join(' ').toLowerCase()
+      try {
+        obj.details = JSON.parse(data.extra?.details || '{}')
+      } catch {
+        obj.details = {extraDetails: data.extra?.details}
+      }
       return obj
     }
   },

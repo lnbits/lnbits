@@ -33,6 +33,8 @@ Vue.component('payment-list', {
         search: null,
         loading: false
       },
+      exportTagName: '',
+      exportPaymentTagList: [],
       paymentsCSV: {
         columns: [
           {
@@ -146,7 +148,7 @@ Vue.component('payment-list', {
     paymentTableRowKey: function (row) {
       return row.payment_hash + row.amount
     },
-    exportCSV: function () {
+    exportCSV(detailed = false) {
       // status is important for export but it is not in paymentsTable
       // because it is manually added with payment detail link and icons
       // and would cause duplication in the list
@@ -157,13 +159,50 @@ Vue.component('payment-list', {
       }
       const params = new URLSearchParams(query)
       LNbits.api.getPayments(this.wallet, params).then(response => {
-        const payments = response.data.data.map(LNbits.map.payment)
+        let payments = response.data.data.map(LNbits.map.payment)
+        let columns = this.paymentsCSV.columns
+
+        if (detailed) {
+          if (this.exportPaymentTagList.length) {
+            payments = payments.filter(p =>
+              this.exportPaymentTagList.includes(p.tag)
+            )
+          }
+          const extraColumns = Object.keys(
+            payments.reduce((e, p) => ({...e, ...p.details}), {})
+          ).map(col => ({
+            name: col,
+            align: 'right',
+            label:
+              col.charAt(0).toUpperCase() +
+              col.slice(1).replace(/([A-Z])/g, ' $1'),
+            field: row => row.details[col],
+            format: data =>
+              typeof data === 'object' ? JSON.stringify(data) : data
+          }))
+          columns = this.paymentsCSV.columns.concat(extraColumns)
+        }
+
         LNbits.utils.exportCSV(
-          this.paymentsCSV.columns,
+          columns,
           payments,
           this.wallet.name + '-payments'
         )
       })
+    },
+    addFilterTag: function () {
+      if (!this.exportTagName) return
+      const value = this.exportTagName.trim()
+      this.exportPaymentTagList = this.exportPaymentTagList.filter(
+        v => v !== value
+      )
+      this.exportPaymentTagList.push(value)
+      this.exportTagName = ''
+    },
+    removeExportTag: function (value) {
+      this.exportPaymentTagList = this.exportPaymentTagList.filter(
+        v => v !== value
+      )
     },
     formatCurrency: function (amount, currency) {
       try {
@@ -202,7 +241,59 @@ Vue.component('payment-list', {
             ></h5>
           </div>
           <div class="gt-sm col-auto">
-            <q-btn flat color="grey" @click="exportCSV" :label="$t('export_csv')" ></q-btn>
+            <q-btn-dropdown
+              outline
+              persistent
+              class="q-mr-sm"
+              color="grey"
+              :label="$t('export_csv')"
+              split
+              @click="exportCSV(false)"
+            >
+              <q-list>
+                <q-item>
+                  <q-item-section>
+                    <q-input
+                    @keydown.enter="addFilterTag"
+                      filled
+                      dense
+                      v-model="exportTagName"
+                      type="text"
+                      label="Payment Tags"
+                      class="q-pa-sm"
+                    >
+                      <q-btn
+                        @click="addFilterTag"
+                        dense
+                        flat
+                        icon="add"
+                      ></q-btn>
+                    </q-input>
+                  </q-item-section>
+                </q-item>
+                <q-item v-if="exportPaymentTagList.length">
+                  <q-item-section>
+                    <div>
+                      <q-chip
+                        v-for="tag in exportPaymentTagList"
+                        :key="tag"
+                        removable
+                        @remove="removeExportTag(tag)"
+                        color="primary"
+                        text-color="white"
+                        :label="tag"
+                      ></q-chip>
+                    </div>
+                  </q-item-section>
+                </q-item>
+
+                <q-item>
+                  <q-item-section>
+                    <q-btn v-close-popup outline color="grey" @click="exportCSV(true)" label="Export to CSV with details" ></q-btn>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-btn-dropdown>
             <payment-chart :wallet="wallet" />
           </div>
         </div>
