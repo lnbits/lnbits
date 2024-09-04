@@ -70,7 +70,7 @@ include "users/_createWalletDialog.html" %}
                   v-if="!props.row.is_super_user"
                   icon="build"
                   size="sm"
-                  :color="props.row.is_admin ? 'primary' : ''"
+                  :color="props.row.is_admin ? 'primary' : 'grey'"
                   @click="toggleAdmin(props.row.id)"
                 >
                   <q-tooltip>Toggle Admin</q-tooltip>
