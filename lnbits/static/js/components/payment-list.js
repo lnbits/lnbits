@@ -191,7 +191,7 @@ Vue.component('payment-list', {
       })
     },
     addFilterTag: function () {
-      if (!this.exportTagName || this.exportTagName == '') return
+      if (!this.exportTagName) return
       const value = this.exportTagName.trim()
       this.exportPaymentTagList = this.exportPaymentTagList.filter(
         v => v !== value
