@@ -383,13 +383,7 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
     if hasattr(ext_module, f"{ext.code}_redirect_paths"):
         ext_redirects = getattr(ext_module, f"{ext.code}_redirect_paths")
-        print("### ext_redirects", ext.code, ext_redirects)
-        print("### lnbits_extensions_redirects 0", settings.lnbits_extensions_redirects)
-
-        print("### lnbits_extensions_redirects 1", settings.lnbits_extensions_redirects)
         activate_extension_settings(ext.code, ext_redirects)
-
-        print("### lnbits_extensions_redirects 2", settings.lnbits_extensions_redirects)
 
     logger.trace(f"adding route for extension {ext_module}")
 
