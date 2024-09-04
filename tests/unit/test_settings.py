@@ -105,10 +105,51 @@ def test_redirect_path_in_conflict_with_headers(
 def test_redirect_path_matches_with_headers(
     lnurlp: RedirectPath, lnurlp_with_headers: RedirectPath
 ):
+    headers_list = list(lnurlp_with_headers.header_filters.items())
     assert lnurlp.redirect_matches(
-        path=lnurlp_redirect_path_with_headers["from_path"],
-        req_headers=lnurlp_redirect_path_with_headers["header_filters"],
+        path=lnurlp_with_headers.from_path,
+        req_headers=headers_list,
     )
     assert not lnurlp_with_headers.redirect_matches(
         path=lnurlp_redirect_path["from_path"], req_headers=[]
+    )
+    assert not lnurlp_with_headers.redirect_matches(path="/random/path", req_headers=[])
+    assert not lnurlp_with_headers.redirect_matches(path="/random_path", req_headers=[])
+    assert not lnurlp_with_headers.redirect_matches(
+        path="/.well-known/lnurlp", req_headers=[]
+    )
+    assert lnurlp.redirect_matches(path="/.well-known/lnurlp", req_headers=[])
+    assert lnurlp.redirect_matches(
+        path="/.well-known/lnurlp/some/other/path", req_headers=[]
+    )
+    assert lnurlp.redirect_matches(
+        path="/.well-known/lnurlp/some/other/path",
+        req_headers=headers_list,
+    )
+    assert not lnurlp_with_headers.redirect_matches(
+        path="/.well-known/lnurlp", req_headers=[]
+    )
+    assert not lnurlp_with_headers.redirect_matches(
+        path="/.well-known/lnurlp/some/other/path", req_headers=[]
+    )
+    assert lnurlp_with_headers.redirect_matches(
+        path="/.well-known/lnurlp/some/other/path",
+        req_headers=headers_list,
+    )
+
+
+def test_redirect_path_new_path_from(lnurlp: RedirectPath):
+    assert lnurlp.new_path_from("") == "/lnurlp/api/v1/well-known"
+    assert lnurlp.new_path_from("/") == "/lnurlp/api/v1/well-known"
+    assert lnurlp.new_path_from("/path") == "/lnurlp/api/v1/well-known"
+    assert lnurlp.new_path_from("/path/more") == "/lnurlp/api/v1/well-known"
+
+    assert lnurlp.new_path_from("/.well-known/lnurlp") == "/lnurlp/api/v1/well-known"
+    assert (
+        lnurlp.new_path_from("/.well-known/lnurlp/path")
+        == "/lnurlp/api/v1/well-known/path"
+    )
+    assert (
+        lnurlp.new_path_from("/.well-known/lnurlp/path/more")
+        == "/lnurlp/api/v1/well-known/path/more"
     )
