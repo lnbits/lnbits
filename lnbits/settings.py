@@ -62,6 +62,62 @@ class ExtensionsInstallSettings(LNbitsSettings):
     lnbits_ext_github_token: str = Field(default="")
 
 
+class RedirectPath(BaseModel):
+    ext_id: str
+    from_path: str
+    redirect_to_path: str
+    header_filters: dict = {}
+
+    def in_conflict(self, other: RedirectPath) -> bool:
+        if self.ext_id == other.ext_id:
+            return False
+        return self.redirect_matches(
+            other.from_path, list(other.header_filters.items())
+        )
+
+    def find_in_conflict(self, others: list[RedirectPath]) -> Optional[RedirectPath]:
+        for other in others:
+            if self.in_conflict(other):
+                return other
+        return None
+
+    def new_path_from(self, req_path: str) -> str:
+        from_path = self.from_path.split("/")
+        redirect_to = self.redirect_to_path.split("/")
+        req_tail_path = req_path.split("/")[len(from_path) :]
+
+        elements = [e for e in ([self.ext_id, *redirect_to, *req_tail_path]) if e != ""]
+
+        return "/" + "/".join(elements)
+
+    def redirect_matches(self, path: str, req_headers: list[tuple[str, str]]) -> bool:
+        return self.has_common_path(path) and self.has_headers(req_headers)
+
+    def has_common_path(self, req_path: str) -> bool:
+        if len(self.from_path) > len(req_path):
+            return False
+
+        redirect_path_elements = self.from_path.split("/")
+        req_path_elements = req_path.split("/")
+
+        sub_path = req_path_elements[: len(redirect_path_elements)]
+        return self.from_path == "/".join(sub_path)
+
+    def has_headers(self, req_headers: list[tuple[str, str]]) -> bool:
+        for h in self.header_filters:
+            if not self.has_header(req_headers, (str(h), str(self.header_filters[h]))):
+                return False
+        return True
+
+    def has_header(
+        self, req_headers: list[tuple[str, str]], header: tuple[str, str]
+    ) -> bool:
+        for h in req_headers:
+            if h[0].lower() == header[0].lower() and h[1].lower() == header[1].lower():
+                return True
+        return False
+
+
 class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
     lnbits_deactivated_extensions: set[str] = Field(default=[])
@@ -80,7 +136,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
         return next(
             (
                 r
-                for r in settings.lnbits_extensions_redirects
+                for r in self.lnbits_extensions_redirects
                 if r.redirect_matches(path, headers)
             ),
             None,
@@ -591,62 +647,6 @@ class SuperSettings(EditableSettings):
 class AdminSettings(EditableSettings):
     is_super_user: bool
     lnbits_allowed_funding_sources: Optional[list[str]]
-
-
-class RedirectPath(BaseModel):
-    ext_id: str
-    from_path: str
-    redirect_to_path: str
-    header_filters: dict = {}
-
-    def in_conflict(self, other: RedirectPath) -> bool:
-        if self.ext_id == other.ext_id:
-            return False
-        return self.redirect_matches(
-            other.from_path, list(other.header_filters.items())
-        )
-
-    def find_in_conflict(self, others: list[RedirectPath]) -> Optional[RedirectPath]:
-        for other in others:
-            if self.in_conflict(other):
-                return other
-        return None
-
-    def new_path_from(self, req_path: str) -> str:
-        from_path = self.from_path.split("/")
-        redirect_to = self.redirect_to_path.split("/")
-        req_tail_path = req_path.split("/")[len(from_path) :]
-
-        elements = [e for e in ([self.ext_id, *redirect_to, *req_tail_path]) if e != ""]
-
-        return "/" + "/".join(elements)
-
-    def redirect_matches(self, path: str, req_headers: list[tuple[str, str]]) -> bool:
-        return self.has_common_path(path) and self.has_headers(req_headers)
-
-    def has_common_path(self, req_path: str) -> bool:
-        if len(self.from_path) > len(req_path):
-            return False
-
-        redirect_path_elements = self.from_path.split("/")
-        req_path_elements = req_path.split("/")
-
-        sub_path = req_path_elements[: len(redirect_path_elements)]
-        return self.from_path == "/".join(sub_path)
-
-    def has_headers(self, req_headers: list[tuple[str, str]]) -> bool:
-        for h in self.header_filters:
-            if not self.has_header(req_headers, (str(h), str(self.header_filters[h]))):
-                return False
-        return True
-
-    def has_header(
-        self, req_headers: list[tuple[str, str]], header: tuple[str, str]
-    ) -> bool:
-        for h in req_headers:
-            if h[0].lower() == header[0].lower() and h[1].lower() == header[1].lower():
-                return True
-        return False
 
 
 def set_cli_settings(**kwargs):
