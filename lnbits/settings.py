@@ -73,7 +73,7 @@ class RedirectPath(BaseModel):
             return False
         return self.redirect_matches(
             other.from_path, list(other.header_filters.items())
-        )
+        ) or other.redirect_matches(self.from_path, list(self.header_filters.items()))
 
     def find_in_conflict(self, others: list[RedirectPath]) -> Optional[RedirectPath]:
         for other in others:
