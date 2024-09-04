@@ -552,7 +552,7 @@ class InstallableExtension(BaseModel):
         redirects based on this
         """
         if upgrade_hash:
-            #bug
+            # bug
             settings.lnbits_upgraded_extensions.add(f"{self.hash}/{self.id}")
 
         settings.lnbits_all_extensions_ids.add(self.id)
@@ -772,7 +772,7 @@ class ExtensionDetailsRequest(BaseModel):
     version: str
 
 
-def activate_extension_settings(ext_id: str, ext_redirects: List[dict]):
+def activate_extension_paths(ext_id: str, ext_redirects: List[dict]):
     from_path_redirects = [r["from_path"] for r in ext_redirects]
     existing_redirects = [
         r["ext_id"]
@@ -790,7 +790,7 @@ def activate_extension_settings(ext_id: str, ext_redirects: List[dict]):
         settings.lnbits_extensions_redirects.append(r)
 
 
-def deactivate_extension_settings(ext_id: str):
+def deactivate_extension_paths(ext_id: str):
     settings.lnbits_deactivated_extensions.add(ext_id)
     settings.lnbits_extensions_redirects = [
         r for r in settings.lnbits_extensions_redirects if r["ext_id"] != ext_id
