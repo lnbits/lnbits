@@ -1,9 +1,4 @@
-/* globals windowMixin, decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, decryptLnurlPayAES */
-
-Vue.component(VueQrcode.name, VueQrcode)
-Vue.use(VueQrcodeReader)
-
-new Vue({
+window.app = Vue.createApp({
   el: '#vue',
   mixins: [windowMixin],
   data: function () {
