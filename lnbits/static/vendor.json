@@ -33,14 +33,16 @@
     "i18n/kr.js",
     "i18n/fi.js",
     "js/base.js",
+    "js/event-reactions.js",
+    "js/bolt11-decoder.js"
+  ],
+  "components": [
     "js/components.js",
     "js/components/lnbits-funding-sources.js",
     "js/components/extension-settings.js",
     "js/components/extension-rating.js",
     "js/components/payment-list.js",
-    "js/components/payment-chart.js",
-    "js/event-reactions.js",
-    "js/bolt11-decoder.js"
+    "js/components/payment-chart.js"
   ],
   "css": ["vendor/quasar.css", "css/base.css"]
 }

@@ -6,8 +6,11 @@
     "vendor_json": "node -e \"require('fs').writeFileSync('./lnbits/static/vendor.json', JSON.stringify(require('./package.json').bundle))\"",
     "vendor_bundle_css": "node -e \"require('concat')(require('./package.json').bundle.css.map(a => 'lnbits/static/'+a), './lnbits/static/bundle.css')\"",
     "vendor_bundle_js": "node -e \"require('concat')(require('./package.json').bundle.js.map(a => 'lnbits/static/'+a),'./lnbits/static/bundle.js')\"",
+    "vendor_bundle_components": "node -e \"require('concat')(require('./package.json').bundle.components.map(a => 'lnbits/static/'+a), './lnbits/static/bundle-components.js')\"",
     "vendor_minify_css": "./node_modules/.bin/minify ./lnbits/static/bundle.css > ./lnbits/static/bundle.min.css",
-    "vendor_minify_js": "./node_modules/.bin/minify ./lnbits/static/bundle.js > ./lnbits/static/bundle.min.js"
+    "vendor_minify_js": "./node_modules/.bin/minify ./lnbits/static/bundle.js > ./lnbits/static/bundle.min.js",
+    "vendor_minify_components": "./node_modules/.bin/minify ./lnbits/static/bundle-components.js > ./lnbits/static/bundle-components.min.js",
+    "bundle": "npm run vendor_copy && npm run vendor_json && npm run vendor_bundle_css && npm run vendor_bundle_js && npm run vendor_bundle_components && npm run vendor_minify_css && npm run vendor_minify_js && npm run vendor_minify_components"
   },
   "devDependencies": {
     "concat": "^1.0.3",
@@ -80,14 +83,16 @@
       "i18n/kr.js",
       "i18n/fi.js",
       "js/base.js",
+      "js/event-reactions.js",
+      "js/bolt11-decoder.js"
+    ],
+    "components": [
       "js/components.js",
       "js/components/lnbits-funding-sources.js",
       "js/components/extension-settings.js",
       "js/components/extension-rating.js",
       "js/components/payment-list.js",
-      "js/components/payment-chart.js",
-      "js/event-reactions.js",
-      "js/bolt11-decoder.js"
+      "js/components/payment-chart.js"
     ],
     "css": [
       "vendor/quasar.css",
