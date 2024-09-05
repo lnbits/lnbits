@@ -61,8 +61,11 @@ async def api_delete_webpush_subscription(
     request: Request,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    endpoint = unquote(
-        base64.b64decode(str(request.query_params.get("endpoint"))).decode("utf-8")
-    )
+    try:
+        endpoint = unquote(
+            base64.b64decode(str(request.query_params.get("endpoint"))).decode("utf-8")
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid endpoint format.") from exc
     count = await delete_webpush_subscription(endpoint, wallet.wallet.user)
     return {"count": count}
