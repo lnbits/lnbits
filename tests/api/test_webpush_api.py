@@ -20,7 +20,7 @@ async def test_create___missing_fields(client, adminkey_headers_from):
         headers=adminkey_headers_from,
         json={"subscription": """{"a": "x"}"""},
     )
-    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -49,7 +49,7 @@ async def test_delete__no_endpoint_param(client, adminkey_headers_from):
         "/api/v1/webpush",
         headers=adminkey_headers_from,
     )
-    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
 @pytest.mark.asyncio
