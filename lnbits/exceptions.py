@@ -11,16 +11,31 @@ from loguru import logger
 from .helpers import template_renderer
 
 
-class PaymentError(Exception):
+class LnbitsError(Exception):
+    """Base class for all exceptions in lnbits."""
+
+
+class PaymentError(LnbitsError):
+    """raised by fundingsource pay_invoice operations when an error occurs"""
+
     def __init__(self, message: str, status: str = "pending"):
         self.message = message
         self.status = status
 
 
-class InvoiceError(Exception):
+class InvoiceError(LnbitsError):
+    """raised by fundingsource create_invoice operations when an error occurs"""
+
     def __init__(self, message: str, status: str = "pending"):
         self.message = message
         self.status = status
+
+
+class NotFoundError(LnbitsError):
+    """
+    Raised by crud operations when a resource is not found.
+    Raises (401) error in api context.
+    """
 
 
 def register_exception_handlers(app: FastAPI):
@@ -29,6 +44,7 @@ def register_exception_handlers(app: FastAPI):
     register_http_exception_handler(app)
     register_payment_error_handler(app)
     register_invoice_error_handler(app)
+    register_not_found_error_handler(app)
 
 
 def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
@@ -114,4 +130,13 @@ def register_invoice_error_handler(app: FastAPI):
         return JSONResponse(
             status_code=520,
             content={"detail": exc.message, "status": exc.status},
+        )
+
+
+def register_not_found_error_handler(app: FastAPI):
+    @app.exception_handler(NotFoundError)
+    async def notfound_error_handler(request: Request, exc: NotFoundError):
+        return JSONResponse(
+            status_code=HTTPStatus.NOT_FOUND,
+            content={"detail": f"{exc!s}"},
         )
