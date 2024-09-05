@@ -774,7 +774,7 @@ class ExtensionDetailsRequest(BaseModel):
 
 
 async def stop_extension_background_work(
-    ext_id: str, user: str, access_token: Optional[str] = None
+    ext_id: str, user_id: Optional[str] = None, access_token: Optional[str] = None
 ):
     """
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
@@ -785,7 +785,7 @@ async def stop_extension_background_work(
 
     if not stopped:
         # fallback to REST API call
-        await _stop_extension_background_work_via_api(ext_id, user, access_token)
+        await _stop_extension_background_work_via_api(ext_id, user_id, access_token)
 
 
 async def _stop_extension_background_work(ext_id) -> bool:
@@ -815,13 +815,18 @@ async def _stop_extension_background_work(ext_id) -> bool:
     return True
 
 
-async def _stop_extension_background_work_via_api(ext_id, user, access_token):
+async def _stop_extension_background_work_via_api(
+    ext_id, user_id: Optional[str] = None, access_token: Optional[str] = None
+):
     logger.info(
         f"Stopping background work for extension '{ext_id}' using the REST API."
     )
     async with httpx.AsyncClient() as client:
         try:
-            url = f"http://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
+            query_params = f"?usr={user_id}" if user_id else ""
+            url = (
+                f"http://{settings.host}:{settings.port}/{ext_id}/api/v1{query_params}"
+            )
             headers = (
                 {"Authorization": "Bearer " + access_token} if access_token else None
             )
