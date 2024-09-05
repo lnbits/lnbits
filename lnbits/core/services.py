@@ -25,7 +25,7 @@ from lnbits.decorators import (
     check_user_extension_access,
     require_admin_key,
 )
-from lnbits.exceptions import InvoiceError, PaymentError
+from lnbits.exceptions import InvoiceError, PaymentError, VoidWalletError
 from lnbits.helpers import url_for
 from lnbits.lnurl import LnurlErrorResponse
 from lnbits.lnurl import decode as decode_lnurl
@@ -123,6 +123,11 @@ async def create_invoice(
     internal: Optional[bool] = False,
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
+    """
+    Create a Lightning invoice.
+    """
+    await check_void_wallet()
+
     if not amount > 0:
         raise InvoiceError("Amountless invoices not supported.", status="failed")
 
@@ -203,6 +208,7 @@ async def pay_invoice(
     If the payment is still in flight, we hope that some other process
     will regularly check for the payment.
     """
+    await check_void_wallet()
     try:
         invoice = bolt11_decode(payment_request)
     except Exception as exc:
@@ -876,7 +882,15 @@ async def websocket_updater(item_id, data):
     return await websocket_manager.send_data(f"{data}", item_id)
 
 
+async def check_void_wallet() -> None:
+    """Check if the current wallet is VoidWallet and raise a VoidWalletError"""
+    funding_source = get_funding_source()
+    if funding_source.__class__.__name__ == "VoidWallet":
+        raise VoidWalletError()
+
+
 async def switch_to_voidwallet() -> None:
+    """Switch to VoidWallet"""
     funding_source = get_funding_source()
     if funding_source.__class__.__name__ == "VoidWallet":
         return

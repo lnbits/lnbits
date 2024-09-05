@@ -31,6 +31,12 @@ class InvoiceError(LnbitsError):
         self.status = status
 
 
+class VoidWalletError(LnbitsError):
+    """
+    Raises an error (5xx) VoidWallet is active and a payment operation is attempted.
+    """
+
+
 class NotFoundError(LnbitsError):
     """
     Raised by crud operations when a resource is not found.
@@ -45,6 +51,7 @@ def register_exception_handlers(app: FastAPI):
     register_payment_error_handler(app)
     register_invoice_error_handler(app)
     register_not_found_error_handler(app)
+    register_void_wallet_error_handler(app)
 
 
 def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
@@ -139,4 +146,15 @@ def register_not_found_error_handler(app: FastAPI):
         return JSONResponse(
             status_code=HTTPStatus.NOT_FOUND,
             content={"detail": f"{exc!s}"},
+        )
+
+
+def register_void_wallet_error_handler(app: FastAPI):
+    @app.exception_handler(VoidWalletError)
+    async def void_wallet_error_handler(request: Request, exc: VoidWalletError):
+        return JSONResponse(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content={
+                "detail": "VoidWallet is active. Payment operations are disabled."
+            },
         )
