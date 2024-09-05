@@ -12,9 +12,6 @@ from lnbits.core.crud import (
     update_migration_version,
 )
 from lnbits.core.db import db as core_db
-from lnbits.core.extensions.extension_manager import (
-    get_valid_extensions,
-)
 from lnbits.core.extensions.models import (
     Extension,
 )
@@ -100,7 +97,7 @@ async def migrate_databases():
     await load_disabled_extension_list()
 
     # todo: revisit, use installed extensions
-    for ext in get_valid_extensions(False):
+    for ext in Extension.get_valid_extensions(False):
         current_version = current_versions.get(ext.code, 0)
         try:
             await migrate_extension_database(ext, current_version)

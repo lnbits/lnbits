@@ -16,7 +16,6 @@ from lnbits.core.db import core_app_extra
 from lnbits.core.extensions.extension_manager import (
     fetch_github_release_config,
     fetch_release_details,
-    get_valid_extensions,
     stop_extension_background_work,
     uninstall_extension,
 )
@@ -179,7 +178,7 @@ async def api_update_pay_to_enable(
 async def api_enable_extension(
     ext_id: str, user: User = Depends(check_user_exists)
 ) -> SimpleStatus:
-    if ext_id not in [e.code for e in get_valid_extensions()]:
+    if ext_id not in [e.code for e in Extension.get_valid_extensions()]:
         raise HTTPException(
             HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' doesn't exist."
         )
@@ -242,7 +241,7 @@ async def api_enable_extension(
 async def api_disable_extension(
     ext_id: str, user: User = Depends(check_user_exists)
 ) -> SimpleStatus:
-    if ext_id not in [e.code for e in get_valid_extensions()]:
+    if ext_id not in [e.code for e in Extension.get_valid_extensions()]:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, f"Extension '{ext_id}' doesn't exist."
         )
@@ -263,7 +262,7 @@ async def api_activate_extension(ext_id: str) -> SimpleStatus:
     try:
         logger.info(f"Activating extension: '{ext_id}'.")
 
-        all_extensions = get_valid_extensions()
+        all_extensions = Extension.get_valid_extensions()
         ext = next((e for e in all_extensions if e.code == ext_id), None)
         assert ext, f"Extension '{ext_id}' doesn't exist."
         # if extension never loaded (was deactivated on server startup)
@@ -288,7 +287,7 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
     try:
         logger.info(f"Deactivating extension: '{ext_id}'.")
 
-        all_extensions = get_valid_extensions()
+        all_extensions = Extension.get_valid_extensions()
         ext = next((e for e in all_extensions if e.code == ext_id), None)
         assert ext, f"Extension '{ext_id}' doesn't exist."
 
@@ -316,7 +315,7 @@ async def api_uninstall_extension(ext_id: str) -> SimpleStatus:
 
     installed_extensions = await get_installed_extensions()
     # check that other extensions do not depend on this one
-    for valid_ext_id in [ext.code for ext in get_valid_extensions()]:
+    for valid_ext_id in [ext.code for ext in Extension.get_valid_extensions()]:
         installed_ext = next(
             (ext for ext in installed_extensions if ext.id == valid_ext_id), None
         )

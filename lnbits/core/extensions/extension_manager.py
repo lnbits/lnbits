@@ -1,7 +1,5 @@
 import importlib
-import json
-from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import httpx
 from loguru import logger
@@ -13,47 +11,6 @@ from .helpers import github_api_get
 from .models import Extension, ExtensionConfig
 
 # All subdirectories in the current directory, not recursive.
-
-
-class ExtensionManager:
-    def __init__(self) -> None:
-        p = Path(settings.lnbits_extensions_path, "extensions")
-        Path(p).mkdir(parents=True, exist_ok=True)
-        self._extension_folders: List[Path] = [f for f in p.iterdir() if f.is_dir()]
-
-    @property
-    def extensions(self) -> List[Extension]:
-        # todo: remove this property somehow, it is too expensive
-        output: List[Extension] = []
-
-        for extension_folder in self._extension_folders:
-            extension_code = extension_folder.parts[-1]
-            try:
-                with open(extension_folder / "config.json") as json_file:
-                    config = json.load(json_file)
-                is_valid = True
-                is_admin_only = extension_code in settings.lnbits_admin_extensions
-            except Exception:
-                config = {}
-                is_valid = False
-                is_admin_only = False
-
-            output.append(
-                Extension(
-                    extension_code,
-                    is_valid,
-                    is_admin_only,
-                    config.get("name"),
-                    config.get("short_description"),
-                    config.get("tile"),
-                    config.get("contributors"),
-                    config.get("hidden") or False,
-                    config.get("migration_module"),
-                    config.get("db_name"),
-                )
-            )
-
-        return output
 
 
 async def fetch_github_release_config(
@@ -125,21 +82,3 @@ async def stop_extension_background_work(ext_id) -> bool:
         return False
 
     return True
-
-
-def get_valid_extensions(include_deactivated: Optional[bool] = True) -> List[Extension]:
-    valid_extensions = [
-        extension for extension in ExtensionManager().extensions if extension.is_valid
-    ]
-
-    if include_deactivated:
-        return valid_extensions
-
-    if settings.lnbits_extensions_deactivate_all:
-        return []
-
-    return [
-        e
-        for e in valid_extensions
-        if e.code not in settings.lnbits_deactivated_extensions
-    ]

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import hashlib
 import json
@@ -6,7 +8,7 @@ import shutil
 import sys
 import zipfile
 from pathlib import Path
-from typing import Any, List, NamedTuple, Optional, Tuple
+from typing import Any, NamedTuple, Optional
 
 import httpx
 from loguru import logger
@@ -29,7 +31,7 @@ class ExplicitRelease(BaseModel):
     version: str
     archive: str
     hash: str
-    dependencies: List[str] = []
+    dependencies: list[str] = []
     repo: Optional[str]
     icon: Optional[str]
     short_description: Optional[str]
@@ -54,9 +56,9 @@ class GitHubRelease(BaseModel):
 
 
 class Manifest(BaseModel):
-    featured: List[str] = []
-    extensions: List["ExplicitRelease"] = []
-    repos: List["GitHubRelease"] = []
+    featured: list[str] = []
+    extensions: list[ExplicitRelease] = []
+    repos: list[GitHubRelease] = []
 
 
 class GitHubRepoRelease(BaseModel):
@@ -118,7 +120,7 @@ class UserExtension(BaseModel):
         return self.extra.paid_to_enable is True
 
     @classmethod
-    def from_row(cls, data: dict) -> "UserExtension":
+    def from_row(cls, data: dict) -> UserExtension:
         ext = UserExtension(**data)
         ext.extra = (
             UserExtensionInfo(**json.loads(data["_extra"] or "{}"))
@@ -135,7 +137,7 @@ class Extension(NamedTuple):
     name: Optional[str] = None
     short_description: Optional[str] = None
     tile: Optional[str] = None
-    contributors: Optional[List[str]] = None
+    contributors: Optional[list[str]] = None
     hidden: bool = False
     migration_module: Optional[str] = None
     db_name: Optional[str] = None
@@ -157,7 +159,7 @@ class Extension(NamedTuple):
         return self.upgrade_hash != ""
 
     @classmethod
-    def from_installable_ext(cls, ext_info: "InstallableExtension") -> "Extension":
+    def from_installable_ext(cls, ext_info: InstallableExtension) -> Extension:
         return Extension(
             code=ext_info.id,
             is_valid=True,
@@ -165,6 +167,64 @@ class Extension(NamedTuple):
             name=ext_info.name,
             upgrade_hash=ext_info.hash if ext_info.module_installed else "",
         )
+
+    @classmethod
+    def get_valid_extensions(
+        cls, include_deactivated: Optional[bool] = True
+    ) -> list[Extension]:
+        valid_extensions = [
+            extension for extension in cls._extensions() if extension.is_valid
+        ]
+
+        if include_deactivated:
+            return valid_extensions
+
+        if settings.lnbits_extensions_deactivate_all:
+            return []
+
+        return [
+            e
+            for e in valid_extensions
+            if e.code not in settings.lnbits_deactivated_extensions
+        ]
+
+    @classmethod
+    def _extensions(cls) -> list[Extension]:
+        p = Path(settings.lnbits_extensions_path, "extensions")
+        Path(p).mkdir(parents=True, exist_ok=True)
+        extension_folders: list[Path] = [f for f in p.iterdir() if f.is_dir()]
+
+        # todo: remove this property somehow, it is too expensive
+        output: list[Extension] = []
+
+        for extension_folder in extension_folders:
+            extension_code = extension_folder.parts[-1]
+            try:
+                with open(extension_folder / "config.json") as json_file:
+                    config = json.load(json_file)
+                is_valid = True
+                is_admin_only = extension_code in settings.lnbits_admin_extensions
+            except Exception:
+                config = {}
+                is_valid = False
+                is_admin_only = False
+
+            output.append(
+                Extension(
+                    extension_code,
+                    is_valid,
+                    is_admin_only,
+                    config.get("name"),
+                    config.get("short_description"),
+                    config.get("tile"),
+                    config.get("contributors"),
+                    config.get("hidden") or False,
+                    config.get("migration_module"),
+                    config.get("db_name"),
+                )
+            )
+
+        return output
 
 
 class ExtensionRelease(BaseModel):
@@ -219,8 +279,8 @@ class ExtensionRelease(BaseModel):
 
     @classmethod
     def from_github_release(
-        cls, source_repo: str, r: "GitHubRepoRelease"
-    ) -> "ExtensionRelease":
+        cls, source_repo: str, r: GitHubRepoRelease
+    ) -> ExtensionRelease:
         return ExtensionRelease(
             name=r.name,
             description=r.name,
@@ -235,8 +295,8 @@ class ExtensionRelease(BaseModel):
 
     @classmethod
     def from_explicit_release(
-        cls, source_repo: str, e: "ExplicitRelease"
-    ) -> "ExtensionRelease":
+        cls, source_repo: str, e: ExplicitRelease
+    ) -> ExtensionRelease:
         return ExtensionRelease(
             name=e.name,
             version=e.version,
@@ -255,7 +315,7 @@ class ExtensionRelease(BaseModel):
         )
 
     @classmethod
-    async def get_github_releases(cls, org: str, repo: str) -> List["ExtensionRelease"]:
+    async def get_github_releases(cls, org: str, repo: str) -> list[ExtensionRelease]:
         try:
             github_releases = await cls.fetch_github_releases(org, repo)
             return [
@@ -269,7 +329,7 @@ class ExtensionRelease(BaseModel):
     @classmethod
     async def fetch_github_releases(
         cls, org: str, repo: str
-    ) -> List[GitHubRepoRelease]:
+    ) -> list[GitHubRepoRelease]:
         releases_url = f"https://api.github.com/repos/{org}/{repo}/releases"
         error_msg = "Cannot fetch extension releases"
         releases = await github_api_get(releases_url, error_msg)
@@ -282,13 +342,13 @@ class InstallableExtension(BaseModel):
     active: Optional[bool] = False
     short_description: Optional[str] = None
     icon: Optional[str] = None
-    dependencies: List[str] = []
+    dependencies: list[str] = []
     is_admin_only: bool = False
     stars: int = 0
     featured = False
     latest_release: Optional[ExtensionRelease] = None
     installed_release: Optional[ExtensionRelease] = None
-    payments: List[ReleasePaymentInfo] = []
+    payments: list[ReleasePaymentInfo] = []
     pay_to_enable: Optional[PayToEnableInfo] = None
     archive: Optional[str] = None
 
@@ -478,7 +538,7 @@ class InstallableExtension(BaseModel):
         self.payments.append(payment_info)
 
     @classmethod
-    def from_row(cls, data: dict) -> "InstallableExtension":
+    def from_row(cls, data: dict) -> InstallableExtension:
         meta = json.loads(data["meta"])
         ext = InstallableExtension(**data)
         if "installed_release" in meta:
@@ -491,9 +551,7 @@ class InstallableExtension(BaseModel):
         return ext
 
     @classmethod
-    def from_rows(
-        cls, rows: Optional[List[Any]] = None
-    ) -> List["InstallableExtension"]:
+    def from_rows(cls, rows: Optional[list[Any]] = None) -> list[InstallableExtension]:
         if rows is None:
             rows = []
         return [InstallableExtension.from_row(row) for row in rows]
@@ -501,7 +559,7 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def from_github_release(
         cls, github_release: GitHubRelease
-    ) -> Optional["InstallableExtension"]:
+    ) -> Optional[InstallableExtension]:
         try:
             repo, latest_release, config = await cls.fetch_github_repo_info(
                 github_release.organisation, github_release.repository
@@ -525,7 +583,7 @@ class InstallableExtension(BaseModel):
         return None
 
     @classmethod
-    def from_explicit_release(cls, e: ExplicitRelease) -> "InstallableExtension":
+    def from_explicit_release(cls, e: ExplicitRelease) -> InstallableExtension:
         return InstallableExtension(
             id=e.id,
             name=e.name,
@@ -538,9 +596,9 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def get_installable_extensions(
         cls,
-    ) -> List["InstallableExtension"]:
-        extension_list: List[InstallableExtension] = []
-        extension_id_list: List[str] = []
+    ) -> list[InstallableExtension]:
+        extension_list: list[InstallableExtension] = []
+        extension_id_list: list[str] = []
 
         for url in settings.lnbits_extensions_manifests:
             try:
@@ -580,8 +638,8 @@ class InstallableExtension(BaseModel):
         return extension_list
 
     @classmethod
-    async def get_extension_releases(cls, ext_id: str) -> List["ExtensionRelease"]:
-        extension_releases: List[ExtensionRelease] = []
+    async def get_extension_releases(cls, ext_id: str) -> list[ExtensionRelease]:
+        extension_releases: list[ExtensionRelease] = []
 
         for url in settings.lnbits_extensions_manifests:
             try:
@@ -609,8 +667,8 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def get_extension_release(
         cls, ext_id: str, source_repo: str, archive: str, version: str
-    ) -> Optional["ExtensionRelease"]:
-        all_releases: List[ExtensionRelease] = (
+    ) -> Optional[ExtensionRelease]:
+        all_releases: list[ExtensionRelease] = (
             await InstallableExtension.get_extension_releases(ext_id)
         )
         selected_release = [
@@ -626,7 +684,7 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def fetch_github_repo_info(
         cls, org: str, repository: str
-    ) -> Tuple[GitHubRepo, GitHubRepoRelease, ExtensionConfig]:
+    ) -> tuple[GitHubRepo, GitHubRepoRelease, ExtensionConfig]:
         repo_url = f"https://api.github.com/repos/{org}/{repository}"
         error_msg = "Cannot fetch extension repo"
         repo = await github_api_get(repo_url, error_msg)

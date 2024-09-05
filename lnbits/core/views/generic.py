@@ -12,7 +12,7 @@ from lnurl import decode as lnurl_decode
 from loguru import logger
 from pydantic.types import UUID4
 
-from lnbits.core.extensions.models import InstallableExtension
+from lnbits.core.extensions.models import Extension, InstallableExtension
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.core.services import create_invoice
@@ -29,7 +29,6 @@ from ..crud import (
     get_installed_extensions,
     get_user,
 )
-from ..extensions.extension_manager import get_valid_extensions
 
 generic_router = APIRouter(
     tags=["Core NON-API Website Routes"], include_in_schema=False
@@ -105,7 +104,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
         installed_exts_ids = []
 
     try:
-        all_ext_ids = [ext.code for ext in get_valid_extensions()]
+        all_ext_ids = [ext.code for ext in Extension.get_valid_extensions()]
         inactive_extensions = [
             e.id for e in await get_installed_extensions(active=False)
         ]

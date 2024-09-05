@@ -21,7 +21,6 @@ from lnbits.core.crud import (
     get_installed_extensions,
     update_installed_extension_state,
 )
-from lnbits.core.extensions.extension_manager import get_valid_extensions
 from lnbits.core.extensions.helpers import version_parse
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import (  # watchdog_task
@@ -389,7 +388,7 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
 async def check_and_register_extensions(app: FastAPI):
     await check_installed_extensions(app)
-    for ext in get_valid_extensions(False):
+    for ext in Extension.get_valid_extensions(False):
         try:
             register_ext_routes(app, ext)
         except Exception as exc:
