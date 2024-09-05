@@ -35,7 +35,6 @@ from lnbits.core.models import (
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
-    get_key_type,
     parse_filters,
     require_admin_key,
     require_invoice_key,
@@ -73,12 +72,12 @@ payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments(
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    key_info: WalletTypeInfo = Depends(require_invoice_key),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(wallet.wallet.id)
+    await update_pending_payments(key_info.wallet.id)
     return await get_payments(
-        wallet_id=wallet.wallet.id,
+        wallet_id=key_info.wallet.id,
         pending=True,
         complete=True,
         filters=filters,
@@ -92,12 +91,12 @@ async def api_payments(
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_history(
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    key_info: WalletTypeInfo = Depends(require_invoice_key),
     group: DateTrunc = Query("day"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(wallet.wallet.id)
-    return await get_payments_history(wallet.wallet.id, group, filters)
+    await update_pending_payments(key_info.wallet.id)
+    return await get_payments_history(key_info.wallet.id, group, filters)
 
 
 @payment_router.get(
@@ -109,12 +108,12 @@ async def api_payments_history(
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_paginated(
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    key_info: WalletTypeInfo = Depends(require_invoice_key),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(wallet.wallet.id)
+    await update_pending_payments(key_info.wallet.id)
     page = await get_payments_paginated(
-        wallet_id=wallet.wallet.id,
+        wallet_id=key_info.wallet.id,
         pending=True,
         complete=True,
         filters=filters,
@@ -378,10 +377,10 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
 
 @payment_router.get("/sse")
 async def api_payments_sse(
-    request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+    request: Request, key_info: WalletTypeInfo = Depends(require_invoice_key)
 ):
     return EventSourceResponse(
-        subscribe_wallet_invoices(request, wallet.wallet),
+        subscribe_wallet_invoices(request, key_info.wallet),
         ping=20,
         media_type="text/event-stream",
     )

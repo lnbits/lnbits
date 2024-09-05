@@ -13,8 +13,8 @@ from lnbits.core.models import (
 )
 from lnbits.decorators import (
     WalletTypeInfo,
-    get_key_type,
     require_admin_key,
+    require_invoice_key,
 )
 
 from ..crud import (
@@ -27,15 +27,12 @@ wallet_router = APIRouter(prefix="/api/v1/wallet", tags=["Wallet"])
 
 
 @wallet_router.get("")
-async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
-    if wallet.key_type == KeyType.admin:
-        return {
-            "id": wallet.wallet.id,
-            "name": wallet.wallet.name,
-            "balance": wallet.wallet.balance_msat,
-        }
-    else:
-        return {"name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
+async def api_wallet(wallet: WalletTypeInfo = Depends(require_invoice_key)):
+    return {
+        "id": wallet.wallet.id if wallet.key_type == KeyType.admin else None,
+        "name": wallet.wallet.name,
+        "balance": wallet.wallet.balance_msat,
+    }
 
 
 @wallet_router.put("/{new_name}")
