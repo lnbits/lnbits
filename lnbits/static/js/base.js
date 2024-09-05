@@ -5,7 +5,7 @@ window.i18n = new VueI18n.createI18n({
   messages: window.localisation
 })
 
-window.EventHub = new Vue()
+// window.EventHub = new Vue()
 window.LNbits = {
   api: {
     request: function (method, url, apiKey, data) {

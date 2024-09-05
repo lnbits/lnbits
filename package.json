@@ -60,7 +60,6 @@
       "vendor/vue-router.global.js",
       "vendor/vue-qrcode-reader.umd.js",
       "vendor/chart.umd.js",
-      "vendor/vue-i18n.js",
       "vendor/showdown.js",
       "i18n/i18n.js",
       "i18n/de.js",
