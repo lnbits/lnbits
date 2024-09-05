@@ -110,8 +110,21 @@ def test_redirect_path_matches_with_headers(
         path=lnurlp_with_headers.from_path,
         req_headers=headers_list,
     )
+    assert lnurlp_with_headers.redirect_matches(
+        path=lnurlp_redirect_path["from_path"],
+        req_headers=[("ACCEPT", "APPlication/nostr+json")],
+    )
+    assert lnurlp_with_headers.redirect_matches(
+        path=lnurlp_redirect_path["from_path"],
+        req_headers=[("accept", "application/nostr+json"), ("my_header", "my_value")],
+    )
+
     assert not lnurlp_with_headers.redirect_matches(
         path=lnurlp_redirect_path["from_path"], req_headers=[]
+    )
+    assert not lnurlp_with_headers.redirect_matches(
+        path=lnurlp_redirect_path["from_path"],
+        req_headers=[("accept", "application/json")],
     )
     assert not lnurlp_with_headers.redirect_matches(path="/random/path", req_headers=[])
     assert not lnurlp_with_headers.redirect_matches(path="/random_path", req_headers=[])
