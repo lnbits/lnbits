@@ -1,7 +1,7 @@
-Vue.component('payment-list', {
+window.app.component('payment-list', {
   name: 'payment-list',
   props: ['update', 'wallet', 'mobileSimple', 'lazy'],
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   data: function () {
     return {
       denomination: LNBITS_DENOMINATION,

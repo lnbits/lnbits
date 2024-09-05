@@ -375,19 +375,20 @@ window.app.component('lnbits-lnurlpay-success-action', {
 window.app.component('lnbits-qrcode', {
   mixins: [window.windowMixin],
   props: ['value'],
-  components: {[window.appQrcode.name]: VueQrcode},
+  // components: {[window.appQrcode.name]: VueQrcode},
   data() {
     return {
       logo: LNBITS_QR_LOGO
     }
   },
-  template: `
-  <div class="qrcode__wrapper">
-    <qrcode :value="value"
-    :options="{errorCorrectionLevel: 'Q', width: 800}" class="rounded-borders"></qrcode>
-    <img class="qrcode__image" :src="logo" alt="..." />
-  </div>
-  `
+  template: `TODO`
+  // template: `
+  // <div class="qrcode__wrapper">
+  //   <qrcode :value="value"
+  //   :options="{errorCorrectionLevel: 'Q', width: 800}" class="rounded-borders"></qrcode>
+  //   <img class="qrcode__image" :src="logo" alt="..." />
+  // </div>
+  // `
 })
 
 window.app.component('lnbits-notifications-btn', {

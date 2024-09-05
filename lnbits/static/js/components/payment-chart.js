@@ -80,10 +80,10 @@ function generateChart(canvas, rawData) {
   })
 }
 
-Vue.component('payment-chart', {
+window.app.component('payment-chart', {
   name: 'payment-chart',
   props: ['wallet'],
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   data: function () {
     return {
       paymentsChart: {
