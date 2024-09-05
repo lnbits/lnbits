@@ -14,10 +14,7 @@ from fastapi import (
 from loguru import logger
 
 from lnbits.core.db import core_app_extra
-from lnbits.core.helpers import (
-    migrate_extension_database,
-    stop_extension_background_work,
-)
+from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models import (
     SimpleStatus,
     User,
@@ -40,6 +37,7 @@ from lnbits.extension_manager import (
     fetch_release_details,
     fetch_release_payment_info,
     get_valid_extensions,
+    stop_extension_background_work,
 )
 from lnbits.settings import settings
 

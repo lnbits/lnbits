@@ -1,9 +1,8 @@
 import importlib
 import re
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
-import httpx
 from loguru import logger
 
 from lnbits.core import migrations as core_migrations
@@ -53,68 +52,6 @@ async def run_migration(
                 else:
                     async with core_db.connect() as conn:
                         await update_migration_version(conn, db_name, version)
-
-
-async def stop_extension_background_work(
-    ext_id: str, user: str, access_token: Optional[str] = None
-):
-    """
-    Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
-    Extensions SHOULD expose a `api_stop()` function and/or a DELETE enpoint
-    at the root level of their API.
-    """
-    stopped = await _stop_extension_background_work(ext_id)
-
-    if not stopped:
-        # fallback to REST API call
-        await _stop_extension_background_work_via_api(ext_id, user, access_token)
-
-
-async def _stop_extension_background_work(ext_id) -> bool:
-    upgrade_hash = settings.extension_upgrade_hash(ext_id) or ""
-    ext = Extension(ext_id, True, False, upgrade_hash=upgrade_hash)
-
-    try:
-        logger.info(f"Stopping background work for extension '{ext.module_name}'.")
-        old_module = importlib.import_module(ext.module_name)
-
-        # Extensions must expose an `{ext_id}_stop()` function at the module level
-        # The `api_stop()` function is for backwards compatibility (will be deprecated)
-        stop_fns = [f"{ext_id}_stop", "api_stop"]
-        stop_fn_name = next((fn for fn in stop_fns if hasattr(old_module, fn)), None)
-        assert stop_fn_name, "No stop function found for '{ext.module_name}'"
-
-        stop_fn = getattr(old_module, stop_fn_name)
-        if stop_fn:
-            await stop_fn()
-
-        logger.info(f"Stopped background work for extension '{ext.module_name}'.")
-    except Exception as ex:
-        logger.warning(f"Failed to stop background work for '{ext.module_name}'.")
-        logger.warning(ex)
-        return False
-
-    return True
-
-
-async def _stop_extension_background_work_via_api(ext_id, user, access_token):
-    logger.info(
-        f"Stopping background work for extension '{ext_id}' using the REST API."
-    )
-    async with httpx.AsyncClient() as client:
-        try:
-            url = f"http://{settings.host}:{settings.port}/{ext_id}/api/v1?usr={user}"
-            headers = (
-                {"Authorization": "Bearer " + access_token} if access_token else None
-            )
-            resp = await client.delete(url=url, headers=headers)
-            resp.raise_for_status()
-            logger.info(f"Stopped background work for extension '{ext_id}'.")
-        except Exception as ex:
-            logger.warning(
-                f"Failed to stop background work for '{ext_id}' using the REST API."
-            )
-            logger.warning(ex)
 
 
 def to_valid_user_id(user_id: str) -> UUID:
