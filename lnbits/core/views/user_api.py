@@ -20,7 +20,7 @@ from lnbits.core.models import (
     User,
     Wallet,
 )
-from lnbits.core.services import update_wallet_balance
+from lnbits.core.services import check_void_wallet, update_wallet_balance
 from lnbits.db import Filters, Page
 from lnbits.decorators import check_admin, check_super_user, parse_filters
 from lnbits.helpers import generate_filter_params_openapi
@@ -114,8 +114,7 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> None:
     dependencies=[Depends(check_super_user)],
 )
 async def api_topup_balance(data: CreateTopup) -> dict[str, str]:
-    if settings.lnbits_backend_wallet_class == "VoidWallet":
-        raise Exception("VoidWallet active")
+    await check_void_wallet()
     await get_wallet(data.id)
     await update_wallet_balance(wallet_id=data.id, amount=int(data.amount))
     return {"status": "Success"}
