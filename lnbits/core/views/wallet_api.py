@@ -28,11 +28,13 @@ wallet_router = APIRouter(prefix="/api/v1/wallet", tags=["Wallet"])
 
 @wallet_router.get("")
 async def api_wallet(wallet: WalletTypeInfo = Depends(require_invoice_key)):
-    return {
-        "id": wallet.wallet.id if wallet.key_type == KeyType.admin else None,
+    res = {
         "name": wallet.wallet.name,
         "balance": wallet.wallet.balance_msat,
     }
+    if wallet.key_type == KeyType.admin:
+        res["id"] = wallet.wallet.id
+    return res
 
 
 @wallet_router.put("/{new_name}")
