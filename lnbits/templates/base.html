@@ -258,6 +258,8 @@
         { value: 'fi', label: 'Suomi', display: '🇫🇮 FI' }
       ]
     </script>
-    {% block scripts %}{% endblock %}
+    {% block scripts %}{% endblock %} {% for url in INCLUDED_COMPONENTS %}
+    <script src="{{ static_url_for('static', url) }}"></script>
+    {% endfor %}
   </body>
 </html>
