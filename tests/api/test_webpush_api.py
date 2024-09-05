@@ -10,7 +10,7 @@ async def test_create___bad_body(client, adminkey_headers_from):
         headers=adminkey_headers_from,
         json={"subscription": "bad_json"},
     )
-    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
 @pytest.mark.asyncio
@@ -40,7 +40,7 @@ async def test_delete__bad_endpoint_format(client, adminkey_headers_from):
         params={"endpoint": "https://this.should.be.base64.com"},
         headers=adminkey_headers_from,
     )
-    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
 @pytest.mark.asyncio
