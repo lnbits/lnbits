@@ -430,7 +430,7 @@ async def get_installed_extension(
 async def get_installed_extensions(
     active: Optional[bool] = None,
     conn: Optional[Connection] = None,
-) -> List["InstallableExtension"]:
+) -> List[InstallableExtension]:
     rows = await (conn or db).fetchall(
         "SELECT * FROM installed_extensions",
         (),

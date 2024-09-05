@@ -15,6 +15,7 @@ from loguru import logger
 from packaging import version
 from pydantic import BaseModel
 
+from lnbits.core.crud import delete_installed_extension, get_installed_extension
 from lnbits.settings import settings
 
 
@@ -773,22 +774,22 @@ class ExtensionDetailsRequest(BaseModel):
     version: str
 
 
-async def stop_extension_background_work(
-    ext_id: str, user_id: Optional[str] = None, access_token: Optional[str] = None
-):
+async def uninstall_extension(ext_id):
+    await stop_extension_background_work(ext_id)
+
+    settings.lnbits_deactivated_extensions.add(ext_id)
+
+    extension = await get_installed_extension(ext_id)
+    if extension:
+        extension.clean_extension_files()
+    await delete_installed_extension(ext_id=ext_id)
+
+
+async def stop_extension_background_work(ext_id) -> bool:
     """
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
-    Extensions SHOULD expose a `api_stop()` function and/or a DELETE enpoint
-    at the root level of their API.
+    Extensions SHOULD expose a `api_stop()` function.
     """
-    stopped = await _stop_extension_background_work(ext_id)
-
-    if not stopped:
-        # fallback to REST API call
-        await _stop_extension_background_work_via_api(ext_id, user_id, access_token)
-
-
-async def _stop_extension_background_work(ext_id) -> bool:
     upgrade_hash = settings.extension_upgrade_hash(ext_id) or ""
     ext = Extension(ext_id, True, False, upgrade_hash=upgrade_hash)
 
@@ -813,31 +814,6 @@ async def _stop_extension_background_work(ext_id) -> bool:
         return False
 
     return True
-
-
-async def _stop_extension_background_work_via_api(
-    ext_id, user_id: Optional[str] = None, access_token: Optional[str] = None
-):
-    logger.info(
-        f"Stopping background work for extension '{ext_id}' using the REST API."
-    )
-    async with httpx.AsyncClient() as client:
-        try:
-            query_params = f"?usr={user_id}" if user_id else ""
-            url = (
-                f"http://{settings.host}:{settings.port}/{ext_id}/api/v1{query_params}"
-            )
-            headers = (
-                {"Authorization": "Bearer " + access_token} if access_token else None
-            )
-            resp = await client.delete(url=url, headers=headers)
-            resp.raise_for_status()
-            logger.info(f"Stopped background work for extension '{ext_id}'.")
-        except Exception as ex:
-            logger.warning(
-                f"Failed to stop background work for '{ext_id}' using the REST API."
-            )
-            logger.warning(ex)
 
 
 def get_valid_extensions(include_deactivated: Optional[bool] = True) -> List[Extension]:

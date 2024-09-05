@@ -2,7 +2,6 @@ import sys
 from http import HTTPStatus
 from typing import (
     List,
-    Optional,
 )
 
 from bolt11 import decode as bolt11_decode
@@ -21,7 +20,6 @@ from lnbits.core.models import (
 )
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import (
-    check_access_token,
     check_admin,
     check_user_exists,
 )
@@ -38,13 +36,13 @@ from lnbits.extension_manager import (
     fetch_release_payment_info,
     get_valid_extensions,
     stop_extension_background_work,
+    uninstall_extension,
 )
 from lnbits.settings import settings
 
 from ..crud import (
     add_installed_extension,
     delete_dbversion,
-    delete_installed_extension,
     drop_extension_db,
     get_dbversions,
     get_installed_extension,
@@ -62,12 +60,8 @@ extension_router = APIRouter(
 )
 
 
-@extension_router.post("")
-async def api_install_extension(
-    data: CreateExtension,
-    user: User = Depends(check_admin),
-    access_token: Optional[str] = Depends(check_access_token),
-):
+@extension_router.post("", dependencies=[Depends(check_admin)])
+async def api_install_extension(data: CreateExtension):
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive, data.version
     )
@@ -104,7 +98,7 @@ async def api_install_extension(
 
         if extension.is_upgrade_extension:
             # call stop while the old routes are still active
-            await stop_extension_background_work(data.ext_id, user.id, access_token)
+            await stop_extension_background_work(data.ext_id)
 
         # mount routes for the new version
         core_app_extra.register_new_ext_routes(extension)
@@ -309,21 +303,17 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
         ) from exc
 
 
-@extension_router.delete("/{ext_id}")
-async def api_uninstall_extension(
-    ext_id: str,
-    user: User = Depends(check_admin),
-    access_token: Optional[str] = Depends(check_access_token),
-) -> SimpleStatus:
-    installed_extensions = await get_installed_extensions()
+@extension_router.delete("/{ext_id}", dependencies=[Depends(check_admin)])
+async def api_uninstall_extension(ext_id: str) -> SimpleStatus:
 
-    extensions = [e for e in installed_extensions if e.id == ext_id]
-    if len(extensions) == 0:
+    extension = await get_installed_extension(ext_id)
+    if not extension:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Unknown extension id: {ext_id}",
         )
 
+    installed_extensions = await get_installed_extensions()
     # check that other extensions do not depend on this one
     for valid_ext_id in [ext.code for ext in get_valid_extensions()]:
         installed_ext = next(
@@ -339,14 +329,7 @@ async def api_uninstall_extension(
             )
 
     try:
-        # call stop while the old routes are still active
-        await stop_extension_background_work(ext_id, user.id, access_token)
-
-        settings.lnbits_deactivated_extensions.add(ext_id)
-
-        for ext_info in extensions:
-            ext_info.clean_extension_files()
-            await delete_installed_extension(ext_id=ext_info.id)
+        await uninstall_extension(ext_id)
 
         logger.success(f"Extension '{ext_id}' uninstalled.")
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' uninstalled.")
