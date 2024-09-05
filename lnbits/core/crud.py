@@ -155,7 +155,7 @@ async def get_account(user_id: str, conn: Optional[Connection] = None) -> User:
         (user_id,),
     )
     if not row:
-        raise NotFoundError()
+        raise NotFoundError("Account not found.")
     user = User(**row)
     if row["extra"]:
         user.config = UserConfig(**json.loads(row["extra"]))
@@ -278,7 +278,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> User:
         (user_id,),
     )
     if not user:
-        raise NotFoundError()
+        raise NotFoundError("User not found.")
 
     extensions = await get_user_active_extensions_ids(user_id, conn)
     wallets = await (conn or db).fetchall(
@@ -632,7 +632,7 @@ async def get_wallet(wallet_id: str, conn: Optional[Connection] = None) -> Walle
         (wallet_id,),
     )
     if not row:
-        raise NotFoundError()
+        raise NotFoundError("Wallet not found.")
 
     return Wallet(**row)
 
@@ -718,7 +718,7 @@ async def get_wallet_payment(
         (wallet_id, payment_hash),
     )
     if not row:
-        raise NotFoundError()
+        raise NotFoundError("Payment not found.")
 
     return Payment.from_row(row)
 
@@ -1212,7 +1212,7 @@ async def get_tinyurl(tinyurl_id: str) -> TinyURL:
         (tinyurl_id,),
     )
     if not row:
-        raise NotFoundError()
+        raise NotFoundError("TinyURL not found.")
     return TinyURL.from_row(row)
 
 
@@ -1260,7 +1260,7 @@ async def get_webpush_subscription(endpoint: str, user: str) -> WebPushSubscript
         ),
     )
     if not row:
-        raise NotFoundError()
+        raise NotFoundError("WebPushSubscription not found.")
     return WebPushSubscription(**row)
 
 
