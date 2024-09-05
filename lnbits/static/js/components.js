@@ -229,7 +229,7 @@ window.app.component('lnbits-manage', {
 
 window.app.component('lnbits-payment-details', {
   props: ['payment'],
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   data: function () {
     return {
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
@@ -373,7 +373,7 @@ window.app.component('lnbits-lnurlpay-success-action', {
 })
 
 window.app.component('lnbits-qrcode', {
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   props: ['value'],
   components: {[window.appQrcode.name]: VueQrcode},
   data() {
@@ -391,7 +391,7 @@ window.app.component('lnbits-qrcode', {
 })
 
 window.app.component('lnbits-notifications-btn', {
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   props: ['pubkey'],
   data() {
     return {
@@ -604,7 +604,7 @@ window.app.component('lnbits-notifications-btn', {
 })
 
 window.app.component('lnbits-dynamic-fields', {
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   props: ['options', 'value'],
   data() {
     return {
@@ -741,7 +741,7 @@ window.app.component('lnbits-dynamic-fields', {
 })
 
 window.app.component('lnbits-update-balance', {
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   props: ['wallet_id', 'callback'],
   computed: {
     denomination() {

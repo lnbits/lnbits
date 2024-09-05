@@ -1,6 +1,6 @@
-new Vue({
+window.app = Vue.createApp({
   el: '#vue',
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   data: function () {
     return {
       disclaimerDialog: {
