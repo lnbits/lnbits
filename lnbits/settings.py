@@ -168,14 +168,14 @@ class InstalledExtensionsSettings(LNbitsSettings):
         ext_redirect_paths = [
             RedirectPath(**{"ext_id": ext_id, **er}) for er in ext_redirects
         ]
-        existing_redirects = [
+        existing_redirects = {
             r.ext_id
             for r in self.lnbits_extensions_redirects
             if r.find_in_conflict(ext_redirect_paths)
-        ]
+        }
 
         assert len(existing_redirects) == 0, (
-            f" Cannot redirect for extension '{ext_id}'."
+            f"Cannot redirect for extension '{ext_id}'."
             f" Already mapped by {existing_redirects}."
         )
 
