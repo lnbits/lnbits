@@ -8,14 +8,14 @@ import shortuuid
 from passlib.context import CryptContext
 
 from lnbits.core.db import db
-from lnbits.core.models import PaymentState
-from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
-from lnbits.extension_manager import (
+from lnbits.core.extensions.models import (
     InstallableExtension,
     PayToEnableInfo,
     UserExtension,
     UserExtensionInfo,
 )
+from lnbits.core.models import PaymentState
+from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,

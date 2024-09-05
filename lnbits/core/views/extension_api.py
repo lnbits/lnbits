@@ -13,6 +13,22 @@ from fastapi import (
 from loguru import logger
 
 from lnbits.core.db import core_app_extra
+from lnbits.core.extensions.extension_manager import (
+    fetch_github_release_config,
+    fetch_release_details,
+    get_valid_extensions,
+    stop_extension_background_work,
+    uninstall_extension,
+)
+from lnbits.core.extensions.models import (
+    CreateExtension,
+    Extension,
+    ExtensionRelease,
+    InstallableExtension,
+    PayToEnableInfo,
+    ReleasePaymentInfo,
+    UserExtensionInfo,
+)
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models import (
     SimpleStatus,
@@ -22,21 +38,6 @@ from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import (
     check_admin,
     check_user_exists,
-)
-from lnbits.extension_manager import (
-    CreateExtension,
-    Extension,
-    ExtensionRelease,
-    InstallableExtension,
-    PayToEnableInfo,
-    ReleasePaymentInfo,
-    UserExtensionInfo,
-    fetch_github_release_config,
-    fetch_release_details,
-    fetch_release_payment_info,
-    get_valid_extensions,
-    stop_extension_background_work,
-    uninstall_extension,
 )
 from lnbits.settings import settings
 
@@ -378,9 +379,8 @@ async def get_pay_to_install_invoice(
         assert release, "Release not found."
         assert release.pay_link, "Pay link not found for release."
 
-        payment_info = await fetch_release_payment_info(
-            release.pay_link, data.cost_sats
-        )
+        payment_info = await release.fetch_release_payment_info(data.cost_sats)
+
         assert payment_info and payment_info.payment_request, "Cannot request invoice."
         invoice = bolt11_decode(payment_info.payment_request)
 

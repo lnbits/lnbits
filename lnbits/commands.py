@@ -25,17 +25,17 @@ from lnbits.core.crud import (
     remove_deleted_wallets,
     update_payment_status,
 )
+from lnbits.core.extensions.models import (
+    CreateExtension,
+    ExtensionRelease,
+    InstallableExtension,
+)
 from lnbits.core.helpers import migrate_databases
 from lnbits.core.models import Payment, PaymentState
 from lnbits.core.services import check_admin_settings
 from lnbits.core.views.extension_api import (
     api_install_extension,
     api_uninstall_extension,
-)
-from lnbits.extension_manager import (
-    CreateExtension,
-    ExtensionRelease,
-    InstallableExtension,
 )
 from lnbits.settings import settings
 from lnbits.wallets.base import Wallet

@@ -21,6 +21,8 @@ from lnbits.core.crud import (
     get_installed_extensions,
     update_installed_extension_state,
 )
+from lnbits.core.extensions.extension_manager import get_valid_extensions
+from lnbits.core.extensions.helpers import version_parse
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import (  # watchdog_task
     killswitch_task,
@@ -44,14 +46,9 @@ from lnbits.wallets import get_funding_source, set_funding_source
 from .commands import migrate_databases
 from .core import init_core_routers
 from .core.db import core_app_extra
+from .core.extensions.models import Extension, InstallableExtension
 from .core.services import check_admin_settings, check_webpush_settings
 from .core.views.extension_api import add_installed_extension
-from .extension_manager import (
-    Extension,
-    InstallableExtension,
-    get_valid_extensions,
-    version_parse,
-)
 from .middleware import (
     CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,

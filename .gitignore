@@ -49,8 +49,8 @@ fly.toml
 lnbits-backup.zip
 
 # Ignore extensions (post installable extension PR)
-extensions
-upgrades/
+/extensions
+/upgrades/
 
 # builded python package
 dist

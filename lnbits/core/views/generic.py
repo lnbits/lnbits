@@ -12,6 +12,7 @@ from lnurl import decode as lnurl_decode
 from loguru import logger
 from pydantic.types import UUID4
 
+from lnbits.core.extensions.models import InstallableExtension
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.core.services import create_invoice
@@ -20,7 +21,6 @@ from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
-from ...extension_manager import InstallableExtension, get_valid_extensions
 from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
     create_account,
@@ -29,6 +29,7 @@ from ..crud import (
     get_installed_extensions,
     get_user,
 )
+from ..extensions.extension_manager import get_valid_extensions
 
 generic_router = APIRouter(
     tags=["Core NON-API Website Routes"], include_in_schema=False

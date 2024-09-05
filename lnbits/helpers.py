@@ -17,8 +17,8 @@ from lnbits.requestvars import g
 from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
 
+from .core.extensions.extension_manager import get_valid_extensions
 from .db import FilterModel
-from .extension_manager import get_valid_extensions
 
 
 def get_db_vendor_name():

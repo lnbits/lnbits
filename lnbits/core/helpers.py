@@ -12,11 +12,13 @@ from lnbits.core.crud import (
     update_migration_version,
 )
 from lnbits.core.db import db as core_db
-from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
-from lnbits.extension_manager import (
-    Extension,
+from lnbits.core.extensions.extension_manager import (
     get_valid_extensions,
 )
+from lnbits.core.extensions.models import (
+    Extension,
+)
+from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
 from lnbits.settings import settings
 
 
