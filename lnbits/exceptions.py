@@ -34,7 +34,7 @@ class InvoiceError(LnbitsError):
 class NotFoundError(LnbitsError):
     """
     Raised by crud operations when a resource is not found.
-    Raises (401) error in api context.
+    Raises (404) error in api context.
     """
 
 
