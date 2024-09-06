@@ -346,6 +346,24 @@ class ExtensionRelease(BaseModel):
         releases = await github_api_get(releases_url, error_msg)
         return [GitHubRepoRelease.parse_obj(r) for r in releases]
 
+    @classmethod
+    async def fetch_release_details(cls, details_link: str) -> Optional[dict]:
+
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(details_link)
+                resp.raise_for_status()
+                data = resp.json()
+                if "description_md" in data:
+                    resp = await client.get(data["description_md"])
+                    if not resp.is_error:
+                        data["description_md"] = resp.text
+
+                return data
+        except Exception as e:
+            logger.warning(e)
+            return None
+
 
 class InstallableExtension(BaseModel):
     id: str

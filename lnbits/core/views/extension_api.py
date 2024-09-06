@@ -16,7 +16,6 @@ from lnbits.core.db import core_app_extra
 from lnbits.core.extensions.extension_manager import (
     activate_extension,
     deactivate_extension,
-    fetch_release_details,
     stop_extension_background_work,
     uninstall_extension,
 )
@@ -138,7 +137,7 @@ async def api_extension_details(
         )
         assert release, "Details not found for release"
 
-        release_details = await fetch_release_details(details_link)
+        release_details = await ExtensionRelease.fetch_release_details(details_link)
         assert release_details, "Cannot fetch details for release"
         release_details["icon"] = release.icon
         release_details["repo"] = release.repo

@@ -1,7 +1,5 @@
 import importlib
-from typing import Optional
 
-import httpx
 from loguru import logger
 
 from lnbits.core.crud import (
@@ -12,24 +10,6 @@ from lnbits.core.crud import (
 from lnbits.settings import settings
 
 from .models import Extension
-
-
-async def fetch_release_details(details_link: str) -> Optional[dict]:
-
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(details_link)
-            resp.raise_for_status()
-            data = resp.json()
-            if "description_md" in data:
-                resp = await client.get(data["description_md"])
-                if not resp.is_error:
-                    data["description_md"] = resp.text
-
-            return data
-    except Exception as e:
-        logger.warning(e)
-        return None
 
 
 async def activate_extension(ext_id: str):
