@@ -103,24 +103,21 @@ sass:
 
 bundle:
 	npm install
-	npm run sass
-	npm run vendor_copy
-	npm run vendor_json
+	npm run bundle
 	poetry run ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
-	npm run vendor_bundle_css
-	npm run vendor_minify_css
-	npm run vendor_bundle_js
-	npm run vendor_minify_js
 
 checkbundle:
 	cp lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old
 	cp lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old
+	cp lnbits/static/bundle-components.min.js lnbits/static/bundle-components.min.js.old
 	make bundle
 	diff -q lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old || exit 1
 	diff -q lnbits/static/bundle.min.css lnbits/static/bundle.min.css.old || exit 1
+	diff -q lnbits/static/bundle-components.min.js lnbits/static/bundle-components.min.js.old || exit 1
 	@echo "Bundle is OK"
 	rm lnbits/static/bundle.min.js.old
 	rm lnbits/static/bundle.min.css.old
+	rm lnbits/static/bundle-components.min.js.old
 
 install-pre-commit-hook:
 	@echo "Installing pre-commit hook to git"

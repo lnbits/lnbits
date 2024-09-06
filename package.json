@@ -10,7 +10,7 @@
     "vendor_minify_css": "./node_modules/.bin/minify ./lnbits/static/bundle.css > ./lnbits/static/bundle.min.css",
     "vendor_minify_js": "./node_modules/.bin/minify ./lnbits/static/bundle.js > ./lnbits/static/bundle.min.js",
     "vendor_minify_components": "./node_modules/.bin/minify ./lnbits/static/bundle-components.js > ./lnbits/static/bundle-components.min.js",
-    "bundle": "npm run vendor_copy && npm run vendor_json && npm run vendor_bundle_css && npm run vendor_bundle_js && npm run vendor_bundle_components && npm run vendor_minify_css && npm run vendor_minify_js && npm run vendor_minify_components"
+    "bundle": "npm run sass && npm run vendor_copy && npm run vendor_json && npm run vendor_bundle_css && npm run vendor_bundle_js && npm run vendor_bundle_components && npm run vendor_minify_css && npm run vendor_minify_js && npm run vendor_minify_components"
   },
   "devDependencies": {
     "concat": "^1.0.3",
