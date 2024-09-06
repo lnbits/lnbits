@@ -4,7 +4,11 @@ from typing import Optional
 import httpx
 from loguru import logger
 
-from lnbits.core.crud import delete_installed_extension, get_installed_extension
+from lnbits.core.crud import (
+    delete_installed_extension,
+    get_installed_extension,
+    update_installed_extension_state,
+)
 from lnbits.settings import settings
 
 from .helpers import github_api_get
@@ -40,6 +44,16 @@ async def fetch_release_details(details_link: str) -> Optional[dict]:
     except Exception as e:
         logger.warning(e)
         return None
+
+
+async def activate_extension(ext_id: str):
+    settings.activate_extension_paths(ext_id)
+    await update_installed_extension_state(ext_id=ext_id, active=True)
+
+
+async def deactivate_extension(ext_id):
+    settings.deactivate_extension_paths(ext_id)
+    await update_installed_extension_state(ext_id=ext_id, active=False)
 
 
 async def uninstall_extension(ext_id):

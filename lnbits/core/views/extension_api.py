@@ -14,6 +14,8 @@ from loguru import logger
 
 from lnbits.core.db import core_app_extra
 from lnbits.core.extensions.extension_manager import (
+    activate_extension,
+    deactivate_extension,
     fetch_github_release_config,
     fetch_release_details,
     stop_extension_background_work,
@@ -49,7 +51,6 @@ from ..crud import (
     get_installed_extensions,
     get_user_extension,
     update_extension_pay_to_enable,
-    update_installed_extension_state,
     update_user_extension,
     update_user_extension_extra,
 )
@@ -107,17 +108,19 @@ async def api_install_extension(data: CreateExtension):
         settings.lnbits_deactivated_extensions.discard(data.ext_id)
 
         return extension
-    except AssertionError as exc:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
     except Exception as exc:
         logger.warning(exc)
+        await deactivate_extension(data.ext_id)
         ext_info.clean_extension_files()
+        detail = (
+            str(exc)
+            if isinstance(exc, AssertionError)
+            else f"Failed to install extension {ext_info.id} "
+            f"({ext_info.installed_version})."
+        )
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=(
-                f"Failed to install extension {ext_info.id} "
-                f"({ext_info.installed_version})."
-            ),
+            detail=detail,
         ) from exc
 
 
@@ -270,12 +273,11 @@ async def api_activate_extension(ext_id: str) -> SimpleStatus:
             # run extension start-up routine
             core_app_extra.register_new_ext_routes(ext)
 
-        settings.activate_extension_paths(ext_id)
-
-        await update_installed_extension_state(ext_id=ext_id, active=True)
+        await activate_extension(ext_id)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' activated.")
     except Exception as exc:
         logger.warning(exc)
+        await deactivate_extension(ext_id)
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=(f"Failed to activate '{ext_id}'."),
@@ -291,9 +293,7 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
         ext = next((e for e in all_extensions if e.code == ext_id), None)
         assert ext, f"Extension '{ext_id}' doesn't exist."
 
-        settings.deactivate_extension_paths(ext_id)
-
-        await update_installed_extension_state(ext_id=ext_id, active=False)
+        await deactivate_extension(ext_id)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' deactivated.")
     except Exception as exc:
         logger.warning(exc)
