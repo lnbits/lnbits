@@ -5,7 +5,6 @@ window.i18n = new VueI18n.createI18n({
   messages: window.localisation
 })
 
-// window.EventHub = new Vue()
 window.LNbits = {
   api: {
     request: function (method, url, apiKey, data) {
@@ -260,12 +259,12 @@ window.LNbits = {
         fiat_currency: data.fiat_currency
       }
 
-      obj.date = Quasar.utils.date.formatDate(
+      obj.date = Quasar.date.formatDate(
         new Date(obj.time * 1000),
         'YYYY-MM-DD HH:mm'
       )
       obj.dateFrom = moment(obj.date).fromNow()
-      obj.expirydate = Quasar.utils.date.formatDate(
+      obj.expirydate = Quasar.date.formatDate(
         new Date(obj.expiry * 1000),
         'YYYY-MM-DD HH:mm'
       )
@@ -290,7 +289,7 @@ window.LNbits = {
   },
   utils: {
     confirmDialog: function (msg) {
-      return Quasar.plugins.Dialog.create({
+      return Quasar.Dialog.create({
         message: msg,
         ok: {
           flat: true,
@@ -407,14 +406,14 @@ window.LNbits = {
         )
         .join('\r\n')
 
-      var status = Quasar.utils.exportFile(
+      var status = Quasar.exportFile(
         `${fileName || 'table-export'}.csv`,
         content,
         'text/csv'
       )
 
       if (status !== true) {
-        Quasar.plugins.Notify.create({
+        Quasar.Notify.create({
           message: 'Browser denied file download...',
           color: 'negative',
           icon: null
@@ -428,16 +427,16 @@ window.LNbits = {
       return converter.makeHtml(text)
     },
     hexToRgb: function (hex) {
-      return Quasar.utils.colors.hexToRgb(hex)
+      return Quasar.colors.hexToRgb(hex)
     },
     hexDarken: function (hex, percent) {
-      return Quasar.utils.colors.lighten(hex, percent)
+      return Quasar.colors.lighten(hex, percent)
     },
     hexAlpha: function (hex, alpha) {
-      return Quasar.utils.colors.changeAlpha(hex, alpha)
+      return Quasar.colors.changeAlpha(hex, alpha)
     },
     getPaletteColor: function (color) {
-      return Quasar.utils.colors.getPaletteColor(color)
+      return Quasar.colors.getPaletteColor(color)
     }
   }
 }
@@ -490,7 +489,7 @@ window.windowMixin = {
     },
     copyText: function (text, message, position) {
       var notify = this.$q.notify
-      Quasar.utils.copyToClipboard(text).then(function () {
+      Quasar.copyToClipboard(text).then(function () {
         notify({
           message: message || 'Copied to clipboard!',
           position: position || 'bottom'

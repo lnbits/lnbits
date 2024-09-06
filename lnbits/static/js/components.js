@@ -14,11 +14,12 @@ window.app.component('lnbits-fsat', {
 })
 
 window.app.component('lnbits-wallet-list', {
+  props: ['balance'],
   data: function () {
     return {
       user: null,
       activeWallet: null,
-      activeBalance: [],
+      balance: 0,
       showForm: false,
       walletName: '',
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
@@ -72,7 +73,7 @@ window.app.component('lnbits-wallet-list', {
   `,
   computed: {
     wallets: function () {
-      var bal = this.activeBalance
+      var bal = this.balance
       return this.user.wallets.map(function (obj) {
         obj.live_fsat =
           bal.length && bal[0] === obj.id
@@ -85,9 +86,6 @@ window.app.component('lnbits-wallet-list', {
   methods: {
     createWallet: function () {
       LNbits.api.createWallet(this.user.wallets[0], this.walletName)
-    },
-    updateWalletBalance: function (payload) {
-      this.activeBalance = payload
     }
   },
   created: function () {
@@ -97,7 +95,6 @@ window.app.component('lnbits-wallet-list', {
     if (window.wallet) {
       this.activeWallet = LNbits.map.wallet(window.wallet)
     }
-    EventHub.$on('update-wallet-balance', this.updateWalletBalance)
   }
 })
 
@@ -818,9 +815,3 @@ window.app.component('lnbits-update-balance', {
       </q-btn>
     `
 })
-
-// window.app.component(VueQrcode.name, VueQrcode)
-window.app.use(VueQrcodeReader)
-window.app.use(Quasar)
-window.app.use(window.i18n)
-window.app.mount('#vue')
