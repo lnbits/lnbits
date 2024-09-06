@@ -240,7 +240,7 @@ async def check_installed_extensions(app: FastAPI):
                 )
         except Exception as e:
             logger.warning(e)
-            await deactivate_extension(ext)
+            await deactivate_extension(ext.id)
             logger.warning(
                 f"Failed to re-install extension: {ext.id} ({ext.installed_version})"
             )
@@ -315,7 +315,6 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
 
     # mount routes for the new version
     core_app_extra.register_new_ext_routes(extension)
-    ext.notify_upgrade(extension.upgrade_hash)
 
 
 def register_custom_extensions_path():
@@ -378,12 +377,15 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
             )
             app.mount(s["path"], StaticFiles(directory=static_dir), s["name"])
 
-    if hasattr(ext_module, f"{ext.code}_redirect_paths"):
-        ext_redirects = getattr(ext_module, f"{ext.code}_redirect_paths")
-        settings.activate_extension_paths(ext.code, ext_redirects)
+    ext_redirects = (
+        getattr(ext_module, f"{ext.code}_redirect_paths")
+        if hasattr(ext_module, f"{ext.code}_redirect_paths")
+        else []
+    )
 
-    logger.trace(f"adding route for extension {ext_module}")
+    settings.activate_extension_paths(ext.code, ext.upgrade_hash, ext_redirects)
 
+    logger.trace(f"Adding route for extension {ext_module}.")
     prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
     app.include_router(router=ext_route, prefix=prefix)
 

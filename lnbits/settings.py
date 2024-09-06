@@ -143,12 +143,25 @@ class InstalledExtensionsSettings(LNbitsSettings):
         )
 
     def activate_extension_paths(
-        self, ext_id: str, ext_redirects: Optional[list[dict]] = None
+        self,
+        ext_id: str,
+        upgrade_hash: Optional[str] = None,
+        ext_redirects: Optional[list[dict]] = None,
     ):
-        settings.lnbits_deactivated_extensions.discard(ext_id)
+        self.lnbits_deactivated_extensions.discard(ext_id)
+
+        """
+        Update the list of upgraded extensions. The middleware will perform
+        redirects based on this
+        """
+        if upgrade_hash:
+            # bug
+            self.lnbits_upgraded_extensions.add(f"{upgrade_hash}/{ext_id}")
 
         if ext_redirects:
             self._activate_extension_redirects(ext_id, ext_redirects)
+
+        self.lnbits_all_extensions_ids.add(ext_id)
 
     def deactivate_extension_paths(self, ext_id: str):
         self.lnbits_deactivated_extensions.add(ext_id)

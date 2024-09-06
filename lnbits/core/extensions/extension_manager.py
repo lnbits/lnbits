@@ -7,17 +7,26 @@ from lnbits.core.crud import (
     get_installed_extension,
     update_installed_extension_state,
 )
+from lnbits.core.db import core_app_extra
 from lnbits.settings import settings
 
 from .models import Extension
 
 
-async def activate_extension(ext_id: str):
-    settings.activate_extension_paths(ext_id)
-    await update_installed_extension_state(ext_id=ext_id, active=True)
+async def try_activate_extension(ext: Extension):
+    try:
+        await activate_extension(ext)
+    except Exception as exc:
+        logger.warning(exc)
+        await deactivate_extension(ext.code)
 
 
-async def deactivate_extension(ext_id):
+async def activate_extension(ext: Extension):
+    core_app_extra.register_new_ext_routes(ext)
+    await update_installed_extension_state(ext_id=ext.code, active=True)
+
+
+async def deactivate_extension(ext_id: str):
     settings.deactivate_extension_paths(ext_id)
     await update_installed_extension_state(ext_id=ext_id, active=False)
 

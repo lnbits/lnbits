@@ -200,6 +200,13 @@ class Extension(NamedTuple):
         ]
 
     @classmethod
+    def get_valid_extension(
+        cls, ext_id: str, include_deactivated: Optional[bool] = True
+    ) -> Optional[Extension]:
+        all_extensions = cls.get_valid_extensions(include_deactivated)
+        return next((e for e in all_extensions if e.code == ext_id), None)
+
+    @classmethod
     def _extensions(cls) -> list[Extension]:
         p = Path(settings.lnbits_extensions_path, "extensions")
         Path(p).mkdir(parents=True, exist_ok=True)
@@ -501,17 +508,6 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_dir, True)
         shutil.copytree(Path(self.ext_upgrade_dir), Path(self.ext_dir))
         logger.success(f"Extension {self.name} ({self.installed_version}) installed.")
-
-    def notify_upgrade(self, upgrade_hash: Optional[str]) -> None:
-        """
-        Update the list of upgraded extensions. The middleware will perform
-        redirects based on this
-        """
-        if upgrade_hash:
-            # bug
-            settings.lnbits_upgraded_extensions.add(f"{self.hash}/{self.id}")
-
-        settings.lnbits_all_extensions_ids.add(self.id)
 
     def clean_extension_files(self):
         # remove downloaded archive

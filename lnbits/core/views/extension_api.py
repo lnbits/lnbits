@@ -1,4 +1,3 @@
-import sys
 from http import HTTPStatus
 from typing import (
     List,
@@ -12,11 +11,11 @@ from fastapi import (
 )
 from loguru import logger
 
-from lnbits.core.db import core_app_extra
 from lnbits.core.extensions.extension_manager import (
     activate_extension,
     deactivate_extension,
     stop_extension_background_work,
+    try_activate_extension,
     uninstall_extension,
 )
 from lnbits.core.extensions.models import (
@@ -39,7 +38,6 @@ from lnbits.decorators import (
     check_admin,
     check_user_exists,
 )
-from lnbits.settings import settings
 
 from ..crud import (
     add_installed_extension,
@@ -93,23 +91,18 @@ async def api_install_extension(data: CreateExtension):
         db_version = (await get_dbversions()).get(data.ext_id, 0)
         await migrate_extension_database(extension, db_version)
 
-        ext_info.active = True
+        # ext_info.active = True
         await add_installed_extension(ext_info)
 
         if extension.is_upgrade_extension:
             # call stop while the old routes are still active
             await stop_extension_background_work(data.ext_id)
 
-        # mount routes for the new version
-        core_app_extra.register_new_ext_routes(extension)
-
-        ext_info.notify_upgrade(extension.upgrade_hash)
-        settings.lnbits_deactivated_extensions.discard(data.ext_id)
+        await try_activate_extension(extension)
 
         return extension
     except Exception as exc:
         logger.warning(exc)
-        await deactivate_extension(data.ext_id)
         ext_info.clean_extension_files()
         detail = (
             str(exc)
@@ -264,15 +257,10 @@ async def api_activate_extension(ext_id: str) -> SimpleStatus:
     try:
         logger.info(f"Activating extension: '{ext_id}'.")
 
-        all_extensions = Extension.get_valid_extensions()
-        ext = next((e for e in all_extensions if e.code == ext_id), None)
+        ext = Extension.get_valid_extension(ext_id)
         assert ext, f"Extension '{ext_id}' doesn't exist."
-        # if extension never loaded (was deactivated on server startup)
-        if ext_id not in sys.modules.keys():
-            # run extension start-up routine
-            core_app_extra.register_new_ext_routes(ext)
 
-        await activate_extension(ext_id)
+        await activate_extension(ext)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' activated.")
     except Exception as exc:
         logger.warning(exc)
@@ -288,8 +276,7 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
     try:
         logger.info(f"Deactivating extension: '{ext_id}'.")
 
-        all_extensions = Extension.get_valid_extensions()
-        ext = next((e for e in all_extensions if e.code == ext_id), None)
+        ext = Extension.get_valid_extension(ext_id)
         assert ext, f"Extension '{ext_id}' doesn't exist."
 
         await deactivate_extension(ext_id)
