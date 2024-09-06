@@ -1,4 +1,3 @@
-// window.app.component(VueQrcode.name, VueQrcode)
 window.app.use(VueQrcodeReader)
 window.app.use(Quasar)
 window.app.use(window.i18n)

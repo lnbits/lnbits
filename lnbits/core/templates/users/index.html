@@ -24,8 +24,8 @@ include "users/_createWalletDialog.html" %}
           </q-btn>
         </div>
         <q-table
-          :data="users"
-          :row-key="usersTableRowKey"
+          row-key="id"
+          :rows="users"
           :columns="usersTable.columns"
           :pagination.sync="usersTable.pagination"
           :no-data-label="$t('no_users')"

@@ -218,9 +218,6 @@ window.app = Vue.createApp({
     formatSat: function (value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
     },
-    usersTableRowKey: function (row) {
-      return row.id
-    },
     createUser() {
       LNbits.api
         .request('POST', '/users/api/v1/user', null, this.createUserDialog.data)

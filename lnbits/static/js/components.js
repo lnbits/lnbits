@@ -1,3 +1,5 @@
+window.app.component(QrcodeVue)
+
 window.app.component('lnbits-fsat', {
   props: {
     amount: {
@@ -95,6 +97,7 @@ window.app.component('lnbits-wallet-list', {
     if (window.wallet) {
       this.activeWallet = LNbits.map.wallet(window.wallet)
     }
+    document.addEventListener('updateWalletBalance', this.updateWalletBalance)
   }
 })
 
@@ -371,21 +374,21 @@ window.app.component('lnbits-lnurlpay-success-action', {
 
 window.app.component('lnbits-qrcode', {
   mixins: [window.windowMixin],
+  components: {
+    QrcodeVue
+  },
   props: ['value'],
-  // components: {[window.appQrcode.name]: VueQrcode},
   data() {
     return {
       logo: LNBITS_QR_LOGO
     }
   },
-  template: `TODO`
-  // template: `
-  // <div class="qrcode__wrapper">
-  //   <qrcode :value="value"
-  //   :options="{errorCorrectionLevel: 'Q', width: 800}" class="rounded-borders"></qrcode>
-  //   <img class="qrcode__image" :src="logo" alt="..." />
-  // </div>
-  // `
+  template: `
+  <div class="qrcode__wrapper">
+    <qrcode-vue :value="value" size="350" class="rounded-borders"></qrcode-vue>
+    <img class="qrcode__image" :src="logo" alt="..." />
+  </div>
+  `
 })
 
 window.app.component('lnbits-notifications-btn', {

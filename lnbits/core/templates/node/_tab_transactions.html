@@ -51,11 +51,11 @@
             >
               <a :href="'lightning:' + transactionDetailsDialog.data.bolt11">
                 <q-responsive :ratio="1" class="q-mx-xl">
-                  <qrcode
+                  <vue-qrcode
                     :value="'lightning:' + transactionDetailsDialog.data.bolt11.toUpperCase()"
                     :options="{width: 340}"
                     class="rounded-borders"
-                  ></qrcode>
+                  ></vue-qrcode>
                 </q-responsive>
               </a>
               <q-btn
@@ -138,11 +138,11 @@
                           >
                             <a :href="'lightning:' + props.row.bolt11">
                               <q-responsive :ratio="1" class="q-mx-xl">
-                                <qrcode
+                                <vue-qrcode
                                   :value="'lightning:' + props.row.bolt11.toUpperCase()"
                                   :options="{width: 340}"
                                   class="rounded-borders"
-                                ></qrcode>
+                                ></vue-qrcode>
                               </q-responsive>
                             </a>
                           </div>

@@ -313,7 +313,7 @@ window.app.component('payment-list', {
         <q-table
           dense
           flat
-          :data="paymentsOmitter"
+          :rows="paymentsOmitter"
           :row-key="paymentTableRowKey"
           :columns="paymentsTable.columns"
           :pagination.sync="paymentsTable.pagination"

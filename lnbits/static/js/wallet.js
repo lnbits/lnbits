@@ -509,6 +509,11 @@ window.app = Vue.createApp({
     fetchBalance: function () {
       LNbits.api.getWallet(this.g.wallet).then(response => {
         this.balance = Math.floor(response.data.balance / 1000)
+        document.dispatchEvent(
+          new CustomEvent('updateWalletBalance', {
+            detail: [this.g.wallet.id, this.balance]
+          })
+        )
       })
       if (this.g.wallet.currency) {
         this.updateFiatBalance()
