@@ -470,6 +470,7 @@ window.windowMixin = {
     },
     applyGradient: function () {
       if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
+        this.setColors()
         darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
         primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
@@ -486,6 +487,20 @@ window.windowMixin = {
           `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
       }
+    },
+    setColors: function () {
+      this.$q.localStorage.set(
+        'lnbits.primaryColor',
+        LNbits.utils.getPaletteColor('primary')
+      )
+      this.$q.localStorage.set(
+        'lnbits.secondaryColor',
+        LNbits.utils.getPaletteColor('secondary')
+      )
+      this.$q.localStorage.set(
+        'lnbits.darkBgColor',
+        LNbits.utils.getPaletteColor('dark')
+      )
     },
     copyText: function (text, message, position) {
       var notify = this.$q.notify
@@ -550,8 +565,6 @@ window.windowMixin = {
     this.reactionChoice =
       this.$q.localStorage.getItem('lnbits.reactions') || 'confettiBothSides'
 
-    this.applyGradient()
-
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
     let locale = this.$q.localStorage.getItem('lnbits.lang')
@@ -589,6 +602,8 @@ window.windowMixin = {
         this.$q.localStorage.getItem('lnbits.theme')
       )
     }
+
+    this.applyGradient()
 
     if (window.user) {
       this.g.user = Object.freeze(window.LNbits.map.user(window.user))
