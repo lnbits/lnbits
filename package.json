@@ -16,7 +16,7 @@
     "concat": "^1.0.3",
     "minify": "^9.2.0",
     "prettier": "^3.3.3",
-    "pyright": "1.1.379",
+    "pyright": "1.1.289",
     "sass": "^1.78.0"
   },
   "dependencies": {
