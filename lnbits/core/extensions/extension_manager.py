@@ -11,21 +11,7 @@ from lnbits.core.crud import (
 )
 from lnbits.settings import settings
 
-from .helpers import github_api_get
-from .models import Extension, ExtensionConfig
-
-# All subdirectories in the current directory, not recursive.
-
-
-async def fetch_github_release_config(
-    org: str, repo: str, tag_name: str
-) -> Optional[ExtensionConfig]:
-    config_url = (
-        f"https://raw.githubusercontent.com/{org}/{repo}/{tag_name}/config.json"
-    )
-    error_msg = "Cannot fetch GitHub extension config"
-    config = await github_api_get(config_url, error_msg)
-    return ExtensionConfig.parse_obj(config)
+from .models import Extension
 
 
 async def fetch_release_details(details_link: str) -> Optional[dict]:

@@ -16,7 +16,6 @@ from lnbits.core.db import core_app_extra
 from lnbits.core.extensions.extension_manager import (
     activate_extension,
     deactivate_extension,
-    fetch_github_release_config,
     fetch_release_details,
     stop_extension_background_work,
     uninstall_extension,
@@ -24,6 +23,7 @@ from lnbits.core.extensions.extension_manager import (
 from lnbits.core.extensions.models import (
     CreateExtension,
     Extension,
+    ExtensionConfig,
     ExtensionRelease,
     InstallableExtension,
     PayToEnableInfo,
@@ -454,7 +454,7 @@ async def get_pay_to_enable_invoice(
 )
 async def get_extension_release(org: str, repo: str, tag_name: str):
     try:
-        config = await fetch_github_release_config(org, repo, tag_name)
+        config = await ExtensionConfig.fetch_github_release_config(org, repo, tag_name)
         if not config:
             return {}
 

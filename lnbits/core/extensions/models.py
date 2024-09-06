@@ -89,6 +89,17 @@ class ExtensionConfig(BaseModel):
             return True
         return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
 
+    @classmethod
+    async def fetch_github_release_config(
+        cls, org: str, repo: str, tag_name: str
+    ) -> Optional[ExtensionConfig]:
+        config_url = (
+            f"https://raw.githubusercontent.com/{org}/{repo}/{tag_name}/config.json"
+        )
+        error_msg = "Cannot fetch GitHub extension config"
+        config = await github_api_get(config_url, error_msg)
+        return ExtensionConfig.parse_obj(config)
+
 
 class ReleasePaymentInfo(BaseModel):
     amount: Optional[int] = None
