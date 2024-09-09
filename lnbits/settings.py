@@ -197,7 +197,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
 
     def _remove_extension_redirects(self, ext_id: str):
         self.lnbits_extensions_redirects = [
-            er for er in self.lnbits_extensions_redirects if er.ext_id == ext_id
+            er for er in self.lnbits_extensions_redirects if er.ext_id != ext_id
         ]
 
 
