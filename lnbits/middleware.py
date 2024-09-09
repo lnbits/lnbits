@@ -45,16 +45,11 @@ class InstalledExtensionMiddleware:
             await self.app(scope, receive, send)
             return
 
-        upgrade_path = next(
-            (
-                e
-                for e in settings.lnbits_upgraded_extensions
-                if e.endswith(f"/{top_path}")
-            ),
-            None,
-        )
         # re-route all trafic if the extension has been upgraded
-        if upgrade_path:
+        if top_path in settings.lnbits_upgraded_extensions:
+            upgrade_path = (
+                f"""{settings.lnbits_upgraded_extensions[top_path]}/{top_path}"""
+            )
             tail = "/".join(rest)
             scope["path"] = f"/upgrades/{upgrade_path}/{tail}"
 

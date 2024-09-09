@@ -122,7 +122,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
     lnbits_deactivated_extensions: set[str] = Field(default=[])
     # upgraded extensions that require API redirects
-    lnbits_upgraded_extensions: set[str] = Field(default=[])
+    lnbits_upgraded_extensions: dict[str, str] = Field(default={})
     # list of redirects that extensions want to perform
     lnbits_extensions_redirects: list[RedirectPath] = Field(default=[])
 
@@ -156,7 +156,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
         """
         if upgrade_hash:
             # bug
-            self.lnbits_upgraded_extensions.add(f"{upgrade_hash}/{ext_id}")
+            self.lnbits_upgraded_extensions[ext_id] = upgrade_hash
 
         if ext_redirects:
             self._activate_extension_redirects(ext_id, ext_redirects)
@@ -166,16 +166,6 @@ class InstalledExtensionsSettings(LNbitsSettings):
     def deactivate_extension_paths(self, ext_id: str):
         self.lnbits_deactivated_extensions.add(ext_id)
         self._remove_extension_redirects(ext_id)
-
-    def extension_upgrade_path(self, ext_id: str) -> Optional[str]:
-        return next(
-            (e for e in self.lnbits_upgraded_extensions if e.endswith(f"/{ext_id}")),
-            None,
-        )
-
-    def extension_upgrade_hash(self, ext_id: str) -> Optional[str]:
-        path = settings.extension_upgrade_path(ext_id)
-        return path.split("/")[0] if path else None
 
     def _activate_extension_redirects(self, ext_id: str, ext_redirects: list[dict]):
         ext_redirect_paths = [

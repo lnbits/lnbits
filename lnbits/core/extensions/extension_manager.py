@@ -40,7 +40,7 @@ async def stop_extension_background_work(ext_id) -> bool:
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
     Extensions SHOULD expose a `api_stop()` function.
     """
-    upgrade_hash = settings.extension_upgrade_hash(ext_id) or ""
+    upgrade_hash = settings.lnbits_upgraded_extensions.get(ext_id, "")
     ext = Extension(ext_id, True, False, upgrade_hash=upgrade_hash)
 
     try:
