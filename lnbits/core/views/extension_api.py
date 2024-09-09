@@ -15,7 +15,6 @@ from lnbits.core.extensions.extension_manager import (
     activate_extension,
     deactivate_extension,
     stop_extension_background_work,
-    try_activate_extension,
     uninstall_extension,
 )
 from lnbits.core.extensions.models import (
@@ -78,6 +77,7 @@ async def api_install_extension(data: CreateExtension):
         id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
     )
 
+    extension = Extension.from_installable_ext(ext_info)
     try:
         installed_ext = await get_installed_extension(data.ext_id)
         ext_info.payments = installed_ext.payments if installed_ext else []
@@ -85,8 +85,6 @@ async def api_install_extension(data: CreateExtension):
         await ext_info.download_archive()
 
         ext_info.extract_archive()
-
-        extension = Extension.from_installable_ext(ext_info)
 
         db_version = (await get_dbversions()).get(data.ext_id, 0)
         await migrate_extension_database(extension, db_version)
@@ -98,17 +96,30 @@ async def api_install_extension(data: CreateExtension):
             # call stop while the old routes are still active
             await stop_extension_background_work(data.ext_id)
 
-        await try_activate_extension(extension)
-
-        return extension
     except Exception as exc:
         logger.warning(exc)
         ext_info.clean_extension_files()
         detail = (
             str(exc)
             if isinstance(exc, AssertionError)
-            else f"Failed to install extension {ext_info.id} "
+            else f"Failed to install extension '{ext_info.id}'."
             f"({ext_info.installed_version})."
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=detail,
+        ) from exc
+
+    try:
+        await activate_extension(extension)
+        return extension
+    except Exception as exc:
+        logger.warning(exc)
+        await deactivate_extension(extension.code)
+        detail = (
+            str(exc)
+            if isinstance(exc, AssertionError)
+            else f"Extension `{extension.code}` installed, but activation failed."
         )
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
