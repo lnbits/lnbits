@@ -1,3 +1,4 @@
+import asyncio
 import importlib
 
 from loguru import logger
@@ -13,14 +14,6 @@ from lnbits.settings import settings
 from .models import Extension
 
 
-async def try_activate_extension(ext: Extension):
-    try:
-        await activate_extension(ext)
-    except Exception as exc:
-        logger.warning(exc)
-        await deactivate_extension(ext.code)
-
-
 async def activate_extension(ext: Extension):
     core_app_extra.register_new_ext_routes(ext)
     await update_installed_extension_state(ext_id=ext.code, active=True)
@@ -34,7 +27,7 @@ async def deactivate_extension(ext_id: str):
 async def uninstall_extension(ext_id):
     await stop_extension_background_work(ext_id)
 
-    settings.lnbits_deactivated_extensions.add(ext_id)
+    settings.deactivate_extension_paths(ext_id)
 
     extension = await get_installed_extension(ext_id)
     if extension:
@@ -62,7 +55,10 @@ async def stop_extension_background_work(ext_id) -> bool:
 
         stop_fn = getattr(old_module, stop_fn_name)
         if stop_fn:
-            await stop_fn()
+            if asyncio.iscoroutinefunction(stop_fn):
+                await stop_fn()
+            else:
+                stop_fn()
 
         logger.info(f"Stopped background work for extension '{ext.module_name}'.")
     except Exception as ex:
