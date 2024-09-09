@@ -155,7 +155,6 @@ class InstalledExtensionsSettings(LNbitsSettings):
         redirects based on this
         """
         if upgrade_hash:
-            # bug
             self.lnbits_upgraded_extensions[ext_id] = upgrade_hash
 
         if ext_redirects:

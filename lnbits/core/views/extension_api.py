@@ -89,7 +89,6 @@ async def api_install_extension(data: CreateExtension):
         db_version = (await get_dbversions()).get(data.ext_id, 0)
         await migrate_extension_database(extension, db_version)
 
-        # ext_info.active = True
         await add_installed_extension(ext_info)
 
         if extension.is_upgrade_extension:
