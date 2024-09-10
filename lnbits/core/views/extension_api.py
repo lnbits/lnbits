@@ -14,7 +14,7 @@ from loguru import logger
 from lnbits.core.extensions.extension_manager import (
     activate_extension,
     deactivate_extension,
-    stop_extension_background_work,
+    install_extension,
     uninstall_extension,
 )
 from lnbits.core.extensions.models import (
@@ -27,7 +27,6 @@ from lnbits.core.extensions.models import (
     ReleasePaymentInfo,
     UserExtensionInfo,
 )
-from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models import (
     SimpleStatus,
     User,
@@ -39,7 +38,6 @@ from lnbits.decorators import (
 )
 
 from ..crud import (
-    add_installed_extension,
     delete_dbversion,
     drop_extension_db,
     get_dbversions,
@@ -77,23 +75,8 @@ async def api_install_extension(data: CreateExtension):
         id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
     )
 
-    extension = Extension.from_installable_ext(ext_info)
     try:
-        installed_ext = await get_installed_extension(data.ext_id)
-        ext_info.payments = installed_ext.payments if installed_ext else []
-
-        await ext_info.download_archive()
-
-        ext_info.extract_archive()
-
-        db_version = (await get_dbversions()).get(data.ext_id, 0)
-        await migrate_extension_database(extension, db_version)
-
-        await add_installed_extension(ext_info)
-
-        if extension.is_upgrade_extension:
-            # call stop while the old routes are still active
-            await stop_extension_background_work(data.ext_id)
+        extension = await install_extension(ext_info)
 
     except Exception as exc:
         logger.warning(exc)

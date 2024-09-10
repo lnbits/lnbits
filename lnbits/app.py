@@ -17,6 +17,7 @@ from slowapi.util import get_remote_address
 from starlette.middleware.sessions import SessionMiddleware
 
 from lnbits.core.crud import (
+    add_installed_extension,
     get_dbversions,
     get_installed_extensions,
     update_installed_extension_state,
@@ -48,7 +49,6 @@ from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.extensions.models import Extension, InstallableExtension
 from .core.services import check_admin_settings, check_webpush_settings
-from .core.views.extension_api import add_installed_extension
 from .middleware import (
     CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,
