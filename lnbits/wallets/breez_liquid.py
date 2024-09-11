@@ -231,6 +231,13 @@ else:
 
         async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
             while True:
-                event = await breez_event_queue.get()
-                if event.is_invoice_paid():
-                    yield event.details.payment_hash
+                event: breez_sdk.SdkEvent = await breez_event_queue.get()
+                if event.is_payment_succeeded():
+                    success_event: breez_sdk.SdkEvent.PAYMENT_SUCCEEDED = event
+                    payment: breez_sdk.Payment = success_event.details
+                    details = payment.details
+                    if not details or not details.is_lightning():
+                        continue
+                    lightning_details: breez_sdk.PaymentDetails.LIGHTNING = details
+                    invoice_data = lnbits_bolt11.decode(lightning_details.bolt11)
+                    yield invoice_data.payment_hash
