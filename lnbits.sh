@@ -3,28 +3,31 @@
 # Check install has not already run
 if [ ! -d lnbits/data ]; then
 
-  # Check Python version
-  if python3 -c "import sys; exit(0 if sys.version_info >= (3, 9) else 1)" ; then
-    echo "Python version is 3.9 or higher ... OK"
-  else
-    echo "Python version is lower than 3.9 ... FAIL"
-    exit 1
-  fi
-
-  # Update package list and install prerequisites
-  sudo apt update
-  sudo apt install -y curl git
+  # Update package list and install prerequisites non-interactively
+  sudo apt update -y
+  sudo apt install -y software-properties-common
+  
+  # Add the deadsnakes PPA repository non-interactively
+  sudo add-apt-repository -y ppa:deadsnakes/ppa
+  
+  # Install Python 3.9 and distutils non-interactively
+  sudo apt install -y python3.9 python3.9-distutils
 
   # Install Poetry
-  curl -sSL https://install.python-poetry.org | python3 -
+  curl -sSL https://install.python-poetry.org | python3.9 -
 
   # Add Poetry to PATH for the current session
-  export PATH="$HOME/.local/bin:$PATH"
+  export PATH="/home/$USER/.local/bin:$PATH"
 
-  if [ ! -d "lnbits/extensions" ]; then # Followed the install guide
+  if [ ! -d lnbits/extensions ]; then
     # Clone the LNbits repository
     git clone https://github.com/lnbits/lnbits.git
-    cd lnbits
+    if [ $? -ne 0 ]; then
+      echo "Failed to clone the repository ... FAIL"
+      exit 1
+    fi
+    # Ensure we are in the lnbits directory
+    cd lnbits || { echo "Failed to cd into lnbits ... FAIL"; exit 1; }
   fi
 
   git checkout main
@@ -33,12 +36,14 @@ if [ ! -d lnbits/data ]; then
 
   # Copy the .env.example to .env
   cp .env.example .env
-elif [ ! -d lnbits/wallets ]; then # Another check its not being run from the wrong directory
+
+elif [ ! -d lnbits/wallets ]; then
   # cd into lnbits
-  cd lnbits
+  cd lnbits || { echo "Failed to cd into lnbits ... FAIL"; exit 1; }
 fi
 
-# Install the dependencies
+# Install the dependencies using Poetry
+poetry env use python3.9
 poetry install --only main
 
 # Set environment variables for LNbits
