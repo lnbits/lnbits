@@ -110,7 +110,7 @@ else:
                             (
                                 unhashed_description.decode()
                                 if unhashed_description
-                                else memo
+                                else memo or ""
                             ),
                             description_hash is not None,
                         )
