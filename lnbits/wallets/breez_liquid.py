@@ -171,11 +171,14 @@ else:
                     False, None, None, None, f"payment failed: {exc}"
                 )
 
+            checking_id = invoice_data.payment_hash
+
             if payment.status != breez_sdk.PaymentState.COMPLETE:
-                return PaymentResponse(False, None, None, None, "payment is pending")
+                return PaymentResponse(
+                    None, checking_id, req.fees_sat*1000, None, "payment is pending"
+                )
 
             # let's use the payment_hash as the checking_id
-            checking_id = invoice_data.payment_hash
             lightning_details: breez_sdk.PaymentDetails.LIGHTNING = payment.details
             return PaymentResponse(
                 True,
