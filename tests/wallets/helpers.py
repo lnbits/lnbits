@@ -26,7 +26,7 @@ def wallet_fixtures_from_json(path) -> List["WalletTest"]:
             fn_tests = _tests_for_function(funding_sources, fn_name, fn)
             _merge_dict_of_lists(tests, fn_tests)
 
-        all_tests: list["WalletTest"] = functools.reduce(
+        all_tests: list[WalletTest] = functools.reduce(
             operator.iadd, [tests[fs_name] for fs_name in tests], []
         )
         return all_tests
