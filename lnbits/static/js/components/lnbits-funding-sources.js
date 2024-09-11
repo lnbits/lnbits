@@ -219,6 +219,13 @@ window.app.component('lnbits-funding-sources', {
             strike_api_endpoint: 'API Endpoint',
             strike_api_key: 'API Key'
           }
+        ],
+        [
+          'BreezLiquidSdkWallet',
+          'Breez Liquid SDK',
+          {
+            breez_mnemonic: 'Liquid seed phrase'
+          }
         ]
       ]
     }

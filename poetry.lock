@@ -657,6 +657,40 @@ files = [
 ]
 
 [[package]]
+name = "breez-sdk-liquid"
+version = "0.3.0"
+description = "Python language bindings for the Breez Liquid SDK"
+optional = false
+python-versions = "*"
+files = [
+    {file = "breez_sdk_liquid-0.3.0-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:4fc9db3da2fda11d25d21610e2cc89e8aa5fa37ac8553da0b61b77620b8319d8"},
+    {file = "breez_sdk_liquid-0.3.0-cp310-cp310-manylinux_2_31_aarch64.whl", hash = "sha256:e4388d11c3ae4dfaa3c8739ea580adf388660681bf068cabd0738dcd82e8b0e2"},
+    {file = "breez_sdk_liquid-0.3.0-cp310-cp310-manylinux_2_31_x86_64.whl", hash = "sha256:6d84967826f18aa87f22c2aba5f799eabe5ff3b9dd76f7c4b4b60c5e1756bfe4"},
+    {file = "breez_sdk_liquid-0.3.0-cp310-cp310-win32.whl", hash = "sha256:3f0db14136db6679353c9185992599801786e33d795c218053ab475e9563802b"},
+    {file = "breez_sdk_liquid-0.3.0-cp310-cp310-win_amd64.whl", hash = "sha256:7fc0b62b1dc463e94bdfe0b99295747dbd44f88191c3f6ead79cada390785f53"},
+    {file = "breez_sdk_liquid-0.3.0-cp311-cp311-macosx_11_0_universal2.whl", hash = "sha256:b94f63c868970e564cbd0c2b269734fb51d5cefbc7b1cdc0b698162d8a28c14d"},
+    {file = "breez_sdk_liquid-0.3.0-cp311-cp311-manylinux_2_31_aarch64.whl", hash = "sha256:5f335689e9c387b201550082fe91b0514751c8f34782a7f596ddf9e9831c6d8c"},
+    {file = "breez_sdk_liquid-0.3.0-cp311-cp311-manylinux_2_31_x86_64.whl", hash = "sha256:5f71cfad89d00f632e26a11acbc8f06ab8194b74ec054fa34781352564fb0ae0"},
+    {file = "breez_sdk_liquid-0.3.0-cp311-cp311-win32.whl", hash = "sha256:a6b948c2c7a62c876a949218697127c982447316cd6da74e37c715764c8432e9"},
+    {file = "breez_sdk_liquid-0.3.0-cp311-cp311-win_amd64.whl", hash = "sha256:9e868025034af532bbef24eaee09cb25056e6f72af3976390a467819853978de"},
+    {file = "breez_sdk_liquid-0.3.0-cp312-cp312-macosx_11_0_universal2.whl", hash = "sha256:a15a32d00fd2b399264548baf9fe6c14a6b9da792dc055db549d998a1e929e81"},
+    {file = "breez_sdk_liquid-0.3.0-cp312-cp312-manylinux_2_31_aarch64.whl", hash = "sha256:498be0592420b2e97ace3ec27d5d14c8bbf9a0cf1d8902f18a5fb944d51b01ec"},
+    {file = "breez_sdk_liquid-0.3.0-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:630b8122532166f529699ce234832fae5c32c70db670f1b050a04698727a0214"},
+    {file = "breez_sdk_liquid-0.3.0-cp312-cp312-win32.whl", hash = "sha256:5bd013634762a5dbf78fe04bbba31ce2c07172eec4f33baf0331e45213042ad6"},
+    {file = "breez_sdk_liquid-0.3.0-cp312-cp312-win_amd64.whl", hash = "sha256:6f65d0d210421dbbc488e40e0bb56a7083255dd988e793fd19bec0a5060cda60"},
+    {file = "breez_sdk_liquid-0.3.0-cp38-cp38-macosx_11_0_universal2.whl", hash = "sha256:99ad1336449c69cca7439d59d830f9fdfd65467f76d801314221cda15858a597"},
+    {file = "breez_sdk_liquid-0.3.0-cp38-cp38-manylinux_2_31_aarch64.whl", hash = "sha256:c6392b4b5f7507682fd1b98b8c502adeeefd9892dca45097675e3abd9b647efb"},
+    {file = "breez_sdk_liquid-0.3.0-cp38-cp38-manylinux_2_31_x86_64.whl", hash = "sha256:149d4a621845d90e983792cc8a4163d265926013c623e1e5d95319eb1311cf73"},
+    {file = "breez_sdk_liquid-0.3.0-cp38-cp38-win32.whl", hash = "sha256:8ae29655dbc5110dbbf8999a256978587e01d6951e9fcb4f3c5466b8a90b072b"},
+    {file = "breez_sdk_liquid-0.3.0-cp38-cp38-win_amd64.whl", hash = "sha256:b6707531926e1c29f2fda94f5b47fd64ac1e446dacf5866e54ebe1f115059458"},
+    {file = "breez_sdk_liquid-0.3.0-cp39-cp39-macosx_11_0_universal2.whl", hash = "sha256:6408f71d6732fc837deec8eb7e2005359450e3f01a2059f77d168bf56d86b6a5"},
+    {file = "breez_sdk_liquid-0.3.0-cp39-cp39-manylinux_2_31_aarch64.whl", hash = "sha256:ff0ee81323371f854eceb8b3eeb3e3383ca7e798798891299d882a0a5e082106"},
+    {file = "breez_sdk_liquid-0.3.0-cp39-cp39-manylinux_2_31_x86_64.whl", hash = "sha256:2d1a336953c380e2a67a769bcd133c214278c131272d3d0e4b09120ae23af0b0"},
+    {file = "breez_sdk_liquid-0.3.0-cp39-cp39-win32.whl", hash = "sha256:7117fd2d875a70388c7dc920f4c97c94feeaa1ae29dde47e76b90bdd6c4b1f76"},
+    {file = "breez_sdk_liquid-0.3.0-cp39-cp39-win_amd64.whl", hash = "sha256:8ea5b1bc0120669b4b3a2c414fbd16ad9e964c6daf37b30fb35e21fdbcfc77ff"},
+]
+
+[[package]]
 name = "certifi"
 version = "2025.6.15"
 description = "Python package for providing Mozilla's CA Bundle."
