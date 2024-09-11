@@ -21,18 +21,13 @@ if [ ! -d lnbits/data ]; then
   # Add Poetry to PATH for the current session
   export PATH="$HOME/.local/bin:$PATH"
 
-  if [ -d lnbits ]; then # Someone didnt follow the install guide
-    # Check out the main branch
-    git checkout main
-  else
+  if [ ! -d "lnbits/extensions" ]; then # Followed the install guide
     # Clone the LNbits repository
     git clone https://github.com/lnbits/lnbits.git
     cd lnbits
-
-    # Check out the main branch
-    git checkout main
   fi
 
+git checkout main
   # Make data folder
   mkdir data
 
