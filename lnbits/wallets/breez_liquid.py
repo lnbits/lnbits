@@ -94,14 +94,19 @@ else:
                         " 'unhashed_description'"
                     )
 
+                req: breez_sdk.PrepareReceiveResponse = (
+                    self.sdk_services.prepare_receive_payment(
+                        breez_sdk.PrepareReceiveRequest(
+                            int(amount), breez_sdk.PaymentMethod.LIGHTNING
+                        )
+                    )
+                )
+                receive_fees_sats = req.fees_sat
+
                 res: breez_sdk.ReceivePaymentResponse = (
                     self.sdk_services.receive_payment(
                         breez_sdk.ReceivePaymentRequest(
-                            self.sdk_services.prepare_receive_payment(
-                                breez_sdk.PrepareReceiveRequest(
-                                    int(amount), breez_sdk.PaymentMethod.LIGHTNING
-                                )
-                            ),
+                            req,
                             (
                                 unhashed_description.decode()
                                 if unhashed_description
@@ -121,6 +126,7 @@ else:
                     payment_hash,
                     bolt11,
                     None,
+                    adjusted_amount_sats=amount - receive_fees_sats,
                 )
             except Exception as e:
                 logger.warning(e)
@@ -132,21 +138,30 @@ else:
             invoice_data = lnbits_bolt11.decode(bolt11)
 
             try:
-
-                send_response = self.sdk_services.send_payment(
-                    breez_sdk.SendPaymentRequest(
-                        self.sdk_services.prepare_send_payment(
-                            breez_sdk.PrepareSendRequest(
-                                bolt11,
-                                int(
-                                    invoice_data.amount_msat / 1000
-                                    if invoice_data.amount_msat
-                                    else 0
-                                ),
-                            )
+                req: breez_sdk.PrepareSendResponse = (
+                    self.sdk_services.prepare_send_payment(
+                        breez_sdk.PrepareSendRequest(
+                            bolt11,
+                            int(
+                                invoice_data.amount_msat / 1000
+                                if invoice_data.amount_msat
+                                else 0
+                            ),
                         )
                     )
                 )
+
+                if req.fees_sat > int(fee_limit_msat / 1000):
+                    return PaymentResponse(
+                        ok=False,
+                        error_message=f"fee of {req.fees_sat*1000} msat \
+                            exceeds limit of {fee_limit_msat} msat",
+                    )
+
+                send_response = self.sdk_services.send_payment(
+                    breez_sdk.SendPaymentRequest(req)
+                )
+
                 payment: breez_sdk.Payment = send_response.payment
 
             except Exception as exc:

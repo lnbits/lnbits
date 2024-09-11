@@ -24,6 +24,7 @@ class InvoiceResponse(NamedTuple):
     payment_request: str | None = None
     error_message: str | None = None
     preimage: str | None = None
+    adjusted_amount_sats: int | None = None
 
     @property
     def success(self) -> bool:
