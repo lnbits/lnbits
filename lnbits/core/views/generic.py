@@ -12,6 +12,7 @@ from lnurl import decode as lnurl_decode
 from loguru import logger
 from pydantic.types import UUID4
 
+from lnbits.core.extensions.models import Extension, InstallableExtension
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.core.services import create_invoice
@@ -20,7 +21,6 @@ from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
-from ...extension_manager import InstallableExtension, get_valid_extensions
 from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
     create_account,
@@ -104,7 +104,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
         installed_exts_ids = []
 
     try:
-        all_ext_ids = [ext.code for ext in get_valid_extensions()]
+        all_ext_ids = [ext.code for ext in Extension.get_valid_extensions()]
         inactive_extensions = [
             e.id for e in await get_installed_extensions(active=False)
         ]

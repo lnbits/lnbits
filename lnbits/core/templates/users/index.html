@@ -7,7 +7,7 @@ include "users/_createWalletDialog.html" %}
 
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md" style="width: 300px">
-    <div style="width: 600px">
+    <div style="width: 100%; max-width: 2000px">
       <canvas ref="chart1"></canvas>
     </div>
   </div>
@@ -70,7 +70,7 @@ include "users/_createWalletDialog.html" %}
                   v-if="!props.row.is_super_user"
                   icon="build"
                   size="sm"
-                  :color="props.row.is_admin ? 'primary' : ''"
+                  :color="props.row.is_admin ? 'primary' : 'grey'"
                   @click="toggleAdmin(props.row.id)"
                 >
                   <q-tooltip>Toggle Admin</q-tooltip>

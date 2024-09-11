@@ -10,6 +10,7 @@ import shortuuid
 from pydantic import BaseModel
 from pydantic.schema import field_schema
 
+from lnbits.core.extensions.models import Extension
 from lnbits.db import get_placeholder
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.nodes import get_node_class
@@ -18,7 +19,6 @@ from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
 
 from .db import FilterModel
-from .extension_manager import get_valid_extensions
 
 
 def get_db_vendor_name():
@@ -93,7 +93,7 @@ def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templa
         settings.lnbits_node_ui and get_node_class() is not None
     )
     t.env.globals["LNBITS_NODE_UI_AVAILABLE"] = get_node_class() is not None
-    t.env.globals["EXTENSIONS"] = get_valid_extensions(False)
+    t.env.globals["EXTENSIONS"] = Extension.get_valid_extensions(False)
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 

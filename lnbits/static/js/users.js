@@ -164,6 +164,41 @@ new Vue({
     this.chart1 = new Chart(this.$refs.chart1.getContext('2d'), {
       type: 'bubble',
       options: {
+        scales: {
+          xAxes: [
+            {
+              type: 'linear',
+              ticks: {
+                beginAtZero: true
+              },
+              scaleLabel: {
+                display: true,
+                labelString: 'Tx count'
+              }
+            }
+          ],
+          yAxes: [
+            {
+              type: 'linear',
+              ticks: {
+                beginAtZero: true
+              },
+              scaleLabel: {
+                display: true,
+                labelString: 'User balance in million sats'
+              }
+            }
+          ]
+        },
+        tooltips: {
+          callbacks: {
+            label: function (tooltipItem, data) {
+              const dataset = data.datasets[tooltipItem.datasetIndex]
+              const dataPoint = dataset.data[tooltipItem.index]
+              return dataPoint.customLabel || ''
+            }
+          }
+        },
         layout: {
           padding: 10
         }
@@ -171,7 +206,7 @@ new Vue({
       data: {
         datasets: [
           {
-            label: 'Balance - TX Count in million sats',
+            label: 'Wallet balance vs transaction count',
             backgroundColor: 'rgb(255, 99, 132)',
             data: []
           }
@@ -291,10 +326,20 @@ new Vue({
       })
 
       const data = filtered.map(user => {
+        const labelUsername = `${user.username ? 'User: ' + user.username + '. ' : ''}`
+        const userBalanceSats = Math.floor(
+          user.balance_msat / 1000
+        ).toLocaleString()
         return {
           x: user.transaction_count,
           y: user.balance_msat / 1000000000,
-          r: 3
+          r: 4,
+          customLabel:
+            labelUsername +
+            'Balance: ' +
+            userBalanceSats +
+            ' sats. Tx count: ' +
+            user.transaction_count
         }
       })
       this.chart1.data.datasets[0].data = data

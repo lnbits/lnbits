@@ -1,8 +1,6 @@
-import sys
 from http import HTTPStatus
 from typing import (
     List,
-    Optional,
 )
 
 from bolt11 import decode as bolt11_decode
@@ -13,10 +11,21 @@ from fastapi import (
 )
 from loguru import logger
 
-from lnbits.core.db import core_app_extra
-from lnbits.core.helpers import (
-    migrate_extension_database,
-    stop_extension_background_work,
+from lnbits.core.extensions.extension_manager import (
+    activate_extension,
+    deactivate_extension,
+    install_extension,
+    uninstall_extension,
+)
+from lnbits.core.extensions.models import (
+    CreateExtension,
+    Extension,
+    ExtensionConfig,
+    ExtensionRelease,
+    InstallableExtension,
+    PayToEnableInfo,
+    ReleasePaymentInfo,
+    UserExtensionInfo,
 )
 from lnbits.core.models import (
     SimpleStatus,
@@ -24,36 +33,18 @@ from lnbits.core.models import (
 )
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.decorators import (
-    check_access_token,
     check_admin,
     check_user_exists,
 )
-from lnbits.extension_manager import (
-    CreateExtension,
-    Extension,
-    ExtensionRelease,
-    InstallableExtension,
-    PayToEnableInfo,
-    ReleasePaymentInfo,
-    UserExtensionInfo,
-    fetch_github_release_config,
-    fetch_release_details,
-    fetch_release_payment_info,
-    get_valid_extensions,
-)
-from lnbits.settings import settings
 
 from ..crud import (
-    add_installed_extension,
     delete_dbversion,
-    delete_installed_extension,
     drop_extension_db,
     get_dbversions,
     get_installed_extension,
     get_installed_extensions,
     get_user_extension,
     update_extension_pay_to_enable,
-    update_installed_extension_state,
     update_user_extension,
     update_user_extension_extra,
 )
@@ -64,12 +55,8 @@ extension_router = APIRouter(
 )
 
 
-@extension_router.post("")
-async def api_install_extension(
-    data: CreateExtension,
-    user: User = Depends(check_admin),
-    access_token: Optional[str] = Depends(check_access_token),
-):
+@extension_router.post("", dependencies=[Depends(check_admin)])
+async def api_install_extension(data: CreateExtension):
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive, data.version
     )
@@ -89,43 +76,36 @@ async def api_install_extension(
     )
 
     try:
-        installed_ext = await get_installed_extension(data.ext_id)
-        ext_info.payments = installed_ext.payments if installed_ext else []
+        extension = await install_extension(ext_info)
 
-        await ext_info.download_archive()
-
-        ext_info.extract_archive()
-
-        extension = Extension.from_installable_ext(ext_info)
-
-        db_version = (await get_dbversions()).get(data.ext_id, 0)
-        await migrate_extension_database(extension, db_version)
-
-        ext_info.active = True
-        await add_installed_extension(ext_info)
-
-        if extension.is_upgrade_extension:
-            # call stop while the old routes are still active
-            await stop_extension_background_work(data.ext_id, user.id, access_token)
-
-        # mount routes for the new version
-        core_app_extra.register_new_ext_routes(extension)
-
-        ext_info.notify_upgrade(extension.upgrade_hash)
-        settings.lnbits_deactivated_extensions.discard(data.ext_id)
-
-        return extension
-    except AssertionError as exc:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
     except Exception as exc:
         logger.warning(exc)
         ext_info.clean_extension_files()
+        detail = (
+            str(exc)
+            if isinstance(exc, AssertionError)
+            else f"Failed to install extension '{ext_info.id}'."
+            f"({ext_info.installed_version})."
+        )
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=(
-                f"Failed to install extension {ext_info.id} "
-                f"({ext_info.installed_version})."
-            ),
+            detail=detail,
+        ) from exc
+
+    try:
+        await activate_extension(extension)
+        return extension
+    except Exception as exc:
+        logger.warning(exc)
+        await deactivate_extension(extension.code)
+        detail = (
+            str(exc)
+            if isinstance(exc, AssertionError)
+            else f"Extension `{extension.code}` installed, but activation failed."
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=detail,
         ) from exc
 
 
@@ -143,7 +123,7 @@ async def api_extension_details(
         )
         assert release, "Details not found for release"
 
-        release_details = await fetch_release_details(details_link)
+        release_details = await ExtensionRelease.fetch_release_details(details_link)
         assert release_details, "Cannot fetch details for release"
         release_details["icon"] = release.icon
         release_details["repo"] = release.repo
@@ -186,7 +166,7 @@ async def api_update_pay_to_enable(
 async def api_enable_extension(
     ext_id: str, user: User = Depends(check_user_exists)
 ) -> SimpleStatus:
-    if ext_id not in [e.code for e in get_valid_extensions()]:
+    if ext_id not in [e.code for e in Extension.get_valid_extensions()]:
         raise HTTPException(
             HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' doesn't exist."
         )
@@ -249,7 +229,7 @@ async def api_enable_extension(
 async def api_disable_extension(
     ext_id: str, user: User = Depends(check_user_exists)
 ) -> SimpleStatus:
-    if ext_id not in [e.code for e in get_valid_extensions()]:
+    if ext_id not in [e.code for e in Extension.get_valid_extensions()]:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, f"Extension '{ext_id}' doesn't exist."
         )
@@ -270,20 +250,14 @@ async def api_activate_extension(ext_id: str) -> SimpleStatus:
     try:
         logger.info(f"Activating extension: '{ext_id}'.")
 
-        all_extensions = get_valid_extensions()
-        ext = next((e for e in all_extensions if e.code == ext_id), None)
+        ext = Extension.get_valid_extension(ext_id)
         assert ext, f"Extension '{ext_id}' doesn't exist."
-        # if extension never loaded (was deactivated on server startup)
-        if ext_id not in sys.modules.keys():
-            # run extension start-up routine
-            core_app_extra.register_new_ext_routes(ext)
 
-        settings.lnbits_deactivated_extensions.discard(ext_id)
-
-        await update_installed_extension_state(ext_id=ext_id, active=True)
+        await activate_extension(ext)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' activated.")
     except Exception as exc:
         logger.warning(exc)
+        await deactivate_extension(ext_id)
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=(f"Failed to activate '{ext_id}'."),
@@ -295,13 +269,10 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
     try:
         logger.info(f"Deactivating extension: '{ext_id}'.")
 
-        all_extensions = get_valid_extensions()
-        ext = next((e for e in all_extensions if e.code == ext_id), None)
+        ext = Extension.get_valid_extension(ext_id)
         assert ext, f"Extension '{ext_id}' doesn't exist."
 
-        settings.lnbits_deactivated_extensions.add(ext_id)
-
-        await update_installed_extension_state(ext_id=ext_id, active=False)
+        await deactivate_extension(ext_id)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' deactivated.")
     except Exception as exc:
         logger.warning(exc)
@@ -311,23 +282,19 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
         ) from exc
 
 
-@extension_router.delete("/{ext_id}")
-async def api_uninstall_extension(
-    ext_id: str,
-    user: User = Depends(check_admin),
-    access_token: Optional[str] = Depends(check_access_token),
-) -> SimpleStatus:
-    installed_extensions = await get_installed_extensions()
+@extension_router.delete("/{ext_id}", dependencies=[Depends(check_admin)])
+async def api_uninstall_extension(ext_id: str) -> SimpleStatus:
 
-    extensions = [e for e in installed_extensions if e.id == ext_id]
-    if len(extensions) == 0:
+    extension = await get_installed_extension(ext_id)
+    if not extension:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Unknown extension id: {ext_id}",
         )
 
+    installed_extensions = await get_installed_extensions()
     # check that other extensions do not depend on this one
-    for valid_ext_id in [ext.code for ext in get_valid_extensions()]:
+    for valid_ext_id in [ext.code for ext in Extension.get_valid_extensions()]:
         installed_ext = next(
             (ext for ext in installed_extensions if ext.id == valid_ext_id), None
         )
@@ -341,14 +308,7 @@ async def api_uninstall_extension(
             )
 
     try:
-        # call stop while the old routes are still active
-        await stop_extension_background_work(ext_id, user.id, access_token)
-
-        settings.lnbits_deactivated_extensions.add(ext_id)
-
-        for ext_info in extensions:
-            ext_info.clean_extension_files()
-            await delete_installed_extension(ext_id=ext_info.id)
+        await uninstall_extension(ext_id)
 
         logger.success(f"Extension '{ext_id}' uninstalled.")
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' uninstalled.")
@@ -397,9 +357,8 @@ async def get_pay_to_install_invoice(
         assert release, "Release not found."
         assert release.pay_link, "Pay link not found for release."
 
-        payment_info = await fetch_release_payment_info(
-            release.pay_link, data.cost_sats
-        )
+        payment_info = await release.fetch_release_payment_info(data.cost_sats)
+
         assert payment_info and payment_info.payment_request, "Cannot request invoice."
         invoice = bolt11_decode(payment_info.payment_request)
 
@@ -474,7 +433,7 @@ async def get_pay_to_enable_invoice(
 )
 async def get_extension_release(org: str, repo: str, tag_name: str):
     try:
-        config = await fetch_github_release_config(org, repo, tag_name)
+        config = await ExtensionConfig.fetch_github_release_config(org, repo, tag_name)
         if not config:
             return {}
 
