@@ -19,7 +19,7 @@ if [ ! -d lnbits/data ]; then
   # Add Poetry to PATH for the current session
   export PATH="/home/$USER/.local/bin:$PATH"
 
-  if [ ! -d lnbits/extensions ]; then
+  if [ ! -d lnbits/wallets ]; then
     # Clone the LNbits repository
     git clone https://github.com/lnbits/lnbits.git
     if [ $? -ne 0 ]; then
