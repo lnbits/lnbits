@@ -103,15 +103,13 @@ else:
                 )
                 receive_fees_sats = req.fees_sat
 
+                description = (unhashed_description.decode() if unhashed_description else memo ) or ""
+
                 res: breez_sdk.ReceivePaymentResponse = (
                     self.sdk_services.receive_payment(
                         breez_sdk.ReceivePaymentRequest(
                             req,
-                            (
-                                unhashed_description.decode()
-                                if unhashed_description
-                                else memo or ""
-                            ),
+                            description,
                             description_hash is not None,
                         )
                     )
