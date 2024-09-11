@@ -184,7 +184,9 @@ else:
                 None,
             )
 
-        def _find_payment(self, payment_hash: str) -> Optional[breez_sdk.Payment]:
+        def _find_payment(
+            self, payment_hash: str
+        ) -> Optional[breez_sdk.Payment]:  # pyright: ignore[reportUnboundVariable]
             offset = 0
             while True:
                 history: breez_sdk.Payment = self.sdk_services.list_payments(
@@ -203,7 +205,9 @@ else:
                 offset += 100
             return None
 
-        async def get_invoice_status(self, checking_id: str) -> breez_sdk.PaymentState:
+        async def get_invoice_status(
+            self, checking_id: str
+        ) -> breez_sdk.PaymentState:  # pyright: ignore[reportUnboundVariable]
             try:
                 payment: breez_sdk.Payment = self._find_payment(checking_id)
                 if payment is None:
@@ -220,7 +224,9 @@ else:
                 logger.warning(exc)
                 return PaymentPendingStatus()
 
-        async def get_payment_status(self, checking_id: str) -> breez_sdk.PaymentState:
+        async def get_payment_status(
+            self, checking_id: str
+        ) -> breez_sdk.PaymentState:  # pyright: ignore[reportUnboundVariable]
             try:
                 payment: breez_sdk.Payment = self._find_payment(checking_id)
                 if payment is None:
