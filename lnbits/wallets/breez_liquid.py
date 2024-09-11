@@ -120,7 +120,7 @@ else:
                     payment_hash,
                     bolt11,
                     None,
-                    adjusted_amount_sats=amount - receive_fees_sats,
+                    fees_msats = receive_fees_sats*1000,
                 )
             except Exception as e:
                 logger.warning(e)

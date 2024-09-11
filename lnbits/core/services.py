@@ -148,7 +148,7 @@ async def create_invoice(
             status="failed",
         )
 
-    (ok, checking_id, payment_request, error_message, adjusted_amount_sats) = (
+    (ok, checking_id, payment_request, error_message, fees_msats) = (
         await funding_source.create_invoice(
             amount=amount_sat,
             memo=invoice_memo,
@@ -164,20 +164,18 @@ async def create_invoice(
 
     invoice = bolt11_decode(payment_request)
 
-    amount_msat = (
-        1000 * adjusted_amount_sats if adjusted_amount_sats else 1000 * amount_sat
-    )
     await create_payment(
         wallet_id=wallet_id,
         checking_id=checking_id,
         payment_request=payment_request,
         payment_hash=invoice.payment_hash,
-        amount=amount_msat,
+        amount=1000 * amount_sat,
         expiry=invoice.expiry_date,
         memo=memo,
         extra=extra,
         webhook=webhook,
         conn=conn,
+        fee=abs(fees_msats or 0),
     )
 
     return invoice.payment_hash, payment_request
