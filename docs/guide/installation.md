@@ -10,22 +10,17 @@ The following sections explain how to install LNbits using varions package manag
 
 Note that by default LNbits uses SQLite as its database, which is simple and effective but you can configure it to use PostgreSQL instead which is also described in a section below.
 
-## Option 1 (recommended): poetry
+## Option 1 (recommended): Poetry
 
-Mininum poetry version has is ^1.2, but it is recommended to use latest poetry. (including OSX)
-Make sure you have Python 3.9 or 3.10 installed.
+It is recommended to use the latest version of Poetry. Make sure you have Python version 3.9 or higher installed.
 
-### install python on ubuntu
+### Verify Python version
 
 ```sh
-# for making sure python 3.9 is installed, skip if installed. To check your installed version: python3 --version
-sudo apt update
-sudo apt install software-properties-common
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt install python3.9 python3.9-distutils
+python3 --version
 ```
 
-### install poetry
+### Install Poetry
 
 ```sh
 curl -sSL https://install.python-poetry.org | python3 -
@@ -38,10 +33,6 @@ git clone https://github.com/lnbits/lnbits.git
 cd lnbits
 git checkout main
 
-# Next command, you can exchange with python3.10 or newer versions.
-# Identify your version with python3 --version and specify in the next line
-# command is only needed when your default python is not ^3.9 or ^3.10
-poetry env use python3.9
 poetry install --only main
 
 cp .env.example .env
@@ -69,7 +60,19 @@ poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```
 
-## Option 2: Nix
+## Option 2: Install script (on Debian/Ubuntu)
+
+```sh
+wget https://raw.githubusercontent.com/lnbits/lnbits/main/lnbits.sh &&
+chmod +x lnbits.sh &&
+./lnbits.sh
+```
+
+Now visit `0.0.0.0:5000` to make a super-user account.
+
+`./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `poetry run lnbits` (see previous option).
+
+## Option 3: Nix
 
 ```sh
 # Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
@@ -107,7 +110,7 @@ LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
 SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
 ```
 
-## Option 3: Docker
+## Option 4: Docker
 
 use latest version from docker hub
 
@@ -129,7 +132,7 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
 ```
 
-## Option 4: Fly.io
+## Option 5: Fly.io
 
 Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.
 
