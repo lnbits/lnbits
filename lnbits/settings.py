@@ -376,6 +376,10 @@ class BreezSdkFundingSource(LNbitsSettings):
     breez_greenlight_device_cert: Optional[str] = Field(default=None)
 
 
+class BreezLiquidSdkFundingSource(LNbitsSettings):
+    breez_mnemonic: Optional[str] = Field(default=None)
+
+
 class BoltzFundingSource(LNbitsSettings):
     boltz_client_endpoint: Optional[str] = Field(default="127.0.0.1:9002")
     boltz_client_macaroon: Optional[str] = Field(default=None)
@@ -407,6 +411,7 @@ class FundingSourcesSettings(
     LnTipsFundingSource,
     NWCFundingSource,
     BreezSdkFundingSource,
+    BreezLiquidSdkFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
 
@@ -553,6 +558,7 @@ class SuperUserSettings(LNbitsSettings):
             "BoltzWallet",
             "BlinkWallet",
             "BreezSdkWallet",
+            "BreezLiquidSdkWallet",
             "CoreLightningRestWallet",
             "CoreLightningWallet",
             "EclairWallet",
