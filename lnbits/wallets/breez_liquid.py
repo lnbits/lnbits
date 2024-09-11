@@ -9,12 +9,13 @@ except ImportError:
 
 if not BREEZ_SDK_INSTALLED:
 
-    class BreezSdkWallet:  # pyright: ignore
+    class BreezLiquidSdkWallet:  # pyright: ignore
         def __init__(self):
             raise RuntimeError(
                 "Breez Liquid SDK is not installed. "
                 "Ask admin to run `poetry add -E breez_sdk_liquid` to install it."
             )
+
 
 else:
     import asyncio
@@ -67,7 +68,7 @@ else:
                 self.sdk_services.add_event_listener(SDKListener())
             except Exception as exc:
                 logger.warning(exc)
-                raise ValueError(f"cannot initialize BreezSdkWallet: {exc!s}") from exc
+                raise ValueError(f"cannot initialize BreezLiquidSdkWallet: {exc!s}") from exc
 
         async def cleanup(self):
             self.sdk_services.disconnect()
@@ -88,11 +89,6 @@ else:
             **kwargs,
         ) -> InvoiceResponse:
             try:
-                if description_hash and not unhashed_description:
-                    raise UnsupportedError(
-                        "'description_hash' unsupported by Greenlight, provide"
-                        " 'unhashed_description'"
-                    )
 
                 req: breez_sdk.PrepareReceiveResponse = (
                     self.sdk_services.prepare_receive_payment(
