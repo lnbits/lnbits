@@ -17,10 +17,13 @@ from slowapi.util import get_remote_address
 from starlette.middleware.sessions import SessionMiddleware
 
 from lnbits.core.crud import (
+    add_installed_extension,
     get_dbversions,
     get_installed_extensions,
     update_installed_extension_state,
 )
+from lnbits.core.extensions.extension_manager import deactivate_extension
+from lnbits.core.extensions.helpers import version_parse
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import (  # watchdog_task
     killswitch_task,
@@ -44,14 +47,8 @@ from lnbits.wallets import get_funding_source, set_funding_source
 from .commands import migrate_databases
 from .core import init_core_routers
 from .core.db import core_app_extra
+from .core.extensions.models import Extension, InstallableExtension
 from .core.services import check_admin_settings, check_webpush_settings
-from .core.views.extension_api import add_installed_extension
-from .extension_manager import (
-    Extension,
-    InstallableExtension,
-    get_valid_extensions,
-    version_parse,
-)
 from .middleware import (
     CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,
@@ -243,6 +240,7 @@ async def check_installed_extensions(app: FastAPI):
                 )
         except Exception as e:
             logger.warning(e)
+            await deactivate_extension(ext.id)
             logger.warning(
                 f"Failed to re-install extension: {ext.id} ({ext.installed_version})"
             )
@@ -317,7 +315,6 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
 
     # mount routes for the new version
     core_app_extra.register_new_ext_routes(extension)
-    ext.notify_upgrade(extension.upgrade_hash)
 
 
 def register_custom_extensions_path():
@@ -380,24 +377,22 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
             )
             app.mount(s["path"], StaticFiles(directory=static_dir), s["name"])
 
-    if hasattr(ext_module, f"{ext.code}_redirect_paths"):
-        ext_redirects = getattr(ext_module, f"{ext.code}_redirect_paths")
-        settings.lnbits_extensions_redirects = [
-            r for r in settings.lnbits_extensions_redirects if r["ext_id"] != ext.code
-        ]
-        for r in ext_redirects:
-            r["ext_id"] = ext.code
-            settings.lnbits_extensions_redirects.append(r)
+    ext_redirects = (
+        getattr(ext_module, f"{ext.code}_redirect_paths")
+        if hasattr(ext_module, f"{ext.code}_redirect_paths")
+        else []
+    )
 
-    logger.trace(f"adding route for extension {ext_module}")
+    settings.activate_extension_paths(ext.code, ext.upgrade_hash, ext_redirects)
 
+    logger.trace(f"Adding route for extension {ext_module}.")
     prefix = f"/upgrades/{ext.upgrade_hash}" if ext.upgrade_hash != "" else ""
     app.include_router(router=ext_route, prefix=prefix)
 
 
 async def check_and_register_extensions(app: FastAPI):
     await check_installed_extensions(app)
-    for ext in get_valid_extensions(False):
+    for ext in Extension.get_valid_extensions(False):
         try:
             register_ext_routes(app, ext)
         except Exception as exc:

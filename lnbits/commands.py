@@ -25,17 +25,17 @@ from lnbits.core.crud import (
     remove_deleted_wallets,
     update_payment_status,
 )
+from lnbits.core.extensions.models import (
+    CreateExtension,
+    ExtensionRelease,
+    InstallableExtension,
+)
 from lnbits.core.helpers import migrate_databases
-from lnbits.core.models import Payment, PaymentState, User
+from lnbits.core.models import Payment, PaymentState
 from lnbits.core.services import check_admin_settings
 from lnbits.core.views.extension_api import (
     api_install_extension,
     api_uninstall_extension,
-)
-from lnbits.extension_manager import (
-    CreateExtension,
-    ExtensionRelease,
-    InstallableExtension,
 )
 from lnbits.settings import settings
 from lnbits.wallets.base import Wallet
@@ -611,7 +611,7 @@ async def _call_install_extension(
             )
             resp.raise_for_status()
     else:
-        await api_install_extension(data, User(id="mock_id"))
+        await api_install_extension(data)
 
 
 async def _call_uninstall_extension(
@@ -625,7 +625,7 @@ async def _call_uninstall_extension(
             )
             resp.raise_for_status()
     else:
-        await api_uninstall_extension(extension, User(id="mock_id"))
+        await api_uninstall_extension(extension)
 
 
 async def _can_run_operation(url) -> bool:
