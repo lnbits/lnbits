@@ -27,7 +27,7 @@ if [ ! -d lnbits/data ]; then
     cd lnbits
   fi
 
-git checkout main
+  git checkout main
   # Make data folder
   mkdir data
 
