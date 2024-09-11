@@ -16,7 +16,6 @@ if not BREEZ_SDK_INSTALLED:
                 "Ask admin to run `poetry add -E breez_sdk_liquid` to install it."
             )
 
-
 else:
     import asyncio
     from pathlib import Path
@@ -34,7 +33,6 @@ else:
         PaymentResponse,
         PaymentSuccessStatus,
         StatusResponse,
-        UnsupportedError,
         Wallet,
     )
 
@@ -68,7 +66,9 @@ else:
                 self.sdk_services.add_event_listener(SDKListener())
             except Exception as exc:
                 logger.warning(exc)
-                raise ValueError(f"cannot initialize BreezLiquidSdkWallet: {exc!s}") from exc
+                raise ValueError(
+                    f"cannot initialize BreezLiquidSdkWallet: {exc!s}"
+                ) from exc
 
         async def cleanup(self):
             self.sdk_services.disconnect()
@@ -99,7 +99,9 @@ else:
                 )
                 receive_fees_sats = req.fees_sat
 
-                description = memo or (unhashed_description.decode() if unhashed_description else "" )
+                description = memo or (
+                    unhashed_description.decode() if unhashed_description else ""
+                )
 
                 res: breez_sdk.ReceivePaymentResponse = (
                     self.sdk_services.receive_payment(
@@ -120,7 +122,7 @@ else:
                     payment_hash,
                     bolt11,
                     None,
-                    fees_msats = receive_fees_sats*1000,
+                    fees_msats=receive_fees_sats * 1000,
                 )
             except Exception as e:
                 logger.warning(e)
@@ -169,7 +171,7 @@ else:
 
             if payment.status != breez_sdk.PaymentState.COMPLETE:
                 return PaymentResponse(
-                    None, checking_id, req.fees_sat*1000, None, "payment is pending"
+                    None, checking_id, req.fees_sat * 1000, None, "payment is pending"
                 )
 
             # let's use the payment_hash as the checking_id
