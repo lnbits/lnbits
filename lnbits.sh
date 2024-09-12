@@ -42,6 +42,9 @@ elif [ ! -d lnbits/wallets ]; then
   cd lnbits || { echo "Failed to cd into lnbits ... FAIL"; exit 1; }
 fi
 
+# Set path for running after install
+export PATH="/home/$USER/.local/bin:$PATH"
+
 # Install the dependencies using Poetry
 poetry env use python3.9
 poetry install --only main

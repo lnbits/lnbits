@@ -70,7 +70,7 @@ chmod +x lnbits.sh &&
 
 Now visit `0.0.0.0:5000` to make a super-user account.
 
-`./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `poetry run lnbits` (see previous option).
+`export PATH="/home/$USER/.local/bin:$PATH"` then `./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `poetry run lnbits` (see previous option).
 
 ## Option 3: Nix
 
