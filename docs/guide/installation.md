@@ -29,11 +29,13 @@ It is recommended to use the latest version of Poetry. Make sure you have Python
 
 ### Install Python 3.12
 
+## Option 2 (recommended): Poetry
+
+It is recommended to use the latest version of Poetry. Make sure you have Python version 3.9 or higher installed.
+
+### Verify Python version
+
 ```sh
-sudo add-apt-repository -y ppa:deadsnakes/ppa
-sudo apt update -y
-sudo apt install -y python3.12 python3.12-dev # ensure correct headers needed for secp256k1
-sudo apt install -y pkg-config python3-dev build-essential # ensure correct headers
 python3 --version
 ```
 
@@ -82,6 +84,19 @@ git pull
 poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```
+
+## Option 2: Install script (on Debian/Ubuntu)
+
+```sh
+wget https://raw.githubusercontent.com/lnbits/lnbits/main/lnbits.sh &&
+chmod +x lnbits.sh &&
+./lnbits.sh
+```
+
+Now visit `0.0.0.0:5000` to make a super-user account.
+
+`./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `poetry run lnbits` (see previous option).
+
 
 ## Option 3: Nix
 
