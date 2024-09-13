@@ -376,7 +376,7 @@ files = [
 name = "breez-sdk-liquid"
 version = "0.3.0"
 description = "Python language bindings for the Breez Liquid SDK"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "breez_sdk_liquid-0.3.0-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:4fc9db3da2fda11d25d21610e2cc89e8aa5fa37ac8553da0b61b77620b8319d8"},
@@ -3178,9 +3178,10 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 
 [extras]
 breez = ["breez-sdk"]
+breez-liquid = ["breez-sdk-liquid"]
 liquid = ["wallycore"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12 | ^3.11 | ^3.10 | ^3.9"
-content-hash = "c432dae0c80e8bc0ab058f04800d3d8bca0c458ea44af24bbe9d29a146c4686d"
+content-hash = "cd4c80286f154c9f6297529374d613f788159370b594d8831990ac95ac822ad4"
