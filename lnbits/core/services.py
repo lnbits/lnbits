@@ -148,7 +148,7 @@ async def create_invoice(
             status="failed",
         )
 
-    (ok, checking_id, payment_request, error_message, fees_msats) = (
+    ok, checking_id, payment_request, error_message, fees_msats = (
         await funding_source.create_invoice(
             amount=amount_sat,
             memo=invoice_memo,
