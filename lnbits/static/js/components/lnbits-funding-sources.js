@@ -198,7 +198,7 @@ Vue.component('lnbits-funding-sources', {
           'BreezLiquidSdkWallet',
           'Breez Liquid SDK',
           {
-            breez_mnemonic: 'Liquid seed phrase'
+            breez_liquid_seed: 'Liquid seed phrase'
           }
         ]
       ]

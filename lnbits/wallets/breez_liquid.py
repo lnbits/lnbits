@@ -46,9 +46,9 @@ else:
 
     class BreezLiquidSdkWallet(Wallet):  # type: ignore[no-redef]
         def __init__(self):
-            if not settings.breez_mnemonic:
+            if not settings.breez_liquid_seed:
                 raise ValueError(
-                    "cannot initialize BreezLiquidSdkWallet: missing breez_mnemonic"
+                    "cannot initialize BreezLiquidSdkWallet: missing breez_liquid_seed"
                 )
 
             self.config = breez_sdk.default_config(breez_sdk.LiquidNetwork.MAINNET)
@@ -60,7 +60,7 @@ else:
             self.config.working_dir = breez_sdk_working_dir.absolute().as_posix()
 
             try:
-                mnemonic = settings.breez_mnemonic
+                mnemonic = settings.breez_liquid_seed
                 connect_request = breez_sdk.ConnectRequest(self.config, mnemonic)
                 self.sdk_services = breez_sdk.connect(connect_request)
                 self.sdk_services.add_event_listener(SDKListener())

@@ -377,7 +377,7 @@ class BreezSdkFundingSource(LNbitsSettings):
 
 
 class BreezLiquidSdkFundingSource(LNbitsSettings):
-    breez_mnemonic: Optional[str] = Field(default=None)
+    breez_liquid_seed: Optional[str] = Field(default=None)
 
 
 class BoltzFundingSource(LNbitsSettings):
