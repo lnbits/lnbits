@@ -145,7 +145,6 @@ Each submarine swap incurs service and on-chain fees. To account for these, you 
 - `LNBITS_RESERVE_FEE_MIN`: ...
 - `LNBITS_RESERVE_FEE_PERCENT`: ...
 
-
 ### Cliche Wallet
 
 - `CLICHE_ENDPOINT`: ws://127.0.0.1:12000
