@@ -21,6 +21,8 @@ from lnbits.settings import settings
 from lnbits.utils.exchange_rates import allowed_currencies
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import (
+    PaymentFailedStatus,
+    PaymentPendingStatus,
     PaymentStatus,
     PaymentSuccessStatus,
 )
@@ -290,7 +292,11 @@ class Payment(FromRowModel):
 
     async def check_status(self) -> PaymentStatus:
         if self.is_internal:
-            return PaymentSuccessStatus()
+            if self.success:
+                return PaymentSuccessStatus()
+            if self.failed:
+                return PaymentFailedStatus()
+            return PaymentPendingStatus()
         funding_source = get_funding_source()
         if self.is_out:
             status = await funding_source.get_payment_status(self.checking_id)
