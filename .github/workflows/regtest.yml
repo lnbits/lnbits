@@ -33,6 +33,7 @@ jobs:
           docker build -t lnbits/lnbits .
 
       - name: Setup Regtest
+        if: ${{ inputs.backend-wallet-class != 'FakeWallet' }}
         run: |
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
