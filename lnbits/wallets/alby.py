@@ -132,9 +132,7 @@ class AlbyWallet(Wallet):
                 return PaymentResponse(None, None, None, None, error_message)
 
             checking_id = data["payment_hash"]
-            # todo: confirm with bitkarrot that having the minus is fine
-            # other funding sources return a positive fee value
-            fee_msat = -data["fee"]
+            fee_msat = abs(data["fee"])
             preimage = data["payment_preimage"]
 
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)
@@ -172,7 +170,7 @@ class AlbyWallet(Wallet):
                 "CREATED": None,
                 "SETTLED": True,
             }
-            # todo: extract fee and preimage
+            # TODO: extract fee and preimage
             # maybe use the more specific endpoints:
             #  - https://api.getalby.com/invoices/incoming
             #  - https://api.getalby.com/invoices/outgoing
