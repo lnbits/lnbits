@@ -44,6 +44,7 @@ from ..models import (
     CreateUser,
     LoginUsernamePassword,
     LoginUsr,
+    ResetUserPassword,
     UpdateSuperuserPassword,
     UpdateUser,
     UpdateUserPassword,
@@ -258,9 +259,30 @@ async def update_pubkey(
         raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
     except Exception as exc:
         logger.debug(exc)
+    if data.password != data.password_repeat:
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Passwords do not match.")
+
+    return await update_user_password(data)
+
+
+@auth_router.put("/reset")
+async def reset_password(data: ResetUserPassword) -> JSONResponse:
+    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
-            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
-        ) from exc
+            HTTP_401_UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
+        )
+    if data.password != data.password_repeat:
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Passwords do not match.")
+
+    account = await get_account_by_reset_key(data.reset_key)
+    if not account:
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid reset key.")
+
+    await reset_user_password(data)
+
+    return _auth_success_response(
+        username=account.username, user_id=account.id, email=account.email
+    )
 
 
 @auth_router.put("/update")

@@ -15,6 +15,7 @@ from lnbits.core.extensions.models import (
 )
 from lnbits.core.models import PaymentState
 from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
+from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,
@@ -29,6 +30,7 @@ from .models import (
     Payment,
     PaymentFilters,
     PaymentHistoryPoint,
+    ResetUserPassword,
     TinyURL,
     UpdateUserPassword,
     UpdateUserPubkey,
@@ -272,6 +274,50 @@ async def update_user_pubkey(data: UpdateUserPubkey, last_login_time: int) -> Us
     user = await get_user(data.user_id)
     assert user, "Updated account couldn't be retrieved"
     return user
+
+
+async def reset_user_password(data: ResetUserPassword) -> None:
+    assert data.password == data.password_repeat, "Passwords do not match."
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    now = int(time())
+    await db.execute(
+        f"""
+        UPDATE accounts SET reset_key = NULL, pass = ?,
+          updated_at = {db.timestamp_placeholder}
+        WHERE reset_key = ?
+        """,
+        (
+            pwd_context.hash(data.password),
+            now,
+            data.reset_key,
+        ),
+    )
+
+
+async def reset_account(user_id: str) -> str:
+    reset_key = urlsafe_short_hash()
+    await db.execute(
+        "UPDATE accounts SET reset_key = ? WHERE id = ?",
+        (
+            reset_key,
+            user_id,
+        ),
+    )
+    return reset_key
+
+
+async def get_account_by_reset_key(
+    username: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    row = await (conn or db).fetchone(
+        """
+        SELECT id, username, email, created_at, updated_at
+        FROM accounts WHERE reset_key = ?
+        """,
+        (username,),
+    )
+
+    return User(**row) if row else None
 
 
 async def get_account_by_username(

@@ -13,6 +13,7 @@ window.app = Vue.createApp({
       authMethod: 'username-password',
       usr: '',
       username: '',
+      reset_key: '',
       email: '',
       password: '',
       passwordRepeat: '',
@@ -128,6 +129,18 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
+    reset: async function () {
+      try {
+        await LNbits.api.reset(
+          this.reset_key,
+          this.password,
+          this.passwordRepeat
+        )
+        window.location.href = '/wallet'
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
+    },
     login: async function () {
       try {
         await LNbits.api.login(this.username, this.password)
@@ -170,6 +183,12 @@ window.app = Vue.createApp({
     this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'
+    }
+    this.reset_key = new URLSearchParams(window.location.search).get(
+      'reset_key'
+    )
+    if (this.reset_key) {
+      this.authAction = 'reset'
     }
   }
 })

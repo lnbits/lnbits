@@ -86,6 +86,15 @@ include "users/_createWalletDialog.html" %}
                 </q-btn>
                 <q-btn
                   round
+                  icon="refresh"
+                  size="sm"
+                  color="secondary"
+                  @click="resetPassword(props.row.id)"
+                >
+                  <q-tooltip>Generate and copy password reset url</q-tooltip>
+                </q-btn>
+                <q-btn
+                  round
                   icon="delete"
                   size="sm"
                   color="negative"

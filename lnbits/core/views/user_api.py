@@ -11,6 +11,7 @@ from lnbits.core.crud import (
     get_accounts,
     get_wallet,
     get_wallets,
+    reset_account,
     update_admin_settings,
 )
 from lnbits.core.models import (
@@ -73,6 +74,18 @@ async def api_users_delete_user(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f"{exc!s}",
         ) from exc
+
+
+@users_router.put(
+    "/user/{user_id}/reset_password", dependencies=[Depends(check_super_user)]
+)
+async def api_users_reset_password(user_id: str) -> str:
+    if user_id == settings.super_user:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Cannot change superuser password.",
+        )
+    return await reset_account(user_id)
 
 
 @users_router.get("/user/{user_id}/admin", dependencies=[Depends(check_super_user)])
