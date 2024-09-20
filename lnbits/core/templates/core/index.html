@@ -233,8 +233,7 @@
               {% if "nostr-auth-nip98" in LNBITS_AUTH_METHODS %}
               <div class="col-12 full-width q-pa-sm">
                 <q-btn
-                  href="/api/v1/auth/google"
-                  type="a"
+                  @click="signInWithNostr"
                   outline
                   no-caps
                   rounded

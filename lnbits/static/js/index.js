@@ -42,6 +42,26 @@ window.app = Vue.createApp({
       this.authAction = 'register'
       this.authMethod = authMethod
     },
+    signInWithNostr: async function () {
+      try {
+        async function _signEvent(e) {
+          return await window.nostr.signEvent(e)
+        }
+        const token = await NostrTools.nip98.getToken(
+          'https://example.com/login',
+          'post',
+          e => _signEvent(e),
+          true
+        )
+        console.log('### token', token)
+      } catch (error) {
+        this.$q.notify({
+          type: 'negative',
+          message: 'Failed to sign in with Nostr.',
+          caption: `${error}`
+        })
+      }
+    },
     register: async function () {
       try {
         await LNbits.api.register(
