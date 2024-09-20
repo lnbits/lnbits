@@ -230,7 +230,28 @@
             v-if="authAction === 'login' && authMethod === 'username-password'"
           >
             <div class="row">
-              {% if "google-auth" in LNBITS_AUTH_METHODS %}
+              {% if "nostr-auth-nip98" in LNBITS_AUTH_METHODS %}
+              <div class="col-12 full-width q-pa-sm">
+                <q-btn
+                  href="/api/v1/auth/google"
+                  type="a"
+                  outline
+                  no-caps
+                  rounded
+                  color="grey"
+                  class="full-width"
+                >
+                  <q-avatar size="32px" class="q-mr-md">
+                    <q-img
+                      :src="'{{ static_url_for('static', 'images/logos/nostr.svg') }}'"
+                    ></q-img>
+                  </q-avatar>
+                  <div>
+                    <span v-text="$t('signin_with_nostr')"></span>
+                  </div>
+                </q-btn>
+              </div>
+              {%endif%} {% if "google-auth" in LNBITS_AUTH_METHODS %}
               <div class="col-12 full-width q-pa-sm">
                 <q-btn
                   href="/api/v1/auth/google"

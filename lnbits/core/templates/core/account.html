@@ -172,6 +172,26 @@
                           <div>Google</div>
                         </q-btn>
                       </div>
+                      {%endif%} {% if "nostr-auth-nip98" in LNBITS_AUTH_METHODS
+                      %}
+                      <div class="col q-pa-sm">
+                        <q-btn
+                          :href="`/api/v1/auth/google?user_id=${user.id}`"
+                          type="a"
+                          outline
+                          no-caps
+                          rounded
+                          color="grey"
+                          class="full-width"
+                        >
+                          <q-avatar size="32px" class="q-mr-md">
+                            <q-img
+                              :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
+                            ></q-img>
+                          </q-avatar>
+                          <div>Nostr</div>
+                        </q-btn>
+                      </div>
                       {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}
                       <div class="col q-pa-sm">
                         <q-btn
