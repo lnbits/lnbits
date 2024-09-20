@@ -26,6 +26,7 @@
     "qrcode.vue": "^3.4.1",
     "quasar": "2.17.0",
     "showdown": "^2.1.0",
+    "nostr-tools": "^2.7.2",
     "underscore": "^1.13.7",
     "vue": "3.5.8",
     "vue-i18n": "^10.0.3",
@@ -46,7 +47,10 @@
     "./node_modules/qrcode.vue/dist/qrcode.vue.browser.js",
     "./node_modules/chart.js/dist/chart.umd.js",
     "./node_modules/quasar/dist/quasar.css",
-    "./node_modules/showdown/dist/showdown.js"
+    "./node_modules/chart.js/dist/Chart.css",
+    "./node_modules/vue-i18n/dist/vue-i18n.js",
+    "./node_modules/showdown/dist/showdown.js",
+    "./node_modules/nostr-tools/lib/nostr.bundle.js"
   ],
   "bundle": {
     "js": [
@@ -62,6 +66,7 @@
       "vendor/qrcode.vue.browser.js",
       "vendor/chart.umd.js",
       "vendor/showdown.js",
+      "vendor/nostr-tools.js",
       "i18n/i18n.js",
       "i18n/de.js",
       "i18n/en.js",

@@ -12,6 +12,7 @@
     "vendor/qrcode.vue.browser.js",
     "vendor/chart.umd.js",
     "vendor/showdown.js",
+    "vendor/nostr-tools.js",
     "i18n/i18n.js",
     "i18n/de.js",
     "i18n/en.js",
