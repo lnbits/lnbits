@@ -44,6 +44,27 @@ window.app = Vue.createApp({
     },
     signInWithNostr: async function () {
       try {
+        const nostrToken = await this.createNostrToken()
+        if (!nostrToken) {
+          return
+        }
+        resp = await LNbits.api.loginByProvider(
+          'nostr',
+          {Authorization: nostrToken},
+          {}
+        )
+        window.location.href = '/wallet'
+      } catch (error) {
+        console.warn(error)
+        this.$q.notify({
+          type: 'negative',
+          message: 'Failed to sign in with Nostr.',
+          caption: `${error}`
+        })
+      }
+    },
+    createNostrToken: async function () {
+      try {
         async function _signEvent(e) {
           try {
             return await window.nostr.signEvent(e)
@@ -70,14 +91,13 @@ window.app = Vue.createApp({
           e => _signEvent(e),
           true
         )
-        console.log('### token', nostrToken)
-        const headers = {Authorization: nostrToken}
-        await LNbits.api.loginByProvider('nostr', headers, {username: ''})
-        window.location.href = '/wallet'
+
+        return nostrToken
       } catch (error) {
+        console.warn(error)
         this.$q.notify({
           type: 'negative',
-          message: 'Failed to sign in with Nostr.',
+          message: 'Failed create Nostr event.',
           caption: `${error}`
         })
       }

@@ -1,4 +1,6 @@
+import base64
 import importlib
+import json
 from typing import Callable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -22,10 +24,12 @@ from lnbits.helpers import (
     is_valid_username,
 )
 from lnbits.settings import AuthMethods, settings
+from lnbits.utils.nostr import verify_event
 
 from ..crud import (
     get_account,
     get_account_by_email,
+    get_account_by_pubkey,
     get_account_by_username_or_email,
     get_user,
     update_account,
@@ -36,7 +40,6 @@ from ..models import (
     CreateUser,
     LoginUsernamePassword,
     LoginUsr,
-    RegisterNostr,
     UpdateSuperuserPassword,
     UpdateUser,
     UpdateUserPassword,
@@ -76,35 +79,22 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
 
 
 @auth_router.post("/nostr", description="Login via the Nostr")
-async def nostr_sign_in(
-    request: Request,
-    data: RegisterNostr,
-) -> JSONResponse:
+async def nostr_login(request: Request) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.nostr_auth_nip98):
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login with Nostr Auth not allowed.")
 
-    auth_header = request.headers.get("Authorization")
-    print("#### auth_header", auth_header)
-
-    if not auth_header:
-        raise HTTPException(HTTP_401_UNAUTHORIZED, "Nostr Auth header missing.")
-
-    scheme, token = auth_header.split()
-    if scheme.lower() != "nostr":
-        raise HTTPException(HTTP_401_UNAUTHORIZED, "Authorization header is not nostr.")
-
-    print("#### token", token)
-
     try:
-        user = await get_account_by_username_or_email(data.username or "xxx")
+        event = _nostr_nip98_event(request)
+
+        user = await get_account_by_pubkey(event["pubkey"])
         if not user:
-            raise HTTPException(HTTP_401_UNAUTHORIZED, "User ID does not exist.")
+            user = await create_user_account(pubkey=event["pubkey"])
 
         return _auth_success_response(user.username or "", user.id)
     except HTTPException as exc:
         raise exc
     except Exception as exc:
-        logger.debug(exc)
+        logger.warning(exc)
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.") from exc
 
 
@@ -383,3 +373,23 @@ def _find_auth_provider_class(provider: str) -> Callable:
             pass
 
     raise ValueError(f"No SSO provider found for '{provider}'.")
+
+
+def _nostr_nip98_event(request: Request) -> dict:
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Nostr Auth header missing.")
+
+    scheme, token = auth_header.split()
+    if scheme.lower() != "nostr":
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Authorization header is not nostr.")
+
+    event_json = base64.b64decode(token.encode("ascii"))
+    event = json.loads(event_json)
+
+    if not verify_event(event):
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Nostr login event is not valid.")
+
+    # TODO: more validations
+    print("#### event", event)
+    return event

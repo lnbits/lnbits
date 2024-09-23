@@ -543,3 +543,13 @@ async def m021_add_success_failed_to_apipayments(db):
     )
     # TODO: drop column in next release
     # await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
+
+
+async def m022_add_pubkey_to_accounts(db):
+    """
+    Adds pubkey column to accounts.
+    """
+    try:
+        await db.execute("ALTER TABLE accounts ADD COLUMN pubkey TEXT")
+    except OperationalError:
+        pass

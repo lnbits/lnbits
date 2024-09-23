@@ -826,6 +826,7 @@ async def create_user_account(
     user_id: Optional[str] = None,
     email: Optional[str] = None,
     username: Optional[str] = None,
+    pubkey: Optional[str] = None,
     password: Optional[str] = None,
     wallet_name: Optional[str] = None,
     user_config: Optional[UserConfig] = None,
@@ -847,7 +848,9 @@ async def create_user_account(
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     password = pwd_context.hash(password) if password else None
 
-    account = await create_account(user_id, username, email, password, user_config)
+    account = await create_account(
+        user_id, username, pubkey, email, password, user_config
+    )
     wallet = await create_wallet(user_id=account.id, wallet_name=wallet_name)
     account.wallets = [wallet]
 

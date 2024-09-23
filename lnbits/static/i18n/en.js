@@ -214,7 +214,7 @@ window.localisation.en = {
   login_to_account: 'Login to your account',
   create_account: 'Create account',
   account_settings: 'Account Settings',
-  signin_with_nostr: 'Sign in with Nostr',
+  signin_with_nostr: 'Continue with Nostr',
   signin_with_google: 'Sign in with Google',
   signin_with_github: 'Sign in with GitHub',
   signin_with_keycloak: 'Sign in with Keycloak',

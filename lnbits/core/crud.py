@@ -41,6 +41,7 @@ from .models import (
 async def create_account(
     user_id: Optional[str] = None,
     username: Optional[str] = None,
+    pubkey: Optional[str] = None,
     email: Optional[str] = None,
     password: Optional[str] = None,
     user_config: Optional[UserConfig] = None,
@@ -52,14 +53,15 @@ async def create_account(
     now_ph = db.timestamp_placeholder("now")
     await (conn or db).execute(
         f"""
-        INSERT INTO accounts (id, username, pass, email, extra, created_at, updated_at)
-        VALUES (:user, :username, :password, :email, :extra, {now_ph}, {now_ph})
+        INSERT INTO accounts (id, username, pass, email, pubkey, extra, created_at, updated_at)
+        VALUES (:user, :username, :password, :email, :pubkey, :extra, {now_ph}, {now_ph})
         """,
         {
             "user": user_id,
             "username": username,
             "password": password,
             "email": email,
+            "pubkey": pubkey,
             "extra": extra,
             "now": now,
         },
@@ -250,6 +252,20 @@ async def get_account_by_username(
         FROM accounts WHERE username = :username
         """,
         {"username": username},
+    )
+
+    return User(**row) if row else None
+
+
+async def get_account_by_pubkey(
+    pubkey: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    row = await (conn or db).fetchone(
+        """
+        SELECT id, username, pubkey, email, created_at, updated_at
+        FROM accounts WHERE pubkey = ?
+        """,
+        (pubkey,),
     )
 
     return User(**row) if row else None
