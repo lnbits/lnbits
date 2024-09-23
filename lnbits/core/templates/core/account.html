@@ -146,6 +146,31 @@
                       class="q-mb-md"
                     >
                     </q-input>
+                    <div v-if="!user.pubkey" class="row">
+                      {% if "nostr-auth-nip98" in LNBITS_AUTH_METHODS %}
+                      <div class="col q-pa-sm text-h6">
+                        <span v-text="$t('verify_pubkey')"></span>:
+                      </div>
+                      <div class="col q-pa-sm">
+                        <!-- :href="`/api/v1/auth/google?user_id=${user.id}`" -->
+                        <q-btn
+                          type="a"
+                          outline
+                          no-caps
+                          rounded
+                          color="grey"
+                          class="full-width"
+                        >
+                          <q-avatar size="32px" class="q-mr-md">
+                            <q-img
+                              :src="'{{ static_url_for('static', 'images/logos/nostr.svg') }}'"
+                            ></q-img>
+                          </q-avatar>
+                          <div>Nostr</div>
+                        </q-btn>
+                      </div>
+                      {%endif%}
+                    </div>
                     <q-input
                       v-model="user.email"
                       :label="$t('email')"
@@ -179,26 +204,6 @@
                             ></q-img>
                           </q-avatar>
                           <div>Google</div>
-                        </q-btn>
-                      </div>
-                      {%endif%} {% if "nostr-auth-nip98" in LNBITS_AUTH_METHODS
-                      %}
-                      <div class="col q-pa-sm">
-                        <!-- :href="`/api/v1/auth/google?user_id=${user.id}`" -->
-                        <q-btn
-                          type="a"
-                          outline
-                          no-caps
-                          rounded
-                          color="grey"
-                          class="full-width"
-                        >
-                          <q-avatar size="32px" class="q-mr-md">
-                            <q-img
-                              :src="'{{ static_url_for('static', 'images/logos/nostr.svg') }}'"
-                            ></q-img>
-                          </q-avatar>
-                          <div>Nostr</div>
                         </q-btn>
                       </div>
                       {%endif%} {% if "github-auth" in LNBITS_AUTH_METHODS %}

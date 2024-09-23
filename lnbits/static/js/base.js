@@ -17,6 +17,9 @@ window.LNbits = {
         data: data
       })
     },
+    getServerHealth: function () {
+      return this.request('get', '/api/v1/health')
+    },
     createInvoice: async function (
       wallet,
       amount,

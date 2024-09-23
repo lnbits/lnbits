@@ -25,6 +25,24 @@
     </div>
   </q-card-section>
   <q-card-section
+    v-if="formData.auth_allowed_methods?.includes('nostr-auth-nip98')"
+    class="q-pl-xl"
+  >
+    <strong class="q-my-none q-mb-sm">Nostr Auth</strong>
+
+    <div class="row">
+      <div class="col-md-12 col-sm-12 q-pr-sm">
+        <q-input
+          filled
+          v-model="formData.nostr_absolute_request_url"
+          label="Nostr Request URL"
+          hint="Absolute URL that the clients will use to login."
+        >
+        </q-input>
+      </div>
+    </div>
+  </q-card-section>
+  <q-card-section
     v-if="formData.auth_allowed_methods?.includes('google-auth')"
     class="q-pl-xl"
   >

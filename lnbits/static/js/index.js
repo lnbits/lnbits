@@ -67,6 +67,8 @@ window.app = Vue.createApp({
       try {
         async function _signEvent(e) {
           try {
+            const {data} = await LNbits.api.getServerHealth()
+            e.created_at = data.server_time
             return await window.nostr.signEvent(e)
           } catch (error) {
             console.error(error)
@@ -85,12 +87,22 @@ window.app = Vue.createApp({
           })
           return
         }
+        const tagU = `${window.location}nostr`
+        const tagMethod = 'POST'
         const nostrToken = await NostrTools.nip98.getToken(
-          'https://example.com/login',
-          'post',
+          tagU,
+          tagMethod,
           e => _signEvent(e),
           true
         )
+        const isTokenValid = await NostrTools.nip98.validateToken(
+          nostrToken,
+          tagU,
+          tagMethod
+        )
+        if (!isTokenValid) {
+          throw new Error('Invalid signed token!')
+        }
 
         return nostrToken
       } catch (error) {

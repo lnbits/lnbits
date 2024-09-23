@@ -449,6 +449,10 @@ class AuthSettings(LNbitsSettings):
         return method.value in self.auth_allowed_methods
 
 
+class NostrAuthSettings(LNbitsSettings):
+    nostr_absolute_request_url: str = Field(default="")
+
+
 class GoogleAuthSettings(LNbitsSettings):
     google_client_id: str = Field(default="")
     google_client_secret: str = Field(default="")
@@ -476,6 +480,7 @@ class EditableSettings(
     WebPushSettings,
     NodeUISettings,
     AuthSettings,
+    NostrAuthSettings,
     GoogleAuthSettings,
     GitHubAuthSettings,
     KeycloakAuthSettings,

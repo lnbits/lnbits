@@ -1,6 +1,7 @@
 import base64
 import importlib
 import json
+from time import time
 from typing import Callable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -14,6 +15,7 @@ from starlette.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
+from lnbits.core.helpers import is_valid_url
 from lnbits.core.services import create_user_account
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import (
@@ -82,6 +84,12 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
 async def nostr_login(request: Request) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.nostr_auth_nip98):
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login with Nostr Auth not allowed.")
+
+    if not is_valid_url(settings.nostr_absolute_request_url):
+        raise HTTPException(
+            HTTP_401_UNAUTHORIZED,
+            "Nostr Auth request URL not configured by administrator.",
+        )
 
     try:
         event = _nostr_nip98_event(request)
@@ -388,13 +396,22 @@ def _nostr_nip98_event(request: Request) -> dict:
 
     event_json = base64.b64decode(token.encode("ascii"))
     event = json.loads(event_json)
-    print("#### event", event)
 
     assert verify_event(event), "Nostr login event is not valid."
 
-    # TODO: more validations
     assert event["kind"] == 27_235, "Invalid event kind."
-    # check time
-    # check
+    assert (
+        abs(time() - event["created_at"]) < 60
+    ), "More than 60 seconds have passed since the event was signed."
+
+    method: Optional[str] = next((v for k, v in event["tags"] if k == "method"), None)
+    assert method, "Tag 'method' is missing."
+    assert method.upper() == "POST", "Incorrect value for tag 'method'."
+
+    url = next((v for k, v in event["tags"] if k == "u"), None)
+    assert url, "Tag 'u' for URL is missing."
+    assert (
+        url == f"{settings.nostr_absolute_request_url}/nostr"
+    ), f"Incorrect value for tag 'u': '{url}'."
 
     return event
