@@ -198,6 +198,10 @@ class LoginUsr(BaseModel):
     usr: str
 
 
+class RegisterNostr(BaseModel):
+    username: Optional[str] = None
+
+
 class LoginUsernamePassword(BaseModel):
     username: str
     password: str

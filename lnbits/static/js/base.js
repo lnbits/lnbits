@@ -85,6 +85,14 @@ window.LNbits = {
         data: {username, password}
       })
     },
+    loginByProvider: function (provider, headers, data) {
+      return axios({
+        method: 'POST',
+        url: `/api/v1/auth/${provider}`,
+        headers: headers,
+        data
+      })
+    },
     loginUsr: function (usr) {
       return axios({
         method: 'POST',

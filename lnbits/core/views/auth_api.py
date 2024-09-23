@@ -36,6 +36,7 @@ from ..models import (
     CreateUser,
     LoginUsernamePassword,
     LoginUsr,
+    RegisterNostr,
     UpdateSuperuserPassword,
     UpdateUser,
     UpdateUserPassword,
@@ -67,6 +68,39 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
             raise HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
 
         return _auth_success_response(user.username, user.id)
+    except HTTPException as exc:
+        raise exc
+    except Exception as exc:
+        logger.debug(exc)
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.") from exc
+
+
+@auth_router.post("/nostr", description="Login via the Nostr")
+async def nostr_sign_in(
+    request: Request,
+    data: RegisterNostr,
+) -> JSONResponse:
+    if not settings.is_auth_method_allowed(AuthMethods.nostr_auth_nip98):
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Login with Nostr Auth not allowed.")
+
+    auth_header = request.headers.get("Authorization")
+    print("#### auth_header", auth_header)
+
+    if not auth_header:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Nostr Auth header missing.")
+
+    scheme, token = auth_header.split()
+    if scheme.lower() != "nostr":
+        raise HTTPException(HTTP_401_UNAUTHORIZED, "Authorization header is not nostr.")
+
+    print("#### token", token)
+
+    try:
+        user = await get_account_by_username_or_email(data.username or "xxx")
+        if not user:
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "User ID does not exist.")
+
+        return _auth_success_response(user.username or "", user.id)
     except HTTPException as exc:
         raise exc
     except Exception as exc:

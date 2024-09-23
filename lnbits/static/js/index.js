@@ -45,15 +45,35 @@ window.app = Vue.createApp({
     signInWithNostr: async function () {
       try {
         async function _signEvent(e) {
-          return await window.nostr.signEvent(e)
+          try {
+            return await window.nostr.signEvent(e)
+          } catch (error) {
+            console.error(error)
+            this.$q.notify({
+              type: 'negative',
+              message: 'Failed to sign nostr event.',
+              caption: `${error}`
+            })
+          }
         }
-        const token = await NostrTools.nip98.getToken(
+        if (!window.nostr?.signEvent) {
+          this.$q.notify({
+            type: 'negative',
+            message: 'No Nostr signing app detected.',
+            caption: 'Is "window.nostr" present?'
+          })
+          return
+        }
+        const nostrToken = await NostrTools.nip98.getToken(
           'https://example.com/login',
           'post',
           e => _signEvent(e),
           true
         )
-        console.log('### token', token)
+        console.log('### token', nostrToken)
+        const headers = {Authorization: nostrToken}
+        await LNbits.api.loginByProvider('nostr', headers, {username: ''})
+        window.location.href = '/wallet'
       } catch (error) {
         this.$q.notify({
           type: 'negative',
