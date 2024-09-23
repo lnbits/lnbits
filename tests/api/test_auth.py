@@ -76,6 +76,34 @@ async def test_login_alan_password_nok(user_alan: User, client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_login_username_password_not_allowed(
+    user_alan: User, client: AsyncClient
+):
+
+    auth_allowed_methods_initial = [*settings.auth_allowed_methods]
+
+    # exclude 'user_id_only'
+    settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
+
+    response = await client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
+
+    assert response.status_code == 401, "Login method not allowed."
+    assert (
+        response.json().get("detail") == "Login by 'Username and Password' not allowed."
+    )
+
+    settings.auth_allowed_methods = auth_allowed_methods_initial
+
+    response = await client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
+    assert response.status_code == 200, "Username and password is allowed."
+    assert response.json().get("access_token") is not None
+
+
+@pytest.mark.asyncio
 async def test_register_ok(client: AsyncClient):
     response = await client.post(
         "/api/v1/auth",
