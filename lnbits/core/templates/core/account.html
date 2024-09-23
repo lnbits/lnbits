@@ -138,6 +138,15 @@
                     >
                     </q-input>
                     <q-input
+                      v-model="user.pubkey"
+                      :label="$t('pubkey')"
+                      filled
+                      dense
+                      readonly
+                      class="q-mb-md"
+                    >
+                    </q-input>
+                    <q-input
                       v-model="user.email"
                       :label="$t('email')"
                       filled
@@ -175,8 +184,8 @@
                       {%endif%} {% if "nostr-auth-nip98" in LNBITS_AUTH_METHODS
                       %}
                       <div class="col q-pa-sm">
+                        <!-- :href="`/api/v1/auth/google?user_id=${user.id}`" -->
                         <q-btn
-                          :href="`/api/v1/auth/google?user_id=${user.id}`"
                           type="a"
                           outline
                           no-caps
@@ -186,7 +195,7 @@
                         >
                           <q-avatar size="32px" class="q-mr-md">
                             <q-img
-                              :src="'{{ static_url_for('static', 'images/google-logo.png') }}'"
+                              :src="'{{ static_url_for('static', 'images/logos/nostr.svg') }}'"
                             ></q-img>
                           </q-avatar>
                           <div>Nostr</div>

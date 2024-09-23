@@ -228,6 +228,7 @@ window.localisation.en = {
   login: 'Login',
   register: 'Register',
   username: 'Username',
+  pubkey: 'Public Key',
   user_id: 'User ID',
   email: 'Email',
   first_name: 'First Name',

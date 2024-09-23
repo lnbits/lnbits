@@ -88,7 +88,9 @@ async def nostr_login(request: Request) -> JSONResponse:
 
         user = await get_account_by_pubkey(event["pubkey"])
         if not user:
-            user = await create_user_account(pubkey=event["pubkey"])
+            user = await create_user_account(
+                pubkey=event["pubkey"], user_config=UserConfig(provider="nostr")
+            )
 
         return _auth_success_response(user.username or "", user.id)
     except HTTPException as exc:

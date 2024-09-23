@@ -163,7 +163,7 @@ async def get_account(
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
         """
-           SELECT id, email, username, created_at, updated_at, extra
+           SELECT id, email, username, pubkey, created_at, updated_at, extra
            FROM accounts WHERE id = :id
         """,
         {"id": user_id},
@@ -248,7 +248,7 @@ async def get_account_by_username(
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
         """
-        SELECT id, username, email, created_at, updated_at
+        SELECT id, username, pubkey, email, created_at, updated_at
         FROM accounts WHERE username = :username
         """,
         {"username": username},
@@ -276,7 +276,7 @@ async def get_account_by_email(
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
         """
-        SELECT id, username, email, created_at, updated_at
+        SELECT id, username, pubkey, email, created_at, updated_at
         FROM accounts WHERE email = :email
         """,
         {"email": email},
@@ -297,7 +297,7 @@ async def get_account_by_username_or_email(
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
     user = await (conn or db).fetchone(
         """
-        SELECT id, email, username, pass, extra, created_at, updated_at
+        SELECT id, email, username, pubkey, pass, extra, created_at, updated_at
         FROM accounts WHERE id = :id
         """,
         {"id": user_id},
@@ -322,6 +322,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         id=user["id"],
         email=user["email"],
         username=user["username"],
+        pubkey=user["pubkey"],
         extensions=[
             e for e in extensions if User.is_extension_for_user(e[0], user["id"])
         ],

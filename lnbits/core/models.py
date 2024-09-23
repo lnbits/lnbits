@@ -138,6 +138,7 @@ class User(BaseModel):
     id: str
     email: Optional[str] = None
     username: Optional[str] = None
+    pubkey: Optional[str] = None
     extensions: list[str] = []
     wallets: list[Wallet] = []
     admin: bool = False
@@ -196,10 +197,6 @@ class UpdateSuperuserPassword(BaseModel):
 
 class LoginUsr(BaseModel):
     usr: str
-
-
-class RegisterNostr(BaseModel):
-    username: Optional[str] = None
 
 
 class LoginUsernamePassword(BaseModel):
