@@ -95,6 +95,8 @@ async def nostr_login(request: Request) -> JSONResponse:
         return _auth_success_response(user.username or "", user.id)
     except HTTPException as exc:
         raise exc
+    except AssertionError as exc:
+        raise HTTPException(HTTP_401_UNAUTHORIZED, str(exc)) from exc
     except Exception as exc:
         logger.warning(exc)
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.") from exc
@@ -379,19 +381,20 @@ def _find_auth_provider_class(provider: str) -> Callable:
 
 def _nostr_nip98_event(request: Request) -> dict:
     auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        raise HTTPException(HTTP_401_UNAUTHORIZED, "Nostr Auth header missing.")
+    assert auth_header, "Nostr Auth header missing."
 
     scheme, token = auth_header.split()
-    if scheme.lower() != "nostr":
-        raise HTTPException(HTTP_401_UNAUTHORIZED, "Authorization header is not nostr.")
+    assert scheme.lower() == "nostr", "Authorization header is not nostr."
 
     event_json = base64.b64decode(token.encode("ascii"))
     event = json.loads(event_json)
+    print("#### event", event)
 
-    if not verify_event(event):
-        raise HTTPException(HTTP_401_UNAUTHORIZED, "Nostr login event is not valid.")
+    assert verify_event(event), "Nostr login event is not valid."
 
     # TODO: more validations
-    print("#### event", event)
+    assert event["kind"] == 27_235, "Invalid event kind."
+    # check time
+    # check
+
     return event
