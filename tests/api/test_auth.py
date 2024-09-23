@@ -28,8 +28,19 @@ async def test_login_alan_password_ok(user_alan: User, client: AsyncClient):
 async def test_login_alan_usr(user_alan: User, client: AsyncClient):
     response = await client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
 
-    assert response.status_code == 200, "Alan logs in OK"
-    assert response.json().get("access_token") is not None
+    assert response.status_code == 200, "Alan logs in OK."
+    access_token = response.json().get("access_token")
+    assert access_token is not None, "Expected access token after login."
+
+    response = await client.get(
+        "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
+    )
+
+    assert response.status_code == 200, "Alan logs in OK."
+    alan = response.json()
+    assert alan["id"] == user_alan.id
+    assert alan["username"] == user_alan.username
+    assert alan["email"] == user_alan.email
 
 
 @pytest.mark.asyncio
