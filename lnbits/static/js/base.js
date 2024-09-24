@@ -567,7 +567,7 @@ window.windowMixin = {
 
         if (
           theme &&
-          window.allowedThemes.includes(theme.trim().toLowerCase())
+          this.g.allowedThemes.includes(theme.trim().toLowerCase())
         ) {
           const normalizedTheme = theme.trim().toLowerCase()
           document.body.setAttribute('data-theme', normalizedTheme)
