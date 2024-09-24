@@ -55,13 +55,13 @@ from .core.models.extensions import Extension, ExtensionMeta, InstallableExtensi
 from .core.services import check_admin_settings, check_webpush_settings
 from .middleware import (
     AuditMiddleware,
-    CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,
     InstalledExtensionMiddleware,
     add_first_install_middleware,
     add_ip_block_middleware,
     add_ratelimit_middleware,
 )
+from starlette.middleware.gzip import GZipMiddleware
 from .requestvars import g
 from .tasks import (
     check_pending_payments,
@@ -153,10 +153,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
     )
-
-    app.add_middleware(
-        CustomGZipMiddleware, minimum_size=1000, exclude_paths=["/api/v1/payments/sse"]
-    )
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     app.add_middleware(AuditMiddleware, audit_queue=audit_queue)
 
