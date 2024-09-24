@@ -1020,7 +1020,7 @@
             this.filteredExtensions = this.extensions.concat([])
             this.handleTabChanged('installed')
             this.tab = 'installed'
-            this.$q.notify({
+            Quasar.Notify.create({
               type: 'positive',
               message: 'Extension uninstalled!'
             })
@@ -1050,7 +1050,7 @@
             extension.installedRelease = null
             extension.inProgress = false
             extension.hasDatabaseTables = false
-            this.$q.notify({
+            Quasar.Notify.create({
               type: 'positive',
               message: 'Extension DB deleted!'
             })
@@ -1069,7 +1069,7 @@
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
-            this.$q.notify({
+            Quasar.Notify.create({
               type: 'positive',
               message: `Extension '${extension.id}' ${action}d!`
             })
@@ -1094,7 +1094,7 @@
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
-            this.$q.notify({
+            Quasar.Notify.create({
               type: 'positive',
               message: 'Extension enabled!'
             })
@@ -1115,7 +1115,7 @@
             this.g.user.wallets[0].adminkey
           )
           .then(response => {
-            this.$q.notify({
+            Quasar.Notify.create({
               type: 'positive',
               message: 'Extension disabled!'
             })
@@ -1148,7 +1148,7 @@
             }
           )
           .then(response => {
-            this.$q.notify({
+            Quasar.Notify.create({
               type: 'positive',
               message: 'Payment info updated!'
             })
@@ -1330,7 +1330,7 @@
           ws.addEventListener('message', async ({data}) => {
             const payment = JSON.parse(data)
             if (payment.pending === false) {
-              this.$q.notify({
+              Quasar.Notify.create({
                 type: 'positive',
                 message: 'Invoice Paid!'
               })
@@ -1399,13 +1399,13 @@
         this.paylinkWebsocket.addEventListener('message', async ({data}) => {
           const resp = JSON.parse(data)
           if (resp.paid) {
-            this.$q.notify({
+            Quasar.Notify.create({
               type: 'positive',
               message: 'Invoice Paid!'
             })
             this.installExtension(this.selectedRelease)
           } else {
-            this.$q.notify({
+            Quasar.Notify.create({
               type: 'warning',
               message: 'Invoice tracking lost!'
             })
