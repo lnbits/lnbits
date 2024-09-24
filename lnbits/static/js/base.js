@@ -470,6 +470,7 @@ window.windowMixin = {
     },
     applyGradient: function () {
       if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
+        this.setColors()
         darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
         primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
@@ -486,6 +487,20 @@ window.windowMixin = {
           `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
       }
+    },
+    setColors: function () {
+      this.$q.localStorage.set(
+        'lnbits.primaryColor',
+        LNbits.utils.getPaletteColor('primary')
+      )
+      this.$q.localStorage.set(
+        'lnbits.secondaryColor',
+        LNbits.utils.getPaletteColor('secondary')
+      )
+      this.$q.localStorage.set(
+        'lnbits.darkBgColor',
+        LNbits.utils.getPaletteColor('dark')
+      )
     },
     copyText: function (text, message, position) {
       var notify = this.$q.notify
@@ -536,6 +551,52 @@ window.windowMixin = {
             LNbits.utils.notifyApiError(e)
           }
         })
+    },
+    themeParams() {
+      const url = new URL(window.location.href)
+      const params = new URLSearchParams(window.location.search)
+      const fields = ['theme', 'dark', 'gradient']
+      const toBoolean = value =>
+        value.trim().toLowerCase() === 'true' || value === '1'
+
+      // Check if any of the relevant parameters ('theme', 'dark', 'gradient') are present in the URL.
+      if (fields.some(param => params.has(param))) {
+        const theme = params.get('theme')
+        const darkMode = params.get('dark')
+        const gradient = params.get('gradient')
+
+        if (
+          theme &&
+          this.g.allowedThemes.includes(theme.trim().toLowerCase())
+        ) {
+          const normalizedTheme = theme.trim().toLowerCase()
+          document.body.setAttribute('data-theme', normalizedTheme)
+          this.$q.localStorage.set('lnbits.theme', normalizedTheme)
+        }
+
+        if (darkMode) {
+          const isDark = toBoolean(darkMode)
+          this.$q.localStorage.set('lnbits.darkMode', isDark)
+          if (!isDark) {
+            this.$q.localStorage.set('lnbits.gradientBg', false)
+          }
+        }
+
+        if (gradient) {
+          const isGradient = toBoolean(gradient)
+          this.$q.localStorage.set('lnbits.gradientBg', isGradient)
+          if (isGradient) {
+            this.$q.localStorage.set('lnbits.darkMode', true)
+          }
+        }
+
+        // Remove processed parameters
+        fields.forEach(param => params.delete(param))
+
+        window.history.replaceState(null, null, url.pathname)
+      }
+
+      this.setColors()
     }
   },
   created: async function () {
@@ -549,8 +610,6 @@ window.windowMixin = {
     }
     this.reactionChoice =
       this.$q.localStorage.getItem('lnbits.reactions') || 'confettiBothSides'
-
-    this.applyGradient()
 
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
@@ -590,6 +649,8 @@ window.windowMixin = {
       )
     }
 
+    this.applyGradient()
+
     if (window.user) {
       this.g.user = Object.freeze(window.LNbits.map.user(window.user))
     }
@@ -628,6 +689,7 @@ window.windowMixin = {
       this.g.extensions = extensions
     }
     await this.checkUsrInUrl()
+    this.themeParams()
   }
 }
 
