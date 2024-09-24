@@ -212,6 +212,19 @@ class PaymentState(str, Enum):
         return self.value
 
 
+class CreatePayment(BaseModel):
+    wallet_id: str
+    payment_request: str
+    payment_hash: str
+    amount: int
+    memo: str
+    preimage: Optional[str] = None
+    expiry: Optional[datetime.datetime] = None
+    extra: Optional[dict] = None
+    webhook: Optional[str] = None
+    fee: int = 0
+
+
 class Payment(FromRowModel):
     status: str
     # TODO should be removed in the future, backward compatibility
@@ -225,7 +238,7 @@ class Payment(FromRowModel):
     preimage: str
     payment_hash: str
     expiry: Optional[float]
-    extra: dict = {}
+    extra: Optional[dict]
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]

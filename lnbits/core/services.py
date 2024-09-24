@@ -1,10 +1,9 @@
 import asyncio
-import datetime
 import json
 import time
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, TypedDict
+from typing import Optional
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID, uuid4
 
@@ -68,16 +67,24 @@ from .crud import (
     update_user_extension,
 )
 from .helpers import to_valid_user_id
-from .models import BalanceDelta, Payment, PaymentState, User, UserConfig, Wallet
+from .models import (
+    BalanceDelta,
+    CreatePayment,
+    Payment,
+    PaymentState,
+    User,
+    UserConfig,
+    Wallet,
+)
 
 
 async def calculate_fiat_amounts(
     amount: float,
     wallet_id: str,
     currency: Optional[str] = None,
-    extra: Optional[Dict] = None,
+    extra: Optional[dict] = None,
     conn: Optional[Connection] = None,
-) -> Tuple[int, Optional[Dict]]:
+) -> tuple[int, Optional[dict]]:
     wallet = await get_wallet(wallet_id, conn=conn)
     assert wallet, "invalid wallet_id"
     wallet_currency = wallet.currency or settings.lnbits_default_accounting_currency
@@ -118,11 +125,11 @@ async def create_invoice(
     description_hash: Optional[bytes] = None,
     unhashed_description: Optional[bytes] = None,
     expiry: Optional[int] = None,
-    extra: Optional[Dict] = None,
+    extra: Optional[dict] = None,
     webhook: Optional[str] = None,
     internal: Optional[bool] = False,
     conn: Optional[Connection] = None,
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     if not amount > 0:
         raise InvoiceError("Amountless invoices not supported.", status="failed")
 
@@ -167,17 +174,20 @@ async def create_invoice(
 
     invoice = bolt11_decode(payment_request)
 
-    amount_msat = 1000 * amount_sat
-    await create_payment(
+    create_payment_model = CreatePayment(
         wallet_id=wallet_id,
-        checking_id=checking_id,
         payment_request=payment_request,
         payment_hash=invoice.payment_hash,
-        amount=amount_msat,
+        amount=amount_sat * 1000,
         expiry=invoice.expiry_date,
         memo=memo,
         extra=extra,
         webhook=webhook,
+    )
+
+    await create_payment(
+        checking_id=checking_id,
+        data=create_payment_model,
         conn=conn,
     )
 
@@ -189,7 +199,7 @@ async def pay_invoice(
     wallet_id: str,
     payment_request: str,
     max_sat: Optional[int] = None,
-    extra: Optional[Dict] = None,
+    extra: Optional[dict] = None,
     description: str = "",
     conn: Optional[Connection] = None,
 ) -> str:
@@ -223,17 +233,7 @@ async def pay_invoice(
             invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
         )
 
-        # put all parameters that don't change here
-        class PaymentKwargs(TypedDict):
-            wallet_id: str
-            payment_request: str
-            payment_hash: str
-            amount: int
-            memo: str
-            expiry: Optional[datetime.datetime]
-            extra: Optional[Dict]
-
-        payment_kwargs: PaymentKwargs = PaymentKwargs(
+        create_payment_model = CreatePayment(
             wallet_id=wallet_id,
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
@@ -252,9 +252,6 @@ async def pay_invoice(
         # (pending only)
         internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
         if internal_checking_id:
-            fee_reserve_total_msat = fee_reserve_total(
-                invoice.amount_msat, internal=True
-            )
             # perform additional checks on the internal payment
             # the payment hash is not enough to make sure that this is the same invoice
             internal_invoice = await get_standalone_payment(
@@ -269,16 +266,23 @@ async def pay_invoice(
 
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
+
+            fee_reserve_total_msat = fee_reserve_total(
+                invoice.amount_msat, internal=True
+            )
+            create_payment_model.fee = abs(fee_reserve_total_msat)
             new_payment = await create_payment(
                 checking_id=internal_id,
-                fee=0 + abs(fee_reserve_total_msat),
+                data=create_payment_model,
                 status=PaymentState.SUCCESS,
                 conn=conn,
-                **payment_kwargs,
             )
         else:
             new_payment = await _create_external_payment(
-                temp_id, invoice.amount_msat, conn=conn, **payment_kwargs
+                temp_id=temp_id,
+                amount_msat=invoice.amount_msat,
+                data=create_payment_model,
+                conn=conn,
             )
 
         # do the balance check
@@ -377,14 +381,16 @@ async def pay_invoice(
 
     # credit service fee wallet
     if settings.lnbits_service_fee_wallet and service_fee_msat:
-        new_payment = await create_payment(
+        create_payment_model = CreatePayment(
             wallet_id=settings.lnbits_service_fee_wallet,
-            fee=0,
-            amount=abs(service_fee_msat),
-            memo="Service fee",
-            checking_id="service_fee" + temp_id,
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
+            amount=abs(service_fee_msat),
+            memo="Service fee",
+        )
+        new_payment = await create_payment(
+            checking_id=f"service_fee_{temp_id}",
+            data=create_payment_model,
             status=PaymentState.SUCCESS,
         )
     return invoice.payment_hash
@@ -393,8 +399,8 @@ async def pay_invoice(
 async def _create_external_payment(
     temp_id: str,
     amount_msat: MilliSatoshi,
+    data: CreatePayment,
     conn: Optional[Connection],
-    **payment_kwargs,
 ) -> Payment:
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
 
@@ -428,11 +434,11 @@ async def _create_external_payment(
     # create a temporary payment here so we can check if
     # the balance is enough in the next step
     try:
+        data.fee = -abs(fee_reserve_total_msat)
         new_payment = await create_payment(
             checking_id=temp_id,
-            fee=-abs(fee_reserve_total_msat),
+            data=data,
             conn=conn,
-            **payment_kwargs,
         )
         return new_payment
     except Exception as exc:
@@ -514,7 +520,7 @@ async def redeem_lnurl_withdraw(
     wallet_id: str,
     lnurl_request: str,
     memo: Optional[str] = None,
-    extra: Optional[Dict] = None,
+    extra: Optional[dict] = None,
     wait_seconds: int = 0,
     conn: Optional[Connection] = None,
 ) -> None:
@@ -853,7 +859,7 @@ async def create_user_account(
 
 class WebsocketConnectionManager:
     def __init__(self) -> None:
-        self.active_connections: List[WebSocket] = []
+        self.active_connections: list[WebSocket] = []
 
     async def connect(self, websocket: WebSocket, item_id: str):
         logger.debug(f"Websocket connected to {item_id}")
