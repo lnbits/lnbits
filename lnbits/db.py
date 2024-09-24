@@ -26,9 +26,9 @@ if settings.lnbits_database_url:
     if database_uri.startswith("cockroachdb://"):
         DB_TYPE = COCKROACH
     else:
-        if not database_uri.startswith("postgresql://"):
+        if not database_uri.startswith("postgres://"):
             raise ValueError(
-                "Please use the 'postgresql://...' " "format for the database URL."
+                "Please use the 'postgres://...' " "format for the database URL."
             )
         DB_TYPE = POSTGRES
 
@@ -235,7 +235,7 @@ class Database(Compat):
             database_uri = f"sqlite+aiosqlite:///{self.path}"
         else:
             database_uri = settings.lnbits_database_url.replace(
-                "postgresql://", "postgresql+asyncpg://"
+                "postgres://", "postgresql+asyncpg://"
             )
 
         if self.name.startswith("ext_"):
