@@ -6,8 +6,8 @@ from lnbits.settings import AuthMethods, settings
 
 
 @pytest.mark.asyncio
-async def test_login_bad_user(client: AsyncClient):
-    response = await client.post(
+async def test_login_bad_user(http_client: AsyncClient):
+    response = await http_client.post(
         "/api/v1/auth", json={"username": "non_existing_user", "password": "secret1234"}
     )
 
@@ -16,14 +16,14 @@ async def test_login_bad_user(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_login_alan_usr(user_alan: User, client: AsyncClient):
-    response = await client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+async def test_login_alan_usr(user_alan: User, http_client: AsyncClient):
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
 
     assert response.status_code == 200, "Alan logs in OK."
     access_token = response.json().get("access_token")
     assert access_token is not None, "Expected access token after login."
 
-    response = await client.get(
+    response = await http_client.get(
         "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
     )
 
@@ -35,20 +35,20 @@ async def test_login_alan_usr(user_alan: User, client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_login_usr_not_allowed(user_alan: User, client: AsyncClient):
+async def test_login_usr_not_allowed(user_alan: User, http_client: AsyncClient):
     auth_allowed_methods_initial = [*settings.auth_allowed_methods]
 
     # exclude 'user_id_only'
     settings.auth_allowed_methods = [AuthMethods.username_and_password.value]
 
-    response = await client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
 
     assert response.status_code == 401, "Login method not allowed."
     assert response.json().get("detail") == "Login by 'User ID' not allowed."
 
     settings.auth_allowed_methods = auth_allowed_methods_initial
 
-    response = await client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
     assert response.status_code == 200, "Login with 'usr' allowed."
     assert (
         response.json().get("access_token") is not None
@@ -56,8 +56,8 @@ async def test_login_usr_not_allowed(user_alan: User, client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_login_alan_password_ok(user_alan: User, client: AsyncClient):
-    response = await client.post(
+async def test_login_alan_password_ok(user_alan: User, http_client: AsyncClient):
+    response = await http_client.post(
         "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
     )
 
@@ -66,8 +66,8 @@ async def test_login_alan_password_ok(user_alan: User, client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_login_alan_password_nok(user_alan: User, client: AsyncClient):
-    response = await client.post(
+async def test_login_alan_password_nok(user_alan: User, http_client: AsyncClient):
+    response = await http_client.post(
         "/api/v1/auth", json={"username": user_alan.username, "password": "bad_pasword"}
     )
 
@@ -77,7 +77,7 @@ async def test_login_alan_password_nok(user_alan: User, client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_login_username_password_not_allowed(
-    user_alan: User, client: AsyncClient
+    user_alan: User, http_client: AsyncClient
 ):
 
     auth_allowed_methods_initial = [*settings.auth_allowed_methods]
@@ -85,7 +85,7 @@ async def test_login_username_password_not_allowed(
     # exclude 'user_id_only'
     settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
 
-    response = await client.post(
+    response = await http_client.post(
         "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
     )
 
@@ -96,7 +96,7 @@ async def test_login_username_password_not_allowed(
 
     settings.auth_allowed_methods = auth_allowed_methods_initial
 
-    response = await client.post(
+    response = await http_client.post(
         "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
     )
     assert response.status_code == 200, "Username and password is allowed."
@@ -104,8 +104,8 @@ async def test_login_username_password_not_allowed(
 
 
 @pytest.mark.asyncio
-async def test_register_ok(client: AsyncClient):
-    response = await client.post(
+async def test_register_ok(http_client: AsyncClient):
+    response = await http_client.post(
         "/api/v1/auth",
         json={
             "username": "u21",

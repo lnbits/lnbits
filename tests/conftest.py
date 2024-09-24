@@ -60,6 +60,13 @@ async def client(app):
         yield client
 
 
+@pytest_asyncio.fixture(scope="function")
+async def http_client(app):
+    url = f"http://{settings.host}:{settings.port}"
+    async with AsyncClient(app=app, base_url=url) as client:
+        yield client
+
+
 @pytest.fixture(scope="session")
 def test_client(app):
     return TestClient(app)
