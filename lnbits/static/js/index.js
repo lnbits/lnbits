@@ -141,6 +141,7 @@ window.app = Vue.createApp({
         this.usr = ''
         window.location.href = '/wallet'
       } catch (e) {
+        console.warn(e)
         LNbits.utils.notifyApiError(e)
       }
     },

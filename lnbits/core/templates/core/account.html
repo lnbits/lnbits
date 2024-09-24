@@ -26,7 +26,9 @@
             </q-tabs>
             <q-tab-panels v-model="tab">
               <q-tab-panel name="user">
-                <div v-if="passwordData.show">
+                <div v-if="credentialsData.show">
+                  <q-separator></q-separator>
+
                   <q-card-section>
                     <div class="row">
                       <div class="col">
@@ -44,11 +46,18 @@
                       </div>
                     </div>
                   </q-card-section>
-                  <q-separator></q-separator>
                   <q-card-section>
                     <q-input
+                      v-model="credentialsData.username"
+                      :label="$t('username')"
+                      filled
+                      dense
+                      :readonly="hasUsername"
+                      class="q-mb-md"
+                    ></q-input>
+                    <q-input
                       v-if="user.has_password"
-                      v-model="passwordData.oldPassword"
+                      v-model="credentialsData.oldPassword"
                       type="password"
                       autocomplete="off"
                       label="Old Password"
@@ -57,7 +66,7 @@
                       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
                     ></q-input>
                     <q-input
-                      v-model="passwordData.newPassword"
+                      v-model="credentialsData.newPassword"
                       type="password"
                       autocomplete="off"
                       :label="$t('password')"
@@ -66,7 +75,7 @@
                       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
                     ></q-input>
                     <q-input
-                      v-model="passwordData.newPasswordRepeat"
+                      v-model="credentialsData.newPasswordRepeat"
                       type="password"
                       autocomplete="off"
                       :label="$t('password_repeat')"
@@ -77,17 +86,33 @@
                     ></q-input>
                   </q-card-section>
                   <q-separator></q-separator>
+                  <q-card-section>
+                    <div class="col q-mb-sm">
+                      <h4 class="q-my-none">
+                        <span v-text="$t('pubkey')"></span>
+                      </h4>
+                    </div>
+                    <q-input
+                      v-model="credentialsData.pubkey"
+                      type="text"
+                      label="Pubkey"
+                      filled
+                      dense
+                      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+                    ></q-input>
+                  </q-card-section>
+                  <q-separator></q-separator>
                   <q-card-section class="q-pb-lg">
                     <q-btn
-                      @click="updatePassword"
-                      :disable="(!passwordData.newPassword || !passwordData.newPasswordRepeat) || passwordData.newPassword !== passwordData.newPasswordRepeat"
+                      @click="updateCredentials"
+                      :disable="disableUpdateCredentials()"
                       unelevated
                       color="primary"
-                      :label="$t('change_password')"
+                      :label="$t('update_credentials')"
                     >
                     </q-btn>
                     <q-btn
-                      @click="passwordData.show = false"
+                      @click="credentialsData.show = false"
                       :label="$t('back')"
                       outline
                       unelevated
@@ -270,8 +295,8 @@
                       <span v-text="$t('update_account')"></span>
                     </q-btn>
                     <q-btn
-                      @click="showChangePassword()"
-                      :label="user.has_password ? $t('change_password'): $t('set_password')"
+                      @click="showUpdateCredentials()"
+                      :label="$t('update_credentials')"
                       outline
                       unelevated
                       color="grey"

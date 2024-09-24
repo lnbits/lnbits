@@ -223,6 +223,7 @@ window.localisation.en = {
   password_config: 'Password Config',
   password_repeat: 'Password repeat',
   change_password: 'Change Password',
+  update_credentials: 'Update Credentials',
   set_password: 'Set Password',
   invalid_password: 'Password must have at least 8 characters',
   login: 'Login',
