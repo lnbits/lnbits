@@ -53,8 +53,10 @@ async def create_account(
     now_ph = db.timestamp_placeholder("now")
     await (conn or db).execute(
         f"""
-        INSERT INTO accounts (id, username, pass, email, pubkey, extra, created_at, updated_at)
-        VALUES (:user, :username, :password, :email, :pubkey, :extra, {now_ph}, {now_ph})
+        INSERT INTO accounts
+            (id, username, pass, email, pubkey, extra, created_at, updated_at)
+        VALUES
+            (:user, :username, :password, :email, :pubkey, :extra, {now_ph}, {now_ph})
         """,
         {
             "user": user_id,
@@ -263,9 +265,9 @@ async def get_account_by_pubkey(
     row = await (conn or db).fetchone(
         """
         SELECT id, username, pubkey, email, created_at, updated_at
-        FROM accounts WHERE pubkey = ?
+        FROM accounts WHERE pubkey = :pubkey
         """,
-        (pubkey,),
+        {"pubkey": pubkey},
     )
 
     return User(**row) if row else None

@@ -47,8 +47,6 @@
     "./node_modules/qrcode.vue/dist/qrcode.vue.browser.js",
     "./node_modules/chart.js/dist/chart.umd.js",
     "./node_modules/quasar/dist/quasar.css",
-    "./node_modules/chart.js/dist/Chart.css",
-    "./node_modules/vue-i18n/dist/vue-i18n.js",
     "./node_modules/showdown/dist/showdown.js",
     "./node_modules/nostr-tools/lib/nostr.bundle.js"
   ],
