@@ -223,7 +223,7 @@ window.app = Vue.createApp({
         .request('POST', '/users/api/v1/user', null, this.createUserDialog.data)
         .then(() => {
           this.fetchUsers()
-          Quasar.notify({
+          Quasar.Notify.create({
             type: 'positive',
             message: 'Success! User created!',
             icon: null
@@ -243,7 +243,7 @@ window.app = Vue.createApp({
         )
         .then(() => {
           this.fetchUsers()
-          Quasar.notify({
+          Quasar.Notify.create({
             type: 'positive',
             message: 'Success! User created!',
             icon: null
@@ -261,7 +261,7 @@ window.app = Vue.createApp({
             .request('DELETE', `/users/api/v1/user/${user_id}`)
             .then(() => {
               this.fetchUsers()
-              Quasar.notify({
+              Quasar.Notify.create({
                 type: 'positive',
                 message: 'Success! User deleted!',
                 icon: null
@@ -280,7 +280,7 @@ window.app = Vue.createApp({
         )
         .then(() => {
           this.fetchWallets(user_id)
-          Quasar.notify({
+          Quasar.Notify.create({
             type: 'positive',
             message: 'Success! Undeleted user wallet!',
             icon: null
@@ -299,7 +299,7 @@ window.app = Vue.createApp({
           .request('DELETE', `/users/api/v1/user/${user_id}/wallet/${wallet}`)
           .then(() => {
             this.fetchWallets(user_id)
-            Quasar.notify({
+            Quasar.Notify.create({
               type: 'positive',
               message: 'Success! User wallet deleted!',
               icon: null
@@ -379,7 +379,7 @@ window.app = Vue.createApp({
         .request('GET', `/users/api/v1/user/${user_id}/admin`)
         .then(() => {
           this.fetchUsers()
-          Quasar.notify({
+          Quasar.Notify.create({
             type: 'positive',
             message: 'Success! Toggled admin!',
             icon: null
@@ -411,7 +411,7 @@ window.app = Vue.createApp({
           this.wallet
         )
         .then(_ => {
-          Quasar.notify({
+          Quasar.Notify.create({
             type: 'positive',
             message: `Success! Added ${this.wallet.amount} to ${this.wallet.id}`,
             icon: null

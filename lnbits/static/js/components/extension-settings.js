@@ -4,7 +4,7 @@ window.app.component('lnbits-extension-settings-form', {
   methods: {
     async updateSettings() {
       if (!this.settings) {
-        return Quasar.notify({
+        return Quasar.Notify.create({
           message: 'No settings to update',
           type: 'negative'
         })

@@ -185,7 +185,7 @@ window.app = Vue.createApp({
       LNbits.api
         .request('GET', '/admin/api/v1/restart/')
         .then(response => {
-          Quasar.notify({
+          Quasar.Notify.create({
             type: 'positive',
             message: 'Success! Restarted Server',
             icon: null
@@ -260,7 +260,7 @@ window.app = Vue.createApp({
             this.settings.lnbits_killswitch !== this.formData.lnbits_killswitch
           this.settings = this.formData
           this.formData = _.clone(this.settings)
-          Quasar.notify({
+          Quasar.Notify.create({
             type: 'positive',
             message: `Success! Settings changed! ${
               this.needsRestart ? 'Restart required!' : ''
@@ -279,7 +279,7 @@ window.app = Vue.createApp({
           LNbits.api
             .request('DELETE', '/admin/api/v1/settings')
             .then(response => {
-              Quasar.notify({
+              Quasar.Notify.create({
                 type: 'positive',
                 message:
                   'Success! Restored settings to defaults, restart required!',
