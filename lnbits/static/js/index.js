@@ -92,9 +92,7 @@ window.app = Vue.createApp({
     }
   },
   created() {
-    console.log('created')
     this.description = SITE_DESCRIPTION
-
     this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'
