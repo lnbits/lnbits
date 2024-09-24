@@ -56,16 +56,6 @@
                       class="q-mb-md"
                     ></q-input>
                     <q-input
-                      v-if="user.has_password"
-                      v-model="credentialsData.oldPassword"
-                      type="password"
-                      autocomplete="off"
-                      label="Old Password"
-                      filled
-                      dense
-                      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
-                    ></q-input>
-                    <q-input
                       v-model="credentialsData.newPassword"
                       type="password"
                       autocomplete="off"
@@ -104,21 +94,21 @@
                   <q-separator></q-separator>
                   <q-card-section class="q-pb-lg">
                     <q-btn
-                      @click="updateCredentials"
-                      :disable="disableUpdateCredentials()"
-                      unelevated
-                      color="primary"
-                      :label="$t('update_credentials')"
-                    >
-                    </q-btn>
-                    <q-btn
                       @click="credentialsData.show = false"
                       :label="$t('back')"
                       outline
                       unelevated
                       color="grey"
-                      class="float-right"
                     ></q-btn>
+                    <q-btn
+                      @click="updateCredentials"
+                      :disable="disableUpdateCredentials()"
+                      unelevated
+                      color="primary"
+                      class="float-right"
+                      :label="$t('update_credentials')"
+                    >
+                    </q-btn>
                   </q-card-section>
                 </div>
                 <div v-else>
@@ -171,31 +161,6 @@
                       class="q-mb-md"
                     >
                     </q-input>
-                    <div v-if="!user.pubkey" class="row">
-                      {% if "nostr-auth-nip98" in LNBITS_AUTH_METHODS %}
-                      <div class="col q-pa-sm text-h6">
-                        <span v-text="$t('verify_pubkey')"></span>:
-                      </div>
-                      <div class="col q-pa-sm">
-                        <!-- :href="`/api/v1/auth/google?user_id=${user.id}`" -->
-                        <q-btn
-                          type="a"
-                          outline
-                          no-caps
-                          rounded
-                          color="grey"
-                          class="full-width"
-                        >
-                          <q-avatar size="32px" class="q-mr-md">
-                            <q-img
-                              :src="'{{ static_url_for('static', 'images/logos/nostr.svg') }}'"
-                            ></q-img>
-                          </q-avatar>
-                          <div>Nostr</div>
-                        </q-btn>
-                      </div>
-                      {%endif%}
-                    </div>
                     <q-input
                       v-model="user.email"
                       :label="$t('email')"
@@ -284,7 +249,6 @@
                       v-model="user.config.picture"
                       :label="$t('picture')"
                       filled
-                      dense
                       class="q-mb-md"
                     >
                     </q-input>
@@ -297,9 +261,8 @@
                     <q-btn
                       @click="showUpdateCredentials()"
                       :label="$t('update_credentials')"
-                      outline
-                      unelevated
-                      color="grey"
+                      filled
+                      color="primary"
                       class="float-right"
                     ></q-btn>
                   </q-card-section>

@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from pathlib import Path
+from time import time
 from typing import Annotated, List, Optional, Union
 from urllib.parse import urlencode, urlparse
 
@@ -209,9 +210,7 @@ async def account(
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
-        {
-            "user": user.dict(),
-        },
+        {"user": user.dict(), "serverTime": time()},
     )
 
 

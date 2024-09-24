@@ -30,7 +30,7 @@ from .models import (
     PaymentFilters,
     PaymentHistoryPoint,
     TinyURL,
-    UpdateUserPassword,
+    UpdateUserCredentials,
     User,
     UserConfig,
     Wallet,
@@ -214,15 +214,14 @@ async def verify_user_password(user_id: str, password: str) -> bool:
     return pwd_context.verify(password, existing_password)
 
 
-# TODO: , conn: Optional[Connection] = None ??, maybe also not a crud function
-async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
-    assert data.password == data.password_repeat, "Passwords do not match."
+async def update_user_credentials(
+    data: UpdateUserCredentials, last_login_time: int
+) -> Optional[User]:
 
-    # old accounts do not have a pasword
-    if await get_user_password(data.user_id):
-        assert data.password_old, "Missing old password"
-        old_pwd_ok = await verify_user_password(data.user_id, data.password_old)
-        assert old_pwd_ok, "Invalid credentials."
+    assert abs(time() - last_login_time) < 60, (
+        "Credentials update time expired." " Please login again!"
+    )
+    assert data.password == data.password_repeat, "Passwords do not match."
 
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -230,7 +229,7 @@ async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
     now_ph = db.timestamp_placeholder("now")
     await db.execute(
         f"""
-        UPDATE accounts SET pass = :pass, updated_at = {now_ph}
+        UPDATE accounts SET pass = :pass, pubkey = :pubkey, updated_at = {now_ph}
         WHERE id = :user
         """,
         {

@@ -35,7 +35,7 @@ from ..crud import (
     get_account_by_username_or_email,
     get_user,
     update_account,
-    update_user_password,
+    update_user_credentials,
     verify_user_password,
 )
 from ..models import (
@@ -44,7 +44,7 @@ from ..models import (
     LoginUsr,
     UpdateSuperuserPassword,
     UpdateUser,
-    UpdateUserPassword,
+    UpdateUserCredentials,
     User,
     UserConfig,
 )
@@ -215,19 +215,16 @@ async def register(data: CreateUser) -> JSONResponse:
         ) from exc
 
 
-@auth_router.put("/password")
+@auth_router.put("/credentials")
 async def update_password(
-    data: UpdateUserPassword, user: User = Depends(check_user_exists)
+    data: UpdateUserCredentials, user: User = Depends(check_user_exists)
 ) -> Optional[User]:
-    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
-        raise HTTPException(
-            HTTP_401_UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
-        )
     if data.user_id != user.id:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
 
     try:
-        return await update_user_password(data)
+        return await update_user_credentials(data, user.last_login_time)
+
     except AssertionError as exc:
         raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
     except Exception as exc:
@@ -269,13 +266,13 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
             username=data.username,
             user_config=UserConfig(provider="lnbits"),
         )
-        super_user = UpdateUserPassword(
+        super_user = UpdateUserCredentials(
             user_id=settings.super_user,
             password=data.password,
             password_repeat=data.password_repeat,
             username=data.username,
         )
-        await update_user_password(super_user)
+        await update_user_credentials(super_user, int(time()))
         settings.first_install = False
         return _auth_success_response(username=super_user.username)
     except AssertionError as exc:
@@ -325,7 +322,12 @@ def _auth_success_response(
     email: Optional[str] = None,
 ) -> JSONResponse:
     access_token = create_access_token(
-        data={"sub": username or "", "usr": user_id, "email": email}
+        data={
+            "sub": username or "",
+            "usr": user_id,
+            "email": email,
+            "auth_time": int(time()),
+        }
     )
     response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
     response.set_cookie("cookie_access_token", access_token, httponly=True)
@@ -336,7 +338,9 @@ def _auth_success_response(
 
 
 def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
-    access_token = create_access_token(data={"sub": "" or "", "email": email})
+    access_token = create_access_token(
+        data={"sub": "" or "", "email": email, "auth_time": int(time())}
+    )
     response = RedirectResponse(path)
     response.set_cookie("cookie_access_token", access_token, httponly=True)
     response.set_cookie("is_lnbits_user_authorized", "true")

@@ -245,17 +245,18 @@ async def _check_user_extension_access(user_id: str, current_path: str):
         )
 
 
-async def _get_account_from_token(access_token):
+async def _get_account_from_token(access_token) -> Optional[User]:
     try:
-        payload = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
-        if "sub" in payload and payload.get("sub"):
-            return await get_account_by_username(str(payload.get("sub")))
-        if "usr" in payload and payload.get("usr"):
-            return await get_account(str(payload.get("usr")))
-        if "email" in payload and payload.get("email"):
-            return await get_account_by_email(str(payload.get("email")))
+        payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+        user = await _get_user_from_jwt_payload(payload)
+        if not user:
+            raise HTTPException(
+                HTTPStatus.UNAUTHORIZED, "Data missing for access token."
+            )
 
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Data missing for access token.")
+        user.last_login_time = int(payload.get("auth_time", 0))
+        return user
+
     except jwt.ExpiredSignatureError as exc:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Session expired.", {"token-expired": "true"}
@@ -263,3 +264,13 @@ async def _get_account_from_token(access_token):
     except jwt.PyJWTError as exc:
         logger.debug(exc)
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid access token.") from exc
+
+
+async def _get_user_from_jwt_payload(payload) -> Optional[User]:
+    if "sub" in payload and payload.get("sub"):
+        return await get_account_by_username(str(payload.get("sub")))
+    if "usr" in payload and payload.get("usr"):
+        return await get_account(str(payload.get("usr")))
+    if "email" in payload and payload.get("email"):
+        return await get_account_by_email(str(payload.get("email")))
+    return None

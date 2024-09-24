@@ -15,7 +15,6 @@ window.app = Vue.createApp({
       tab: 'user',
       credentialsData: {
         show: false,
-        oldPassword: null,
         newPassword: null,
         newPasswordRepeat: null,
         username: null,
@@ -107,10 +106,10 @@ window.app = Vue.createApp({
     },
     disableUpdateCredentials: function () {
       return (
-        !this.credentialsData.newPassword ||
-        !this.credentialsData.newPasswordRepeat ||
-        this.credentialsData.newPassword !==
-          this.credentialsData.newPasswordRepeat ||
+        (!this.credentialsData.newPassword ||
+          !this.credentialsData.newPasswordRepeat ||
+          this.credentialsData.newPassword !==
+            this.credentialsData.newPasswordRepeat) &&
         this.credentialsData.pubkey === this.user.pubkey
       )
     },
@@ -125,13 +124,12 @@ window.app = Vue.createApp({
       try {
         const {data} = await LNbits.api.request(
           'PUT',
-          '/api/v1/auth/password',
+          '/api/v1/auth/credentials',
           null,
           {
             user_id: this.user.id,
             username: this.user.username || this.credentialsData.username,
             pubkey: this.credentialsData.pubkey,
-            password_old: this.credentialsData.oldPassword,
             password: this.credentialsData.newPassword,
             password_repeat: this.credentialsData.newPasswordRepeat
           }
@@ -150,7 +148,6 @@ window.app = Vue.createApp({
       this.credentialsData = {
         show: true,
         username: this.user.username,
-        oldPassword: null,
         newPassword: null,
         newPasswordRepeat: null,
         pubkey: this.user.pubkey

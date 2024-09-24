@@ -236,7 +236,6 @@ window.localisation.en = {
   last_name: 'Last Name',
   picture: 'Picture',
   verify_email: 'Verify email with',
-  verify_pubkey: 'Verify public key with',
   account: 'Account',
   update_account: 'Update Account',
   invalid_username: 'Invalid Username',
