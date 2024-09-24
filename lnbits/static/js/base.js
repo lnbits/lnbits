@@ -329,7 +329,7 @@ window.LNbits = {
         401: 'warning',
         500: 'negative'
       }
-      Quasar.plugins.Notify.create({
+      Quasar.Notify.create({
         timeout: 5000,
         type: types[error.response.status] || 'warning',
         message:
