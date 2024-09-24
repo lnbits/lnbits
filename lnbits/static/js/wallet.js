@@ -152,7 +152,7 @@ window.app = Vue.createApp({
 
             if (typeof response.data.lnurl_response === 'string') {
               // failure
-              this.$q.notify({
+              Quasar.notify({
                 timeout: 5000,
                 type: 'warning',
                 message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
@@ -161,7 +161,7 @@ window.app = Vue.createApp({
               return
             } else if (response.data.lnurl_response === true) {
               // success
-              this.$q.notify({
+              Quasar.notify({
                 timeout: 5000,
                 message: `Invoice sent to ${this.receive.lnurl.domain}!`,
                 spinner: true
@@ -200,7 +200,7 @@ window.app = Vue.createApp({
           ? mapping[valid_error]
           : `ERROR: Camera error (${error.name})`
         this.parse.camera.show = false
-        this.$q.notify({
+        Quasar.notify({
           message: camera_error,
           type: 'negative'
         })
@@ -220,7 +220,7 @@ window.app = Vue.createApp({
           let data = response.data
 
           if (data.status === 'ERROR') {
-            this.$q.notify({
+            Quasar.notify({
               timeout: 5000,
               type: 'warning',
               message: `${data.domain} lnurl call failed.`,
@@ -290,7 +290,7 @@ window.app = Vue.createApp({
       try {
         invoice = decode(this.parse.data.request)
       } catch (error) {
-        this.$q.notify({
+        Quasar.notify({
           timeout: 3000,
           type: 'warning',
           message: error + '.',
@@ -316,7 +316,7 @@ window.app = Vue.createApp({
             var expireDate = new Date(
               (invoice.data.time_stamp + tag.value) * 1000
             )
-            cleanInvoice.expireDate = this.$q.utils.date.formatDate(
+            cleanInvoice.expireDate = Quasar.date.formatDate(
               expireDate,
               'YYYY-MM-DDTHH:mm:ss.SSSZ'
             )
@@ -328,7 +328,7 @@ window.app = Vue.createApp({
       this.parse.invoice = Object.freeze(cleanInvoice)
     },
     payInvoice: function () {
-      let dismissPaymentMsg = this.$q.notify({
+      let dismissPaymentMsg = Quasar.notify({
         timeout: 0,
         message: this.$t('processing_payment')
       })
@@ -361,7 +361,7 @@ window.app = Vue.createApp({
         })
     },
     payLnurl: function () {
-      let dismissPaymentMsg = this.$q.notify({
+      let dismissPaymentMsg = Quasar.notify({
         timeout: 0,
         message: 'Processing payment...'
       })
@@ -394,7 +394,7 @@ window.app = Vue.createApp({
                   if (response.data.success_action) {
                     switch (response.data.success_action.tag) {
                       case 'url':
-                        this.$q.notify({
+                        Quasar.notify({
                           message: `<a target="_blank" style="color: inherit" href="${response.data.success_action.url}">${response.data.success_action.url}</a>`,
                           caption: response.data.success_action.description,
                           html: true,
@@ -404,7 +404,7 @@ window.app = Vue.createApp({
                         })
                         break
                       case 'message':
-                        this.$q.notify({
+                        Quasar.notify({
                           message: response.data.success_action.message,
                           type: 'positive',
                           timeout: 0,
@@ -421,7 +421,7 @@ window.app = Vue.createApp({
                             )
                           )
                           .then(value => {
-                            this.$q.notify({
+                            Quasar.notify({
                               message: value,
                               caption: response.data.success_action.description,
                               html: true,
@@ -443,7 +443,7 @@ window.app = Vue.createApp({
         })
     },
     authLnurl: function () {
-      let dismissAuthMsg = this.$q.notify({
+      let dismissAuthMsg = Quasar.notify({
         timeout: 10,
         message: 'Performing authentication...'
       })
@@ -452,7 +452,7 @@ window.app = Vue.createApp({
         .authLnurl(this.g.wallet, this.parse.lnurlauth.callback)
         .then(_ => {
           dismissAuthMsg()
-          this.$q.notify({
+          Quasar.notify({
             message: `Authentication successful.`,
             type: 'positive',
             timeout: 3500
@@ -462,7 +462,7 @@ window.app = Vue.createApp({
         .catch(err => {
           dismissAuthMsg()
           if (err.response.data.reason) {
-            this.$q.notify({
+            Quasar.notify({
               message: `Authentication failed. ${this.parse.lnurlauth.domain} says:`,
               caption: err.response.data.reason,
               type: 'warning',
@@ -477,7 +477,7 @@ window.app = Vue.createApp({
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
         .then(_ => {
-          this.$q.notify({
+          Quasar.notify({
             message: `Wallet updated.`,
             type: 'positive',
             timeout: 3500
@@ -495,7 +495,7 @@ window.app = Vue.createApp({
           LNbits.api
             .deleteWallet(this.g.wallet)
             .then(_ => {
-              this.$q.notify({
+              Quasar.notify({
                 timeout: 3000,
                 message: `Wallet deleted!`,
                 spinner: true

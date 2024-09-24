@@ -94,7 +94,7 @@ window.app = Vue.createApp({
           }
         )
         this.user = data
-        this.$q.notify({
+        Quasar.notify({
           type: 'positive',
           message: 'Account updated.'
         })
@@ -104,7 +104,7 @@ window.app = Vue.createApp({
     },
     updatePassword: async function () {
       if (!this.user.username) {
-        this.$q.notify({
+        Quasar.notify({
           type: 'warning',
           message: 'Please set a username first.'
         })
@@ -125,7 +125,7 @@ window.app = Vue.createApp({
         )
         this.user = data
         this.passwordData.show = false
-        this.$q.notify({
+        Quasar.notify({
           type: 'positive',
           message: 'Password updated.'
         })
@@ -135,7 +135,7 @@ window.app = Vue.createApp({
     },
     showChangePassword: function () {
       if (!this.user.username) {
-        this.$q.notify({
+        Quasar.notify({
           type: 'warning',
           message: 'Please set a username first.'
         })
