@@ -25,7 +25,6 @@ from lnbits.core.views.payment_api import api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import settings
 from tests.helpers import (
-    clean_database,
     get_random_invoice_data,
 )
 
@@ -47,7 +46,6 @@ def event_loop():
 # use session scope to run once before and once after all tests
 @pytest_asyncio.fixture(scope="session")
 async def app():
-    clean_database(settings)
     app = create_app()
     async with LifespanManager(app) as manager:
         settings.first_install = False
@@ -199,9 +197,9 @@ async def fake_payments(client, adminkey_headers_from):
             "/api/v1/payments", headers=adminkey_headers_from, json=invoice.dict()
         )
         assert response.is_success
-        await update_payment_status(
-            response.json()["checking_id"], status=PaymentState.SUCCESS
-        )
+        data = response.json()
+        assert data["checking_id"]
+        await update_payment_status(data["checking_id"], status=PaymentState.SUCCESS)
 
     params = {"time[ge]": ts, "time[le]": time()}
     return fake_data, params

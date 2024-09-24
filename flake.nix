@@ -30,6 +30,7 @@
           meta.rev = self.dirtyRev or self.rev;
           meta.mainProgram = projectName;
           overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
+            coincurve = prev.coincurve.override { preferWheel = true; };
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
             wallycore = prev.wallycore.override { preferWheel = true; };

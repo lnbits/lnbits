@@ -2,11 +2,7 @@ import random
 import string
 from typing import Optional
 
-from psycopg2 import connect
-from psycopg2.errors import InvalidCatalogName
-
-from lnbits import core
-from lnbits.db import DB_TYPE, POSTGRES, FromRowModel
+from lnbits.db import FromRowModel
 from lnbits.wallets import get_funding_source, set_funding_source
 
 
@@ -35,21 +31,3 @@ set_funding_source()
 funding_source = get_funding_source()
 is_fake: bool = funding_source.__class__.__name__ == "FakeWallet"
 is_regtest: bool = not is_fake
-
-
-def clean_database(settings):
-    if DB_TYPE == POSTGRES:
-        conn = connect(settings.lnbits_database_url)
-        conn.autocommit = True
-        with conn.cursor() as cur:
-            try:
-                cur.execute("DROP DATABASE lnbits_test")
-            except InvalidCatalogName:
-                pass
-            cur.execute("CREATE DATABASE lnbits_test")
-        core.db.__init__("database")
-        conn.close()
-    else:
-        # TODO: do this once mock data is removed from test data folder
-        # os.remove(settings.lnbits_data_folder + "/database.sqlite3")
-        pass
