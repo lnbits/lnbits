@@ -1,6 +1,6 @@
 import json
 from time import time
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 from uuid import uuid4
 
 import shortuuid
