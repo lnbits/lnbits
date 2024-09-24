@@ -1,5 +1,4 @@
 <!doctype html>
-
 <html lang="en">
   <head>
     {% for url in INCLUDED_CSS %}
@@ -30,7 +29,6 @@
     <link async="async" rel="manifest" href="{{ web_manifest }}" />
     {% endif %} {% block head_scripts %}{% endblock %}
   </head>
-
   <body data-theme="bitcoin">
     <div id="vue">
       <q-layout view="hHh lpR lfr" v-cloak>
