@@ -80,20 +80,6 @@ window.app = Vue.createApp({
         this.applyGradient()
       }
     },
-    setColors: function () {
-      this.$q.localStorage.set(
-        'lnbits.primaryColor',
-        LNbits.utils.getPaletteColor('primary')
-      )
-      this.$q.localStorage.set(
-        'lnbits.secondaryColor',
-        LNbits.utils.getPaletteColor('secondary')
-      )
-      this.$q.localStorage.set(
-        'lnbits.darkBgColor',
-        LNbits.utils.getPaletteColor('dark')
-      )
-    },
     updateAccount: async function () {
       try {
         const {data} = await LNbits.api.request(

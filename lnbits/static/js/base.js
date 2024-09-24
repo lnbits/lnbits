@@ -555,12 +555,12 @@ window.windowMixin = {
     themeParams() {
       const url = new URL(window.location.href)
       const params = new URLSearchParams(window.location.search)
-
+      const fields = ['theme', 'dark', 'gradient']
       const toBoolean = value =>
         value.trim().toLowerCase() === 'true' || value === '1'
 
       // Check if any of the relevant parameters ('theme', 'dark', 'gradient') are present in the URL.
-      if (['theme', 'dark', 'gradient'].some(param => params.has(param))) {
+      if (fields.some(param => params.has(param))) {
         const theme = params.get('theme')
         const darkMode = params.get('dark')
         const gradient = params.get('gradient')
@@ -591,18 +591,12 @@ window.windowMixin = {
         }
 
         // Remove processed parameters
-        ;['theme', 'dark', 'gradient'].forEach(param => params.delete(param))
+        fields.forEach(param => params.delete(param))
 
         window.history.replaceState(null, null, url.pathname)
       }
 
-      // Set colors
-      ;['primary', 'secondary', 'dark'].forEach(color => {
-        this.$q.localStorage.set(
-          `lnbits.${color}Color`,
-          LNbits.utils.getPaletteColor(color)
-        )
-      })
+      this.setColors()
     }
   },
   created: async function () {
