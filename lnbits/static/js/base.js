@@ -551,6 +551,58 @@ window.windowMixin = {
             LNbits.utils.notifyApiError(e)
           }
         })
+    },
+    themeParams() {
+      const url = new URL(window.location.href)
+      const params = new URLSearchParams(window.location.search)
+
+      const toBoolean = value =>
+        value.trim().toLowerCase() === 'true' || value === '1'
+
+      // Check if any of the relevant parameters ('theme', 'dark', 'gradient') are present in the URL.
+      if (['theme', 'dark', 'gradient'].some(param => params.has(param))) {
+        const theme = params.get('theme')
+        const darkMode = params.get('dark')
+        const gradient = params.get('gradient')
+
+        if (
+          theme &&
+          window.allowedThemes.includes(theme.trim().toLowerCase())
+        ) {
+          const normalizedTheme = theme.trim().toLowerCase()
+          document.body.setAttribute('data-theme', normalizedTheme)
+          this.$q.localStorage.set('lnbits.theme', normalizedTheme)
+        }
+
+        if (darkMode) {
+          const isDark = toBoolean(darkMode)
+          this.$q.localStorage.set('lnbits.darkMode', isDark)
+          if (!isDark) {
+            this.$q.localStorage.set('lnbits.gradientBg', false)
+          }
+        }
+
+        if (gradient) {
+          const isGradient = toBoolean(gradient)
+          this.$q.localStorage.set('lnbits.gradientBg', isGradient)
+          if (isGradient) {
+            this.$q.localStorage.set('lnbits.darkMode', true)
+          }
+        }
+
+        // Remove processed parameters
+        ;['theme', 'dark', 'gradient'].forEach(param => params.delete(param))
+
+        window.history.replaceState(null, null, url.pathname)
+      }
+
+      // Set colors
+      ;['primary', 'secondary', 'dark'].forEach(color => {
+        this.$q.localStorage.set(
+          `lnbits.${color}Color`,
+          LNbits.utils.getPaletteColor(color)
+        )
+      })
     }
   },
   created: async function () {
@@ -643,6 +695,7 @@ window.windowMixin = {
       this.g.extensions = extensions
     }
     await this.checkUsrInUrl()
+    this.themeParams()
   }
 }
 
