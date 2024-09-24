@@ -1,10 +1,10 @@
-Vue.component('lnbits-extension-settings-form', {
+window.app.component('lnbits-extension-settings-form', {
   name: 'lnbits-extension-settings-form',
   props: ['options', 'adminkey', 'endpoint'],
   methods: {
-    updateSettings: async function () {
+    async updateSettings() {
       if (!this.settings) {
-        return Quasar.plugins.Notify.create({
+        return this.$q.notify({
           message: 'No settings to update',
           type: 'negative'
         })
@@ -66,7 +66,7 @@ Vue.component('lnbits-extension-settings-form', {
   }
 })
 
-Vue.component('lnbits-extension-settings-btn-dialog', {
+window.app.component('lnbits-extension-settings-btn-dialog', {
   name: 'lnbits-extension-settings-btn-dialog',
   props: ['options', 'adminkey', 'endpoint'],
   template: `

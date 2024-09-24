@@ -1,6 +1,6 @@
-new Vue({
+window.app = Vue.createApp({
   el: '#vue',
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   data: function () {
     return {
       isSuperUser: false,
@@ -217,9 +217,6 @@ new Vue({
   methods: {
     formatSat: function (value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
-    },
-    usersTableRowKey: function (row) {
-      return row.id
     },
     createUser() {
       LNbits.api

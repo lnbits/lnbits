@@ -1,4 +1,4 @@
-Vue.component('lnbits-extension-rating', {
+window.app.component('lnbits-extension-rating', {
   name: 'lnbits-extension-rating',
   props: ['rating'],
   template: `

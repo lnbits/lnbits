@@ -1,6 +1,6 @@
-new Vue({
+window.app = Vue.createApp({
   el: '#vue',
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   data: function () {
     return {
       disclaimerDialog: {
@@ -93,7 +93,6 @@ new Vue({
   },
   created() {
     this.description = SITE_DESCRIPTION
-
     this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'

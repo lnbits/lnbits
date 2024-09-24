@@ -1,6 +1,6 @@
-/* global _, Vue, moment, LNbits, EventHub, decryptLnurlPayAES */
+window.app.component(QrcodeVue)
 
-Vue.component('lnbits-fsat', {
+window.app.component('lnbits-fsat', {
   props: {
     amount: {
       type: Number,
@@ -15,12 +15,13 @@ Vue.component('lnbits-fsat', {
   }
 })
 
-Vue.component('lnbits-wallet-list', {
+window.app.component('lnbits-wallet-list', {
+  props: ['balance'],
   data: function () {
     return {
       user: null,
       activeWallet: null,
-      activeBalance: [],
+      balance: 0,
       showForm: false,
       walletName: '',
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
@@ -74,7 +75,7 @@ Vue.component('lnbits-wallet-list', {
   `,
   computed: {
     wallets: function () {
-      var bal = this.activeBalance
+      var bal = this.balance
       return this.user.wallets.map(function (obj) {
         obj.live_fsat =
           bal.length && bal[0] === obj.id
@@ -87,9 +88,6 @@ Vue.component('lnbits-wallet-list', {
   methods: {
     createWallet: function () {
       LNbits.api.createWallet(this.user.wallets[0], this.walletName)
-    },
-    updateWalletBalance: function (payload) {
-      this.activeBalance = payload
     }
   },
   created: function () {
@@ -99,11 +97,11 @@ Vue.component('lnbits-wallet-list', {
     if (window.wallet) {
       this.activeWallet = LNbits.map.wallet(window.wallet)
     }
-    EventHub.$on('update-wallet-balance', this.updateWalletBalance)
+    document.addEventListener('updateWalletBalance', this.updateWalletBalance)
   }
 })
 
-Vue.component('lnbits-extension-list', {
+window.app.component('lnbits-extension-list', {
   data: function () {
     return {
       extensions: [],
@@ -169,7 +167,7 @@ Vue.component('lnbits-extension-list', {
   }
 })
 
-Vue.component('lnbits-manage', {
+window.app.component('lnbits-manage', {
   props: ['showAdmin', 'showNode', 'showExtensions', 'showUsers'],
   methods: {
     isActive: function (path) {
@@ -229,9 +227,9 @@ Vue.component('lnbits-manage', {
   }
 })
 
-Vue.component('lnbits-payment-details', {
+window.app.component('lnbits-payment-details', {
   props: ['payment'],
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   data: function () {
     return {
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
@@ -345,7 +343,7 @@ Vue.component('lnbits-payment-details', {
   }
 })
 
-Vue.component('lnbits-lnurlpay-success-action', {
+window.app.component('lnbits-lnurlpay-success-action', {
   props: ['payment', 'success_action'],
   data() {
     return {
@@ -374,10 +372,12 @@ Vue.component('lnbits-lnurlpay-success-action', {
   }
 })
 
-Vue.component('lnbits-qrcode', {
-  mixins: [windowMixin],
+window.app.component('lnbits-qrcode', {
+  mixins: [window.windowMixin],
+  components: {
+    QrcodeVue
+  },
   props: ['value'],
-  components: {[VueQrcode.name]: VueQrcode},
   data() {
     return {
       logo: LNBITS_QR_LOGO
@@ -385,15 +385,14 @@ Vue.component('lnbits-qrcode', {
   },
   template: `
   <div class="qrcode__wrapper">
-    <qrcode :value="value"
-    :options="{errorCorrectionLevel: 'Q', width: 800}" class="rounded-borders"></qrcode>
+    <qrcode-vue :value="value" size="350" class="rounded-borders"></qrcode-vue>
     <img class="qrcode__image" :src="logo" alt="..." />
   </div>
   `
 })
 
-Vue.component('lnbits-notifications-btn', {
-  mixins: [windowMixin],
+window.app.component('lnbits-notifications-btn', {
+  mixins: [window.windowMixin],
   props: ['pubkey'],
   data() {
     return {
@@ -605,8 +604,8 @@ Vue.component('lnbits-notifications-btn', {
   }
 })
 
-Vue.component('lnbits-dynamic-fields', {
-  mixins: [windowMixin],
+window.app.component('lnbits-dynamic-fields', {
+  mixins: [window.windowMixin],
   props: ['options', 'value'],
   data() {
     return {
@@ -742,8 +741,8 @@ Vue.component('lnbits-dynamic-fields', {
   }
 })
 
-Vue.component('lnbits-update-balance', {
-  mixins: [windowMixin],
+window.app.component('lnbits-update-balance', {
+  mixins: [window.windowMixin],
   props: ['wallet_id', 'callback'],
   computed: {
     denomination() {

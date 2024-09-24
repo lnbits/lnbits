@@ -1,11 +1,6 @@
-/* globals windowMixin, decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, decryptLnurlPayAES */
-
-Vue.component(VueQrcode.name, VueQrcode)
-Vue.use(VueQrcodeReader)
-
-new Vue({
+window.app = Vue.createApp({
   el: '#vue',
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   data: function () {
     return {
       updatePayments: false,
@@ -321,7 +316,7 @@ new Vue({
             var expireDate = new Date(
               (invoice.data.time_stamp + tag.value) * 1000
             )
-            cleanInvoice.expireDate = Quasar.utils.date.formatDate(
+            cleanInvoice.expireDate = this.$q.utils.date.formatDate(
               expireDate,
               'YYYY-MM-DDTHH:mm:ss.SSSZ'
             )
@@ -514,10 +509,11 @@ new Vue({
     fetchBalance: function () {
       LNbits.api.getWallet(this.g.wallet).then(response => {
         this.balance = Math.floor(response.data.balance / 1000)
-        EventHub.$emit('update-wallet-balance', [
-          this.g.wallet.id,
-          this.balance
-        ])
+        document.dispatchEvent(
+          new CustomEvent('updateWalletBalance', {
+            detail: [this.g.wallet.id, this.balance]
+          })
+        )
       })
       if (this.g.wallet.currency) {
         this.updateFiatBalance()

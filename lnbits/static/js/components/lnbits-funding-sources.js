@@ -1,5 +1,5 @@
-Vue.component('lnbits-funding-sources', {
-  mixins: [windowMixin],
+window.app.component('lnbits-funding-sources', {
+  mixins: [window.windowMixin],
   props: ['form-data', 'allowed-funding-sources'],
   methods: {
     getFundingSourceLabel(item) {

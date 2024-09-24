@@ -4,7 +4,7 @@ function shortenNodeId(nodeId) {
     : '...'
 }
 
-Vue.component('lnbits-node-ranks', {
+window.app.component('lnbits-node-ranks', {
   props: ['ranks'],
   data: function () {
     return {
@@ -35,7 +35,7 @@ Vue.component('lnbits-node-ranks', {
   `
 })
 
-Vue.component('lnbits-channel-stats', {
+window.app.component('lnbits-channel-stats', {
   props: ['stats'],
   data: function () {
     return {
@@ -71,7 +71,7 @@ Vue.component('lnbits-channel-stats', {
   }
 })
 
-Vue.component('lnbits-stat', {
+window.app.component('lnbits-stat', {
   props: ['title', 'amount', 'msat', 'btc'],
   computed: {
     value: function () {
@@ -99,20 +99,20 @@ Vue.component('lnbits-stat', {
   `
 })
 
-Vue.component('lnbits-node-qrcode', {
+window.app.component('lnbits-node-qrcode', {
   props: ['info'],
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   template: `
     <q-card class="my-card">
       <q-card-section>
         <div class="text-h6">
           <div style="text-align: center">
-            <qrcode
+            <vue-qrcode
               :value="info.addresses[0]"
               :options="{width: 250}"
               v-if='info.addresses[0]'
               class="rounded-borders"
-            ></qrcode>
+            ></vue-qrcode>
             <div v-else class='text-subtitle1'>
               No addresses available
             </div>
@@ -132,14 +132,14 @@ Vue.component('lnbits-node-qrcode', {
   `
 })
 
-Vue.component('lnbits-node-info', {
+window.app.component('lnbits-node-info', {
   props: ['info'],
   data() {
     return {
       showDialog: false
     }
   },
-  mixins: [windowMixin],
+  mixins: [window.windowMixin],
   methods: {
     shortenNodeId
   },
@@ -177,7 +177,7 @@ Vue.component('lnbits-node-info', {
   `
 })
 
-Vue.component('lnbits-stat', {
+window.app.component('lnbits-stat', {
   props: ['title', 'amount', 'msat', 'btc'],
   computed: {
     value: function () {
@@ -205,7 +205,7 @@ Vue.component('lnbits-stat', {
       `
 })
 
-Vue.component('lnbits-channel-balance', {
+window.app.component('lnbits-channel-balance', {
   props: ['balance', 'color'],
   methods: {
     formatMsat: function (msat) {
@@ -246,7 +246,7 @@ Vue.component('lnbits-channel-balance', {
   `
 })
 
-Vue.component('lnbits-date', {
+window.app.component('lnbits-date', {
   props: ['ts'],
   computed: {
     date: function () {

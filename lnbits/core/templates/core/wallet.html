@@ -154,10 +154,10 @@
                   <q-card>
                     <q-card-section class="text-center">
                       <p v-text="$t('export_to_phone_desc')"></p>
-                      <qrcode
+                      <qrcode-vue
                         :value="'{{request.base_url}}wallet?usr={{user.id}}&wal={{wallet.id}}'"
                         :options="{ width: 256 }"
-                      ></qrcode>
+                      ></qrcode-vue>
                     </q-card-section>
                     <q-card-actions class="flex-center q-pb-md">
                       <q-btn
