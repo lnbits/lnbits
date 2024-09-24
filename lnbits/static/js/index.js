@@ -78,7 +78,7 @@ window.app = Vue.createApp({
       })
     },
     processing: function () {
-      Quasar.notify({
+      Quasar.Notify.create({
         timeout: 0,
         message: 'Processing...',
         icon: null

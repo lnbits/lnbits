@@ -504,7 +504,7 @@ window.windowMixin = {
     },
     copyText: function (text, message, position) {
       Quasar.copyToClipboard(text).then(function () {
-        Quasar.notify({
+        Quasar.Notify.create({
           message: message || 'Copied to clipboard!',
           position: position || 'bottom'
         })
