@@ -23,26 +23,14 @@
       <div class="q-pa-xs">
         <div class="q-gutter-y-md">
           <q-tabs
-            v-model="tab"
-            @input="handleTabChanged"
+            :model-value="tab"
+            @update:model-value="handleTabChanged"
             active-color="primary"
             align="left"
           >
-            <q-tab
-              name="installed"
-              :label="$t('installed')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="all"
-              :label="$t('all')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="featured"
-              :label="$t('featured')"
-              @update="val => tab = val.name"
-            ></q-tab>
+            <q-tab name="installed" :label="$t('installed')"></q-tab>
+            <q-tab name="all" :label="$t('all')"></q-tab>
+            <q-tab name="featured" :label="$t('featured')"></q-tab>
             <i
               v-if="!g.user.admin && tab != 'installed'"
               v-text="$t('only_admins_can_install')"
