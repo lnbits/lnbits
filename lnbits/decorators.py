@@ -95,15 +95,6 @@ class KeyChecker(SecurityBase):
         return WalletTypeInfo(key_type, wallet)
 
 
-async def get_key_type(
-    request: Request,
-    api_key_header: str = Security(api_key_header),
-    api_key_query: str = Security(api_key_query),
-) -> WalletTypeInfo:
-    check: KeyChecker = KeyChecker(api_key=api_key_header or api_key_query)
-    return await check(request)
-
-
 async def require_admin_key(
     request: Request,
     api_key_header: str = Security(api_key_header),
