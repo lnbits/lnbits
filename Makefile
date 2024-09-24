@@ -74,10 +74,10 @@ test-migration:
 	timeout 5s poetry run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
 	HOST=0.0.0.0 \
 	PORT=5002 \
-	LNBITS_DATABASE_URL="postgresql+asyncpg://lnbits:lnbits@localhost:5432/migration" \
+	LNBITS_DATABASE_URL="postgresql://lnbits:lnbits@localhost:5432/migration" \
 	timeout 5s poetry run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
 	LNBITS_DATA_FOLDER="./tests/data" \
-	LNBITS_DATABASE_URL="postgresql+asyncpg://lnbits:lnbits@localhost:5432/migration" \
+	LNBITS_DATABASE_URL="postgresql://lnbits:lnbits@localhost:5432/migration" \
 	poetry run python tools/conv.py
 
 migration:
