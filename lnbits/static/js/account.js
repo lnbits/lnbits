@@ -121,6 +121,13 @@ window.app = Vue.createApp({
       )
     },
     updatePassword: async function () {
+      if (!this.credentialsData.username) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'Please set a username.'
+        })
+        return
+      }
       try {
         const {data} = await LNbits.api.request(
           'PUT',
@@ -128,7 +135,7 @@ window.app = Vue.createApp({
           null,
           {
             user_id: this.user.id,
-            username: this.user.username || this.credentialsData.username,
+            username: this.credentialsData.username,
             password_old: this.credentialsData.oldPassword,
             password: this.credentialsData.newPassword,
             password_repeat: this.credentialsData.newPasswordRepeat

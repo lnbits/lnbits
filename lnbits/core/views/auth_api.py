@@ -228,8 +228,10 @@ async def update_password(
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
 
     try:
-        return await update_user_password(data, payload.auth_time or 0)
+        if data.username and not user.username:
+            await update_account(user_id=user.id, username=data.username)
 
+        return await update_user_password(data, payload.auth_time or 0)
     except AssertionError as exc:
         raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
     except Exception as exc:
