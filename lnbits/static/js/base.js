@@ -155,6 +155,14 @@ window.LNbits = {
         amount: credit,
         id: wallet_id
       })
+    },
+    getCurrencies() {
+      return LNbits.api
+        .request('GET', '/api/v1/currencies')
+        .then(response => {
+          return ['sats', ...response.data]
+        })
+        .catch(LNbits.utils.notifyApiError)
     }
   },
   events: {
@@ -193,7 +201,7 @@ window.LNbits = {
   },
   map: {
     extension: function (data) {
-      var obj = _.object(
+      const obj = _.object(
         [
           'code',
           'isValid',
@@ -210,7 +218,7 @@ window.LNbits = {
       return obj
     },
     user: function (data) {
-      var obj = {
+      const obj = {
         id: data.id,
         admin: data.admin,
         email: data.email,
@@ -218,7 +226,7 @@ window.LNbits = {
         wallets: data.wallets,
         admin: data.admin
       }
-      var mapWallet = this.wallet
+      const mapWallet = this.wallet
       obj.wallets = obj.wallets
         .map(function (obj) {
           return mapWallet(obj)
@@ -334,8 +342,10 @@ window.LNbits = {
       return this.formatSat(value / 1000)
     },
     notifyApiError: function (error) {
-      console.error(error)
-      var types = {
+      if (!error.response) {
+        return console.error(error)
+      }
+      const types = {
         400: 'warning',
         401: 'warning',
         500: 'negative'
@@ -354,9 +364,9 @@ window.LNbits = {
     },
     search: function (data, q, field, separator) {
       try {
-        var queries = q.toLowerCase().split(separator || ' ')
+        const queries = q.toLowerCase().split(separator || ' ')
         return data.filter(function (obj) {
-          var matches = 0
+          let matches = 0
           _.each(queries, function (q) {
             if (obj[field].indexOf(q) !== -1) matches++
           })
@@ -385,8 +395,8 @@ window.LNbits = {
       return new URLSearchParams(query)
     },
     exportCSV: function (columns, data, fileName) {
-      var wrapCsvValue = function (val, formatFn) {
-        var formatted = formatFn !== void 0 ? formatFn(val) : val
+      const wrapCsvValue = function (val, formatFn) {
+        let formatted = formatFn !== void 0 ? formatFn(val) : val
 
         formatted =
           formatted === void 0 || formatted === null ? '' : String(formatted)
@@ -396,7 +406,7 @@ window.LNbits = {
         return `"${formatted}"`
       }
 
-      var content = [
+      const content = [
         columns.map(function (col) {
           return wrapCsvValue(col.label)
         })
@@ -417,7 +427,7 @@ window.LNbits = {
         )
         .join('\r\n')
 
-      var status = Quasar.exportFile(
+      const status = Quasar.exportFile(
         `${fileName || 'table-export'}.csv`,
         content,
         'text/csv'
@@ -668,7 +678,7 @@ window.windowMixin = {
       this.g.wallet = Object.freeze(window.LNbits.map.wallet(window.wallet))
     }
     if (window.extensions) {
-      var user = this.g.user
+      const user = this.g.user
       const extensions = Object.freeze(
         window.extensions
           .map(function (data) {
