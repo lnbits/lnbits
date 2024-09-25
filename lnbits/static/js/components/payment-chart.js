@@ -35,14 +35,14 @@ function generateChart(canvas, rawData) {
           type: 'bar',
           label: 'in',
           barPercentage: 0.75,
-          backgroundColor: window.Color('rgb(76,175,80)').alpha(0.5).rgbString() // green
+          backgroundColor: 'rgba(76, 175, 80, 0.5)' // green
         },
         {
           data: data.spending,
           type: 'bar',
           label: 'out',
           barPercentage: 0.75,
-          backgroundColor: window.Color('rgb(233,30,99)').alpha(0.5).rgbString() // pink
+          backgroundColor: 'rgba(233, 30, 99, 0.5)' // pink
         }
       ]
     },
