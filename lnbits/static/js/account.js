@@ -113,10 +113,10 @@ window.app = Vue.createApp({
       )
     },
     disableUpdatePubkey: function () {
+      const pubkey = this.credentialsData.pubkey || ''
       return (
-        ((this.credentialsData.pubkey || '').length !== 0 &&
-          (this.credentialsData.pubkey || '').length !== 64) ||
-        this.credentialsData.pubkey === this.user.pubkey
+        ((pubkey || '').length !== 0 && (pubkey || '').length !== 64) ||
+        pubkey == (this.user.pubkey || '')
       )
     },
     updatePassword: async function () {
@@ -138,6 +138,27 @@ window.app = Vue.createApp({
         Quasar.Notify.create({
           type: 'positive',
           message: 'Password updated.'
+        })
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
+    },
+    updatePubkey: async function () {
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          '/api/v1/auth/pubkey',
+          null,
+          {
+            user_id: this.user.id,
+            pubkey: this.credentialsData.pubkey
+          }
+        )
+        this.user = data
+        this.credentialsData.show = false
+        this.$q.notify({
+          type: 'positive',
+          message: 'Public key updated.'
         })
       } catch (e) {
         LNbits.utils.notifyApiError(e)

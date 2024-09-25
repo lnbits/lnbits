@@ -110,7 +110,7 @@
                       :rules="[(val) => !val || val.length == 64]"
                     ></q-input>
                     <q-btn
-                      @click="updatePassword"
+                      @click="updatePubkey"
                       :disable="disableUpdatePubkey()"
                       unelevated
                       color="primary"

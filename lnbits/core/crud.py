@@ -215,9 +215,9 @@ async def verify_user_password(user_id: str, password: str) -> bool:
     return pwd_context.verify(password, existing_password)
 
 
-async def update_user_password(data: UpdateUserPassword, login_duration: int) -> User:
+async def update_user_password(data: UpdateUserPassword, last_login_time: int) -> User:
 
-    assert 0 <= login_duration <= settings.auth_credetials_update_threshold, (
+    assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
         "Credentials update time expired." " Please login again!"
     )
     assert data.password == data.password_repeat, "Passwords do not match."
@@ -242,9 +242,9 @@ async def update_user_password(data: UpdateUserPassword, login_duration: int) ->
     return user
 
 
-async def update_user_pubkey(data: UpdateUserPubkey, login_duration: int) -> User:
+async def update_user_pubkey(data: UpdateUserPubkey, last_login_time: int) -> User:
 
-    assert 0 <= login_duration <= settings.auth_credetials_update_threshold, (
+    assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
         "Credentials update time expired." " Please login again!"
     )
 

@@ -148,15 +148,9 @@ class User(BaseModel):
     created_at: Optional[int] = None
     updated_at: Optional[int] = None
 
-    _last_login_time: int = 0
-
     @property
     def wallet_ids(self) -> list[str]:
         return [wallet.id for wallet in self.wallets]
-
-    @property
-    def login_duration(self) -> int:
-        return int(time.time() - self._last_login_time)
 
     def get_wallet(self, wallet_id: str) -> Optional[Wallet]:
         w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
@@ -212,6 +206,13 @@ class LoginUsr(BaseModel):
 class LoginUsernamePassword(BaseModel):
     username: str
     password: str
+
+
+class AccessTokenPayload(BaseModel):
+    sub: str
+    usr: Optional[str] = None
+    email: Optional[str] = None
+    auth_time: Optional[int] = 0
 
 
 class PaymentState(str, Enum):

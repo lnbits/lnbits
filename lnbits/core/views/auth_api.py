@@ -17,7 +17,7 @@ from starlette.status import (
 
 from lnbits.core.helpers import is_valid_url
 from lnbits.core.services import create_user_account
-from lnbits.decorators import check_user_exists
+from lnbits.decorators import access_token_payload, check_user_exists
 from lnbits.helpers import (
     create_access_token,
     decrypt_internal_message,
@@ -40,6 +40,7 @@ from ..crud import (
     verify_user_password,
 )
 from ..models import (
+    AccessTokenPayload,
     CreateUser,
     LoginUsernamePassword,
     LoginUsr,
@@ -219,13 +220,15 @@ async def register(data: CreateUser) -> JSONResponse:
 
 @auth_router.put("/password")
 async def update_password(
-    data: UpdateUserPassword, user: User = Depends(check_user_exists)
+    data: UpdateUserPassword,
+    user: User = Depends(check_user_exists),
+    payload: AccessTokenPayload = Depends(access_token_payload),
 ) -> Optional[User]:
     if data.user_id != user.id:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
 
     try:
-        return await update_user_password(data, user.login_duration)
+        return await update_user_password(data, payload.auth_time or 0)
 
     except AssertionError as exc:
         raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
@@ -238,13 +241,15 @@ async def update_password(
 
 @auth_router.put("/pubkey")
 async def update_pubkey(
-    data: UpdateUserPubkey, user: User = Depends(check_user_exists)
+    data: UpdateUserPubkey,
+    user: User = Depends(check_user_exists),
+    payload: AccessTokenPayload = Depends(access_token_payload),
 ) -> Optional[User]:
     if data.user_id != user.id:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
 
     try:
-        return await update_user_pubkey(data, user.login_duration)
+        return await update_user_pubkey(data, payload.auth_time or 0)
 
     except AssertionError as exc:
         raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
@@ -342,14 +347,10 @@ def _auth_success_response(
     user_id: Optional[str] = None,
     email: Optional[str] = None,
 ) -> JSONResponse:
-    access_token = create_access_token(
-        data={
-            "sub": username or "",
-            "usr": user_id,
-            "email": email,
-            "auth_time": int(time()),
-        }
+    payload = AccessTokenPayload(
+        sub=username or "", usr=user_id, email=email, auth_time=int(time())
     )
+    access_token = create_access_token(data=payload.dict())
     response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
     response.set_cookie("cookie_access_token", access_token, httponly=True)
     response.set_cookie("is_lnbits_user_authorized", "true")
@@ -359,9 +360,8 @@ def _auth_success_response(
 
 
 def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
-    access_token = create_access_token(
-        data={"sub": "" or "", "email": email, "auth_time": int(time())}
-    )
+    payload = AccessTokenPayload(sub="" or "", email=email, auth_time=int(time()))
+    access_token = create_access_token(data=payload.dict())
     response = RedirectResponse(path)
     response.set_cookie("cookie_access_token", access_token, httponly=True)
     response.set_cookie("is_lnbits_user_authorized", "true")

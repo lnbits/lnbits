@@ -18,7 +18,13 @@ from lnbits.core.crud import (
     get_user_active_extensions_ids,
     get_wallet_for_key,
 )
-from lnbits.core.models import KeyType, SimpleStatus, User, WalletTypeInfo
+from lnbits.core.models import (
+    AccessTokenPayload,
+    KeyType,
+    SimpleStatus,
+    User,
+    WalletTypeInfo,
+)
 from lnbits.db import Filter, Filters, TFilterModel
 from lnbits.settings import AuthMethods, settings
 
@@ -162,6 +168,16 @@ async def optional_user_id(
     return None
 
 
+async def access_token_payload(
+    access_token: Annotated[Optional[str], Depends(check_access_token)],
+) -> AccessTokenPayload:
+    if not access_token:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing access token.")
+
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    return AccessTokenPayload(**payload)
+
+
 async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User:
     if user.id != settings.super_user and user.id not in settings.lnbits_admin_users:
         raise HTTPException(
@@ -254,8 +270,6 @@ async def _get_account_from_token(access_token) -> Optional[User]:
                 HTTPStatus.UNAUTHORIZED, "Data missing for access token."
             )
 
-
-        user._last_login_time = int(payload.get("auth_time", 0))
         return user
 
     except jwt.ExpiredSignatureError as exc:
