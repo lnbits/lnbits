@@ -75,7 +75,7 @@ async def stop_extension_background_work(ext_id: str) -> bool:
         # The `api_stop()` function is for backwards compatibility (will be deprecated)
         stop_fns = [f"{ext_id}_stop", "api_stop"]
         stop_fn_name = next((fn for fn in stop_fns if hasattr(old_module, fn)), None)
-        assert stop_fn_name, "No stop function found for '{ext.module_name}'"
+        assert stop_fn_name, f"No stop function found for '{ext.module_name}'."
 
         stop_fn = getattr(old_module, stop_fn_name)
         if stop_fn:
