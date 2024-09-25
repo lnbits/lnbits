@@ -31,6 +31,7 @@ from .models import (
     PaymentHistoryPoint,
     TinyURL,
     UpdateUserPassword,
+    UpdateUserPubkey,
     User,
     UserConfig,
     Wallet,
@@ -214,27 +215,52 @@ async def verify_user_password(user_id: str, password: str) -> bool:
     return pwd_context.verify(password, existing_password)
 
 
-async def update_user_password(
-    data: UpdateUserPassword, last_login_time: int
-) -> Optional[User]:
+async def update_user_password(data: UpdateUserPassword, login_duration: int) -> User:
 
-    assert abs(time() - last_login_time) < 60, (
+    assert 0 <= login_duration <= settings.auth_credetials_update_threshold, (
         "Credentials update time expired." " Please login again!"
     )
     assert data.password == data.password_repeat, "Passwords do not match."
 
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    now = int(time())
-    now_ph = db.timestamp_placeholder("now")
     await db.execute(
         f"""
-        UPDATE accounts SET pass = :pass, updated_at = {now_ph}
+        UPDATE accounts
+        SET pass = :pass, updated_at = {db.timestamp_placeholder("now")}
         WHERE id = :user
         """,
         {
             "pass": pwd_context.hash(data.password),
-            "now": now,
+            "now": int(time()),
+            "user": data.user_id,
+        },
+    )
+
+    user = await get_user(data.user_id)
+    assert user, "Updated account couldn't be retrieved"
+    return user
+
+
+async def update_user_pubkey(data: UpdateUserPubkey, login_duration: int) -> User:
+
+    assert 0 <= login_duration <= settings.auth_credetials_update_threshold, (
+        "Credentials update time expired." " Please login again!"
+    )
+
+    user = await get_account_by_pubkey(data.pubkey)
+    if user:
+        assert user.id == data.user_id, "Public key already in use."
+
+    await db.execute(
+        f"""
+        UPDATE accounts
+        SET pubkey = :pubkey, updated_at = {db.timestamp_placeholder("now")}
+        WHERE id = :user
+        """,
+        {
+            "pubkey": data.pubkey,
+            "now": int(time()),
             "user": data.user_id,
         },
     )

@@ -111,7 +111,7 @@ window.app = Vue.createApp({
         this.passwordData.newPassword !== this.passwordData.newPasswordRepeat
       )
     },
-    updateCredentials: async function () {
+    updatePassword: async function () {
       if (!this.user.username) {
         Quasar.Notify.create({
           type: 'warning',

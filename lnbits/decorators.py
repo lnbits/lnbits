@@ -254,7 +254,7 @@ async def _get_account_from_token(access_token) -> Optional[User]:
                 HTTPStatus.UNAUTHORIZED, "Data missing for access token."
             )
 
-        user.last_login_time = int(payload.get("auth_time", 0))
+        user._last_login_time = int(payload.get("auth_time", 0))
         return user
 
     except jwt.ExpiredSignatureError as exc:

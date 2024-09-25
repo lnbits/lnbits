@@ -36,6 +36,7 @@ from ..crud import (
     get_user,
     update_account,
     update_user_password,
+    update_user_pubkey,
     verify_user_password,
 )
 from ..models import (
@@ -45,6 +46,7 @@ from ..models import (
     UpdateSuperuserPassword,
     UpdateUser,
     UpdateUserPassword,
+    UpdateUserPubkey,
     User,
     UserConfig,
 )
@@ -223,7 +225,26 @@ async def update_password(
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
 
     try:
-        return await update_user_password(data, user.last_login_time)
+        return await update_user_password(data, user.login_duration)
+
+    except AssertionError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.debug(exc)
+        raise HTTPException(
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
+        ) from exc
+
+
+@auth_router.put("/pubkey")
+async def update_pubkey(
+    data: UpdateUserPubkey, user: User = Depends(check_user_exists)
+) -> Optional[User]:
+    if data.user_id != user.id:
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
+
+    try:
+        return await update_user_pubkey(data, user.login_duration)
 
     except AssertionError as exc:
         raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
@@ -272,7 +293,7 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
             password_repeat=data.password_repeat,
             username=data.username,
         )
-        await update_user_password(super_user, int(time()))
+        await update_user_password(super_user, 0)
         settings.first_install = False
         return _auth_success_response(username=super_user.username)
     except AssertionError as exc:

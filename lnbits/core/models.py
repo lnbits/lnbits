@@ -148,11 +148,15 @@ class User(BaseModel):
     created_at: Optional[int] = None
     updated_at: Optional[int] = None
 
-    last_login_time: int = 0
+    _last_login_time: int = 0
 
     @property
     def wallet_ids(self) -> list[str]:
         return [wallet.id for wallet in self.wallets]
+
+    @property
+    def login_duration(self) -> int:
+        return int(time.time() - self._last_login_time)
 
     def get_wallet(self, wallet_id: str) -> Optional[Wallet]:
         w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
@@ -188,6 +192,11 @@ class UpdateUserPassword(BaseModel):
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
     username: Optional[str] = Query(default=..., min_length=2, max_length=20)
+
+
+class UpdateUserPubkey(BaseModel):
+    user_id: str
+    pubkey: str = Query(default=..., min_length=64, max_length=64)
 
 
 class UpdateSuperuserPassword(BaseModel):
