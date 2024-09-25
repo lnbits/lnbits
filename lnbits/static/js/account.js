@@ -23,10 +23,10 @@ window.app = Vue.createApp({
   },
   methods: {
     activeLanguage: function (lang) {
-      return window.i18n.locale === lang
+      return window.i18n.global.locale === lang
     },
     changeLanguage: function (newValue) {
-      window.i18n.locale = newValue
+      window.i18n.global.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)
     },
     toggleDarkMode: function () {

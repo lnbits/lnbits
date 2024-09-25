@@ -615,7 +615,7 @@ window.windowMixin = {
     let locale = this.$q.localStorage.getItem('lnbits.lang')
     if (locale) {
       window.LOCALE = locale
-      window.i18n.locale = locale
+      window.i18n.global.locale = locale
     }
 
     this.g.langs = window.langs ?? []
