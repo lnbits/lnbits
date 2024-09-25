@@ -81,6 +81,7 @@ function generateChart(canvas, rawData) {
 }
 
 window.app.component('payment-chart', {
+  template: '#payment-chart',
   name: 'payment-chart',
   props: ['wallet'],
   mixins: [window.windowMixin],
@@ -128,30 +129,5 @@ window.app.component('payment-chart', {
           this.paymentsChart.show = false
         })
     }
-  },
-  template: `
-    <span id="payment-chart">
-        <q-btn dense flat round icon="show_chart" color="grey" @click="showChart" >
-            <q-tooltip>
-                <span v-text="$t('chart_tooltip')"></span>
-            </q-tooltip>
-        </q-btn>
-
-        <q-dialog v-model="paymentsChart.show" position="top">
-            <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
-                <q-card-section>
-                    <div class="row q-gutter-sm justify-between">
-                        <div class="text-h6">Payments Chart</div>
-                        <q-select label="Group" filled dense v-model="paymentsChart.group"
-                        style="min-width: 120px"
-                        :options="paymentsChart.groupOptions"
-                        >
-                        </q-select>
-                    </div>
-                    <canvas ref="canvas" width="600" height="400"></canvas>
-                </q-card-section>
-            </q-card>
-        </q-dialog>
-    </span>
-    `
+  }
 })
