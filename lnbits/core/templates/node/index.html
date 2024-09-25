@@ -47,7 +47,7 @@
   Vue.component(VueQrcode.name, VueQrcode)
   Vue.use(VueQrcodeReader)
 
-  new Vue({
+  window.app = Vue.createApp({
     el: '#vue',
     config: {
       globalProperties: {
@@ -55,7 +55,7 @@
         msg: 'hello'
       }
     },
-    mixins: [windowMixin],
+    mixins: [window.windowMixin],
     data: function () {
       return {
         isSuperUser: false,
