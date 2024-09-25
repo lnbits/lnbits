@@ -15,10 +15,10 @@ window.app = Vue.createApp({
       tab: 'user',
       passwordData: {
         show: false,
+        oldPassword: null,
         newPassword: null,
         newPasswordRepeat: null,
-        username: null,
-        pubkey: null
+        username: null
       }
     }
   },
@@ -127,6 +127,7 @@ window.app = Vue.createApp({
           {
             user_id: this.user.id,
             username: this.user.username || this.passwordData.username,
+            password_old: this.passwordData.oldPassword,
             password: this.passwordData.newPassword,
             password_repeat: this.passwordData.newPasswordRepeat
           }
@@ -144,6 +145,7 @@ window.app = Vue.createApp({
     showUpdateCredentials: function () {
       this.credentialsData = {
         show: true,
+        oldPassword: null,
         username: this.user.username,
         newPassword: null,
         newPasswordRepeat: null
