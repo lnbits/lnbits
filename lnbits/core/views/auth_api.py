@@ -35,7 +35,7 @@ from ..crud import (
     get_account_by_username_or_email,
     get_user,
     update_account,
-    update_user_credentials,
+    update_user_password,
     verify_user_password,
 )
 from ..models import (
@@ -44,7 +44,7 @@ from ..models import (
     LoginUsr,
     UpdateSuperuserPassword,
     UpdateUser,
-    UpdateUserCredentials,
+    UpdateUserPassword,
     User,
     UserConfig,
 )
@@ -215,15 +215,15 @@ async def register(data: CreateUser) -> JSONResponse:
         ) from exc
 
 
-@auth_router.put("/credentials")
+@auth_router.put("/password")
 async def update_password(
-    data: UpdateUserCredentials, user: User = Depends(check_user_exists)
+    data: UpdateUserPassword, user: User = Depends(check_user_exists)
 ) -> Optional[User]:
     if data.user_id != user.id:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
 
     try:
-        return await update_user_credentials(data, user.last_login_time)
+        return await update_user_password(data, user.last_login_time)
 
     except AssertionError as exc:
         raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
@@ -266,13 +266,13 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
             username=data.username,
             user_config=UserConfig(provider="lnbits"),
         )
-        super_user = UpdateUserCredentials(
+        super_user = UpdateUserPassword(
             user_id=settings.super_user,
             password=data.password,
             password_repeat=data.password_repeat,
             username=data.username,
         )
-        await update_user_credentials(super_user, int(time()))
+        await update_user_password(super_user, int(time()))
         settings.first_install = False
         return _auth_success_response(username=super_user.username)
     except AssertionError as exc:

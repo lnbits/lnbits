@@ -30,7 +30,7 @@ from .models import (
     PaymentFilters,
     PaymentHistoryPoint,
     TinyURL,
-    UpdateUserCredentials,
+    UpdateUserPassword,
     User,
     UserConfig,
     Wallet,
@@ -214,8 +214,8 @@ async def verify_user_password(user_id: str, password: str) -> bool:
     return pwd_context.verify(password, existing_password)
 
 
-async def update_user_credentials(
-    data: UpdateUserCredentials, last_login_time: int
+async def update_user_password(
+    data: UpdateUserPassword, last_login_time: int
 ) -> Optional[User]:
 
     assert abs(time() - last_login_time) < 60, (
@@ -229,7 +229,7 @@ async def update_user_credentials(
     now_ph = db.timestamp_placeholder("now")
     await db.execute(
         f"""
-        UPDATE accounts SET pass = :pass, pubkey = :pubkey, updated_at = {now_ph}
+        UPDATE accounts SET pass = :pass, updated_at = {now_ph}
         WHERE id = :user
         """,
         {

@@ -13,7 +13,7 @@ window.app = Vue.createApp({
         'confettiStars'
       ],
       tab: 'user',
-      credentialsData: {
+      passwordData: {
         show: false,
         newPassword: null,
         newPasswordRepeat: null,
@@ -104,13 +104,11 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
-    disableUpdateCredentials: function () {
+    disableUpdatePassword: function () {
       return (
-        (!this.credentialsData.newPassword ||
-          !this.credentialsData.newPasswordRepeat ||
-          this.credentialsData.newPassword !==
-            this.credentialsData.newPasswordRepeat) &&
-        this.credentialsData.pubkey === this.user.pubkey
+        !this.passwordData.newPassword ||
+        !this.passwordData.newPasswordRepeat ||
+        this.passwordData.newPassword !== this.passwordData.newPasswordRepeat
       )
     },
     updateCredentials: async function () {
@@ -124,14 +122,13 @@ window.app = Vue.createApp({
       try {
         const {data} = await LNbits.api.request(
           'PUT',
-          '/api/v1/auth/credentials',
+          '/api/v1/auth/password',
           null,
           {
             user_id: this.user.id,
-            username: this.user.username || this.credentialsData.username,
-            pubkey: this.credentialsData.pubkey,
-            password: this.credentialsData.newPassword,
-            password_repeat: this.credentialsData.newPasswordRepeat
+            username: this.user.username || this.passwordData.username,
+            password: this.passwordData.newPassword,
+            password_repeat: this.passwordData.newPasswordRepeat
           }
         )
         this.user = data
@@ -149,8 +146,7 @@ window.app = Vue.createApp({
         show: true,
         username: this.user.username,
         newPassword: null,
-        newPasswordRepeat: null,
-        pubkey: this.user.pubkey
+        newPasswordRepeat: null
       }
     }
   },

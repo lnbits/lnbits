@@ -183,12 +183,11 @@ class UpdateUser(BaseModel):
     config: Optional[UserConfig] = None
 
 
-class UpdateUserCredentials(BaseModel):
+class UpdateUserPassword(BaseModel):
     user_id: str
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
     username: Optional[str] = Query(default=..., min_length=2, max_length=20)
-    pubkey: Optional[str] = Query(default=..., min_length=64, max_length=64)
 
 
 class UpdateSuperuserPassword(BaseModel):

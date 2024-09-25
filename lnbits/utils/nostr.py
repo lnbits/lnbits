@@ -93,7 +93,7 @@ def verify_event(event: Dict) -> bool:
         ]
     )
     event_id = hashlib.sha256(signature_data.encode()).hexdigest()
-    if event_id != event["id"]:  # Invalid event id
+    if event_id != event["id"]:
         return False
     pubkey_hex = event["pubkey"]
     pubkey = secp256k1.PublicKey(bytes.fromhex("02" + pubkey_hex), True)

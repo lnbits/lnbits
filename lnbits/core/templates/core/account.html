@@ -26,7 +26,7 @@
             </q-tabs>
             <q-tab-panels v-model="tab">
               <q-tab-panel name="user">
-                <div v-if="credentialsData.show">
+                <div v-if="passwordData.show">
                   <q-separator></q-separator>
 
                   <q-card-section>
@@ -48,7 +48,7 @@
                   </q-card-section>
                   <q-card-section>
                     <q-input
-                      v-model="credentialsData.username"
+                      v-model="passwordData.username"
                       :label="$t('username')"
                       filled
                       dense
@@ -56,7 +56,17 @@
                       class="q-mb-md"
                     ></q-input>
                     <q-input
-                      v-model="credentialsData.newPassword"
+                      v-if="user.has_password"
+                      v-model="passwordData.oldPassword"
+                      type="password"
+                      autocomplete="off"
+                      label="Old Password"
+                      filled
+                      dense
+                      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+                    ></q-input>
+                    <q-input
+                      v-model="passwordData.newPassword"
                       type="password"
                       autocomplete="off"
                       :label="$t('password')"
@@ -65,7 +75,7 @@
                       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
                     ></q-input>
                     <q-input
-                      v-model="credentialsData.newPasswordRepeat"
+                      v-model="passwordData.newPasswordRepeat"
                       type="password"
                       autocomplete="off"
                       :label="$t('password_repeat')"
@@ -83,7 +93,7 @@
                       </h4>
                     </div>
                     <q-input
-                      v-model="credentialsData.pubkey"
+                      v-model="passwordData.pubkey"
                       type="text"
                       label="Pubkey"
                       filled
@@ -94,7 +104,7 @@
                   <q-separator></q-separator>
                   <q-card-section class="q-pb-lg">
                     <q-btn
-                      @click="credentialsData.show = false"
+                      @click="passwordData.show = false"
                       :label="$t('back')"
                       outline
                       unelevated
@@ -102,7 +112,7 @@
                     ></q-btn>
                     <q-btn
                       @click="updateCredentials"
-                      :disable="disableUpdateCredentials()"
+                      :disable="disableUpdatePassword()"
                       unelevated
                       color="primary"
                       class="float-right"
