@@ -14,10 +14,10 @@
   },
   "devDependencies": {
     "concat": "^1.0.3",
-    "minify": "^9.2",
+    "minify": "^9.2.0",
     "prettier": "^3.3.3",
-    "pyright": "1.1.382",
-    "sass": "^1.79.3"
+    "pyright": "1.1.289",
+    "sass": "^1.78.0"
   },
   "dependencies": {
     "axios": "^1.7.7",
