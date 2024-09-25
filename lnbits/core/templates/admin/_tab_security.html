@@ -34,11 +34,27 @@
       <div class="col-md-12 col-sm-12 q-pr-sm">
         <q-input
           filled
-          v-model="formData.nostr_absolute_request_url"
+          v-model="nostrAcceptedUrl"
+          @keydown.enter="addNostrUrl"
+          type="text"
           label="Nostr Request URL"
           hint="Absolute URL that the clients will use to login."
         >
+          <q-btn @click="addNostrUrl" dense flat icon="add"></q-btn>
         </q-input>
+      </div>
+      <div>
+        <div>
+          <q-chip
+            v-for="url in formData.nostr_absolute_request_urls"
+            :key="url"
+            removable
+            @remove="removeNostrUrl(url)"
+            color="primary"
+            text-color="white"
+            :label="url"
+          ></q-chip>
+        </div>
       </div>
     </div>
   </q-card-section>

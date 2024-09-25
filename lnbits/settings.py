@@ -453,7 +453,9 @@ class AuthSettings(LNbitsSettings):
 
 
 class NostrAuthSettings(LNbitsSettings):
-    nostr_absolute_request_url: str = Field(default="")
+    nostr_absolute_request_urls: list[str] = Field(
+        default=["http://127.0.0.1:5000", "http://localhost:5000"]
+    )
 
 
 class GoogleAuthSettings(LNbitsSettings):

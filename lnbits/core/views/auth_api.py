@@ -15,7 +15,6 @@ from starlette.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
-from lnbits.core.helpers import is_valid_url
 from lnbits.core.services import create_user_account
 from lnbits.decorators import access_token_payload, check_user_exists
 from lnbits.helpers import (
@@ -87,12 +86,6 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
 async def nostr_login(request: Request) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.nostr_auth_nip98):
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login with Nostr Auth not allowed.")
-
-    if not is_valid_url(settings.nostr_absolute_request_url):
-        raise HTTPException(
-            HTTP_401_UNAUTHORIZED,
-            "Nostr Auth request URL not configured by administrator.",
-        )
 
     try:
         event = _nostr_nip98_event(request)
@@ -437,8 +430,7 @@ def _nostr_nip98_event(request: Request) -> dict:
 
     url = next((v for k, v in event["tags"] if k == "u"), None)
     assert url, "Tag 'u' for URL is missing."
-    assert (
-        url == f"{settings.nostr_absolute_request_url}/nostr"
-    ), f"Incorrect value for tag 'u': '{url}'."
+    accepted_urls = [f"{u}/nostr" for u in settings.nostr_absolute_request_urls]
+    assert url in accepted_urls, f"Incorrect value for tag 'u': '{url}'."
 
     return event

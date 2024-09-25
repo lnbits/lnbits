@@ -56,10 +56,11 @@ window.app = Vue.createApp({
         window.location.href = '/wallet'
       } catch (error) {
         console.warn(error)
-        this.$q.notify({
+        const details = error?.response?.data?.detail || `${error}`
+        Quasar.Notify.create({
           type: 'negative',
           message: 'Failed to sign in with Nostr.',
-          caption: `${error}`
+          caption: details
         })
       }
     },
@@ -72,7 +73,7 @@ window.app = Vue.createApp({
             return await window.nostr.signEvent(e)
           } catch (error) {
             console.error(error)
-            this.$q.notify({
+            Quasar.Notify.create({
               type: 'negative',
               message: 'Failed to sign nostr event.',
               caption: `${error}`
@@ -80,7 +81,7 @@ window.app = Vue.createApp({
           }
         }
         if (!window.nostr?.signEvent) {
-          this.$q.notify({
+          Quasar.Notify.create({
             type: 'negative',
             message: 'No Nostr signing app detected.',
             caption: 'Is "window.nostr" present?'
@@ -107,7 +108,7 @@ window.app = Vue.createApp({
         return nostrToken
       } catch (error) {
         console.warn(error)
-        this.$q.notify({
+        Quasar.Notify.create({
           type: 'negative',
           message: 'Failed create Nostr event.',
           caption: `${error}`
