@@ -15,9 +15,9 @@ from pydantic.types import UUID4
 
 from lnbits.core.extensions.models import Extension, InstallableExtension
 from lnbits.core.helpers import to_valid_user_id
-from lnbits.core.models import User
+from lnbits.core.models import AccessTokenPayload, User
 from lnbits.core.services import create_invoice
-from lnbits.decorators import check_admin, check_user_exists
+from lnbits.decorators import access_token_payload, check_admin, check_user_exists
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
@@ -206,11 +206,19 @@ async def wallet(
 async def account(
     request: Request,
     user: User = Depends(check_user_exists),
+    payload: AccessTokenPayload = Depends(access_token_payload),
 ):
+    seconds_since_last_login = int(time() - (payload.auth_time or 0))
+    credetials_update_time_left = max(
+        0, settings.auth_credetials_update_threshold - seconds_since_last_login
+    )
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
-        {"user": user.dict(), "serverTime": time()},
+        {
+            "user": user.dict(),
+            "credetials_update_time_left": credetials_update_time_left,
+        },
     )
 
 

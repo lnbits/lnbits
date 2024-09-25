@@ -218,7 +218,9 @@ async def verify_user_password(user_id: str, password: str) -> bool:
 async def update_user_password(data: UpdateUserPassword, last_login_time: int) -> User:
 
     assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
-        "Credentials update time expired." " Please login again!"
+        "You can only update your credentials in the first"
+        f" {settings.auth_credetials_update_threshold} seconds after login."
+        " Please login again!"
     )
     assert data.password == data.password_repeat, "Passwords do not match."
 
@@ -245,7 +247,9 @@ async def update_user_password(data: UpdateUserPassword, last_login_time: int) -
 async def update_user_pubkey(data: UpdateUserPubkey, last_login_time: int) -> User:
 
     assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
-        "Credentials update time expired." " Please login again!"
+        "You can only update your credentials in the first"
+        f" {settings.auth_credetials_update_threshold} seconds after login."
+        " Please login again!"
     )
 
     user = await get_account_by_pubkey(data.pubkey)
