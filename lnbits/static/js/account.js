@@ -18,7 +18,8 @@ window.app = Vue.createApp({
         oldPassword: null,
         newPassword: null,
         newPasswordRepeat: null,
-        username: null
+        username: null,
+        pubkey: null
       }
     }
   },
@@ -169,6 +170,7 @@ window.app = Vue.createApp({
         show: true,
         oldPassword: null,
         username: this.user.username,
+        pubkey: this.user.pubkey,
         newPassword: null,
         newPasswordRepeat: null
       }
