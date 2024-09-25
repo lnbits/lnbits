@@ -1,5 +1,5 @@
 /*!
-  * vue-router v4.4.3
+  * vue-router v4.4.5
   * (c) 2024 Eduardo San Martin Morote
   * @license MIT
   */
@@ -8,8 +8,24 @@ var VueRouter = (function (exports, vue) {
 
   const isBrowser = typeof document !== 'undefined';
 
+  /**
+   * Allows differentiating lazy components from functional components and vue-class-component
+   * @internal
+   *
+   * @param component
+   */
+  function isRouteComponent(component) {
+      return (typeof component === 'object' ||
+          'displayName' in component ||
+          'props' in component ||
+          '__vccOpts' in component);
+  }
   function isESModule(obj) {
-      return obj.__esModule || obj[Symbol.toStringTag] === 'Module';
+      return (obj.__esModule ||
+          obj[Symbol.toStringTag] === 'Module' ||
+          // support CF with dynamic imports that do not
+          // add the Module string tag
+          (obj.default && isRouteComponent(obj.default)));
   }
   const assign = Object.assign;
   function applyToParams(fn, params) {
@@ -1412,13 +1428,14 @@ var VueRouter = (function (exports, vue) {
           mainNormalizedRecord.aliasOf = originalRecord && originalRecord.record;
           const options = mergeOptions(globalOptions, record);
           // generate an array of records to correctly handle aliases
-          const normalizedRecords = [
-              mainNormalizedRecord,
-          ];
+          const normalizedRecords = [mainNormalizedRecord];
           if ('alias' in record) {
               const aliases = typeof record.alias === 'string' ? [record.alias] : record.alias;
               for (const alias of aliases) {
-                  normalizedRecords.push(assign({}, mainNormalizedRecord, {
+                  normalizedRecords.push(
+                  // we need to normalize again to ensure the `mods` property
+                  // being non enumerable
+                  normalizeRouteRecord(assign({}, mainNormalizedRecord, {
                       // this allows us to hold a copy of the `components` option
                       // so that async components cache is hold on the original record
                       components: originalRecord
@@ -1431,7 +1448,7 @@ var VueRouter = (function (exports, vue) {
                           : mainNormalizedRecord,
                       // the aliases are always of the same kind as the original since they
                       // are defined on the same record
-                  }));
+                  })));
               }
           }
           let matcher;
@@ -1642,12 +1659,12 @@ var VueRouter = (function (exports, vue) {
    * @returns the normalized version
    */
   function normalizeRouteRecord(record) {
-      return {
+      const normalized = {
           path: record.path,
           redirect: record.redirect,
           name: record.name,
           meta: record.meta || {},
-          aliasOf: undefined,
+          aliasOf: record.aliasOf,
           beforeEnter: record.beforeEnter,
           props: normalizeRecordProps(record),
           children: record.children || [],
@@ -1655,10 +1672,19 @@ var VueRouter = (function (exports, vue) {
           leaveGuards: new Set(),
           updateGuards: new Set(),
           enterCallbacks: {},
+          // must be declared afterwards
+          // mods: {},
           components: 'components' in record
               ? record.components || null
               : record.component && { default: record.component },
       };
+      // mods contain modules and shouldn't be copied,
+      // logged or anything. It's just used for internal
+      // advanced use cases like data loaders
+      Object.defineProperty(normalized, 'mods', {
+          value: {},
+      });
+      return normalized;
   }
   /**
    * Normalize the optional `props` in a record to always be an object similar to
@@ -2148,10 +2174,12 @@ var VueRouter = (function (exports, vue) {
                   }
                   guards.push(() => componentPromise.then(resolved => {
                       if (!resolved)
-                          return Promise.reject(new Error(`Couldn't resolve component "${name}" at "${record.path}"`));
+                          throw new Error(`Couldn't resolve component "${name}" at "${record.path}"`);
                       const resolvedComponent = isESModule(resolved)
                           ? resolved.default
                           : resolved;
+                      // keep the resolved module for plugins like data loaders
+                      record.mods[name] = resolved;
                       // replace the function with the resolved component
                       // cannot be null or undefined because we went into the for loop
                       record.components[name] = resolvedComponent;
@@ -2165,18 +2193,6 @@ var VueRouter = (function (exports, vue) {
           }
       }
       return guards;
-  }
-  /**
-   * Allows differentiating lazy components from functional components and vue-class-component
-   * @internal
-   *
-   * @param component
-   */
-  function isRouteComponent(component) {
-      return (typeof component === 'object' ||
-          'displayName' in component ||
-          'props' in component ||
-          '__vccOpts' in component);
   }
   /**
    * Ensures a route is loaded, so it can be passed as o prop to `<RouterView>`.
@@ -2197,6 +2213,8 @@ var VueRouter = (function (exports, vue) {
                           const resolvedComponent = isESModule(resolved)
                               ? resolved.default
                               : resolved;
+                          // keep the resolved module for plugins like data loaders
+                          record.mods[name] = resolved;
                           // replace the function with the resolved component
                           // cannot be null or undefined because we went into the for loop
                           record.components[name] = resolvedComponent;
