@@ -26,7 +26,7 @@
             </q-tabs>
             <q-tab-panels v-model="tab">
               <q-tab-panel name="user">
-                <div v-if="passwordData.show">
+                <div v-if="credentialsData.show">
                   <q-separator></q-separator>
 
                   <q-card-section>
@@ -48,7 +48,7 @@
                   </q-card-section>
                   <q-card-section>
                     <q-input
-                      v-model="passwordData.username"
+                      v-model="credentialsData.username"
                       :label="$t('username')"
                       filled
                       dense
@@ -57,7 +57,7 @@
                     ></q-input>
                     <q-input
                       v-if="user.has_password"
-                      v-model="passwordData.oldPassword"
+                      v-model="credentialsData.oldPassword"
                       type="password"
                       autocomplete="off"
                       label="Old Password"
@@ -66,7 +66,7 @@
                       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
                     ></q-input>
                     <q-input
-                      v-model="passwordData.newPassword"
+                      v-model="credentialsData.newPassword"
                       type="password"
                       autocomplete="off"
                       :label="$t('password')"
@@ -75,7 +75,7 @@
                       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
                     ></q-input>
                     <q-input
-                      v-model="passwordData.newPasswordRepeat"
+                      v-model="credentialsData.newPasswordRepeat"
                       type="password"
                       autocomplete="off"
                       :label="$t('password_repeat')"
@@ -84,8 +84,17 @@
                       class="q-mb-md"
                       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
                     ></q-input>
+                    <q-btn
+                      @click="updatePassword"
+                      :disable="disableUpdatePassword()"
+                      unelevated
+                      color="primary"
+                      class="float-right"
+                      :label="$t('change_password')"
+                    >
+                    </q-btn>
                   </q-card-section>
-                  <q-separator></q-separator>
+                  <q-separator class="q-mt-xl"></q-separator>
                   <q-card-section>
                     <div class="col q-mb-sm">
                       <h4 class="q-my-none">
@@ -93,32 +102,32 @@
                       </h4>
                     </div>
                     <q-input
-                      v-model="passwordData.pubkey"
+                      v-model="credentialsData.pubkey"
                       type="text"
                       label="Pubkey"
                       filled
                       dense
-                      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+                      :rules="[(val) => !val || val.length == 64]"
                     ></q-input>
+                    <q-btn
+                      @click="updatePassword"
+                      :disable="disableUpdatePubkey()"
+                      unelevated
+                      color="primary"
+                      class="float-right"
+                      :label="$t('update_pubkey')"
+                    >
+                    </q-btn>
                   </q-card-section>
-                  <q-separator></q-separator>
+                  <q-separator class="q-mt-xl"></q-separator>
                   <q-card-section class="q-pb-lg">
                     <q-btn
-                      @click="passwordData.show = false"
+                      @click="credentialsData.show = false"
                       :label="$t('back')"
                       outline
                       unelevated
                       color="grey"
                     ></q-btn>
-                    <q-btn
-                      @click="updatePassword"
-                      :disable="disableUpdatePassword()"
-                      unelevated
-                      color="primary"
-                      class="float-right"
-                      :label="$t('update_password')"
-                    >
-                    </q-btn>
                   </q-card-section>
                 </div>
                 <div v-else>

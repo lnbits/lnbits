@@ -254,6 +254,7 @@ async def _get_account_from_token(access_token) -> Optional[User]:
                 HTTPStatus.UNAUTHORIZED, "Data missing for access token."
             )
 
+
         user._last_login_time = int(payload.get("auth_time", 0))
         return user
 

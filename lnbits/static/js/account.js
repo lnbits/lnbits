@@ -13,7 +13,7 @@ window.app = Vue.createApp({
         'confettiStars'
       ],
       tab: 'user',
-      passwordData: {
+      credentialsData: {
         show: false,
         oldPassword: null,
         newPassword: null,
@@ -106,19 +106,20 @@ window.app = Vue.createApp({
     },
     disableUpdatePassword: function () {
       return (
-        !this.passwordData.newPassword ||
-        !this.passwordData.newPasswordRepeat ||
-        this.passwordData.newPassword !== this.passwordData.newPasswordRepeat
+        !this.credentialsData.newPassword ||
+        !this.credentialsData.newPasswordRepeat ||
+        this.credentialsData.newPassword !==
+          this.credentialsData.newPasswordRepeat
+      )
+    },
+    disableUpdatePubkey: function () {
+      return (
+        ((this.credentialsData.pubkey || '').length !== 0 &&
+          (this.credentialsData.pubkey || '').length !== 64) ||
+        this.credentialsData.pubkey === this.user.pubkey
       )
     },
     updatePassword: async function () {
-      if (!this.user.username) {
-        Quasar.Notify.create({
-          type: 'warning',
-          message: 'Please set a username first.'
-        })
-        return
-      }
       try {
         const {data} = await LNbits.api.request(
           'PUT',
@@ -126,10 +127,10 @@ window.app = Vue.createApp({
           null,
           {
             user_id: this.user.id,
-            username: this.user.username || this.passwordData.username,
-            password_old: this.passwordData.oldPassword,
-            password: this.passwordData.newPassword,
-            password_repeat: this.passwordData.newPasswordRepeat
+            username: this.user.username || this.credentialsData.username,
+            password_old: this.credentialsData.oldPassword,
+            password: this.credentialsData.newPassword,
+            password_repeat: this.credentialsData.newPasswordRepeat
           }
         )
         this.user = data

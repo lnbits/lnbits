@@ -224,6 +224,7 @@ window.localisation.en = {
   password_repeat: 'Password repeat',
   change_password: 'Change Password',
   update_credentials: 'Update Credentials',
+  update_pubkey: 'Update Public Key',
   set_password: 'Set Password',
   invalid_password: 'Password must have at least 8 characters',
   login: 'Login',
