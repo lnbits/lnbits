@@ -1,6 +1,6 @@
 import pytest
-from httpx import AsyncClient
 import shortuuid
+from httpx import AsyncClient
 
 from lnbits.core.models import User
 from lnbits.settings import AuthMethods, settings
@@ -63,7 +63,21 @@ async def test_login_alan_password_ok(user_alan: User, http_client: AsyncClient)
     )
 
     assert response.status_code == 200, "Alan logs in OK"
-    assert response.json().get("access_token") is not None
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    response = await http_client.get(
+        "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 200, "User exits."
+    user = User(**response.json())
+    assert user.username == "alan", "Username check."
+    assert user.email == "alan@lnbits.com", "Email check."
+    assert not user.pubkey, "No pubkey."
+    assert not user.admin, "Not admin."
+    assert not user.super_user, "Not superuser."
+    assert user.has_password, "Password configured."
+    assert len(user.wallets) == 1, "One default wallet."
 
 
 @pytest.mark.asyncio
@@ -121,7 +135,9 @@ async def test_register_ok(http_client: AsyncClient):
     assert response.status_code == 200, "User created."
     assert response.json().get("access_token") is not None
 
-    response = await http_client.get("/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"})
+    response = await http_client.get(
+        "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
+    )
     assert response.status_code == 200, "User exits."
     user = User(**response.json())
     assert user.username == f"u21.{tiny_id}", "Username check."
