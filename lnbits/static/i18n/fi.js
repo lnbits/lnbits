@@ -35,9 +35,9 @@ window.localisation.fi = {
   reset_defaults_tooltip:
     'Poista kaikki asetusten muutokset ja palauta järjestelmän oletusasetukset.',
   download_backup: 'Lataa tietokannan varmuuskopio',
-  name_your_wallet: 'Anna %{name}-lompakollesi nimi',
+  name_your_wallet: 'Anna {name}-lompakollesi nimi',
   wallet_topup_ok:
-    'Virtuaalisten varojen luominen onnistui (%{amount} sats). Maksut riippuvat rahoituslähteen todellisista varoista.',
+    'Virtuaalisten varojen luominen onnistui ({amount} sats). Maksut riippuvat rahoituslähteen todellisista varoista.',
   paste_invoice_label:
     'Liitä lasku, maksupyyntö, lnurl-koodi tai Lightning Address *',
   lnbits_description:
@@ -61,10 +61,9 @@ window.localisation.fi = {
   voidwallet_active:
     'Maksutapahtumat ovat poissa käytöstä, koska VoidWallet on aktiivinen!',
   use_with_caution:
-    'KÄYTÄ VAROEN - BETA-ohjelmisto on käytössä palvelussa: %{name}',
-  service_fee: 'Palvelumaksu: %{amount} % tapahtumasta',
-  service_fee_max:
-    'Palvelumaksu: %{amount} % tapahtumasta (enintään %{max} sat)',
+    'KÄYTÄ VAROEN - BETA-ohjelmisto on käytössä palvelussa: {name}',
+  service_fee: 'Palvelumaksu: {amount} % tapahtumasta',
+  service_fee_max: 'Palvelumaksu: {amount} % tapahtumasta (enintään {max} sat)',
   service_fee_tooltip:
     'LNbits palvelimen ylläpitäjä veloittaa lähtevästä maksusta palvelumaksun.',
   toggle_darkmode: 'Tumma näkymä',
@@ -75,7 +74,7 @@ window.localisation.fi = {
   lnbits_version: 'LNbits versio',
   runs_on: 'Mukana menossa',
   credit_hint: 'Hyväksy painamalla Enter',
-  credit_label: 'Lisää tilille varoja %{denomination}',
+  credit_label: 'Lisää tilille varoja {denomination}',
   paste: 'Liitä',
   paste_from_clipboard: 'Liitä leikepöydältä',
   paste_request: 'Liitä pyyntö',
@@ -155,9 +154,9 @@ window.localisation.fi = {
   expiry: 'Vanheneminen',
   webhook: 'Webhook',
   payment_proof: 'Maksun varmenne',
-  update_available: 'Saatavilla on päivitys versioon %{version}!',
+  update_available: 'Saatavilla on päivitys versioon {version}!',
   latest_update:
-    'Käytössä oleva versio %{version}, on viimeisin saatavilla oleva.',
+    'Käytössä oleva versio {version}, on viimeisin saatavilla oleva.',
   notifications: 'Tiedotteet',
   no_notifications: 'Ei tiedotteita',
   notifications_disabled: 'LNbits-tilatiedotteet on poistettu käytöstä.',
@@ -247,8 +246,8 @@ window.localisation.fi = {
   look_and_feel: 'Kieli ja värit',
   language: 'Kieli',
   color_scheme: 'Väriteema',
-  extension_cost: 'Tämä julkaisu edellyttää vähintään %{cost} satsin maksua.',
-  extension_paid_sats: 'Olet jo maksanut %{paid_sats} satsia.',
+  extension_cost: 'Tämä julkaisu edellyttää vähintään {cost} satsin maksua.',
+  extension_paid_sats: 'Olet jo maksanut {paid_sats} satsia.',
   release_details_error: 'Ei voi hakea julkaisun tietoja.',
   pay_from_wallet: 'Maksa lompakosta',
   show_qr: 'Näytä QR',

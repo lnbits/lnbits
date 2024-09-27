@@ -37,9 +37,9 @@ window.localisation.fr = {
   reset_defaults_tooltip:
     'Supprimer tous les paramètres et les réinitialiser aux valeurs par défaut.',
   download_backup: 'Télécharger la sauvegarde de la base de données',
-  name_your_wallet: 'Nommez votre portefeuille %{name}',
+  name_your_wallet: 'Nommez votre portefeuille {name}',
   wallet_topup_ok:
-    'Succès de la création de fonds virtuels (%{amount} sats). Les paiements dépendent des fonds réels sur la source de financement.',
+    'Succès de la création de fonds virtuels ({amount} sats). Les paiements dépendent des fonds réels sur la source de financement.',
   paste_invoice_label:
     'Coller une facture, une demande de paiement ou un code lnurl *',
   lnbits_description:
@@ -62,10 +62,10 @@ window.localisation.fr = {
   view_github: 'Voir sur GitHub',
   voidwallet_active: 'VoidWallet est actif! Paiements désactivés',
   use_with_caution:
-    'UTILISER AVEC PRUDENCE - Le portefeuille %{name} est toujours en version BETA',
-  service_fee: 'Frais de service : %{amount} % par transaction',
+    'UTILISER AVEC PRUDENCE - Le portefeuille {name} est toujours en version BETA',
+  service_fee: 'Frais de service : {amount} % par transaction',
   service_fee_max:
-    'Frais de service : %{amount} % par transaction (max %{max} sats)',
+    'Frais de service : {amount} % par transaction (max {max} sats)',
   service_fee_tooltip:
     "Frais de service facturés par l'administrateur du serveur LNbits pour chaque transaction sortante",
   toggle_darkmode: 'Basculer le mode sombre',
@@ -76,7 +76,7 @@ window.localisation.fr = {
   lnbits_version: 'Version de LNbits',
   runs_on: 'Fonctionne sur',
   credit_hint: 'Appuyez sur Entrée pour créditer le compte',
-  credit_label: '%{denomination} à créditer',
+  credit_label: '{denomination} à créditer',
   paste: 'Coller',
   paste_from_clipboard: 'Coller depuis le presse-papiers',
   paste_request: 'Coller la requête',
@@ -159,8 +159,8 @@ window.localisation.fr = {
   expiry: 'Expiration',
   webhook: 'Webhook',
   payment_proof: 'Preuve de paiement',
-  update_available: 'Mise à jour %{version} disponible !',
-  latest_update: 'Vous êtes sur la dernière version %{version}.',
+  update_available: 'Mise à jour {version} disponible !',
+  latest_update: 'Vous êtes sur la dernière version {version}.',
   notifications: 'Notifications',
   no_notifications: 'Aucune notification',
   notifications_disabled:
@@ -253,9 +253,8 @@ window.localisation.fr = {
   look_and_feel: 'Apparence',
   language: 'Langue',
   color_scheme: 'Schéma de couleurs',
-  extension_cost:
-    'Cette version nécessite un paiement minimum de %{cost} sats.',
-  extension_paid_sats: 'Vous avez déjà payé %{paid_sats} sats.',
+  extension_cost: 'Cette version nécessite un paiement minimum de {cost} sats.',
+  extension_paid_sats: 'Vous avez déjà payé {paid_sats} sats.',
   release_details_error: "Impossible d'obtenir les détails de la version.",
   pay_from_wallet: 'Payer depuis le portefeuille',
   show_qr: 'Afficher le QR',

@@ -35,9 +35,9 @@ window.localisation.es = {
   reset_defaults_tooltip:
     'Borrar todas las configuraciones y restablecer a los valores predeterminados.',
   download_backup: 'Descargar copia de seguridad de la base de datos',
-  name_your_wallet: 'Nombre de su billetera %{name}',
+  name_your_wallet: 'Nombre de su billetera {name}',
   wallet_topup_ok:
-    'Éxito creando fondos virtuales (%{amount} sats). Los pagos dependen de los fondos reales en la fuente de financiación.',
+    'Éxito creando fondos virtuales ({amount} sats). Los pagos dependen de los fondos reales en la fuente de financiación.',
   paste_invoice_label: 'Pegue la factura aquí',
   lnbits_description:
     'Fácil de instalar y liviano, LNbits puede ejecutarse en cualquier fuente de financiación de la red Lightning y hasta LNbits mismo! Puede ejecutar LNbits para usted mismo o ofrecer una solución competente a otros. Cada billetera tiene su propia clave API y no hay límite para la cantidad de billeteras que puede crear. La capacidad de particionar fondos hace de LNbits una herramienta útil para la administración de fondos y como herramienta de desarrollo. Las extensiones agregan funcionalidad adicional a LNbits, por lo que puede experimentar con una variedad de tecnologías de vanguardia en la red Lightning. Lo hemos hecho lo más simple posible para desarrollar extensiones y, como un proyecto gratuito y de código abierto, animamos a las personas a que se desarrollen a sí mismas y envíen sus propios contribuciones.',
@@ -58,10 +58,10 @@ window.localisation.es = {
   donate: 'Donar',
   view_github: 'Ver en GitHub',
   voidwallet_active: '¡VoidWallet está activo! Pagos desactivados',
-  use_with_caution: 'USAR CON CUIDADO - %{name} Wallet aún está en BETA',
-  service_fee: 'Tarifa de servicio: %{amount} % por transacción',
+  use_with_caution: 'USAR CON CUIDADO - {name} Wallet aún está en BETA',
+  service_fee: 'Tarifa de servicio: {amount} % por transacción',
   service_fee_max:
-    'Tarifa de servicio: %{amount} % por transacción (máx %{max} sats)',
+    'Tarifa de servicio: {amount} % por transacción (máx {max} sats)',
   service_fee_tooltip:
     'Comisión de servicio cobrada por el administrador del servidor LNbits por cada transacción saliente',
   toggle_darkmode: 'Cambiar modo oscuro',
@@ -72,7 +72,7 @@ window.localisation.es = {
   lnbits_version: 'Versión de LNbits',
   runs_on: 'Corre en',
   credit_hint: 'Presione Enter para cargar la cuenta',
-  credit_label: 'Cargar %{denomination}',
+  credit_label: 'Cargar {denomination}',
   paste: 'Pegar',
   paste_from_clipboard: 'Pegar desde el portapapeles',
   paste_request: 'Pegar solicitud',
@@ -155,8 +155,8 @@ window.localisation.es = {
   expiry: 'Expiración',
   webhook: 'Webhook',
   payment_proof: 'Prueba de pago',
-  update_available: '¡Actualización %{version} disponible!',
-  latest_update: 'Usted está en la última versión %{version}.',
+  update_available: '¡Actualización {version} disponible!',
+  latest_update: 'Usted está en la última versión {version}.',
   notifications: 'Notificaciones',
   no_notifications: 'No hay notificaciones',
   notifications_disabled:
@@ -249,8 +249,8 @@ window.localisation.es = {
   look_and_feel: 'Apariencia',
   language: 'Idioma',
   color_scheme: 'Esquema de colores',
-  extension_cost: 'Esta versión requiere un pago mínimo de %{cost} sats.',
-  extension_paid_sats: 'Ya has pagado %{paid_sats} sats.',
+  extension_cost: 'Esta versión requiere un pago mínimo de {cost} sats.',
+  extension_paid_sats: 'Ya has pagado {paid_sats} sats.',
   release_details_error: 'No se pueden obtener los detalles de la versión.',
   pay_from_wallet: 'Pagar desde la billetera',
   show_qr: 'Mostrar QR',
