@@ -74,7 +74,7 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
         if not await verify_user_password(user.id, data.password):
             raise HTTPException(HTTP_401_UNAUTHORIZED, "Invalid credentials.")
 
-        return _auth_success_response(user.username, user.id)
+        return _auth_success_response(user.username, user.id, user.email)
     except HTTPException as exc:
         raise exc
     except Exception as exc:
@@ -96,7 +96,7 @@ async def nostr_login(request: Request) -> JSONResponse:
                 pubkey=event["pubkey"], user_config=UserConfig(provider="nostr")
             )
 
-        return _auth_success_response(user.username or "", user.id)
+        return _auth_success_response(user.username or "", user.id, user.email)
     except HTTPException as exc:
         raise exc
     except AssertionError as exc:
@@ -116,7 +116,7 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
         if not user:
             raise HTTPException(HTTP_401_UNAUTHORIZED, "User ID does not exist.")
 
-        return _auth_success_response(user.username or "", user.id)
+        return _auth_success_response(user.username or "", user.id, user.email)
     except HTTPException as exc:
         raise exc
     except Exception as exc:
@@ -200,7 +200,7 @@ async def register(data: CreateUser) -> JSONResponse:
         user = await create_user_account(
             email=data.email, username=data.username, password=data.password
         )
-        return _auth_success_response(user.username)
+        return _auth_success_response(user.username, user.id, user.email)
 
     except ValueError as exc:
         raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
@@ -293,9 +293,9 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
             password_repeat=data.password_repeat,
             username=data.username,
         )
-        await update_user_password(super_user, 0)
+        user = await update_user_password(super_user, 0)
         settings.first_install = False
-        return _auth_success_response(username=super_user.username)
+        return _auth_success_response(user.username, user.id, user.email)
     except AssertionError as exc:
         raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
     except Exception as exc:

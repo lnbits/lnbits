@@ -1,8 +1,11 @@
+import time
+
+import jwt
 import pytest
 import shortuuid
 from httpx import AsyncClient
 
-from lnbits.core.models import User
+from lnbits.core.models import AccessTokenPayload, User
 from lnbits.settings import AuthMethods, settings
 
 
@@ -66,6 +69,15 @@ async def test_login_alan_password_ok(user_alan: User, http_client: AsyncClient)
     access_token = response.json().get("access_token")
     assert access_token is not None
 
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    access_token_payload = AccessTokenPayload(**payload)
+    assert access_token_payload.sub == "alan", "Subject is Alan."
+    assert access_token_payload.email == "alan@lnbits.com"
+    assert access_token_payload.auth_time, "Auth time should be set by server."
+    assert (
+        0 <= time.time() - access_token_payload.auth_time <= 5
+    ), "Auth time should be very close to now()."
+
     response = await http_client.get(
         "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
     )
@@ -119,7 +131,9 @@ async def test_login_username_password_not_allowed(
 
 
 @pytest.mark.asyncio
-async def test_login_alan_change_auth_secret_key(user_alan: User, http_client: AsyncClient):
+async def test_login_alan_change_auth_secret_key(
+    user_alan: User, http_client: AsyncClient
+):
     response = await http_client.post(
         "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
     )
@@ -129,7 +143,6 @@ async def test_login_alan_change_auth_secret_key(user_alan: User, http_client: A
     assert access_token is not None
 
     initial_auth_secret_key = settings.auth_secret_key
-
 
     settings.auth_secret_key = shortuuid.uuid()
 
@@ -239,7 +252,7 @@ async def test_register_username_twice(http_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_register_passwords_so_not_match(http_client: AsyncClient):
+async def test_register_passwords_do_not_match(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
         "/api/v1/auth/register",
