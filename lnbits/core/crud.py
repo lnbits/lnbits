@@ -19,7 +19,6 @@ from lnbits.settings import (
     AdminSettings,
     EditableSettings,
     SuperSettings,
-    WebPushSettings,
     settings,
 )
 
@@ -1253,24 +1252,6 @@ async def delete_tinyurl(tinyurl_id: str):
 
 # push_notification
 # -----------------
-
-
-async def get_webpush_settings() -> Optional[WebPushSettings]:
-    row = await db.fetchone("SELECT * FROM webpush_settings")
-    if not row:
-        return None
-    vapid_keypair = json.loads(row["vapid_keypair"])
-    return WebPushSettings(**vapid_keypair)
-
-
-async def create_webpush_settings(webpush_settings: dict):
-    await db.execute(
-        "INSERT INTO webpush_settings (vapid_keypair) VALUES (:vapid_keypair)",
-        {
-            "vapid_keypair": json.dumps(webpush_settings),
-        },
-    )
-    return await get_webpush_settings()
 
 
 async def get_webpush_subscription(
