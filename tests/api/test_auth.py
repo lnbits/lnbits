@@ -387,3 +387,39 @@ async def test_alan_change_password_old_nok(user_alan: User, http_client: AsyncC
             "password_repeat": "secret0001",
         },
     )
+
+
+@pytest.mark.asyncio
+async def test_alan_change_password_auth_threshold_exired(
+    user_alan: User, http_client: AsyncClient
+):
+
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+
+    assert response.status_code == 200, "Alan logs in OK."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    initial_update_threshold = settings.auth_credetials_update_threshold
+    settings.auth_credetials_update_threshold = 1
+    time.sleep(1.1)
+    response = await http_client.put(
+        "/api/v1/auth/password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "username": user_alan.username,
+            "user_id": user_alan.id,
+            "password_old": "secret1234",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+        },
+    )
+
+    settings.auth_credetials_update_threshold = initial_update_threshold
+
+    assert response.status_code == 403, "Treshold expired."
+    assert (
+        response.json().get("detail") == "You can only update your credentials"
+        " in the first 1 seconds after login."
+        " Please login again!"
+    )
