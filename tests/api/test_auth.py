@@ -60,7 +60,9 @@ async def test_login_usr_not_allowed(user_alan: User, http_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_login_alan_password_ok(user_alan: User, http_client: AsyncClient):
+async def test_login_alan_username_password_ok(
+    user_alan: User, http_client: AsyncClient
+):
     response = await http_client.post(
         "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
     )
@@ -90,6 +92,17 @@ async def test_login_alan_password_ok(user_alan: User, http_client: AsyncClient)
     assert not user.super_user, "Not superuser."
     assert user.has_password, "Password configured."
     assert len(user.wallets) == 1, "One default wallet."
+
+
+@pytest.mark.asyncio
+async def test_login_alan_email_password_ok(user_alan: User, http_client: AsyncClient):
+    response = await http_client.post(
+        "/api/v1/auth", json={"email": user_alan.email, "password": "secret1234"}
+    )
+
+    assert response.status_code == 200, "Alan logs in OK"
+    access_token = response.json().get("access_token")
+    assert access_token is not None
 
 
 @pytest.mark.asyncio
@@ -266,3 +279,20 @@ async def test_register_passwords_do_not_match(http_client: AsyncClient):
 
     assert response.status_code == 400, "Bad passwords."
     assert response.json().get("detail") == "Passwords do not match."
+
+
+@pytest.mark.asyncio
+async def test_register_bad_email(http_client: AsyncClient):
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": "not_an_email_lnbits.com",
+        },
+    )
+
+    assert response.status_code == 400, "Bad email."
+    assert response.json().get("detail") == "Invalid email."
