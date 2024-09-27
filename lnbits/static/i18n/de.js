@@ -35,9 +35,9 @@ window.localisation.de = {
   reset_defaults_tooltip:
     'Alle Einstellungen auf die Standardeinstellungen zurücksetzen.',
   download_backup: 'Datenbank-Backup herunterladen',
-  name_your_wallet: 'Vergib deiner %{name} Wallet einen Namen',
+  name_your_wallet: 'Vergib deiner {name} Wallet einen Namen',
   wallet_topup_ok:
-    'Erfolg beim Erstellen von virtuellen Mitteln (%{amount} Satoshis). Zahlungen hängen von den tatsächlichen Mitteln der Finanzierungsquelle ab.',
+    'Erfolg beim Erstellen von virtuellen Mitteln ({amount} Satoshis). Zahlungen hängen von den tatsächlichen Mitteln der Finanzierungsquelle ab.',
   paste_invoice_label:
     'Füge eine Rechnung, Zahlungsanforderung oder LNURL ein *',
   lnbits_description:
@@ -59,11 +59,9 @@ window.localisation.de = {
   donate: 'Spenden',
   view_github: 'Auf GitHub anzeigen',
   voidwallet_active: 'VoidWallet ist aktiv! Zahlungen deaktiviert',
-  use_with_caution:
-    'BITTE MIT VORSICHT BENUTZEN - %{name} Wallet ist noch BETA',
-  service_fee: 'Dienstleistungsgebühr: %{amount} % pro Transaktion',
-  service_fee_max:
-    'Servicegebühr: %{amount} % pro Transaktion (max %{max} Sats)',
+  use_with_caution: 'BITTE MIT VORSICHT BENUTZEN - {name} Wallet ist noch BETA',
+  service_fee: 'Dienstleistungsgebühr: {amount} % pro Transaktion',
+  service_fee_max: 'Servicegebühr: {amount} % pro Transaktion (max {max} Sats)',
   service_fee_tooltip:
     'Bearbeitungsgebühr, die vom LNbits Server-Administrator pro ausgehender Transaktion berechnet wird',
   toggle_darkmode: 'Auf Dark Mode umschalten',
@@ -74,7 +72,7 @@ window.localisation.de = {
   lnbits_version: 'LNbits-Version',
   runs_on: 'Läuft auf',
   credit_hint: 'Klicke Enter, um das Konto zu belasten',
-  credit_label: '%{denomination} zu belasten',
+  credit_label: '{denomination} zu belasten',
   paste: 'Einfügen',
   paste_from_clipboard: 'Einfügen aus der Zwischenablage',
   paste_request: 'Anfrage einfügen',
@@ -158,8 +156,8 @@ window.localisation.de = {
   expiry: 'Ablauf',
   webhook: 'Webhook',
   payment_proof: 'Beleg',
-  update_available: 'Aktualisierung %{version} verfügbar!',
-  latest_update: 'Sie sind auf der neuesten Version %{version}.',
+  update_available: 'Aktualisierung {version} verfügbar!',
+  latest_update: 'Sie sind auf der neuesten Version {version}.',
   notifications: 'Benachrichtigungen',
   no_notifications: 'Keine Benachrichtigungen',
   notifications_disabled: 'LNbits Statusbenachrichtigungen sind deaktiviert.',
@@ -252,8 +250,8 @@ window.localisation.de = {
   language: 'Sprache',
   color_scheme: 'Farbschema',
   extension_cost:
-    'Diese Version erfordert eine Zahlung von mindestens %{cost} Sats.',
-  extension_paid_sats: 'Sie haben bereits %{paid_sats} Sats bezahlt.',
+    'Diese Version erfordert eine Zahlung von mindestens {cost} Sats.',
+  extension_paid_sats: 'Sie haben bereits {paid_sats} Sats bezahlt.',
   release_details_error: 'Kann die Details zur Veröffentlichung nicht abrufen.',
   pay_from_wallet: 'Zahlen aus dem Geldbeutel',
   show_qr: 'QR anzeigen',

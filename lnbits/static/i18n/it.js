@@ -35,9 +35,9 @@ window.localisation.it = {
   reset_defaults_tooltip:
     'Cancella tutte le impostazioni e ripristina i valori predefiniti',
   download_backup: 'Scarica il backup del database',
-  name_your_wallet: 'Dai un nome al tuo portafoglio %{name}',
+  name_your_wallet: 'Dai un nome al tuo portafoglio {name}',
   wallet_topup_ok:
-    'Operazione riuscita nella creazione di fondi virtuali (%{amount} sats). I pagamenti dipendono dai fondi effettivi sulla fonte di finanziamento.',
+    'Operazione riuscita nella creazione di fondi virtuali ({amount} sats). I pagamenti dipendono dai fondi effettivi sulla fonte di finanziamento.',
   paste_invoice_label:
     'Incolla una fattura, una richiesta di pagamento o un codice lnurl *',
   lnbits_description:
@@ -59,10 +59,10 @@ window.localisation.it = {
   donate: 'Donazioni',
   view_github: 'Visualizza su GitHub',
   voidwallet_active: 'VoidWallet è attivo! Pagamenti disabilitati',
-  use_with_caution: 'USARE CON CAUTELA - %{name} portafoglio è ancora in BETA',
-  service_fee: 'Commissione di servizio: %{amount} % per transazione',
+  use_with_caution: 'USARE CON CAUTELA - {name} portafoglio è ancora in BETA',
+  service_fee: 'Commissione di servizio: {amount} % per transazione',
   service_fee_max:
-    'Commissione di servizio: %{amount} % per transazione (max %{max} sats)',
+    'Commissione di servizio: {amount} % per transazione (max {max} sats)',
   service_fee_tooltip:
     "Commissione di servizio addebitata dall'amministratore del server LNbits per ogni transazione in uscita",
   toggle_darkmode: 'Attiva la modalità notturna',
@@ -73,7 +73,7 @@ window.localisation.it = {
   lnbits_version: 'Versione di LNbits',
   runs_on: 'Esegue su',
   credit_hint: 'Premere Invio per accreditare i fondi',
-  credit_label: '%{denomination} da accreditare',
+  credit_label: '{denomination} da accreditare',
   paste: 'Incolla',
   paste_from_clipboard: 'Incolla dagli appunti',
   paste_request: 'Richiesta di pagamento',
@@ -156,8 +156,8 @@ window.localisation.it = {
   expiry: 'Scadenza',
   webhook: 'Webhook',
   payment_proof: 'Prova di pagamento',
-  update_available: 'Aggiornamento %{version} disponibile!',
-  latest_update: 'Sei sulla versione più recente %{version}.',
+  update_available: 'Aggiornamento {version} disponibile!',
+  latest_update: 'Sei sulla versione più recente {version}.',
   notifications: 'Notifiche',
   no_notifications: 'Nessuna notifica',
   notifications_disabled: 'Le notifiche di stato di LNbits sono disattivate.',
@@ -251,8 +251,8 @@ window.localisation.it = {
   language: 'Lingua',
   color_scheme: 'Schema dei colori',
   extension_cost:
-    'Questa versione richiede un pagamento minimo di %{cost} satoshi.',
-  extension_paid_sats: 'Hai già pagato %{paid_sats} sats.',
+    'Questa versione richiede un pagamento minimo di {cost} satoshi.',
+  extension_paid_sats: 'Hai già pagato {paid_sats} sats.',
   release_details_error: 'Impossibile ottenere i dettagli della versione.',
   pay_from_wallet: 'Paga dal Portafoglio',
   show_qr: 'Mostra QR',

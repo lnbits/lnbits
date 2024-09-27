@@ -36,9 +36,9 @@ window.localisation.nl = {
   reset_defaults_tooltip:
     'Wis alle instellingen en herstel de standaardinstellingen.',
   download_backup: 'Databaseback-up downloaden',
-  name_your_wallet: 'Geef je %{name} portemonnee een naam',
+  name_your_wallet: 'Geef je {name} portemonnee een naam',
   wallet_topup_ok:
-    'Succes met het aanmaken van virtuele fondsen (%{amount} sats). Betalingen zijn afhankelijk van de werkelijke fondsen op de financieringsbron.',
+    'Succes met het aanmaken van virtuele fondsen ({amount} sats). Betalingen zijn afhankelijk van de werkelijke fondsen op de financieringsbron.',
   paste_invoice_label: 'Plak een factuur, betalingsverzoek of lnurl-code*',
   lnbits_description:
     'Gemakkelijk in te stellen en lichtgewicht, LNbits kan op elke lightning-netwerkfinancieringsbron draaien en zelfs LNbits zelf! U kunt LNbits voor uzelf laten draaien of gemakkelijk een bewaardersoplossing voor anderen bieden. Elke portemonnee heeft zijn eigen API-sleutels en er is geen limiet aan het aantal portemonnees dat u kunt maken. Het kunnen partitioneren van fondsen maakt LNbits een nuttige tool voor geldbeheer en als ontwikkelingstool. Extensies voegen extra functionaliteit toe aan LNbits, zodat u kunt experimenteren met een reeks toonaangevende technologieën op het bliksemschichtnetwerk. We hebben het ontwikkelen van extensies zo eenvoudig mogelijk gemaakt en als een gratis en opensource-project moedigen we mensen aan om hun eigen ontwikkelingen in te dienen.',
@@ -60,10 +60,9 @@ window.localisation.nl = {
   view_github: 'Bekijken op GitHub',
   voidwallet_active: 'VoidWallet is actief! Betalingen uitgeschakeld',
   use_with_caution:
-    'GEBRUIK MET VOORZICHTIGHEID - %{name} portemonnee is nog in BETA',
-  service_fee: 'Servicekosten: %{amount} % per transactie',
-  service_fee_max:
-    'Servicekosten: %{amount} % per transactie (max %{max} sats)',
+    'GEBRUIK MET VOORZICHTIGHEID - {name} portemonnee is nog in BETA',
+  service_fee: 'Servicekosten: {amount} % per transactie',
+  service_fee_max: 'Servicekosten: {amount} % per transactie (max {max} sats)',
   service_fee_tooltip:
     'Transactiekosten in rekening gebracht door de LNbits serverbeheerder per uitgaande transactie',
   toggle_darkmode: 'Donkere modus aan/uit',
@@ -74,7 +73,7 @@ window.localisation.nl = {
   lnbits_version: 'LNbits-versie',
   runs_on: 'Draait op',
   credit_hint: 'Druk op Enter om de rekening te crediteren',
-  credit_label: '%{denomination} te crediteren',
+  credit_label: '{denomination} te crediteren',
   paste: 'Plakken',
   paste_from_clipboard: 'Plakken van klembord',
   paste_request: 'Verzoek plakken',
@@ -156,8 +155,8 @@ window.localisation.nl = {
   expiry: 'Vervaldatum',
   webhook: 'Webhook',
   payment_proof: 'Betalingsbewijs',
-  update_available: 'Update %{version} beschikbaar!',
-  latest_update: 'U bent op de nieuwste versie %{version}.',
+  update_available: 'Update {version} beschikbaar!',
+  latest_update: 'U bent op de nieuwste versie {version}.',
   notifications: 'Meldingen',
   no_notifications: 'Geen meldingen',
   notifications_disabled: 'LNbits-statusmeldingen zijn uitgeschakeld.',
@@ -249,9 +248,8 @@ window.localisation.nl = {
   look_and_feel: 'Uiterlijk en gedrag',
   language: 'Taal',
   color_scheme: 'Kleurenschema',
-  extension_cost:
-    'Deze release vereist een betaling van minimaal %{cost} sats.',
-  extension_paid_sats: 'U heeft al %{paid_sats} sats betaald.',
+  extension_cost: 'Deze release vereist een betaling van minimaal {cost} sats.',
+  extension_paid_sats: 'U heeft al {paid_sats} sats betaald.',
   release_details_error: 'Kan de gegevens van de release niet ophalen.',
   pay_from_wallet: 'Betalen vanuit Portemonnee',
   show_qr: 'Toon QR',
