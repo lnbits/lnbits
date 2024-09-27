@@ -351,7 +351,7 @@ async def test_change_password_ok(http_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_change_password_not_authendticated(http_client: AsyncClient):
+async def test_change_password_not_authenticated(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.put(
         "/api/v1/auth/password",
@@ -388,6 +388,35 @@ async def test_alan_change_password_old_nok(user_alan: User, http_client: AsyncC
         },
     )
 
+    assert response.status_code == 403, "Old password bad."
+    assert response.json().get("detail") == "Invalid credentials."
+
+
+@pytest.mark.asyncio
+async def test_alan_change_password_different_user(
+    user_alan: User, http_client: AsyncClient
+):
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+
+    assert response.status_code == 200, "Alan logs in OK."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    response = await http_client.put(
+        "/api/v1/auth/password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "username": user_alan.username,
+            "user_id": user_alan.id[::-1],
+            "password_old": "secret1234",
+            "password": "secret0001",
+            "password_repeat": "secret0001",
+        },
+    )
+
+    assert response.status_code == 400, "Different user id."
+    assert response.json().get("detail") == "Invalid user ID."
+
 
 @pytest.mark.asyncio
 async def test_alan_change_password_auth_threshold_exired(
@@ -423,3 +452,17 @@ async def test_alan_change_password_auth_threshold_exired(
         " in the first 1 seconds after login."
         " Please login again!"
     )
+
+
+@pytest.mark.asyncio
+async def test_change_pubkey_not_authenticated(http_client: AsyncClient):
+    response = await http_client.put(
+        "/api/v1/auth/pubkey",
+        json={
+            "user_id": "0000",
+            "pubkey": "0000",
+        },
+    )
+
+    assert response.status_code == 401, "User not authenticated."
+    assert response.json().get("detail") == "Missing user ID or access token."
