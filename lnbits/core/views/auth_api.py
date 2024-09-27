@@ -33,6 +33,7 @@ from ..crud import (
     get_account_by_pubkey,
     get_account_by_username_or_email,
     get_user,
+    get_user_password,
     update_account,
     update_user_password,
     update_user_pubkey,
@@ -223,6 +224,12 @@ async def update_password(
     try:
         if data.username and not user.username:
             await update_account(user_id=user.id, username=data.username)
+
+        # old accounts do not have a pasword
+        if await get_user_password(data.user_id):
+            assert data.password_old, "Missing old password"
+            old_pwd_ok = await verify_user_password(data.user_id, data.password_old)
+            assert old_pwd_ok, "Invalid credentials."
 
         return await update_user_password(data, payload.auth_time or 0)
     except AssertionError as exc:
