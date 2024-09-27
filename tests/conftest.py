@@ -79,7 +79,6 @@ async def db():
 
 @pytest_asyncio.fixture(scope="package")
 async def user_alan():
-    print("### create alan")
     user = await get_account_by_username("alan")
     if not user:
         user = await create_user_account(

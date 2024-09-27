@@ -97,7 +97,7 @@ async def test_login_alan_username_password_ok(
 @pytest.mark.asyncio
 async def test_login_alan_email_password_ok(user_alan: User, http_client: AsyncClient):
     response = await http_client.post(
-        "/api/v1/auth", json={"email": user_alan.email, "password": "secret1234"}
+        "/api/v1/auth", json={"username": user_alan.email, "password": "secret1234"}
     )
 
     assert response.status_code == 200, "Alan logs in OK"
@@ -296,3 +296,20 @@ async def test_register_bad_email(http_client: AsyncClient):
 
     assert response.status_code == 400, "Bad email."
     assert response.json().get("detail") == "Invalid email."
+
+
+# @pytest.mark.asyncio
+# async def test_update_user_password_ok(http_client: AsyncClient):
+#     tiny_id = shortuuid.uuid()[:8]
+#     response = await http_client.post(
+#         "/api/v1/auth/register",
+#         json={
+#             "username": f"u21.{tiny_id}",
+#             "password": "secret1234",
+#             "password_repeat": "secret1234",
+#             "email": f"u21.{tiny_id}@lnbits.com",
+#         },
+#     )
+
+#     assert response.status_code == 200, "User created."
+#     assert response.json().get("access_token") is not None
