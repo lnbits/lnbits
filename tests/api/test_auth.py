@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+import shortuuid
 
 from lnbits.core.models import User
 from lnbits.settings import AuthMethods, settings
@@ -105,15 +106,93 @@ async def test_login_username_password_not_allowed(
 
 @pytest.mark.asyncio
 async def test_register_ok(http_client: AsyncClient):
+    tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
         "/api/v1/auth/register",
         json={
-            "username": "u21",
+            "username": f"u21.{tiny_id}",
             "password": "secret1234",
             "password_repeat": "secret1234",
-            "email": "u21@lnbits.com",
+            "email": f"u21.{tiny_id}@lnbits.com",
         },
     )
 
     assert response.status_code == 200, "User created."
     assert response.json().get("access_token") is not None
+
+
+@pytest.mark.asyncio
+async def test_register_email_twice(http_client: AsyncClient):
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+
+    assert response.status_code == 200, "User created."
+    assert response.json().get("access_token") is not None
+
+    tiny_id_2 = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id_2}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 403, "Not allowed."
+    assert response.json().get("detail") == "Email already exists."
+
+
+@pytest.mark.asyncio
+async def test_register_username_twice(http_client: AsyncClient):
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+
+    assert response.status_code == 200, "User created."
+    assert response.json().get("access_token") is not None
+
+    tiny_id_2 = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id_2}@lnbits.com",
+        },
+    )
+    assert response.status_code == 403, "Not allowed."
+    assert response.json().get("detail") == "Username already exists."
+
+
+@pytest.mark.asyncio
+async def test_register_passwords_so_not_match(http_client: AsyncClient):
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret0000",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+
+    assert response.status_code == 400, "Bad passwords."
+    assert response.json().get("detail") == "Passwords do not match."
