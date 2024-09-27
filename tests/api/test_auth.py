@@ -119,6 +119,35 @@ async def test_login_username_password_not_allowed(
 
 
 @pytest.mark.asyncio
+async def test_login_alan_change_auth_secret_key(user_alan: User, http_client: AsyncClient):
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
+
+    assert response.status_code == 200, "Alan logs in OK"
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    initial_auth_secret_key = settings.auth_secret_key
+
+
+    settings.auth_secret_key = shortuuid.uuid()
+
+    response = await http_client.get(
+        "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 401, "Access token not valid anymore."
+    assert response.json().get("detail") == "Invalid access token."
+
+    settings.auth_secret_key = initial_auth_secret_key
+
+    response = await http_client.get(
+        "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 200, "Access token valid again."
+
+
+@pytest.mark.asyncio
 async def test_register_ok(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
