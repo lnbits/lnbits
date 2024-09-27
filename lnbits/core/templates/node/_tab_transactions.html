@@ -94,9 +94,9 @@
             <q-table
               dense
               flat
-              :data="paymentsTable.data"
+              :rows="paymentsTable.data"
               :columns="paymentsTable.columns"
-              :pagination.sync="paymentsTable.pagination"
+              v-model:pagination="paymentsTable.pagination"
               row-key="payment_hash"
               no-data-label="No transactions made yet"
               :filter="paymentsTable.filter"
@@ -256,9 +256,9 @@
             <q-table
               dense
               flat
-              :data="invoiceTable.data"
+              :rows="invoiceTable.data"
               :columns="invoiceTable.columns"
-              :pagination.sync="invoiceTable.pagination"
+              v-model:pagination="invoiceTable.pagination"
               no-data-label="No transactions made yet"
               :filter="invoiceTable.filter"
               @request="getInvoices"

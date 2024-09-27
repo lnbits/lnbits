@@ -6,7 +6,7 @@
         <payment-list :wallet="activeWallet" />
       </q-card>
     </q-dialog>
-    <q-table :data="wallets" :columns="walletTable.columns">
+    <q-table :rows="wallets" :columns="walletTable.columns">
       <template v-slot:header="props">
         <q-tr :props="props">
           <q-th auto-width></q-th>

@@ -27,7 +27,7 @@ include "users/_createWalletDialog.html" %}
           row-key="id"
           :rows="users"
           :columns="usersTable.columns"
-          :pagination.sync="usersTable.pagination"
+          v-model:pagination="usersTable.pagination"
           :no-data-label="$t('no_users')"
           :filter="usersTable.search"
           :loading="usersTable.loading"
