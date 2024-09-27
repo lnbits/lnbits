@@ -39,8 +39,8 @@ mkdir -p ${APP_DIR}/usr/bin
 mkdir -p ${APP_DIR}/usr/share/applications
 mkdir -p ${APP_DIR}/usr/share/icons/hicolor/256x256/apps
 
-# Copy the LNbits files to the AppDir
-cp -r * ${APP_DIR}/usr/bin/
+# Copy the LNbits files to the AppDir, excluding the AppDir itself
+rsync -av --progress . ${APP_DIR}/usr/bin --exclude ${APP_DIR}
 
 # Create a desktop entry
 cat > ${APP_DIR}/usr/share/applications/${APP_NAME}.desktop <<EOF
