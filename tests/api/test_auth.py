@@ -117,8 +117,20 @@ async def test_register_ok(http_client: AsyncClient):
         },
     )
 
+    access_token = response.json().get("access_token")
     assert response.status_code == 200, "User created."
     assert response.json().get("access_token") is not None
+
+    response = await http_client.get("/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"})
+    assert response.status_code == 200, "User exits."
+    user = User(**response.json())
+    assert user.username == f"u21.{tiny_id}", "Username check."
+    assert user.email == f"u21.{tiny_id}@lnbits.com", "Email check."
+    assert not user.pubkey, "No pubkey check."
+    assert not user.admin, "Not admin."
+    assert not user.super_user, "Not superuser."
+    assert user.has_password, "Password configured."
+    assert len(user.wallets) == 1, "One default wallet."
 
 
 @pytest.mark.asyncio
