@@ -348,3 +348,21 @@ async def test_change_password_ok(http_client: AsyncClient):
 
     assert response.status_code == 200, "New password works."
     assert response.json().get("access_token") is not None, "Access token created."
+
+
+@pytest.mark.asyncio
+async def test_change_password_not_authendticated(http_client: AsyncClient):
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.put(
+        "/api/v1/auth/password",
+        json={
+            "username": f"u21.{tiny_id}",
+            "user_id": "0000",
+            "password_old": "secret1234",
+            "password": "secret0000",
+            "password_repeat": "secret0000",
+        },
+    )
+
+    assert response.status_code == 401, "User not authenticated."
+    assert response.json().get("detail") == "Missing user ID or access token."
