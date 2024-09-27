@@ -366,3 +366,24 @@ async def test_change_password_not_authendticated(http_client: AsyncClient):
 
     assert response.status_code == 401, "User not authenticated."
     assert response.json().get("detail") == "Missing user ID or access token."
+
+
+@pytest.mark.asyncio
+async def test_alan_change_password_old_nok(user_alan: User, http_client: AsyncClient):
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+
+    assert response.status_code == 200, "Alan logs in OK."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    response = await http_client.put(
+        "/api/v1/auth/password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "username": user_alan.username,
+            "user_id": user_alan.id,
+            "password_old": "secret0000",
+            "password": "secret0001",
+            "password_repeat": "secret0001",
+        },
+    )
