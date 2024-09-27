@@ -106,7 +106,7 @@ async def test_login_username_password_not_allowed(
 @pytest.mark.asyncio
 async def test_register_ok(http_client: AsyncClient):
     response = await http_client.post(
-        "/api/v1/auth",
+        "/api/v1/auth/register",
         json={
             "username": "u21",
             "password": "secret1234",
