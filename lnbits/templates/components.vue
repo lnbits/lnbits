@@ -824,7 +824,7 @@
   </q-btn>
 </template>
 
-<template id="lnbits-extension-settings-form">
+<template id="lnbits-funding-sources">
   <div class="funding-sources">
     <h6 class="q-mt-xl q-mb-md">Funding Sources</h6>
     <div class="row">
