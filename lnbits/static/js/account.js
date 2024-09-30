@@ -113,13 +113,6 @@ window.app = Vue.createApp({
           this.credentialsData.newPasswordRepeat
       )
     },
-    disableUpdatePubkey: function () {
-      const pubkey = this.credentialsData.pubkey || ''
-      return (
-        ((pubkey || '').length !== 0 && (pubkey || '').length !== 64) ||
-        pubkey == (this.user.pubkey || '')
-      )
-    },
     updatePassword: async function () {
       if (!this.credentialsData.username) {
         Quasar.Notify.create({

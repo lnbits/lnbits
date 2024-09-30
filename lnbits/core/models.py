@@ -191,7 +191,7 @@ class UpdateUserPassword(BaseModel):
 
 class UpdateUserPubkey(BaseModel):
     user_id: str
-    pubkey: str = Query(default=..., min_length=64, max_length=64)
+    pubkey: str = Query(default=..., max_length=64)
 
 
 class UpdateSuperuserPassword(BaseModel):

@@ -107,14 +107,12 @@
                       label="Pubkey"
                       filled
                       dense
-                      :rules="[(val) => !val || val.length == 64]"
                     ></q-input>
                     <q-btn
                       @click="updatePubkey"
-                      :disable="disableUpdatePubkey()"
                       unelevated
                       color="primary"
-                      class="float-right"
+                      class="q-mt-md float-right"
                       :label="$t('update_pubkey')"
                     >
                     </q-btn>
