@@ -666,5 +666,90 @@ async def test_register_nostr_bad_event_tag_menthod(http_client: AsyncClient):
 
 ################################ CHANGE PUBLIC KEY ################################
 @pytest.mark.asyncio
+async def test_change_pubkey_ok(http_client: AsyncClient, user_alan: User):
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    access_token_payload = AccessTokenPayload(**payload)
+
+    private_key = secp256k1.PrivateKey(bytes.fromhex(os.urandom(32).hex()))
+    pubkey_hex = private_key.pubkey.serialize().hex()[2:]
+
+    response = await http_client.put(
+        "/api/v1/auth/pubkey",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "user_id": access_token_payload.usr,
+            "pubkey": pubkey_hex,
+        },
+    )
+
+    assert response.status_code == 200, "Pubkey changed."
+    user = User(**response.json())
+    assert user.username == f"u21.{tiny_id}", "Username check."
+    assert user.email == f"u21.{tiny_id}@lnbits.com", "Email check."
+    assert user.pubkey == pubkey_hex
+
+    # Login with nostr
+    event = {**nostr_event}
+    event["created_at"] = int(time.time())
+    event["pubkey"] = pubkey_hex
+    event_signed = sign_event(event, pubkey_hex, private_key)
+    base64_event = base64.b64encode(json.dumps(event_signed).encode()).decode("ascii")
+    response = await http_client.post(
+        "/api/v1/auth/nostr",
+        headers={"Authorization": f"nostr {base64_event}"},
+    )
+    assert response.status_code == 200, "User logged in."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    response = await http_client.get(
+        "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    user = User(**response.json())
+    assert user.username == f"u21.{tiny_id}", "Username check."
+    assert user.email == f"u21.{tiny_id}@lnbits.com", "Email check."
+    assert user.pubkey == pubkey_hex, "No pubkey."
+    assert not user.admin, "Not admin."
+    assert not user.super_user, "Not superuser."
+    assert user.has_password, "Password configured."
+    assert len(user.wallets) == 1, "One default wallet."
+
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
+
+    assert response.status_code == 200, "Alan logs in OK"
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    response = await http_client.put(
+        "/api/v1/auth/pubkey",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "user_id": user_alan.id,
+            "pubkey": pubkey_hex,
+        },
+    )
+
+    assert response.status_code == 403, "Pubkey already used."
+    assert response.json().get("detail") == "Public key already in use."
+
+
+@pytest.mark.asyncio
 async def test_change_pubkey_not_authenticated(http_client: AsyncClient):
     pass
