@@ -93,7 +93,7 @@ async def update_account(
     if username:
         assert not user.username or username == user.username, "Cannot change username."
         account = await get_account_by_username(username)
-        assert not account or account.id == user_id, "Username already in exists."
+        assert not account or account.id == user_id, "Username already exists."
 
     username = user.username or username
     email = user.email or email

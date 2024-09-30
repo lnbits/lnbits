@@ -142,6 +142,7 @@ window.app = Vue.createApp({
           }
         )
         this.user = data
+        this.hasUsername = !!data.username
         this.credentialsData.show = false
         Quasar.Notify.create({
           type: 'positive',
@@ -163,6 +164,7 @@ window.app = Vue.createApp({
           }
         )
         this.user = data
+        this.hasUsername = !!data.username
         this.credentialsData.show = false
         this.$q.notify({
           type: 'positive',
