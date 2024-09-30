@@ -151,18 +151,15 @@ window.LNbits = {
       )
     },
     updateBalance: function (credit, wallet_id) {
-      return LNbits.api.request('PUT', '/users/api/v1/topup', null, {
+      return this.request('PUT', '/users/api/v1/topup', null, {
         amount: credit,
         id: wallet_id
       })
     },
     getCurrencies() {
-      return LNbits.api
-        .request('GET', '/api/v1/currencies')
-        .then(response => {
-          return ['sats', ...response.data]
-        })
-        .catch(LNbits.utils.notifyApiError)
+      return this.request('GET', '/api/v1/currencies').then(response => {
+        return ['sats', ...response.data]
+      })
     }
   },
   events: {
