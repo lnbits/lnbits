@@ -22,6 +22,9 @@ nostr_event = {
     "sig": "fb7eb47fa8355747f6837e55620103d73ba47b2c3164ab8319d2f164022a9f25"
     "6e00ecda7d3c8945f07b7d6ecc18cfff34c07bc99677309e2b9310d9fc1bb138",
 }
+private_key = secp256k1.PrivateKey(
+    bytes.fromhex("6e00ecda7d3c8945f07b7d6ecc18cfff34c07bc99677309e2b9310d9fc1bb138")
+)
 
 settings.auth_allowed_methods = AuthMethods.all()
 
@@ -535,17 +538,14 @@ async def test_register_nostr_bad_event(http_client: AsyncClient):
     assert response.status_code == 401, "Nostr event signature invalid."
     assert response.json().get("detail") == "Nostr login event is not valid."
 
-    private_key = secp256k1.PrivateKey(
-        bytes.fromhex(
-            "6e00ecda7d3c8945f07b7d6ecc18cfff34c07bc99677309e2b9310d9fc1bb138"
-        )
-    )
+
+@pytest.mark.asyncio
+async def test_register_nostr_bad_event_kind(http_client: AsyncClient):
     event_bad_kind = {**nostr_event}
     event_bad_kind["kind"] = "12345"
-    print("### private_key.pubkey.hex()", private_key.pubkey.serialize().hex()[2:])
-    event_bad_kind_signed = sign_event(
-        event_bad_kind, private_key.pubkey.serialize().hex()[2:], private_key
-    )
+
+    pubkey_hex = private_key.pubkey.serialize().hex()[2:]
+    event_bad_kind_signed = sign_event(event_bad_kind, pubkey_hex, private_key)
     base64_event_bad_kind = base64.b64encode(
         json.dumps(event_bad_kind_signed).encode()
     ).decode("ascii")
@@ -555,6 +555,40 @@ async def test_register_nostr_bad_event(http_client: AsyncClient):
     )
     assert response.status_code == 401, "Nostr event kind invalid."
     assert response.json().get("detail") == "Invalid event kind."
+
+
+@pytest.mark.asyncio
+async def test_register_nostr_bad_event_tag_menthod(http_client: AsyncClient):
+    event_bad_kind = {**nostr_event}
+    event_bad_kind["created_at"] = int(time.time())
+
+    event_bad_kind["tags"] = [["u", "http://localhost:5000/nostr"]]
+
+    pubkey_hex = private_key.pubkey.serialize().hex()[2:]
+    event_bad_tag_signed = sign_event(event_bad_kind, pubkey_hex, private_key)
+    base64_event_tag_kind = base64.b64encode(
+        json.dumps(event_bad_tag_signed).encode()
+    ).decode("ascii")
+    response = await http_client.post(
+        "/api/v1/auth/nostr",
+        headers={"Authorization": f"nostr {base64_event_tag_kind}"},
+    )
+    assert response.status_code == 401, "Nostr event tag missing."
+    assert response.json().get("detail") == "Tag 'method' is missing."
+
+    event_bad_kind["tags"] = [["u", "http://localhost:5000/nostr"], ["method", "XYZ"]]
+
+    pubkey_hex = private_key.pubkey.serialize().hex()[2:]
+    event_bad_tag_signed = sign_event(event_bad_kind, pubkey_hex, private_key)
+    base64_event_tag_kind = base64.b64encode(
+        json.dumps(event_bad_tag_signed).encode()
+    ).decode("ascii")
+    response = await http_client.post(
+        "/api/v1/auth/nostr",
+        headers={"Authorization": f"nostr {base64_event_tag_kind}"},
+    )
+    assert response.status_code == 401, "Nostr event tag missing."
+    assert response.json().get("detail") == "Incorrect value for tag 'method'."
 
 
 ################################ CHANGE PUBLIC KEY ################################
