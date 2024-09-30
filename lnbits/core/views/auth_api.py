@@ -260,7 +260,7 @@ async def update_pubkey(
     except Exception as exc:
         logger.debug(exc)
         raise HTTPException(
-            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user pubkey."
         ) from exc
 
 
@@ -284,8 +284,12 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         assert user_id is not None, "Missing user ID."
         assert reqest_time is not None, "Missing reset time."
 
+        user = await get_account(user_id)
+        assert user, "User not found."
+
         update_pwd = UpdateUserPassword(
-            user_id=user_id,
+            user_id=user.id,
+            username=user.username,
             password=data.password,
             password_repeat=data.password_repeat,
         )
@@ -299,7 +303,7 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
     except Exception as exc:
         logger.debug(exc)
         raise HTTPException(
-            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot reset user password."
         ) from exc
 
 
@@ -349,7 +353,7 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     except Exception as exc:
         logger.debug(exc)
         raise HTTPException(
-            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot init user password."
         ) from exc
 
 
