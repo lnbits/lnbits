@@ -10,19 +10,7 @@ permissions:
 
 jobs:
 
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Create github release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
-        run: |
-          gh release create "$tag" --generate-notes --prerelease
-
   docker:
-    needs: [ release ]
     uses: ./.github/workflows/docker.yml
     with:
       tag: ${{ github.ref_name }}
