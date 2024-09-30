@@ -751,5 +751,20 @@ async def test_change_pubkey_ok(http_client: AsyncClient, user_alan: User):
 
 
 @pytest.mark.asyncio
-async def test_change_pubkey_not_authenticated(http_client: AsyncClient):
-    pass
+async def test_change_pubkey_not_authenticated(
+    http_client: AsyncClient, user_alan: User
+):
+    response = await http_client.put(
+        "/api/v1/auth/pubkey",
+        json={
+            "user_id": user_alan.id,
+            "pubkey": pubkey_hex,
+        },
+    )
+
+    print("### respinse", response.text)
+    assert response.status_code == 401, "Must be authenticated to change pubkey."
+    assert response.json().get("detail") == "Missing user ID or access token."
+
+
+# settings.auth_allowed_methods = [AuthMethods.username_and_password.value]
