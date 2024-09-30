@@ -421,8 +421,14 @@ def _nostr_nip98_event(request: Request) -> dict:
     scheme, token = auth_header.split()
     assert scheme.lower() == "nostr", "Authorization header is not nostr."
 
-    event_json = base64.b64decode(token.encode("ascii"))
-    event = json.loads(event_json)
+    event = None
+    try:
+        event_json = base64.b64decode(token.encode("ascii"))
+        event = json.loads(event_json)
+    except Exception as exc:
+        logger.warning(exc)
+
+    assert event, "Nostr login event cannot be parsed."
 
     assert verify_event(event), "Nostr login event is not valid."
 

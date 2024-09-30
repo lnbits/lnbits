@@ -8,6 +8,17 @@ from httpx import AsyncClient
 from lnbits.core.models import AccessTokenPayload, User
 from lnbits.settings import AuthMethods, settings
 
+nostr_event = {
+    "kind": 27235,
+    "tags": [["u", "http://localhost:5000/nostr"], ["method", "POST"]],
+    "created_at": 1727681048,
+    "content": "",
+    "pubkey": "f6e80df16fa27f1f2774af0ac61b096f8f63ce9116f0a954fca1e25baee84ba9",
+    "id": "0fd22355fe63043116fdfceb77be6bf22686aacd16b9e99a10fea6e55ae3f589",
+    "sig": "fb7eb47fa8355747f6837e55620103d73ba47b2c3164ab8319d2f164022a9f25"
+    "6e00ecda7d3c8945f07b7d6ecc18cfff34c07bc99677309e2b9310d9fc1bb138",
+}
+
 
 ################################ LOGIN ################################
 @pytest.mark.asyncio
@@ -469,6 +480,29 @@ async def test_register_nostr_not_allowed(http_client: AsyncClient):
     assert response.json().get("detail") == "Login with Nostr Auth not allowed."
 
     settings.auth_allowed_methods = AuthMethods.all()
+
+
+@pytest.mark.asyncio
+async def test_register_nostr_bad_header(http_client: AsyncClient):
+    response = await http_client.post("/api/v1/auth/nostr")
+
+    assert response.status_code == 401, "Missing header."
+    assert response.json().get("detail") == "Nostr Auth header missing."
+
+    response = await http_client.post(
+        "/api/v1/auth/nostr",
+        headers={"Authorization": "Bearer xyz"},
+    )
+
+    assert response.status_code == 401, "Non nostr header."
+    assert response.json().get("detail") == "Authorization header is not nostr."
+
+    response = await http_client.post(
+        "/api/v1/auth/nostr",
+        headers={"Authorization": "nostr xyz"},
+    )
+    assert response.status_code == 401, "Nostr not base64."
+    assert response.json().get("detail") == "Nostr login event cannot be parsed."
 
 
 ################################ CHANGE PUBLIC KEY ################################
