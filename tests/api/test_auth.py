@@ -11,7 +11,7 @@ from httpx import AsyncClient
 
 from lnbits.core.models import AccessTokenPayload, User
 from lnbits.settings import AuthMethods, settings
-from lnbits.utils.nostr import sign_event
+from lnbits.utils.nostr import hex_to_npub, sign_event
 
 nostr_event = {
     "kind": 27235,
@@ -665,6 +665,45 @@ async def test_register_nostr_bad_event_tag_menthod(http_client: AsyncClient):
 
 
 ################################ CHANGE PUBLIC KEY ################################
+async def test_change_pubkey_npub_ok(http_client: AsyncClient, user_alan: User):
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    access_token_payload = AccessTokenPayload(**payload)
+
+    private_key = secp256k1.PrivateKey(bytes.fromhex(os.urandom(32).hex()))
+    pubkey_hex = private_key.pubkey.serialize().hex()[2:]
+    npub = hex_to_npub(pubkey_hex)
+
+    response = await http_client.put(
+        "/api/v1/auth/pubkey",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "user_id": access_token_payload.usr,
+            "pubkey": npub,
+        },
+    )
+
+    assert response.status_code == 200, "Pubkey changed."
+    user = User(**response.json())
+    assert user.username == f"u21.{tiny_id}", "Username check."
+    assert user.email == f"u21.{tiny_id}@lnbits.com", "Email check."
+    assert user.pubkey == pubkey_hex
+
+
 @pytest.mark.asyncio
 async def test_change_pubkey_ok(http_client: AsyncClient, user_alan: User):
     tiny_id = shortuuid.uuid()[:8]

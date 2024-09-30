@@ -4,7 +4,7 @@ import json
 from typing import Dict, Union
 
 import secp256k1
-from bech32 import bech32_decode, convertbits
+from bech32 import bech32_decode, bech32_encode, convertbits
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
@@ -171,3 +171,20 @@ def normalize_public_key(pubkey: str) -> str:
     except Exception as exc:
         raise AssertionError("Public Key is not valid hex.") from exc
     return pubkey
+
+
+def hex_to_npub(hex_pubkey: str) -> str:
+    """
+    Converts a hex public key to a Nostr public key.
+
+    Args:
+        hex_pubkey (str): The hex public key to convert.
+
+    Returns:
+        str: The Nostr public key.
+    """
+    normalize_public_key(hex_pubkey)
+    pubkey_bytes = bytes.fromhex(hex_pubkey)
+    bits = convertbits(pubkey_bytes, 8, 5, True)
+    assert bits
+    return bech32_encode("npub", bits)
