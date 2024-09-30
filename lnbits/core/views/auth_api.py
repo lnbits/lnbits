@@ -433,9 +433,10 @@ def _nostr_nip98_event(request: Request) -> dict:
     assert verify_event(event), "Nostr login event is not valid."
 
     assert event["kind"] == 27_235, "Invalid event kind."
+    auth_threshold = settings.auth_credetials_update_threshold
     assert (
-        abs(time() - event["created_at"]) < 60
-    ), "More than 60 seconds have passed since the event was signed."
+        abs(time() - event["created_at"]) < auth_threshold
+    ), f"More than {auth_threshold} seconds have passed since the event was signed."
 
     method: Optional[str] = next((v for k, v in event["tags"] if k == "method"), None)
     assert method, "Tag 'method' is missing."

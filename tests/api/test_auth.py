@@ -1,3 +1,5 @@
+import base64
+import json
 import time
 
 import jwt
@@ -503,6 +505,30 @@ async def test_register_nostr_bad_header(http_client: AsyncClient):
     )
     assert response.status_code == 401, "Nostr not base64."
     assert response.json().get("detail") == "Nostr login event cannot be parsed."
+
+    base64_event = base64.b64encode(json.dumps(nostr_event).encode()).decode("ascii")
+    response = await http_client.post(
+        "/api/v1/auth/nostr",
+        headers={"Authorization": f"nostr {base64_event}"},
+    )
+    assert response.status_code == 401, "Nostr event expired."
+    assert (
+        response.json().get("detail")
+        == f"More than {settings.auth_credetials_update_threshold}"
+        " seconds have passed since the event was signed."
+    )
+
+    corrupted_event = {**nostr_event}
+    corrupted_event["content"] = "xyz"
+    base64_event = base64.b64encode(json.dumps(corrupted_event).encode()).decode(
+        "ascii"
+    )
+    response = await http_client.post(
+        "/api/v1/auth/nostr",
+        headers={"Authorization": f"nostr {base64_event}"},
+    )
+    assert response.status_code == 401, "Nostr event signature invalid."
+    assert response.json().get("detail") == "Nostr login event is not valid."
 
 
 ################################ CHANGE PUBLIC KEY ################################
