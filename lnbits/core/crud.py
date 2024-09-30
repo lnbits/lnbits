@@ -240,7 +240,7 @@ async def update_user_password(data: UpdateUserPassword, last_login_time: int) -
     )
 
     user = await get_user(data.user_id)
-    assert user, "Updated account couldn't be retrieved"
+    assert user, "Updated account couldn't be retrieved."
     return user
 
 
