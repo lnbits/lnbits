@@ -284,7 +284,12 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         assert user_id is not None, "Missing user ID."
         assert reqest_time is not None, "Missing reset time."
 
-        user = await update_user_password(data, reqest_time)
+        update_pwd = UpdateUserPassword(
+            user_id=user_id,
+            password=data.password,
+            password_repeat=data.password_repeat,
+        )
+        user = await update_user_password(update_pwd, reqest_time)
 
         return _auth_success_response(
             username=user.username, user_id=user_id, email=user.email
