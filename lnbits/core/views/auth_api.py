@@ -274,14 +274,26 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
     if data.password != data.password_repeat:
         raise HTTPException(HTTP_400_BAD_REQUEST, "Passwords do not match.")
 
-    account = await get_account_by_reset_key(data.reset_key)
-    if not account:
-        raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid reset key.")
+    assert data.reset_key[:10] == "reset_key_", "This is not a reset key"
 
-    await reset_user_password(data)
+    reset_data_json = decrypt_internal_message(
+        base64.b64decode(data.reset_key[10:]).decode()
+    )
+    assert reset_data_json, "Cannot process reset key."
+
+    action, user_id, reqest_time = json.loads(reset_data_json)
+    assert action == "reset", "Expected reset action."
+    assert user_id is not None, "Missing user ID."
+    assert reqest_time is not None, "Missing reset time."
+
+    user = await get_account(user_id)
+    assert user, "User not found for reset key."
+
+    # await reset_user_password(data)
+    # todo: reset key timout
 
     return _auth_success_response(
-        username=account.username, user_id=account.id, email=account.email
+        username=user.username, user_id=user_id, email=user.email
     )
 
 

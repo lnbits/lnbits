@@ -1,3 +1,4 @@
+import datetime
 from time import time
 
 from loguru import logger
@@ -101,7 +102,7 @@ async def m002_add_fields_to_apipayments(db):
 
         import json
 
-        rows = await db.fetchall("SELECT * FROM apipayments")
+        rows = await (await db.execute("SELECT * FROM apipayments")).fetchall()
         for row in rows:
             if not row["memo"] or not row["memo"].startswith("#"):
                 continue
@@ -112,15 +113,15 @@ async def m002_add_fields_to_apipayments(db):
                     new = row["memo"][len(prefix) :]
                     await db.execute(
                         """
-                        UPDATE apipayments SET extra = :extra, memo = :memo1
-                        WHERE checking_id = :checking_id AND memo = :memo2
+                        UPDATE apipayments SET extra = ?, memo = ?
+                        WHERE checking_id = ? AND memo = ?
                         """,
-                        {
-                            "extra": json.dumps({"tag": ext}),
-                            "memo1": new,
-                            "checking_id": row["checking_id"],
-                            "memo2": row["memo"],
-                        },
+                        (
+                            json.dumps({"tag": ext}),
+                            new,
+                            row["checking_id"],
+                            row["memo"],
+                        ),
                     )
                     break
     except OperationalError:
@@ -211,17 +212,19 @@ async def m007_set_invoice_expiries(db):
     Precomputes invoice expiry for existing pending incoming payments.
     """
     try:
-        rows = await db.fetchall(
-            f"""
-            SELECT bolt11, checking_id
-            FROM apipayments
-            WHERE pending = true
-            AND amount > 0
-            AND bolt11 IS NOT NULL
-            AND expiry IS NULL
-            AND time < {db.timestamp_now}
-            """
-        )
+        rows = await (
+            await db.execute(
+                f"""
+                SELECT bolt11, checking_id
+                FROM apipayments
+                WHERE pending = true
+                AND amount > 0
+                AND bolt11 IS NOT NULL
+                AND expiry IS NULL
+                AND time < {db.timestamp_now}
+                """
+            )
+        ).fetchall()
         if len(rows):
             logger.info(f"Migration: Checking expiry of {len(rows)} invoices")
         for i, (
@@ -233,17 +236,22 @@ async def m007_set_invoice_expiries(db):
                 if invoice.expiry is None:
                     continue
 
-                expiration_date = invoice.date + invoice.expiry
+                expiration_date = datetime.datetime.fromtimestamp(
+                    invoice.date + invoice.expiry
+                )
                 logger.info(
                     f"Migration: {i+1}/{len(rows)} setting expiry of invoice"
                     f" {invoice.payment_hash} to {expiration_date}"
                 )
                 await db.execute(
-                    f"""
-                    UPDATE apipayments SET expiry = {db.timestamp_placeholder('expiry')}
-                    WHERE checking_id = :checking_id AND amount > 0
+                    """
+                    UPDATE apipayments SET expiry = ?
+                    WHERE checking_id = ? AND amount > 0
                     """,
-                    {"expiry": expiration_date, "checking_id": checking_id},
+                    (
+                        db.datetime_to_timestamp(expiration_date),
+                        checking_id,
+                    ),
                 )
             except Exception:
                 continue
@@ -339,15 +347,17 @@ async def m014_set_deleted_wallets(db):
     Sets deleted column to wallets.
     """
     try:
-        rows = await db.fetchall(
-            """
-            SELECT *
-            FROM wallets
-            WHERE user LIKE 'del:%'
-            AND adminkey LIKE 'del:%'
-            AND inkey LIKE 'del:%'
-            """
-        )
+        rows = await (
+            await db.execute(
+                """
+                SELECT *
+                FROM wallets
+                WHERE user LIKE 'del:%'
+                AND adminkey LIKE 'del:%'
+                AND inkey LIKE 'del:%'
+                """
+            )
+        ).fetchall()
 
         for row in rows:
             try:
@@ -357,15 +367,10 @@ async def m014_set_deleted_wallets(db):
                 await db.execute(
                     """
                     UPDATE wallets SET
-                    "user" = :user, adminkey = :adminkey, inkey = :inkey, deleted = true
-                    WHERE id = :wallet
+                    "user" = ?, adminkey = ?, inkey = ?, deleted = true
+                    WHERE id = ?
                     """,
-                    {
-                        "user": user,
-                        "adminkey": adminkey,
-                        "inkey": inkey,
-                        "wallet": row.get("id"),
-                    },
+                    (user, adminkey, inkey, row[0]),
                 )
             except Exception:
                 continue
@@ -451,17 +456,17 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
         now = int(time())
         await db.execute(
             f"""
-            UPDATE wallets SET created_at = {db.timestamp_placeholder('now')}
+            UPDATE wallets SET created_at = {db.timestamp_placeholder}
             WHERE created_at IS NULL
             """,
-            {"now": now},
+            (now,),
         )
         await db.execute(
             f"""
-            UPDATE accounts SET created_at = {db.timestamp_placeholder('now')}
+            UPDATE accounts SET created_at = {db.timestamp_placeholder}
             WHERE created_at IS NULL
             """,
-            {"now": now},
+            (now,),
         )
 
     except OperationalError as exc:
@@ -543,13 +548,3 @@ async def m021_add_success_failed_to_apipayments(db):
     )
     # TODO: drop column in next release
     # await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
-
-
-async def m022_add_pubkey_to_accounts(db):
-    """
-    Adds pubkey column to accounts.
-    """
-    try:
-        await db.execute("ALTER TABLE accounts ADD COLUMN pubkey TEXT")
-    except OperationalError:
-        pass
