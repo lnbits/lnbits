@@ -4,6 +4,7 @@ import json
 from typing import Dict, Union
 
 import secp256k1
+from bech32 import bech32_decode, convertbits
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
@@ -152,3 +153,21 @@ def json_dumps(data: Union[Dict, list]) -> str:
     if isinstance(data, Dict):
         data = {k: v for k, v in data.items() if v is not None}
     return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+
+
+def normalize_public_key(pubkey: str) -> str:
+    if pubkey.startswith("npub1"):
+        _, decoded_data = bech32_decode(pubkey)
+        assert decoded_data, "Public Key is not valid npub."
+
+        decoded_data_bits = convertbits(decoded_data, 5, 8, False)
+        assert decoded_data_bits, "Public Key is not valid npub."
+
+        return bytes(decoded_data_bits).hex()
+
+    assert len(pubkey) == 64, "Public key has wrong length."
+    try:
+        int(pubkey, 16)
+    except Exception as exc:
+        raise AssertionError("Public Key is not valid hex.") from exc
+    return pubkey

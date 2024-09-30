@@ -25,7 +25,7 @@ from lnbits.helpers import (
     is_valid_username,
 )
 from lnbits.settings import AuthMethods, settings
-from lnbits.utils.nostr import verify_event
+from lnbits.utils.nostr import normalize_public_key, verify_event
 
 from ..crud import (
     get_account,
@@ -251,6 +251,7 @@ async def update_pubkey(
         raise HTTPException(HTTP_400_BAD_REQUEST, "Invalid user ID.")
 
     try:
+        data.pubkey = normalize_public_key(data.pubkey)
         return await update_user_pubkey(data, payload.auth_time or 0)
 
     except AssertionError as exc:
