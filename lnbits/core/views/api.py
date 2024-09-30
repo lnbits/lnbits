@@ -2,6 +2,7 @@ import hashlib
 import json
 from http import HTTPStatus
 from io import BytesIO
+from time import time
 from typing import Dict, List
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
@@ -47,8 +48,12 @@ api_router = APIRouter(tags=["Core"])
 
 
 @api_router.get("/api/v1/health", status_code=HTTPStatus.OK)
-async def health():
-    return
+async def health() -> dict:
+    return {
+        "server_time": int(time()),
+        "up_time": int(time() - settings.server_startup_time),
+        "version": settings.version,
+    }
 
 
 @api_router.get(

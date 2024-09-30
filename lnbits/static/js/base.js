@@ -17,6 +17,9 @@ window.LNbits = {
         data: data
       })
     },
+    getServerHealth: function () {
+      return this.request('get', '/api/v1/health')
+    },
     createInvoice: async function (
       wallet,
       amount,
@@ -83,6 +86,14 @@ window.LNbits = {
         method: 'POST',
         url: '/api/v1/auth',
         data: {username, password}
+      })
+    },
+    loginByProvider: function (provider, headers, data) {
+      return axios({
+        method: 'POST',
+        url: `/api/v1/auth/${provider}`,
+        headers: headers,
+        data
       })
     },
     loginUsr: function (usr) {

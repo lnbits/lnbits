@@ -26,6 +26,7 @@
       :label="$t('restart')"
       color="primary"
       @click="restartServer"
+      class="q-ml-md"
     >
       <q-tooltip v-if="needsRestart">
         <span v-text="$t('restart_tooltip')"></span>

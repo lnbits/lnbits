@@ -31,6 +31,7 @@ from .models import (
     PaymentHistoryPoint,
     TinyURL,
     UpdateUserPassword,
+    UpdateUserPubkey,
     User,
     UserConfig,
     Wallet,
@@ -41,6 +42,7 @@ from .models import (
 async def create_account(
     user_id: Optional[str] = None,
     username: Optional[str] = None,
+    pubkey: Optional[str] = None,
     email: Optional[str] = None,
     password: Optional[str] = None,
     user_config: Optional[UserConfig] = None,
@@ -52,14 +54,17 @@ async def create_account(
     now_ph = db.timestamp_placeholder("now")
     await (conn or db).execute(
         f"""
-        INSERT INTO accounts (id, username, pass, email, extra, created_at, updated_at)
-        VALUES (:user, :username, :password, :email, :extra, {now_ph}, {now_ph})
+        INSERT INTO accounts
+            (id, username, pass, email, pubkey, extra, created_at, updated_at)
+        VALUES
+            (:user, :username, :password, :email, :pubkey, :extra, {now_ph}, {now_ph})
         """,
         {
             "user": user_id,
             "username": username,
             "password": password,
             "email": email,
+            "pubkey": pubkey,
             "extra": extra,
             "now": now,
         },
@@ -88,7 +93,7 @@ async def update_account(
     if username:
         assert not user.username or username == user.username, "Cannot change username."
         account = await get_account_by_username(username)
-        assert not account or account.id == user_id, "Username already in exists."
+        assert not account or account.id == user_id, "Username already exists."
 
     username = user.username or username
     email = user.email or email
@@ -161,7 +166,7 @@ async def get_account(
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
         """
-           SELECT id, email, username, created_at, updated_at, extra
+           SELECT id, email, username, pubkey, created_at, updated_at, extra
            FROM accounts WHERE id = :id
         """,
         {"id": user_id},
@@ -210,28 +215,56 @@ async def verify_user_password(user_id: str, password: str) -> bool:
     return pwd_context.verify(password, existing_password)
 
 
-# TODO: , conn: Optional[Connection] = None ??, maybe also not a crud function
-async def update_user_password(data: UpdateUserPassword) -> Optional[User]:
-    assert data.password == data.password_repeat, "Passwords do not match."
+async def update_user_password(data: UpdateUserPassword, last_login_time: int) -> User:
 
-    # old accounts do not have a pasword
-    if await get_user_password(data.user_id):
-        assert data.password_old, "Missing old password"
-        old_pwd_ok = await verify_user_password(data.user_id, data.password_old)
-        assert old_pwd_ok, "Invalid credentials."
+    assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
+        "You can only update your credentials in the first"
+        f" {settings.auth_credetials_update_threshold} seconds after login."
+        " Please login again!"
+    )
+    assert data.password == data.password_repeat, "Passwords do not match."
 
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    now = int(time())
-    now_ph = db.timestamp_placeholder("now")
     await db.execute(
         f"""
-        UPDATE accounts SET pass = :pass, updated_at = {now_ph}
+        UPDATE accounts
+        SET pass = :pass, updated_at = {db.timestamp_placeholder("now")}
         WHERE id = :user
         """,
         {
             "pass": pwd_context.hash(data.password),
-            "now": now,
+            "now": int(time()),
+            "user": data.user_id,
+        },
+    )
+
+    user = await get_user(data.user_id)
+    assert user, "Updated account couldn't be retrieved"
+    return user
+
+
+async def update_user_pubkey(data: UpdateUserPubkey, last_login_time: int) -> User:
+
+    assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
+        "You can only update your credentials in the first"
+        f" {settings.auth_credetials_update_threshold} seconds after login."
+        " Please login again!"
+    )
+
+    user = await get_account_by_pubkey(data.pubkey)
+    if user:
+        assert user.id == data.user_id, "Public key already in use."
+
+    await db.execute(
+        f"""
+        UPDATE accounts
+        SET pubkey = :pubkey, updated_at = {db.timestamp_placeholder("now")}
+        WHERE id = :user
+        """,
+        {
+            "pubkey": data.pubkey,
+            "now": int(time()),
             "user": data.user_id,
         },
     )
@@ -246,10 +279,24 @@ async def get_account_by_username(
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
         """
-        SELECT id, username, email, created_at, updated_at
+        SELECT id, username, pubkey, email, created_at, updated_at
         FROM accounts WHERE username = :username
         """,
         {"username": username},
+    )
+
+    return User(**row) if row else None
+
+
+async def get_account_by_pubkey(
+    pubkey: str, conn: Optional[Connection] = None
+) -> Optional[User]:
+    row = await (conn or db).fetchone(
+        """
+        SELECT id, username, pubkey, email, created_at, updated_at
+        FROM accounts WHERE pubkey = :pubkey
+        """,
+        {"pubkey": pubkey},
     )
 
     return User(**row) if row else None
@@ -260,7 +307,7 @@ async def get_account_by_email(
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
         """
-        SELECT id, username, email, created_at, updated_at
+        SELECT id, username, pubkey, email, created_at, updated_at
         FROM accounts WHERE email = :email
         """,
         {"email": email},
@@ -281,7 +328,7 @@ async def get_account_by_username_or_email(
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
     user = await (conn or db).fetchone(
         """
-        SELECT id, email, username, pass, extra, created_at, updated_at
+        SELECT id, email, username, pubkey, pass, extra, created_at, updated_at
         FROM accounts WHERE id = :id
         """,
         {"id": user_id},
@@ -306,6 +353,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         id=user["id"],
         email=user["email"],
         username=user["username"],
+        pubkey=user["pubkey"],
         extensions=[
             e for e in extensions if User.is_extension_for_user(e[0], user["id"])
         ],

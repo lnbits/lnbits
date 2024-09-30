@@ -13,11 +13,13 @@ window.app = Vue.createApp({
         'confettiStars'
       ],
       tab: 'user',
-      passwordData: {
+      credentialsData: {
         show: false,
         oldPassword: null,
         newPassword: null,
-        newPasswordRepeat: null
+        newPasswordRepeat: null,
+        username: null,
+        pubkey: null
       }
     }
   },
@@ -94,6 +96,7 @@ window.app = Vue.createApp({
           }
         )
         this.user = data
+        this.hasUsername = !!data.username
         Quasar.Notify.create({
           type: 'positive',
           message: 'Account updated.'
@@ -102,11 +105,19 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
+    disableUpdatePassword: function () {
+      return (
+        !this.credentialsData.newPassword ||
+        !this.credentialsData.newPasswordRepeat ||
+        this.credentialsData.newPassword !==
+          this.credentialsData.newPasswordRepeat
+      )
+    },
     updatePassword: async function () {
-      if (!this.user.username) {
+      if (!this.credentialsData.username) {
         Quasar.Notify.create({
           type: 'warning',
-          message: 'Please set a username first.'
+          message: 'Please set a username.'
         })
         return
       }
@@ -117,14 +128,15 @@ window.app = Vue.createApp({
           null,
           {
             user_id: this.user.id,
-            username: this.user.username,
-            password_old: this.passwordData.oldPassword,
-            password: this.passwordData.newPassword,
-            password_repeat: this.passwordData.newPasswordRepeat
+            username: this.credentialsData.username,
+            password_old: this.credentialsData.oldPassword,
+            password: this.credentialsData.newPassword,
+            password_repeat: this.credentialsData.newPasswordRepeat
           }
         )
         this.user = data
-        this.passwordData.show = false
+        this.hasUsername = !!data.username
+        this.credentialsData.show = false
         Quasar.Notify.create({
           type: 'positive',
           message: 'Password updated.'
@@ -133,17 +145,34 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
-    showChangePassword: function () {
-      if (!this.user.username) {
-        Quasar.Notify.create({
-          type: 'warning',
-          message: 'Please set a username first.'
+    updatePubkey: async function () {
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          '/api/v1/auth/pubkey',
+          null,
+          {
+            user_id: this.user.id,
+            pubkey: this.credentialsData.pubkey
+          }
+        )
+        this.user = data
+        this.hasUsername = !!data.username
+        this.credentialsData.show = false
+        this.$q.notify({
+          type: 'positive',
+          message: 'Public key updated.'
         })
-        return
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
       }
-      this.passwordData = {
+    },
+    showUpdateCredentials: function () {
+      this.credentialsData = {
         show: true,
         oldPassword: null,
+        username: this.user.username,
+        pubkey: this.user.pubkey,
         newPassword: null,
         newPasswordRepeat: null
       }

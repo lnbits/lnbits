@@ -41,6 +41,7 @@ window.app = Vue.createApp({
       formAddExtensionsManifest: '',
       formAllowedIPs: '',
       formBlockedIPs: '',
+      nostrAcceptedUrl: '',
       isSuperUser: false,
       wallet: {},
       cancel: {},
@@ -180,6 +181,16 @@ window.app = Vue.createApp({
       this.formData.lnbits_blocked_ips = blocked_ips.filter(
         b => b !== blocked_ip
       )
+    },
+    addNostrUrl() {
+      const url = this.nostrAcceptedUrl.trim()
+      this.removeNostrUrl(url)
+      this.formData.nostr_absolute_request_urls.push(url)
+      this.nostrAcceptedUrl = ''
+    },
+    removeNostrUrl(url) {
+      this.formData.nostr_absolute_request_urls =
+        this.formData.nostr_absolute_request_urls.filter(b => b !== url)
     },
     restartServer() {
       LNbits.api

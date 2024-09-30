@@ -209,9 +209,7 @@ async def account(
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
-        {
-            "user": user.dict(),
-        },
+        {"user": user.dict()},
     )
 
 

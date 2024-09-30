@@ -1,6 +1,7 @@
 import importlib
 import re
 from typing import Any
+from urllib.parse import urlparse
 from uuid import UUID
 
 from loguru import logger
@@ -103,3 +104,11 @@ async def migrate_databases():
             logger.exception(f"Error migrating extension {ext.code}: {e}")
 
     logger.info("✔️ All migrations done.")
+
+
+def is_valid_url(url):
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False

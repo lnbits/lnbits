@@ -4,7 +4,6 @@ import time
 from functools import wraps
 from pathlib import Path
 from typing import List, Optional, Tuple
-from urllib.parse import urlparse
 
 import click
 import httpx
@@ -30,7 +29,7 @@ from lnbits.core.extensions.models import (
     ExtensionRelease,
     InstallableExtension,
 )
-from lnbits.core.helpers import migrate_databases
+from lnbits.core.helpers import is_valid_url, migrate_databases
 from lnbits.core.models import Payment, PaymentState
 from lnbits.core.services import check_admin_settings
 from lnbits.core.views.extension_api import (
@@ -328,7 +327,7 @@ async def extensions_update(
     if extension and all_extensions:
         click.echo("Only one of extension ID or the '--all' flag must be specified")
         return
-    if url and not _is_url(url):
+    if url and not is_valid_url(url):
         click.echo(f"Invalid '--url' option value: {url}")
         return
 
@@ -402,7 +401,7 @@ async def extensions_install(
 ):
     """Install a extension"""
     click.echo(f"Installing {extension}... {repo_index}")
-    if url and not _is_url(url):
+    if url and not is_valid_url(url):
         click.echo(f"Invalid '--url' option value: {url}")
         return
 
@@ -430,7 +429,7 @@ async def extensions_uninstall(
     """Uninstall a extension"""
     click.echo(f"Uninstalling '{extension}'...")
 
-    if url and not _is_url(url):
+    if url and not is_valid_url(url):
         click.echo(f"Invalid '--url' option value: {url}")
         return
 
@@ -658,12 +657,4 @@ async def _is_lnbits_started(url: Optional[str]):
             await client.get(url)
             return True
     except Exception:
-        return False
-
-
-def _is_url(url):
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except ValueError:
         return False

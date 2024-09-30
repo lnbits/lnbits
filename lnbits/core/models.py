@@ -138,6 +138,7 @@ class User(BaseModel):
     id: str
     email: Optional[str] = None
     username: Optional[str] = None
+    pubkey: Optional[str] = None
     extensions: list[str] = []
     wallets: list[Wallet] = []
     admin: bool = False
@@ -182,10 +183,15 @@ class UpdateUser(BaseModel):
 
 class UpdateUserPassword(BaseModel):
     user_id: str
+    password_old: Optional[str] = None
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
-    password_old: Optional[str] = Query(default=None, min_length=8, max_length=50)
-    username: Optional[str] = Query(default=..., min_length=2, max_length=20)
+    username: str = Query(default=..., min_length=2, max_length=20)
+
+
+class UpdateUserPubkey(BaseModel):
+    user_id: str
+    pubkey: str = Query(default=..., max_length=64)
 
 
 class UpdateSuperuserPassword(BaseModel):
@@ -201,6 +207,13 @@ class LoginUsr(BaseModel):
 class LoginUsernamePassword(BaseModel):
     username: str
     password: str
+
+
+class AccessTokenPayload(BaseModel):
+    sub: str
+    usr: Optional[str] = None
+    email: Optional[str] = None
+    auth_time: Optional[int] = 0
 
 
 class PaymentState(str, Enum):

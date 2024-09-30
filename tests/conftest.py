@@ -16,11 +16,12 @@ from lnbits.app import create_app
 from lnbits.core.crud import (
     create_account,
     create_wallet,
+    get_account_by_username,
     get_user,
     update_payment_status,
 )
 from lnbits.core.models import CreateInvoice, PaymentState
-from lnbits.core.services import update_wallet_balance
+from lnbits.core.services import create_user_account, update_wallet_balance
 from lnbits.core.views.payment_api import api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import settings
@@ -59,6 +60,13 @@ async def client(app):
         yield client
 
 
+@pytest_asyncio.fixture(scope="function")
+async def http_client(app):
+    url = f"http://{settings.host}:{settings.port}"
+    async with AsyncClient(app=app, base_url=url) as client:
+        yield client
+
+
 @pytest.fixture(scope="session")
 def test_client(app):
     return TestClient(app)
@@ -67,6 +75,16 @@ def test_client(app):
 @pytest_asyncio.fixture(scope="session")
 async def db():
     yield Database("database")
+
+
+@pytest_asyncio.fixture(scope="package")
+async def user_alan():
+    user = await get_account_by_username("alan")
+    if not user:
+        user = await create_user_account(
+            email="alan@lnbits.com", username="alan", password="secret1234"
+        )
+    yield user
 
 
 @pytest_asyncio.fixture(scope="session")
