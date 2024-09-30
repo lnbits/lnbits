@@ -469,8 +469,8 @@ async def test_alan_change_password_auth_threshold_expired(
     assert response.status_code == 403, "Treshold expired."
     assert (
         response.json().get("detail") == "You can only update your credentials"
-        " in the first 1 seconds after login."
-        " Please login again!"
+        " in the first 1 seconds."
+        " Please login again or ask a new reset key!"
     )
 
 
