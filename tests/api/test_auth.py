@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import time
 
 import jwt
@@ -474,6 +475,45 @@ async def test_alan_change_password_auth_threshold_expired(
 
 
 ################################ REGISTER PUBLIC KEY ################################
+
+
+@pytest.mark.asyncio
+async def test_register_nostr_ok(http_client: AsyncClient):
+    event = {**nostr_event}
+    event["created_at"] = int(time.time())
+
+    private_key = secp256k1.PrivateKey(bytes.fromhex(os.urandom(32).hex()))
+    pubkey_hex = private_key.pubkey.serialize().hex()[2:]
+    event_signed = sign_event(event, pubkey_hex, private_key)
+    base64_event = base64.b64encode(json.dumps(event_signed).encode()).decode("ascii")
+    response = await http_client.post(
+        "/api/v1/auth/nostr",
+        headers={"Authorization": f"nostr {base64_event}"},
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    access_token_payload = AccessTokenPayload(**payload)
+    assert access_token_payload.auth_time, "Auth time should be set by server."
+    assert (
+        0 <= time.time() - access_token_payload.auth_time <= 5
+    ), "Auth time should be very close to now()."
+
+    response = await http_client.get(
+        "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    user = User(**response.json())
+    assert user.username is None, "No username."
+    assert user.email is None, "No email."
+    assert user.pubkey == pubkey_hex, "Pubkey check."
+    assert not user.admin, "Not admin."
+    assert not user.super_user, "Not superuser."
+    assert not user.has_password, "Password configured."
+    assert len(user.wallets) == 1, "One default wallet."
+
+
 @pytest.mark.asyncio
 async def test_register_nostr_not_allowed(http_client: AsyncClient):
     # exclude 'nostr_auth_nip98'
