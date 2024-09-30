@@ -4,11 +4,13 @@ import time
 
 import jwt
 import pytest
+import secp256k1
 import shortuuid
 from httpx import AsyncClient
 
 from lnbits.core.models import AccessTokenPayload, User
 from lnbits.settings import AuthMethods, settings
+from lnbits.utils.nostr import sign_event
 
 nostr_event = {
     "kind": 27235,
@@ -20,6 +22,8 @@ nostr_event = {
     "sig": "fb7eb47fa8355747f6837e55620103d73ba47b2c3164ab8319d2f164022a9f25"
     "6e00ecda7d3c8945f07b7d6ecc18cfff34c07bc99677309e2b9310d9fc1bb138",
 }
+
+settings.auth_allowed_methods = AuthMethods.all()
 
 
 ################################ LOGIN ################################
@@ -131,10 +135,7 @@ async def test_login_alan_password_nok(user_alan: User, http_client: AsyncClient
 async def test_login_username_password_not_allowed(
     user_alan: User, http_client: AsyncClient
 ):
-
-    auth_allowed_methods_initial = [*settings.auth_allowed_methods]
-
-    # exclude 'user_id_only'
+    # exclude 'username_password'
     settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
 
     response = await http_client.post(
@@ -146,7 +147,7 @@ async def test_login_username_password_not_allowed(
         response.json().get("detail") == "Login by 'Username and Password' not allowed."
     )
 
-    settings.auth_allowed_methods = auth_allowed_methods_initial
+    settings.auth_allowed_methods = AuthMethods.all()
 
     response = await http_client.post(
         "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
@@ -506,6 +507,10 @@ async def test_register_nostr_bad_header(http_client: AsyncClient):
     assert response.status_code == 401, "Nostr not base64."
     assert response.json().get("detail") == "Nostr login event cannot be parsed."
 
+
+@pytest.mark.asyncio
+async def test_register_nostr_bad_event(http_client: AsyncClient):
+    settings.auth_allowed_methods = AuthMethods.all()
     base64_event = base64.b64encode(json.dumps(nostr_event).encode()).decode("ascii")
     response = await http_client.post(
         "/api/v1/auth/nostr",
@@ -529,6 +534,27 @@ async def test_register_nostr_bad_header(http_client: AsyncClient):
     )
     assert response.status_code == 401, "Nostr event signature invalid."
     assert response.json().get("detail") == "Nostr login event is not valid."
+
+    private_key = secp256k1.PrivateKey(
+        bytes.fromhex(
+            "6e00ecda7d3c8945f07b7d6ecc18cfff34c07bc99677309e2b9310d9fc1bb138"
+        )
+    )
+    event_bad_kind = {**nostr_event}
+    event_bad_kind["kind"] = "12345"
+    print("### private_key.pubkey.hex()", private_key.pubkey.serialize().hex()[2:])
+    event_bad_kind_signed = sign_event(
+        event_bad_kind, private_key.pubkey.serialize().hex()[2:], private_key
+    )
+    base64_event_bad_kind = base64.b64encode(
+        json.dumps(event_bad_kind_signed).encode()
+    ).decode("ascii")
+    response = await http_client.post(
+        "/api/v1/auth/nostr",
+        headers={"Authorization": f"nostr {base64_event_bad_kind}"},
+    )
+    assert response.status_code == 401, "Nostr event kind invalid."
+    assert response.json().get("detail") == "Invalid event kind."
 
 
 ################################ CHANGE PUBLIC KEY ################################
