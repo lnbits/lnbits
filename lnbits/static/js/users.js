@@ -218,9 +218,6 @@ window.app = Vue.createApp({
     formatSat: function (value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
     },
-    usersTableRowKey: function (row) {
-      return row.id
-    },
     resetPassword(user_id) {
       return LNbits.api
         .request('PUT', `/users/api/v1/user/${user_id}/reset_password`)
