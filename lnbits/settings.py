@@ -434,6 +434,17 @@ class AuthMethods(Enum):
     github_auth = "github-auth"
     keycloak_auth = "keycloak-auth"
 
+    @classmethod
+    def all(cls):
+        return [
+            AuthMethods.user_id_only.value,
+            AuthMethods.username_and_password.value,
+            AuthMethods.nostr_auth_nip98.value,
+            AuthMethods.google_auth.value,
+            AuthMethods.github_auth.value,
+            AuthMethods.keycloak_auth.value,
+        ]
+
 
 class AuthSettings(LNbitsSettings):
     auth_token_expire_minutes: int = Field(default=525600)

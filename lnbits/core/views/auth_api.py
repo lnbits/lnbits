@@ -83,7 +83,7 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
         raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Cannot login.") from exc
 
 
-@auth_router.post("/nostr", description="Login via the Nostr")
+@auth_router.post("/nostr", description="Login via Nostr")
 async def nostr_login(request: Request) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.nostr_auth_nip98):
         raise HTTPException(HTTP_401_UNAUTHORIZED, "Login with Nostr Auth not allowed.")
@@ -300,7 +300,7 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
             password_repeat=data.password_repeat,
             username=data.username,
         )
-        user = await update_user_password(super_user, 0)
+        user = await update_user_password(super_user, int(time()))
         settings.first_install = False
         return _auth_success_response(user.username, user.id, user.email)
     except AssertionError as exc:

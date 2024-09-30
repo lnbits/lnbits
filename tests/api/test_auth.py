@@ -9,6 +9,7 @@ from lnbits.core.models import AccessTokenPayload, User
 from lnbits.settings import AuthMethods, settings
 
 
+################################ LOGIN ################################
 @pytest.mark.asyncio
 async def test_login_bad_user(http_client: AsyncClient):
     response = await http_client.post(
@@ -40,8 +41,6 @@ async def test_login_alan_usr(user_alan: User, http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_login_usr_not_allowed(user_alan: User, http_client: AsyncClient):
-    auth_allowed_methods_initial = [*settings.auth_allowed_methods]
-
     # exclude 'user_id_only'
     settings.auth_allowed_methods = [AuthMethods.username_and_password.value]
 
@@ -50,7 +49,7 @@ async def test_login_usr_not_allowed(user_alan: User, http_client: AsyncClient):
     assert response.status_code == 401, "Login method not allowed."
     assert response.json().get("detail") == "Login by 'User ID' not allowed."
 
-    settings.auth_allowed_methods = auth_allowed_methods_initial
+    settings.auth_allowed_methods = AuthMethods.all()
 
     response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
     assert response.status_code == 200, "Login with 'usr' allowed."
@@ -173,6 +172,7 @@ async def test_login_alan_change_auth_secret_key(
     assert response.status_code == 200, "Access token valid again."
 
 
+################################ REGISTER WITH PASSWORD ################################
 @pytest.mark.asyncio
 async def test_register_ok(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
@@ -298,6 +298,7 @@ async def test_register_bad_email(http_client: AsyncClient):
     assert response.json().get("detail") == "Invalid email."
 
 
+################################ CHANGE PASSWORD ################################
 @pytest.mark.asyncio
 async def test_change_password_ok(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
@@ -419,7 +420,7 @@ async def test_alan_change_password_different_user(
 
 
 @pytest.mark.asyncio
-async def test_alan_change_password_auth_threshold_exired(
+async def test_alan_change_password_auth_threshold_expired(
     user_alan: User, http_client: AsyncClient
 ):
 
@@ -454,15 +455,23 @@ async def test_alan_change_password_auth_threshold_exired(
     )
 
 
+################################ REGISTER PUBLIC KEY ################################
 @pytest.mark.asyncio
-async def test_change_pubkey_not_authenticated(http_client: AsyncClient):
-    response = await http_client.put(
-        "/api/v1/auth/pubkey",
-        json={
-            "user_id": "0000",
-            "pubkey": "0000",
-        },
+async def test_register_nostr_not_allowed(http_client: AsyncClient):
+    # exclude 'nostr_auth_nip98'
+    settings.auth_allowed_methods = [AuthMethods.username_and_password.value]
+    response = await http_client.post(
+        "/api/v1/auth/nostr",
+        json={},
     )
 
     assert response.status_code == 401, "User not authenticated."
-    assert response.json().get("detail") == "Missing user ID or access token."
+    assert response.json().get("detail") == "Login with Nostr Auth not allowed."
+
+    settings.auth_allowed_methods = AuthMethods.all()
+
+
+################################ CHANGE PUBLIC KEY ################################
+@pytest.mark.asyncio
+async def test_change_pubkey_not_authenticated(http_client: AsyncClient):
+    pass
