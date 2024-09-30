@@ -270,8 +270,6 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         raise HTTPException(
             HTTP_401_UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
         )
-    if data.password != data.password_repeat:
-        raise HTTPException(HTTP_400_BAD_REQUEST, "Passwords do not match.")
 
     try:
         assert data.reset_key[:10] == "reset_key_", "This is not a reset key"
