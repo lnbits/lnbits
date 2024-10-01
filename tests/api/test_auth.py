@@ -991,3 +991,33 @@ async def test_reset_username_password_bad_key(http_client: AsyncClient):
     )
     assert response.status_code == 500, "Bad reset key."
     assert response.json().get("detail") == "Cannot reset user password."
+
+
+@pytest.mark.asyncio
+async def test_reset_password_auth_threshold_expired(
+    user_alan: User, http_client: AsyncClient
+):
+
+    reset_key = await api_users_reset_password(user_alan.id)
+    assert reset_key, "Reset key created."
+
+    initial_update_threshold = settings.auth_credetials_update_threshold
+    settings.auth_credetials_update_threshold = 1
+    time.sleep(1.1)
+    response = await http_client.put(
+        "/api/v1/auth/reset",
+        json={
+            "reset_key": reset_key,
+            "password": "secret0000",
+            "password_repeat": "secret0000",
+        },
+    )
+
+    settings.auth_credetials_update_threshold = initial_update_threshold
+
+    assert response.status_code == 403, "Treshold expired."
+    assert (
+        response.json().get("detail") == "You can only update your credentials"
+        " in the first 1 seconds."
+        " Please login again or ask a new reset key!"
+    )
