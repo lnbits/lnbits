@@ -38,6 +38,9 @@ checkeditorconfig:
 dev:
 	poetry run lnbits --reload
 
+docker:
+	docker build -t lnbits/lnbits .
+
 test-wallets:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
@@ -84,6 +87,7 @@ migration:
 	poetry run python tools/conv.py
 
 openapi:
+	LNBITS_ADMIN_UI=False \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
