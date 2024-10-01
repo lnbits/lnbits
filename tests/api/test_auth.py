@@ -958,6 +958,27 @@ async def test_reset_username_password_not_allowed(http_client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_reset_username_passwords_do_not_matcj(
+    http_client: AsyncClient, user_alan: User
+):
+
+    reset_key = await api_users_reset_password(user_alan.id)
+    assert reset_key, "Reset key created."
+
+    response = await http_client.put(
+        "/api/v1/auth/reset",
+        json={
+            "reset_key": reset_key,
+            "password": "secret0000",
+            "password_repeat": "secret-does-not-mathc",
+        },
+    )
+
+    assert response.status_code == 403, "Passwords do not match."
+    assert response.json().get("detail") == "Passwords do not match."
+
+
+@pytest.mark.asyncio
 async def test_reset_username_password_bad_key(http_client: AsyncClient):
 
     response = await http_client.put(
@@ -968,6 +989,5 @@ async def test_reset_username_password_bad_key(http_client: AsyncClient):
             "password_repeat": "secret0000",
         },
     )
-    print("### response", response.text)
     assert response.status_code == 500, "Bad reset key."
     assert response.json().get("detail") == "Cannot reset user password."
