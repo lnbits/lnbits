@@ -5,6 +5,7 @@ import time
 
 import jwt
 import pytest
+from lnbits.core.views.user_api import api_users_reset_password
 import secp256k1
 import shortuuid
 from httpx import AsyncClient
@@ -856,3 +857,48 @@ async def test_alan_change_pubkey_auth_threshold_expired(
         " in the first 1 seconds after login."
         " Please login again!"
     )
+
+
+################################ RESET PASSWORD ################################
+@pytest.mark.asyncio
+async def test_request_reset_key_ok(http_client: AsyncClient):
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    access_token_payload = AccessTokenPayload(**payload)
+
+    assert access_token_payload.usr, "User id set"
+    reset_key = await api_users_reset_password(access_token_payload.usr)
+
+    print("### reset_key", reset_key)
+    assert reset_key, "Reset key created."
+    assert reset_key[:10] == "reset_key_", "This is not a reset key."
+
+    # print("### response 1", response.text)
+    # assert response.status_code == 200, "Reset key received."
+    # access_token = response.json().get("access_token")
+    # assert access_token is not None
+
+
+# async def test_request_reset_key_user_not_found(http_client: AsyncClient):
+#     user_id = "926abb2ab59a48ebb2485bcceb58d05e"
+#     response = await http_client.post(
+#         f"/users/api/v1//user/{user_id}/reset_password",
+#     )
+
+#     print("### response 2", response.text)
+#     assert response.status_code == 404, "User not found."
+#     assert response.json().get("detail") == "Not Found"

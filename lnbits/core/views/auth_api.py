@@ -272,28 +272,28 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         )
 
     try:
-        assert data.reset_key[:10] == "reset_key_", "This is not a reset key"
+        assert data.reset_key[:10] == "reset_key_", "This is not a reset key."
 
         reset_data_json = decrypt_internal_message(
             base64.b64decode(data.reset_key[10:]).decode()
         )
         assert reset_data_json, "Cannot process reset key."
 
-        action, user_id, reqest_time = json.loads(reset_data_json)
+        action, user_id, request_time = json.loads(reset_data_json)
         assert action == "reset", "Expected reset action."
         assert user_id is not None, "Missing user ID."
-        assert reqest_time is not None, "Missing reset time."
+        assert request_time is not None, "Missing reset time."
 
         user = await get_account(user_id)
         assert user, "User not found."
 
         update_pwd = UpdateUserPassword(
             user_id=user.id,
-            username=user.username,
+            username=user.username or "",
             password=data.password,
             password_repeat=data.password_repeat,
         )
-        user = await update_user_password(update_pwd, reqest_time)
+        user = await update_user_password(update_pwd, request_time)
 
         return _auth_success_response(
             username=user.username, user_id=user_id, email=user.email
