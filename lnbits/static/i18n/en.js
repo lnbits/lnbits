@@ -194,7 +194,7 @@ window.localisation.en = {
   rate_limiter: 'Rate Limiter',
   wallet_limiter: 'Wallet Limiter',
   wallet_limit_max_withdraw_per_day:
-    'Max daily wallet withdrawal in sats (0 to disable)',
+    'Max daily wallet withdrawal in sats (0 for no limit, -1 to block withdrawal)',
   wallet_max_ballance: 'Wallet max balance in sats (0 to disable)',
   wallet_limit_secs_between_trans:
     'Min secs between transactions per wallet (0 to disable)',
