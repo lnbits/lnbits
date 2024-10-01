@@ -21,58 +21,56 @@ conn = sqlite3.connect(file)
 cursor = conn.cursor()
 
 old_account = cursor.execute(
-    "SELECT * FROM accounts WHERE id = ?", (adminkey,)
+    "SELECT * FROM accounts WHERE id = :id", {"id": adminkey}
 ).fetchone()
 if old_account:
     print("fake admin does already exist")
     sys.exit(1)
 
 
-cursor.execute("INSERT INTO accounts (id) VALUES (?)", (adminkey,))
+cursor.execute("INSERT INTO accounts (id) VALUES (:adminkey)", {"adminkey": adminkey})
 
 wallet_id = uuid4().hex
 cursor.execute(
     """
     INSERT INTO wallets (id, name, "user", adminkey, inkey)
-    VALUES (?, ?, ?, ?, ?)
+    VALUES (:wallet_id, :name, :user, :adminkey, :inkey)
     """,
-    (
-        wallet_id,
-        "TEST WALLET",
-        adminkey,
-        adminkey,
-        uuid4().hex,  # invoice key is not important
-    ),
+    {
+        "wallet_id": wallet_id,
+        "name": "TEST WALLET",
+        "user": adminkey,
+        "adminkey": adminkey,
+        "inkey": uuid4().hex,  # invoice key is not important
+    },
 )
 
 expiration_date = time.time() + 420
 
 # 1 btc in sats
 amount = 100_000_000
-internal_id = f"internal_{shortuuid.uuid()}"
+payment_hash = shortuuid.uuid()
+internal_id = f"internal_{payment_hash}"
 
 cursor.execute(
     """
     INSERT INTO apipayments
-      (wallet, checking_id, bolt11, hash, preimage,
-       amount, status, memo, fee, extra, webhook, expiry, pending)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (wallet, checking_id, hash, amount, status, memo, fee, expiry, pending)
+    VALUES
+      (:wallet_id, :checking_id, :payment_hash, :amount,
+       :status, :memo, :fee, :expiry, :pending)
     """,
-    (
-        wallet_id,
-        internal_id,
-        "test_admin_internal",
-        "test_admin_internal",
-        None,
-        amount * 1000,
-        "success",
-        "test_admin_internal",
-        0,
-        None,
-        "",
-        expiration_date,
-        False,  # TODO: remove this in next release
-    ),
+    {
+        "wallet_id": wallet_id,
+        "checking_id": internal_id,
+        "payment_hash": payment_hash,
+        "amount": amount * 1000,
+        "status": "success",
+        "memo": "fake admin",
+        "fee": 0,
+        "expiry": expiration_date,
+        "pending": False,
+    },
 )
 
 print(f"created test admin: {adminkey} with {amount} sats")
