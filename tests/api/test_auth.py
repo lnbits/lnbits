@@ -450,7 +450,6 @@ async def test_alan_change_password_auth_threshold_expired(
     access_token = response.json().get("access_token")
     assert access_token is not None
 
-    initial_update_threshold = settings.auth_credetials_update_threshold
     settings.auth_credetials_update_threshold = 1
     time.sleep(1.1)
     response = await http_client.put(
@@ -464,8 +463,6 @@ async def test_alan_change_password_auth_threshold_expired(
             "password_repeat": "secret1234",
         },
     )
-
-    settings.auth_credetials_update_threshold = initial_update_threshold
 
     assert response.status_code == 403, "Treshold expired."
     assert (
@@ -837,7 +834,6 @@ async def test_alan_change_pubkey_auth_threshold_expired(
     access_token = response.json().get("access_token")
     assert access_token is not None
 
-    initial_update_threshold = settings.auth_credetials_update_threshold
     settings.auth_credetials_update_threshold = 1
     time.sleep(1.1)
     response = await http_client.put(
@@ -848,8 +844,6 @@ async def test_alan_change_pubkey_auth_threshold_expired(
             "pubkey": pubkey_hex,
         },
     )
-
-    settings.auth_credetials_update_threshold = initial_update_threshold
 
     assert response.status_code == 403, "Treshold expired."
     assert (
@@ -1001,7 +995,6 @@ async def test_reset_password_auth_threshold_expired(
     reset_key = await api_users_reset_password(user_alan.id)
     assert reset_key, "Reset key created."
 
-    initial_update_threshold = settings.auth_credetials_update_threshold
     settings.auth_credetials_update_threshold = 1
     time.sleep(1.1)
     response = await http_client.put(
@@ -1012,8 +1005,6 @@ async def test_reset_password_auth_threshold_expired(
             "password_repeat": "secret0000",
         },
     )
-
-    settings.auth_credetials_update_threshold = initial_update_threshold
 
     assert response.status_code == 403, "Treshold expired."
     assert (
