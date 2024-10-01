@@ -5,12 +5,12 @@ import time
 
 import jwt
 import pytest
-from lnbits.core.views.user_api import api_users_reset_password
 import secp256k1
 import shortuuid
 from httpx import AsyncClient
 
 from lnbits.core.models import AccessTokenPayload, User
+from lnbits.core.views.user_api import api_users_reset_password
 from lnbits.settings import AuthMethods, settings
 from lnbits.utils.nostr import hex_to_npub, sign_event
 
@@ -883,14 +883,34 @@ async def test_request_reset_key_ok(http_client: AsyncClient):
     assert access_token_payload.usr, "User id set"
     reset_key = await api_users_reset_password(access_token_payload.usr)
 
-    print("### reset_key", reset_key)
     assert reset_key, "Reset key created."
     assert reset_key[:10] == "reset_key_", "This is not a reset key."
 
-    # print("### response 1", response.text)
-    # assert response.status_code == 200, "Reset key received."
-    # access_token = response.json().get("access_token")
-    # assert access_token is not None
+    response = await http_client.put(
+        "/api/v1/auth/reset",
+        json={
+            "reset_key": reset_key,
+            "password": "secret0000",
+            "password_repeat": "secret0000",
+        },
+    )
+
+    assert response.status_code == 200, "Password reset."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": f"u21.{tiny_id}", "password": "secret1234"}
+    )
+    assert response.status_code == 401, "Old passord not valid."
+    assert response.json().get("detail") == "Invalid credentials."
+
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": f"u21.{tiny_id}", "password": "secret0000"}
+    )
+    assert response.status_code == 200, "Login new password OK."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
 
 
 # async def test_request_reset_key_user_not_found(http_client: AsyncClient):
