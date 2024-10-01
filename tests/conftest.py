@@ -10,7 +10,7 @@ uvloop.install()
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from lnbits.app import create_app
 from lnbits.core.crud import (
@@ -56,14 +56,16 @@ async def app():
 @pytest_asyncio.fixture(scope="session")
 async def client(app):
     url = f"http://{settings.host}:{settings.port}"
-    async with AsyncClient(app=app, base_url=url) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url=url) as client:
         yield client
 
 
+# function scope
 @pytest_asyncio.fixture(scope="function")
 async def http_client(app):
     url = f"http://{settings.host}:{settings.port}"
-    async with AsyncClient(app=app, base_url=url) as client:
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url=url) as client:
         yield client
 
 
