@@ -491,8 +491,10 @@ async def check_time_limit_between_transactions(conn, wallet_id):
 
 async def check_wallet_daily_withdraw_limit(conn, wallet_id, amount_msat):
     limit = settings.lnbits_wallet_limit_daily_max_withdraw
-    if not limit or limit <= 0:
+    if not limit:
         return
+    if limit < 0:
+        raise ValueError("It is not allowed to spend funds from this server.")
 
     payments = await get_payments(
         since=int(time.time()) - 60 * 60 * 24,

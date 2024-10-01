@@ -197,7 +197,7 @@ window.localisation.pi = {
   rate_limiter: 'Rate Limiter',
   wallet_limiter: 'Pouch Limitar',
   wallet_limit_max_withdraw_per_day:
-    'Max daily wallet withdrawal in sats (0 ter disable)',
+    'Max daily wallet withdrawal in sats (0 for no limit, -1 to block withdrawal)',
   wallet_max_ballance: 'Purse max heaviness in sats (0 fer scuttle)',
   wallet_limit_secs_between_trans:
     "Min secs 'tween transactions per wallet (0 to disable)",
