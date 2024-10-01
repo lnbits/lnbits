@@ -619,7 +619,7 @@ class ReadOnlySettings(
     PersistenceSettings,
     SuperUserSettings,
 ):
-    lnbits_admin_ui: bool = Field(default=False)
+    lnbits_admin_ui: bool = Field(default=True)
 
     @validator(
         "lnbits_allowed_funding_sources",
