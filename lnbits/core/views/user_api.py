@@ -1,3 +1,6 @@
+import base64
+import json
+import time
 from http import HTTPStatus
 from typing import List
 
@@ -23,7 +26,7 @@ from lnbits.core.models import (
 from lnbits.core.services import update_wallet_balance
 from lnbits.db import Filters, Page
 from lnbits.decorators import check_admin, check_super_user, parse_filters
-from lnbits.helpers import generate_filter_params_openapi
+from lnbits.helpers import encrypt_internal_message, generate_filter_params_openapi
 from lnbits.settings import EditableSettings, settings
 
 users_router = APIRouter(prefix="/users/api/v1", dependencies=[Depends(check_admin)])
@@ -73,6 +76,24 @@ async def api_users_delete_user(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f"{exc!s}",
         ) from exc
+
+
+@users_router.put(
+    "/user/{user_id}/reset_password", dependencies=[Depends(check_super_user)]
+)
+async def api_users_reset_password(user_id: str) -> str:
+    if user_id == settings.super_user:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Cannot change superuser password.",
+        )
+
+    reset_data = ["reset", user_id, int(time.time())]
+    reset_data_json = json.dumps(reset_data, separators=(",", ":"), ensure_ascii=False)
+    reset_key = encrypt_internal_message(reset_data_json)
+    assert reset_key, "Cannot generate reset key."
+    reset_key_b64 = base64.b64encode(reset_key.encode()).decode()
+    return f"reset_key_{reset_key_b64}"
 
 
 @users_router.get("/user/{user_id}/admin", dependencies=[Depends(check_super_user)])

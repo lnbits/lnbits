@@ -219,8 +219,8 @@ async def update_user_password(data: UpdateUserPassword, last_login_time: int) -
 
     assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
         "You can only update your credentials in the first"
-        f" {settings.auth_credetials_update_threshold} seconds after login."
-        " Please login again!"
+        f" {settings.auth_credetials_update_threshold} seconds."
+        " Please login again or ask a new reset key!"
     )
     assert data.password == data.password_repeat, "Passwords do not match."
 
@@ -240,7 +240,7 @@ async def update_user_password(data: UpdateUserPassword, last_login_time: int) -
     )
 
     user = await get_user(data.user_id)
-    assert user, "Updated account couldn't be retrieved"
+    assert user, "Updated account couldn't be retrieved."
     return user
 
 

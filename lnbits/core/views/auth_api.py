@@ -44,6 +44,7 @@ from ..models import (
     CreateUser,
     LoginUsernamePassword,
     LoginUsr,
+    ResetUserPassword,
     UpdateSuperuserPassword,
     UpdateUser,
     UpdateUserPassword,
@@ -259,7 +260,50 @@ async def update_pubkey(
     except Exception as exc:
         logger.debug(exc)
         raise HTTPException(
-            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user pubkey."
+        ) from exc
+
+
+@auth_router.put("/reset")
+async def reset_password(data: ResetUserPassword) -> JSONResponse:
+    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
+        raise HTTPException(
+            HTTP_401_UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
+        )
+
+    try:
+        assert data.reset_key[:10] == "reset_key_", "This is not a reset key."
+
+        reset_data_json = decrypt_internal_message(
+            base64.b64decode(data.reset_key[10:]).decode()
+        )
+        assert reset_data_json, "Cannot process reset key."
+
+        action, user_id, request_time = json.loads(reset_data_json)
+        assert action == "reset", "Expected reset action."
+        assert user_id is not None, "Missing user ID."
+        assert request_time is not None, "Missing reset time."
+
+        user = await get_account(user_id)
+        assert user, "User not found."
+
+        update_pwd = UpdateUserPassword(
+            user_id=user.id,
+            username=user.username or "",
+            password=data.password,
+            password_repeat=data.password_repeat,
+        )
+        user = await update_user_password(update_pwd, request_time)
+
+        return _auth_success_response(
+            username=user.username, user_id=user_id, email=user.email
+        )
+    except AssertionError as exc:
+        raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot reset user password."
         ) from exc
 
 
@@ -309,7 +353,7 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     except Exception as exc:
         logger.debug(exc)
         raise HTTPException(
-            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot update user password."
+            HTTP_500_INTERNAL_SERVER_ERROR, "Cannot init user password."
         ) from exc
 
 

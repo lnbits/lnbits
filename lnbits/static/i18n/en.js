@@ -266,5 +266,7 @@ window.localisation.en = {
   hide_empty_wallets: 'Hide empty wallets',
   recheck: 'Recheck',
   contributors: 'Contributors',
-  license: 'License'
+  license: 'License',
+  reset_key: 'Reset Key',
+  reset_password: 'Reset Password'
 }

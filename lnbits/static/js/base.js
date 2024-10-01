@@ -81,6 +81,17 @@ window.LNbits = {
         }
       })
     },
+    reset: function (reset_key, password, password_repeat) {
+      return axios({
+        method: 'PUT',
+        url: '/api/v1/auth/reset',
+        data: {
+          reset_key,
+          password,
+          password_repeat
+        }
+      })
+    },
     login: function (username, password) {
       return axios({
         method: 'POST',

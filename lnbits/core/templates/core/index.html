@@ -184,6 +184,47 @@
               </div>
             </q-form>
           </q-card-section>
+          <q-card-section
+            v-if="authAction === 'reset' && authMethod === 'username-password'"
+          >
+            <b> <span v-text="$t('reset_password')"></span> </b><br /><br />
+            <q-form @submit="reset" class="q-gutter-md">
+              <q-input
+                filled
+                dense
+                required
+                :disable="true"
+                v-model="reset_key"
+                :label="$t('reset_key') + ' *'"
+              ></q-input>
+              <q-input
+                filled
+                dense
+                v-model="password"
+                :label="$t('password') + ' *'"
+                type="password"
+                :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+              ></q-input>
+              <q-input
+                filled
+                dense
+                v-model="passwordRepeat"
+                :label="$t('password_repeat') + ' *'"
+                type="password"
+                :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+              ></q-input>
+              <div>
+                <q-btn
+                  unelevated
+                  color="primary"
+                  :disable="!password || !passwordRepeat|| !reset_key || (password !== passwordRepeat)"
+                  type="submit"
+                  class="full-width"
+                  :label="$t('reset_password')"
+                ></q-btn>
+              </div>
+            </q-form>
+          </q-card-section>
           {%endif%} {% if LNBITS_NEW_ACCOUNTS_ALLOWED %}
           <q-card-section
             v-if="authAction === 'register' && authMethod === 'user-id-only'"

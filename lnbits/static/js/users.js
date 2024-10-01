@@ -218,6 +218,22 @@ window.app = Vue.createApp({
     formatSat: function (value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
     },
+    resetPassword(user_id) {
+      return LNbits.api
+        .request('PUT', `/users/api/v1/user/${user_id}/reset_password`)
+        .then(res => {
+          this.$q.notify({
+            type: 'positive',
+            message: 'generated key for password reset',
+            icon: null
+          })
+          const url = window.location.origin + '?reset_key=' + res.data
+          this.copyText(url)
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
+    },
     createUser() {
       LNbits.api
         .request('POST', '/users/api/v1/user', null, this.createUserDialog.data)
