@@ -301,7 +301,7 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
     except AssertionError as exc:
         raise HTTPException(HTTP_403_FORBIDDEN, str(exc)) from exc
     except Exception as exc:
-        logger.debug(exc)
+        logger.warning(exc)
         raise HTTPException(
             HTTP_500_INTERNAL_SERVER_ERROR, "Cannot reset user password."
         ) from exc

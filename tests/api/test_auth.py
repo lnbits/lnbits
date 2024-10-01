@@ -879,10 +879,9 @@ async def test_request_reset_key_ok(http_client: AsyncClient):
 
     payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
     access_token_payload = AccessTokenPayload(**payload)
+    assert access_token_payload.usr, "User id set."
 
-    assert access_token_payload.usr, "User id set"
     reset_key = await api_users_reset_password(access_token_payload.usr)
-
     assert reset_key, "Reset key created."
     assert reset_key[:10] == "reset_key_", "This is not a reset key."
 
@@ -913,12 +912,62 @@ async def test_request_reset_key_ok(http_client: AsyncClient):
     assert access_token is not None
 
 
-# async def test_request_reset_key_user_not_found(http_client: AsyncClient):
-#     user_id = "926abb2ab59a48ebb2485bcceb58d05e"
-#     response = await http_client.post(
-#         f"/users/api/v1//user/{user_id}/reset_password",
-#     )
+@pytest.mark.asyncio
+async def test_request_reset_key_user_not_found(http_client: AsyncClient):
+    user_id = "926abb2ab59a48ebb2485bcceb58d05e"
+    reset_key = await api_users_reset_password(user_id)
+    assert reset_key, "Reset key created."
+    assert reset_key[:10] == "reset_key_", "This is not a reset key."
 
-#     print("### response 2", response.text)
-#     assert response.status_code == 404, "User not found."
-#     assert response.json().get("detail") == "Not Found"
+    response = await http_client.put(
+        "/api/v1/auth/reset",
+        json={
+            "reset_key": reset_key,
+            "password": "secret0000",
+            "password_repeat": "secret0000",
+        },
+    )
+
+    assert response.status_code == 403, "User does not exist."
+    assert response.json().get("detail") == "User not found."
+
+
+@pytest.mark.asyncio
+async def test_reset_username_password_not_allowed(http_client: AsyncClient):
+    # exclude 'username_password'
+    settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
+
+    user_id = "926abb2ab59a48ebb2485bcceb58d05e"
+    reset_key = await api_users_reset_password(user_id)
+    assert reset_key, "Reset key created."
+
+    response = await http_client.put(
+        "/api/v1/auth/reset",
+        json={
+            "reset_key": reset_key,
+            "password": "secret0000",
+            "password_repeat": "secret0000",
+        },
+    )
+    settings.auth_allowed_methods = AuthMethods.all()
+
+    assert response.status_code == 401, "Login method not allowed."
+    assert (
+        response.json().get("detail") == "Auth by 'Username and Password' not allowed."
+    )
+
+
+@pytest.mark.asyncio
+async def test_reset_username_password_bad_key(http_client: AsyncClient):
+
+    response = await http_client.put(
+        "/api/v1/auth/reset",
+        json={
+            "reset_key": "reset_key_xxxxxxxxxxx",
+            "password": "secret0000",
+            "password_repeat": "secret0000",
+        },
+    )
+    print("### response", response.text)
+    assert response.status_code == 500, "Bad reset key."
+    assert response.json().get("detail") == "Cannot reset user password."
