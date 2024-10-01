@@ -27,11 +27,10 @@ async def test_wallet_limit_but_no_payments():
 @pytest.mark.asyncio
 async def test_no_wallet_spend_allowed():
     settings.lnbits_wallet_limit_daily_max_withdraw = -1
-    try:
 
+    with pytest.raises(
+        ValueError, match="It is not allowed to spend funds from this server."
+    ):
         await check_wallet_daily_withdraw_limit(
             conn=None, wallet_id="333333", amount_msat=0
         )
-        raise AssertionError("Should have raised exception.")
-    except ValueError as exc:
-        assert str(exc) == "It is not allowed to spend funds from this server."
