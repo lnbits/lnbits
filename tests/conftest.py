@@ -102,7 +102,7 @@ async def db():
     yield Database("database")
 
 
-@pytest_asyncio.fixture(scope="package")
+@pytest_asyncio.fixture(scope="session")
 async def user_alan():
     account = await get_account_by_username("alan")
     if not account:
@@ -112,6 +112,7 @@ async def user_alan():
             username="alan",
         )
         account.hash_password("secret1234")
+        account = await create_account(account)
     yield account
 
 
