@@ -55,3 +55,6 @@ lnbits-backup.zip
 
 # builded python package
 dist
+
+# jetbrains
+.idea
