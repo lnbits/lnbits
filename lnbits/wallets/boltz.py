@@ -95,8 +95,10 @@ class BoltzWallet(Wallet):
             wallet_id=self.wallet_id,
             accept_zero_conf=True,
             external_pay=True,
-            description=memo,
         )
+        if memo is not None:
+            # boltz rejects nbsp char (produced by JS Intl.NumberFormat api)
+            request.description = memo.replace("\xa0", " ")
         response: boltzrpc_pb2.CreateReverseSwapResponse
         try:
             response = await self.rpc.CreateReverseSwap(request, metadata=self.metadata)
