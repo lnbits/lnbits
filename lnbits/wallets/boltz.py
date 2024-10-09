@@ -133,6 +133,17 @@ class BoltzWallet(Wallet):
             )
             response: boltzrpc_pb2.CreateSwapResponse
             response = await self.rpc.CreateSwap(request, metadata=self.metadata)
+
+            # empty swap id means that the invoice included a magic routing hint and was
+            # paid on the liquid network directly
+            # docs: https://docs.boltz.exchange/api/magic-routing-hints
+            if response.id == "":
+                # note that there is no way to provide a checking id here,
+                # but there is no need since it immediately is considered as successfull
+                return PaymentResponse(
+                    ok=True,
+                    checking_id=response.id,
+                )
         except AioRpcError as exc:
             return PaymentResponse(ok=False, error_message=exc.details())
 
