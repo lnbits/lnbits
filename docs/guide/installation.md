@@ -375,7 +375,7 @@ Install Apache2 and enable Apache2 mods:
 
 ```sh
 apt-get install apache2 certbot
-a2enmod headers ssl proxy proxy-http
+a2enmod headers ssl proxy proxy_http
 ```
 
 Create a SSL certificate with LetsEncrypt:
@@ -414,7 +414,7 @@ EOF
 Restart Apache2:
 
 ```sh
-service restart apache2
+service apache2 restart
 ```
 
 ## Running behind an Nginx reverse proxy over HTTPS
@@ -468,7 +468,7 @@ EOF
 Restart nginx:
 
 ```sh
-service restart nginx
+service nginx restart
 ```
 
 ## Using https without reverse proxy
