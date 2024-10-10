@@ -1,0 +1,103 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center main">
+  <div class="col-10 col-md-8 col-lg-6 q-gutter-y-md">
+    <q-card>
+      <q-card-section class="grid">
+        <div>
+          <h6 class="q-my-none text-center">
+            <p>Switch user?</p>
+          </h6>
+          <br />
+            <q-btn
+              @click="setPassword()"
+              unelevated
+              color="primary"
+              :label="$t('login')"
+              :disable="checkPasswordsMatch || !loginData.username || !loginData.password || !loginData.passwordRepeat"
+            ></q-btn>
+        </div>
+        <div class="hero-wrapper">
+          <div class="hero q-mx-auto"></div>
+        </div>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<style>
+  main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .grid {
+    display: block;
+  }
+  .hero-wrapper {
+    display: none;
+  }
+  .hero {
+    display: block;
+    height: 100%;
+    max-width: 250px;
+    background-image: url("{{ static_url_for('static', 'images/logos/lnbits.svg') }}");
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
+
+  @media (min-width: 992px) {
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 1rem;
+    }
+    .hero-wrapper {
+      display: block;
+      position: relative;
+      height: 100%;
+      padding: 1rem;
+    }
+  }
+</style>
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        loginData: {
+          isPwd: true,
+          isPwdRepeat: true,
+          username: '',
+          password: '',
+          passwordRepeat: ''
+        }
+      }
+    },
+    created() {
+      this.hasAdminUI = '{{ LNBITS_ADMIN_UI | tojson}}'
+    },
+    computed: {
+      checkPasswordsMatch() {
+        return this.loginData.password !== this.loginData.passwordRepeat
+      }
+    },
+    methods: {
+      async setPassword() {
+        try {
+          await LNbits.api.request('PUT', '/api/v1/auth/first_install', null, {
+            username: this.loginData.username,
+            password: this.loginData.password,
+            password_repeat: this.loginData.passwordRepeat
+          })
+
+          window.location.href = '/admin'
+        } catch (e) {
+          LNbits.utils.notifyApiError(e)
+        }
+      }
+    }
+  })
+</script>
+{% endblock %}
