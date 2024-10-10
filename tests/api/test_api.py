@@ -5,7 +5,7 @@ import pytest
 from lnbits import bolt11
 from lnbits.core.models import CreateInvoice, Payment
 from lnbits.core.views.payment_api import api_payment
-from lnbits.settings import settings
+from lnbits.settings import Settings
 
 from ..helpers import (
     get_random_invoice_data,
@@ -14,10 +14,13 @@ from ..helpers import (
 
 # create account POST /api/v1/account
 @pytest.mark.asyncio
-async def test_create_account(client):
+async def test_create_account(client, settings: Settings):
     settings.lnbits_allow_new_accounts = False
     response = await client.post("/api/v1/account", json={"name": "test"})
-    assert response.status_code == 403
+
+    assert response.status_code == 400
+    assert response.json().get("detail") == "Account creation is disabled."
+
     settings.lnbits_allow_new_accounts = True
     response = await client.post("/api/v1/account", json={"name": "test"})
     assert response.status_code == 200
@@ -475,7 +478,7 @@ async def test_update_wallet(client, adminkey_headers_from):
 
 
 @pytest.mark.asyncio
-async def test_fiat_tracking(client, adminkey_headers_from):
+async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
     async def create_invoice():
         data = await get_random_invoice_data()
         response = await client.post(
@@ -501,13 +504,15 @@ async def test_fiat_tracking(client, adminkey_headers_from):
 
     settings.lnbits_default_accounting_currency = "USD"
     payment = await create_invoice()
-    assert payment["extra"]["wallet_fiat_currency"] == "USD"
-    assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
-    assert payment["extra"]["wallet_fiat_rate"]
+    extra = payment["extra"]
+    assert extra["wallet_fiat_currency"] == "USD"
+    assert extra["wallet_fiat_amount"] != payment["amount"]
+    assert extra["wallet_fiat_rate"]
 
     await update_currency("EUR")
 
     payment = await create_invoice()
-    assert payment["extra"]["wallet_fiat_currency"] == "EUR"
-    assert payment["extra"]["wallet_fiat_amount"] != payment["amount"]
-    assert payment["extra"]["wallet_fiat_rate"]
+    extra = payment["extra"]
+    assert extra["wallet_fiat_currency"] == "EUR"
+    assert extra["wallet_fiat_amount"] != payment["amount"]
+    assert extra["wallet_fiat_rate"]

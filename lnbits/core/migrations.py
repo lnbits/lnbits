@@ -541,8 +541,6 @@ async def m021_add_success_failed_to_apipayments(db):
         GROUP BY apipayments.wallet
     """
     )
-    # TODO: drop column in next release
-    # await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
 
 
 async def m022_add_pubkey_to_accounts(db):
@@ -553,3 +551,36 @@ async def m022_add_pubkey_to_accounts(db):
         await db.execute("ALTER TABLE accounts ADD COLUMN pubkey TEXT")
     except OperationalError:
         pass
+
+
+async def m023_add_column_column_to_apipayments(db):
+    """
+    renames hash to payment_hash and drops unused index
+    """
+    await db.execute("DROP INDEX by_hash")
+    await db.execute("ALTER TABLE apipayments RENAME COLUMN hash TO payment_hash")
+    await db.execute("ALTER TABLE apipayments RENAME COLUMN wallet TO wallet_id")
+    await db.execute("ALTER TABLE accounts RENAME COLUMN pass TO password_hash")
+
+
+async def m024_drop_pending(db):
+    await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
+
+
+async def m025_refresh_view(db):
+    await db.execute("DROP VIEW balances")
+    await db.execute(
+        """
+        CREATE VIEW balances AS
+        SELECT apipayments.wallet_id,
+               SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+        FROM wallets
+        LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
+        WHERE (wallets.deleted = false OR wallets.deleted is NULL)
+        AND (
+            (apipayments.status = 'success' AND apipayments.amount > 0)
+            OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
+        )
+        GROUP BY apipayments.wallet_id
+    """
+    )

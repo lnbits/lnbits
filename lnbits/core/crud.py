@@ -1,17 +1,15 @@
 import json
+from datetime import datetime, timezone
 from time import time
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 from uuid import uuid4
 
 import shortuuid
-from passlib.context import CryptContext
 
 from lnbits.core.db import db
 from lnbits.core.extensions.models import (
     InstallableExtension,
-    PayToEnableInfo,
     UserExtension,
-    UserExtensionInfo,
 )
 from lnbits.core.models import PaymentState
 from lnbits.db import DB_TYPE, SQLITE, Connection, Database, Filters, Page
@@ -25,100 +23,33 @@ from lnbits.settings import (
 from .models import (
     Account,
     AccountFilters,
+    AccountOverview,
     CreatePayment,
     Payment,
     PaymentFilters,
     PaymentHistoryPoint,
     TinyURL,
-    UpdateUserPassword,
-    UpdateUserPubkey,
     User,
-    UserConfig,
     Wallet,
     WebPushSubscription,
 )
 
 
 async def create_account(
-    user_id: Optional[str] = None,
-    username: Optional[str] = None,
-    pubkey: Optional[str] = None,
-    email: Optional[str] = None,
-    password: Optional[str] = None,
-    user_config: Optional[UserConfig] = None,
+    account: Optional[Account] = None,
     conn: Optional[Connection] = None,
-) -> User:
-    user_id = user_id or uuid4().hex
-    extra = json.dumps(dict(user_config)) if user_config else "{}"
-    now = int(time())
-    now_ph = db.timestamp_placeholder("now")
-    await (conn or db).execute(
-        f"""
-        INSERT INTO accounts
-            (id, username, pass, email, pubkey, extra, created_at, updated_at)
-        VALUES
-            (:user, :username, :password, :email, :pubkey, :extra, {now_ph}, {now_ph})
-        """,
-        {
-            "user": user_id,
-            "username": username,
-            "password": password,
-            "email": email,
-            "pubkey": pubkey,
-            "extra": extra,
-            "now": now,
-        },
-    )
-
-    new_account = await get_account(user_id=user_id, conn=conn)
-    assert new_account, "Newly created account couldn't be retrieved"
-
-    return new_account
+) -> Account:
+    if not account:
+        now = datetime.now(timezone.utc)
+        account = Account(id=uuid4().hex, created_at=now, updated_at=now)
+    await (conn or db).insert("accounts", account)
+    return account
 
 
-async def update_account(
-    user_id: str,
-    username: Optional[str] = None,
-    email: Optional[str] = None,
-    user_config: Optional[UserConfig] = None,
-) -> Optional[User]:
-    user = await get_account(user_id)
-    assert user, "User not found"
-
-    if email:
-        assert not user.email or email == user.email, "Cannot change email."
-        account = await get_account_by_email(email)
-        assert not account or account.id == user_id, "Email already in use."
-
-    if username:
-        assert not user.username or username == user.username, "Cannot change username."
-        account = await get_account_by_username(username)
-        assert not account or account.id == user_id, "Username already exists."
-
-    username = user.username or username
-    email = user.email or email
-    extra = user_config or user.config
-
-    now = int(time())
-    now_ph = db.timestamp_placeholder("now")
-    await db.execute(
-        f"""
-            UPDATE accounts SET (username, email, extra, updated_at) =
-            (:username, :email, :extra, {now_ph})
-            WHERE id = :user
-        """,
-        {
-            "username": username,
-            "email": email,
-            "extra": json.dumps(dict(extra)) if extra else "{}",
-            "now": now,
-            "user": user_id,
-        },
-    )
-
-    user = await get_user(user_id)
-    assert user, "Updated account couldn't be retrieved"
-    return user
+async def update_account(account: Account) -> Account:
+    account.updated_at = datetime.now(timezone.utc)
+    await db.update("accounts", account)
+    return account
 
 
 async def delete_account(user_id: str, conn: Optional[Connection] = None) -> None:
@@ -131,7 +62,7 @@ async def delete_account(user_id: str, conn: Optional[Connection] = None) -> Non
 async def get_accounts(
     filters: Optional[Filters[AccountFilters]] = None,
     conn: Optional[Connection] = None,
-) -> Page[Account]:
+) -> Page[AccountOverview]:
     return await (conn or db).fetch_page(
         """
         SELECT
@@ -139,43 +70,36 @@ async def get_accounts(
             accounts.username,
             accounts.email,
             SUM(COALESCE((
-                SELECT balance FROM balances WHERE wallet = wallets.id
+                SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0)) as balance_msat,
             SUM((
-                SELECT COUNT(*) FROM apipayments WHERE wallet = wallets.id
+                SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id
             )) as transaction_count,
             (
                 SELECT COUNT(*) FROM wallets WHERE wallets.user = accounts.id
             ) as wallet_count,
             MAX((
                 SELECT time FROM apipayments
-                WHERE wallet = wallets.id ORDER BY time DESC LIMIT 1
+                WHERE wallet_id = wallets.id ORDER BY time DESC LIMIT 1
             )) as last_payment
             FROM accounts LEFT JOIN wallets ON accounts.id = wallets.user
         """,
         [],
         {},
         filters=filters,
-        model=Account,
+        model=AccountOverview,
         group_by=["accounts.id"],
     )
 
 
 async def get_account(
     user_id: str, conn: Optional[Connection] = None
-) -> Optional[User]:
-    row = await (conn or db).fetchone(
-        """
-           SELECT id, email, username, pubkey, created_at, updated_at, extra
-           FROM accounts WHERE id = :id
-        """,
+) -> Optional[Account]:
+    return await (conn or db).fetchone(
+        "SELECT * FROM accounts WHERE id = :id",
         {"id": user_id},
+        Account,
     )
-
-    user = User(**row) if row else None
-    if user and row["extra"]:
-        user.config = UserConfig(**json.loads(row["extra"]))
-    return user
 
 
 async def delete_accounts_no_wallets(
@@ -197,172 +121,70 @@ async def delete_accounts_no_wallets(
     )
 
 
-async def get_user_password(user_id: str) -> Optional[str]:
-    row = await db.fetchone(
-        "SELECT pass FROM accounts WHERE id = :user",
-        {"user": user_id},
-    )
-    return row.get("pass")
-
-
-# TODO: refactor not a crud function
-async def verify_user_password(user_id: str, password: str) -> bool:
-    existing_password = await get_user_password(user_id)
-    if not existing_password:
-        return False
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    return pwd_context.verify(password, existing_password)
-
-
-async def update_user_password(data: UpdateUserPassword, last_login_time: int) -> User:
-
-    assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
-        "You can only update your credentials in the first"
-        f" {settings.auth_credetials_update_threshold} seconds."
-        " Please login again or ask a new reset key!"
-    )
-    assert data.password == data.password_repeat, "Passwords do not match."
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-    await db.execute(
-        f"""
-        UPDATE accounts
-        SET pass = :pass, updated_at = {db.timestamp_placeholder("now")}
-        WHERE id = :user
-        """,
-        {
-            "pass": pwd_context.hash(data.password),
-            "now": int(time()),
-            "user": data.user_id,
-        },
-    )
-
-    user = await get_user(data.user_id)
-    assert user, "Updated account couldn't be retrieved."
-    return user
-
-
-async def update_user_pubkey(data: UpdateUserPubkey, last_login_time: int) -> User:
-
-    assert 0 <= time() - last_login_time <= settings.auth_credetials_update_threshold, (
-        "You can only update your credentials in the first"
-        f" {settings.auth_credetials_update_threshold} seconds after login."
-        " Please login again!"
-    )
-
-    user = await get_account_by_pubkey(data.pubkey)
-    if user:
-        assert user.id == data.user_id, "Public key already in use."
-
-    await db.execute(
-        f"""
-        UPDATE accounts
-        SET pubkey = :pubkey, updated_at = {db.timestamp_placeholder("now")}
-        WHERE id = :user
-        """,
-        {
-            "pubkey": data.pubkey,
-            "now": int(time()),
-            "user": data.user_id,
-        },
-    )
-
-    user = await get_user(data.user_id)
-    assert user, "Updated account couldn't be retrieved"
-    return user
-
-
 async def get_account_by_username(
     username: str, conn: Optional[Connection] = None
-) -> Optional[User]:
-    row = await (conn or db).fetchone(
-        """
-        SELECT id, username, pubkey, email, created_at, updated_at
-        FROM accounts WHERE username = :username
-        """,
+) -> Optional[Account]:
+    return await (conn or db).fetchone(
+        "SELECT * FROM accounts WHERE username = :username",
         {"username": username},
+        Account,
     )
-
-    return User(**row) if row else None
 
 
 async def get_account_by_pubkey(
     pubkey: str, conn: Optional[Connection] = None
-) -> Optional[User]:
-    row = await (conn or db).fetchone(
-        """
-        SELECT id, username, pubkey, email, created_at, updated_at
-        FROM accounts WHERE pubkey = :pubkey
-        """,
+) -> Optional[Account]:
+    return await (conn or db).fetchone(
+        "SELECT * FROM accounts WHERE pubkey = :pubkey",
         {"pubkey": pubkey},
+        Account,
     )
-
-    return User(**row) if row else None
 
 
 async def get_account_by_email(
     email: str, conn: Optional[Connection] = None
-) -> Optional[User]:
-    row = await (conn or db).fetchone(
-        """
-        SELECT id, username, pubkey, email, created_at, updated_at
-        FROM accounts WHERE email = :email
-        """,
+) -> Optional[Account]:
+    return await (conn or db).fetchone(
+        "SELECT * FROM accounts WHERE email = :email",
         {"email": email},
+        Account,
     )
-
-    return User(**row) if row else None
 
 
 async def get_account_by_username_or_email(
     username_or_email: str, conn: Optional[Connection] = None
-) -> Optional[User]:
-    user = await get_account_by_username(username_or_email, conn)
-    if not user:
-        user = await get_account_by_email(username_or_email, conn)
-    return user
-
-
-async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
-    user = await (conn or db).fetchone(
-        """
-        SELECT id, email, username, pubkey, pass, extra, created_at, updated_at
-        FROM accounts WHERE id = :id
-        """,
-        {"id": user_id},
+) -> Optional[Account]:
+    return await (conn or db).fetchone(
+        "SELECT * FROM accounts WHERE email = :value or username = :value",
+        {"value": username_or_email},
+        Account,
     )
 
-    if user:
-        extensions = await get_user_active_extensions_ids(user_id, conn)
-        wallets = await (conn or db).fetchall(
-            """
-            SELECT *, COALESCE((
-                SELECT balance FROM balances WHERE wallet = wallets.id
-            ), 0) AS balance_msat
-            FROM wallets
-            WHERE "user" = :user and wallets.deleted = false
-            """,
-            {"user": user_id},
-        )
-    else:
-        return None
 
+async def get_user(
+    account_or_id: Union[Account, str], conn: Optional[Connection] = None
+) -> Optional[User]:
+    if isinstance(account_or_id, str):
+        account = await get_account(account_or_id, conn)
+        if not account:
+            return None
+    else:
+        account = account_or_id
+    extensions = await get_user_active_extensions_ids(account.id, conn)
+    wallets = await get_wallets(account.id, False, conn=conn)
     return User(
-        id=user["id"],
-        email=user["email"],
-        username=user["username"],
-        pubkey=user["pubkey"],
-        extensions=[
-            e for e in extensions if User.is_extension_for_user(e[0], user["id"])
-        ],
-        wallets=[Wallet(**w) for w in wallets],
-        admin=user["id"] == settings.super_user
-        or user["id"] in settings.lnbits_admin_users,
-        super_user=user["id"] == settings.super_user,
-        has_password=True if user["pass"] else False,
-        config=UserConfig(**json.loads(user["extra"])) if user["extra"] else None,
+        id=account.id,
+        email=account.email,
+        username=account.username,
+        pubkey=account.pubkey,
+        extra=account.extra,
+        created_at=account.created_at,
+        updated_at=account.updated_at,
+        extensions=extensions,
+        wallets=wallets,
+        admin=account.is_admin,
+        super_user=account.is_super_user,
+        has_password=account.password_hash is not None,
     )
 
 
@@ -370,42 +192,18 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
 # -------
 
 
-async def add_installed_extension(
+async def create_installed_extension(
     ext: InstallableExtension,
     conn: Optional[Connection] = None,
 ) -> None:
-    meta = {
-        "installed_release": (
-            dict(ext.installed_release) if ext.installed_release else None
-        ),
-        "pay_to_enable": (dict(ext.pay_to_enable) if ext.pay_to_enable else None),
-        "dependencies": ext.dependencies,
-        "payments": [dict(p) for p in ext.payments] if ext.payments else None,
-    }
+    await (conn or db).insert("installed_extensions", ext)
 
-    version = ext.installed_release.version if ext.installed_release else ""
 
-    await (conn or db).execute(
-        """
-        INSERT INTO installed_extensions
-        (id, version, name, active, short_description, icon, stars, meta)
-        VALUES
-        (:ext, :version, :name, :active, :short_description, :icon, :stars, :meta)
-        ON CONFLICT (id) DO UPDATE SET
-        (version, name, active, short_description, icon, stars, meta) =
-        (:version, :name, :active, :short_description, :icon, :stars, :meta)
-        """,
-        {
-            "ext": ext.id,
-            "version": version,
-            "name": ext.name,
-            "active": ext.active,
-            "short_description": ext.short_description,
-            "icon": ext.icon,
-            "stars": ext.stars,
-            "meta": json.dumps(meta),
-        },
-    )
+async def update_installed_extension(
+    ext: InstallableExtension,
+    conn: Optional[Connection] = None,
+) -> None:
+    await (conn or db).update("installed_extensions", ext)
 
 
 async def update_installed_extension_state(
@@ -419,17 +217,6 @@ async def update_installed_extension_state(
     )
 
 
-async def update_extension_pay_to_enable(
-    ext_id: str, payment_info: PayToEnableInfo, conn: Optional[Connection] = None
-) -> None:
-    ext = await get_installed_extension(ext_id, conn)
-    if not ext:
-        return
-    ext.pay_to_enable = payment_info
-
-    await add_installed_extension(ext, conn)
-
-
 async def delete_installed_extension(
     *, ext_id: str, conn: Optional[Connection] = None
 ) -> None:
@@ -441,13 +228,13 @@ async def delete_installed_extension(
     )
 
 
-async def drop_extension_db(*, ext_id: str, conn: Optional[Connection] = None) -> None:
-    db_version = await (conn or db).fetchone(
+async def drop_extension_db(ext_id: str, conn: Optional[Connection] = None) -> None:
+    row: dict = await (conn or db).fetchone(
         "SELECT * FROM dbversions WHERE db = :id",
         {"id": ext_id},
     )
     # Check that 'ext_id' is a valid extension id and not a malicious string
-    assert db_version, f"Extension '{ext_id}' db version cannot be found"
+    assert row, f"Extension '{ext_id}' db version cannot be found"
 
     is_file_based_db = await Database.clean_ext_db_files(ext_id)
     if is_file_based_db:
@@ -463,93 +250,75 @@ async def drop_extension_db(*, ext_id: str, conn: Optional[Connection] = None) -
 async def get_installed_extension(
     ext_id: str, conn: Optional[Connection] = None
 ) -> Optional[InstallableExtension]:
-    row = await (conn or db).fetchone(
+    extension = await (conn or db).fetchone(
         "SELECT * FROM installed_extensions WHERE id = :id",
         {"id": ext_id},
+        InstallableExtension,
     )
-
-    return InstallableExtension.from_row(row) if row else None
+    return extension
 
 
 async def get_installed_extensions(
     active: Optional[bool] = None,
     conn: Optional[Connection] = None,
 ) -> list[InstallableExtension]:
-    rows = await (conn or db).fetchall(
-        "SELECT * FROM installed_extensions",
+    where = "WHERE active = :active" if active is not None else ""
+    values = {"active": active} if active is not None else {}
+    all_extensions = await (conn or db).fetchall(
+        f"SELECT * FROM installed_extensions {where}",
+        values,
+        model=InstallableExtension,
     )
-    all_extensions = [InstallableExtension.from_row(row) for row in rows]
-    if active is None:
-        return all_extensions
-
-    return [e for e in all_extensions if e.active == active]
+    return all_extensions
 
 
 async def get_user_extension(
     user_id: str, extension: str, conn: Optional[Connection] = None
 ) -> Optional[UserExtension]:
-    row = await (conn or db).fetchone(
+    return await (conn or db).fetchone(
         """
-            SELECT extension, active, extra as _extra FROM extensions
+            SELECT * FROM extensions
             WHERE "user" = :user AND extension = :ext
         """,
         {"user": user_id, "ext": extension},
+        model=UserExtension,
     )
-    return UserExtension.from_row(row) if row else None
 
 
 async def get_user_extensions(
     user_id: str, conn: Optional[Connection] = None
 ) -> list[UserExtension]:
-    rows = await (conn or db).fetchall(
-        """
-            SELECT extension, active, extra as _extra FROM extensions
-            WHERE "user" = :user
-        """,
+    return await (conn or db).fetchall(
+        """SELECT * FROM extensions WHERE "user" = :user""",
         {"user": user_id},
+        model=UserExtension,
     )
-    return [UserExtension.from_row(row) for row in rows]
+
+
+async def create_user_extension(
+    user_extension: UserExtension, conn: Optional[Connection] = None
+) -> None:
+    await (conn or db).insert("extensions", user_extension)
 
 
 async def update_user_extension(
-    *, user_id: str, extension: str, active: bool, conn: Optional[Connection] = None
+    user_extension: UserExtension, conn: Optional[Connection] = None
 ) -> None:
-    await (conn or db).execute(
-        """
-        INSERT INTO extensions ("user", extension, active) VALUES (:user, :ext, :active)
-        ON CONFLICT ("user", extension) DO UPDATE SET active = :active
-        """,
-        {"user": user_id, "ext": extension, "active": active},
-    )
+    where = """WHERE extension = :extension AND "user" = :user"""
+    await (conn or db).update("extensions", user_extension, where)
 
 
 async def get_user_active_extensions_ids(
     user_id: str, conn: Optional[Connection] = None
 ) -> list[str]:
-    rows = await (conn or db).fetchall(
+    exts = await (conn or db).fetchall(
         """
-        SELECT extension FROM extensions WHERE "user" = :user AND active
+        SELECT * FROM extensions WHERE "user" = :user AND active
         """,
         {"user": user_id},
+        UserExtension,
     )
-    return [e.get("extension", "") for e in rows]
-
-
-async def update_user_extension_extra(
-    user_id: str,
-    extension: str,
-    extra: UserExtensionInfo,
-    conn: Optional[Connection] = None,
-) -> None:
-    extra_json = json.dumps(dict(extra))
-    await (conn or db).execute(
-        """
-        INSERT INTO extensions ("user", extension, extra) VALUES
-        (:user, :ext, :extra)
-        ON CONFLICT ("user", extension) DO UPDATE SET extra = :extra
-        """,
-        {"user": user_id, "ext": extension, "extra": extra_json},
-    )
+    return [ext.extension for ext in exts]
 
 
 # wallets
@@ -563,55 +332,23 @@ async def create_wallet(
     conn: Optional[Connection] = None,
 ) -> Wallet:
     wallet_id = uuid4().hex
-    now = int(time())
-    now_ph = db.timestamp_placeholder("now")
-    await (conn or db).execute(
-        f"""
-        INSERT INTO wallets (id, name, "user", adminkey, inkey, created_at, updated_at)
-        VALUES (:wallet, :name, :user, :adminkey, :inkey, {now_ph}, {now_ph})
-        """,
-        {
-            "wallet": wallet_id,
-            "name": wallet_name or settings.lnbits_default_wallet_name,
-            "user": user_id,
-            "adminkey": uuid4().hex,
-            "inkey": uuid4().hex,
-            "now": now,
-        },
+    wallet = Wallet(
+        id=wallet_id,
+        name=wallet_name or settings.lnbits_default_wallet_name,
+        user=user_id,
+        adminkey=uuid4().hex,
+        inkey=uuid4().hex,
     )
-
-    new_wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
-    assert new_wallet, "Newly created wallet couldn't be retrieved"
-
-    return new_wallet
+    await (conn or db).insert("wallets", wallet)
+    return wallet
 
 
 async def update_wallet(
-    wallet_id: str,
-    name: Optional[str] = None,
-    currency: Optional[str] = None,
+    wallet: Wallet,
     conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
-    set_clause = []
-    set_clause.append(f"updated_at = {db.timestamp_placeholder('now')}")
-    values: dict = {
-        "wallet": wallet_id,
-        "now": int(time()),
-    }
-    if name:
-        set_clause.append("name = :name")
-        values["name"] = name
-    if currency is not None:
-        set_clause.append("currency = :currency")
-        values["currency"] = currency
-    await (conn or db).execute(
-        f"""
-        UPDATE wallets SET {', '.join(set_clause)} WHERE id = :wallet
-        """,
-        values,
-    )
-    wallet = await get_wallet(wallet_id=wallet_id, conn=conn)
-    assert wallet, "updated created wallet couldn't be retrieved"
+    wallet.updated_at = datetime.now(timezone.utc)
+    await (conn or db).update("wallets", wallet)
     return wallet
 
 
@@ -643,7 +380,7 @@ async def force_delete_wallet(
 
 
 async def delete_wallet_by_id(
-    *, wallet_id: str, conn: Optional[Connection] = None
+    wallet_id: str, conn: Optional[Connection] = None
 ) -> Optional[int]:
     now = int(time())
     result = await (conn or db).execute(
@@ -670,7 +407,7 @@ async def delete_unused_wallets(
         """
         DELETE FROM wallets
         WHERE (
-            SELECT COUNT(*) FROM apipayments WHERE wallet = wallets.id
+            SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id
         ) = 0 AND (
             (updated_at is null AND created_at < :delta)
             OR updated_at < :delta
@@ -681,52 +418,57 @@ async def delete_unused_wallets(
 
 
 async def get_wallet(
-    wallet_id: str, conn: Optional[Connection] = None
+    wallet_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
-    row = await (conn or db).fetchone(
-        """
-        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
-        AS balance_msat FROM wallets WHERE id = :wallet
+    where = "AND deleted = :deleted" if deleted is not None else ""
+    return await (conn or db).fetchone(
+        f"""
+        SELECT *, COALESCE((
+            SELECT balance FROM balances WHERE wallet_id = wallets.id
+        ), 0) AS balance_msat FROM wallets
+        WHERE id = :wallet {where}
         """,
-        {"wallet": wallet_id},
+        {"wallet": wallet_id, "deleted": deleted},
+        Wallet,
     )
 
-    return Wallet(**row) if row else None
 
-
-async def get_wallets(user_id: str, conn: Optional[Connection] = None) -> list[Wallet]:
-    rows = await (conn or db).fetchall(
-        """
-        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
-        AS balance_msat FROM wallets WHERE "user" = :user
+async def get_wallets(
+    user_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
+) -> list[Wallet]:
+    where = "AND deleted = :deleted" if deleted is not None else ""
+    return await (conn or db).fetchall(
+        f"""
+        SELECT *, COALESCE((
+            SELECT balance FROM balances WHERE wallet_id = wallets.id
+        ), 0) AS balance_msat FROM wallets
+        WHERE "user" = :user {where}
         """,
-        {"user": user_id},
+        {"user": user_id, "deleted": deleted},
+        Wallet,
     )
-
-    return [Wallet(**row) for row in rows]
 
 
 async def get_wallet_for_key(
     key: str,
     conn: Optional[Connection] = None,
 ) -> Optional[Wallet]:
-    row = await (conn or db).fetchone(
+    return await (conn or db).fetchone(
         """
-        SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0)
+        SELECT *, COALESCE((
+            SELECT balance FROM balances WHERE wallet_id = wallets.id
+        ), 0)
         AS balance_msat FROM wallets
         WHERE (adminkey = :key OR inkey = :key) AND deleted = false
         """,
         {"key": key},
+        Wallet,
     )
-
-    if not row:
-        return None
-
-    return Wallet(**row)
 
 
 async def get_total_balance(conn: Optional[Connection] = None):
-    row = await (conn or db).fetchone("SELECT SUM(balance) FROM balances")
+    result = await (conn or db).execute("SELECT SUM(balance) FROM balances")
+    row = result.mappings().first()
     return row.get("balance", 0)
 
 
@@ -740,9 +482,9 @@ async def get_standalone_payment(
     incoming: Optional[bool] = False,
     wallet_id: Optional[str] = None,
 ) -> Optional[Payment]:
-    clause: str = "checking_id = :checking_id OR hash = :hash"
+    clause: str = "checking_id = :checking_id OR payment_hash = :hash"
     values = {
-        "wallet": wallet_id,
+        "wallet_id": wallet_id,
         "checking_id": checking_id_or_hash,
         "hash": checking_id_or_hash,
     }
@@ -750,39 +492,39 @@ async def get_standalone_payment(
         clause = f"({clause}) AND amount > 0"
 
     if wallet_id:
-        clause = f"({clause}) AND wallet = :wallet"
+        clause = f"({clause}) AND wallet_id = :wallet_id"
 
     row = await (conn or db).fetchone(
         f"""
-        SELECT *
-        FROM apipayments
+        SELECT * FROM apipayments
         WHERE {clause}
-        ORDER BY amount
-        LIMIT 1
+        ORDER BY amount LIMIT 1
         """,
         values,
+        Payment,
     )
-
-    return Payment.from_row(row) if row else None
+    return row
 
 
 async def get_wallet_payment(
     wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
 ) -> Optional[Payment]:
-    row = await (conn or db).fetchone(
+    payment = await (conn or db).fetchone(
         """
         SELECT *
         FROM apipayments
-        WHERE wallet = :wallet AND hash = :hash
+        WHERE wallet_id = :wallet AND payment_hash = :hash
         """,
         {"wallet": wallet_id, "hash": payment_hash},
+        Payment,
     )
+    return payment
 
-    return Payment.from_row(row) if row else None
 
-
-async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: int = 5):
-    rows = await db.fetchall(
+async def get_latest_payments_by_extension(
+    ext_name: str, ext_id: str, limit: int = 5
+) -> list[Payment]:
+    return await db.fetchall(
         f"""
         SELECT * FROM apipayments
         WHERE status = '{PaymentState.SUCCESS}'
@@ -791,9 +533,8 @@ async def get_latest_payments_by_extension(ext_name: str, ext_id: str, limit: in
         ORDER BY time DESC LIMIT {limit}
         """,
         {"ext_name": f"%{ext_name}%", "ext_id": f"%{ext_id}%"},
+        Payment,
     )
-
-    return rows
 
 
 async def get_payments_paginated(
@@ -813,7 +554,7 @@ async def get_payments_paginated(
     """
 
     values: dict = {
-        "wallet": wallet_id,
+        "wallet_id": wallet_id,
         "time": since,
     }
     clause: list[str] = []
@@ -822,7 +563,7 @@ async def get_payments_paginated(
         clause.append(f"time > {db.timestamp_placeholder('time')}")
 
     if wallet_id:
-        clause.append("wallet = :wallet")
+        clause.append("wallet_id = :wallet_id")
 
     if complete and pending:
         pass
@@ -940,13 +681,13 @@ async def create_payment(
     await (conn or db).execute(
         f"""
         INSERT INTO apipayments
-          (wallet, checking_id, bolt11, hash, preimage,
-           amount, status, memo, fee, extra, webhook, expiry, pending)
-          VALUES (:wallet, :checking_id, :bolt11, :hash, :preimage,
-           :amount, :status, :memo, :fee, :extra, :webhook, {expiry_ph}, :pending)
+          (wallet_id, checking_id, bolt11, payment_hash, preimage,
+           amount, status, memo, fee, extra, webhook, expiry)
+          VALUES (:wallet_id, :checking_id, :bolt11, :hash, :preimage,
+           :amount, :status, :memo, :fee, :extra, :webhook, {expiry_ph})
         """,
         {
-            "wallet": data.wallet_id,
+            "wallet_id": data.wallet_id,
             "checking_id": checking_id,
             "bolt11": data.payment_request,
             "hash": data.payment_hash,
@@ -962,7 +703,6 @@ async def create_payment(
             ),
             "webhook": data.webhook,
             "expiry": data.expiry if data.expiry else None,
-            "pending": False,  # TODO: remove this in next release
         },
     )
 
@@ -1016,6 +756,7 @@ async def update_payment_details(
     )
 
 
+# TODO: should not be needed use update_payment instead
 async def update_payment_extra(
     payment_hash: str,
     extra: dict,
@@ -1030,8 +771,11 @@ async def update_payment_extra(
 
     amount_clause = "AND amount < 0" if outgoing else "AND amount > 0"
 
-    row = await (conn or db).fetchone(
-        f"SELECT hash, extra from apipayments WHERE hash = :hash {amount_clause}",
+    row: dict = await (conn or db).fetchone(
+        f"""
+        SELECT payment_hash, extra from apipayments
+        WHERE payment_hash = :hash {amount_clause}
+        """,
         {"hash": payment_hash},
     )
     if not row:
@@ -1040,7 +784,9 @@ async def update_payment_extra(
     db_extra.update(extra)
 
     await (conn or db).execute(
-        f"UPDATE apipayments SET extra = :extra WHERE hash = :hash {amount_clause} ",
+        f"""
+        UPDATE apipayments SET extra = :extra WHERE payment_hash = :hash {amount_clause}
+        """,
         {"extra": json.dumps(db_extra), "hash": payment_hash},
     )
 
@@ -1069,10 +815,12 @@ async def get_payments_history(
         raise ValueError(f"Invalid group value: {group}")
 
     values = {
-        "wallet": wallet_id,
+        "wallet_id": wallet_id,
     }
-    where = [f"wallet = :wallet AND (status = '{PaymentState.SUCCESS}' OR amount < 0)"]
-    transactions = await db.fetchall(
+    where = [
+        f"wallet_id = :wallet_id AND (status = '{PaymentState.SUCCESS}' OR amount < 0)"
+    ]
+    transactions: list[dict] = await db.fetchall(
         f"""
         SELECT {date_trunc} date,
                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income,
@@ -1126,10 +874,10 @@ async def check_internal(
     Returns the checking_id of the internal payment if it exists,
     otherwise None
     """
-    row = await (conn or db).fetchone(
+    row: dict = await (conn or db).fetchone(
         f"""
         SELECT checking_id FROM apipayments
-        WHERE hash = :hash AND status = '{PaymentState.PENDING}' AND amount > 0
+        WHERE payment_hash = :hash AND status = '{PaymentState.PENDING}' AND amount > 0
         """,
         {"hash": payment_hash},
     )
@@ -1139,30 +887,29 @@ async def check_internal(
         return row["checking_id"]
 
 
-async def check_internal_pending(
+async def check_internal_status(
     payment_hash: str, conn: Optional[Connection] = None
 ) -> bool:
     """
-    Returns False if the internal payment is not pending anymore
-    (and thus paid), otherwise True
+    Returns True if the internal payment was successful
     """
-    row = await (conn or db).fetchone(
+    row: dict = await (conn or db).fetchone(
         """
         SELECT status FROM apipayments
-        WHERE hash = :hash AND amount > 0
+        WHERE payment_hash = :payment_hash AND amount > 0
         """,
-        {"hash": payment_hash},
+        {"payment_hash": payment_hash},
     )
     if not row:
         return True
-    return row["status"] == PaymentState.PENDING.value
+    return row["status"] == PaymentState.SUCCESS.value
 
 
 async def mark_webhook_sent(payment_hash: str, status: int) -> None:
     await db.execute(
         """
         UPDATE apipayments SET webhook_status = :status
-        WHERE hash = :hash
+        WHERE payment_hash = :hash
         """,
         {"status": status, "hash": payment_hash},
     )
@@ -1173,7 +920,7 @@ async def mark_webhook_sent(payment_hash: str, status: int) -> None:
 
 
 async def get_super_settings() -> Optional[SuperSettings]:
-    row = await db.fetchone("SELECT * FROM settings")
+    row: dict = await db.fetchone("SELECT * FROM settings")
     if not row:
         return None
     editable_settings = json.loads(row["editable_settings"])
@@ -1201,7 +948,7 @@ async def delete_admin_settings() -> None:
 
 
 async def update_admin_settings(data: EditableSettings) -> None:
-    row = await db.fetchone("SELECT editable_settings FROM settings")
+    row: dict = await db.fetchone("SELECT editable_settings FROM settings")
     editable_settings = json.loads(row["editable_settings"]) if row else {}
     editable_settings.update(data.dict(exclude_unset=True))
     await db.execute(
@@ -1235,9 +982,12 @@ async def create_admin_settings(super_user: str, new_settings: dict):
 
 # db versions
 # --------------
-async def get_dbversions(conn: Optional[Connection] = None):
-    rows = await (conn or db).fetchall("SELECT * FROM dbversions")
-    return {row["db"]: row["version"] for row in rows}
+async def get_dbversions(conn: Optional[Connection] = None) -> dict:
+    result = await (conn or db).execute("SELECT db, version FROM dbversions")
+    _dict = {}
+    for row in result.mappings().all():
+        _dict[row["db"]] = row["version"]
+    return _dict
 
 
 async def update_migration_version(conn, db_name, version):
@@ -1276,19 +1026,19 @@ async def create_tinyurl(domain: str, endless: bool, wallet: str):
 
 
 async def get_tinyurl(tinyurl_id: str) -> Optional[TinyURL]:
-    row = await db.fetchone(
+    return await db.fetchone(
         "SELECT * FROM tiny_url WHERE id = :tinyurl",
         {"tinyurl": tinyurl_id},
+        TinyURL,
     )
-    return TinyURL.from_row(row) if row else None
 
 
 async def get_tinyurl_by_url(url: str) -> list[TinyURL]:
-    rows = await db.fetchall(
+    return await db.fetchall(
         "SELECT * FROM tiny_url WHERE url = :url",
         {"url": url},
+        TinyURL,
     )
-    return [TinyURL.from_row(row) for row in rows]
 
 
 async def delete_tinyurl(tinyurl_id: str):
@@ -1305,24 +1055,22 @@ async def delete_tinyurl(tinyurl_id: str):
 async def get_webpush_subscription(
     endpoint: str, user: str
 ) -> Optional[WebPushSubscription]:
-    row = await db.fetchone(
+    return await db.fetchone(
         """
         SELECT * FROM webpush_subscriptions
         WHERE endpoint = :endpoint AND "user" = :user
         """,
         {"endpoint": endpoint, "user": user},
+        WebPushSubscription,
     )
-    return WebPushSubscription(**dict(row)) if row else None
 
 
-async def get_webpush_subscriptions_for_user(
-    user: str,
-) -> list[WebPushSubscription]:
-    rows = await db.fetchall(
+async def get_webpush_subscriptions_for_user(user: str) -> list[WebPushSubscription]:
+    return await db.fetchall(
         """SELECT * FROM webpush_subscriptions WHERE "user" = :user""",
         {"user": user},
+        WebPushSubscription,
     )
-    return [WebPushSubscription(**dict(row)) for row in rows]
 
 
 async def create_webpush_subscription(

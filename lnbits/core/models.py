@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-import datetime
 import hashlib
 import hmac
 import json
-import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Callable, Optional
 
 from ecdsa import SECP256k1, SigningKey
 from fastapi import Query
-from pydantic import BaseModel, validator
+from passlib.context import CryptContext
+from pydantic import BaseModel, Field, validator
 
-from lnbits.db import FilterModel, FromRowModel
+from lnbits.db import FilterModel
 from lnbits.helpers import url_for
 from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
@@ -27,6 +27,15 @@ from lnbits.wallets.base import (
 )
 
 
+def json_custom_serialization(_, o):
+    if isinstance(o, datetime):
+        return o.isoformat()
+    raise TypeError(f"Object is not JSON serializable: {o}")
+
+
+json.JSONEncoder.default = json_custom_serialization  # type: ignore[method-assign]
+
+
 class BaseWallet(BaseModel):
     id: str
     name: str
@@ -35,16 +44,21 @@ class BaseWallet(BaseModel):
     balance_msat: int
 
 
-class Wallet(BaseWallet):
+class Wallet(BaseModel):
+    id: str
     user: str
-    currency: Optional[str]
-    deleted: bool
-    created_at: Optional[int] = None
-    updated_at: Optional[int] = None
+    name: str
+    adminkey: str
+    inkey: str
+    deleted: bool = False
+    created_at: datetime = datetime.now(timezone.utc)
+    updated_at: datetime = datetime.now(timezone.utc)
+    currency: Optional[str] = None
+    balance_msat: int = Field(default=0, no_database=True)
 
     @property
     def balance(self) -> int:
-        return self.balance_msat // 1000
+        return int(self.balance_msat // 1000)
 
     @property
     def withdrawable_balance(self) -> int:
@@ -68,11 +82,6 @@ class Wallet(BaseWallet):
             linking_key, curve=SECP256k1, hashfunc=hashlib.sha256
         )
 
-    async def get_payment(self, payment_hash: str) -> Optional[Payment]:
-        from .crud import get_standalone_payment
-
-        return await get_standalone_payment(payment_hash)
-
 
 class KeyType(Enum):
     admin = 0
@@ -90,7 +99,7 @@ class WalletTypeInfo:
     wallet: Wallet
 
 
-class UserConfig(BaseModel):
+class UserExtra(BaseModel):
     email_verified: Optional[bool] = False
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -103,16 +112,43 @@ class UserConfig(BaseModel):
     provider: Optional[str] = "lnbits"  # auth provider
 
 
-class Account(FromRowModel):
+class Account(BaseModel):
     id: str
-    is_super_user: Optional[bool] = False
-    is_admin: Optional[bool] = False
     username: Optional[str] = None
+    password_hash: Optional[str] = None
+    pubkey: Optional[str] = None
     email: Optional[str] = None
-    balance_msat: Optional[int] = 0
+    extra: UserExtra = UserExtra()
+    created_at: datetime = datetime.now(timezone.utc)
+    updated_at: datetime = datetime.now(timezone.utc)
+
+    @property
+    def is_super_user(self) -> bool:
+        return self.id == settings.super_user
+
+    @property
+    def is_admin(self) -> bool:
+        return self.id in settings.lnbits_admin_users or self.is_super_user
+
+    def hash_password(self, password: str) -> str:
+        """sets and returns the hashed password"""
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.password_hash = pwd_context.hash(password)
+        return self.password_hash
+
+    def verify_password(self, password: str) -> bool:
+        """returns True if the password matches the hash"""
+        if not self.password_hash:
+            return False
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        return pwd_context.verify(password, self.password_hash)
+
+
+class AccountOverview(Account):
     transaction_count: Optional[int] = 0
     wallet_count: Optional[int] = 0
-    last_payment: Optional[datetime.datetime] = None
+    balance_msat: Optional[int] = 0
+    last_payment: Optional[datetime] = None
 
 
 class AccountFilters(FilterModel):
@@ -127,7 +163,7 @@ class AccountFilters(FilterModel):
     ]
 
     id: str
-    last_payment: Optional[datetime.datetime] = None
+    last_payment: Optional[datetime] = None
     transaction_count: Optional[int] = None
     wallet_count: Optional[int] = None
     username: Optional[str] = None
@@ -136,6 +172,8 @@ class AccountFilters(FilterModel):
 
 class User(BaseModel):
     id: str
+    created_at: datetime
+    updated_at: datetime
     email: Optional[str] = None
     username: Optional[str] = None
     pubkey: Optional[str] = None
@@ -144,9 +182,7 @@ class User(BaseModel):
     admin: bool = False
     super_user: bool = False
     has_password: bool = False
-    config: Optional[UserConfig] = None
-    created_at: Optional[int] = None
-    updated_at: Optional[int] = None
+    extra: UserExtra = UserExtra()
 
     @property
     def wallet_ids(self) -> list[str]:
@@ -178,7 +214,7 @@ class UpdateUser(BaseModel):
     user_id: str
     email: Optional[str] = Query(default=None)
     username: Optional[str] = Query(default=..., min_length=2, max_length=20)
-    config: Optional[UserConfig] = None
+    extra: Optional[UserExtra] = None
 
 
 class UpdateUserPassword(BaseModel):
@@ -238,29 +274,31 @@ class CreatePayment(BaseModel):
     amount: int
     memo: str
     preimage: Optional[str] = None
-    expiry: Optional[datetime.datetime] = None
+    expiry: Optional[datetime] = None
     extra: Optional[dict] = None
     webhook: Optional[str] = None
     fee: int = 0
 
 
-class Payment(FromRowModel):
+class Payment(BaseModel):
     status: str
-    # TODO should be removed in the future, backward compatibility
-    pending: bool
     checking_id: str
+    payment_hash: str
+    wallet_id: str
     amount: int
     fee: int
     memo: Optional[str]
-    time: int
+    time: datetime
     bolt11: str
-    preimage: str
-    payment_hash: str
-    expiry: Optional[float]
+    expiry: Optional[datetime]
     extra: Optional[dict]
-    wallet_id: str
     webhook: Optional[str]
-    webhook_status: Optional[int]
+    webhook_status: Optional[int] = None
+    preimage: Optional[str] = "0" * 64
+
+    @property
+    def pending(self) -> bool:
+        return self.status == PaymentState.PENDING.value
 
     @property
     def success(self) -> bool:
@@ -269,27 +307,6 @@ class Payment(FromRowModel):
     @property
     def failed(self) -> bool:
         return self.status == PaymentState.FAILED.value
-
-    @classmethod
-    def from_row(cls, row: dict):
-        return cls(
-            checking_id=row["checking_id"],
-            payment_hash=row["hash"] or "0" * 64,
-            bolt11=row["bolt11"] or "",
-            preimage=row["preimage"] or "0" * 64,
-            extra=json.loads(row["extra"] or "{}"),
-            status=row["status"],
-            # TODO should be removed in the future, backward compatibility
-            pending=row["status"] == PaymentState.PENDING.value,
-            amount=row["amount"],
-            fee=row["fee"],
-            memo=row["memo"],
-            time=row["time"],
-            expiry=row["expiry"],
-            wallet_id=row["wallet"],
-            webhook=row["webhook"],
-            webhook_status=row["webhook_status"],
-        )
 
     @property
     def tag(self) -> Optional[str]:
@@ -315,7 +332,7 @@ class Payment(FromRowModel):
 
     @property
     def is_expired(self) -> bool:
-        return self.expiry < time.time() if self.expiry else False
+        return self.expiry < datetime.now(timezone.utc) if self.expiry else False
 
     @property
     def is_internal(self) -> bool:
@@ -343,11 +360,11 @@ class PaymentFilters(FilterModel):
     amount: int
     fee: int
     memo: Optional[str]
-    time: datetime.datetime
+    time: datetime
     bolt11: str
     preimage: str
     payment_hash: str
-    expiry: Optional[datetime.datetime]
+    expiry: Optional[datetime]
     extra: dict = {}
     wallet_id: str
     webhook: Optional[str]
@@ -355,7 +372,7 @@ class PaymentFilters(FilterModel):
 
 
 class PaymentHistoryPoint(BaseModel):
-    date: datetime.datetime
+    date: datetime
     income: int
     spending: int
     balance: int
@@ -376,10 +393,6 @@ class TinyURL(BaseModel):
     endless: bool
     wallet: str
     time: float
-
-    @classmethod
-    def from_row(cls, row: dict):
-        return cls(**dict(row))
 
 
 class ConversionData(BaseModel):
@@ -451,7 +464,7 @@ class WebPushSubscription(BaseModel):
     user: str
     data: str
     host: str
-    timestamp: str
+    timestamp: datetime
 
 
 class BalanceDelta(BaseModel):

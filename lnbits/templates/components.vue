@@ -301,7 +301,7 @@
           v-if="o.options?.length"
           :options="o.options"
           v-model="formData[o.name]"
-          @input="handleValueChanged"
+          @update:model-value="handleValueChanged"
           class="q-ml-xl"
         >
         </lnbits-dynamic-fields>
@@ -310,7 +310,7 @@
             v-if="o.type === 'number'"
             type="number"
             v-model="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             :label="o.label || o.name"
             :hint="o.description"
             :rules="applyRules(o.required)"
@@ -322,7 +322,7 @@
             type="textarea"
             rows="5"
             v-model="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             :label="o.label || o.name"
             :hint="o.description"
             :rules="applyRules(o.required)"
@@ -332,7 +332,7 @@
           <q-input
             v-else-if="o.type === 'password'"
             v-model="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             type="password"
             :label="o.label || o.name"
             :hint="o.description"
@@ -343,7 +343,7 @@
           <q-select
             v-else-if="o.type === 'select'"
             v-model="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             :label="o.label || o.name"
             :hint="o.description"
             :options="o.values"
@@ -352,7 +352,7 @@
           <q-select
             v-else-if="o.isList"
             v-model.trim="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             input-debounce="0"
             new-value-mode="add-unique"
             :label="o.label || o.name"
@@ -371,7 +371,7 @@
               <q-item-section avatar top>
                 <q-checkbox
                   v-model="formData[o.name]"
-                  @input="handleValueChanged"
+                  @update:model-value="handleValueChanged"
                 />
               </q-item-section>
               <q-item-section>
@@ -391,10 +391,16 @@
             style="display: none"
             :rules="applyRules(o.required)"
           ></q-input>
+          <div v-else-if="o.type === 'chips'">
+            <lnbits-dynamic-chips
+              v-model="formData[o.name]"
+              @update:model-value="handleValueChanged"
+            ></lnbits-dynamic-chips>
+          </div>
           <q-input
             v-else
             v-model="formData[o.name]"
-            @input="handleValueChanged"
+            @update:model-value="handleValueChanged"
             :hint="o.description"
             :label="o.label || o.name"
             :rules="applyRules(o.required)"
@@ -404,6 +410,32 @@
         </div>
       </div>
     </div>
+  </div>
+</template>
+
+<template id="lnbits-dynamic-chips">
+  <q-input
+    filled
+    v-model="chip"
+    @keydown.enter.prevent="addChip"
+    type="text"
+    label="wss://...."
+    hint="Add relays"
+    class="q-mb-md"
+  >
+    <q-btn @click="addChip" dense flat icon="add"></q-btn>
+  </q-input>
+  <div>
+    <q-chip
+      v-for="(chip, i) in chips"
+      :key="chip"
+      removable
+      @remove="removeChip(i)"
+      color="primary"
+      text-color="white"
+      :label="chip"
+    >
+    </q-chip>
   </div>
 </template>
 
@@ -457,8 +489,15 @@
 
 <template id="lnbits-qrcode">
   <div class="qrcode__wrapper">
-    <qrcode-vue :value="value" size="350" class="rounded-borders"></qrcode-vue>
-    <img class="qrcode__image" :src="logo" alt="..." />
+    <qrcode-vue
+      :value="value"
+      level="Q"
+      render-as="svg"
+      margin="1"
+      size="350"
+      class="rounded-borders"
+    ></qrcode-vue>
+    <img class="qrcode__image" :src="logo" alt="qrcode icon" />
   </div>
 </template>
 
@@ -585,12 +624,12 @@
         :rows="paymentsOmitter"
         :row-key="paymentTableRowKey"
         :columns="paymentsTable.columns"
-        :pagination.sync="paymentsTable.pagination"
         :no-data-label="$t('no_transactions')"
         :filter="paymentsTable.search"
         :loading="paymentsTable.loading"
         :hide-header="mobileSimple"
         :hide-bottom="mobileSimple"
+        v-model:pagination="paymentsTable.pagination"
         @request="fetchPayments"
       >
         <template v-slot:header="props">
@@ -699,13 +738,9 @@
                     ></lnbits-payment-details>
                     <div v-if="props.row.bolt11" class="text-center q-mb-lg">
                       <a :href="'lightning:' + props.row.bolt11">
-                        <q-responsive :ratio="1" class="q-mx-xl">
-                          <lnbits-qrcode
-                            :value="
-                              'lightning:' + props.row.bolt11.toUpperCase()
-                            "
-                          ></lnbits-qrcode>
-                        </q-responsive>
+                        <lnbits-qrcode
+                          :value="'lightning:' + props.row.bolt11.toUpperCase()"
+                        ></lnbits-qrcode>
                       </a>
                     </div>
                     <div class="row q-mt-lg">
@@ -797,7 +832,7 @@
   </q-form>
 </template>
 
-<template id="lnbits-extension-btn-dialog">
+<template id="lnbits-extension-settings-btn-dialog">
   <q-btn
     v-if="options"
     unelevated

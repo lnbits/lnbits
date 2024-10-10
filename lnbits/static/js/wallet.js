@@ -5,7 +5,9 @@ window.app = Vue.createApp({
     return {
       updatePayments: false,
       origin: window.location.origin,
+      wallet: LNbits.map.wallet(window.wallet),
       user: LNbits.map.user(window.user),
+      exportUrl: `${window.location.origin}/wallet?usr=${window.user.id}&wal=${window.wallet.id}`,
       receive: {
         show: false,
         status: 'pending',
