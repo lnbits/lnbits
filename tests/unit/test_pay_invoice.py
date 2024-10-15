@@ -58,3 +58,17 @@ async def test_pay_twice(to_wallet: Wallet):
             wallet_id=to_wallet.id,
             payment_request=payment_request,
         )
+
+
+@pytest.mark.asyncio
+async def test_pay_external_invoice_from_fake_wallet(to_wallet: Wallet):
+    with pytest.raises(
+        PaymentError, match="Payment failed: Only internal invoices can be used!"
+    ):
+        await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request="lnbc210n1pnsukdapp5r8hxha2kx9qyrrknlscwfayvstcx7wu5zvkwdd0hzzv83p"
+            "5d9wcsdqqcqzzsxqyz5vqsp5ra7vq6napsu5y9h4nu79a2ksjkm4rvpajpe0ce9q0"
+            "uvct22wugjs9qxpqysgqvc8uhzq4jaccvdzpmfczygnluppn74uue2uwrhpg6kegs"
+            "qpk2hmq0ksggazxfnsv3d622y9822zsxhaaj20dypzprfvcfd5e4az7w2gq9m9m6w",
+        )
