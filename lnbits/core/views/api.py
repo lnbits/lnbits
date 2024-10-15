@@ -3,7 +3,7 @@ import json
 from http import HTTPStatus
 from io import BytesIO
 from time import time
-from typing import Dict, List
+from typing import Any, Dict, List
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
@@ -15,6 +15,7 @@ from fastapi import (
 from fastapi.exceptions import HTTPException
 from starlette.responses import StreamingResponse
 
+from lnbits.core.crud import get_user
 from lnbits.core.models import (
     BaseWallet,
     ConversionData,
@@ -37,6 +38,8 @@ from lnbits.utils.exchange_rates import (
     get_fiat_rate_satoshis,
     satoshis_amount_as_fiat,
 )
+from lnbits.wallets import get_funding_source
+from lnbits.wallets.base import StatusResponse
 
 from ..services import create_user_account, perform_lnurlauth
 
@@ -52,8 +55,32 @@ async def health() -> dict:
     return {
         "server_time": int(time()),
         "up_time": int(time() - settings.server_startup_time),
-        "version": settings.version,
     }
+
+
+@api_router.get("/api/v1/status", status_code=HTTPStatus.OK)
+async def health_check(wallet: WalletTypeInfo = Depends(require_invoice_key)) -> dict:
+    stat: dict[str, Any] = {
+        "server_time": int(time()),
+        "up_time": int(time() - settings.server_startup_time),
+    }
+
+    user = await get_user(wallet.wallet.user)
+    if not user:
+        return stat
+
+    stat["version"] = settings.version
+    if not user.admin:
+        return stat
+
+    funding_source = get_funding_source()
+    stat["funding_source"] = funding_source.__class__.__name__
+
+    status: StatusResponse = await funding_source.status()
+    stat["funding_source_error"] = status.error_message
+    stat["funding_source_balance_msat"] = status.balance_msat
+
+    return stat
 
 
 @api_router.get(
