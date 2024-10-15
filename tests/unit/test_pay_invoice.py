@@ -42,3 +42,19 @@ async def test_payment_limit(to_wallet: Wallet):
             max_sat=100,
             payment_request=payment_request,
         )
+
+
+@pytest.mark.asyncio
+async def test_pay_twice(to_wallet: Wallet):
+    _, payment_request = await create_invoice(
+        wallet_id=to_wallet.id, amount=3, memo="Twice"
+    )
+    await pay_invoice(
+        wallet_id=to_wallet.id,
+        payment_request=payment_request,
+    )
+    with pytest.raises(PaymentError, match="Internal invoice already paid."):
+        await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=payment_request,
+        )
