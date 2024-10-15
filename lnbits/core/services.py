@@ -220,15 +220,19 @@ async def pay_invoice(
 
     if not invoice.amount_msat or not invoice.amount_msat > 0:
         raise PaymentError("Amountless invoices not supported.", status="failed")
+
     if max_sat and invoice.amount_msat > max_sat * 1000:
         raise PaymentError("Amount in invoice is too high.", status="failed")
 
+    # todo: change param order
+    # todo: separate unit test
     await check_wallet_limits(wallet_id, conn, invoice.amount_msat)
 
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
         internal_id = f"internal_{invoice.payment_hash}"
 
+        # todo: separate unit test
         _, extra = await calculate_fiat_amounts(
             invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
         )
@@ -262,7 +266,7 @@ async def pay_invoice(
                 internal_invoice.amount != invoice.amount_msat
                 or internal_invoice.bolt11 != payment_request.lower()
             ):
-                raise PaymentError("Invalid invoice.", status="failed")
+                raise PaymentError("Invalid invoice amount.", status="failed")
 
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
