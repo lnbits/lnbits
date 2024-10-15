@@ -1,11 +1,12 @@
-from bolt11.types import MilliSatoshi
 import pytest
+from bolt11 import decode as bolt11_decode
+from bolt11 import encode as bolt11_encode
+from bolt11.types import MilliSatoshi
 
 from lnbits.core.models import Wallet
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.exceptions import PaymentError
-from bolt11 import decode as bolt11_decode
-from bolt11 import encode as bolt11_encode
+from lnbits.settings import settings
 
 
 @pytest.mark.asyncio
@@ -76,6 +77,7 @@ async def test_pay_external_invoice_from_fake_wallet(to_wallet: Wallet):
             "qpk2hmq0ksggazxfnsv3d622y9822zsxhaaj20dypzprfvcfd5e4az7w2gq9m9m6w",
         )
 
+
 @pytest.mark.asyncio
 async def test_amount_changed(to_wallet: Wallet):
     _, payment_request = await create_invoice(
@@ -83,7 +85,7 @@ async def test_amount_changed(to_wallet: Wallet):
     )
 
     invoice = bolt11_decode(payment_request)
-    invoice.amount_msat=MilliSatoshi(12000)
+    invoice.amount_msat = MilliSatoshi(12000)
     payment_request = bolt11_encode(invoice)
 
     with pytest.raises(PaymentError, match="Invalid invoice amount."):
@@ -92,3 +94,24 @@ async def test_amount_changed(to_wallet: Wallet):
             payment_request=payment_request,
         )
 
+
+@pytest.mark.asyncio
+async def test_pay_for_extension(to_wallet: Wallet):
+    _, payment_request = await create_invoice(
+        wallet_id=to_wallet.id, amount=3, memo="Allowed"
+    )
+    await pay_invoice(
+        wallet_id=to_wallet.id, payment_request=payment_request, extra={"tag": "lnurlp"}
+    )
+    _, payment_request = await create_invoice(
+        wallet_id=to_wallet.id, amount=3, memo="Not Allowed"
+    )
+    settings.lnbits_admin_extensions = ["lnurlp"]
+    with pytest.raises(
+        PaymentError, match="User not authorized for extension 'lnurlp'."
+    ):
+        await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=payment_request,
+            extra={"tag": "lnurlp"},
+        )

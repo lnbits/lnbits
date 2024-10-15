@@ -271,6 +271,7 @@ async def pay_invoice(
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
 
+            # todo: separate unit test
             fee_reserve_total_msat = fee_reserve_total(
                 invoice.amount_msat, internal=True
             )
@@ -293,8 +294,13 @@ async def pay_invoice(
         wallet = await get_wallet(wallet_id, conn=conn)
         assert wallet, "Wallet for balancecheck could not be fetched"
         fee_reserve_total_msat = fee_reserve_total(invoice.amount_msat, internal=False)
+        # todo: separate unit test
         _check_wallet_balance(wallet, fee_reserve_total_msat, internal_checking_id)
 
+    # note: new_payment exists
+    # TODO: use get
+    # TODO: check can be moved up
+    # TODO: separate unit test
     if extra and "tag" in extra:
         # check if the payment is made for an extension that the user disabled
         status = await check_user_extension_access(wallet.user, extra["tag"])
