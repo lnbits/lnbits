@@ -1,8 +1,11 @@
+from bolt11.types import MilliSatoshi
 import pytest
 
 from lnbits.core.models import Wallet
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.exceptions import PaymentError
+from bolt11 import decode as bolt11_decode
+from bolt11 import encode as bolt11_encode
 
 
 @pytest.mark.asyncio
@@ -72,3 +75,20 @@ async def test_pay_external_invoice_from_fake_wallet(to_wallet: Wallet):
             "uvct22wugjs9qxpqysgqvc8uhzq4jaccvdzpmfczygnluppn74uue2uwrhpg6kegs"
             "qpk2hmq0ksggazxfnsv3d622y9822zsxhaaj20dypzprfvcfd5e4az7w2gq9m9m6w",
         )
+
+@pytest.mark.asyncio
+async def test_amount_changed(to_wallet: Wallet):
+    _, payment_request = await create_invoice(
+        wallet_id=to_wallet.id, amount=21, memo="original"
+    )
+
+    invoice = bolt11_decode(payment_request)
+    invoice.amount_msat=MilliSatoshi(12000)
+    payment_request = bolt11_encode(invoice)
+
+    with pytest.raises(PaymentError, match="Invalid invoice amount."):
+        await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=payment_request,
+        )
+
