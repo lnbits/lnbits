@@ -999,7 +999,7 @@ async def update_payment_details(
 
     set_clause: list[str] = []
     if new_checking_id is not None:
-        set_clause.append("checking_id = :checking_id")
+        set_clause.append("checking_id = :new_checking_id")
     if status is not None:
         set_clause.append("status = :status")
     if fee is not None:
