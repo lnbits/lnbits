@@ -7,6 +7,7 @@ from bolt11 import encode as bolt11_encode
 from bolt11.types import MilliSatoshi
 from pytest_mock.plugin import MockerFixture
 
+from lnbits.core.crud import get_standalone_payment
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.exceptions import PaymentError
@@ -169,3 +170,9 @@ async def test_pay_external_invoice_failed(to_wallet: Wallet, mocker: MockerFixt
             wallet_id=to_wallet.id,
             payment_request=external_invoice,
         )
+
+    invoice = bolt11_decode(pr=external_invoice)
+
+    payment = await get_standalone_payment(invoice.payment_hash)
+    assert payment
+    assert payment.status == PaymentState.FAILED.value
