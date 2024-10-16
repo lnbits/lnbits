@@ -54,6 +54,18 @@ async def test_amountless_invoice(to_wallet: Wallet):
 
 
 @pytest.mark.asyncio
+async def test_bad_wallet_id(to_wallet: Wallet):
+    _, payment_request = await create_invoice(
+        wallet_id=to_wallet.id, amount=31, memo="Bad Wallet"
+    )
+    with pytest.raises(AssertionError, match="invalid wallet_id"):
+        await pay_invoice(
+            wallet_id=to_wallet.id[::-1],
+            payment_request=payment_request,
+        )
+
+
+@pytest.mark.asyncio
 async def test_payment_limit(to_wallet: Wallet):
     _, payment_request = await create_invoice(
         wallet_id=to_wallet.id, amount=101, memo=""
