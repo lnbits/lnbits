@@ -191,12 +191,17 @@ async def test_pay_external_invoice_failed(
 
 @pytest.mark.asyncio
 async def test_retry_pay_failed_external_invoice(
-    to_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
     payment_reponse_failed = PaymentResponse(ok=False, error_message="Mock failure!")
 
-    external_invoice = await external_funding_source.create_invoice(2102)
+    invoice_amount = 2102
+    external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
+
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    balance_before = wallet.balance
 
     with pytest.raises(PaymentError, match="Payment failed: Mock failure!"):
         mocker.patch(
@@ -204,7 +209,7 @@ async def test_retry_pay_failed_external_invoice(
             AsyncMock(return_value=payment_reponse_failed),
         )
         await pay_invoice(
-            wallet_id=to_wallet.id,
+            wallet_id=from_wallet.id,
             payment_request=external_invoice.payment_request,
         )
 
@@ -216,9 +221,15 @@ async def test_retry_pay_failed_external_invoice(
             AsyncMock(return_value=payment_reponse_failed),
         )
         await pay_invoice(
-            wallet_id=to_wallet.id,
+            wallet_id=from_wallet.id,
             payment_request=external_invoice.payment_request,
         )
+
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    assert (
+        balance_before == wallet.balance
+    ), "Failed payments should not affect the balance."
 
     with pytest.raises(
         PaymentError, match="Failed payment was already paid on the fundingsource."
@@ -229,9 +240,15 @@ async def test_retry_pay_failed_external_invoice(
             AsyncMock(return_value=payment_reponse_success),
         )
         await pay_invoice(
-            wallet_id=to_wallet.id,
+            wallet_id=from_wallet.id,
             payment_request=external_invoice.payment_request,
         )
+
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    assert (
+        balance_before - invoice_amount == wallet.balance
+    ), "Payment successful on retry."
 
 
 @pytest.mark.asyncio

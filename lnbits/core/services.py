@@ -275,7 +275,7 @@ async def pay_invoice(
             fee_reserve_total_msat = fee_reserve_total(
                 invoice.amount_msat, internal=True
             )
-            create_payment_model.fee = abs(fee_reserve_total_msat)
+            create_payment_model.fee = service_fee(invoice.amount_msat, True)
             new_payment = await create_payment(
                 checking_id=internal_id,
                 data=create_payment_model,
@@ -414,8 +414,6 @@ async def _create_external_payment(
     data: CreatePayment,
     conn: Optional[Connection],
 ) -> Payment:
-    fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
-
     # check if there is already a payment with the same checking_id
     old_payment = await get_standalone_payment(temp_id, conn=conn)
     if old_payment:
@@ -446,7 +444,7 @@ async def _create_external_payment(
     # create a temporary payment here so we can check if
     # the balance is enough in the next step
     try:
-        data.fee = -abs(fee_reserve_total_msat)
+        data.fee = service_fee(amount_msat, False)
         new_payment = await create_payment(
             checking_id=temp_id,
             data=data,
@@ -690,6 +688,7 @@ def fee_reserve(amount_msat: int, internal: bool = False) -> int:
 
 
 def service_fee(amount_msat: int, internal: bool = False) -> int:
+    amount_msat = abs(amount_msat)
     service_fee_percent = settings.lnbits_service_fee
     fee_max = settings.lnbits_service_fee_max * 1000
     if settings.lnbits_service_fee_wallet:
