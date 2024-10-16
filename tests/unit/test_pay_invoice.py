@@ -301,7 +301,52 @@ async def test_pay_external_invoice_pending(
         balance_before - invoice_amount == wallet.balance
     ), "Pending payment is subtracted."
 
-    assert ws_notification.call_count == 1, "Websocket notification not sent."
+    assert ws_notification.call_count == 0, "Websocket notification not sent."
+
+
+@pytest.mark.asyncio
+async def test_retry_pay_external_invoice_pending(
+    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+):
+    invoice_amount = 2106
+    external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    assert external_invoice.payment_request
+    assert external_invoice.checking_id
+
+    preimage = "0000000000000000000000000000000000000000000000000000000000002106"
+    payment_reponse_pending = PaymentResponse(
+        ok=None, checking_id=external_invoice.checking_id, preimage=preimage
+    )
+    mocker.patch(
+        "lnbits.wallets.FakeWallet.pay_invoice",
+        AsyncMock(return_value=payment_reponse_pending),
+    )
+    ws_notification = mocker.patch(
+        "lnbits.core.services.send_payment_notification",
+        AsyncMock(return_value=None),
+    )
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    balance_before = wallet.balance
+    await pay_invoice(
+        wallet_id=from_wallet.id,
+        payment_request=external_invoice.payment_request,
+    )
+    assert ws_notification.call_count == 0, "Websocket notification not sent."
+    with pytest.raises(PaymentError, match="Payment is still pending."):
+        await pay_invoice(
+            wallet_id=from_wallet.id,
+            payment_request=external_invoice.payment_request,
+        )
+
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    # TODO: is this correct?
+    assert (
+        balance_before - invoice_amount == wallet.balance
+    ), "Failed payment is subtracted."
+
+    assert ws_notification.call_count == 0, "Websocket notification not sent."
 
 
 @pytest.mark.asyncio
