@@ -199,6 +199,11 @@ async def test_retry_pay_failed_external_invoice(
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
 
+    ws_notification = mocker.patch(
+        "lnbits.core.services.send_payment_notification",
+        AsyncMock(return_value=None),
+    )
+
     wallet = await get_wallet(from_wallet.id)
     assert wallet
     balance_before = wallet.balance
@@ -249,6 +254,8 @@ async def test_retry_pay_failed_external_invoice(
     assert (
         balance_before - invoice_amount == wallet.balance
     ), "Payment successful on retry."
+
+    assert ws_notification.call_count == 0, "Websocket notification not sent."
 
 
 @pytest.mark.asyncio
@@ -340,4 +347,4 @@ async def test_pay_external_invoice_success(
         balance_before - invoice_amount == wallet.balance
     ), "Success payment is subtracted."
 
-    assert ws_notification.call_count == 1, "Websocket notification not sent."
+    assert ws_notification.call_count == 1, "Websocket notification sent."
