@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
@@ -7,6 +8,7 @@ from lnbits.core.models import Wallet
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.exceptions import PaymentError
 from lnbits.settings import settings
+from lnbits.tasks import register_invoice_listener
 
 
 @pytest.mark.asyncio
@@ -115,3 +117,19 @@ async def test_pay_for_extension(to_wallet: Wallet):
             payment_request=payment_request,
             extra={"tag": "lnurlp"},
         )
+
+
+@pytest.mark.asyncio
+async def test_notification_for_internal_payment(to_wallet: Wallet):
+    invoice_queue: asyncio.Queue = asyncio.Queue(5)
+    register_invoice_listener(invoice_queue, "tests")
+    await asyncio.sleep(1)
+    _, payment_request = await create_invoice(
+        wallet_id=to_wallet.id, amount=3, memo="OK"
+    )
+    await pay_invoice(
+        wallet_id=to_wallet.id, payment_request=payment_request, extra={"tag": "lnurlp"}
+    )
+    await asyncio.sleep(5)
+    payment = invoice_queue.get_nowait()
+    print("#### payment", payment)

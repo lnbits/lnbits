@@ -321,10 +321,12 @@ async def pay_invoice(
             )
         await send_payment_notification(wallet, new_payment)
 
+        #TODO: why only import here?
         # notify receiver asynchronously
         from lnbits.tasks import internal_invoice_queue
 
         logger.debug(f"enqueuing internal invoice {internal_checking_id}")
+        print("##### internal_invoice_queue", internal_checking_id)
         await internal_invoice_queue.put(internal_checking_id)
     else:
         fee_reserve_msat = fee_reserve(invoice.amount_msat, internal=False)
