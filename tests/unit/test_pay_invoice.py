@@ -278,3 +278,49 @@ async def test_pay_external_invoice_pending(
     ), "Pending payment is subtracted."
 
     assert ws_notification.call_count == 1, "Websocket notification not sent."
+
+
+@pytest.mark.asyncio
+async def test_pay_external_invoice_success(
+    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+):
+    invoice_amount = 2104
+    external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    assert external_invoice.payment_request
+    assert external_invoice.checking_id
+
+    preimage = "0000000000000000000000000000000000000000000000000000000000002104"
+    payment_reponse_pending = PaymentResponse(
+        ok=True, checking_id=external_invoice.checking_id, preimage=preimage
+    )
+    mocker.patch(
+        "lnbits.wallets.FakeWallet.pay_invoice",
+        AsyncMock(return_value=payment_reponse_pending),
+    )
+    ws_notification = mocker.patch(
+        "lnbits.core.services.send_payment_notification",
+        AsyncMock(return_value=None),
+    )
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    balance_before = wallet.balance
+    payment_hash = await pay_invoice(
+        wallet_id=from_wallet.id,
+        payment_request=external_invoice.payment_request,
+    )
+
+    payment = await get_standalone_payment(payment_hash)
+    assert payment
+    assert payment.status == PaymentState.SUCCESS.value
+    assert payment.checking_id == payment_hash
+    assert payment.amount == -2104_000
+    assert payment.bolt11 == external_invoice.payment_request
+    assert payment.preimage == preimage
+
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    assert (
+        balance_before - invoice_amount == wallet.balance
+    ), "Success payment is subtracted."
+
+    assert ws_notification.call_count == 1, "Websocket notification not sent."
