@@ -167,13 +167,13 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
 async def test_pay_external_invoice_failed(
     to_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
-    payment_reponse = PaymentResponse(ok=False, error_message="Mock failure!")
+    payment_reponse_failed = PaymentResponse(ok=False, error_message="Mock failure!")
     mocker.patch(
         "lnbits.wallets.FakeWallet.pay_invoice",
-        AsyncMock(return_value=payment_reponse),
+        AsyncMock(return_value=payment_reponse_failed),
     )
 
-    external_invoice = await external_funding_source.create_invoice(21)
+    external_invoice = await external_funding_source.create_invoice(2101)
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
@@ -186,3 +186,49 @@ async def test_pay_external_invoice_failed(
     payment = await get_standalone_payment(external_invoice.checking_id)
     assert payment
     assert payment.status == PaymentState.FAILED.value
+    assert payment.amount == -2101_000
+
+
+@pytest.mark.asyncio
+async def test_retry_pay_external_invoice(
+    to_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+):
+    payment_reponse_failed = PaymentResponse(ok=False, error_message="Mock failure!")
+
+    external_invoice = await external_funding_source.create_invoice(2102)
+    assert external_invoice.payment_request
+
+    with pytest.raises(PaymentError, match="Payment failed: Mock failure!"):
+        mocker.patch(
+            "lnbits.wallets.FakeWallet.pay_invoice",
+            AsyncMock(return_value=payment_reponse_failed),
+        )
+        await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=external_invoice.payment_request,
+        )
+
+    with pytest.raises(
+        PaymentError, match="Payment is failed node, retrying is not possible."
+    ):
+        mocker.patch(
+            "lnbits.wallets.FakeWallet.get_payment_status",
+            AsyncMock(return_value=payment_reponse_failed),
+        )
+        await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=external_invoice.payment_request,
+        )
+
+    with pytest.raises(
+        PaymentError, match="Failed payment was already paid on the fundingsource."
+    ):
+        payment_reponse_success = PaymentResponse(ok=True, error_message=None)
+        mocker.patch(
+            "lnbits.wallets.FakeWallet.get_payment_status",
+            AsyncMock(return_value=payment_reponse_success),
+        )
+        await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=external_invoice.payment_request,
+        )
