@@ -441,6 +441,43 @@ async def test_pay_external_invoice_success_bad_checking_id(
     assert payment.payment_hash == external_invoice.checking_id
     assert payment.amount == -2108_000
     assert payment.preimage == preimage
+    assert payment.status == PaymentState.SUCCESS.value
+
+
+@pytest.mark.asyncio
+async def test_no_checking_id(
+    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+):
+    invoice_amount = 2110
+    external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    assert external_invoice.payment_request
+    assert external_invoice.checking_id
+
+    preimage = "0000000000000000000000000000000000000000000000000000000000002110"
+    payment_reponse_pending = PaymentResponse(
+        ok=True, checking_id=None, preimage=preimage
+    )
+    mocker.patch(
+        "lnbits.wallets.FakeWallet.pay_invoice",
+        AsyncMock(return_value=payment_reponse_pending),
+    )
+
+    await pay_invoice(
+        wallet_id=from_wallet.id,
+        payment_request=external_invoice.payment_request,
+    )
+
+    payment = await get_standalone_payment(external_invoice.checking_id)
+
+    assert payment
+    assert payment.checking_id == external_invoice.checking_id
+    assert payment.payment_hash == external_invoice.checking_id
+    assert payment.amount == -2110_000
+    assert (
+        payment.preimage
+        == "0000000000000000000000000000000000000000000000000000000000000000"
+    )
+    assert payment.status == PaymentState.PENDING.value
 
 
 @pytest.mark.asyncio
