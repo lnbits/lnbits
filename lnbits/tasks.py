@@ -85,7 +85,7 @@ async def catch_everything_and_restart(
         logger.error(traceback.format_exc())
         logger.error("will restart the task in 5 seconds.")
         await asyncio.sleep(5)
-        return catch_everything_and_restart(func, name)
+        return await catch_everything_and_restart(func, name)
 
 
 invoice_listeners: Dict[str, asyncio.Queue] = {}
