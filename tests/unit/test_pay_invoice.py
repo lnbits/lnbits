@@ -7,7 +7,7 @@ from bolt11 import encode as bolt11_encode
 from bolt11.types import MilliSatoshi
 from pytest_mock.plugin import MockerFixture
 
-from lnbits.core.crud import get_standalone_payment
+from lnbits.core.crud import get_standalone_payment, get_wallet
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.exceptions import PaymentError
@@ -190,7 +190,7 @@ async def test_pay_external_invoice_failed(
 
 
 @pytest.mark.asyncio
-async def test_retry_pay_external_invoice(
+async def test_retry_pay_failed_external_invoice(
     to_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
     payment_reponse_failed = PaymentResponse(ok=False, error_message="Mock failure!")
@@ -232,3 +232,43 @@ async def test_retry_pay_external_invoice(
             wallet_id=to_wallet.id,
             payment_request=external_invoice.payment_request,
         )
+
+
+@pytest.mark.asyncio
+async def test_pay_external_invoice_pending(
+    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+):
+    invoice_amount = 2103
+    external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    assert external_invoice.payment_request
+    assert external_invoice.checking_id
+
+    preimage = "0000000000000000000000000000000000000000000000000000000000002103"
+    payment_reponse_pending = PaymentResponse(
+        ok=None, checking_id=external_invoice.checking_id, preimage=preimage
+    )
+    mocker.patch(
+        "lnbits.wallets.FakeWallet.pay_invoice",
+        AsyncMock(return_value=payment_reponse_pending),
+    )
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    balance_before = wallet.balance
+    payment_hash = await pay_invoice(
+        wallet_id=from_wallet.id,
+        payment_request=external_invoice.payment_request,
+    )
+
+    payment = await get_standalone_payment(payment_hash)
+    assert payment
+    assert payment.status == PaymentState.PENDING.value
+    assert payment.checking_id == payment_hash
+    assert payment.amount == -2103_000
+    assert payment.bolt11 == external_invoice.payment_request
+    assert payment.preimage == preimage
+
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    assert (
+        balance_before - invoice_amount == wallet.balance
+    ), "Pending payment is subtracted."
