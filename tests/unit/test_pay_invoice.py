@@ -251,6 +251,10 @@ async def test_pay_external_invoice_pending(
         "lnbits.wallets.FakeWallet.pay_invoice",
         AsyncMock(return_value=payment_reponse_pending),
     )
+    ws_notification = mocker.patch(
+        "lnbits.core.services.send_payment_notification",
+        AsyncMock(return_value=None),
+    )
     wallet = await get_wallet(from_wallet.id)
     assert wallet
     balance_before = wallet.balance
@@ -272,3 +276,5 @@ async def test_pay_external_invoice_pending(
     assert (
         balance_before - invoice_amount == wallet.balance
     ), "Pending payment is subtracted."
+
+    assert ws_notification.call_count == 1, "Websocket notification not sent."
