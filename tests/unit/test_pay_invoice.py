@@ -2,6 +2,7 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
+from bolt11 import TagChar
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
 from bolt11.types import MilliSatoshi
@@ -19,13 +20,6 @@ from lnbits.tasks import (
 )
 from lnbits.wallets.base import PaymentResponse
 from lnbits.wallets.fake import FakeWallet
-
-# external_invoice = (
-#     "lnbc210n1pnsukdapp5r8hxha2kx9qyrrknlscwfayvstcx7wu5zvkwdd0hzzv83p"
-#     "5d9wcsdqqcqzzsxqyz5vqsp5ra7vq6napsu5y9h4nu79a2ksjkm4rvpajpe0ce9q0"
-#     "uvct22wugjs9qxpqysgqvc8uhzq4jaccvdzpmfczygnluppn74uue2uwrhpg6kegs"
-#     "qpk2hmq0ksggazxfnsv3d622y9822zsxhaaj20dypzprfvcfd5e4az7w2gq9m9m6w"
-# )
 
 
 @pytest.mark.asyncio
@@ -111,7 +105,7 @@ async def test_pay_external_invoice_from_fake_wallet(
 
 
 @pytest.mark.asyncio
-async def test_amount_changed(to_wallet: Wallet):
+async def test_invoice_changed(to_wallet: Wallet):
     _, payment_request = await create_invoice(
         wallet_id=to_wallet.id, amount=21, memo="original"
     )
@@ -120,7 +114,17 @@ async def test_amount_changed(to_wallet: Wallet):
     invoice.amount_msat = MilliSatoshi(12000)
     payment_request = bolt11_encode(invoice)
 
-    with pytest.raises(PaymentError, match="Invalid invoice amount."):
+    with pytest.raises(PaymentError, match="Invalid invoice."):
+        await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=payment_request,
+        )
+
+    invoice = bolt11_decode(payment_request)
+    invoice.tags.add(TagChar.description, "mock stuff")
+    payment_request = bolt11_encode(invoice)
+
+    with pytest.raises(PaymentError, match="Invalid invoice."):
         await pay_invoice(
             wallet_id=to_wallet.id,
             payment_request=payment_request,

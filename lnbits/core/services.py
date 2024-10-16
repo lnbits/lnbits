@@ -266,7 +266,7 @@ async def pay_invoice(
                 internal_invoice.amount != invoice.amount_msat
                 or internal_invoice.bolt11 != payment_request.lower()
             ):
-                raise PaymentError("Invalid invoice amount.", status="failed")
+                raise PaymentError("Invalid invoice.", status="failed")
 
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
