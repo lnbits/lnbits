@@ -18,13 +18,14 @@ from lnbits.tasks import (
     register_invoice_listener,
 )
 from lnbits.wallets.base import PaymentResponse
+from lnbits.wallets.fake import FakeWallet
 
-external_invoice = (
-    "lnbc210n1pnsukdapp5r8hxha2kx9qyrrknlscwfayvstcx7wu5zvkwdd0hzzv83p"
-    "5d9wcsdqqcqzzsxqyz5vqsp5ra7vq6napsu5y9h4nu79a2ksjkm4rvpajpe0ce9q0"
-    "uvct22wugjs9qxpqysgqvc8uhzq4jaccvdzpmfczygnluppn74uue2uwrhpg6kegs"
-    "qpk2hmq0ksggazxfnsv3d622y9822zsxhaaj20dypzprfvcfd5e4az7w2gq9m9m6w"
-)
+# external_invoice = (
+#     "lnbc210n1pnsukdapp5r8hxha2kx9qyrrknlscwfayvstcx7wu5zvkwdd0hzzv83p"
+#     "5d9wcsdqqcqzzsxqyz5vqsp5ra7vq6napsu5y9h4nu79a2ksjkm4rvpajpe0ce9q0"
+#     "uvct22wugjs9qxpqysgqvc8uhzq4jaccvdzpmfczygnluppn74uue2uwrhpg6kegs"
+#     "qpk2hmq0ksggazxfnsv3d622y9822zsxhaaj20dypzprfvcfd5e4az7w2gq9m9m6w"
+# )
 
 
 @pytest.mark.asyncio
@@ -83,13 +84,17 @@ async def test_pay_twice(to_wallet: Wallet):
 
 
 @pytest.mark.asyncio
-async def test_pay_external_invoice_from_fake_wallet(to_wallet: Wallet):
+async def test_pay_external_invoice_from_fake_wallet(
+    to_wallet: Wallet, external_funding_source: FakeWallet
+):
+    external_invoice = await external_funding_source.create_invoice(21)
+    assert external_invoice.payment_request
     with pytest.raises(
         PaymentError, match="Payment failed: Only internal invoices can be used!"
     ):
         await pay_invoice(
             wallet_id=to_wallet.id,
-            payment_request=external_invoice,
+            payment_request=external_invoice.payment_request,
         )
 
 
@@ -149,7 +154,7 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
     await asyncio.sleep(1)
 
     while True:
-        payment: Payment = invoice_queue.get_nowait()
+        payment: Payment = invoice_queue.get_nowait()  # raises if queue empty
         assert payment
         if payment.memo == test_name:
             assert payment.status == PaymentState.SUCCESS.value
@@ -159,20 +164,25 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
 
 
 @pytest.mark.asyncio
-async def test_pay_external_invoice_failed(to_wallet: Wallet, mocker: MockerFixture):
+async def test_pay_external_invoice_failed(
+    to_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+):
     payment_reponse = PaymentResponse(ok=False, error_message="Mock failure!")
     mocker.patch(
         "lnbits.wallets.FakeWallet.pay_invoice",
         AsyncMock(return_value=payment_reponse),
     )
+
+    external_invoice = await external_funding_source.create_invoice(21)
+    assert external_invoice.payment_request
+    assert external_invoice.checking_id
+
     with pytest.raises(PaymentError, match="Payment failed: Mock failure!"):
         await pay_invoice(
             wallet_id=to_wallet.id,
-            payment_request=external_invoice,
+            payment_request=external_invoice.payment_request,
         )
 
-    invoice = bolt11_decode(pr=external_invoice)
-
-    payment = await get_standalone_payment(invoice.payment_hash)
+    payment = await get_standalone_payment(external_invoice.checking_id)
     assert payment
     assert payment.status == PaymentState.FAILED.value

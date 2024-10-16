@@ -5,6 +5,8 @@ from time import time
 import uvloop
 from asgi_lifespan import LifespanManager
 
+from lnbits.wallets.fake import FakeWallet
+
 uvloop.install()
 
 import pytest
@@ -214,6 +216,11 @@ async def invoice(to_wallet):
     invoice = await api_payments_create_invoice(invoice_data, to_wallet)
     yield invoice
     del invoice
+
+
+@pytest_asyncio.fixture(scope="function")
+async def external_funding_source():
+    yield FakeWallet()
 
 
 @pytest_asyncio.fixture(scope="session")
