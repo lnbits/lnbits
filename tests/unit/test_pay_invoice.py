@@ -1,9 +1,11 @@
 import asyncio
+from unittest.mock import AsyncMock
 
 import pytest
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
 from bolt11.types import MilliSatoshi
+from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, pay_invoice
@@ -13,6 +15,14 @@ from lnbits.tasks import (
     create_permanent_task,
     internal_invoice_listener,
     register_invoice_listener,
+)
+from lnbits.wallets.base import PaymentResponse
+
+external_invoice = (
+    "lnbc210n1pnsukdapp5r8hxha2kx9qyrrknlscwfayvstcx7wu5zvkwdd0hzzv83p"
+    "5d9wcsdqqcqzzsxqyz5vqsp5ra7vq6napsu5y9h4nu79a2ksjkm4rvpajpe0ce9q0"
+    "uvct22wugjs9qxpqysgqvc8uhzq4jaccvdzpmfczygnluppn74uue2uwrhpg6kegs"
+    "qpk2hmq0ksggazxfnsv3d622y9822zsxhaaj20dypzprfvcfd5e4az7w2gq9m9m6w"
 )
 
 
@@ -78,10 +88,7 @@ async def test_pay_external_invoice_from_fake_wallet(to_wallet: Wallet):
     ):
         await pay_invoice(
             wallet_id=to_wallet.id,
-            payment_request="lnbc210n1pnsukdapp5r8hxha2kx9qyrrknlscwfayvstcx7wu5zvkwdd0hzzv83p"
-            "5d9wcsdqqcqzzsxqyz5vqsp5ra7vq6napsu5y9h4nu79a2ksjkm4rvpajpe0ce9q0"
-            "uvct22wugjs9qxpqysgqvc8uhzq4jaccvdzpmfczygnluppn74uue2uwrhpg6kegs"
-            "qpk2hmq0ksggazxfnsv3d622y9822zsxhaaj20dypzprfvcfd5e4az7w2gq9m9m6w",
+            payment_request=external_invoice,
         )
 
 
@@ -148,3 +155,17 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
             assert payment.bolt11 == payment_request
             assert payment.amount == 123_000
             break  # we found our payment, success
+
+
+@pytest.mark.asyncio
+async def test_pay_external_invoice_failed(to_wallet: Wallet, mocker: MockerFixture):
+    payment_reponse = PaymentResponse(ok=False, error_message="Mock failure!")
+    mocker.patch(
+        "lnbits.wallets.FakeWallet.pay_invoice",
+        AsyncMock(return_value=payment_reponse),
+    )
+    with pytest.raises(PaymentError, match="Payment failed: Mock failure!"):
+        await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=external_invoice,
+        )
