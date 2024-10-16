@@ -369,7 +369,6 @@ async def pay_invoice(
                     wallet_id, payment.checking_id, conn=conn
                 )
                 if wallet and updated and updated.success:
-                    print("### 1000")
                     # TODO: rename `updated` to `pending`
                     await send_payment_notification(wallet, updated)
                 logger.success(f"payment successful {payment.checking_id}")
