@@ -45,26 +45,14 @@ def settings():
     lnbits_settings.lnbits_extensions_default_install = []
     lnbits_settings.lnbits_extensions_deactivate_all = True
 
-    return lnbits_settings
+    yield lnbits_settings
 
 
 @pytest.fixture(autouse=True)
 def run_before_and_after_tests(settings: Settings):
     """Fixture to execute asserts before and after a test is run"""
-
-    ##### BEFORE TEST RUN #####
-    settings.lnbits_allow_new_accounts = True
-    settings.lnbits_allowed_users = []
-    settings.auth_allowed_methods = AuthMethods.all()
-    settings.auth_credetials_update_threshold = 120
-    settings.lnbits_reserve_fee_percent = 1
-    settings.lnbits_reserve_fee_min = 2000
-    settings.lnbits_service_fee = 0
-    settings.lnbits_wallet_limit_daily_max_withdraw = 0
-    settings.lnbits_admin_extensions = []
-
+    _settings_cleanup(settings)
     yield  # this is where the testing happens
-    ##### AFTER TEST RUN #####
     _settings_cleanup(settings)
 
 
@@ -286,3 +274,4 @@ def _settings_cleanup(settings: Settings):
     settings.lnbits_reserve_fee_min = 2000
     settings.lnbits_service_fee = 0
     settings.lnbits_wallet_limit_daily_max_withdraw = 0
+    settings.lnbits_admin_extensions = []

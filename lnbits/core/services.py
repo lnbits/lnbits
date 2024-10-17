@@ -338,8 +338,6 @@ async def _pay_external_invoice(
     if payment_response.checking_id and payment_response.ok is not False:
         # payment.ok can be True (paid) or None (pending)!
         logger.debug(f"updating payment {checking_id}")
-        # new checking id
-        payment.checking_id = payment_response.checking_id
         payment.status = (
             PaymentState.SUCCESS
             if payment_response.ok is True
@@ -347,8 +345,10 @@ async def _pay_external_invoice(
         )
         payment.fee = -(abs(payment_response.fee_msat or 0) + abs(service_fee_msat))
         payment.preimage = payment_response.preimage
-        await update_payment(payment, conn=conn)
-        await send_payment_notification(wallet, payment)
+        await update_payment(payment, payment_response.checking_id, conn=conn)
+        payment.checking_id = payment_response.checking_id
+        if payment.success:
+            await send_payment_notification(wallet, payment)
         logger.success(f"payment successful {payment_response.checking_id}")
     elif payment_response.checking_id is None and payment_response.ok is False:
         # payment failed
@@ -427,12 +427,14 @@ async def pay_invoice(
         if not payment:
             payment = await _pay_external_invoice(wallet, create_payment_model, conn)
 
-        await _credit_service_fee_wallet(payment)
+        await _credit_service_fee_wallet(payment, conn)
 
         return payment
 
 
-async def _credit_service_fee_wallet(payment: Payment):
+async def _credit_service_fee_wallet(
+    payment: Payment, conn: Optional[Connection] = None
+):
     service_fee_msat = service_fee(payment.amount, internal=payment.is_internal)
     if settings.lnbits_service_fee_wallet and service_fee_msat:
         create_payment_model = CreatePayment(
@@ -446,6 +448,7 @@ async def _credit_service_fee_wallet(payment: Payment):
             checking_id=f"service_fee_{payment.payment_hash}",
             data=create_payment_model,
             status=PaymentState.SUCCESS,
+            conn=conn,
         )
 
 

@@ -711,13 +711,25 @@ async def create_payment(
     return payment
 
 
+async def update_payment_checking_id(
+    checking_id: str, new_checking_id: str, conn: Optional[Connection] = None
+) -> None:
+    await (conn or db).execute(
+        "UPDATE apipayments SET checking_id = :new_id WHERE checking_id = :old_id",
+        {"new_id": new_checking_id, "old_id": checking_id},
+    )
+
+
 async def update_payment(
     payment: Payment,
+    new_checking_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> None:
     await (conn or db).update(
         "apipayments", payment, "WHERE checking_id = :checking_id"
     )
+    if new_checking_id and new_checking_id != payment.checking_id:
+        await update_payment_checking_id(payment.checking_id, new_checking_id, conn)
 
 
 DateTrunc = Literal["hour", "day", "month"]
