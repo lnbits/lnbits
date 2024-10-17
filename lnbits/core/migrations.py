@@ -595,6 +595,10 @@ async def m026_update_payment_table(db):
     await db.execute("ALTER TABLE apipayments ADD COLUMN extension TEXT")
     await db.execute("ALTER TABLE apipayments ADD COLUMN created_at TIMESTAMP")
     await db.execute("ALTER TABLE apipayments ADD COLUMN updated_at TIMESTAMP")
+    await db.execute("ALTER TABLE apipayments ADD COLUMN fiat_amounts TEXT")
+
+
+async def m027_update_apipayments_data(db):
     result = await db.execute("SELECT * FROM apipayments")
     payments = result.mappings().all()
     for payment in payments:
@@ -618,5 +622,5 @@ async def m026_update_payment_table(db):
         )
 
 
-async def m027_update_payment_table(db):
-    await db.execute("ALTER TABLE apipayments ADD COLUMN fiat_amounts TEXT")
+
+
