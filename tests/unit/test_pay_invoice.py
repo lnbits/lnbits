@@ -90,7 +90,7 @@ async def test_pay_twice(to_wallet: Wallet):
 
 
 @pytest.mark.asyncio
-async def test_pay_external_invoice_from_fake_wallet(
+async def test_fake_wallet_pay_external(
     to_wallet: Wallet, external_funding_source: FakeWallet
 ):
     external_invoice = await external_funding_source.create_invoice(21)
@@ -412,51 +412,48 @@ async def test_pay_external_invoice_success(
 
 
 @pytest.mark.asyncio
-async def test_service_fee(
-    from_wallet: Wallet,
-    to_wallet: Wallet,
-    mocker: MockerFixture,
-    external_funding_source: FakeWallet,
+async def test_retry_pay_success(
+    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
-    invoice_amount = 2112
+    invoice_amount = 2107
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
-    preimage = "0000000000000000000000000000000000000000000000000000000000002112"
-    payment_reponse_success = PaymentResponse(
+    preimage = "0000000000000000000000000000000000000000000000000000000000002107"
+    payment_reponse_pending = PaymentResponse(
         ok=True, checking_id=external_invoice.checking_id, preimage=preimage
     )
     mocker.patch(
         "lnbits.wallets.FakeWallet.pay_invoice",
-        AsyncMock(return_value=payment_reponse_success),
+        AsyncMock(return_value=payment_reponse_pending),
     )
-
-    settings.lnbits_service_fee_wallet = to_wallet.id
-    settings.lnbits_service_fee = 20
-
-    payment_hash = await pay_invoice(
+    ws_notification = mocker.patch(
+        "lnbits.core.services.send_payment_notification",
+        AsyncMock(return_value=None),
+    )
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    balance_before = wallet.balance
+    await pay_invoice(
         wallet_id=from_wallet.id,
         payment_request=external_invoice.payment_request,
     )
+    assert ws_notification.call_count == 1, "Websocket notification sent."
 
-    payment = await get_standalone_payment(payment_hash)
-    assert payment
-    assert payment.status == PaymentState.SUCCESS.value
-    assert payment.checking_id == payment_hash
-    assert payment.amount == -2112_000
-    assert payment.fee == -422_400
-    assert payment.bolt11 == external_invoice.payment_request
-    assert payment.preimage == preimage
+    with pytest.raises(PaymentError, match="Payment already paid."):
+        await pay_invoice(
+            wallet_id=from_wallet.id,
+            payment_request=external_invoice.payment_request,
+        )
 
-    service_fee_payment = await get_standalone_payment(f"service_fee_{payment_hash}")
-    print("### service_fee_payment", service_fee_payment)
-    assert service_fee_payment
-    assert service_fee_payment.status == PaymentState.SUCCESS.value
-    assert service_fee_payment.checking_id == f"service_fee_{payment_hash}"
-    assert service_fee_payment.amount == 422_400
-    assert service_fee_payment.bolt11 == external_invoice.payment_request
-    assert service_fee_payment.preimage == preimage
+    wallet = await get_wallet(from_wallet.id)
+    assert wallet
+    assert (
+        balance_before - invoice_amount == wallet.balance
+    ), "Only one successful payment is subtracted."
+
+    assert ws_notification.call_count == 1, "No new websocket notification sent."
 
 
 @pytest.mark.asyncio
@@ -529,45 +526,50 @@ async def test_no_checking_id(
 
 
 @pytest.mark.asyncio
-async def test_retry_pay_success(
-    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+async def test_service_fee(
+    from_wallet: Wallet,
+    to_wallet: Wallet,
+    mocker: MockerFixture,
+    external_funding_source: FakeWallet,
 ):
-    invoice_amount = 2107
+    invoice_amount = 2112
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
-    preimage = "0000000000000000000000000000000000000000000000000000000000002107"
-    payment_reponse_pending = PaymentResponse(
+    preimage = "0000000000000000000000000000000000000000000000000000000000002112"
+    payment_reponse_success = PaymentResponse(
         ok=True, checking_id=external_invoice.checking_id, preimage=preimage
     )
     mocker.patch(
         "lnbits.wallets.FakeWallet.pay_invoice",
-        AsyncMock(return_value=payment_reponse_pending),
+        AsyncMock(return_value=payment_reponse_success),
     )
-    ws_notification = mocker.patch(
-        "lnbits.core.services.send_payment_notification",
-        AsyncMock(return_value=None),
-    )
-    wallet = await get_wallet(from_wallet.id)
-    assert wallet
-    balance_before = wallet.balance
-    await pay_invoice(
+
+    settings.lnbits_service_fee_wallet = to_wallet.id
+    settings.lnbits_service_fee = 20
+
+    payment_hash = await pay_invoice(
         wallet_id=from_wallet.id,
         payment_request=external_invoice.payment_request,
     )
-    assert ws_notification.call_count == 1, "Websocket notification sent."
 
-    with pytest.raises(PaymentError, match="Payment already paid."):
-        await pay_invoice(
-            wallet_id=from_wallet.id,
-            payment_request=external_invoice.payment_request,
-        )
+    payment = await get_standalone_payment(payment_hash)
+    assert payment
+    assert payment.status == PaymentState.SUCCESS.value
+    assert payment.checking_id == payment_hash
+    assert payment.amount == -2112_000
+    assert payment.fee == -422_400
+    assert payment.bolt11 == external_invoice.payment_request
+    assert payment.preimage == preimage
 
-    wallet = await get_wallet(from_wallet.id)
-    assert wallet
+    service_fee_payment = await get_standalone_payment(f"service_fee_{payment_hash}")
+    assert service_fee_payment
+    assert service_fee_payment.status == PaymentState.SUCCESS.value
+    assert service_fee_payment.checking_id == f"service_fee_{payment_hash}"
+    assert service_fee_payment.amount == 422_400
+    assert service_fee_payment.bolt11 == external_invoice.payment_request
     assert (
-        balance_before - invoice_amount == wallet.balance
-    ), "Only one successful payment is subtracted."
-
-    assert ws_notification.call_count == 1, "No new websocket notification sent."
+        service_fee_payment.preimage
+        == "0000000000000000000000000000000000000000000000000000000000000000"
+    )
