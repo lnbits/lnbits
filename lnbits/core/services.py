@@ -391,7 +391,7 @@ async def pay_invoice(
             bolt11=payment_request,
             payment_hash=invoice.payment_hash,
             amount_msat=-amount_msat,
-            expiry=datetime.fromtimestamp(invoice.expiry) if invoice.expiry else None,
+            expiry=invoice.expiry_date,
             memo=description or invoice.description or "",
             extra=extra,
             fiat_amounts=fiat_amounts,
