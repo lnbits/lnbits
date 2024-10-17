@@ -220,6 +220,7 @@ async def pay_invoice(
 
     if not invoice.amount_msat or not invoice.amount_msat > 0:
         raise PaymentError("Amountless invoices not supported.", status="failed")
+
     if max_sat and invoice.amount_msat > max_sat * 1000:
         raise PaymentError("Amount in invoice is too high.", status="failed")
 
@@ -270,7 +271,7 @@ async def pay_invoice(
             fee_reserve_total_msat = fee_reserve_total(
                 invoice.amount_msat, internal=True
             )
-            create_payment_model.fee = abs(fee_reserve_total_msat)
+            create_payment_model.fee = service_fee(invoice.amount_msat, True)
             new_payment = await create_payment(
                 checking_id=internal_id,
                 data=create_payment_model,
@@ -356,7 +357,7 @@ async def pay_invoice(
                 updated = await get_wallet_payment(
                     wallet_id, payment.checking_id, conn=conn
                 )
-                if wallet and updated:
+                if wallet and updated and updated.success:
                     await send_payment_notification(wallet, updated)
                 logger.success(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
@@ -403,7 +404,6 @@ async def _create_external_payment(
     conn: Optional[Connection],
 ) -> Payment:
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
-
     # check if there is already a payment with the same checking_id
     old_payment = await get_standalone_payment(temp_id, conn=conn)
     if old_payment:
@@ -678,6 +678,7 @@ def fee_reserve(amount_msat: int, internal: bool = False) -> int:
 
 
 def service_fee(amount_msat: int, internal: bool = False) -> int:
+    amount_msat = abs(amount_msat)
     service_fee_percent = settings.lnbits_service_fee
     fee_max = settings.lnbits_service_fee_max * 1000
     if settings.lnbits_service_fee_wallet:

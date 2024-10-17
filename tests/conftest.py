@@ -5,6 +5,8 @@ from time import time
 import uvloop
 from asgi_lifespan import LifespanManager
 
+from lnbits.wallets.fake import FakeWallet
+
 uvloop.install()
 
 import pytest
@@ -30,7 +32,6 @@ from tests.helpers import (
 )
 
 # override settings for tests
-settings.lnbits_admin_extensions = []
 settings.lnbits_data_folder = "./tests/data"
 settings.lnbits_admin_ui = True
 settings.lnbits_extensions_default_install = []
@@ -49,6 +50,7 @@ def run_before_and_after_tests():
     settings.lnbits_reserve_fee_min = 2000
     settings.lnbits_service_fee = 0
     settings.lnbits_wallet_limit_daily_max_withdraw = 0
+    settings.lnbits_admin_extensions = []
 
     yield  # this is where the testing happens
 
@@ -214,6 +216,11 @@ async def invoice(to_wallet):
     invoice = await api_payments_create_invoice(invoice_data, to_wallet)
     yield invoice
     del invoice
+
+
+@pytest_asyncio.fixture(scope="function")
+async def external_funding_source():
+    yield FakeWallet()
 
 
 @pytest_asyncio.fixture(scope="session")

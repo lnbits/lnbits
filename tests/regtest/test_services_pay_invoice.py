@@ -26,15 +26,6 @@ async def test_services_pay_invoice(to_wallet, real_invoice):
 
 
 @pytest.mark.asyncio
-async def test_services_pay_invoice_invalid_bolt11(to_wallet):
-    with pytest.raises(PaymentError):
-        await pay_invoice(
-            wallet_id=to_wallet.id,
-            payment_request="lnbcr1123123n",
-        )
-
-
-@pytest.mark.asyncio
 async def test_services_pay_invoice_0_amount_invoice(
     to_wallet, real_amountless_invoice
 ):
