@@ -278,7 +278,7 @@ window.LNbits = {
         preimage: data.preimage,
         payment_hash: data.payment_hash,
         expiry: data.expiry,
-        extra: data.extra,
+        extra: data.extra ?? {},
         wallet_id: data.wallet_id,
         webhook: data.webhook,
         webhook_status: data.webhook_status,
@@ -336,6 +336,12 @@ window.LNbits = {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('')
       return hashHex
+    },
+    formatDate: function (timestamp) {
+      return Quasar.date.formatDate(
+        new Date(timestamp * 1000),
+        'YYYY-MM-DD HH:mm'
+      )
     },
     formatCurrency: function (value, currency) {
       return new Intl.NumberFormat(window.LOCALE, {
