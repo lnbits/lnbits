@@ -298,7 +298,6 @@ async def _pay_external_invoice(
 
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
 
-
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError(
             f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
@@ -309,7 +308,6 @@ async def _pay_external_invoice(
     old_payment = await get_standalone_payment(checking_id, conn=conn)
     if old_payment:
         return await _verify_external_payment(old_payment, conn)
-
 
     create_payment_model.fee = -abs(fee_reserve_total_msat)
     payment = await create_payment(
