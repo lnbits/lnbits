@@ -78,7 +78,6 @@ from .models import (
 )
 
 
-# TODO: mock
 async def calculate_fiat_amounts(
     amount: float,
     wallet_id: str,
@@ -225,15 +224,12 @@ async def pay_invoice(
     if max_sat and invoice.amount_msat > max_sat * 1000:
         raise PaymentError("Amount in invoice is too high.", status="failed")
 
-    # todo: change param order
-    # todo: separate unit test
     await check_wallet_limits(wallet_id, conn, invoice.amount_msat)
 
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         temp_id = invoice.payment_hash
         internal_id = f"internal_{invoice.payment_hash}"
 
-        # todo: separate unit test
         _, extra = await calculate_fiat_amounts(
             invoice.amount_msat / 1000, wallet_id, extra=extra, conn=conn
         )
@@ -272,7 +268,6 @@ async def pay_invoice(
             logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
 
-            # todo: separate unit test
             fee_reserve_total_msat = fee_reserve_total(
                 invoice.amount_msat, internal=True
             )
@@ -295,13 +290,8 @@ async def pay_invoice(
         wallet = await get_wallet(wallet_id, conn=conn)
         assert wallet, "Wallet for balancecheck could not be fetched"
         fee_reserve_total_msat = fee_reserve_total(invoice.amount_msat, internal=False)
-        # todo: separate unit test
         _check_wallet_balance(wallet, fee_reserve_total_msat, internal_checking_id)
 
-    # note: new_payment exists
-    # TODO: use get
-    # TODO: check can be moved up
-    # TODO: separate unit test
     if extra and "tag" in extra:
         # check if the payment is made for an extension that the user disabled
         status = await check_user_extension_access(wallet.user, extra["tag"])
@@ -322,7 +312,6 @@ async def pay_invoice(
             )
         await send_payment_notification(wallet, new_payment)
 
-        # TODO: why only import here?
         # notify receiver asynchronously
         from lnbits.tasks import internal_invoice_queue
 
@@ -369,7 +358,6 @@ async def pay_invoice(
                     wallet_id, payment.checking_id, conn=conn
                 )
                 if wallet and updated and updated.success:
-                    # TODO: rename `updated` to `payment`
                     await send_payment_notification(wallet, updated)
                 logger.success(f"payment successful {payment.checking_id}")
         elif payment.checking_id is None and payment.ok is False:
@@ -415,6 +403,7 @@ async def _create_external_payment(
     data: CreatePayment,
     conn: Optional[Connection],
 ) -> Payment:
+    fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
     # check if there is already a payment with the same checking_id
     old_payment = await get_standalone_payment(temp_id, conn=conn)
     if old_payment:
@@ -445,7 +434,7 @@ async def _create_external_payment(
     # create a temporary payment here so we can check if
     # the balance is enough in the next step
     try:
-        data.fee = service_fee(amount_msat, False)
+        data.fee = -abs(fee_reserve_total_msat)
         new_payment = await create_payment(
             checking_id=temp_id,
             data=data,
@@ -464,9 +453,7 @@ def _check_wallet_balance(
     internal_checking_id: Optional[str] = None,
 ):
     if wallet.balance_msat < 0:
-        # TODO: this log is lying
         logger.debug("balance is too low, deleting temporary payment")
-        # TODO: is this if too idented?
         if not internal_checking_id and wallet.balance_msat > -fee_reserve_total_msat:
             raise PaymentError(
                 f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
@@ -476,7 +463,6 @@ def _check_wallet_balance(
         raise PaymentError("Insufficient balance.", status="failed")
 
 
-# TODO: mocks
 async def check_wallet_limits(wallet_id, conn, amount_msat):
     await check_time_limit_between_transactions(conn, wallet_id)
     await check_wallet_daily_withdraw_limit(conn, wallet_id, amount_msat)
@@ -691,8 +677,6 @@ def fee_reserve(amount_msat: int, internal: bool = False) -> int:
     return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
 
 
-# TODO: move in payment?
-# TODO: separate tests
 def service_fee(amount_msat: int, internal: bool = False) -> int:
     amount_msat = abs(amount_msat)
     service_fee_percent = settings.lnbits_service_fee
