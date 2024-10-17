@@ -175,7 +175,7 @@ async def database_revert_payment(checking_id: str):
     async with core_db.connect() as conn:
         payment = await get_payment(checking_id=checking_id, conn=conn)
         payment.status = PaymentState.PENDING
-        await update_payment(payment, conn)
+        await update_payment(payment, conn=conn)
         click.echo(f"Payment '{checking_id}' marked as pending.")
 
 
