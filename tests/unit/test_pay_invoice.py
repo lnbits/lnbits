@@ -412,6 +412,54 @@ async def test_pay_external_invoice_success(
 
 
 @pytest.mark.asyncio
+async def test_service_fee(
+    from_wallet: Wallet,
+    to_wallet: Wallet,
+    mocker: MockerFixture,
+    external_funding_source: FakeWallet,
+):
+    invoice_amount = 2112
+    external_invoice = await external_funding_source.create_invoice(invoice_amount)
+    assert external_invoice.payment_request
+    assert external_invoice.checking_id
+
+    preimage = "0000000000000000000000000000000000000000000000000000000000002112"
+    payment_reponse_success = PaymentResponse(
+        ok=True, checking_id=external_invoice.checking_id, preimage=preimage
+    )
+    mocker.patch(
+        "lnbits.wallets.FakeWallet.pay_invoice",
+        AsyncMock(return_value=payment_reponse_success),
+    )
+
+    settings.lnbits_service_fee_wallet = to_wallet.id
+    settings.lnbits_service_fee = 20
+
+    payment_hash = await pay_invoice(
+        wallet_id=from_wallet.id,
+        payment_request=external_invoice.payment_request,
+    )
+
+    payment = await get_standalone_payment(payment_hash)
+    assert payment
+    assert payment.status == PaymentState.SUCCESS.value
+    assert payment.checking_id == payment_hash
+    assert payment.amount == -2112_000
+    assert payment.fee == -422_400
+    assert payment.bolt11 == external_invoice.payment_request
+    assert payment.preimage == preimage
+
+    service_fee_payment = await get_standalone_payment(f"service_fee_{payment_hash}")
+    print("### service_fee_payment", service_fee_payment)
+    assert service_fee_payment
+    assert service_fee_payment.status == PaymentState.SUCCESS.value
+    assert service_fee_payment.checking_id == f"service_fee_{payment_hash}"
+    assert service_fee_payment.amount == 422_400
+    assert service_fee_payment.bolt11 == external_invoice.payment_request
+    assert service_fee_payment.preimage == preimage
+
+
+@pytest.mark.asyncio
 async def test_pay_external_invoice_success_bad_checking_id(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):

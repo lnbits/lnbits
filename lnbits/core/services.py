@@ -78,6 +78,7 @@ from .models import (
 )
 
 
+# TODO: mock
 async def calculate_fiat_amounts(
     amount: float,
     wallet_id: str,
@@ -463,7 +464,9 @@ def _check_wallet_balance(
     internal_checking_id: Optional[str] = None,
 ):
     if wallet.balance_msat < 0:
+        # TODO: this log is lying
         logger.debug("balance is too low, deleting temporary payment")
+        # TODO: is this if too idented?
         if not internal_checking_id and wallet.balance_msat > -fee_reserve_total_msat:
             raise PaymentError(
                 f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
@@ -473,6 +476,7 @@ def _check_wallet_balance(
         raise PaymentError("Insufficient balance.", status="failed")
 
 
+# TODO: mocks
 async def check_wallet_limits(wallet_id, conn, amount_msat):
     await check_time_limit_between_transactions(conn, wallet_id)
     await check_wallet_daily_withdraw_limit(conn, wallet_id, amount_msat)
@@ -687,6 +691,8 @@ def fee_reserve(amount_msat: int, internal: bool = False) -> int:
     return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
 
 
+# TODO: move in payment?
+# TODO: separate tests
 def service_fee(amount_msat: int, internal: bool = False) -> int:
     amount_msat = abs(amount_msat)
     service_fee_percent = settings.lnbits_service_fee
