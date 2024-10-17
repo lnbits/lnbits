@@ -180,7 +180,7 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
 
 
 @pytest.mark.asyncio
-async def test_pay_external_invoice_failed(
+async def test_pay_failed(
     to_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
     payment_reponse_failed = PaymentResponse(ok=False, error_message="Mock failure!")
@@ -206,7 +206,7 @@ async def test_pay_external_invoice_failed(
 
 
 @pytest.mark.asyncio
-async def test_retry_pay_failed_external_invoice(
+async def test_retry_failed_invoice(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
     payment_reponse_failed = PaymentResponse(ok=False, error_message="Mock failure!")
