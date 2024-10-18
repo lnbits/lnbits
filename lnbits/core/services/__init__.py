@@ -16,7 +16,7 @@ from .payments import (
     update_pending_payments,
     update_wallet_balance,
 )
-from .services import (
+from .settings import (
     check_webpush_settings,
     update_cached_settings,
 )
@@ -24,6 +24,12 @@ from .users import check_admin_settings, create_user_account, init_admin_setting
 from .websockets import websocket_manager, websocket_updater
 
 __all__ = [
+    # funding source
+    "get_balance_delta",
+    "switch_to_voidwallet",
+    # lnurl
+    "redeem_lnurl_withdraw",
+    "perform_lnurlauth",
     # payments
     "calculate_fiat_amounts",
     "check_transaction_status",
@@ -36,21 +42,14 @@ __all__ = [
     "service_fee",
     "update_pending_payments",
     "update_wallet_balance",
-    # lnurl
-    "redeem_lnurl_withdraw",
-    "perform_lnurlauth",
-    # websockets
-    "websocket_manager",
-    "websocket_updater",
+    # settings
+    "check_webpush_settings",
+    "update_cached_settings",
     # users
     "check_admin_settings",
     "create_user_account",
     "init_admin_settings",
-    # funding source
-    "get_balance_delta",
-    "switch_to_voidwallet",
-    # services
-    "check_webpush_settings",
-    "create_user_account",
-    "update_cached_settings",
+    # websockets
+    "websocket_manager",
+    "websocket_updater",
 ]

@@ -5,7 +5,6 @@ from uuid import UUID, uuid4
 from loguru import logger
 
 from lnbits.core.extensions.models import UserExtension
-from lnbits.core.services.services import update_cached_settings
 from lnbits.settings import (
     EditableSettings,
     SuperSettings,
@@ -32,6 +31,7 @@ from ..models import (
     User,
     UserExtra,
 )
+from .settings import update_cached_settings
 
 
 async def create_user_account(
