@@ -200,10 +200,18 @@ window.app.component('lnbits-qrcode', {
   components: {
     QrcodeVue
   },
-  props: ['value'],
+  /**
+   * @param {object} options
+   * margin: number
+   * with: number
+   * size: number
+   * logo: string - used for the logo in the center of the QR code
+   */
+  
+  props: ['value', 'options'],
   data() {
     return {
-      logo: LNBITS_QR_LOGO
+      logo: LNBITS_QR_LOGO,
     }
   }
 })
@@ -405,7 +413,7 @@ window.app.component('lnbits-notifications-btn', {
 window.app.component('lnbits-dynamic-fields', {
   template: '#lnbits-dynamic-fields',
   mixins: [window.windowMixin],
-  props: ['options', 'value'],
+  props: ['options', 'modelValue'],
   data() {
     return {
       formData: null,
@@ -427,11 +435,42 @@ window.app.component('lnbits-dynamic-fields', {
       }, {})
     },
     handleValueChanged() {
-      this.$emit('input', this.formData)
+      this.$emit('update:model-value', this.formData)
     }
   },
   created() {
-    this.formData = this.buildData(this.options, this.value)
+    this.formData = this.buildData(this.options, this.modelValue)
+  }
+})
+
+window.app.component('lnbits-dynamic-chips', {
+  template: '#lnbits-dynamic-chips',
+  mixins: [window.windowMixin],
+  props: ['modelValue'],
+  data() {
+    return {
+      chip: '',
+      chips: []
+    }
+  },
+  methods: {
+    addChip() {
+      if (!this.chip) return
+      this.chips.push(this.chip)
+      this.chip = ''
+      this.$emit('update:model-value', this.chips.join(','))
+    },
+    removeChip(index) {
+      this.chips.splice(index, 1)
+      this.$emit('update:model-value', this.chips.join(','))
+    }
+  },
+  created() {
+    if (typeof this.modelValue === 'string') {
+      this.chips = this.modelValue.split(',')
+    } else {
+      this.chips = [...this.modelValue]
+    }
   }
 })
 
@@ -444,7 +483,7 @@ window.app.component('lnbits-update-balance', {
       return LNBITS_DENOMINATION
     },
     admin() {
-      return this.g.user.admin
+      return user.super_user
     }
   },
   data: function () {

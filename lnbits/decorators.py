@@ -14,12 +14,13 @@ from lnbits.core.crud import (
     get_account,
     get_account_by_email,
     get_account_by_username,
-    get_user,
     get_user_active_extensions_ids,
+    get_user_from_account,
     get_wallet_for_key,
 )
 from lnbits.core.models import (
     AccessTokenPayload,
+    Account,
     KeyType,
     SimpleStatus,
     User,
@@ -65,7 +66,7 @@ class KeyChecker(SecurityBase):
                 name="X-API-KEY",
                 description="Wallet API Key - HEADER",
             )
-        self.model: APIKey = openapi_model
+        self.model: APIKey = openapi_model  # type: ignore
 
     async def __call__(self, request: Request) -> WalletTypeInfo:
 
@@ -144,14 +145,16 @@ async def check_user_exists(
     else:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing user ID or access token.")
 
-    if not account or not settings.is_user_allowed(account.id):
+    if not account:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
+
+    if not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not allowed.")
 
-    user = await get_user(account.id)
-    assert user, "User not found for account."
-
+    user = await get_user_from_account(account)
+    if not user:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
     await _check_user_extension_access(user.id, r["path"])
-
     return user
 
 
@@ -261,7 +264,7 @@ async def _check_user_extension_access(user_id: str, current_path: str):
         )
 
 
-async def _get_account_from_token(access_token) -> Optional[User]:
+async def _get_account_from_token(access_token) -> Optional[Account]:
     try:
         payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
         user = await _get_user_from_jwt_payload(payload)
@@ -281,7 +284,7 @@ async def _get_account_from_token(access_token) -> Optional[User]:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid access token.") from exc
 
 
-async def _get_user_from_jwt_payload(payload) -> Optional[User]:
+async def _get_user_from_jwt_payload(payload) -> Optional[Account]:
     if "sub" in payload and payload.get("sub"):
         return await get_account_by_username(str(payload.get("sub")))
     if "usr" in payload and payload.get("usr"):
