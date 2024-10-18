@@ -620,7 +620,3 @@ async def m027_update_apipayments_data(db):
                 "checking_id": payment.get("checking_id"),
             },
         )
-
-
-
-
