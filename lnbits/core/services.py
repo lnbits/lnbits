@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 
 import httpx
 from bolt11 import decode as bolt11_decode
+from bolt11.types import Bolt11
 from cryptography.hazmat.primitives import serialization
 from fastapi import Depends, WebSocket
 from loguru import logger
@@ -216,23 +217,19 @@ async def _pay_internal_invoice(
     if not internal_invoice:
         raise PaymentError("Internal payment not found.", status="failed")
 
+    amount_msat = create_payment_model.amount_msat
     if (
-        internal_invoice.amount != abs(create_payment_model.amount_msat)
+        internal_invoice.amount != abs(amount_msat)
         or internal_invoice.bolt11 != create_payment_model.bolt11.lower()
     ):
         raise PaymentError(
             "Invalid invoice. Bolt11 or amount is not correct", status="failed"
         )
 
-    fee_reserve_total_msat = fee_reserve_total(
-        abs(create_payment_model.amount_msat), internal=True
-    )
+    fee_reserve_total_msat = fee_reserve_total(abs(amount_msat), internal=True)
     create_payment_model.fee = abs(fee_reserve_total_msat)
 
-    if (
-        wallet.balance_msat
-        < abs(create_payment_model.amount_msat) + fee_reserve_total_msat
-    ):
+    if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError("Insufficient balance.", status="failed")
 
     internal_id = f"internal_{create_payment_model.payment_hash}"
@@ -269,21 +266,24 @@ async def _verify_external_payment(
         raise PaymentError("Payment is still pending.", status="pending")
     if payment.success:
         raise PaymentError("Payment already paid.", status="success")
-    if payment.failed:
-        status = await payment.check_status()
-        if status.success:
-            # payment was successful on the fundingsource
-            payment.status = PaymentState.SUCCESS
-            await update_payment(payment, conn=conn)
-            raise PaymentError(
-                "Failed payment was already paid on the fundingsource.",
-                status="success",
-            )
-        if status.failed:
-            raise PaymentError(
-                "Payment is failed node, retrying is not possible.", status="failed"
-            )
-        # status.pending fall through and try again
+
+    # payment failed
+    status = await payment.check_status()
+    if status.failed:
+        raise PaymentError(
+            "Payment is failed node, retrying is not possible.", status="failed"
+        )
+
+    if status.success:
+        # payment was successful on the fundingsource
+        payment.status = PaymentState.SUCCESS
+        await update_payment(payment, conn=conn)
+        raise PaymentError(
+            "Failed payment was already paid on the fundingsource.",
+            status="success",
+        )
+
+    # status.pending fall through and try again
     return payment
 
 
@@ -292,36 +292,31 @@ async def _pay_external_invoice(
     create_payment_model: CreatePayment,
     conn: Optional[Connection] = None,
 ) -> Payment:
-    fee_reserve_total_msat = fee_reserve_total(
-        create_payment_model.amount_msat, internal=False
-    )
-    create_payment_model.fee = -abs(fee_reserve_total_msat)
-
     checking_id = create_payment_model.payment_hash
+    amount_msat = create_payment_model.amount_msat
 
-    # check if there is already a payment with the same checking_id
-    old_payment = await get_standalone_payment(checking_id, conn=conn)
-    if old_payment:
-        return await _verify_external_payment(old_payment, conn)
+    fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
 
-    if (
-        wallet.balance_msat
-        < abs(create_payment_model.amount_msat) + fee_reserve_total_msat
-    ):
+    if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError(
             f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
             "  sat) to cover potential routing fees.",
             status="failed",
         )
+    # check if there is already a payment with the same checking_id
+    old_payment = await get_standalone_payment(checking_id, conn=conn)
+    if old_payment:
+        return await _verify_external_payment(old_payment, conn)
 
+    create_payment_model.fee = -abs(fee_reserve_total_msat)
     payment = await create_payment(
         checking_id=checking_id,
         data=create_payment_model,
         conn=conn,
     )
 
-    fee_reserve_msat = fee_reserve(create_payment_model.amount_msat, internal=False)
-    service_fee_msat = service_fee(create_payment_model.amount_msat, internal=False)
+    fee_reserve_msat = fee_reserve(amount_msat, internal=False)
+    service_fee_msat = service_fee(amount_msat, internal=False)
 
     funding_source = get_funding_source()
 
@@ -378,6 +373,64 @@ async def pay_invoice(
     tag: str = "",
     conn: Optional[Connection] = None,
 ) -> Payment:
+    invoice = _validate_payment_request(payment_request, max_sat)
+    assert invoice.amount_msat
+
+    async with db.reuse_conn(conn) if conn else db.connect() as conn:
+        amount_msat = invoice.amount_msat
+        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, conn)
+
+        if await is_internal_status_success(invoice.payment_hash, conn):
+            raise PaymentError("Internal invoice already paid.", status="failed")
+
+        _, fiat_amounts = await calculate_fiat_amounts(amount_msat / 1000, wallet)
+
+        create_payment_model = CreatePayment(
+            wallet_id=wallet_id,
+            bolt11=payment_request,
+            payment_hash=invoice.payment_hash,
+            amount_msat=-amount_msat,
+            expiry=invoice.expiry_date,
+            memo=description or invoice.description or "",
+            extra=extra,
+            fiat_amounts=fiat_amounts,
+        )
+
+        payment = await _pay_invoice(wallet, create_payment_model, conn)
+        await _credit_service_fee_wallet(payment, conn)
+
+        return payment
+
+
+async def _pay_invoice(wallet, create_payment_model, conn):
+    payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
+    if not payment:
+        payment = await _pay_external_invoice(wallet, create_payment_model, conn)
+    return payment
+
+
+async def _check_wallet_for_payment(
+    wallet_id: str,
+    tag: str,
+    amount_msat: int,
+    conn: Optional[Connection],
+):
+    wallet = await get_wallet(wallet_id, conn=conn)
+    if not wallet:
+        raise PaymentError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+
+    # check if the payment is made for an extension that the user disabled
+    status = await check_user_extension_access(wallet.user, tag)
+    if not status.success:
+        raise PaymentError(status.message)
+
+    await check_wallet_limits(wallet_id, amount_msat, conn)
+    return wallet
+
+
+def _validate_payment_request(
+    payment_request: str, max_sat: Optional[int] = None
+) -> Bolt11:
     try:
         invoice = bolt11_decode(payment_request)
     except Exception as exc:
@@ -389,67 +442,29 @@ async def pay_invoice(
     if max_sat and invoice.amount_msat > max_sat * 1000:
         raise PaymentError("Amount in invoice is too high.", status="failed")
 
-    async with db.reuse_conn(conn) if conn else db.connect() as conn:
-
-        wallet = await get_wallet(wallet_id, conn=conn)
-        if not wallet:
-            raise PaymentError(
-                f"Could not fetch wallet '{wallet_id}'.", status="failed"
-            )
-
-        # check if the payment is made for an extension that the user disabled
-        if tag:
-            status = await check_user_extension_access(wallet.user, tag)
-            if not status.success:
-                raise PaymentError(status.message)
-
-        await check_wallet_limits(wallet_id, invoice.amount_msat, conn)
-
-        if await is_internal_status_success(invoice.payment_hash, conn):
-            raise PaymentError("Internal invoice already paid.", status="failed")
-
-        _, fiat_amounts = await calculate_fiat_amounts(
-            invoice.amount_msat / 1000, wallet
-        )
-
-        create_payment_model = CreatePayment(
-            wallet_id=wallet_id,
-            bolt11=payment_request,
-            payment_hash=invoice.payment_hash,
-            amount_msat=invoice.amount_msat * -1,
-            expiry=invoice.expiry_date,
-            memo=description or invoice.description or "",
-            extra=extra,
-            fiat_amounts=fiat_amounts,
-        )
-
-        payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
-        if not payment:
-            payment = await _pay_external_invoice(wallet, create_payment_model, conn)
-
-        await _credit_service_fee_wallet(payment, conn)
-
-        return payment
+    return invoice
 
 
 async def _credit_service_fee_wallet(
     payment: Payment, conn: Optional[Connection] = None
 ):
     service_fee_msat = service_fee(payment.amount, internal=payment.is_internal)
-    if settings.lnbits_service_fee_wallet and service_fee_msat:
-        create_payment_model = CreatePayment(
-            wallet_id=settings.lnbits_service_fee_wallet,
-            bolt11=payment.bolt11,
-            payment_hash=payment.payment_hash,
-            amount_msat=abs(service_fee_msat),
-            memo="Service fee",
-        )
-        await create_payment(
-            checking_id=f"service_fee_{payment.payment_hash}",
-            data=create_payment_model,
-            status=PaymentState.SUCCESS,
-            conn=conn,
-        )
+    if not settings.lnbits_service_fee_wallet or not service_fee_msat:
+        return
+
+    create_payment_model = CreatePayment(
+        wallet_id=settings.lnbits_service_fee_wallet,
+        bolt11=payment.bolt11,
+        payment_hash=payment.payment_hash,
+        amount_msat=abs(service_fee_msat),
+        memo="Service fee",
+    )
+    await create_payment(
+        checking_id=f"service_fee_{payment.payment_hash}",
+        data=create_payment_model,
+        status=PaymentState.SUCCESS,
+        conn=conn,
+    )
 
 
 async def check_wallet_limits(
