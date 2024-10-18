@@ -123,7 +123,7 @@ async def test_create_invoice(client, inkey_headers_to):
     invoice = response.json()
     assert "payment_hash" in invoice
     assert len(invoice["payment_hash"]) == 64
-    assert "payment_request" in invoice
+    assert "bolt11" in invoice
     assert "checking_id" in invoice
     assert len(invoice["checking_id"])
     return invoice
@@ -138,7 +138,7 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
     )
     assert response.status_code == 201
     invoice = response.json()
-    decode = bolt11.decode(invoice["payment_request"])
+    decode = bolt11.decode(invoice["bolt11"])
     assert decode.amount_msat != data["amount"] * 1000
     assert decode.payment_hash
 
@@ -180,7 +180,7 @@ async def test_create_internal_invoice(client, inkey_headers_to):
     assert response.status_code == 201
     assert "payment_hash" in invoice
     assert len(invoice["payment_hash"]) == 64
-    assert "payment_request" in invoice
+    assert "bolt11" in invoice
     assert "checking_id" in invoice
     assert len(invoice["checking_id"])
     return invoice
@@ -197,26 +197,28 @@ async def test_create_invoice_custom_expiry(client, inkey_headers_to):
     )
     assert response.status_code == 201
     invoice = response.json()
-    bolt11_invoice = bolt11.decode(invoice["payment_request"])
+    bolt11_invoice = bolt11.decode(invoice["bolt11"])
     assert bolt11_invoice.expiry == expiry_seconds
 
 
 # check POST /api/v1/payments: make payment
 @pytest.mark.asyncio
-async def test_pay_invoice(client, from_wallet_ws, invoice, adminkey_headers_from):
-    data = {"out": True, "bolt11": invoice["payment_request"]}
+async def test_pay_invoice(
+    client, from_wallet_ws, invoice: Payment, adminkey_headers_from
+):
+    data = {"out": True, "bolt11": invoice.bolt11}
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers_from
     )
     assert response.status_code < 300
-    invoice = response.json()
-    assert len(invoice["payment_hash"]) == 64
-    assert len(invoice["checking_id"]) > 0
+    invoice_ = response.json()
+    assert len(invoice_["payment_hash"]) == 64
+    assert len(invoice_["checking_id"]) > 0
 
-    data = from_wallet_ws.receive_json()
-    assert "wallet_balance" in data
-    payment = Payment(**data["payment"])
-    assert payment.payment_hash == invoice["payment_hash"]
+    ws_data = from_wallet_ws.receive_json()
+    assert "wallet_balance" in ws_data
+    payment = Payment(**ws_data["payment"])
+    assert payment.payment_hash == invoice_["payment_hash"]
 
     # websocket from to_wallet cant be tested before https://github.com/lnbits/lnbits/pull/1793
     # data = to_wallet_ws.receive_json()
@@ -227,9 +229,9 @@ async def test_pay_invoice(client, from_wallet_ws, invoice, adminkey_headers_fro
 
 # check GET /api/v1/payments/<hash>: payment status
 @pytest.mark.asyncio
-async def test_check_payment_without_key(client, invoice):
+async def test_check_payment_without_key(client, invoice: Payment):
     # check the payment status
-    response = await client.get(f"/api/v1/payments/{invoice['payment_hash']}")
+    response = await client.get(f"/api/v1/payments/{invoice.payment_hash}")
     assert response.status_code < 300
     assert response.json()["paid"] is True
     assert invoice
@@ -243,10 +245,10 @@ async def test_check_payment_without_key(client, invoice):
 # If sqlite: it will succeed only with adminkey_headers_to
 # TODO: fix this
 @pytest.mark.asyncio
-async def test_check_payment_with_key(client, invoice, inkey_headers_from):
+async def test_check_payment_with_key(client, invoice: Payment, inkey_headers_from):
     # check the payment status
     response = await client.get(
-        f"/api/v1/payments/{invoice['payment_hash']}", headers=inkey_headers_from
+        f"/api/v1/payments/{invoice.payment_hash}", headers=inkey_headers_from
     )
     assert response.status_code < 300
     assert response.json()["paid"] is True
@@ -258,7 +260,7 @@ async def test_check_payment_with_key(client, invoice, inkey_headers_from):
 # check POST /api/v1/payments: payment with wrong key type
 @pytest.mark.asyncio
 async def test_pay_invoice_wrong_key(client, invoice, adminkey_headers_from):
-    data = {"out": True, "bolt11": invoice["payment_request"]}
+    data = {"out": True, "bolt11": invoice.bolt11}
     # try payment with wrong key
     wrong_adminkey_headers = adminkey_headers_from.copy()
     wrong_adminkey_headers["X-Api-Key"] = "wrong_key"
@@ -279,7 +281,7 @@ async def test_pay_invoice_self_payment(client, adminkey_headers_from):
     )
     assert response.status_code < 300
     json_data = response.json()
-    data = {"out": True, "bolt11": json_data["payment_request"]}
+    data = {"out": True, "bolt11": json_data["bolt11"]}
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers_from
     )
@@ -289,7 +291,7 @@ async def test_pay_invoice_self_payment(client, adminkey_headers_from):
 # check POST /api/v1/payments: payment with invoice key [should fail]
 @pytest.mark.asyncio
 async def test_pay_invoice_invoicekey(client, invoice, inkey_headers_from):
-    data = {"out": True, "bolt11": invoice["payment_request"]}
+    data = {"out": True, "bolt11": invoice.bolt11}
     # try payment with invoice key
     response = await client.post(
         "/api/v1/payments", json=data, headers=inkey_headers_from
@@ -300,7 +302,7 @@ async def test_pay_invoice_invoicekey(client, invoice, inkey_headers_from):
 # check POST /api/v1/payments: payment with admin key, trying to pay twice [should fail]
 @pytest.mark.asyncio
 async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
-    data = {"out": True, "bolt11": invoice["payment_request"]}
+    data = {"out": True, "bolt11": invoice.bolt11}
     # try payment with admin key
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers_from
@@ -322,6 +324,7 @@ async def test_get_payments(client, adminkey_headers_from, fake_payments):
         return [Payment(**payment) for payment in response.json()]
 
     payments = await get_payments({"sortby": "amount", "direction": "desc", "limit": 2})
+    assert len(payments) != 0
     assert payments[-1].amount < payments[0].amount
     assert len(payments) == 2
 
@@ -388,21 +391,21 @@ async def test_get_payments_history(client, adminkey_headers_from, fake_payments
 
 # check POST /api/v1/payments/decode
 @pytest.mark.asyncio
-async def test_decode_invoice(client, invoice):
-    data = {"data": invoice["payment_request"]}
+async def test_decode_invoice(client, invoice: Payment):
+    data = {"data": invoice.bolt11}
     response = await client.post(
         "/api/v1/payments/decode",
         json=data,
     )
     assert response.status_code < 300
-    assert response.json()["payment_hash"] == invoice["payment_hash"]
+    assert response.json()["payment_hash"] == invoice.payment_hash
 
 
 # check api_payment() internal function call (NOT API): payment status
 @pytest.mark.asyncio
-async def test_api_payment_without_key(invoice):
+async def test_api_payment_without_key(invoice: Payment):
     # check the payment status
-    response = await api_payment(invoice["payment_hash"])
+    response = await api_payment(invoice.payment_hash)
     assert isinstance(response, dict)
     assert response["paid"] is True
     # no key, that's why no "details"
@@ -411,11 +414,9 @@ async def test_api_payment_without_key(invoice):
 
 # check api_payment() internal function call (NOT API): payment status
 @pytest.mark.asyncio
-async def test_api_payment_with_key(invoice, inkey_headers_from):
+async def test_api_payment_with_key(invoice: Payment, inkey_headers_from):
     # check the payment status
-    response = await api_payment(
-        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
-    )
+    response = await api_payment(invoice.payment_hash, inkey_headers_from["X-Api-Key"])
     assert isinstance(response, dict)
     assert response["paid"] is True
     assert "details" in response
@@ -434,7 +435,7 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     )
     invoice = response.json()
 
-    invoice_bolt11 = bolt11.decode(invoice["payment_request"])
+    invoice_bolt11 = bolt11.decode(invoice["bolt11"])
     assert invoice_bolt11.description_hash == descr_hash
     return invoice
 
@@ -451,7 +452,7 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
     )
     invoice = response.json()
 
-    invoice_bolt11 = bolt11.decode(invoice["payment_request"])
+    invoice_bolt11 = bolt11.decode(invoice["bolt11"])
     assert invoice_bolt11.description_hash == descr_hash
     assert invoice_bolt11.description is None
     return invoice

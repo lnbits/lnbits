@@ -3,6 +3,7 @@ import asyncio
 
 import uvloop
 
+from lnbits.core.views.payment_api import _api_payments_create_invoice
 from lnbits.wallets.fake import FakeWallet
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -219,16 +220,12 @@ async def adminkey_headers_to(to_wallet):
 
 
 @pytest_asyncio.fixture(scope="session")
-async def invoice(client, adminkey_headers_from):
+async def invoice(to_wallet):
     data = await get_random_invoice_data()
     invoice_data = CreateInvoice(**data)
-    response = await client.post(
-        "/api/v1/payments", headers=adminkey_headers_from, json=invoice_data.dict()
-    )
-    assert response.is_success
-    data = response.json()
-    assert data["checking_id"]
-    yield data["bolt11"]
+    invoice = await _api_payments_create_invoice(invoice_data, to_wallet)
+    yield invoice
+    del invoice
 
 
 @pytest_asyncio.fixture(scope="function")

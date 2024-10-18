@@ -41,7 +41,8 @@ async def run_migration(
     current_version: Optional[DbVersion] = None,
 ):
     matcher = re.compile(r"^m(\d\d\d)_")
-    for key, migrate in migrations_module.__dict__.items():
+
+    for key, migrate in list(migrations_module.__dict__.items()):
         match = matcher.match(key)
         if match:
             version = int(match.group(1))
