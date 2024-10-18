@@ -16,9 +16,7 @@ from lnbits.decorators import (
 from lnbits.helpers import url_for
 from lnbits.lnurl import LnurlErrorResponse
 from lnbits.lnurl import decode as decode_lnurl
-from lnbits.settings import (
-    settings,
-)
+from lnbits.settings import settings
 
 from .payments import create_invoice
 

@@ -1,3 +1,7 @@
+from .funding_source import (
+    get_balance_delta,
+    switch_to_voidwallet,
+)
 from .lnurl import perform_lnurlauth, redeem_lnurl_withdraw
 from .payments import (
     calculate_fiat_amounts,
@@ -14,8 +18,6 @@ from .payments import (
 )
 from .services import (
     check_webpush_settings,
-    get_balance_delta,
-    switch_to_voidwallet,
     update_cached_settings,
 )
 from .users import check_admin_settings, create_user_account, init_admin_settings
@@ -44,11 +46,12 @@ __all__ = [
     "check_admin_settings",
     "create_user_account",
     "init_admin_settings",
+    # funding source
+    "get_balance_delta",
+    "switch_to_voidwallet",
     # services
     "check_admin_settings",
     "check_webpush_settings",
     "create_user_account",
-    "get_balance_delta",
-    "switch_to_voidwallet",
     "update_cached_settings",
 ]

@@ -8,9 +8,7 @@ from loguru import logger
 
 from lnbits.core.db import db
 from lnbits.db import Connection
-from lnbits.decorators import (
-    check_user_extension_access,
-)
+from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
