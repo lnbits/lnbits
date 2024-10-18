@@ -278,7 +278,7 @@ class Database(Compat):
             self.schema = None
 
         self.engine: AsyncEngine = create_async_engine(
-            database_uri, echo=settings.debug_database, query_cache_size=0
+            database_uri, echo=settings.debug_database
         )
 
         if self.type in {POSTGRES, COCKROACH}:

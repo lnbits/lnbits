@@ -5,6 +5,7 @@ from loguru import logger
 from sqlalchemy.exc import OperationalError
 
 from lnbits import bolt11
+from lnbits.db import Connection
 
 
 async def m000_create_migrations_table(db):
@@ -597,8 +598,17 @@ async def m026_update_payment_table(db):
     await db.execute("ALTER TABLE apipayments ADD COLUMN updated_at TIMESTAMP")
 
 
-async def m027_update_apipayments_data(db):
+async def m027_update_apipayments_data(db: Connection):
+    result = None
+    try:
+        result = await db.execute("SELECT * FROM apipayments")
+    except Exception as exc:
+        logger.warning("Could not select, trying again after cache cleared.")
+        logger.debug(exc)
+        await db.execute("COMMIT")
+
     result = await db.execute("SELECT * FROM apipayments")
+
     payments = result.mappings().all()
     for payment in payments:
         tag = None
