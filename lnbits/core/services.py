@@ -73,7 +73,6 @@ from .models import (
     BalanceDelta,
     CreatePayment,
     Payment,
-    PaymentFiatAmounts,
     PaymentState,
     User,
     UserExtra,
@@ -85,15 +84,16 @@ async def calculate_fiat_amounts(
     amount: float,
     wallet: Wallet,
     currency: Optional[str] = None,
-) -> tuple[int, PaymentFiatAmounts]:
+    extra: Optional[dict] = None,
+) -> tuple[int, dict]:
     wallet_currency = wallet.currency or settings.lnbits_default_accounting_currency
-    fiat_amounts = PaymentFiatAmounts()
+    fiat_amounts: dict = extra or {}
     if currency and currency != "sat":
         amount_sat = await fiat_amount_as_satoshis(amount, currency)
         if currency != wallet_currency:
-            fiat_amounts.fiat_currency = currency
-            fiat_amounts.fiat_amount = round(amount, ndigits=3)
-            fiat_amounts.fiat_rate = amount_sat / amount
+            fiat_amounts["fiat_currency"] = currency
+            fiat_amounts["fiat_amount"] = round(amount, ndigits=3)
+            fiat_amounts["fiat_rate"] = amount_sat / amount
     else:
         amount_sat = int(amount)
 
@@ -102,9 +102,9 @@ async def calculate_fiat_amounts(
             fiat_amount = amount
         else:
             fiat_amount = await satoshis_amount_as_fiat(amount_sat, wallet_currency)
-        fiat_amounts.wallet_fiat_currency = wallet_currency
-        fiat_amounts.wallet_fiat_amount = round(fiat_amount, ndigits=3)
-        fiat_amounts.wallet_fiat_rate = amount_sat / fiat_amount
+        fiat_amounts["wallet_fiat_currency"] = wallet_currency
+        fiat_amounts["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
+        fiat_amounts["wallet_fiat_rate"] = amount_sat / fiat_amount
 
     logger.debug(
         f"Calculated fiat amounts {wallet.id=} {amount=} {currency=}: {fiat_amounts=}"
@@ -139,8 +139,8 @@ async def create_invoice(
     # use the fake wallet if the invoice is for internal use only
     funding_source = fake_wallet if internal else get_funding_source()
 
-    amount_sat, fiat_amounts = await calculate_fiat_amounts(
-        amount, user_wallet, currency
+    amount_sat, extra = await calculate_fiat_amounts(
+        amount, user_wallet, currency, extra
     )
 
     if settings.is_wallet_max_balance_exceeded(
@@ -179,7 +179,6 @@ async def create_invoice(
         expiry=invoice.expiry_date,
         memo=memo,
         extra=extra,
-        fiat_amounts=fiat_amounts,
         webhook=webhook,
     )
 
@@ -222,9 +221,7 @@ async def _pay_internal_invoice(
         internal_invoice.amount != abs(amount_msat)
         or internal_invoice.bolt11 != create_payment_model.bolt11.lower()
     ):
-        raise PaymentError(
-            "Invalid invoice. Bolt11 or amount is not correct", status="failed"
-        )
+        raise PaymentError("Invalid invoice. Bolt11 changed.", status="failed")
 
     fee_reserve_total_msat = fee_reserve_total(abs(amount_msat), internal=True)
     create_payment_model.fee = abs(fee_reserve_total_msat)
@@ -383,7 +380,7 @@ async def pay_invoice(
         if await is_internal_status_success(invoice.payment_hash, conn):
             raise PaymentError("Internal invoice already paid.", status="failed")
 
-        _, fiat_amounts = await calculate_fiat_amounts(amount_msat / 1000, wallet)
+        _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
 
         create_payment_model = CreatePayment(
             wallet_id=wallet_id,
@@ -393,7 +390,6 @@ async def pay_invoice(
             expiry=invoice.expiry_date,
             memo=description or invoice.description or "",
             extra=extra,
-            fiat_amounts=fiat_amounts,
         )
 
         payment = await _pay_invoice(wallet, create_payment_model, conn)

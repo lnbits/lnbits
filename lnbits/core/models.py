@@ -270,15 +270,6 @@ class PayInvoice(BaseModel):
     extra: Optional[dict] = {}
 
 
-class PaymentFiatAmounts(BaseModel):
-    wallet_fiat_currency: Optional[str] = None
-    wallet_fiat_amount: Optional[float] = None
-    wallet_fiat_rate: Optional[float] = None
-    fiat_currency: Optional[str] = None
-    fiat_amount: Optional[float] = None
-    fiat_rate: Optional[float] = None
-
-
 class CreatePayment(BaseModel):
     wallet_id: str
     payment_hash: str
@@ -290,7 +281,6 @@ class CreatePayment(BaseModel):
     expiry: Optional[datetime] = None
     webhook: Optional[str] = None
     fee: int = 0
-    fiat_amounts: PaymentFiatAmounts = PaymentFiatAmounts()
 
 
 class Payment(BaseModel):
@@ -311,7 +301,6 @@ class Payment(BaseModel):
     time: datetime = datetime.now(timezone.utc)
     created_at: datetime = datetime.now(timezone.utc)
     updated_at: datetime = datetime.now(timezone.utc)
-    fiat_amounts: PaymentFiatAmounts = PaymentFiatAmounts()
     extra: dict = {}
 
     @property

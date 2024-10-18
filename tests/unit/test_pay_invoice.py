@@ -109,7 +109,7 @@ async def test_invoice_changed(to_wallet: Wallet):
     invoice.amount_msat = MilliSatoshi(12000)
     payment_request = bolt11_encode(invoice)
 
-    with pytest.raises(PaymentError, match="Invalid invoice."):
+    with pytest.raises(PaymentError, match="Invalid invoice. Bolt11 changed."):
         await pay_invoice(
             wallet_id=to_wallet.id,
             payment_request=payment_request,
