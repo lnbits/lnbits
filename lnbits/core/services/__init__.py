@@ -50,7 +50,6 @@ __all__ = [
     "get_balance_delta",
     "switch_to_voidwallet",
     # services
-    "check_admin_settings",
     "check_webpush_settings",
     "create_user_account",
     "update_cached_settings",
