@@ -3,9 +3,7 @@ from typing import Optional
 from lnbits.core.db import db
 from lnbits.db import Connection
 
-from ..models import (
-    DbVersion,
-)
+from ..models import DbVersion
 
 
 async def get_db_version(

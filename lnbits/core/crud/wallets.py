@@ -5,9 +5,7 @@ from uuid import uuid4
 
 from lnbits.core.db import db
 from lnbits.db import Connection
-from lnbits.settings import (
-    settings,
-)
+from lnbits.settings import settings
 
 from ..models import Wallet
 
