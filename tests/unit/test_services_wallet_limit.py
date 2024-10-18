@@ -1,6 +1,6 @@
 import pytest
 
-from lnbits.core.services import check_wallet_daily_withdraw_limit
+from lnbits.core.services.payments import check_wallet_daily_withdraw_limit
 from lnbits.settings import Settings
 
 

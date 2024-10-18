@@ -1,4 +1,3 @@
-import time
 from pathlib import Path
 from typing import Optional
 from uuid import UUID, uuid4
@@ -9,8 +8,6 @@ from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
 
 from lnbits.core.extensions.models import UserExtension
-from lnbits.db import Connection
-from lnbits.exceptions import PaymentError
 from lnbits.settings import (
     EditableSettings,
     SuperSettings,
@@ -18,13 +15,7 @@ from lnbits.settings import (
     send_admin_user_to_saas,
     settings,
 )
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import get_funding_source, set_funding_source
-from lnbits.wallets.base import (
-    PaymentPendingStatus,
-    PaymentStatus,
-    PaymentSuccessStatus,
-)
 
 from ..crud import (
     create_account,
@@ -34,11 +25,9 @@ from ..crud import (
     get_account_by_email,
     get_account_by_pubkey,
     get_account_by_username,
-    get_payments,
     get_super_settings,
     get_total_balance,
     get_user_from_account,
-    get_wallet_payment,
     update_admin_settings,
     update_super_user,
     update_user_extension,
@@ -47,118 +36,9 @@ from ..helpers import to_valid_user_id
 from ..models import (
     Account,
     BalanceDelta,
-    Payment,
-    PaymentState,
     User,
     UserExtra,
-    Wallet,
 )
-
-
-async def calculate_fiat_amounts(
-    amount: float,
-    wallet: Wallet,
-    currency: Optional[str] = None,
-    extra: Optional[dict] = None,
-) -> tuple[int, dict]:
-    wallet_currency = wallet.currency or settings.lnbits_default_accounting_currency
-    fiat_amounts: dict = extra or {}
-    if currency and currency != "sat":
-        amount_sat = await fiat_amount_as_satoshis(amount, currency)
-        if currency != wallet_currency:
-            fiat_amounts["fiat_currency"] = currency
-            fiat_amounts["fiat_amount"] = round(amount, ndigits=3)
-            fiat_amounts["fiat_rate"] = amount_sat / amount
-    else:
-        amount_sat = int(amount)
-
-    if wallet_currency:
-        if wallet_currency == currency:
-            fiat_amount = amount
-        else:
-            fiat_amount = await satoshis_amount_as_fiat(amount_sat, wallet_currency)
-        fiat_amounts["wallet_fiat_currency"] = wallet_currency
-        fiat_amounts["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
-        fiat_amounts["wallet_fiat_rate"] = amount_sat / fiat_amount
-
-    logger.debug(
-        f"Calculated fiat amounts {wallet.id=} {amount=} {currency=}: {fiat_amounts=}"
-    )
-
-    return amount_sat, fiat_amounts
-
-
-async def check_wallet_limits(
-    wallet_id: str, amount_msat: int, conn: Optional[Connection] = None
-):
-    await check_time_limit_between_transactions(wallet_id, conn)
-    await check_wallet_daily_withdraw_limit(wallet_id, amount_msat, conn)
-
-
-async def check_time_limit_between_transactions(
-    wallet_id: str, conn: Optional[Connection] = None
-):
-    limit = settings.lnbits_wallet_limit_secs_between_trans
-    if not limit or limit <= 0:
-        return
-    payments = await get_payments(
-        since=int(time.time()) - limit,
-        wallet_id=wallet_id,
-        limit=1,
-        conn=conn,
-    )
-    if len(payments) == 0:
-        return
-    raise PaymentError(
-        status="failed",
-        message=f"The time limit of {limit} seconds between payments has been reached.",
-    )
-
-
-async def check_wallet_daily_withdraw_limit(
-    wallet_id: str, amount_msat: int, conn: Optional[Connection] = None
-):
-    limit = settings.lnbits_wallet_limit_daily_max_withdraw
-    if not limit:
-        return
-    if limit < 0:
-        raise ValueError("It is not allowed to spend funds from this server.")
-
-    payments = await get_payments(
-        since=int(time.time()) - 60 * 60 * 24,
-        outgoing=True,
-        wallet_id=wallet_id,
-        limit=1,
-        conn=conn,
-    )
-    if len(payments) == 0:
-        return
-
-    total = 0
-    for pay in payments:
-        total += pay.amount
-    total = total - amount_msat
-    if limit * 1000 + total < 0:
-        raise ValueError(
-            "Daily withdrawal limit of "
-            + str(settings.lnbits_wallet_limit_daily_max_withdraw)
-            + " sats reached."
-        )
-
-
-async def check_transaction_status(
-    wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
-) -> PaymentStatus:
-    payment: Optional[Payment] = await get_wallet_payment(
-        wallet_id, payment_hash, conn=conn
-    )
-    if not payment:
-        return PaymentPendingStatus()
-
-    if payment.status == PaymentState.SUCCESS.value:
-        return PaymentSuccessStatus(fee_msat=payment.fee)
-
-    return await payment.check_status()
 
 
 async def check_admin_settings():
