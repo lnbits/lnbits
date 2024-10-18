@@ -13,14 +13,12 @@ from .payments import (
     update_wallet_balance,
 )
 from .services import (
-    check_admin_settings,
     check_webpush_settings,
-    create_user_account,
     get_balance_delta,
-    init_admin_settings,
     switch_to_voidwallet,
     update_cached_settings,
 )
+from .users import check_admin_settings, create_user_account, init_admin_settings
 from .websockets import websocket_manager, websocket_updater
 
 __all__ = [
@@ -42,12 +40,15 @@ __all__ = [
     # websockets
     "websocket_manager",
     "websocket_updater",
+    # users
+    "check_admin_settings",
+    "create_user_account",
+    "init_admin_settings",
     # services
     "check_admin_settings",
     "check_webpush_settings",
     "create_user_account",
     "get_balance_delta",
-    "init_admin_settings",
     "switch_to_voidwallet",
     "update_cached_settings",
 ]
