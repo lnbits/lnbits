@@ -1,10 +1,10 @@
 import pytest
 
+from lnbits.core.models import PaymentState
 from lnbits.core.services import (
-    PaymentError,
-    PaymentState,
     pay_invoice,
 )
+from lnbits.exceptions import PaymentError
 
 description = "test pay invoice"
 

@@ -2,10 +2,10 @@ import pytest
 from bolt11 import decode
 
 from lnbits.core.services import (
-    PaymentStatus,
     create_invoice,
 )
 from lnbits.wallets import get_funding_source
+from lnbits.wallets.base import PaymentStatus
 
 description = "test create invoice"
 
