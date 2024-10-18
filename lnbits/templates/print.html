@@ -34,18 +34,27 @@
   </head>
 
   <body>
-    <q-layout id="vue" view="hHh lpR lfr" v-cloak>
+    <div id="vue">
+    <q-layout view="hHh lpR lfr" v-cloak>
       <q-page-container>
         <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
           {% block page %}{% endblock %}
         </q-page>
       </q-page-container>
     </q-layout>
+    </div>
 
+    {% include('components.vue') %}{% block vue_templates %}{% endblock %}
     {% for url in INCLUDED_JS %}
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
+    <script>
+      const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
+    </script>
     <!---->
     {% block scripts %}{% endblock %}
+    {% for url in INCLUDED_COMPONENTS %}
+    <script src="{{ static_url_for('static', url) }}"></script>
+    {% endfor %}
   </body>
 </html>
