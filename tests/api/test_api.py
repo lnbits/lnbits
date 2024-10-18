@@ -216,7 +216,7 @@ async def test_pay_invoice(
     assert len(invoice_["checking_id"]) > 0
 
     ws_data = from_wallet_ws.receive_json()
-    assert "wallet_balance" in data
+    assert "wallet_balance" in ws_data
     payment = Payment(**ws_data["payment"])
     assert payment.payment_hash == invoice_["payment_hash"]
 
@@ -324,6 +324,7 @@ async def test_get_payments(client, adminkey_headers_from, fake_payments):
         return [Payment(**payment) for payment in response.json()]
 
     payments = await get_payments({"sortby": "amount", "direction": "desc", "limit": 2})
+    assert len(payments) != 0
     assert payments[-1].amount < payments[0].amount
     assert len(payments) == 2
 
