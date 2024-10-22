@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import datetime
 import json
 import os
 import re
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 from enum import Enum
 from typing import Any, Generic, Literal, Optional, TypeVar, Union
 
@@ -51,7 +51,7 @@ def compat_timestamp_placeholder(key: str):
 
 def get_placeholder(model: Any, field: str) -> str:
     type_ = model.__fields__[field].type_
-    if type_ == datetime.datetime:
+    if type_ == datetime:
         return compat_timestamp_placeholder(field)
     else:
         return f":{field}"
@@ -68,7 +68,7 @@ class Compat:
             return f"{seconds}"
         return "<nothing>"
 
-    def datetime_to_timestamp(self, date: datetime.datetime):
+    def datetime_to_timestamp(self, date: datetime):
         if self.type in {POSTGRES, COCKROACH}:
             return date.strftime("%Y-%m-%d %H:%M:%S")
         elif self.type == SQLITE:
@@ -135,7 +135,7 @@ class Connection(Compat):
         for key, raw_value in values.items():
             if isinstance(raw_value, str):
                 clean_values[key] = re.sub(clean_regex, "", raw_value)
-            elif isinstance(raw_value, datetime.datetime):
+            elif isinstance(raw_value, datetime):
                 ts = raw_value.timestamp()
                 if self.type == SQLITE:
                     clean_values[key] = int(ts)
@@ -285,18 +285,18 @@ class Database(Compat):
 
             @event.listens_for(self.engine.sync_engine, "connect")
             def register_custom_types(dbapi_connection, *_):
-                def _parse_date(value) -> datetime.datetime:
+                def _parse_date(value) -> datetime:
                     if value is None:
                         value = "1970-01-01 00:00:00"
                     f = "%Y-%m-%d %H:%M:%S.%f"
                     if "." not in value:
                         f = "%Y-%m-%d %H:%M:%S"
-                    return datetime.datetime.strptime(value, f)
+                    return datetime.strptime(value, f)
 
                 dbapi_connection.run_async(
                     lambda connection: connection.set_type_codec(
                         "TIMESTAMP",
-                        encoder=datetime.datetime,
+                        encoder=datetime,
                         decoder=_parse_date,
                         schema="pg_catalog",
                     )
@@ -480,10 +480,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
         stmt = []
         for key in self.values.keys() if self.values else []:
             clean_key = key.split("__")[0]
-            if (
-                self.model
-                and self.model.__fields__[clean_key].type_ == datetime.datetime
-            ):
+            if self.model and self.model.__fields__[clean_key].type_ == datetime:
                 placeholder = compat_timestamp_placeholder(key)
             else:
                 placeholder = f":{key}"
@@ -610,7 +607,7 @@ def model_to_dict(model: BaseModel) -> dict:
         type_ = model.__fields__[key].type_
         if model.__fields__[key].field_info.extra.get("no_database", False):
             continue
-        if isinstance(value, datetime.datetime):
+        if isinstance(value, datetime):
             _dict[key] = value.timestamp()
             continue
         if type(type_) is type(BaseModel) or type_ is dict:
@@ -650,6 +647,9 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
         type_ = model.__fields__[key].type_
         if issubclass(type_, bool):
             _dict[key] = bool(value)
+            continue
+        if issubclass(type_, datetime):
+            _dict[key] = datetime.fromtimestamp(value)
             continue
         if issubclass(type_, BaseModel) and value:
             _dict[key] = dict_to_submodel(type_, value)
