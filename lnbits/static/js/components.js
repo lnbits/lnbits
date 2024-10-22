@@ -206,7 +206,6 @@ window.app.component('lnbits-qrcode', {
       required: true
     },
     options: Object
-    
   },
   data() {
     return {

@@ -286,13 +286,10 @@ window.LNbits = {
         fiat_currency: data.fiat_currency
       }
 
-      obj.date = Quasar.date.formatDate(
-        new Date(obj.time * 1000),
-        'YYYY-MM-DD HH:mm'
-      )
+      obj.date = Quasar.date.formatDate(new Date(obj.time), 'YYYY-MM-DD HH:mm')
       obj.dateFrom = moment(obj.date).fromNow()
       obj.expirydate = Quasar.date.formatDate(
-        new Date(obj.expiry * 1000),
+        new Date(obj.expiry),
         'YYYY-MM-DD HH:mm'
       )
       obj.expirydateFrom = moment(obj.expirydate).fromNow()
