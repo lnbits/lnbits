@@ -200,15 +200,6 @@ window.app.component('lnbits-qrcode', {
   components: {
     QrcodeVue
   },
-  /**
-   * @param {object} options
-   * margin: number
-   * with: number
-   * size: number
-   * logo: string - used for the logo in the center of the QR code
-   */
-  
-  // props: ['value', 'options'],
   props: {
     value: {
       type: String,
