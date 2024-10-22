@@ -655,6 +655,7 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             _dict[key] = dict_to_submodel(type_, value)
             continue
         # TODO: remove this when all sub models are migrated to Pydantic
+        # NOTE: this is for type dict on BaseModel, (used in Payment class)
         if type_ is dict and value:
             _dict[key] = json.loads(value)
             continue
