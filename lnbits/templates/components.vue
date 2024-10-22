@@ -493,11 +493,11 @@
       :value="value"
       level="Q"
       render-as="svg"
-      :margin="options.margin || '1'"
-      :size="options.width || options.size || '350'"
+      :margin="custom.margin"
+      :size="custom.width"
       class="rounded-borders"
     ></qrcode-vue>
-    <img class="qrcode__image" :src="options.logo ?? logo" alt="qrcode icon" />
+    <img class="qrcode__image" :src="custom.logo" alt="qrcode icon" />
   </div>
 </template>
 

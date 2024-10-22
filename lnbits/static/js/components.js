@@ -208,11 +208,27 @@ window.app.component('lnbits-qrcode', {
    * logo: string - used for the logo in the center of the QR code
    */
   
-  props: ['value', 'options'],
+  // props: ['value', 'options'],
+  props: {
+    value: {
+      type: String,
+      required: true
+    },
+    options: Object
+    
+  },
   data() {
     return {
-      logo: LNBITS_QR_LOGO,
+      custom: {
+        margin: 1,
+        width: 350,
+        size: 350,
+        logo: LNBITS_QR_LOGO
+      }
     }
+  },
+  created() {
+    this.custom = {...this.custom, ...this.options}
   }
 })
 
