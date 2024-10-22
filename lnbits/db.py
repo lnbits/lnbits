@@ -6,7 +6,7 @@ import os
 import re
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Generic, Literal, Optional, TypeVar, Union
 
@@ -649,7 +649,7 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             _dict[key] = bool(value)
             continue
         if issubclass(type_, datetime):
-            _dict[key] = datetime.fromtimestamp(value)
+            _dict[key] = datetime.fromtimestamp(value, timezone.utc)
             continue
         if issubclass(type_, BaseModel) and value:
             _dict[key] = dict_to_submodel(type_, value)
