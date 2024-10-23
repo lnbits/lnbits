@@ -56,7 +56,9 @@ window.app = Vue.createApp({
         currency: null
       },
       inkeyHidden: true,
-      adminkeyHidden: true
+      adminkeyHidden: true,
+      nfcTagReading: false,
+      decodedLnurl: null
     }
   },
   computed: {
@@ -147,6 +149,7 @@ window.app = Vue.createApp({
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.bolt11
           this.receive.paymentHash = response.data.payment_hash
+          this.readNfcTag()
 
           // TODO: lnurl_callback and lnurl_response
           // WITHDRAW
@@ -547,6 +550,72 @@ window.app = Vue.createApp({
       navigator.clipboard.readText().then(text => {
         this.parse.data.request = text.trim()
       })
+    },
+    readNfcTag: function () {
+      try {
+        if (typeof NDEFReader == 'undefined') {
+          console.debug('NFC not supported on this device or browser.')
+          return
+        }
+
+        const ndef = new NDEFReader()
+
+        const readerAbortController = new AbortController()
+        readerAbortController.signal.onabort = event => {
+          console.debug('All NFC Read operations have been aborted.')
+        }
+
+        this.nfcTagReading = true
+        Quasar.Notify.create({
+          message: 'Tap your NFC tag to pay this invoice with LNURLw.'
+        })
+
+        return ndef.scan({signal: readerAbortController.signal}).then(() => {
+          ndef.onreadingerror = () => {
+            this.nfcTagReading = false
+
+            Quasar.Notify.create({
+              type: 'negative',
+              message: 'There was an error reading this NFC tag.'
+            })
+
+            readerAbortController.abort()
+          }
+
+          ndef.onreading = ({message}) => {
+            //Decode NDEF data from tag
+            const textDecoder = new TextDecoder('utf-8')
+
+            const record = message.records.find(el => {
+              const payload = textDecoder.decode(el.data)
+              return payload.toUpperCase().indexOf('LNURL') !== -1
+            })
+
+            if (record) {
+              const lnurl = textDecoder.decode(record.data)
+              this.decodedLnurl = lnurl
+            }
+            // Add case when nfc tag is not lnurl
+
+            // Add User feedback, show loader icon
+            this.nfcTagReading = false
+            // this.payInvoice(lnurl, readerAbortController)
+
+            Quasar.Notify.create({
+              type: 'positive',
+              message: 'NFC tag read successfully.'
+            })
+          }
+        })
+      } catch (error) {
+        this.nfcTagReading = false
+        Quasar.Notify.create({
+          type: 'negative',
+          message: error
+            ? error.toString()
+            : 'An unexpected error has occurred.'
+        })
+      }
     }
   },
   created: function () {

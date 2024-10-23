@@ -371,6 +371,21 @@
               ></lnbits-qrcode>
             </a>
           </div>
+          <div class="text-center">
+            <q-chip v-if="nfcTagReading" square>
+              <q-avatar
+                icon="nfc"
+                color="positive"
+                text-color="white"
+              ></q-avatar>
+              NFC supported
+            </q-chip>
+            <span v-else class="text-caption text-grey">NFC not supported</span>
+          </div>
+          <div v-if="decodedLnurl" class="q-mt-md">
+            <h4>Decoded LNURL:</h4>
+            <p v-text="decodedLnurl"></p>
+          </div>
           <div class="row q-mt-lg">
             <q-btn
               outline
