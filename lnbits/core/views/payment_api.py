@@ -25,6 +25,7 @@ from lnbits.core.models import (
     CreateLnurl,
     DecodePayment,
     KeyType,
+    PayLnurlWData,
     Payment,
     PaymentFilters,
     PaymentHistoryPoint,
@@ -406,3 +407,67 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
             {"message": f"Failed to decode: {exc!s}"},
             status_code=HTTPStatus.BAD_REQUEST,
         )
+
+
+@payment_router.post("/{payment_request}/pay-with-nfc", status_code=HTTPStatus.OK)
+async def api_payment_pay_with_nfc(
+    payment_request: str,
+    lnurl_data: PayLnurlWData,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+
+    lnurl = (
+        lnurl_data.lnurl.replace("lnurlw://", "")
+        .replace("lightning://", "")
+        .replace("LIGHTNING://", "")
+        .replace("lightning:", "")
+        .replace("LIGHTNING:", "")
+    )
+
+    if lnurl.lower().startswith("lnurl"):
+        lnurl = lnurl_decode(lnurl)
+    else:
+        lnurl = f"https://{lnurl}"
+
+    headers = {"User-Agent": settings.user_agent}
+    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+        try:
+            lnurl_req = await client.get(lnurl, timeout=10)
+            if lnurl_req.is_error:
+                return JSONResponse(
+                    {"success": False, "detail": "Error loading LNURL request"}
+                )
+
+            lnurl_res = lnurl_req.json()
+
+            if lnurl_res["tag"] != "withdrawRequest":
+                return JSONResponse(
+                    {"success": False, "detail": "Invalid LNURL-withdraw"}
+                )
+
+            callback_url = lnurl_res["callback"]
+            k1 = lnurl_res["k1"]
+
+            callback_req = await client.get(
+                callback_url,
+                params={"k1": k1, "pr": payment_request},
+                timeout=10,
+            )
+            if callback_req.is_error:
+                return JSONResponse(
+                    {"success": False, "detail": "Error loading callback request"}
+                )
+
+            callback_res = callback_req.json()
+
+            if callback_res["status"] == "ERROR":
+                return JSONResponse(
+                    {"success": False, "detail": callback_res["reason"]}
+                )
+            else:
+                return JSONResponse({"success": True, "detail": callback_res})
+
+        except Exception as e:
+            return JSONResponse(
+                {"success": False, "detail": f"Unexpected error: {e!s}"}
+            )
