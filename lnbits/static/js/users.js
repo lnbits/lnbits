@@ -165,32 +165,22 @@ window.app = Vue.createApp({
       type: 'bubble',
       options: {
         scales: {
-          xAxes: [
-            {
-              type: 'linear',
-              ticks: {
-                beginAtZero: true
-              },
-              scaleLabel: {
-                display: true,
-                labelString: 'Tx count'
-              }
+          x: {
+            type: 'linear',
+            beginAtZero: true,
+            title: {
+              text: 'Transaction count'
             }
-          ],
-          yAxes: [
-            {
-              type: 'linear',
-              ticks: {
-                beginAtZero: true
-              },
-              scaleLabel: {
-                display: true,
-                labelString: 'User balance in million sats'
-              }
+          },
+          y: {
+            type: 'linear',
+            beginAtZero: true,
+            title: {
+              text: 'User balance in million sats'
             }
-          ]
+          }
         },
-        tooltips: {
+        tooltip: {
           callbacks: {
             label: function (tooltipItem, data) {
               const dataset = data.datasets[tooltipItem.datasetIndex]
@@ -215,6 +205,9 @@ window.app = Vue.createApp({
     })
   },
   methods: {
+    formatDate: function (value) {
+      return LNbits.utils.formatDate(value)
+    },
     formatSat: function (value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
     },

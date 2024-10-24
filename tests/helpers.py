@@ -2,7 +2,8 @@ import random
 import string
 from typing import Optional
 
-from lnbits.db import FromRowModel
+from pydantic import BaseModel
+
 from lnbits.wallets import get_funding_source, set_funding_source
 
 
@@ -10,10 +11,24 @@ class FakeError(Exception):
     pass
 
 
-class DbTestModel(FromRowModel):
+class DbTestModel(BaseModel):
     id: int
     name: str
     value: Optional[str] = None
+
+
+class DbTestModel2(BaseModel):
+    id: int
+    label: str
+    description: Optional[str] = None
+    child: DbTestModel
+
+
+class DbTestModel3(BaseModel):
+    id: int
+    user: str
+    child: DbTestModel2
+    active: bool = False
 
 
 def get_random_string(iterations: int = 10):

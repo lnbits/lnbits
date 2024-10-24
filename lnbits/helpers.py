@@ -1,17 +1,15 @@
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, List, Optional, Type
+from typing import Any, Optional, Type
 
 import jinja2
 import jwt
 import shortuuid
-from pydantic import BaseModel
 from pydantic.schema import field_schema
 
 from lnbits.core.extensions.models import Extension
-from lnbits.db import get_placeholder
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.nodes import get_node_class
 from lnbits.requestvars import g
@@ -51,7 +49,7 @@ def static_url_for(static: str, path: str) -> str:
     return f"/{static}/{path}?v={settings.server_startup_time}"
 
 
-def template_renderer(additional_folders: Optional[List] = None) -> Jinja2Templates:
+def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templates:
     folders = ["lnbits/templates", "lnbits/core/templates"]
     if additional_folders:
         additional_folders += [
@@ -175,37 +173,6 @@ def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False
     }
 
 
-def insert_query(table_name: str, model: BaseModel) -> str:
-    """
-    Generate an insert query with placeholders for a given table and model
-    :param table_name: Name of the table
-    :param model: Pydantic model
-    """
-    placeholders = []
-    for field in model.dict().keys():
-        placeholders.append(get_placeholder(model, field))
-    fields = ", ".join(model.dict().keys())
-    values = ", ".join(placeholders)
-    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
-
-
-def update_query(
-    table_name: str, model: BaseModel, where: str = "WHERE id = :id"
-) -> str:
-    """
-    Generate an update query with placeholders for a given table and model
-    :param table_name: Name of the table
-    :param model: Pydantic model
-    :param where: Where string, default to `WHERE id = :id`
-    """
-    fields = []
-    for field in model.dict().keys():
-        placeholder = get_placeholder(model, field)
-        fields.append(f"{field} = {placeholder}")
-    query = ", ".join(fields)
-    return f"UPDATE {table_name} SET {query} {where}"
-
-
 def is_valid_email_address(email: str) -> bool:
     email_regex = r"[A-Za-z0-9\._%+-]+@[A-Za-z0-9\.-]+\.[A-Za-z]{2,63}"
     return re.fullmatch(email_regex, email) is not None
@@ -217,7 +184,9 @@ def is_valid_username(username: str) -> bool:
 
 
 def create_access_token(data: dict):
-    expire = datetime.utcnow() + timedelta(minutes=settings.auth_token_expire_minutes)
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.auth_token_expire_minutes
+    )
     to_encode = data.copy()
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.auth_secret_key, "HS256")

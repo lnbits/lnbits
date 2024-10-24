@@ -278,7 +278,7 @@ window.LNbits = {
         preimage: data.preimage,
         payment_hash: data.payment_hash,
         expiry: data.expiry,
-        extra: data.extra,
+        extra: data.extra ?? {},
         wallet_id: data.wallet_id,
         webhook: data.webhook,
         webhook_status: data.webhook_status,
@@ -286,13 +286,10 @@ window.LNbits = {
         fiat_currency: data.fiat_currency
       }
 
-      obj.date = Quasar.date.formatDate(
-        new Date(obj.time * 1000),
-        'YYYY-MM-DD HH:mm'
-      )
+      obj.date = Quasar.date.formatDate(new Date(obj.time), 'YYYY-MM-DD HH:mm')
       obj.dateFrom = moment(obj.date).fromNow()
       obj.expirydate = Quasar.date.formatDate(
-        new Date(obj.expiry * 1000),
+        new Date(obj.expiry),
         'YYYY-MM-DD HH:mm'
       )
       obj.expirydateFrom = moment(obj.expirydate).fromNow()
@@ -336,6 +333,12 @@ window.LNbits = {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('')
       return hashHex
+    },
+    formatDate: function (timestamp) {
+      return Quasar.date.formatDate(
+        new Date(timestamp * 1000),
+        'YYYY-MM-DD HH:mm'
+      )
     },
     formatCurrency: function (value, currency) {
       return new Intl.NumberFormat(window.LOCALE, {
