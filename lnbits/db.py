@@ -649,7 +649,10 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             _dict[key] = bool(value)
             continue
         if issubclass(type_, datetime):
-            _dict[key] = datetime.fromtimestamp(value, timezone.utc)
+            if DB_TYPE == SQLITE:
+                _dict[key] = datetime.fromtimestamp(value, timezone.utc)
+            else:
+                _dict[key] = value
             continue
         if issubclass(type_, BaseModel) and value:
             _dict[key] = dict_to_submodel(type_, value)
