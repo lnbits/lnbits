@@ -57,8 +57,7 @@ window.app = Vue.createApp({
       },
       inkeyHidden: true,
       adminkeyHidden: true,
-      nfcTagReading: false,
-      decodedLnurl: null
+      nfcTagReading: false
     }
   },
   computed: {
@@ -593,7 +592,7 @@ window.app = Vue.createApp({
 
             if (record) {
               const lnurl = textDecoder.decode(record.data)
-              this.decodedLnurl = lnurl
+              this.payInvoiceWithNfc(lnurl, readerAbortController)
             }
             // Add case when nfc tag is not lnurl
 
@@ -616,6 +615,42 @@ window.app = Vue.createApp({
             : 'An unexpected error has occurred.'
         })
       }
+    },
+    payInvoiceWithNfc: function (lnurl, readerAbortController) {
+      let dismissPaymentMsg = Quasar.Notify.create({
+        timeout: 0,
+        message: this.$t('processing_payment')
+      })
+
+      LNbits.api
+        .request(
+          'POST',
+          `/api/v1/payments/${this.receive.paymentReq}/pay-with-nfc`,
+          this.g.wallet.adminkey,
+          {lnurl: lnurl}
+        )
+        .then(response => {
+          dismissPaymentMsg()
+          if (response.data.success) {
+            Quasar.Notify.create({
+              type: 'positive',
+              message: 'Payment successful'
+            })
+            this.updatePayments = !this.updatePayments // this may be innecessary
+            this.receive.show = false // this may be innecessary
+          } else {
+            Quasar.Notify.create({
+              type: 'negative',
+              message: response.data.detail || 'Payment failed'
+            })
+          }
+
+          readerAbortController.abort()
+        })
+        .catch(err => {
+          dismissPaymentMsg()
+          LNbits.utils.notifyApiError(err)
+        })
     }
   },
   created: function () {
