@@ -479,6 +479,7 @@ window.windowMixin = {
     return {
       toggleSubs: true,
       reactionChoice: 'confettiBothSides',
+      borderChoice: '', 
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
@@ -521,7 +522,7 @@ window.windowMixin = {
       }
     },
     applyBorder: function () {
-      const borderStyle = this.$q.localStorage.getItem('lnbits.borderStye')
+      const borderStyle = this.$q.localStorage.getItem('lnbits.border')
       if (borderStyle) {
         
         if(borderStyle == "hard-border"){
@@ -611,6 +612,7 @@ window.windowMixin = {
         const theme = params.get('theme')
         const darkMode = params.get('dark')
         const gradient = params.get('gradient')
+        const border = params.get('border')
 
         if (
           theme &&
@@ -636,7 +638,12 @@ window.windowMixin = {
             this.$q.localStorage.set('lnbits.darkMode', true)
           }
         }
-
+        if (border) {
+          this.$q.localStorage.set('lnbits.border', border)
+        }
+        else{
+          this.$q.localStorage.removeitem('lnbits.border')
+        }
         // Remove processed parameters
         fields.forEach(param => params.delete(param))
 
