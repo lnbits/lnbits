@@ -528,9 +528,7 @@ video {
 
 .q-card.q-card--dark,
 .q-date--dark {
-  border: 1px solid rgba(0,0,0,.12);
-  border-color: #ffffff47;
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 .q-card code {
