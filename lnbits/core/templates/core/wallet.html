@@ -372,6 +372,12 @@
             </a>
           </div>
           <div class="text-center">
+            <h3 class="q-my-md">
+              <span v-text="formattedAmount"></span>
+            </h3>
+            <h5 v-if="receive.unit != 'sat'" class="q-mt-none q-mb-sm">
+              <span v-text="formattedSatAmount"></span>
+            </h5>
             <q-chip v-if="nfcTagReading" square>
               <q-avatar
                 icon="nfc"

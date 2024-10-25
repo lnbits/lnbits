@@ -14,6 +14,7 @@ window.app = Vue.createApp({
         status: 'pending',
         paymentReq: null,
         paymentHash: null,
+        amountMsat: null,
         minMax: [0, 2100000000000000],
         lnurl: null,
         units: ['sat'],
@@ -79,6 +80,19 @@ window.app = Vue.createApp({
     canPay: function () {
       if (!this.parse.invoice) return false
       return this.parse.invoice.sat <= this.balance
+    },
+    formattedAmount: function () {
+      if (this.receive.unit != 'sat') {
+        return LNbits.utils.formatCurrency(
+          Number(this.receive.data.amount).toFixed(2),
+          this.receive.unit
+        )
+      } else {
+        return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
+      }
+    },
+    formattedSatAmount: function () {
+      return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
     }
   },
   methods: {
@@ -147,7 +161,10 @@ window.app = Vue.createApp({
         .then(response => {
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.bolt11
+          this.receive.amountMsat = response.data.amount * 1000
           this.receive.paymentHash = response.data.payment_hash
+          console.log(this.receive)
+
           this.readNfcTag()
 
           // TODO: lnurl_callback and lnurl_response
