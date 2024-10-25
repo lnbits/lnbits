@@ -12,6 +12,7 @@ window.app = Vue.createApp({
         'confettiFireworks',
         'confettiStars'
       ],
+      borderOptions: ['retro-border', 'hard-border', 'no-border'],
       tab: 'user',
       credentialsData: {
         show: false,
@@ -64,19 +65,25 @@ window.app = Vue.createApp({
       }
     },
     applyBorder: function () {
-      if(this.borderChoice){
-        const borderStyle = this.$q.localStorage.getItem('lnbits.border')
-        if(borderStyle == "hard-border"){
-          const borderStyleCSS = `border: 1px solid rgba(0,0,0,.12);border-color: #ffffff47;box-shadow: none !important;`
-        }
-        if(borderStyle == "no-border"){
-          const borderStyleCSS = `box-shadow: none !important;`
-        }
-        const style = document.createElement('style')
-        style.innerHTML =
-          `body[data-theme="${borderStyle}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
-        document.head.appendChild(style)
+      slef = this
+      if (this.borderChoice) {
+        this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
       }
+      let borderStyle = this.$q.localStorage.getItem('lnbits.border')
+      this.borderChoice = borderStyle
+      let borderStyleCSS
+      if (borderStyle == 'hard-border') {
+        borderStyleCSS = `border: 1px solid rgba(0,0,0,.12);border-color: #ffffff47;box-shadow: none;`
+      }
+      if (borderStyle == 'no-border') {
+        borderStyleCSS = `box-shadow: none; border: none;`
+      }
+      if (borderStyle == 'retro-border') {
+        borderStyleCSS = `border: none; border-color: rgba(255, 255, 255, 0.28); box-shadow: 0 1px 5px rgba(255, 255, 255, 0.2), 0 2px 2px rgba(255, 255, 255, 0.14), 0 3px 1px -2px rgba(255, 255, 255, 0.12);`
+      }
+      let style = document.createElement('style')
+      style.innerHTML = `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
+      document.head.appendChild(style)
     },
     toggleGradient: function () {
       this.gradientChoice = !this.gradientChoice
@@ -204,6 +211,9 @@ window.app = Vue.createApp({
     }
     if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
       this.applyGradient()
+    }
+    if (this.$q.localStorage.getItem('lnbits.border')) {
+      this.applyBorder()
     }
   }
 })
