@@ -520,6 +520,22 @@ window.windowMixin = {
         document.head.appendChild(style)
       }
     },
+    applyBorder: function () {
+      const borderStyle = this.$q.localStorage.getItem('lnbits.borderStye')
+      if (borderStyle) {
+        
+        if(borderStyle == "hard-border"){
+          const borderStyleCSS = `border: 1px solid rgba(0,0,0,.12);border-color: #ffffff47;box-shadow: none !important;`
+        }
+        if(borderStyle == "no-border"){
+          const borderStyleCSS = `box-shadow: none !important;`
+        }
+        const style = document.createElement('style')
+        style.innerHTML =
+          `body[data-theme="${borderStyle}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
+        document.head.appendChild(style)
+      }
+    },
     setColors: function () {
       this.$q.localStorage.set(
         'lnbits.primaryColor',
