@@ -479,6 +479,7 @@ window.windowMixin = {
     return {
       toggleSubs: true,
       reactionChoice: 'confettiBothSides',
+      borderChoice: '',
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
@@ -519,6 +520,30 @@ window.windowMixin = {
           `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
       }
+    },
+    applyBorder: function () {
+      if (this.borderChoice) {
+        this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
+      }
+      let borderStyle = this.$q.localStorage.getItem('lnbits.border')
+      if (!borderStyle) {
+        this.$q.localStorage.set('lnbits.border', 'retro-border')
+        borderStyle = 'hard-border'
+      }
+      this.borderChoice = borderStyle
+      let borderStyleCSS
+      if (borderStyle == 'hard-border') {
+        borderStyleCSS = `border: 1px solid rgba(0,0,0,.12);border-color: #ffffff47;box-shadow: none;`
+      }
+      if (borderStyle == 'no-border') {
+        borderStyleCSS = `box-shadow: none; border: none;`
+      }
+      if (borderStyle == 'retro-border') {
+        borderStyleCSS = `border: none; border-color: rgba(255, 255, 255, 0.28); box-shadow: 0 1px 5px rgba(255, 255, 255, 0.2), 0 2px 2px rgba(255, 255, 255, 0.14), 0 3px 1px -2px rgba(255, 255, 255, 0.12);`
+      }
+      let style = document.createElement('style')
+      style.innerHTML = `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
+      document.head.appendChild(style)
     },
     setColors: function () {
       this.$q.localStorage.set(
@@ -595,6 +620,7 @@ window.windowMixin = {
         const theme = params.get('theme')
         const darkMode = params.get('dark')
         const gradient = params.get('gradient')
+        const border = params.get('border')
 
         if (
           theme &&
@@ -619,6 +645,9 @@ window.windowMixin = {
           if (isGradient) {
             this.$q.localStorage.set('lnbits.darkMode', true)
           }
+        }
+        if (border) {
+          this.$q.localStorage.set('lnbits.border', border)
         }
 
         // Remove processed parameters
@@ -681,6 +710,7 @@ window.windowMixin = {
     }
 
     this.applyGradient()
+    this.applyBorder()
 
     if (window.user) {
       this.g.user = Object.freeze(window.LNbits.map.user(window.user))

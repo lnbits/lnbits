@@ -268,5 +268,6 @@ window.localisation.en = {
   contributors: 'Contributors',
   license: 'License',
   reset_key: 'Reset Key',
-  reset_password: 'Reset Password'
+  reset_password: 'Reset Password',
+  border_choices: 'Border Choices'
 }

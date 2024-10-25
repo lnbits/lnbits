@@ -453,6 +453,23 @@
                   </div>
                 </div>
                 <div class="row q-mb-md">
+                  <div class="col-4">
+                    <span v-text="$t('border_choices')"></span>
+                  </div>
+                  <div class="col-8">
+                    <q-select
+                      v-model="borderChoice"
+                      :options="borderOptions"
+                      label="Reactions"
+                      @update:model-value="applyBorder"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('border_choices')"></span
+                      ></q-tooltip>
+                    </q-select>
+                  </div>
+                </div>
+                <div class="row q-mb-md">
                   <div class="col-4">Notifications</div>
                   <div class="col-8">
                     <lnbits-notifications-btn
