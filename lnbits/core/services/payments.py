@@ -398,6 +398,7 @@ async def _pay_internal_invoice(
     # the payer has enough to deduct from
     internal_payment.status = PaymentState.SUCCESS
     await update_payment(internal_payment, conn=conn)
+    logger.success(f"internal payment successful {internal_payment.checking_id}")
 
     await send_payment_notification(wallet, payment)
 
