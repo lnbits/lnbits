@@ -533,7 +533,7 @@ window.windowMixin = {
       this.borderChoice = borderStyle
       let borderStyleCSS
       if (borderStyle == 'hard-border') {
-        borderStyleCSS = `border: 1px solid rgba(0,0,0,.12);border-color: #ffffff47;box-shadow: none;`
+        borderStyleCSS = `box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #ffffff47; border: none;`
       }
       if (borderStyle == 'no-border') {
         borderStyleCSS = `box-shadow: none; border: none;`
