@@ -497,7 +497,12 @@
       :size="custom.width"
       class="rounded-borders"
     ></qrcode-vue>
-    <img v-if="custom.logo" class="qrcode__image" :src="custom.logo" alt="qrcode icon" />
+    <img
+      v-if="custom.logo"
+      class="qrcode__image"
+      :src="custom.logo"
+      alt="qrcode icon"
+    />
   </div>
 </template>
 
