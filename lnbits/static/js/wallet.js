@@ -169,7 +169,6 @@ window.app = Vue.createApp({
           this.receive.paymentReq = response.data.bolt11
           this.receive.amountMsat = response.data.amount * 1000
           this.receive.paymentHash = response.data.payment_hash
-          console.log(this.receive)
 
           this.readNfcTag()
 
