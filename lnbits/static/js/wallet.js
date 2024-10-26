@@ -607,7 +607,7 @@ window.app = Vue.createApp({
 
               const record = message.records.find(el => {
                 const payload = textDecoder.decode(el.data)
-                return payload.toUpperCase().indexOf('LNURL') !== -1
+                return payload.toUpperCase().indexOf('LNURLW') !== -1
               })
 
               if (record) {

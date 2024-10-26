@@ -415,23 +415,18 @@ async def api_payment_pay_with_nfc(
     lnurl_data: PayLnurlWData,
 ) -> JSONResponse:
 
-    lnurl = (
-        lnurl_data.lnurl.replace("lnurlw://", "")
-        .replace("lightning://", "")
-        .replace("LIGHTNING://", "")
-        .replace("lightning:", "")
-        .replace("LIGHTNING:", "")
-    )
+    lnurl = lnurl_data.lnurl.lower()
 
-    if lnurl.lower().startswith("lnurl"):
-        lnurl = lnurl_decode(lnurl)
+    # Follow LUD-17 -> https://github.com/lnurl/luds/blob/luds/17.md
+    if ".onion" in lnurl:
+        url = lnurl.replace("lnurlw://", "http://")
     else:
-        lnurl = f"https://{lnurl}"
+        url = lnurl.replace("lnurlw://", "https://")
 
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
         try:
-            lnurl_req = await client.get(lnurl, timeout=10)
+            lnurl_req = await client.get(url, timeout=10)
             if lnurl_req.is_error:
                 return JSONResponse(
                     {"success": False, "detail": "Error loading LNURL request"}
