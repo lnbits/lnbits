@@ -1,6 +1,9 @@
 import hashlib
+from http import HTTPStatus
+from unittest.mock import AsyncMock, Mock
 
 import pytest
+from pytest_mock.plugin import MockerFixture
 
 from lnbits import bolt11
 from lnbits.core.models import CreateInvoice, Payment
@@ -517,3 +520,66 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
     assert extra["wallet_fiat_currency"] == "EUR"
     assert extra["wallet_fiat_amount"] != payment["amount"]
     assert extra["wallet_fiat_rate"]
+
+
+@pytest.mark.asyncio
+async def test_api_payment_pay_with_nfc(client, mocker: MockerFixture):
+    # Prepare test data
+    payment_request = "lnbc1..."
+    lnurl = "lnurlw://example.com/lnurl"
+    lnurl_data = {"lnurl": lnurl}
+
+    # Mock lnurl_decode to return the expected URL
+    mocker.patch(
+        "lnbits.core.views.payment_api.lnurl_decode",
+        return_value="https://example.com/lnurl",
+    )
+
+    # Prepare mock responses
+    lnurl_response_data = {
+        "tag": "withdrawRequest",
+        "callback": "https://example.com/callback",
+        "k1": "randomk1value",
+    }
+
+    callback_response_data = {
+        "status": "OK",
+    }
+
+    # Create a mock for httpx.AsyncClient
+    mock_async_client = AsyncMock()
+
+    # Mock the __aenter__ method to return the mock_async_client
+    mock_async_client.__aenter__.return_value = mock_async_client
+
+    # Mock the get method
+    async def mock_get(url, *args, **kwargs):
+        if url == "https://example.com/lnurl":
+            response = Mock()
+            response.is_error = False
+            response.json.return_value = lnurl_response_data
+            return response
+        elif url == "https://example.com/callback":
+            response = Mock()
+            response.is_error = False
+            response.json.return_value = callback_response_data
+            return response
+        else:
+            response = Mock()
+            response.is_error = True
+            return response
+
+    mock_async_client.get.side_effect = mock_get
+
+    # Mock httpx.AsyncClient to return our mock_async_client
+    mocker.patch("httpx.AsyncClient", return_value=mock_async_client)
+
+    # Make the POST request to the endpoint using client
+    response = await client.post(
+        f"/api/v1/payments/{payment_request}/pay-with-nfc",
+        json=lnurl_data,
+    )
+
+    # Assert the response
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {"success": True, "detail": callback_response_data}
