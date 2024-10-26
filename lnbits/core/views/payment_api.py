@@ -440,6 +440,9 @@ async def api_payment_pay_with_nfc(
 
             lnurl_res = lnurl_req.json()
 
+            if lnurl_res["status"] == "ERROR":
+                return JSONResponse({"success": False, "detail": lnurl_res["reason"]})
+
             if lnurl_res["tag"] != "withdrawRequest":
                 return JSONResponse(
                     {"success": False, "detail": "Invalid LNURL-withdraw"}
