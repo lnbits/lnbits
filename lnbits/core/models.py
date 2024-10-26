@@ -487,4 +487,4 @@ class DbVersion(BaseModel):
 
 
 class PayLnurlWData(BaseModel):
-    lnurl: str
+    lnurl_w: str

@@ -415,13 +415,10 @@ async def api_payment_pay_with_nfc(
     lnurl_data: PayLnurlWData,
 ) -> JSONResponse:
 
-    lnurl = lnurl_data.lnurl.lower()
+    lnurl = lnurl_data.lnurl_w.lower()
 
     # Follow LUD-17 -> https://github.com/lnurl/luds/blob/luds/17.md
-    if ".onion" in lnurl:
-        url = lnurl.replace("lnurlw://", "http://")
-    else:
-        url = lnurl.replace("lnurlw://", "https://")
+    url = lnurl.replace("lnurlw://", "https://")
 
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:

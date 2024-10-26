@@ -647,7 +647,7 @@ window.app = Vue.createApp({
           'POST',
           `/api/v1/payments/${this.receive.paymentReq}/pay-with-nfc`,
           this.g.wallet.adminkey,
-          {lnurl: lnurl}
+          {lnurl_w: lnurl}
         )
         .then(response => {
           dismissPaymentMsg()
