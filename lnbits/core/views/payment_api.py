@@ -413,8 +413,7 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
 async def api_payment_pay_with_nfc(
     payment_request: str,
     lnurl_data: PayLnurlWData,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-):
+) -> JSONResponse:
 
     lnurl = (
         lnurl_data.lnurl.replace("lnurlw://", "")
