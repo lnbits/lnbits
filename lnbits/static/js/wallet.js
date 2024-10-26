@@ -650,8 +650,6 @@ window.app = Vue.createApp({
               type: 'positive',
               message: 'Payment successful'
             })
-            this.updatePayments = !this.updatePayments // this may be innecessary
-            this.receive.show = false // this may be innecessary
           } else {
             Quasar.Notify.create({
               type: 'negative',
