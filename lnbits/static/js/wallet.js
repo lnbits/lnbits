@@ -58,7 +58,7 @@ window.app = Vue.createApp({
       },
       inkeyHidden: true,
       adminkeyHidden: true,
-      nfcTagReading: false
+      hasNfc: false
     }
   },
   computed: {
@@ -581,15 +581,13 @@ window.app = Vue.createApp({
           console.debug('All NFC Read operations have been aborted.')
         }
 
-        this.nfcTagReading = true
+        this.hasNfc = true
         Quasar.Notify.create({
           message: 'Tap your NFC tag to pay this invoice with LNURLw.'
         })
 
         return ndef.scan({signal: readerAbortController.signal}).then(() => {
           ndef.onreadingerror = () => {
-            this.nfcTagReading = false
-
             Quasar.Notify.create({
               type: 'negative',
               message: 'There was an error reading this NFC tag.'
@@ -608,23 +606,21 @@ window.app = Vue.createApp({
             })
 
             if (record) {
+              Quasar.Notify.create({
+                type: 'positive',
+                message: 'NFC tag read successfully.'
+              })
               const lnurl = textDecoder.decode(record.data)
               this.payInvoiceWithNfc(lnurl, readerAbortController)
+            } else {
+              Quasar.Notify.create({
+                type: 'warning',
+                message: 'NFC tag does not have LNURLw record.'
+              })
             }
-            // Add case when nfc tag is not lnurl
-
-            // Add User feedback, show loader icon
-            this.nfcTagReading = false
-            // this.payInvoice(lnurl, readerAbortController)
-
-            Quasar.Notify.create({
-              type: 'positive',
-              message: 'NFC tag read successfully.'
-            })
           }
         })
       } catch (error) {
-        this.nfcTagReading = false
         Quasar.Notify.create({
           type: 'negative',
           message: error
@@ -636,6 +632,7 @@ window.app = Vue.createApp({
     payInvoiceWithNfc: function (lnurl, readerAbortController) {
       let dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
+        spinner: true,
         message: this.$t('processing_payment')
       })
 
