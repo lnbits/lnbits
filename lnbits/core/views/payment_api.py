@@ -440,10 +440,10 @@ async def api_payment_pay_with_nfc(
 
             lnurl_res = lnurl_req.json()
 
-            if lnurl_res["status"] == "ERROR":
+            if lnurl_res.get("status") == "ERROR":
                 return JSONResponse({"success": False, "detail": lnurl_res["reason"]})
 
-            if lnurl_res["tag"] != "withdrawRequest":
+            if lnurl_res.get("tag") != "withdrawRequest":
                 return JSONResponse(
                     {"success": False, "detail": "Invalid LNURL-withdraw"}
                 )
@@ -463,7 +463,7 @@ async def api_payment_pay_with_nfc(
 
             callback_res = callback_req.json()
 
-            if callback_res["status"] == "ERROR":
+            if callback_res.get("status") == "ERROR":
                 return JSONResponse(
                     {"success": False, "detail": callback_res["reason"]}
                 )
@@ -471,6 +471,4 @@ async def api_payment_pay_with_nfc(
                 return JSONResponse({"success": True, "detail": callback_res})
 
         except Exception as e:
-            return JSONResponse(
-                {"success": False, "detail": f"Unexpected error: {e!s}"}
-            )
+            return JSONResponse({"success": False, "detail": f"Unexpected error: {e}"})
