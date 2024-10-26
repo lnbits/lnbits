@@ -588,7 +588,7 @@ window.app = Vue.createApp({
         }
 
         this.hasNfc = true
-        Quasar.Notify.create({
+        let dismissNfcTapMsg = Quasar.Notify.create({
           message: 'Tap your NFC tag to pay this invoice with LNURLw.'
         })
 
@@ -612,6 +612,7 @@ window.app = Vue.createApp({
               })
 
               if (record) {
+                dismissNfcTapMsg()
                 Quasar.Notify.create({
                   type: 'positive',
                   message: 'NFC tag read successfully.'
