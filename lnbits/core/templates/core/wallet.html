@@ -281,7 +281,11 @@
         </div>
       </div>
 
-      <q-dialog v-model="receive.show" position="top">
+      <q-dialog
+        v-model="receive.show"
+        position="top"
+        @hide="onReceiveDialogHide"
+      >
         <q-card
           v-if="!receive.paymentReq"
           class="q-pa-lg q-pt-xl lnbits__dialog-card"

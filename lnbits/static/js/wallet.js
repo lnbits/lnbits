@@ -58,7 +58,8 @@ window.app = Vue.createApp({
       },
       inkeyHidden: true,
       adminkeyHidden: true,
-      hasNfc: false
+      hasNfc: false,
+      nfcReaderAbortController: null
     }
   },
   computed: {
@@ -119,6 +120,11 @@ window.app = Vue.createApp({
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
       this.focusInput('setAmount')
+    },
+    onReceiveDialogHide: function () {
+      if (this.hasNfc) {
+        this.nfcReaderAbortController.abort()
+      }
     },
     showParseDialog: function () {
       this.parse.show = true
@@ -576,8 +582,8 @@ window.app = Vue.createApp({
 
         const ndef = new NDEFReader()
 
-        const readerAbortController = new AbortController()
-        readerAbortController.signal.onabort = event => {
+        this.nfcReaderAbortController = new AbortController()
+        this.nfcReaderAbortController.signal.onabort = event => {
           console.debug('All NFC Read operations have been aborted.')
         }
 
@@ -586,40 +592,40 @@ window.app = Vue.createApp({
           message: 'Tap your NFC tag to pay this invoice with LNURLw.'
         })
 
-        return ndef.scan({signal: readerAbortController.signal}).then(() => {
-          ndef.onreadingerror = () => {
-            Quasar.Notify.create({
-              type: 'negative',
-              message: 'There was an error reading this NFC tag.'
-            })
-
-            readerAbortController.abort()
-          }
-
-          ndef.onreading = ({message}) => {
-            //Decode NDEF data from tag
-            const textDecoder = new TextDecoder('utf-8')
-
-            const record = message.records.find(el => {
-              const payload = textDecoder.decode(el.data)
-              return payload.toUpperCase().indexOf('LNURL') !== -1
-            })
-
-            if (record) {
+        return ndef
+          .scan({signal: this.nfcReaderAbortController.signal})
+          .then(() => {
+            ndef.onreadingerror = () => {
               Quasar.Notify.create({
-                type: 'positive',
-                message: 'NFC tag read successfully.'
-              })
-              const lnurl = textDecoder.decode(record.data)
-              this.payInvoiceWithNfc(lnurl, readerAbortController)
-            } else {
-              Quasar.Notify.create({
-                type: 'warning',
-                message: 'NFC tag does not have LNURLw record.'
+                type: 'negative',
+                message: 'There was an error reading this NFC tag.'
               })
             }
-          }
-        })
+
+            ndef.onreading = ({message}) => {
+              //Decode NDEF data from tag
+              const textDecoder = new TextDecoder('utf-8')
+
+              const record = message.records.find(el => {
+                const payload = textDecoder.decode(el.data)
+                return payload.toUpperCase().indexOf('LNURL') !== -1
+              })
+
+              if (record) {
+                Quasar.Notify.create({
+                  type: 'positive',
+                  message: 'NFC tag read successfully.'
+                })
+                const lnurl = textDecoder.decode(record.data)
+                this.payInvoiceWithNfc(lnurl)
+              } else {
+                Quasar.Notify.create({
+                  type: 'warning',
+                  message: 'NFC tag does not have LNURLw record.'
+                })
+              }
+            }
+          })
       } catch (error) {
         Quasar.Notify.create({
           type: 'negative',
@@ -629,7 +635,7 @@ window.app = Vue.createApp({
         })
       }
     },
-    payInvoiceWithNfc: function (lnurl, readerAbortController) {
+    payInvoiceWithNfc: function (lnurl) {
       let dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
         spinner: true,
@@ -656,8 +662,6 @@ window.app = Vue.createApp({
               message: response.data.detail || 'Payment failed'
             })
           }
-
-          readerAbortController.abort()
         })
         .catch(err => {
           dismissPaymentMsg()
