@@ -39,8 +39,10 @@ docker_lightning_unconnected_cli = [
 
 
 def run_cmd(cmd: list) -> str:
-    timeout = 20
+    timeout = 10
     process = Popen(cmd, stdout=PIPE, stderr=PIPE)
+
+    logger.debug(f"running command: {cmd}")
 
     def process_communication(comm):
         stdout, stderr = comm
