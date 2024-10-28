@@ -72,6 +72,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     )
     assert response.status_code < 300
     invoice = response.json()
+    print(invoice)
 
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
@@ -99,7 +100,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         raise FakeError()
 
     task = create_task(wait_for_paid_invoices("test_create_invoice", on_paid)())
-    pay_real_invoice(invoice["payment_request"])
+    pay_real_invoice(invoice["bolt11"])
 
     # wait for the task to exit
     with pytest.raises(FakeError):
@@ -317,7 +318,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         raise FakeError()
 
     task = create_task(wait_for_paid_invoices("test_create_invoice", on_paid)())
-    pay_real_invoice(invoice["payment_request"])
+    pay_real_invoice(invoice["bolt11"])
 
     with pytest.raises(FakeError):
         await task
@@ -342,7 +343,7 @@ async def test_check_fee_reserve(client, adminkey_headers_from):
         )
         assert response.status_code < 300
         invoice = response.json()
-        payment_request = invoice["payment_request"]
+        payment_request = invoice["bolt11"]
 
     response = await client.get(
         f"/api/v1/payments/fee-reserve?invoice={payment_request}",
