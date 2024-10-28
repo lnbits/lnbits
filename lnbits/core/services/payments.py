@@ -219,15 +219,21 @@ async def update_wallet_balance(wallet_id: str, amount: int):
 
 
 async def send_payment_notification(wallet: Wallet, payment: Payment):
-    await websocket_manager.send_data(payment.json(), wallet.inkey)
-    # TODO: @dni why comment out?
-    # one test failing because of this
-    # json.dumps(
-    #     {
-    #         "wallet_balance": wallet.balance,
-    #         "payment": payment,
-    #     }
-    # ),
+    # TODO: websocket message should be a clean payment model
+    # await websocket_manager.send_data(payment.json(), wallet.inkey)
+    # TODO: figure out why we send the balance with the payment here.
+    # cleaner would be to have a separate message for the balance
+    # and send it with the id of the wallet so wallets can subscribe to it
+    await websocket_manager.send_data(
+        json.dumps(
+            {
+                "wallet_balance": wallet.balance,
+                # use pydantic json serialization to get the correct datetime format
+                "payment": json.loads(payment.json()),
+            },
+        ),
+        wallet.inkey,
+    )
     await websocket_manager.send_data(
         json.dumps({"pending": payment.pending}), payment.payment_hash
     )
