@@ -46,7 +46,7 @@
             <q-icon
               name="content_copy"
               class="cursor-pointer q-ml-sm"
-              @click="copyText('{{ wallet.adminkey }}')"
+              @click="copyText(wallet.adminkey)"
             ></q-icon>
           </div>
         </q-item-section>
@@ -75,6 +75,7 @@
       </q-item>
     </q-list>
   </q-card-section>
+  {% raw %}
   <q-expansion-item
     group="api"
     dense
@@ -96,11 +97,12 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl {{ request.base_url }}api/v1/wallet -H "X-Api-Key:
-          <i>{{ wallet.inkey }}</i>"</code
-        >
+          <i>{{wallet.inkey}}</i>"</code
+        >{% endraw %}
       </q-card-section>
     </q-card>
   </q-expansion-item>
+  
   <q-expansion-item
     group="api"
     dense
