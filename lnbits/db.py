@@ -641,6 +641,8 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
     """
     _dict: dict = {}
     for key, value in _row.items():
+        if value is None:
+            continue
         if key not in model.__fields__:
             logger.warning(f"Converting {key} to model `{model}`.")
             continue
