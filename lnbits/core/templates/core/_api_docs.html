@@ -4,6 +4,7 @@
   :label="$t('api_keys_api_docs')"
   :content-inset-level="0.5"
 >
+  {% raw %}
   <q-card-section>
     <q-list>
       <q-item dense class="q-pa-none">
@@ -75,7 +76,6 @@
       </q-item>
     </q-list>
   </q-card-section>
-  {% raw %}
   <q-expansion-item
     group="api"
     dense
@@ -96,13 +96,13 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl {{ request.base_url }}api/v1/wallet -H "X-Api-Key:
+          >curl {{ baseUrl }}api/v1/wallet -H "X-Api-Key:
           <i>{{wallet.inkey}}</i>"</code
-        >{% endraw %}
+        >
       </q-card-section>
     </q-card>
   </q-expansion-item>
-  
+
   <q-expansion-item
     group="api"
     dense
@@ -129,7 +129,7 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}api/v1/payments -d '{"out": false,
+          >curl -X POST {{ baseUrl }}api/v1/payments -d '{"out": false,
           "amount": &lt;int&gt;, "memo": &lt;string&gt;}' -H "X-Api-Key:
           <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code
         >
@@ -155,10 +155,9 @@
         <code>{"payment_hash": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}api/v1/payments -d '{"out": true,
-          "bolt11": &lt;string&gt;}' -H "X-Api-Key:
-          <i>{{ wallet.adminkey }}"</i> -H "Content-type:
-          application/json"</code
+          >curl -X POST {{ baseUrl }}api/v1/payments -d '{"out": true, "bolt11":
+          &lt;string&gt;}' -H "X-Api-Key: <i>{{ wallet.adminkey }}"</i> -H
+          "Content-type: application/json"</code
         >
       </q-card-section>
     </q-card>
@@ -183,8 +182,8 @@
         </h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}api/v1/payments/decode -d
-          '{"data": &lt;bolt11/lnurl, string&gt;}' -H "Content-type:
+          >curl -X POST {{ baseUrl }}api/v1/payments/decode -d '{"data":
+          &lt;bolt11/lnurl, string&gt;}' -H "Content-type:
           application/json"</code
         >
       </q-card-section>
@@ -211,11 +210,12 @@
         <code>{"paid": &lt;bool&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url
-          }}api/v1/payments/&lt;payment_hash&gt; -H "X-Api-Key:
-          <i>{{ wallet.inkey }}"</i> -H "Content-type: application/json"</code
+          >curl -X GET {{ baseUrl }}api/v1/payments/&lt;payment_hash&gt; -H
+          "X-Api-Key: <i>{{ wallet.inkey }}"</i> -H "Content-type:
+          application/json"</code
         >
       </q-card-section>
     </q-card>
   </q-expansion-item>
+  {% endraw %}
 </q-expansion-item>
