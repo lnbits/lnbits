@@ -295,7 +295,7 @@ class Payment(BaseModel):
     expiry: Optional[datetime] = None
     webhook: Optional[str] = None
     webhook_status: Optional[int] = None
-    preimage: Optional[str] = "0" * 64
+    preimage: Optional[str] = None
     tag: Optional[str] = None
     extension: Optional[str] = None
     time: datetime = datetime.now(timezone.utc)
