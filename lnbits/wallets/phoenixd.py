@@ -36,8 +36,18 @@ class PhoenixdWallet(Wallet):
             )
 
         self.endpoint = self.normalize_endpoint(settings.phoenixd_api_endpoint)
+        parsed_url = urllib.parse.urlparse(settings.phoenixd_api_endpoint)
 
-        self.ws_url = f"ws://{urllib.parse.urlsplit(self.endpoint).netloc}/websocket"
+        if parsed_url.scheme == "http":
+            ws_protocol = "ws"
+        elif parsed_url.scheme == "https":
+            ws_protocol = "wss"
+        else:
+            raise ValueError(f"Unsupported scheme: {parsed_url.scheme}")
+
+        self.ws_url = (
+            f"{ws_protocol}://{urllib.parse.urlsplit(self.endpoint).netloc}/websocket"
+        )
         password = settings.phoenixd_api_password
         encoded_auth = base64.b64encode(f":{password}".encode())
         auth = str(encoded_auth, "utf-8")
