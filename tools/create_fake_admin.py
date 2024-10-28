@@ -55,10 +55,10 @@ internal_id = f"internal_{payment_hash}"
 cursor.execute(
     """
     INSERT INTO apipayments
-      (wallet, checking_id, hash, amount, status, memo, fee, expiry, pending)
+      (wallet_id, checking_id, payment_hash, amount, status, memo, fee, expiry)
     VALUES
       (:wallet_id, :checking_id, :payment_hash, :amount,
-       :status, :memo, :fee, :expiry, :pending)
+       :status, :memo, :fee, :expiry)
     """,
     {
         "wallet_id": wallet_id,

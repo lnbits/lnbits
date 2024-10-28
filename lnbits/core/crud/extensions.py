@@ -93,8 +93,8 @@ async def get_user_extension(
 ) -> Optional[UserExtension]:
     return await (conn or db).fetchone(
         """
-            SELECT * FROM extensions
-            WHERE "user" = :user AND extension = :ext
+        SELECT * FROM extensions
+        WHERE "user" = :user AND extension = :ext
         """,
         {"user": user_id, "ext": extension},
         model=UserExtension,
