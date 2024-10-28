@@ -1,5 +1,6 @@
 # ruff: noqa: E402
 import asyncio
+from datetime import datetime, timezone
 
 import uvloop
 
@@ -8,7 +9,6 @@ from lnbits.wallets.fake import FakeWallet
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-from time import time
 from uuid import uuid4
 
 import pytest
@@ -134,6 +134,15 @@ async def from_wallet(from_user):
     yield wallet
 
 
+@pytest_asyncio.fixture(scope="session")
+async def to_wallet_pagination_tests(to_user):
+    user = to_user
+    wallet = await create_wallet(
+        user_id=user.id, wallet_name="test_wallet_to_pagination_tests"
+    )
+    yield wallet
+
+
 @pytest_asyncio.fixture
 async def from_wallet_ws(from_wallet, test_client):
     # wait a bit in order to avoid receiving topup notification
@@ -175,12 +184,28 @@ async def to_wallet(to_user):
     yield wallet
 
 
+@pytest_asyncio.fixture(scope="session")
+async def to_fresh_wallet(to_user):
+    user = to_user
+    wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_to_fresh")
+    yield wallet
+
+
 @pytest_asyncio.fixture
 async def to_wallet_ws(to_wallet, test_client):
     # wait a bit in order to avoid receiving topup notification
     await asyncio.sleep(0.1)
     with test_client.websocket_connect(f"/api/v1/ws/{to_wallet.inkey}") as ws:
         yield ws
+
+
+@pytest_asyncio.fixture(scope="session")
+async def inkey_fresh_headers_to(to_fresh_wallet):
+    wallet = to_fresh_wallet
+    yield {
+        "X-Api-Key": wallet.inkey,
+        "Content-type": "application/json",
+    }
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -234,12 +259,14 @@ async def external_funding_source():
 
 
 @pytest_asyncio.fixture(scope="session")
-async def fake_payments(client, adminkey_headers_from):
+async def fake_payments(client, inkey_fresh_headers_to):
+
+    ts = datetime.now(timezone.utc).timestamp()
+
     # Because sqlite only stores timestamps with milliseconds
     # we have to wait a second to ensure a different timestamp than previous invoices
     if DB_TYPE == SQLITE:
         await asyncio.sleep(1)
-    ts = time()
 
     fake_data = [
         CreateInvoice(amount=10, memo="aaaa", out=False),
@@ -249,7 +276,7 @@ async def fake_payments(client, adminkey_headers_from):
 
     for invoice in fake_data:
         response = await client.post(
-            "/api/v1/payments", headers=adminkey_headers_from, json=invoice.dict()
+            "/api/v1/payments", headers=inkey_fresh_headers_to, json=invoice.dict()
         )
         assert response.is_success
         data = response.json()
@@ -258,7 +285,10 @@ async def fake_payments(client, adminkey_headers_from):
         payment.status = PaymentState.SUCCESS
         await update_payment(payment)
 
-    params = {"time[ge]": ts, "time[le]": time()}
+    params = {
+        "created_at[ge]": ts,
+        "created_at[le]": datetime.now(timezone.utc).timestamp(),
+    }
     return fake_data, params
 
 

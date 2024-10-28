@@ -311,14 +311,14 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
 
 
 @pytest.mark.asyncio
-async def test_get_payments(client, adminkey_headers_from, fake_payments):
+async def test_get_payments(client, inkey_fresh_headers_to, fake_payments):
     fake_data, filters = fake_payments
 
     async def get_payments(params: dict):
         response = await client.get(
             "/api/v1/payments",
             params=filters | params,
-            headers=adminkey_headers_from,
+            headers=inkey_fresh_headers_to,
         )
         assert response.status_code == 200
         return [Payment(**payment) for payment in response.json()]
@@ -346,13 +346,13 @@ async def test_get_payments(client, adminkey_headers_from, fake_payments):
 
 
 @pytest.mark.asyncio
-async def test_get_payments_paginated(client, adminkey_headers_from, fake_payments):
+async def test_get_payments_paginated(client, inkey_fresh_headers_to, fake_payments):
     fake_data, filters = fake_payments
 
     response = await client.get(
         "/api/v1/payments/paginated",
         params=filters | {"limit": 2},
-        headers=adminkey_headers_from,
+        headers=inkey_fresh_headers_to,
     )
     assert response.status_code == 200
     paginated = response.json()
@@ -361,13 +361,13 @@ async def test_get_payments_paginated(client, adminkey_headers_from, fake_paymen
 
 
 @pytest.mark.asyncio
-async def test_get_payments_history(client, adminkey_headers_from, fake_payments):
+async def test_get_payments_history(client, inkey_fresh_headers_to, fake_payments):
     fake_data, filters = fake_payments
 
     response = await client.get(
         "/api/v1/payments/history",
         params=filters,
-        headers=adminkey_headers_from,
+        headers=inkey_fresh_headers_to,
     )
 
     assert response.status_code == 200
@@ -383,7 +383,7 @@ async def test_get_payments_history(client, adminkey_headers_from, fake_payments
     response = await client.get(
         "/api/v1/payments/history?group=INVALID",
         params=filters,
-        headers=adminkey_headers_from,
+        headers=inkey_fresh_headers_to,
     )
 
     assert response.status_code == 400
