@@ -72,7 +72,6 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
     )
     assert response.status_code < 300
     invoice = response.json()
-    print(invoice)
 
     response = await client.get(
         f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
@@ -160,23 +159,16 @@ async def test_pay_hold_invoice_check_pending(
         )
     )
     await asyncio.sleep(1)
-
     # get payment hash from the invoice
     invoice_obj = bolt11.decode(invoice["payment_request"])
-
-    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
-
-    assert payment_db
-
     settle_invoice(preimage)
-
+    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
+    assert payment_db
     response = await task
     assert response.status_code < 300
 
     # check if paid
-
     await asyncio.sleep(1)
-
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
 
     assert payment_db_after_settlement
@@ -199,10 +191,6 @@ async def test_pay_hold_invoice_check_pending_and_fail(
 
     # get payment hash from the invoice
     invoice_obj = bolt11.decode(invoice["payment_request"])
-
-    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
-
-    assert payment_db
 
     preimage_hash = hashlib.sha256(bytes.fromhex(preimage)).hexdigest()
 
@@ -239,10 +227,6 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     # get payment hash from the invoice
     invoice_obj = bolt11.decode(invoice["payment_request"])
 
-    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
-
-    assert payment_db
-
     # cancel payment task, this simulates the client dropping the connection
     task.cancel()
 
@@ -259,7 +243,7 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     assert payment_db_after_settlement is not None
 
     # payment is failed
-    status = await payment_db.check_status()
+    status = await payment_db_after_settlement.check_status()
     assert not status.paid
     assert status.failed
 
