@@ -252,6 +252,17 @@
     </div>
 
     <div class="text-wrap">
+      <b style="white-space: nowrap" v-text="$t('Invoice')"></b>:&nbsp;
+      <q-icon
+        name="content_copy"
+        @click="copyText(payment.bolt11)"
+        size="1em"
+        color="grey"
+        class="q-mb-xs cursor-pointer"
+      />
+    </div>
+
+    <div class="text-wrap">
       <b style="white-space: nowrap" v-text="$t('memo')"></b>:&nbsp;
       <span v-text="payment.memo"></span>
     </div>
