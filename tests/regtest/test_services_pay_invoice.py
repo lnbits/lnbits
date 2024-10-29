@@ -17,7 +17,7 @@ async def test_services_pay_invoice(to_wallet, real_invoice):
         description=description,
     )
     assert payment
-    assert not payment.status == PaymentState.SUCCESS
+    assert payment.status == PaymentState.SUCCESS
     assert payment.memo == description
 
 
