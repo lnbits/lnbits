@@ -17,14 +17,15 @@ async def create_wallet(
     conn: Optional[Connection] = None,
 ) -> Wallet:
     wallet_id = uuid4().hex
+    now = datetime.now(timezone.utc)
     wallet = Wallet(
         id=wallet_id,
         name=wallet_name or settings.lnbits_default_wallet_name,
         user=user_id,
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=now,
+        updated_at=now,
     )
     await (conn or db).insert("wallets", wallet)
     return wallet
