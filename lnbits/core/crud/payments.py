@@ -231,6 +231,8 @@ async def create_payment(
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     assert previous_payment is None, "Payment already exists"
 
+    now = datetime.now(timezone.utc)
+
     payment = Payment(
         checking_id=checking_id,
         status=status,
@@ -244,9 +246,9 @@ async def create_payment(
         webhook=data.webhook,
         fee=data.fee,
         extra=data.extra or {},
-        time=datetime.now(timezone.utc),
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        time=now,
+        created_at=now,
+        updated_at=now,
     )
 
     await (conn or db).insert("apipayments", payment)
