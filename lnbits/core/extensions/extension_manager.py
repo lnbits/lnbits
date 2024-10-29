@@ -31,7 +31,10 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
     db_version = await get_db_version(ext_id)
     await migrate_extension_database(ext_info, db_version)
 
-    await create_installed_extension(ext_info)
+    # if the extensions does not exist in the installed extensions table, create it
+    # if it does exist, it will be activated later in the code
+    if not installed_ext:
+        await create_installed_extension(ext_info)
 
     if extension.is_upgrade_extension:
         # call stop while the old routes are still active
