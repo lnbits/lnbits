@@ -21,6 +21,9 @@ from lnbits.core.crud import (
     get_installed_extensions,
     update_installed_extension_state,
 )
+from lnbits.core.extensions.extension_manager import (
+    deactivate_extension,
+)
 from lnbits.core.extensions.helpers import version_parse
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.tasks import (  # watchdog_task
@@ -238,8 +241,7 @@ async def check_installed_extensions(app: FastAPI):
                 )
         except Exception as e:
             logger.warning(e)
-            settings.deactivate_extension_paths(ext.id)
-            await update_installed_extension_state(ext_id=ext.id, active=False)
+            await deactivate_extension(ext.id)
             logger.warning(
                 f"Failed to re-install extension: {ext.id} ({ext.installed_version})"
             )
