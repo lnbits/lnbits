@@ -5,7 +5,10 @@ window.app = Vue.createApp({
     return {
       updatePayments: false,
       origin: window.location.origin,
+      wallet: LNbits.map.wallet(window.wallet),
       user: LNbits.map.user(window.user),
+      exportUrl: `${window.location.origin}/wallet?usr=${window.user.id}&wal=${window.wallet.id}`,
+      baseUrl: `${window.location.protocol}//${window.location.host}/`,
       receive: {
         show: false,
         status: 'pending',
@@ -142,9 +145,11 @@ window.app = Vue.createApp({
         )
         .then(response => {
           this.receive.status = 'success'
-          this.receive.paymentReq = response.data.payment_request
+          this.receive.paymentReq = response.data.bolt11
           this.receive.paymentHash = response.data.payment_hash
 
+          // TODO: lnurl_callback and lnurl_response
+          // WITHDRAW
           if (response.data.lnurl_response !== null) {
             if (response.data.lnurl_response === false) {
               response.data.lnurl_response = `Unable to connect`
@@ -255,7 +260,7 @@ window.app = Vue.createApp({
         })
     },
     decodeQR: function (res) {
-      this.parse.data.request = res
+      this.parse.data.request = res[0].rawValue
       this.decodeRequest()
       this.parse.camera.show = false
     },
@@ -391,12 +396,13 @@ window.app = Vue.createApp({
                   dismissPaymentMsg()
                   clearInterval(this.parse.paymentChecker)
                   // show lnurlpay success action
-                  if (response.data.success_action) {
-                    switch (response.data.success_action.tag) {
+                  const extra = response.data.extra
+                  if (extra.success_action) {
+                    switch (extra.success_action.tag) {
                       case 'url':
                         Quasar.Notify.create({
-                          message: `<a target="_blank" style="color: inherit" href="${response.data.success_action.url}">${response.data.success_action.url}</a>`,
-                          caption: response.data.success_action.description,
+                          message: `<a target="_blank" style="color: inherit" href="${extra.success_action.url}">${extra.success_action.url}</a>`,
+                          caption: extra.success_action.description,
                           html: true,
                           type: 'positive',
                           timeout: 0,
@@ -405,7 +411,7 @@ window.app = Vue.createApp({
                         break
                       case 'message':
                         Quasar.Notify.create({
-                          message: response.data.success_action.message,
+                          message: extra.success_action.message,
                           type: 'positive',
                           timeout: 0,
                           closeBtn: true
@@ -416,14 +422,14 @@ window.app = Vue.createApp({
                           .getPayment(this.g.wallet, response.data.payment_hash)
                           .then(({data: payment}) =>
                             decryptLnurlPayAES(
-                              response.data.success_action,
+                              extra.success_action,
                               payment.preimage
                             )
                           )
                           .then(value => {
                             Quasar.Notify.create({
                               message: value,
-                              caption: response.data.success_action.description,
+                              caption: extra.success_action.description,
                               html: true,
                               type: 'positive',
                               timeout: 0,

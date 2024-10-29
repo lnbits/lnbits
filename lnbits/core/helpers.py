@@ -1,6 +1,6 @@
 import importlib
 import re
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -8,39 +8,45 @@ from loguru import logger
 
 from lnbits.core import migrations as core_migrations
 from lnbits.core.crud import (
-    get_dbversions,
+    get_db_versions,
     get_installed_extensions,
     update_migration_version,
 )
 from lnbits.core.db import db as core_db
-from lnbits.core.extensions.models import (
-    Extension,
-)
+from lnbits.core.extensions.models import InstallableExtension
+from lnbits.core.models import DbVersion
 from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
 from lnbits.settings import settings
 
 
-async def migrate_extension_database(ext: Extension, current_version):
+async def migrate_extension_database(
+    ext: InstallableExtension, current_version: Optional[DbVersion] = None
+):
+
     try:
         ext_migrations = importlib.import_module(f"{ext.module_name}.migrations")
         ext_db = importlib.import_module(ext.module_name).db
     except ImportError as exc:
         logger.error(exc)
-        raise ImportError(f"Cannot import module for extension '{ext.code}'.") from exc
+        raise ImportError(f"Cannot import module for extension '{ext.id}'.") from exc
 
     async with ext_db.connect() as ext_conn:
-        await run_migration(ext_conn, ext_migrations, ext.code, current_version)
+        await run_migration(ext_conn, ext_migrations, ext.id, current_version)
 
 
 async def run_migration(
-    db: Connection, migrations_module: Any, db_name: str, current_version: int
+    db: Connection,
+    migrations_module: Any,
+    db_name: str,
+    current_version: Optional[DbVersion] = None,
 ):
     matcher = re.compile(r"^m(\d\d\d)_")
-    for key, migrate in migrations_module.__dict__.items():
+
+    for key, migrate in list(migrations_module.__dict__.items()):
         match = matcher.match(key)
         if match:
             version = int(match.group(1))
-            if version > current_version:
+            if not current_version or version > current_version.version:
                 logger.debug(f"running migration {db_name}.{version}")
                 print(f"running migration {db_name}.{version}")
                 await migrate(db)
@@ -87,21 +93,31 @@ async def migrate_databases():
         if not exists:
             await core_migrations.m000_create_migrations_table(conn)
 
-        current_versions = await get_dbversions(conn)
-        core_version = current_versions.get("core", 0)
+        current_versions = await get_db_versions(conn)
+        core_version = next(
+            (v for v in current_versions if v.db == "core"),
+            DbVersion(db="core", version=0),
+        )
         await run_migration(conn, core_migrations, "core", core_version)
 
     # here is the first place we can be sure that the
     # `installed_extensions` table has been created
     await load_disabled_extension_list()
 
-    # todo: revisit, use installed extensions
-    for ext in Extension.get_valid_extensions(False):
-        current_version = current_versions.get(ext.code, 0)
+    for ext in await get_installed_extensions():
+        current_version = next(
+            (v for v in current_versions if v.db == ext.id),
+            DbVersion(db=ext.id, version=0),
+        )
+        if current_version is None:
+            logger.warning(
+                f"Extension {ext.id} has no migration version. This should not happen."
+            )
+            continue
         try:
             await migrate_extension_database(ext, current_version)
         except Exception as e:
-            logger.exception(f"Error migrating extension {ext.code}: {e}")
+            logger.exception(f"Error migrating extension {ext.id}: {e}")
 
     logger.info("✔️ All migrations done.")
 

@@ -3,7 +3,7 @@ import importlib
 import time
 from functools import wraps
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import click
 import httpx
@@ -17,12 +17,13 @@ from lnbits.core.crud import (
     delete_unused_wallets,
     delete_wallet_by_id,
     delete_wallet_payment,
-    get_dbversions,
+    get_db_versions,
     get_installed_extension,
     get_installed_extensions,
+    get_payment,
     get_payments,
     remove_deleted_wallets,
-    update_payment_status,
+    update_payment,
 )
 from lnbits.core.extensions.models import (
     CreateExtension,
@@ -122,7 +123,7 @@ def database_migrate():
 async def db_versions():
     """Show current database versions"""
     async with core_db.connect() as conn:
-        click.echo(await get_dbversions(conn))
+        click.echo(await get_db_versions(conn))
 
 
 @db.command("cleanup-wallets")
@@ -172,9 +173,10 @@ async def database_delete_wallet_payment(wallet: str, checking_id: str):
 async def database_revert_payment(checking_id: str):
     """Mark payment as pending"""
     async with core_db.connect() as conn:
-        await update_payment_status(
-            status=PaymentState.PENDING, checking_id=checking_id, conn=conn
-        )
+        payment = await get_payment(checking_id=checking_id, conn=conn)
+        payment.status = PaymentState.PENDING
+        await update_payment(payment, conn=conn)
+        click.echo(f"Payment '{checking_id}' marked as pending.")
 
 
 @db.command("cleanup-accounts")
@@ -231,7 +233,7 @@ async def check_invalid_payments(
     click.echo("Funding source: " + str(funding_source))
 
     # payments that are settled in the DB, but not at the Funding source level
-    invalid_payments: List[Payment] = []
+    invalid_payments: list[Payment] = []
     invalid_wallets = {}
     for db_payment in settled_db_payments:
         if verbose:
@@ -277,8 +279,10 @@ async def extensions_list():
     from lnbits.app import build_all_installed_extensions_list
 
     for ext in await build_all_installed_extensions_list():
-        assert ext.installed_release, f"Extension {ext.id} has no installed_release"
-        click.echo(f"  - {ext.id} ({ext.installed_release.version})")
+        assert (
+            ext.meta and ext.meta.installed_release
+        ), f"Extension {ext.id} has no installed_release"
+        click.echo(f"  - {ext.id} ({ext.meta.installed_release.version})")
 
 
 @extensions.command("update")
@@ -461,7 +465,7 @@ async def install_extension(
     source_repo: Optional[str] = None,
     url: Optional[str] = None,
     admin_user: Optional[str] = None,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     try:
         release = await _select_release(extension, repo_index, source_repo)
         if not release:
@@ -490,7 +494,7 @@ async def update_extension(
     source_repo: Optional[str] = None,
     url: Optional[str] = None,
     admin_user: Optional[str] = None,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     try:
         click.echo(f"Updating '{extension}' extension.")
         installed_ext = await get_installed_extension(extension)
@@ -503,7 +507,7 @@ async def update_extension(
         click.echo(f"Current '{extension}' version: {installed_ext.installed_version}.")
 
         assert (
-            installed_ext.installed_release
+            installed_ext.meta and installed_ext.meta.installed_release
         ), "Cannot find previously installed release. Please uninstall first."
 
         release = await _select_release(extension, repo_index, source_repo)
@@ -511,7 +515,7 @@ async def update_extension(
             return False, "No release selected."
         if (
             release.version == installed_ext.installed_version
-            and release.source_repo == installed_ext.installed_release.source_repo
+            and release.source_repo == installed_ext.meta.installed_release.source_repo
         ):
             click.echo(f"Extension '{extension}' already up to date.")
             return False, "Already up to date"

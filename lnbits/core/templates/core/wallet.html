@@ -6,7 +6,7 @@
 <script src="{{ static_url_for('static', 'js/wallet.js') }}"></script>
 {% endblock %}
 <!---->
-{% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}
+{% block title %}{{ wallet_name }} - {{ SITE_TITLE }} {% endblock %}
 <!---->
 {% block page %}
 <div class="row q-col-gutter-md">
@@ -36,9 +36,8 @@
           <q-card-section>
             <h3 class="q-my-none text-no-wrap">
               <strong v-text="formattedBalance"></strong>
-              <small>{{LNBITS_DENOMINATION}}</small>
+              <small> {{LNBITS_DENOMINATION}}</small>
               <lnbits-update-balance
-                v-if="'{{user.super_user}}' == 'True'"
                 :wallet_id="this.g.wallet.id"
                 flat
                 :callback="updateBalanceCallback"
@@ -119,7 +118,7 @@
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
                 {{ SITE_TITLE }} Wallet:
-                <strong><em>{{wallet.name}}</em></strong>
+                <strong><em>{{wallet_name}}</em></strong>
               </h6>
             </q-card-section>
             <q-card-section class="q-pa-none">
@@ -154,17 +153,15 @@
                   <q-card>
                     <q-card-section class="text-center">
                       <p v-text="$t('export_to_phone_desc')"></p>
-                      <qrcode-vue
-                        :value="'{{request.base_url}}wallet?usr={{user.id}}&wal={{wallet.id}}'"
-                        :options="{ width: 256 }"
-                      ></qrcode-vue>
+                      <lnbits-qrcode :value="exportUrl"></lnbits-qrcode>
                     </q-card-section>
+                    <span v-text="exportWalletQR"></span>
                     <q-card-actions class="flex-center q-pb-md">
                       <q-btn
                         outline
                         color="grey"
                         :label="$t('copy_wallet_url')"
-                        @click="copyText('{{request.base_url}}wallet?usr={{user.id}}&wal={{wallet.id}}')"
+                        @click="copyText(exportUrl)"
                       ></q-btn>
                     </q-card-actions>
                   </q-card>
@@ -183,7 +180,6 @@
                           v-model.trim="update.name"
                           label="Name"
                           dense
-                          @update:model-value="(e) => console.log(e)"
                         />
                       </div>
                       <q-btn
@@ -370,11 +366,9 @@
         >
           <div class="text-center q-mb-lg">
             <a :href="'lightning:' + receive.paymentReq">
-              <q-responsive :ratio="1" class="q-mx-xl">
-                <lnbits-qrcode
-                  :value="'lightning:' + receive.paymentReq.toUpperCase()"
-                ></lnbits-qrcode>
-              </q-responsive>
+              <lnbits-qrcode
+                :value="'lightning:' + receive.paymentReq.toUpperCase()"
+              ></lnbits-qrcode>
             </a>
           </div>
           <div class="row q-mt-lg">
@@ -627,8 +621,8 @@
             <div v-else>
               <q-responsive :ratio="1">
                 <qrcode-stream
-                  @decode="decodeQR"
-                  @init="onInitQR"
+                  @detect="decodeQR"
+                  @camera-on="onInitQR"
                   class="rounded-borders"
                 ></qrcode-stream>
               </q-responsive>
@@ -651,8 +645,8 @@
         <q-card class="q-pa-lg q-pt-xl">
           <div class="text-center q-mb-lg">
             <qrcode-stream
-              @decode="decodeQR"
-              @init="onInitQR"
+              @detect="decodeQR"
+              @camera-on="onInitQR"
               class="rounded-borders"
             ></qrcode-stream>
           </div>
@@ -667,22 +661,28 @@
           </div>
         </q-card>
       </q-dialog>
-
-      <q-tabs
+      <div
         class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
-        active-class="px-0"
-        indicator-color="transparent"
-        align="justify"
       >
-        <q-tab
-          icon="file_download"
-          @click="showReceiveDialog"
-          :label="$t('receive')"
+        <q-tabs
+          active-class="px-0"
+          indicator-color="transparent"
+          align="justify"
         >
-        </q-tab>
+          <q-tab
+            icon="file_download"
+            @click="showReceiveDialog"
+            :label="$t('receive')"
+          >
+          </q-tab>
 
-        <q-tab @click="showParseDialog" icon="file_upload" :label="$t('send')">
-        </q-tab>
+          <q-tab
+            @click="showParseDialog"
+            icon="file_upload"
+            :label="$t('send')"
+          >
+          </q-tab>
+        </q-tabs>
         <q-btn
           round
           size="35px"
@@ -692,8 +692,7 @@
           class="text-white bg-primary z-top vertical-bottom absolute-center absolute"
         >
         </q-btn>
-      </q-tabs>
-
+      </div>
       <q-dialog v-model="disclaimerDialog.show" position="top">
         <q-card class="q-pa-lg">
           <h6

@@ -12,6 +12,7 @@ window.app = Vue.createApp({
         'confettiFireworks',
         'confettiStars'
       ],
+      borderOptions: ['retro-border', 'hard-border', 'no-border'],
       tab: 'user',
       credentialsData: {
         show: false,
@@ -63,6 +64,27 @@ window.app = Vue.createApp({
         this.$q.localStorage.set('lnbits.gradientBg', false)
       }
     },
+    applyBorder: function () {
+      slef = this
+      if (this.borderChoice) {
+        this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
+      }
+      let borderStyle = this.$q.localStorage.getItem('lnbits.border')
+      this.borderChoice = borderStyle
+      let borderStyleCSS
+      if (borderStyle == 'hard-border') {
+        borderStyleCSS = `box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #ffffff47; border: none;`
+      }
+      if (borderStyle == 'no-border') {
+        borderStyleCSS = `box-shadow: none; border: none;`
+      }
+      if (borderStyle == 'retro-border') {
+        borderStyleCSS = `border: none; border-color: rgba(255, 255, 255, 0.28); box-shadow: 0 1px 5px rgba(255, 255, 255, 0.2), 0 2px 2px rgba(255, 255, 255, 0.14), 0 3px 1px -2px rgba(255, 255, 255, 0.12);`
+      }
+      let style = document.createElement('style')
+      style.innerHTML = `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
+      document.head.appendChild(style)
+    },
     toggleGradient: function () {
       this.gradientChoice = !this.gradientChoice
       this.applyGradient()
@@ -92,7 +114,7 @@ window.app = Vue.createApp({
             user_id: this.user.id,
             username: this.user.username,
             email: this.user.email,
-            config: this.user.config
+            extra: this.user.extra
           }
         )
         this.user = data
@@ -183,12 +205,15 @@ window.app = Vue.createApp({
       const {data} = await LNbits.api.getAuthenticatedUser()
       this.user = data
       this.hasUsername = !!data.username
-      if (!this.user.config) this.user.config = {}
+      if (!this.user.extra) this.user.extra = {}
     } catch (e) {
       LNbits.utils.notifyApiError(e)
     }
     if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
       this.applyGradient()
+    }
+    if (this.$q.localStorage.getItem('lnbits.border')) {
+      this.applyBorder()
     }
   }
 })

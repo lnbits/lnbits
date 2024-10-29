@@ -9,13 +9,12 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from lnurl import decode as lnurl_decode
-from loguru import logger
 from pydantic.types import UUID4
 
-from lnbits.core.extensions.models import Extension, InstallableExtension
+from lnbits.core.extensions.models import Extension, ExtensionMeta, InstallableExtension
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
-from lnbits.core.services import create_invoice
+from lnbits.core.services import create_invoice, create_user_account
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
@@ -23,11 +22,11 @@ from lnbits.wallets import get_funding_source
 
 from ...utils.exchange_rates import allowed_currencies, currencies
 from ..crud import (
-    create_account,
     create_wallet,
-    get_dbversions,
+    get_db_versions,
     get_installed_extensions,
     get_user,
+    get_wallet,
 )
 
 generic_router = APIRouter(
@@ -74,83 +73,87 @@ async def robots():
 
 @generic_router.get("/extensions", name="extensions", response_class=HTMLResponse)
 async def extensions(request: Request, user: User = Depends(check_user_exists)):
-    try:
-        installed_exts: List[InstallableExtension] = await get_installed_extensions()
-        installed_exts_ids = [e.id for e in installed_exts]
+    installed_exts: List[InstallableExtension] = await get_installed_extensions()
+    installed_exts_ids = [e.id for e in installed_exts]
 
-        installable_exts = await InstallableExtension.get_installable_extensions()
-        installable_exts_ids = [e.id for e in installable_exts]
-        installable_exts += [
-            e for e in installed_exts if e.id not in installable_exts_ids
-        ]
+    installable_exts = await InstallableExtension.get_installable_extensions()
+    installable_exts_ids = [e.id for e in installable_exts]
+    installable_exts += [e for e in installed_exts if e.id not in installable_exts_ids]
 
-        for e in installable_exts:
-            installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
-            if installed_ext:
-                e.installed_release = installed_ext.installed_release
-                if installed_ext.pay_to_enable and not user.admin:
-                    # not a security leak, but better not to share the wallet id
-                    installed_ext.pay_to_enable.wallet = None
-                e.pay_to_enable = installed_ext.pay_to_enable
+    for e in installable_exts:
+        installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
+        if installed_ext and installed_ext.meta:
+            installed_release = installed_ext.meta.installed_release
+            if installed_ext.meta.pay_to_enable and not user.admin:
+                # not a security leak, but better not to share the wallet id
+                installed_ext.meta.pay_to_enable.wallet = None
+            pay_to_enable = installed_ext.meta.pay_to_enable
 
-                # use the installed extension values
-                e.name = installed_ext.name
-                e.short_description = installed_ext.short_description
-                e.icon = installed_ext.icon
+            if e.meta:
+                e.meta.installed_release = installed_release
+                e.meta.pay_to_enable = pay_to_enable
+            else:
+                e.meta = ExtensionMeta(
+                    installed_release=installed_release,
+                    pay_to_enable=pay_to_enable,
+                )
+            # use the installed extension values
+            e.name = installed_ext.name
+            e.short_description = installed_ext.short_description
+            e.icon = installed_ext.icon
 
-    except Exception as ex:
-        logger.warning(ex)
-        installable_exts = []
-        installed_exts_ids = []
+    all_ext_ids = [ext.code for ext in Extension.get_valid_extensions()]
+    inactive_extensions = [e.id for e in await get_installed_extensions(active=False)]
+    db_versions = await get_db_versions()
 
-    try:
-        all_ext_ids = [ext.code for ext in Extension.get_valid_extensions()]
-        inactive_extensions = [
-            e.id for e in await get_installed_extensions(active=False)
-        ]
-        db_version = await get_dbversions()
-        extensions = [
-            {
-                "id": ext.id,
-                "name": ext.name,
-                "icon": ext.icon,
-                "shortDescription": ext.short_description,
-                "stars": ext.stars,
-                "isFeatured": ext.featured,
-                "dependencies": ext.dependencies,
-                "isInstalled": ext.id in installed_exts_ids,
-                "hasDatabaseTables": ext.id in db_version,
-                "isAvailable": ext.id in all_ext_ids,
-                "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
-                "isActive": ext.id not in inactive_extensions,
-                "latestRelease": (
-                    dict(ext.latest_release) if ext.latest_release else None
-                ),
-                "installedRelease": (
-                    dict(ext.installed_release) if ext.installed_release else None
-                ),
-                "payToEnable": (dict(ext.pay_to_enable) if ext.pay_to_enable else {}),
-                "isPaymentRequired": ext.requires_payment,
-            }
-            for ext in installable_exts
-        ]
+    extensions = [
+        {
+            "id": ext.id,
+            "name": ext.name,
+            "icon": ext.icon,
+            "shortDescription": ext.short_description,
+            "stars": ext.stars,
+            "isFeatured": ext.meta.featured if ext.meta else False,
+            "dependencies": ext.meta.dependencies if ext.meta else "",
+            "isInstalled": ext.id in installed_exts_ids,
+            "hasDatabaseTables": next(
+                (True for version in db_versions if version.db == ext.id), False
+            ),
+            "isAvailable": ext.id in all_ext_ids,
+            "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
+            "isActive": ext.id not in inactive_extensions,
+            "latestRelease": (
+                dict(ext.meta.latest_release)
+                if ext.meta and ext.meta.latest_release
+                else None
+            ),
+            "installedRelease": (
+                dict(ext.meta.installed_release)
+                if ext.meta and ext.meta.installed_release
+                else None
+            ),
+            "payToEnable": (
+                dict(ext.meta.pay_to_enable)
+                if ext.meta and ext.meta.pay_to_enable
+                else {}
+            ),
+            "isPaymentRequired": ext.requires_payment,
+        }
+        for ext in installable_exts
+    ]
 
-        # refresh user state. Eg: enabled extensions.
-        user = await get_user(user.id) or user
+    # refresh user state. Eg: enabled extensions.
+    # TODO: refactor
+    # user = await get_user(user.id) or user
 
-        return template_renderer().TemplateResponse(
-            request,
-            "core/extensions.html",
-            {
-                "user": user.dict(),
-                "extensions": extensions,
-            },
-        )
-    except Exception as exc:
-        logger.warning(exc)
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
-        ) from exc
+    return template_renderer().TemplateResponse(
+        request,
+        "core/extensions.html",
+        {
+            "user": user.json(),
+            "extensions": extensions,
+        },
+    )
 
 
 @generic_router.get(
@@ -165,18 +168,16 @@ async def wallet(
     wal: Optional[UUID4] = Query(None),
 ):
     if wal:
-        wallet_id = wal.hex
+        wallet = await get_wallet(wal.hex)
     elif len(user.wallets) == 0:
         wallet = await create_wallet(user_id=user.id)
-        user = await get_user(user_id=user.id) or user
-        wallet_id = wallet.id
+        user.wallets.append(wallet)
     elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
-        wallet_id = lnbits_last_active_wallet
+        wallet = await get_wallet(lnbits_last_active_wallet)
     else:
-        wallet_id = user.wallets[0].id
+        wallet = user.wallets[0]
 
-    user_wallet = user.get_wallet(wallet_id)
-    if not user_wallet or user_wallet.deleted:
+    if not wallet or wallet.deleted:
         return template_renderer().TemplateResponse(
             request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
         )
@@ -185,15 +186,16 @@ async def wallet(
         request,
         "core/wallet.html",
         {
-            "user": user.dict(),
-            "wallet": user_wallet.dict(),
+            "user": user.json(),
+            "wallet": wallet.json(),
+            "wallet_name": wallet.name,
             "currencies": allowed_currencies(),
             "service_fee": settings.lnbits_service_fee,
             "service_fee_max": settings.lnbits_service_fee_max,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
     )
-    resp.set_cookie("lnbits_last_active_wallet", wallet_id)
+    resp.set_cookie("lnbits_last_active_wallet", wallet.id)
     return resp
 
 
@@ -209,7 +211,9 @@ async def account(
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
-        {"user": user.dict()},
+        {
+            "user": user.json(),
+        },
     )
 
 
@@ -228,11 +232,9 @@ async def service_worker(request: Request):
 @generic_router.get("/manifest/{usr}.webmanifest")
 async def manifest(request: Request, usr: str):
     host = urlparse(str(request.url)).netloc
-
     user = await get_user(usr)
     if not user:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-
     return {
         "short_name": settings.lnbits_site_title,
         "name": settings.lnbits_site_title + " Wallet",
@@ -320,10 +322,10 @@ async def node(request: Request, user: User = Depends(check_admin)):
         request,
         "node/index.html",
         {
-            "user": user.dict(),
+            "user": user.json(),
             "settings": settings.dict(),
             "balance": balance,
-            "wallets": user.wallets[0].dict(),
+            "wallets": user.wallets[0].json(),
         },
     )
 
@@ -358,7 +360,7 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
         request,
         "admin/index.html",
         {
-            "user": user.dict(),
+            "user": user.json(),
             "settings": settings.dict(),
             "balance": balance,
             "currencies": list(currencies.keys()),
@@ -375,7 +377,7 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
         "users/index.html",
         {
             "request": request,
-            "user": user.dict(),
+            "user": user.json(),
             "settings": settings.dict(),
             "currencies": list(currencies.keys()),
         },
@@ -424,7 +426,7 @@ async def lnurlwallet(request: Request):
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="Invalid lnurl. Expected maxWithdrawable",
             )
-        account = await create_account()
+        account = await create_user_account()
         wallet = await create_wallet(user_id=account.id)
         _, payment_request = await create_invoice(
             wallet_id=wallet.id,

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "1.0.0-rc2"
+version = "1.0.0-rc5"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 readme = "README.md"
@@ -201,6 +201,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 [tool.ruff.lint.pep8-naming]
 classmethod-decorators = [
     "root_validator",
+    "validator",
 ]
 
 [tool.ruff.lint.mccabe]

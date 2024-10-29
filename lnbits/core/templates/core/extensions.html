@@ -107,7 +107,7 @@
                 color="secondary"
                 style=""
                 v-model="extension.isActive"
-                @input="toggleExtension(extension)"
+                @update:model-value="toggleExtension(extension)"
                 ><q-tooltip>
                   &nbsp;
                   <span
@@ -659,11 +659,9 @@
           <a
             :href="'lightning:' + selectedExtension.payToEnable.paymentRequest"
           >
-            <q-responsive :ratio="1" class="q-mx-xl">
-              <lnbits-qrcode
-                :value="'lightning:' + selectedExtension.payToEnable.paymentRequest.toUpperCase()"
-              ></lnbits-qrcode>
-            </q-responsive>
+            <lnbits-qrcode
+              :value="'lightning:' + selectedExtension.payToEnable.paymentRequest.toUpperCase()"
+            ></lnbits-qrcode>
           </a>
         </div>
         <div v-else class="col">
@@ -1060,7 +1058,7 @@
             extension.inProgress = false
           })
       },
-      toggleExtension: function (extension) {
+      toggleExtension(extension) {
         const action = extension.isActive ? 'activate' : 'deactivate'
         LNbits.api
           .request(

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-import datetime
+import json
 import os
 import re
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Generic, Literal, Optional, TypeVar
+from typing import Any, Generic, Literal, Optional, TypeVar, Union
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
@@ -50,7 +51,7 @@ def compat_timestamp_placeholder(key: str):
 
 def get_placeholder(model: Any, field: str) -> str:
     type_ = model.__fields__[field].type_
-    if type_ == datetime.datetime:
+    if type_ == datetime:
         return compat_timestamp_placeholder(field)
     else:
         return f":{field}"
@@ -67,7 +68,7 @@ class Compat:
             return f"{seconds}"
         return "<nothing>"
 
-    def datetime_to_timestamp(self, date: datetime.datetime):
+    def datetime_to_timestamp(self, date: datetime):
         if self.type in {POSTGRES, COCKROACH}:
             return date.strftime("%Y-%m-%d %H:%M:%S")
         elif self.type == SQLITE:
@@ -134,7 +135,7 @@ class Connection(Compat):
         for key, raw_value in values.items():
             if isinstance(raw_value, str):
                 clean_values[key] = re.sub(clean_regex, "", raw_value)
-            elif isinstance(raw_value, datetime.datetime):
+            elif isinstance(raw_value, datetime):
                 ts = raw_value.timestamp()
                 if self.type == SQLITE:
                     clean_values[key] = int(ts)
@@ -144,19 +145,49 @@ class Connection(Compat):
                 clean_values[key] = raw_value
         return clean_values
 
-    async def fetchall(self, query: str, values: Optional[dict] = None) -> list[dict]:
+    async def fetchall(
+        self,
+        query: str,
+        values: Optional[dict] = None,
+        model: Optional[type[TModel]] = None,
+    ) -> list[TModel]:
         params = self.rewrite_values(values) if values else {}
         result = await self.conn.execute(text(self.rewrite_query(query)), params)
         row = result.mappings().all()
         result.close()
+        if not row:
+            return []
+        if model:
+            return [dict_to_model(r, model) for r in row]
         return row
 
-    async def fetchone(self, query: str, values: Optional[dict] = None) -> dict:
+    async def fetchone(
+        self,
+        query: str,
+        values: Optional[dict] = None,
+        model: Optional[type[TModel]] = None,
+    ) -> TModel:
         params = self.rewrite_values(values) if values else {}
         result = await self.conn.execute(text(self.rewrite_query(query)), params)
         row = result.mappings().first()
         result.close()
+        if model and row:
+            return dict_to_model(row, model)
         return row
+
+    async def update(
+        self, table_name: str, model: BaseModel, where: str = "WHERE id = :id"
+    ):
+        await self.conn.execute(
+            text(update_query(table_name, model, where)), model_to_dict(model)
+        )
+        await self.conn.commit()
+
+    async def insert(self, table_name: str, model: BaseModel):
+        await self.conn.execute(
+            text(insert_query(table_name, model)), model_to_dict(model)
+        )
+        await self.conn.commit()
 
     async def fetch_page(
         self,
@@ -164,9 +195,9 @@ class Connection(Compat):
         where: Optional[list[str]] = None,
         values: Optional[dict] = None,
         filters: Optional[Filters] = None,
-        model: Optional[type[TRowModel]] = None,
+        model: Optional[type[TModel]] = None,
         group_by: Optional[list[str]] = None,
-    ) -> Page[TRowModel]:
+    ) -> Page[TModel]:
         if not filters:
             filters = Filters()
         clause = filters.where(where)
@@ -190,11 +221,12 @@ class Connection(Compat):
             {filters.pagination()}
             """,
             self.rewrite_values(parsed_values),
+            model,
         )
         if rows:
             # no need for extra query if no pagination is specified
             if filters.offset or filters.limit:
-                result = await self.fetchone(
+                result = await self.execute(
                     f"""
                     SELECT COUNT(*) as count FROM (
                         {query}
@@ -204,14 +236,16 @@ class Connection(Compat):
                     """,
                     parsed_values,
                 )
-                count = int(result.get("count", 0))
+                row = result.mappings().first()
+                result.close()
+                count = int(row.get("count", 0))
             else:
                 count = len(rows)
         else:
             count = 0
 
         return Page(
-            data=[model.from_row(row) for row in rows] if model else [],
+            data=rows,
             total=count,
         )
 
@@ -251,21 +285,19 @@ class Database(Compat):
 
             @event.listens_for(self.engine.sync_engine, "connect")
             def register_custom_types(dbapi_connection, *_):
-                def _parse_timestamp(value):
+                def _parse_date(value) -> datetime:
                     if value is None:
-                        return None
+                        value = "1970-01-01 00:00:00"
                     f = "%Y-%m-%d %H:%M:%S.%f"
                     if "." not in value:
                         f = "%Y-%m-%d %H:%M:%S"
-                    return int(
-                        time.mktime(datetime.datetime.strptime(value, f).timetuple())
-                    )
+                    return datetime.strptime(value, f)
 
                 dbapi_connection.run_async(
                     lambda connection: connection.set_type_codec(
                         "TIMESTAMP",
-                        encoder=datetime.datetime,
-                        decoder=_parse_timestamp,
+                        encoder=datetime,
+                        decoder=_parse_date,
                         schema="pg_catalog",
                     )
                 )
@@ -296,13 +328,33 @@ class Database(Compat):
         finally:
             self.lock.release()
 
-    async def fetchall(self, query: str, values: Optional[dict] = None) -> list[dict]:
+    async def fetchall(
+        self,
+        query: str,
+        values: Optional[dict] = None,
+        model: Optional[type[TModel]] = None,
+    ) -> list[TModel]:
         async with self.connect() as conn:
-            return await conn.fetchall(query, values)
+            return await conn.fetchall(query, values, model)
 
-    async def fetchone(self, query: str, values: Optional[dict] = None) -> dict:
+    async def fetchone(
+        self,
+        query: str,
+        values: Optional[dict] = None,
+        model: Optional[type[TModel]] = None,
+    ) -> TModel:
         async with self.connect() as conn:
-            return await conn.fetchone(query, values)
+            return await conn.fetchone(query, values, model)
+
+    async def insert(self, table_name: str, model: BaseModel) -> None:
+        async with self.connect() as conn:
+            await conn.insert(table_name, model)
+
+    async def update(
+        self, table_name: str, model: BaseModel, where: str = "WHERE id = :id"
+    ) -> None:
+        async with self.connect() as conn:
+            await conn.update(table_name, model, where)
 
     async def fetch_page(
         self,
@@ -310,9 +362,9 @@ class Database(Compat):
         where: Optional[list[str]] = None,
         values: Optional[dict] = None,
         filters: Optional[Filters] = None,
-        model: Optional[type[TRowModel]] = None,
+        model: Optional[type[TModel]] = None,
         group_by: Optional[list[str]] = None,
-    ) -> Page[TRowModel]:
+    ) -> Page[TModel]:
         async with self.connect() as conn:
             return await conn.fetch_page(query, where, values, filters, model, group_by)
 
@@ -372,12 +424,6 @@ class Operator(Enum):
             raise ValueError("Unknown SQL Operator")
 
 
-class FromRowModel(BaseModel):
-    @classmethod
-    def from_row(cls, row: dict):
-        return cls(**row)
-
-
 class FilterModel(BaseModel):
     __search_fields__: list[str] = []
     __sort_fields__: Optional[list[str]] = None
@@ -385,7 +431,6 @@ class FilterModel(BaseModel):
 
 T = TypeVar("T")
 TModel = TypeVar("TModel", bound=BaseModel)
-TRowModel = TypeVar("TRowModel", bound=FromRowModel)
 TFilterModel = TypeVar("TFilterModel", bound=FilterModel)
 
 
@@ -435,10 +480,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
         stmt = []
         for key in self.values.keys() if self.values else []:
             clean_key = key.split("__")[0]
-            if (
-                self.model
-                and self.model.__fields__[clean_key].type_ == datetime.datetime
-            ):
+            if self.model and self.model.__fields__[clean_key].type_ == datetime:
                 placeholder = compat_timestamp_placeholder(key)
             else:
                 placeholder = f":{key}"
@@ -518,3 +560,111 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if self.search and self.model:
             values["search"] = f"%{self.search}%"
         return values
+
+
+def insert_query(table_name: str, model: BaseModel) -> str:
+    """
+    Generate an insert query with placeholders for a given table and model
+    :param table_name: Name of the table
+    :param model: Pydantic model
+    """
+    placeholders = []
+    keys = model_to_dict(model).keys()
+    for field in keys:
+        placeholders.append(get_placeholder(model, field))
+    # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
+    fields = ", ".join([f'"{key}"' for key in keys])
+    values = ", ".join(placeholders)
+    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
+
+
+def update_query(
+    table_name: str, model: BaseModel, where: str = "WHERE id = :id"
+) -> str:
+    """
+    Generate an update query with placeholders for a given table and model
+    :param table_name: Name of the table
+    :param model: Pydantic model
+    :param where: Where string, default to `WHERE id = :id`
+    """
+    fields = []
+    for field in model_to_dict(model).keys():
+        placeholder = get_placeholder(model, field)
+        # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
+        fields.append(f'"{field}" = {placeholder}')
+    query = ", ".join(fields)
+    return f"UPDATE {table_name} SET {query} {where}"
+
+
+def model_to_dict(model: BaseModel) -> dict:
+    """
+    Convert a Pydantic model to a dictionary with JSON-encoded nested models
+    private fields starting with _ are ignored
+    :param model: Pydantic model
+    """
+    _dict: dict = {}
+    for key, value in model.dict().items():
+        type_ = model.__fields__[key].type_
+        if model.__fields__[key].field_info.extra.get("no_database", False):
+            continue
+        if isinstance(value, datetime):
+            _dict[key] = value.timestamp()
+            continue
+        if type(type_) is type(BaseModel) or type_ is dict:
+            _dict[key] = json.dumps(value)
+            continue
+        _dict[key] = value
+
+    return _dict
+
+
+def dict_to_submodel(model: type[TModel], value: Union[dict, str]) -> Optional[TModel]:
+    """convert a dictionary or JSON string to a Pydantic model"""
+    if isinstance(value, str):
+        if value == "null":
+            return None
+        _subdict = json.loads(value)
+    elif isinstance(value, dict):
+        _subdict = value
+    else:
+        logger.warning(f"Expected str or dict, got {type(value)}")
+        return None
+    # recursively convert nested models
+    return dict_to_model(_subdict, model)
+
+
+def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
+    """
+    Convert a dictionary with JSON-encoded nested models to a Pydantic model
+    :param _dict: Dictionary from database
+    :param model: Pydantic model
+    """
+    _dict: dict = {}
+    for key, value in _row.items():
+        if value is None:
+            continue
+        if key not in model.__fields__:
+            logger.warning(f"Converting {key} to model `{model}`.")
+            continue
+        type_ = model.__fields__[key].type_
+        if issubclass(type_, bool):
+            _dict[key] = bool(value)
+            continue
+        if issubclass(type_, datetime):
+            if DB_TYPE == SQLITE:
+                _dict[key] = datetime.fromtimestamp(value, timezone.utc)
+            else:
+                _dict[key] = value
+            continue
+        if issubclass(type_, BaseModel) and value:
+            _dict[key] = dict_to_submodel(type_, value)
+            continue
+        # TODO: remove this when all sub models are migrated to Pydantic
+        # NOTE: this is for type dict on BaseModel, (used in Payment class)
+        if type_ is dict and value:
+            _dict[key] = json.loads(value)
+            continue
+        _dict[key] = value
+        continue
+    _model = model.construct(**_dict)
+    return _model

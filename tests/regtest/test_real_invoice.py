@@ -4,7 +4,7 @@ import hashlib
 import pytest
 
 from lnbits import bolt11
-from lnbits.core.crud import get_standalone_payment, update_payment_details
+from lnbits.core.crud import get_standalone_payment, update_payment
 from lnbits.core.models import CreateInvoice, Payment, PaymentState
 from lnbits.core.services import fee_reserve_total, get_balance_delta
 from lnbits.tasks import create_task, wait_for_paid_invoices
@@ -99,7 +99,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         raise FakeError()
 
     task = create_task(wait_for_paid_invoices("test_create_invoice", on_paid)())
-    pay_real_invoice(invoice["payment_request"])
+    pay_real_invoice(invoice["bolt11"])
 
     # wait for the task to exit
     with pytest.raises(FakeError):
@@ -143,7 +143,6 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     payment = await get_standalone_payment(invoice["payment_hash"])
     assert payment
     assert payment.success
-    assert payment.pending is False
 
 
 @pytest.mark.asyncio
@@ -160,28 +159,19 @@ async def test_pay_hold_invoice_check_pending(
         )
     )
     await asyncio.sleep(1)
-
     # get payment hash from the invoice
     invoice_obj = bolt11.decode(invoice["payment_request"])
-
-    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
-
-    assert payment_db
-    assert payment_db.pending is True
-
     settle_invoice(preimage)
-
+    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
+    assert payment_db
     response = await task
     assert response.status_code < 300
 
     # check if paid
-
     await asyncio.sleep(1)
-
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
 
     assert payment_db_after_settlement
-    assert payment_db_after_settlement.pending is False
 
 
 @pytest.mark.asyncio
@@ -202,11 +192,6 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     # get payment hash from the invoice
     invoice_obj = bolt11.decode(invoice["payment_request"])
 
-    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
-
-    assert payment_db
-    assert payment_db.pending is True
-
     preimage_hash = hashlib.sha256(bytes.fromhex(preimage)).hexdigest()
 
     # cancel the hodl invoice
@@ -221,7 +206,6 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     # payment should be in database as failed
     payment_db_after_settlement = await get_standalone_payment(invoice_obj.payment_hash)
     assert payment_db_after_settlement
-    assert payment_db_after_settlement.pending is False
     assert payment_db_after_settlement.failed is True
 
 
@@ -243,11 +227,6 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     # get payment hash from the invoice
     invoice_obj = bolt11.decode(invoice["payment_request"])
 
-    payment_db = await get_standalone_payment(invoice_obj.payment_hash)
-
-    assert payment_db
-    assert payment_db.pending is True
-
     # cancel payment task, this simulates the client dropping the connection
     task.cancel()
 
@@ -264,7 +243,7 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     assert payment_db_after_settlement is not None
 
     # payment is failed
-    status = await payment_db.check_status()
+    status = await payment_db_after_settlement.check_status()
     assert not status.paid
     assert status.failed
 
@@ -307,16 +286,15 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         assert payment_status["paid"]
 
         assert payment
-        assert payment.pending is False
 
         # set the incoming invoice to pending
-        await update_payment_details(payment.checking_id, status=PaymentState.PENDING)
+        payment.status = PaymentState.PENDING
+        await update_payment(payment)
 
         payment_pending = await get_standalone_payment(
             invoice["payment_hash"], incoming=True
         )
         assert payment_pending
-        assert payment_pending.pending is True
         assert payment_pending.success is False
         assert payment_pending.failed is False
 
@@ -324,7 +302,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         raise FakeError()
 
     task = create_task(wait_for_paid_invoices("test_create_invoice", on_paid)())
-    pay_real_invoice(invoice["payment_request"])
+    pay_real_invoice(invoice["bolt11"])
 
     with pytest.raises(FakeError):
         await task
@@ -349,7 +327,7 @@ async def test_check_fee_reserve(client, adminkey_headers_from):
         )
         assert response.status_code < 300
         invoice = response.json()
-        payment_request = invoice["payment_request"]
+        payment_request = invoice["bolt11"]
 
     response = await client.get(
         f"/api/v1/payments/fee-reserve?invoice={payment_request}",

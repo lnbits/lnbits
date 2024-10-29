@@ -1,9 +1,11 @@
+import json
 from time import time
 
 from loguru import logger
 from sqlalchemy.exc import OperationalError
 
 from lnbits import bolt11
+from lnbits.db import Connection
 
 
 async def m000_create_migrations_table(db):
@@ -99,9 +101,8 @@ async def m002_add_fields_to_apipayments(db):
         await db.execute("ALTER TABLE apipayments ADD COLUMN bolt11 TEXT")
         await db.execute("ALTER TABLE apipayments ADD COLUMN extra TEXT")
 
-        import json
-
-        rows = await db.fetchall("SELECT * FROM apipayments")
+        result = await db.execute("SELECT * FROM apipayments")
+        rows = result.mappings().all()
         for row in rows:
             if not row["memo"] or not row["memo"].startswith("#"):
                 continue
@@ -211,7 +212,7 @@ async def m007_set_invoice_expiries(db):
     Precomputes invoice expiry for existing pending incoming payments.
     """
     try:
-        rows = await db.fetchall(
+        result = await db.execute(
             f"""
             SELECT bolt11, checking_id
             FROM apipayments
@@ -222,6 +223,7 @@ async def m007_set_invoice_expiries(db):
             AND time < {db.timestamp_now}
             """
         )
+        rows = result.mappings().all()
         if len(rows):
             logger.info(f"Migration: Checking expiry of {len(rows)} invoices")
         for i, (
@@ -339,7 +341,7 @@ async def m014_set_deleted_wallets(db):
     Sets deleted column to wallets.
     """
     try:
-        rows = await db.fetchall(
+        result = await db.execute(
             """
             SELECT *
             FROM wallets
@@ -348,12 +350,13 @@ async def m014_set_deleted_wallets(db):
             AND inkey LIKE 'del:%'
             """
         )
+        rows = result.mappings().all()
 
         for row in rows:
             try:
-                user = row[2].split(":")[1]
-                adminkey = row[3].split(":")[1]
-                inkey = row[4].split(":")[1]
+                user = row["user"].split(":")[1]
+                adminkey = row["adminkey"].split(":")[1]
+                inkey = row["inkey"].split(":")[1]
                 await db.execute(
                     """
                     UPDATE wallets SET
@@ -541,8 +544,6 @@ async def m021_add_success_failed_to_apipayments(db):
         GROUP BY apipayments.wallet
     """
     )
-    # TODO: drop column in next release
-    # await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
 
 
 async def m022_add_pubkey_to_accounts(db):
@@ -553,3 +554,78 @@ async def m022_add_pubkey_to_accounts(db):
         await db.execute("ALTER TABLE accounts ADD COLUMN pubkey TEXT")
     except OperationalError:
         pass
+
+
+async def m023_add_column_column_to_apipayments(db):
+    """
+    renames hash to payment_hash and drops unused index
+    """
+    await db.execute("DROP INDEX by_hash")
+    await db.execute("ALTER TABLE apipayments RENAME COLUMN hash TO payment_hash")
+    await db.execute("ALTER TABLE apipayments RENAME COLUMN wallet TO wallet_id")
+    await db.execute("ALTER TABLE accounts RENAME COLUMN pass TO password_hash")
+
+    await db.execute("CREATE INDEX by_hash ON apipayments (payment_hash)")
+
+
+async def m024_drop_pending(db):
+    await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
+
+
+async def m025_refresh_view(db):
+    await db.execute("DROP VIEW balances")
+    await db.execute(
+        """
+        CREATE VIEW balances AS
+        SELECT apipayments.wallet_id,
+               SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+        FROM wallets
+        LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
+        WHERE (wallets.deleted = false OR wallets.deleted is NULL)
+        AND (
+            (apipayments.status = 'success' AND apipayments.amount > 0)
+            OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
+        )
+        GROUP BY apipayments.wallet_id
+    """
+    )
+
+
+async def m026_update_payment_table(db):
+    await db.execute("ALTER TABLE apipayments ADD COLUMN tag TEXT")
+    await db.execute("ALTER TABLE apipayments ADD COLUMN extension TEXT")
+    await db.execute("ALTER TABLE apipayments ADD COLUMN created_at TIMESTAMP")
+    await db.execute("ALTER TABLE apipayments ADD COLUMN updated_at TIMESTAMP")
+
+
+async def m027_update_apipayments_data(db: Connection):
+    result = None
+    try:
+        result = await db.execute("SELECT * FROM apipayments")
+    except Exception as exc:
+        logger.warning("Could not select, trying again after cache cleared.")
+        logger.debug(exc)
+        await db.execute("COMMIT")
+
+    result = await db.execute("SELECT * FROM apipayments")
+
+    payments = result.mappings().all()
+    for payment in payments:
+        tag = None
+        created_at = payment.get("time")
+        if payment.get("extra"):
+            extra = json.loads(payment.get("extra"))
+            tag = extra.get("tag")
+        tsph = db.timestamp_placeholder("created_at")
+        await db.execute(
+            f"""
+            UPDATE apipayments
+            SET tag = :tag, created_at = {tsph}, updated_at = {tsph}
+            WHERE checking_id = :checking_id
+            """,
+            {
+                "tag": tag,
+                "created_at": created_at,
+                "checking_id": payment.get("checking_id"),
+            },
+        )

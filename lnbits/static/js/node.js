@@ -1,9 +1,3 @@
-function shortenNodeId(nodeId) {
-  return nodeId
-    ? nodeId.substring(0, 5) + '...' + nodeId.substring(nodeId.length - 5)
-    : '...'
-}
-
 window.app.component('lnbits-node-ranks', {
   props: ['ranks'],
   data: function () {
@@ -141,7 +135,11 @@ window.app.component('lnbits-node-info', {
   },
   mixins: [window.windowMixin],
   methods: {
-    shortenNodeId
+    shortenNodeId(nodeId) {
+      return nodeId
+        ? nodeId.substring(0, 5) + '...' + nodeId.substring(nodeId.length - 5)
+        : '...'
+    }
   },
   template: `
     <div class='row items-baseline q-gutter-x-sm'>
