@@ -41,8 +41,8 @@ class Wallet(BaseModel):
     adminkey: str
     inkey: str
     deleted: bool = False
-    created_at: datetime = datetime.now(timezone.utc)
-    updated_at: datetime = datetime.now(timezone.utc)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     currency: Optional[str] = None
     balance_msat: int = Field(default=0, no_database=True)
 
@@ -109,8 +109,8 @@ class Account(BaseModel):
     pubkey: Optional[str] = None
     email: Optional[str] = None
     extra: UserExtra = UserExtra()
-    created_at: datetime = datetime.now(timezone.utc)
-    updated_at: datetime = datetime.now(timezone.utc)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def is_super_user(self) -> bool:
@@ -298,9 +298,9 @@ class Payment(BaseModel):
     preimage: Optional[str] = None
     tag: Optional[str] = None
     extension: Optional[str] = None
-    time: datetime = datetime.now(timezone.utc)
-    created_at: datetime = datetime.now(timezone.utc)
-    updated_at: datetime = datetime.now(timezone.utc)
+    time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     extra: dict = {}
 
     @property
