@@ -7,7 +7,7 @@ from pydantic import parse_obj_as
 
 from lnbits import bolt11
 from lnbits.nodes.base import ChannelPoint, ChannelState, NodeChannel
-from tests.conftest import pytest_asyncio, settings
+from tests.conftest import pytest_asyncio
 
 from ..helpers import (
     funding_source,
@@ -25,7 +25,7 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest_asyncio.fixture()
-async def node_client(client, from_super_user):
+async def node_client(client, from_super_user, settings):
     settings.lnbits_node_ui = True
     settings.lnbits_public_node_ui = False
     settings.lnbits_node_ui_transactions = True
@@ -37,14 +37,14 @@ async def node_client(client, from_super_user):
 
 
 @pytest_asyncio.fixture()
-async def public_node_client(node_client):
+async def public_node_client(node_client, settings):
     settings.lnbits_public_node_ui = True
     yield node_client
     settings.lnbits_public_node_ui = False
 
 
 @pytest.mark.asyncio
-async def test_node_info_not_found(client, from_super_user):
+async def test_node_info_not_found(client, from_super_user, settings):
     settings.lnbits_node_ui = False
     response = await client.get("/node/api/v1/info", params={"usr": from_super_user.id})
     assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
