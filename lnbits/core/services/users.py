@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from uuid import UUID, uuid4
@@ -117,9 +118,12 @@ async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings
         account = await get_account(super_user)
     if not account:
         account_id = super_user or uuid4().hex
+        now = datetime.now(timezone.utc)
         account = Account(
             id=account_id,
             extra=UserExtra(provider="env"),
+            created_at=now,
+            updated_at=now,
         )
         await create_account(account)
         await create_wallet(user_id=account.id)

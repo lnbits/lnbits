@@ -1,6 +1,7 @@
 import base64
 import importlib
 import json
+from datetime import datetime, timezone
 from http import HTTPStatus
 from time import time
 from typing import Callable, Optional
@@ -76,10 +77,13 @@ async def nostr_login(request: Request) -> JSONResponse:
     event = _nostr_nip98_event(request)
     account = await get_account_by_pubkey(event["pubkey"])
     if not account:
+        now = datetime.now(timezone.utc)
         account = Account(
             id=uuid4().hex,
             pubkey=event["pubkey"],
             extra=UserExtra(provider="nostr"),
+            created_at=now,
+            updated_at=now,
         )
         await create_user_account(account)
     return _auth_success_response(account.username or "", account.id, account.email)
@@ -166,10 +170,13 @@ async def register(data: CreateUser) -> JSONResponse:
     if data.email and not is_valid_email_address(data.email):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
 
+    now = datetime.now(timezone.utc)
     account = Account(
         id=uuid4().hex,
         email=data.email,
         username=data.username,
+        created_at=now,
+        updated_at=now,
     )
     account.hash_password(data.password)
     await create_user_account(account)
@@ -346,8 +353,13 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = 
         account.extra.email_verified = True
         await update_account(account)
     else:
+        now = datetime.now(timezone.utc)
         account = Account(
-            id=uuid4().hex, email=email, extra=UserExtra(email_verified=True)
+            id=uuid4().hex,
+            email=email,
+            extra=UserExtra(email_verified=True),
+            created_at=now,
+            updated_at=now,
         )
         await create_user_account(account)
     return _auth_redirect_response(redirect_path, email)

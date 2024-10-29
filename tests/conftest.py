@@ -105,10 +105,13 @@ async def user_alan():
     if account:
         await delete_account(account.id)
 
+    now = datetime.now(timezone.utc)
     account = Account(
         id=uuid4().hex,
         email="alan@lnbits.com",
         username="alan",
+        created_at=now,
+        updated_at=now,
     )
     account.hash_password("secret1234")
     user = await create_user_account(account)
