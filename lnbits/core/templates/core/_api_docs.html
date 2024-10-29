@@ -144,9 +144,23 @@
   >
     <q-card>
       <q-card-section>
-        <code><span class="text-light-green">POST</span> /api/v1/payments</code>
+        <code
+          ><span class="text-light-green">POST</span> /api/v1/payments (reveal
+          admin keys
+          <q-icon
+            :name="adminkeyHidden ? 'visibility_off' : 'visibility'"
+            class="cursor-pointer"
+            @click="adminkeyHidden = !adminkeyHidden"
+          ></q-icon
+          >)</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-        <code>{"X-Api-Key": "{{ wallet.adminkey }}"}</code>
+        <code
+          >{"X-Api-Key": "<i
+            v-text="adminkeyHidden ? '****************' : wallet.adminkey"
+          ></i
+          >"}</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <code>{"out": true, "bolt11": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">
@@ -157,8 +171,8 @@
         <code
           >curl -X POST <span v-text="baseUrl"></span>api/v1/payments -d
           '{"out": true, "bolt11": &lt;string&gt;}' -H "X-Api-Key:
-          <i v-text="wallet.adminkey"></i>" -H "Content-type:
-          application/json"</code
+          <i v-text="adminkeyHidden ? '****************' : wallet.adminkey"></i
+          >" -H "Content-type: application/json"</code
         >
       </q-card-section>
     </q-card>
