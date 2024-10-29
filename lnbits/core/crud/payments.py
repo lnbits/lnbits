@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from time import time
 from typing import Literal, Optional
 
@@ -243,6 +244,9 @@ async def create_payment(
         webhook=data.webhook,
         fee=data.fee,
         extra=data.extra or {},
+        time=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
 
     await (conn or db).insert("apipayments", payment)

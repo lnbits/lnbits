@@ -23,6 +23,8 @@ async def create_wallet(
         user=user_id,
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     await (conn or db).insert("wallets", wallet)
     return wallet

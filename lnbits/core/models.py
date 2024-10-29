@@ -40,9 +40,9 @@ class Wallet(BaseModel):
     name: str
     adminkey: str
     inkey: str
+    created_at: datetime
+    updated_at: datetime
     deleted: bool = False
-    created_at: datetime = datetime.now(timezone.utc)
-    updated_at: datetime = datetime.now(timezone.utc)
     currency: Optional[str] = None
     balance_msat: int = Field(default=0, no_database=True)
 
@@ -104,13 +104,13 @@ class UserExtra(BaseModel):
 
 class Account(BaseModel):
     id: str
+    created_at: datetime
+    updated_at: datetime
     username: Optional[str] = None
     password_hash: Optional[str] = None
     pubkey: Optional[str] = None
     email: Optional[str] = None
     extra: UserExtra = UserExtra()
-    created_at: datetime = datetime.now(timezone.utc)
-    updated_at: datetime = datetime.now(timezone.utc)
 
     @property
     def is_super_user(self) -> bool:
@@ -290,6 +290,9 @@ class Payment(BaseModel):
     amount: int
     fee: int
     bolt11: str
+    time: datetime
+    created_at: datetime
+    updated_at: datetime
     status: str = PaymentState.PENDING
     memo: Optional[str] = None
     expiry: Optional[datetime] = None
@@ -298,9 +301,6 @@ class Payment(BaseModel):
     preimage: Optional[str] = None
     tag: Optional[str] = None
     extension: Optional[str] = None
-    time: datetime = datetime.now(timezone.utc)
-    created_at: datetime = datetime.now(timezone.utc)
-    updated_at: datetime = datetime.now(timezone.utc)
     extra: dict = {}
 
     @property
