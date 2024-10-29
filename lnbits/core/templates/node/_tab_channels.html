@@ -160,7 +160,7 @@
             <q-table
               dense
               flat
-              :data="this.filteredChannels"
+              :rows="this.filteredChannels"
               :filter="channels.filter"
               no-data-label="No channels opened"
             >
@@ -239,7 +239,7 @@
             <q-table
               dense
               flat
-              :data="peers.data"
+              :rows="peers.data"
               :filter="peers.filter"
               no-data-label="No transactions made yet"
             >
