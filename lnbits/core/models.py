@@ -484,3 +484,7 @@ class SimpleStatus(BaseModel):
 class DbVersion(BaseModel):
     db: str
     version: int
+
+
+class PayLnurlWData(BaseModel):
+    lnurl_w: str

@@ -281,7 +281,11 @@
         </div>
       </div>
 
-      <q-dialog v-model="receive.show" position="top">
+      <q-dialog
+        v-model="receive.show"
+        position="top"
+        @hide="onReceiveDialogHide"
+      >
         <q-card
           v-if="!receive.paymentReq"
           class="q-pa-lg q-pt-xl lnbits__dialog-card"
@@ -370,6 +374,23 @@
                 :value="'lightning:' + receive.paymentReq.toUpperCase()"
               ></lnbits-qrcode>
             </a>
+          </div>
+          <div class="text-center">
+            <h3 class="q-my-md">
+              <span v-text="formattedAmount"></span>
+            </h3>
+            <h5 v-if="receive.unit != 'sat'" class="q-mt-none q-mb-sm">
+              <span v-text="formattedSatAmount"></span>
+            </h5>
+            <q-chip v-if="hasNfc" outline square color="positive">
+              <q-avatar
+                icon="nfc"
+                color="positive"
+                text-color="white"
+              ></q-avatar>
+              NFC supported
+            </q-chip>
+            <span v-else class="text-caption text-grey">NFC not supported</span>
           </div>
           <div class="row q-mt-lg">
             <q-btn

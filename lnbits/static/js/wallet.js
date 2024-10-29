@@ -14,6 +14,7 @@ window.app = Vue.createApp({
         status: 'pending',
         paymentReq: null,
         paymentHash: null,
+        amountMsat: null,
         minMax: [0, 2100000000000000],
         lnurl: null,
         units: ['sat'],
@@ -56,7 +57,9 @@ window.app = Vue.createApp({
         currency: null
       },
       inkeyHidden: true,
-      adminkeyHidden: true
+      adminkeyHidden: true,
+      hasNfc: false,
+      nfcReaderAbortController: null
     }
   },
   computed: {
@@ -78,6 +81,19 @@ window.app = Vue.createApp({
     canPay: function () {
       if (!this.parse.invoice) return false
       return this.parse.invoice.sat <= this.balance
+    },
+    formattedAmount: function () {
+      if (this.receive.unit != 'sat') {
+        return LNbits.utils.formatCurrency(
+          Number(this.receive.data.amount).toFixed(2),
+          this.receive.unit
+        )
+      } else {
+        return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
+      }
+    },
+    formattedSatAmount: function () {
+      return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
     }
   },
   methods: {
@@ -104,6 +120,11 @@ window.app = Vue.createApp({
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
       this.focusInput('setAmount')
+    },
+    onReceiveDialogHide: function () {
+      if (this.hasNfc) {
+        this.nfcReaderAbortController.abort()
+      }
     },
     showParseDialog: function () {
       this.parse.show = true
@@ -146,7 +167,10 @@ window.app = Vue.createApp({
         .then(response => {
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.bolt11
+          this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
+
+          this.readNfcTag()
 
           // TODO: lnurl_callback and lnurl_response
           // WITHDRAW
@@ -547,6 +571,102 @@ window.app = Vue.createApp({
       navigator.clipboard.readText().then(text => {
         this.parse.data.request = text.trim()
       })
+    },
+    readNfcTag: function () {
+      try {
+        if (typeof NDEFReader == 'undefined') {
+          console.debug('NFC not supported on this device or browser.')
+          return
+        }
+
+        const ndef = new NDEFReader()
+
+        this.nfcReaderAbortController = new AbortController()
+        this.nfcReaderAbortController.signal.onabort = event => {
+          console.debug('All NFC Read operations have been aborted.')
+        }
+
+        this.hasNfc = true
+        let dismissNfcTapMsg = Quasar.Notify.create({
+          message: 'Tap your NFC tag to pay this invoice with LNURLw.'
+        })
+
+        return ndef
+          .scan({signal: this.nfcReaderAbortController.signal})
+          .then(() => {
+            ndef.onreadingerror = () => {
+              Quasar.Notify.create({
+                type: 'negative',
+                message: 'There was an error reading this NFC tag.'
+              })
+            }
+
+            ndef.onreading = ({message}) => {
+              //Decode NDEF data from tag
+              const textDecoder = new TextDecoder('utf-8')
+
+              const record = message.records.find(el => {
+                const payload = textDecoder.decode(el.data)
+                return payload.toUpperCase().indexOf('LNURLW') !== -1
+              })
+
+              if (record) {
+                dismissNfcTapMsg()
+                Quasar.Notify.create({
+                  type: 'positive',
+                  message: 'NFC tag read successfully.'
+                })
+                const lnurl = textDecoder.decode(record.data)
+                this.payInvoiceWithNfc(lnurl)
+              } else {
+                Quasar.Notify.create({
+                  type: 'warning',
+                  message: 'NFC tag does not have LNURLw record.'
+                })
+              }
+            }
+          })
+      } catch (error) {
+        Quasar.Notify.create({
+          type: 'negative',
+          message: error
+            ? error.toString()
+            : 'An unexpected error has occurred.'
+        })
+      }
+    },
+    payInvoiceWithNfc: function (lnurl) {
+      let dismissPaymentMsg = Quasar.Notify.create({
+        timeout: 0,
+        spinner: true,
+        message: this.$t('processing_payment')
+      })
+
+      LNbits.api
+        .request(
+          'POST',
+          `/api/v1/payments/${this.receive.paymentReq}/pay-with-nfc`,
+          this.g.wallet.adminkey,
+          {lnurl_w: lnurl}
+        )
+        .then(response => {
+          dismissPaymentMsg()
+          if (response.data.success) {
+            Quasar.Notify.create({
+              type: 'positive',
+              message: 'Payment successful'
+            })
+          } else {
+            Quasar.Notify.create({
+              type: 'negative',
+              message: response.data.detail || 'Payment failed'
+            })
+          }
+        })
+        .catch(err => {
+          dismissPaymentMsg()
+          LNbits.utils.notifyApiError(err)
+        })
     }
   },
   created: function () {
