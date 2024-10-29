@@ -167,7 +167,7 @@ window.app = Vue.createApp({
         .then(response => {
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.bolt11
-          this.receive.amountMsat = response.data.amount * 1000
+          this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
 
           this.readNfcTag()
