@@ -647,6 +647,9 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             logger.warning(f"Converting {key} to model `{model}`.")
             continue
         type_ = model.__fields__[key].type_
+        if isinstance(value, list):
+            _dict[key] = [dict_to_submodel(type_, v) for v in value]
+            continue
         if issubclass(type_, bool):
             _dict[key] = bool(value)
             continue
