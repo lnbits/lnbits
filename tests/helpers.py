@@ -22,6 +22,7 @@ class DbTestModel2(BaseModel):
     label: str
     description: Optional[str] = None
     child: DbTestModel
+    child_list: list[DbTestModel]
 
 
 class DbTestModel3(BaseModel):

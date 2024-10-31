@@ -18,6 +18,7 @@ test_data = DbTestModel3(
         label="test",
         description="mydesc",
         child=DbTestModel(id=3, name="myname", value="myvalue"),
+        child_list=[DbTestModel(id=6, name="myname", value="myvalue")],
     ),
     children=[DbTestModel(id=4, name="myname", value="myvalue")],
     children_ids=[4, 1, 3],
@@ -51,6 +52,7 @@ child_json = json.dumps(
         "label": "test",
         "description": "mydesc",
         "child": {"id": 3, "name": "myname", "value": "myvalue"},
+        "child_list": [{"id": 6, "name": "myname", "value": "myvalue"}],
     }
 )
 test_dict = {
@@ -59,8 +61,7 @@ test_dict = {
     "child": child_json,
     "active": True,
     "children": '[{"id": 4, "name": "myname", "value": "myvalue"}]',
-    # TODO: shouldnt it be string?
-    "children_ids": [4, 1, 3],
+    "children_ids": "[4, 1, 3]",
 }
 
 

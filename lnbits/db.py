@@ -8,7 +8,7 @@ import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Generic, Literal, Optional, TypeVar, Union
+from typing import Any, Generic, Literal, Optional, TypeVar, Union, get_origin
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError, root_validator
@@ -605,12 +605,17 @@ def model_to_dict(model: BaseModel) -> dict:
     _dict: dict = {}
     for key, value in model.dict().items():
         type_ = model.__fields__[key].type_
+        outertype_ = model.__fields__[key].outer_type_
         if model.__fields__[key].field_info.extra.get("no_database", False):
             continue
         if isinstance(value, datetime):
             _dict[key] = value.timestamp()
             continue
-        if type(type_) is type(BaseModel) or type_ is dict:
+        if (
+            type(type_) is type(BaseModel)
+            or type_ is dict
+            or get_origin(outertype_) is list
+        ):
             _dict[key] = json.dumps(value)
             continue
         _dict[key] = value
@@ -646,18 +651,11 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             continue
         type_ = model.__fields__[key].type_
         outertype_ = model.__fields__[key].outer_type_
-        print(model.__fields__[key])
-        print("!!!!!!!!!!!!!!!!!!")
-        print(type_)
-        print(outertype_.__origin__)
-        print(value)
-        print(isinstance(value, list))
-        print(isinstance(outertype_, list))
-        print(type(outertype_))
-        if issubclass(outertype_, list):
+        if get_origin(outertype_) is list:
+            _items = json.loads(value) if isinstance(value, str) else value
             _dict[key] = [
                 dict_to_submodel(type_, v) if issubclass(type_, BaseModel) else v
-                for v in value
+                for v in _items
             ]
             continue
         if issubclass(type_, bool):
