@@ -248,7 +248,7 @@ window.app.component('lnbits-date', {
   props: ['ts'],
   computed: {
     date: function () {
-      return Quasar.utils.date.formatDate(
+      return Quasar.date.formatDate(
         new Date(this.ts * 1000),
         'YYYY-MM-DD HH:mm'
       )
