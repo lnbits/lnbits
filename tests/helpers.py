@@ -29,6 +29,8 @@ class DbTestModel3(BaseModel):
     user: str
     child: DbTestModel2
     active: bool = False
+    children: list[DbTestModel]
+    children_ids: list[int] = []
 
 
 def get_random_string(iterations: int = 10):

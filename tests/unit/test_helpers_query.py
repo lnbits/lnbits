@@ -19,6 +19,8 @@ test_data = DbTestModel3(
         description="mydesc",
         child=DbTestModel(id=3, name="myname", value="myvalue"),
     ),
+    children=[DbTestModel(id=4, name="myname", value="myvalue")],
+    children_ids=[4, 1, 3],
     active=True,
 )
 
@@ -27,8 +29,9 @@ test_data = DbTestModel3(
 async def test_helpers_insert_query():
     q = insert_query("test_helpers_query", test_data)
     assert q == (
-        """INSERT INTO test_helpers_query ("id", "user", "child", "active") """
-        "VALUES (:id, :user, :child, :active)"
+        "INSERT INTO test_helpers_query "
+        """("id", "user", "child", "active", "children", "children_ids") """
+        "VALUES (:id, :user, :child, :active, :children, :children_ids)"
     )
 
 
@@ -37,7 +40,8 @@ async def test_helpers_update_query():
     q = update_query("test_helpers_query", test_data)
     assert q == (
         """UPDATE test_helpers_query SET "id" = :id, "user" = """
-        """:user, "child" = :child, "active" = :active WHERE id = :id"""
+        """:user, "child" = :child, "active" = :active, "children" = """
+        """:children, "children_ids" = :children_ids WHERE id = :id"""
     )
 
 
@@ -49,7 +53,15 @@ child_json = json.dumps(
         "child": {"id": 3, "name": "myname", "value": "myvalue"},
     }
 )
-test_dict = {"id": 1, "user": "userid", "child": child_json, "active": True}
+test_dict = {
+    "id": 1,
+    "user": "userid",
+    "child": child_json,
+    "active": True,
+    "children": '[{"id": 4, "name": "myname", "value": "myvalue"}]',
+    # TODO: shouldnt it be string?
+    "children_ids": [4, 1, 3],
+}
 
 
 @pytest.mark.asyncio
