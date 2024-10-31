@@ -626,9 +626,7 @@ def dict_to_submodel(model: type[TModel], value: Union[dict, str]) -> Optional[T
         _subdict = json.loads(value)
     elif isinstance(value, dict):
         _subdict = value
-    else:
-        logger.warning(f"Expected str or dict, got {type(value)}")
-        return None
+
     # recursively convert nested models
     return dict_to_model(_subdict, model)
 
@@ -647,6 +645,12 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             logger.warning(f"Converting {key} to model `{model}`.")
             continue
         type_ = model.__fields__[key].type_
+        if isinstance(value, list):
+            _dict[key] = [
+                dict_to_submodel(type_, v) if issubclass(type_, BaseModel) else v
+                for v in value
+            ]
+            continue
         if issubclass(type_, bool):
             _dict[key] = bool(value)
             continue
@@ -656,7 +660,7 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
             else:
                 _dict[key] = value
             continue
-        if issubclass(type_, BaseModel) and value:
+        if issubclass(type_, BaseModel):
             _dict[key] = dict_to_submodel(type_, value)
             continue
         # TODO: remove this when all sub models are migrated to Pydantic
