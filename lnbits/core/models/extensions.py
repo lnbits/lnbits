@@ -14,15 +14,12 @@ import httpx
 from loguru import logger
 from pydantic import BaseModel
 
-from lnbits.settings import settings
-
-from .helpers import (
+from lnbits.helpers import (
     download_url,
     file_hash,
-    github_api_get,
-    icon_to_github_url,
     version_parse,
 )
+from lnbits.settings import settings
 
 
 class ExplicitRelease(BaseModel):
@@ -765,3 +762,23 @@ class ExtensionDetailsRequest(BaseModel):
     ext_id: str
     source_repo: str
     version: str
+
+
+async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
+    headers = {"User-Agent": settings.user_agent}
+    if settings.lnbits_ext_github_token:
+        headers["Authorization"] = f"Bearer {settings.lnbits_ext_github_token}"
+    async with httpx.AsyncClient(headers=headers) as client:
+        resp = await client.get(url)
+        if resp.status_code != 200:
+            logger.warning(f"{error_msg} ({url}): {resp.text}")
+        resp.raise_for_status()
+        return resp.json()
+
+
+def icon_to_github_url(source_repo: str, path: Optional[str]) -> str:
+    if not path:
+        return ""
+    _, _, *rest = path.split("/")
+    tail = "/".join(rest)
+    return f"https://github.com/{source_repo}/raw/main/{tail}"

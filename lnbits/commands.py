@@ -25,13 +25,13 @@ from lnbits.core.crud import (
     remove_deleted_wallets,
     update_payment,
 )
-from lnbits.core.extensions.models import (
+from lnbits.core.helpers import is_valid_url, migrate_databases
+from lnbits.core.models import Payment, PaymentState
+from lnbits.core.models.extensions import (
     CreateExtension,
     ExtensionRelease,
     InstallableExtension,
 )
-from lnbits.core.helpers import is_valid_url, migrate_databases
-from lnbits.core.models import Payment, PaymentState
 from lnbits.core.services import check_admin_settings
 from lnbits.core.views.extension_api import (
     api_install_extension,

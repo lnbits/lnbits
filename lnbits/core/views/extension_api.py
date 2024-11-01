@@ -10,13 +10,11 @@ from fastapi import (
 )
 from loguru import logger
 
-from lnbits.core.extensions.extension_manager import (
-    activate_extension,
-    deactivate_extension,
-    install_extension,
-    uninstall_extension,
+from lnbits.core.models import (
+    SimpleStatus,
+    User,
 )
-from lnbits.core.extensions.models import (
+from lnbits.core.models.extensions import (
     CreateExtension,
     Extension,
     ExtensionConfig,
@@ -28,11 +26,13 @@ from lnbits.core.extensions.models import (
     UserExtension,
     UserExtensionInfo,
 )
-from lnbits.core.models import (
-    SimpleStatus,
-    User,
-)
 from lnbits.core.services import check_transaction_status, create_invoice
+from lnbits.core.services.extensions import (
+    activate_extension,
+    deactivate_extension,
+    install_extension,
+    uninstall_extension,
+)
 from lnbits.decorators import (
     check_admin,
     check_user_exists,

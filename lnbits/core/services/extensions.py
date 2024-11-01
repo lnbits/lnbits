@@ -14,7 +14,7 @@ from lnbits.core.crud import (
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.settings import settings
 
-from .models import Extension, InstallableExtension
+from ..models.extensions import Extension, InstallableExtension
 
 
 async def install_extension(ext_info: InstallableExtension) -> Extension:

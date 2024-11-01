@@ -1,7 +1,7 @@
 from typing import Optional
 
 from lnbits.core.db import db
-from lnbits.core.extensions.models import (
+from lnbits.core.models.extensions import (
     InstallableExtension,
     UserExtension,
 )

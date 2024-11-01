@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 from loguru import logger
 
-from lnbits.core.extensions.models import UserExtension
+from lnbits.core.models.extensions import UserExtension
 from lnbits.settings import (
     EditableSettings,
     SuperSettings,
