@@ -13,8 +13,9 @@ from pydantic.types import UUID4
 
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
-from lnbits.core.models.extensions import Extension, ExtensionMeta, InstallableExtension
+from lnbits.core.models.extensions import ExtensionMeta, InstallableExtension
 from lnbits.core.services import create_invoice, create_user_account
+from lnbits.core.services.extensions import get_valid_extensions
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
@@ -102,7 +103,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
             e.short_description = installed_ext.short_description
             e.icon = installed_ext.icon
 
-    all_ext_ids = [ext.code for ext in Extension.get_valid_extensions()]
+    all_ext_ids = [ext.code for ext in await get_valid_extensions()]
     inactive_extensions = [e.id for e in await get_installed_extensions(active=False)]
     db_versions = await get_db_versions()
 

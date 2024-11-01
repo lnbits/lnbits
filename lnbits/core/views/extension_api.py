@@ -10,6 +10,7 @@ from fastapi import (
 )
 from loguru import logger
 
+from lnbits.core.crud.extensions import get_user_extensions
 from lnbits.core.models import (
     SimpleStatus,
     User,
@@ -30,6 +31,8 @@ from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.core.services.extensions import (
     activate_extension,
     deactivate_extension,
+    get_valid_extension,
+    get_valid_extensions,
     install_extension,
     uninstall_extension,
 )
@@ -168,7 +171,7 @@ async def api_update_pay_to_enable(
 async def api_enable_extension(
     ext_id: str, user: User = Depends(check_user_exists)
 ) -> SimpleStatus:
-    if ext_id not in [e.code for e in Extension.get_valid_extensions()]:
+    if ext_id not in [e.code for e in await get_valid_extensions()]:
         raise HTTPException(
             HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' doesn't exist."
         )
@@ -236,7 +239,7 @@ async def api_enable_extension(
 async def api_disable_extension(
     ext_id: str, user: User = Depends(check_user_exists)
 ) -> SimpleStatus:
-    if ext_id not in [e.code for e in Extension.get_valid_extensions()]:
+    if ext_id not in [e.code for e in await get_valid_extensions()]:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, f"Extension '{ext_id}' doesn't exist."
         )
@@ -256,7 +259,7 @@ async def api_activate_extension(ext_id: str) -> SimpleStatus:
     try:
         logger.info(f"Activating extension: '{ext_id}'.")
 
-        ext = Extension.get_valid_extension(ext_id)
+        ext = await get_valid_extension(ext_id)
         assert ext, f"Extension '{ext_id}' doesn't exist."
 
         await activate_extension(ext)
@@ -275,7 +278,7 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
     try:
         logger.info(f"Deactivating extension: '{ext_id}'.")
 
-        ext = Extension.get_valid_extension(ext_id)
+        ext = await get_valid_extension(ext_id)
         assert ext, f"Extension '{ext_id}' doesn't exist."
 
         await deactivate_extension(ext_id)
@@ -300,7 +303,7 @@ async def api_uninstall_extension(ext_id: str) -> SimpleStatus:
 
     installed_extensions = await get_installed_extensions()
     # check that other extensions do not depend on this one
-    for valid_ext_id in [ext.code for ext in Extension.get_valid_extensions()]:
+    for valid_ext_id in [ext.code for ext in await get_valid_extensions()]:
         installed_ext = next(
             (ext for ext in installed_extensions if ext.id == valid_ext_id), None
         )
@@ -453,7 +456,7 @@ async def get_pay_to_enable_invoice(
 
 @extension_router.get(
     "/release/{org}/{repo}/{tag_name}",
-    dependencies=[Depends(check_admin)],
+    dependencies=[Depends(check_user_exists)],
 )
 async def get_extension_release(org: str, repo: str, tag_name: str):
     try:
@@ -470,6 +473,19 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
         ) from exc
+
+
+@extension_router.get("")
+async def api_get_user_extensions(
+    user: User = Depends(check_user_exists),
+) -> list[Extension]:
+
+    user_extensions_ids = [ue.extension for ue in await get_user_extensions(user.id)]
+    return [
+        ext
+        for ext in await get_valid_extensions(False)
+        if ext.code in user_extensions_ids
+    ]
 
 
 @extension_router.delete(

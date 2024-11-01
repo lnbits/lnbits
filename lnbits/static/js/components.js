@@ -87,19 +87,22 @@ window.app.component('lnbits-extension-list', {
         })
     }
   },
-  created: function () {
-    if (window.extensions) {
-      this.extensions = window.extensions
+  created: async function () {
+    if (window.user) {
+      this.user = LNbits.map.user(window.user)
+    }
+
+    try {
+      const {data} = await LNbits.api.request('GET', '/api/v1/extension')
+      this.extensions = data
         .map(function (data) {
           return LNbits.map.extension(data)
         })
         .sort(function (a, b) {
           return a.name.localeCompare(b.name)
         })
-    }
-
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
+    } catch (e) {
+      LNbits.utils.notifyApiError(error)
     }
   }
 })

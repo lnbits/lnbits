@@ -174,73 +174,10 @@ class Extension(NamedTuple):
             is_valid=True,
             is_admin_only=False,  # todo: is admin only
             name=ext_info.name,
+            short_description=ext_info.short_description,
+            tile=ext_info.icon,
             upgrade_hash=ext_info.hash if ext_info.module_installed else "",
         )
-
-    @classmethod
-    def get_valid_extensions(
-        cls, include_deactivated: Optional[bool] = True
-    ) -> list[Extension]:
-        valid_extensions = [
-            extension for extension in cls._extensions() if extension.is_valid
-        ]
-
-        if include_deactivated:
-            return valid_extensions
-
-        if settings.lnbits_extensions_deactivate_all:
-            return []
-
-        return [
-            e
-            for e in valid_extensions
-            if e.code not in settings.lnbits_deactivated_extensions
-        ]
-
-    @classmethod
-    def get_valid_extension(
-        cls, ext_id: str, include_deactivated: Optional[bool] = True
-    ) -> Optional[Extension]:
-        all_extensions = cls.get_valid_extensions(include_deactivated)
-        return next((e for e in all_extensions if e.code == ext_id), None)
-
-    @classmethod
-    def _extensions(cls) -> list[Extension]:
-        p = Path(settings.lnbits_extensions_path, "extensions")
-        Path(p).mkdir(parents=True, exist_ok=True)
-        extension_folders: list[Path] = [f for f in p.iterdir() if f.is_dir()]
-
-        # todo: remove this property somehow, it is too expensive
-        output: list[Extension] = []
-
-        for extension_folder in extension_folders:
-            extension_code = extension_folder.parts[-1]
-            try:
-                with open(extension_folder / "config.json") as json_file:
-                    config = json.load(json_file)
-                is_valid = True
-                is_admin_only = extension_code in settings.lnbits_admin_extensions
-            except Exception:
-                config = {}
-                is_valid = False
-                is_admin_only = False
-
-            output.append(
-                Extension(
-                    extension_code,
-                    is_valid,
-                    is_admin_only,
-                    config.get("name"),
-                    config.get("short_description"),
-                    config.get("tile"),
-                    config.get("contributors"),
-                    config.get("hidden") or False,
-                    config.get("migration_module"),
-                    config.get("db_name"),
-                )
-            )
-
-        return output
 
 
 class ExtensionRelease(BaseModel):
