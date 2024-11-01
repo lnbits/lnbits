@@ -410,7 +410,7 @@ def _new_sso(provider: str) -> Optional[SSOBase]:
 
 
 def _find_auth_provider_class(provider: str) -> Callable:
-    sso_modules = ["lnbits.core.sso", "fastapi_sso.sso"]
+    sso_modules = ["lnbits.core.models.sso", "fastapi_sso.sso"]
     for module in sso_modules:
         try:
             provider_module = importlib.import_module(f"{module}.{provider}")
