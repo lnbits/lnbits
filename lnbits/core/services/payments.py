@@ -172,17 +172,9 @@ async def update_pending_payments(wallet_id: str):
 
 
 def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
-    return fee_reserve(amount_msat, internal) + service_fee(amount_msat, internal)
-
-
-# WARN: this same value must be used for balance check and passed to
-# funding_source.pay_invoice(), it may cause a vulnerability if the values differ
-def fee_reserve(amount_msat: int, internal: bool = False) -> int:
-    if internal:
-        return 0
-    reserve_min = settings.lnbits_reserve_fee_min
-    reserve_percent = settings.lnbits_reserve_fee_percent
-    return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+    return settings.fee_reserve(amount_msat, internal) + service_fee(
+        amount_msat, internal
+    )
 
 
 def service_fee(amount_msat: int, internal: bool = False) -> int:
@@ -445,7 +437,7 @@ async def _pay_external_invoice(
         conn=conn,
     )
 
-    fee_reserve_msat = fee_reserve(amount_msat, internal=False)
+    fee_reserve_msat = settings.fee_reserve(amount_msat, internal=False)
     service_fee_msat = service_fee(amount_msat, internal=False)
 
     funding_source = get_funding_source()

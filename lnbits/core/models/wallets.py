@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from lnbits.helpers import url_for
 from lnbits.lnurl import encode as lnurl_encode
+from lnbits.settings import settings
 
 
 class BaseWallet(BaseModel):
@@ -40,9 +41,7 @@ class Wallet(BaseModel):
 
     @property
     def withdrawable_balance(self) -> int:
-        from .services import fee_reserve
-
-        return self.balance_msat - fee_reserve(self.balance_msat)
+        return self.balance_msat - settings.fee_reserve(self.balance_msat)
 
     @property
     def lnurlwithdraw_full(self) -> str:
