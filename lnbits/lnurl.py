@@ -9,6 +9,7 @@ from loguru import logger
 from lnbits.exceptions import InvoiceError, PaymentError
 
 
+# todo: move
 class LnurlErrorResponseHandler(APIRoute):
     """
     Custom APIRoute class to handle LNURL errors.
