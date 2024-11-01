@@ -101,7 +101,7 @@ window.app.component('lnbits-extension-list', {
         .sort(function (a, b) {
           return a.name.localeCompare(b.name)
         })
-    } catch (e) {
+    } catch (error) {
       LNbits.utils.notifyApiError(error)
     }
   }
