@@ -170,7 +170,7 @@ class LndRestWallet(Wallet):
         try:
             r = await self.client.post(
                 url="/v1/channels/transactions",
-                json={"payment_request": bolt11, "fee_limit": lnrpc_fee_limit},
+                json={"payment_request": bolt11, "fee_limit": lnrpc_fee_limit, "allow_self_payment": true},
                 timeout=None,
             )
             r.raise_for_status()
