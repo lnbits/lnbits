@@ -72,7 +72,7 @@ async def stop_extension_background_work(ext_id: str) -> bool:
     Extensions SHOULD expose a `api_stop()` function.
     """
     upgrade_hash = settings.lnbits_upgraded_extensions.get(ext_id, "")
-    ext = Extension(ext_id, True, False, upgrade_hash=upgrade_hash)
+    ext = Extension(ext_id, True, upgrade_hash=upgrade_hash)
 
     try:
         logger.info(f"Stopping background work for extension '{ext.module_name}'.")
