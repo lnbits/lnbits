@@ -172,9 +172,11 @@ async def update_pending_payments(wallet_id: str):
 
 
 def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
-    return settings.fee_reserve(amount_msat, internal) + service_fee(
-        amount_msat, internal
-    )
+    return fee_reserve(amount_msat, internal) + service_fee(amount_msat, internal)
+
+
+def fee_reserve(amount_msat: int, internal: bool = False) -> int:
+    return settings.fee_reserve(amount_msat, internal)
 
 
 def service_fee(amount_msat: int, internal: bool = False) -> int:
@@ -437,7 +439,7 @@ async def _pay_external_invoice(
         conn=conn,
     )
 
-    fee_reserve_msat = settings.fee_reserve(amount_msat, internal=False)
+    fee_reserve_msat = fee_reserve(amount_msat, internal=False)
     service_fee_msat = service_fee(amount_msat, internal=False)
 
     funding_source = get_funding_source()
