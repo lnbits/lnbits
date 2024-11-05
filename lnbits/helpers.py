@@ -1,15 +1,17 @@
+import hashlib
 import json
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional, Type
+from urllib import request
 
 import jinja2
 import jwt
 import shortuuid
+from packaging import version
 from pydantic.schema import field_schema
 
-from lnbits.core.extensions.models import Extension
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.nodes import get_node_class
 from lnbits.requestvars import g
@@ -91,7 +93,8 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         settings.lnbits_node_ui and get_node_class() is not None
     )
     t.env.globals["LNBITS_NODE_UI_AVAILABLE"] = get_node_class() is not None
-    t.env.globals["EXTENSIONS"] = Extension.get_valid_extensions(False)
+    t.env.globals["EXTENSIONS"] = list(settings.lnbits_all_extensions_ids)
+
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
@@ -211,3 +214,31 @@ def filter_dict_keys(data: dict, filter_keys: Optional[list[str]]) -> dict:
         # return shallow clone of the dict even if there are no filters
         return {**data}
     return {key: data[key] for key in filter_keys if key in data}
+
+
+def version_parse(v: str):
+    """
+    Wrapper for version.parse() that does not throw if the version is invalid.
+    Instead it return the lowest possible version ("0.0.0")
+    """
+    try:
+        # todo: handle -rc0x
+        return version.parse(v)
+    except Exception:
+        return version.parse("0.0.0")
+
+
+def download_url(url, save_path):
+    with request.urlopen(url, timeout=60) as dl_file:
+        with open(save_path, "wb") as out_file:
+            out_file.write(dl_file.read())
+
+
+def file_hash(filename):
+    h = hashlib.sha256()
+    b = bytearray(128 * 1024)
+    mv = memoryview(b)
+    with open(filename, "rb", buffering=0) as f:
+        while n := f.readinto(mv):
+            h.update(mv[:n])
+    return h.hexdigest()

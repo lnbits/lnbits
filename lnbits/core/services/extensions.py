@@ -1,5 +1,6 @@
 import asyncio
 import importlib
+from typing import Optional
 
 from loguru import logger
 
@@ -11,10 +12,11 @@ from lnbits.core.crud import (
     get_installed_extension,
     update_installed_extension_state,
 )
+from lnbits.core.crud.extensions import get_installed_extensions
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.settings import settings
 
-from .models import Extension, InstallableExtension
+from ..models.extensions import Extension, InstallableExtension
 
 
 async def install_extension(ext_info: InstallableExtension) -> Extension:
@@ -70,7 +72,7 @@ async def stop_extension_background_work(ext_id: str) -> bool:
     Extensions SHOULD expose a `api_stop()` function.
     """
     upgrade_hash = settings.lnbits_upgraded_extensions.get(ext_id, "")
-    ext = Extension(ext_id, True, False, upgrade_hash=upgrade_hash)
+    ext = Extension(ext_id, True, upgrade_hash=upgrade_hash)
 
     try:
         logger.info(f"Stopping background work for extension '{ext.module_name}'.")
@@ -96,3 +98,38 @@ async def stop_extension_background_work(ext_id: str) -> bool:
         return False
 
     return True
+
+
+async def get_valid_extensions(
+    include_deactivated: Optional[bool] = True,
+) -> list[Extension]:
+    installed_extensions = await get_installed_extensions()
+    valid_extensions = [Extension.from_installable_ext(e) for e in installed_extensions]
+
+    if include_deactivated:
+        return valid_extensions
+
+    if settings.lnbits_extensions_deactivate_all:
+        return []
+
+    return [
+        e
+        for e in valid_extensions
+        if e.code not in settings.lnbits_deactivated_extensions
+    ]
+
+
+async def get_valid_extension(
+    ext_id: str, include_deactivated: Optional[bool] = True
+) -> Optional[Extension]:
+    ext = await get_installed_extension(ext_id)
+    if not ext:
+        return None
+
+    if include_deactivated:
+        return Extension.from_installable_ext(ext)
+
+    if settings.lnbits_extensions_deactivate_all:
+        return None
+
+    return Extension.from_installable_ext(ext)

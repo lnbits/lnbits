@@ -217,8 +217,7 @@ window.LNbits = {
           'name',
           'shortDescription',
           'tile',
-          'contributors',
-          'hidden'
+          'contributors'
         ],
         data
       )
@@ -719,33 +718,7 @@ window.windowMixin = {
       this.g.wallet = Object.freeze(window.LNbits.map.wallet(window.wallet))
     }
     if (window.extensions) {
-      const user = this.g.user
-      const extensions = Object.freeze(
-        window.extensions
-          .map(function (data) {
-            return window.LNbits.map.extension(data)
-          })
-          .filter(function (obj) {
-            return !obj.hidden
-          })
-          .filter(function (obj) {
-            if (window.user?.admin) return obj
-            return !obj.isAdminOnly
-          })
-          .map(function (obj) {
-            if (user) {
-              obj.isEnabled = user.extensions.indexOf(obj.code) !== -1
-            } else {
-              obj.isEnabled = false
-            }
-            return obj
-          })
-          .sort(function (a, b) {
-            const nameA = a.name.toUpperCase()
-            const nameB = b.name.toUpperCase()
-            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0
-          })
-      )
+      const extensions = Object.freeze(window.extensions)
 
       this.g.extensions = extensions
     }
