@@ -142,14 +142,9 @@ class UserExtension(BaseModel):
 class Extension(NamedTuple):
     code: str
     is_valid: bool
-    is_admin_only: bool
     name: Optional[str] = None
     short_description: Optional[str] = None
     tile: Optional[str] = None
-    contributors: Optional[list[str]] = None
-    hidden: bool = False
-    migration_module: Optional[str] = None
-    db_name: Optional[str] = None
     upgrade_hash: Optional[str] = ""
 
     @property
@@ -172,7 +167,6 @@ class Extension(NamedTuple):
         return Extension(
             code=ext_info.id,
             is_valid=True,
-            is_admin_only=False,  # todo: is admin only
             name=ext_info.name,
             short_description=ext_info.short_description,
             tile=ext_info.icon,
@@ -326,10 +320,6 @@ class InstallableExtension(BaseModel):
     icon: Optional[str] = None
     stars: int = 0
     meta: Optional[ExtensionMeta] = None
-
-    @property
-    def is_admin_only(self) -> bool:
-        return self.id in settings.lnbits_admin_extensions
 
     @property
     def hash(self) -> str:

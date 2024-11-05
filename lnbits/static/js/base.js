@@ -217,8 +217,7 @@ window.LNbits = {
           'name',
           'shortDescription',
           'tile',
-          'contributors',
-          'hidden'
+          'contributors'
         ],
         data
       )
