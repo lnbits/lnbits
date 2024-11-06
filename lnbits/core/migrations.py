@@ -654,11 +654,11 @@ async def m028_update_settings(db: Connection):
         )
 
     row: dict = await db.fetchone("SELECT * FROM settings")
+    if row:
+        await _insert_key_value("super_user", row["super_user"])
+        editable_settings = json.loads(row["editable_settings"])
 
-    await _insert_key_value("super_user", row["super_user"])
-    editable_settings = json.loads(row["editable_settings"])
-
-    for key, value in editable_settings.items():
-        await _insert_key_value(key, value)
+        for key, value in editable_settings.items():
+            await _insert_key_value(key, value)
 
     await db.execute("drop table settings")
