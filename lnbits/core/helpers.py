@@ -13,8 +13,8 @@ from lnbits.core.crud import (
     update_migration_version,
 )
 from lnbits.core.db import db as core_db
-from lnbits.core.extensions.models import InstallableExtension
 from lnbits.core.models import DbVersion
+from lnbits.core.models.extensions import InstallableExtension
 from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
 from lnbits.settings import settings
 

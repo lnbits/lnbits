@@ -175,14 +175,8 @@ def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
     return fee_reserve(amount_msat, internal) + service_fee(amount_msat, internal)
 
 
-# WARN: this same value must be used for balance check and passed to
-# funding_source.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int, internal: bool = False) -> int:
-    if internal:
-        return 0
-    reserve_min = settings.lnbits_reserve_fee_min
-    reserve_percent = settings.lnbits_reserve_fee_percent
-    return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+    return settings.fee_reserve(amount_msat, internal)
 
 
 def service_fee(amount_msat: int, internal: bool = False) -> int:

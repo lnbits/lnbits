@@ -137,7 +137,7 @@
             multiple
             hint="Extensions only user with admin privileges can use"
             label="Admin extensions"
-            :options="g.extensions.map(e => e.code)"
+            :options="g.extensions"
           ></q-select>
         </div>
 
@@ -149,7 +149,7 @@
             multiple
             hint="Extensions that will be enabled by default for the users."
             label="User extensions"
-            :options="g.extensions.map(e => e.code)"
+            :options="g.extensions"
           ></q-select>
         </div>
         <div class="col-12 col-md-6">

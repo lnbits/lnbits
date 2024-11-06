@@ -14,15 +14,12 @@ import httpx
 from loguru import logger
 from pydantic import BaseModel
 
-from lnbits.settings import settings
-
-from .helpers import (
+from lnbits.helpers import (
     download_url,
     file_hash,
-    github_api_get,
-    icon_to_github_url,
     version_parse,
 )
+from lnbits.settings import settings
 
 
 class ExplicitRelease(BaseModel):
@@ -145,14 +142,9 @@ class UserExtension(BaseModel):
 class Extension(NamedTuple):
     code: str
     is_valid: bool
-    is_admin_only: bool
     name: Optional[str] = None
     short_description: Optional[str] = None
     tile: Optional[str] = None
-    contributors: Optional[list[str]] = None
-    hidden: bool = False
-    migration_module: Optional[str] = None
-    db_name: Optional[str] = None
     upgrade_hash: Optional[str] = ""
 
     @property
@@ -175,75 +167,11 @@ class Extension(NamedTuple):
         return Extension(
             code=ext_info.id,
             is_valid=True,
-            is_admin_only=False,  # todo: is admin only
             name=ext_info.name,
+            short_description=ext_info.short_description,
+            tile=ext_info.icon,
             upgrade_hash=ext_info.hash if ext_info.module_installed else "",
         )
-
-    @classmethod
-    def get_valid_extensions(
-        cls, include_deactivated: Optional[bool] = True
-    ) -> list[Extension]:
-        valid_extensions = [
-            extension for extension in cls._extensions() if extension.is_valid
-        ]
-
-        if include_deactivated:
-            return valid_extensions
-
-        if settings.lnbits_extensions_deactivate_all:
-            return []
-
-        return [
-            e
-            for e in valid_extensions
-            if e.code not in settings.lnbits_deactivated_extensions
-        ]
-
-    @classmethod
-    def get_valid_extension(
-        cls, ext_id: str, include_deactivated: Optional[bool] = True
-    ) -> Optional[Extension]:
-        all_extensions = cls.get_valid_extensions(include_deactivated)
-        return next((e for e in all_extensions if e.code == ext_id), None)
-
-    @classmethod
-    def _extensions(cls) -> list[Extension]:
-        p = Path(settings.lnbits_extensions_path, "extensions")
-        Path(p).mkdir(parents=True, exist_ok=True)
-        extension_folders: list[Path] = [f for f in p.iterdir() if f.is_dir()]
-
-        # todo: remove this property somehow, it is too expensive
-        output: list[Extension] = []
-
-        for extension_folder in extension_folders:
-            extension_code = extension_folder.parts[-1]
-            try:
-                with open(extension_folder / "config.json") as json_file:
-                    config = json.load(json_file)
-                is_valid = True
-                is_admin_only = extension_code in settings.lnbits_admin_extensions
-            except Exception:
-                config = {}
-                is_valid = False
-                is_admin_only = False
-
-            output.append(
-                Extension(
-                    extension_code,
-                    is_valid,
-                    is_admin_only,
-                    config.get("name"),
-                    config.get("short_description"),
-                    config.get("tile"),
-                    config.get("contributors"),
-                    config.get("hidden") or False,
-                    config.get("migration_module"),
-                    config.get("db_name"),
-                )
-            )
-
-        return output
 
 
 class ExtensionRelease(BaseModel):
@@ -392,10 +320,6 @@ class InstallableExtension(BaseModel):
     icon: Optional[str] = None
     stars: int = 0
     meta: Optional[ExtensionMeta] = None
-
-    @property
-    def is_admin_only(self) -> bool:
-        return self.id in settings.lnbits_admin_extensions
 
     @property
     def hash(self) -> str:
@@ -765,3 +689,23 @@ class ExtensionDetailsRequest(BaseModel):
     ext_id: str
     source_repo: str
     version: str
+
+
+async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
+    headers = {"User-Agent": settings.user_agent}
+    if settings.lnbits_ext_github_token:
+        headers["Authorization"] = f"Bearer {settings.lnbits_ext_github_token}"
+    async with httpx.AsyncClient(headers=headers) as client:
+        resp = await client.get(url)
+        if resp.status_code != 200:
+            logger.warning(f"{error_msg} ({url}): {resp.text}")
+        resp.raise_for_status()
+        return resp.json()
+
+
+def icon_to_github_url(source_repo: str, path: Optional[str]) -> str:
+    if not path:
+        return ""
+    _, _, *rest = path.split("/")
+    tail = "/".join(rest)
+    return f"https://github.com/{source_repo}/raw/main/{tail}"
