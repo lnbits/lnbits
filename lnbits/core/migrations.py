@@ -1,5 +1,6 @@
 import json
 from time import time
+from typing import Any
 
 from loguru import logger
 from sqlalchemy.exc import OperationalError
@@ -629,3 +630,35 @@ async def m027_update_apipayments_data(db: Connection):
                 "checking_id": payment.get("checking_id"),
             },
         )
+
+
+async def m028_update_settings(db: Connection):
+
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS system_settings (
+            id TEXT PRIMARY KEY,
+            value TEXT,
+            tag TEXT NOT NULL DEFAULT 'core'
+        );
+    """
+    )
+
+    async def _insert_key_value(id_: str, value: Any):
+        await db.execute(
+            """
+            INSERT INTO system_settings (id, value, tag)
+            VALUES (:id, :value, :tag)
+            """,
+            {"id": id_, "value": json.dumps(value), "tag": "core"},
+        )
+
+    row: dict = await db.fetchone("SELECT * FROM settings")
+
+    await _insert_key_value("super_user", row["super_user"])
+    editable_settings = json.loads(row["editable_settings"])
+
+    for key, value in editable_settings.items():
+        await _insert_key_value(key, value)
+
+    await db.execute("drop table settings")
