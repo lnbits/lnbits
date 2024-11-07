@@ -69,7 +69,7 @@ test-regtest:
 	poetry run pytest tests/regtest
 
 test-migration:
-	LNBITS_ADMIN_UI=True \
+	LNBITS_ADMIN_UI=False \
 	make test-api
 	HOST=0.0.0.0 \
 	PORT=5002 \
