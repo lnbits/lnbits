@@ -639,7 +639,9 @@ async def m028_update_settings(db: Connection):
         CREATE TABLE IF NOT EXISTS system_settings (
             id TEXT PRIMARY KEY,
             value TEXT,
-            tag TEXT NOT NULL DEFAULT 'core'
+            tag TEXT NOT NULL DEFAULT 'core',
+
+            UNIQUE (id, tag)
         );
     """
     )
