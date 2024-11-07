@@ -61,7 +61,7 @@ async def delete_admin_settings(tag: Optional[str] = "core") -> None:
     await db.execute("DELETE FROM settings WEHERE tag = :tag", {"tag": tag})
 
 
-async def create_admin_settings(super_user: str, new_settings: dict):
+async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSettings:
     data = {"super_user": super_user, **new_settings}
     for key, value in data.items():
         await create_settings_field(key, value)
