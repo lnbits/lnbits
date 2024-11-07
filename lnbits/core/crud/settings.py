@@ -58,7 +58,7 @@ async def update_super_user(super_user: str) -> SuperSettings:
 
 
 async def delete_admin_settings(tag: Optional[str] = "core") -> None:
-    await db.execute("DELETE FROM settings WEHERE tag = :tag", {"tag": tag})
+    await db.execute("DELETE FROM settings WHERE tag = :tag", {"tag": tag})
 
 
 async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSettings:
@@ -104,16 +104,18 @@ async def update_settings_field(
 
 
 async def get_settings_by_tag(tag: str) -> Optional[dict[str, Any]]:
-    fields: list[SettingsField] = await db.fetchall(
-        "SELECT * FROM system_settings WHERE tag = :tag", {"tag": tag}, SettingsField
+    rows: list[dict] = await db.fetchall(
+        "SELECT * FROM system_settings WHERE tag = :tag", {"tag": tag}
     )
-    if len(fields) == 0:
+    if len(rows) == 0:
         return None
     data: dict[str, Any] = {}
-    for field in fields:
+    for row in rows:
         try:
-            data[field.id] = json.loads(field.value) if field.value else None
+            data[row["id"]] = json.loads(row["value"]) if row["value"] else None
         except Exception as _:
-            logger.warning(f"Failed to load settings value for '{tag}.{field.id}'.")
+            logger.warning(
+                f"""Failed to load settings value for '{tag}.{row["id"]}'."""
+            )
     data.pop("super_user")
     return data
