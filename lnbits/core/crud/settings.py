@@ -90,14 +90,14 @@ async def get_settings_field(
 async def set_settings_field(
     id_: str, value: Optional[Any], tag: Optional[str] = "core"
 ):
-    await db.execute(
-        """
-        INSERT INTO system_settings (id, value, tag)
-        VALUES (:id, :value, :tag)
-        ON CONFLICT (id, tag) DO UPDATE SET value = :value
-        """,
-        {"id": id_, "value": json.dumps(value), "tag": tag or "core"},
-    )
+    value = json.dumps(value) if value is not None else None
+    field = SettingsField(id=id_, value=value, tag=tag or "core")
+
+    field_exists = await get_settings_field(id_, tag)
+    if field_exists:
+        await db.update("system_settings", field)
+    else:
+        await db.insert("system_settings", field)
 
 
 async def get_settings_by_tag(tag: str) -> Optional[dict[str, Any]]:
