@@ -5,7 +5,6 @@ import hashlib
 import json
 import os
 import shutil
-import sys
 import zipfile
 from pathlib import Path
 from typing import Any, NamedTuple, Optional
@@ -170,7 +169,7 @@ class Extension(NamedTuple):
             name=ext_info.name,
             short_description=ext_info.short_description,
             tile=ext_info.icon,
-            upgrade_hash=ext_info.hash if ext_info.module_installed else "",
+            upgrade_hash=settings.extension_upgrade_hash(ext_info.id),
         )
 
 
@@ -352,10 +351,6 @@ class InstallableExtension(BaseModel):
         if settings.has_default_extension_path:
             return f"lnbits.extensions.{self.id}"
         return self.id
-
-    @property
-    def module_installed(self) -> bool:
-        return self.module_name in sys.modules
 
     @property
     def has_installed_version(self) -> bool:

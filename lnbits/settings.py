@@ -165,6 +165,9 @@ class InstalledExtensionsSettings(LNbitsSettings):
         self.lnbits_deactivated_extensions.add(ext_id)
         self._remove_extension_redirects(ext_id)
 
+    def extension_upgrade_hash(self, ext_id: str) -> str:
+        return settings.lnbits_upgraded_extensions.get(ext_id, "")
+
     def _activate_extension_redirects(self, ext_id: str, ext_redirects: list[dict]):
         ext_redirect_paths = [
             RedirectPath(**{"ext_id": ext_id, **er}) for er in ext_redirects

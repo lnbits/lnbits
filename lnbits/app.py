@@ -225,7 +225,8 @@ async def check_installed_extensions(app: FastAPI):
     re-created. The 'data' directory (where the '.zip' files live) is expected to
     persist state. Zips that are missing will be re-downloaded.
     """
-    shutil.rmtree(os.path.join("lnbits", "upgrades"), True)
+
+    shutil.rmtree(Path(settings.lnbits_extensions_path, "upgrades"), True)
     installed_extensions = await build_all_installed_extensions_list(False)
 
     for ext in installed_extensions:
