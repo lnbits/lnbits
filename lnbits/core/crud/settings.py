@@ -74,7 +74,7 @@ async def create_admin_settings(super_user: str, new_settings: dict):
 async def create_settings_field(
     id_: str, value: Optional[Any], tag: Optional[str] = "core"
 ):
-    value = json.dumps(value) if value else None
+    value = json.dumps(value) if value is not None else None
     field = SettingsField(id=id_, value=value, tag=tag or "core")
     await db.insert("system_settings", field)
 
@@ -115,6 +115,5 @@ async def get_settings_by_tag(tag: str) -> Optional[dict[str, Any]]:
             data[field.id] = json.loads(field.value) if field.value else None
         except Exception as _:
             logger.warning(f"Failed to load settings value for '{tag}.{field.id}'.")
-            data[field.id] = None
     data.pop("super_user")
     return data
