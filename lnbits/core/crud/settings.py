@@ -45,13 +45,13 @@ async def update_admin_settings(
     editable_settings.update(data.dict(exclude_unset=True))
     for key, value in editable_settings.items():
         try:
-            await update_settings_field(key, value, tag)
+            await set_settings_field(key, value, tag)
         except Exception as _:
             logger.warning(f"Failed to update settings for '{tag}.{key}'.")
 
 
 async def update_super_user(super_user: str) -> SuperSettings:
-    await update_settings_field("super_user", super_user)
+    await set_settings_field("super_user", super_user)
     settings = await get_super_settings()
     assert settings, "updated super_user settings could not be retrieved"
     return settings
@@ -64,19 +64,11 @@ async def delete_admin_settings(tag: Optional[str] = "core") -> None:
 async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSettings:
     data = {"super_user": super_user, **new_settings}
     for key, value in data.items():
-        await create_settings_field(key, value)
+        await set_settings_field(key, value)
 
     settings = await get_super_settings()
     assert settings, "created admin settings could not be retrieved"
     return settings
-
-
-async def create_settings_field(
-    id_: str, value: Optional[Any], tag: Optional[str] = "core"
-):
-    value = json.dumps(value) if value is not None else None
-    field = SettingsField(id=id_, value=value, tag=tag or "core")
-    await db.insert("system_settings", field)
 
 
 async def get_settings_field(
@@ -95,12 +87,17 @@ async def get_settings_field(
     return SettingsField(id=row["id"], value=json.loads(row["value"]), tag=row["tag"])
 
 
-async def update_settings_field(
+async def set_settings_field(
     id_: str, value: Optional[Any], tag: Optional[str] = "core"
-) -> SettingsField:
-    field = SettingsField(id=id_, value=json.dumps(value), tag=tag or "core")
-    await db.update("system_settings", field)
-    return field
+):
+    await db.execute(
+        """
+        INSERT INTO system_settings (id, value, tag)
+        VALUES (:id, :value, :tag)
+        ON CONFLICT (id, tag) DO UPDATE SET value = :value
+        """,
+        {"id": id_, "value": json.dumps(value), "tag": tag or "core"},
+    )
 
 
 async def get_settings_by_tag(tag: str) -> Optional[dict[str, Any]]:
