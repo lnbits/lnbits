@@ -76,12 +76,7 @@
               :label="$t('security')"
               @update="val => tab = val.name"
             ></q-tab>
-            <q-tab
-              name="alerts"
-              icon="notifications"
-              :label="$t('alerts')"
-              @update="val => tab = val.name"
-            ></q-tab>
+
             <q-tab
               name="users"
               icon="group"
@@ -100,9 +95,14 @@
               :label="$t('payments')"
               @update="val => tab = val.name"
             ></q-tab>
-
             <q-tab
-              name="theme"
+              name="notifications"
+              icon="notifications"
+              :label="$t('notifications')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="site_customisation"
               icon="language"
               :label="$t('site_customisation')"
               @update="val => tab = val.name"
@@ -123,8 +123,9 @@
               {% include "admin/_tab_funding.html" %} {% include
               "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %}
               {% include "admin/_tab_extensions.html" %} {% include
-              "admin/_tab_alerts.html" %} {% include "admin/_tab_security.html"
-              %} {% include "admin/_tab_theme.html" %}
+              "admin/_tab_notifications.html" %} {% include
+              "admin/_tab_security.html" %} {% include "admin/_tab_theme.html"
+              %}
             </q-tab-panels>
           </q-form>
         </template>
