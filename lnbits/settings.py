@@ -684,6 +684,12 @@ class AdminSettings(EditableSettings):
     lnbits_allowed_funding_sources: Optional[list[str]]
 
 
+class SettingsField(BaseModel):
+    id: str
+    value: Optional[Any]
+    tag: str = "core"
+
+
 def set_cli_settings(**kwargs):
     for key, value in kwargs.items():
         setattr(settings, key, value)
