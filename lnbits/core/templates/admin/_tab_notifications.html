@@ -1,0 +1,140 @@
+<q-tab-panel name="notifications">
+  <q-card-section class="q-pa-none">
+    <div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('enable_notifications')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('enable_notifications_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_notifications"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <br />
+          <p
+            v-if="!formData.lnbits_notifications"
+            v-text="$t('notifications_disabled')"
+          ></p>
+          <div v-if="formData.lnbits_notifications">
+            {% include "admin/_tab_security_notifications.html" %}
+          </div>
+          <br />
+          <div>
+            <p v-text="$t('notification_source')"></p>
+            <q-input
+              filled
+              v-model="formData.lnbits_status_manifest"
+              type="text"
+              :label="$t('notification_source_label')"
+            />
+          </div>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p v-text="$t('killswitch')"></p>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('enable_killswitch')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('enable_killswitch_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_killswitch"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('killswitch_interval')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('killswitch_interval_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section>
+              <q-input
+                filled
+                v-model="formData.lnbits_killswitch_interval"
+                type="number"
+              />
+            </q-item-section>
+          </q-item>
+          <br />
+          <p v-text="$t('watchdog')"></p>
+          <q-item disabled tag="label" v-ripple>
+            <q-tooltip><span v-text="$t('coming_soon')"></span></q-tooltip>
+            <q-item-section>
+              <q-item-label v-text="$t('enable_watchdog')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('enable_watchdog_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_watchdog"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item disabled tag="label" v-ripple>
+            <q-tooltip><span v-text="$t('coming_soon')"></span></q-tooltip>
+            <q-item-section>
+              <q-item-label v-text="$t('watchdog_interval')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('watchdog_interval_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section>
+              <q-input
+                filled
+                v-model="formData.lnbits_watchdog_interval"
+                type="number"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item disabled tag="label" v-ripple>
+            <q-tooltip><span v-text="$t('coming_soon')"></span></q-tooltip>
+            <q-item-section>
+              <q-item-label v-text="$t('watchdog_delta')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('watchdog_delta_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section>
+              <q-input
+                filled
+                v-model="formData.lnbits_watchdog_delta"
+                type="number"
+              />
+            </q-item-section>
+          </q-item>
+          <br />
+        </div>
+      </div>
+    </div>
+  </q-card-section>
+</q-tab-panel>
