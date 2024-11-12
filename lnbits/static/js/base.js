@@ -209,18 +209,7 @@ window.LNbits = {
   },
   map: {
     extension: function (data) {
-      const obj = _.object(
-        [
-          'code',
-          'isValid',
-          'isAdminOnly',
-          'name',
-          'shortDescription',
-          'tile',
-          'contributors'
-        ],
-        data
-      )
+      const obj = {...data}
       obj.url = ['/', obj.code, '/'].join('')
       return obj
     },
