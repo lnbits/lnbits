@@ -67,19 +67,34 @@ window.app.component('lnbits-extension-list', {
   data: function () {
     return {
       extensions: [],
-      user: null
+      user: null,
+      userExtensions: [],
+      searchTerm: ''
     }
   },
-  computed: {
-    userExtensions: function () {
+  watch: {
+    searchTerm(term) {
+      this.userExtensions = this.updateUserExtensions(term)
+    }
+  },
+  methods: {
+    updateUserExtensions: function (filterBy) {
       if (!this.user) return []
 
-      var path = window.location.pathname
-      var userExtensions = this.user.extensions
+      const path = window.location.pathname
+      const userExtensions = this.user.extensions
 
       return this.extensions
-        .filter(function (obj) {
-          return userExtensions.indexOf(obj.code) !== -1
+        .filter(function (o) {
+          return userExtensions.indexOf(o.code) !== -1
+        })
+        .filter(function (o) {
+          if (!filterBy) return true
+          return (
+            `${o.code} ${o.name} ${o.short_description} ${o.url}`
+              .toLocaleLowerCase()
+              .indexOf(filterBy.toLocaleLowerCase()) !== -1
+          )
         })
         .map(function (obj) {
           obj.isActive = path.startsWith(obj.url)
@@ -101,6 +116,7 @@ window.app.component('lnbits-extension-list', {
         .sort(function (a, b) {
           return a.name.localeCompare(b.name)
         })
+      this.userExtensions = this.updateUserExtensions()
     } catch (error) {
       LNbits.utils.notifyApiError(error)
     }
