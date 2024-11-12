@@ -96,11 +96,21 @@
 
 <template id="lnbits-extension-list">
   <q-list
-    v-if="user && userExtensions.length > 0"
+    v-if="user && (userExtensions.length > 0 || !!searchTerm)"
     dense
     class="lnbits-drawer__q-list"
   >
-    <q-item-label header v-text="$t('extensions')"></q-item-label>
+    <q-item>
+      <q-item-section>
+        <q-input
+          v-model="searchTerm"
+          dense
+          borderless
+          :label="$t('extensions')"
+        >
+        </q-input>
+      </q-item-section>
+    </q-item>
     <q-item
       v-for="extension in userExtensions"
       :key="extension.code"
