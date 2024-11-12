@@ -37,7 +37,7 @@ jobs:
         run: |
           git clone https://github.com/lnbits/lnbits-extensions
           git fetch
-          git checkout --track origin/v1_updates
+          git checkout origin/v1_updates
           cd lnbits-extensions
           mkdir logs
           mkdir reports
