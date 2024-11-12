@@ -105,7 +105,6 @@
                 v-if="extension.isAvailable && extension.isInstalled && g.user.admin"
                 :label="extension.isActive ? $t('activated'):  $t('deactivated') "
                 color="secondary"
-                style=""
                 v-model="extension.isActive"
                 @update:model-value="toggleExtension(extension)"
                 ><q-tooltip>
