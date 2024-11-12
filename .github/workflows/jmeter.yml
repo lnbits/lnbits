@@ -35,10 +35,7 @@ jobs:
 
       - name: clone lnbits-extensions, install jmeter and run tests
         run: |
-          git clone https://github.com/lnbits/lnbits-extensions
-          git remote update
-          git fetch
-          git checkout --track origin/v1_updates
+          git clone https://github.com/lnbits/lnbits-extensions -b v1_updates --single-branch
           cd lnbits-extensions
           mkdir logs
           mkdir reports
