@@ -7,7 +7,7 @@ import os
 import shutil
 import zipfile
 from pathlib import Path
-from typing import Any, NamedTuple, Optional
+from typing import Any, Optional
 
 import httpx
 from loguru import logger
@@ -138,7 +138,7 @@ class UserExtension(BaseModel):
         return ext
 
 
-class Extension(NamedTuple):
+class Extension(BaseModel):
     code: str
     is_valid: bool
     name: Optional[str] = None
