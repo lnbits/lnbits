@@ -226,7 +226,6 @@ async def check_installed_extensions(app: FastAPI):
     persist state. Zips that are missing will be re-downloaded.
     """
 
-    shutil.rmtree(Path(settings.lnbits_extensions_path, "upgrades"), True)
     installed_extensions = await build_all_installed_extensions_list(False)
 
     for ext in installed_extensions:
@@ -336,8 +335,14 @@ def register_custom_extensions_path():
             + f" '{settings.lnbits_extensions_path}/extensions'"
         )
 
-    sys.path.append(str(Path(settings.lnbits_extensions_path, "extensions")))
-    sys.path.append(str(Path(settings.lnbits_extensions_path, "upgrades")))
+    extensions_dir = Path(settings.lnbits_extensions_path, "extensions")
+    Path(extensions_dir).mkdir(parents=True, exist_ok=True)
+    sys.path.append(str(extensions_dir))
+
+    upgrades_dir = Path(settings.lnbits_extensions_path, "upgrades")
+    shutil.rmtree(upgrades_dir, True)
+    Path(upgrades_dir).mkdir(parents=True, exist_ok=True)
+    sys.path.append(str(upgrades_dir))
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:

@@ -12,19 +12,23 @@ from lnbits.core.crud import (
     get_installed_extension,
     update_installed_extension_state,
 )
-from lnbits.core.crud.extensions import get_installed_extensions
+from lnbits.core.crud.extensions import (
+    get_installed_extensions,
+    update_installed_extension,
+)
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.settings import settings
 
-from ..models.extensions import Extension, InstallableExtension
+from ..models.extensions import Extension, ExtensionMeta, InstallableExtension
 
 
 async def install_extension(ext_info: InstallableExtension) -> Extension:
     ext_id = ext_info.id
     extension = Extension.from_installable_ext(ext_info)
     installed_ext = await get_installed_extension(ext_id)
-    if installed_ext:
-        ext_info.meta = installed_ext.meta
+    if installed_ext and installed_ext.meta:
+        ext_info.meta = ext_info.meta or ExtensionMeta()
+        ext_info.meta.payments = installed_ext.meta.payments
 
     await ext_info.download_archive()
 
@@ -37,6 +41,8 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
     # if it does exist, it will be activated later in the code
     if not installed_ext:
         await create_installed_extension(ext_info)
+    else:
+        await update_installed_extension(ext_info)
 
     if extension.is_upgrade_extension:
         # call stop while the old routes are still active
