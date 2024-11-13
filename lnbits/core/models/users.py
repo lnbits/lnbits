@@ -66,7 +66,7 @@ class AccountOverview(Account):
 
 
 class AccountFilters(FilterModel):
-    __search_fields__ = ["id", "email", "username"]
+    __search_fields__ = ["id", "email", "username", "pubkey"]
     __sort_fields__ = [
         "balance_msat",
         "email",
