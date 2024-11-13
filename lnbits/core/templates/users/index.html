@@ -47,37 +47,7 @@ include "users/_createWalletDialog.html" %}
                 >
                   <q-tooltip>Show Wallets</q-tooltip>
                 </q-btn>
-                <q-btn
-                  round
-                  icon="content_copy"
-                  size="sm"
-                  color="primary"
-                  class="q-ml-xs"
-                  @click="copyText(props.row.id)"
-                >
-                  <q-tooltip>Copy User ID</q-tooltip>
-                </q-btn>
-                <q-btn
-                  round
-                  v-if="!props.row.is_super_user"
-                  icon="build"
-                  size="sm"
-                  :color="props.row.is_admin ? 'primary' : 'grey'"
-                  class="q-ml-xs"
-                  @click="toggleAdmin(props.row.id)"
-                >
-                  <q-tooltip>Toggle Admin</q-tooltip>
-                </q-btn>
-                <q-btn
-                  round
-                  v-if="props.row.is_super_user"
-                  icon="build"
-                  size="sm"
-                  color="positive"
-                  class="q-ml-xs"
-                >
-                  <q-tooltip>Super User</q-tooltip>
-                </q-btn>
+
                 <q-btn
                   round
                   icon="refresh"
@@ -98,18 +68,49 @@ include "users/_createWalletDialog.html" %}
                   <q-tooltip>Delete User</q-tooltip>
                 </q-btn>
               </q-td>
-              <q-td
-                auto-width
-                v-text="formatSat(props.row.balance_msat)"
-              ></q-td>
-              <q-td auto-width v-text="props.row.wallet_count"></q-td>
-              <q-td auto-width v-text="props.row.transaction_count"></q-td>
-              <q-td auto-width v-text="props.row.username"></q-td>
-              <q-td auto-width v-text="props.row.email"></q-td>
-              <q-td
-                auto-width
-                v-text="formatDate(props.row.last_payment)"
-              ></q-td>
+              <q-td>
+                <q-toggle
+                  size="xs"
+                  v-if="!props.row.is_super_user"
+                  color="secondary"
+                  v-model="props.row.is_admin"
+                  @update:model-value="toggleAdmin(props.row.id)"
+                >
+                  <q-tooltip>Toggle Admin</q-tooltip>
+                </q-toggle>
+                <q-btn
+                  round
+                  v-if="props.row.is_super_user"
+                  icon="verified"
+                  size="sm"
+                  color="secondary"
+                  class="q-ml-xs"
+                >
+                  <q-tooltip>Super User</q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td>
+                <q-btn
+                  round
+                  icon="content_copy"
+                  size="sm"
+                  color="primary"
+                  class="q-mr-xs"
+                  @click="copyText(props.row.id)"
+                >
+                  <q-tooltip>Copy User ID</q-tooltip>
+                </q-btn>
+                <span v-text="shortify(props.row.id)"></span>
+              </q-td>
+              <q-td v-text="props.row.username"></q-td>
+              <q-td v-text="props.row.email"></q-td>
+              <!-- todo: trim the key -->
+              <q-td v-text="shortify(props.row.pubkey)"></q-td>
+              <q-td v-text="formatSat(props.row.balance_msat)"></q-td>
+              <q-td v-text="props.row.wallet_count"></q-td>
+              <q-td v-text="props.row.transaction_count"></q-td>
+
+              <q-td v-text="formatDate(props.row.last_payment)"></q-td>
             </q-tr>
           </template>
         </q-table>

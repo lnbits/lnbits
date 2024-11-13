@@ -90,26 +90,20 @@ window.app = Vue.createApp({
       usersTable: {
         columns: [
           {
-            name: 'balance_msat',
+            name: 'admin',
             align: 'left',
-            label: 'Balance',
-            field: 'balance_msat',
-            sortable: true
+            label: 'Admin',
+            field: 'admin',
+            sortable: false
           },
           {
-            name: 'wallet_count',
+            name: 'id',
             align: 'left',
-            label: 'Wallet Count',
-            field: 'wallet_count',
+            label: 'User Id',
+            field: 'id',
             sortable: true
           },
-          {
-            name: 'transaction_count',
-            align: 'left',
-            label: 'Transaction Count',
-            field: 'transaction_count',
-            sortable: true
-          },
+
           {
             name: 'username',
             align: 'left',
@@ -124,6 +118,35 @@ window.app = Vue.createApp({
             field: 'email',
             sortable: true
           },
+          {
+            name: 'pubkey',
+            align: 'left',
+            label: 'Public Key',
+            field: 'pubkey',
+            sortable: true
+          },
+          {
+            name: 'balance_msat',
+            align: 'left',
+            label: 'Balance',
+            field: 'balance_msat',
+            sortable: true
+          },
+          {
+            name: 'wallet_count',
+            align: 'left',
+            label: 'Wallets',
+            field: 'wallet_count',
+            sortable: true
+          },
+          {
+            name: 'transaction_count',
+            align: 'left',
+            label: 'Transactions',
+            field: 'transaction_count',
+            sortable: true
+          },
+
           {
             name: 'last_payment',
             align: 'left',
@@ -355,6 +378,13 @@ window.app = Vue.createApp({
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
+    },
+    shortify(value) {
+      valueLength = (value || '').length
+      if (valueLength <= 10) {
+        return value
+      }
+      return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
     }
   }
 })

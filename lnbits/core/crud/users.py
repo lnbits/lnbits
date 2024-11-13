@@ -7,6 +7,7 @@ from lnbits.core.crud.extensions import get_user_active_extensions_ids
 from lnbits.core.crud.wallets import get_wallets
 from lnbits.core.db import db
 from lnbits.db import Connection, Filters, Page
+from lnbits.settings import settings
 
 from ..models import (
     Account,
@@ -44,12 +45,13 @@ async def get_accounts(
     filters: Optional[Filters[AccountFilters]] = None,
     conn: Optional[Connection] = None,
 ) -> Page[AccountOverview]:
-    return await (conn or db).fetch_page(
+    accounts = await (conn or db).fetch_page(
         """
         SELECT
             accounts.id,
             accounts.username,
             accounts.email,
+
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0)) as balance_msat,
@@ -71,6 +73,10 @@ async def get_accounts(
         model=AccountOverview,
         group_by=["accounts.id"],
     )
+    for a in accounts.data:
+        a.is_super_user = a.id == settings.super_user
+        a.is_admin = a.is_super_user or a.id in settings.lnbits_admin_users
+    return accounts
 
 
 async def get_account(

@@ -36,13 +36,8 @@ class Account(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    @property
-    def is_super_user(self) -> bool:
-        return self.id == settings.super_user
-
-    @property
-    def is_admin(self) -> bool:
-        return self.id in settings.lnbits_admin_users or self.is_super_user
+    is_super_user: bool = Field(default=False, no_database=True)
+    is_admin: bool = Field(default=False, no_database=True)
 
     def hash_password(self, password: str) -> str:
         """sets and returns the hashed password"""
