@@ -222,7 +222,8 @@ def version_parse(v: str):
     Instead it return the lowest possible version ("0.0.0")
     """
     try:
-        # todo: handle -rc0x
+        # remove release candidate suffix
+        v = v.split("-")[0].split("rc")[0]
         return version.parse(v)
     except Exception:
         return version.parse("0.0.0")
