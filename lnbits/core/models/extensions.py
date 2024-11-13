@@ -42,9 +42,8 @@ class ExplicitRelease(BaseModel):
     def is_version_compatible(self):
         if not self.min_lnbits_version:
             return True
-        # remove any suffixes from the version
-        lnbits_version = settings.version.split("-")[0].split("rc")[0]
-        return version_parse(self.min_lnbits_version) <= version_parse(lnbits_version)
+
+        return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
 
 
 class GitHubRelease(BaseModel):
