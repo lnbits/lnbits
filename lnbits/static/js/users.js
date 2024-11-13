@@ -97,6 +97,13 @@ window.app = Vue.createApp({
             sortable: false
           },
           {
+            name: 'wallet_count',
+            align: 'left',
+            label: 'Wallets',
+            field: 'wallet_count',
+            sortable: true
+          },
+          {
             name: 'id',
             align: 'left',
             label: 'User Id',
@@ -110,6 +117,13 @@ window.app = Vue.createApp({
             label: 'Username',
             field: 'username',
             sortable: true
+          },
+          {
+            name: 'password',
+            align: 'left',
+            label: 'Password',
+            field: 'password',
+            sortable: false
           },
           {
             name: 'email',
@@ -132,13 +146,7 @@ window.app = Vue.createApp({
             field: 'balance_msat',
             sortable: true
           },
-          {
-            name: 'wallet_count',
-            align: 'left',
-            label: 'Wallets',
-            field: 'wallet_count',
-            sortable: true
-          },
+
           {
             name: 'transaction_count',
             align: 'left',

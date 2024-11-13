@@ -40,25 +40,6 @@ include "users/_createWalletDialog.html" %}
               <q-td>
                 <q-btn
                   round
-                  icon="list"
-                  size="sm"
-                  color="secondary"
-                  @click="fetchWallets(props.row.id)"
-                >
-                  <q-tooltip>Show Wallets</q-tooltip>
-                </q-btn>
-
-                <q-btn
-                  round
-                  icon="refresh"
-                  size="sm"
-                  color="secondary"
-                  @click="resetPassword(props.row.id)"
-                >
-                  <q-tooltip>Generate and copy password reset url</q-tooltip>
-                </q-btn>
-                <q-btn
-                  round
                   icon="delete"
                   size="sm"
                   color="negative"
@@ -91,11 +72,21 @@ include "users/_createWalletDialog.html" %}
               </q-td>
               <q-td>
                 <q-btn
-                  round
+                  icon="list"
+                  size="sm"
+                  color="secondary"
+                  :label="props.row.wallet_count"
+                  @click="fetchWallets(props.row.id)"
+                >
+                  <q-tooltip>Show Wallets</q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td>
+                <q-btn
                   icon="content_copy"
                   size="sm"
-                  color="primary"
-                  class="q-mr-xs"
+                  flat
+                  class="cursor-pointer q-mr-xs"
                   @click="copyText(props.row.id)"
                 >
                   <q-tooltip>Copy User ID</q-tooltip>
@@ -103,11 +94,23 @@ include "users/_createWalletDialog.html" %}
                 <span v-text="shortify(props.row.id)"></span>
               </q-td>
               <q-td v-text="props.row.username"></q-td>
+              <q-td>
+                <q-btn
+                  round
+                  icon="refresh"
+                  size="sm"
+                  color="secondary"
+                  @click="resetPassword(props.row.id)"
+                >
+                  <q-tooltip>Generate and copy password reset url</q-tooltip>
+                </q-btn>
+              </q-td>
+
               <q-td v-text="props.row.email"></q-td>
-              <!-- todo: trim the key -->
+
               <q-td v-text="shortify(props.row.pubkey)"></q-td>
               <q-td v-text="formatSat(props.row.balance_msat)"></q-td>
-              <q-td v-text="props.row.wallet_count"></q-td>
+
               <q-td v-text="props.row.transaction_count"></q-td>
 
               <q-td v-text="formatDate(props.row.last_payment)"></q-td>
