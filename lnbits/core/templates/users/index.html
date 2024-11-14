@@ -9,13 +9,6 @@
     </div>
     <q-card v-else>
       <q-card-section>
-        <div class="row items-center no-wrap q-mb-sm">
-          <q-btn :label="$t('topup')" @click="topupDialog.show = true">
-            <q-tooltip
-              >{%raw%}{{ $t('add_funds_tooltip') }}{%endraw%}</q-tooltip
-            >
-          </q-btn>
-        </div>
         <q-table
           row-key="id"
           :rows="users"

@@ -377,6 +377,10 @@ window.app = Vue.createApp({
     exportUsers() {
       console.log('export users')
     },
+    showTopupDialog(walletId) {
+      this.wallet.id = walletId
+      this.topupDialog.show = true
+    },
     topupCallback(res) {
       if (res.success) {
         this.wallets.forEach(wallet => {
@@ -408,7 +412,6 @@ window.app = Vue.createApp({
         })
     },
     searchUserBy(fieldName) {
-      console.log('### searchUser', fieldName, this.searchData[fieldName])
       const fieldValue = this.searchData[fieldName]
       this.usersTable.filter = {}
       if (fieldValue) {

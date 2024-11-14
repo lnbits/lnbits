@@ -32,6 +32,13 @@
         <q-tr :props="props">
           <q-td auto-width>
             <q-btn
+              :label="$t('topup')"
+              @click="showTopupDialog(props.row.id)"
+              color="secondary"
+              size="sm"
+              class="q-mr-md"
+            ></q-btn>
+            <q-btn
               round
               icon="menu"
               size="sm"
