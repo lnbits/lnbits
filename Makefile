@@ -78,6 +78,7 @@ test-migration:
 	HOST=0.0.0.0 \
 	PORT=5002 \
 	LNBITS_DATABASE_URL="postgres://lnbits:lnbits@localhost:5432/migration" \
+	LNBITS_ADMIN_UI=False \
 	timeout 5s poetry run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
 	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_DATABASE_URL="postgres://lnbits:lnbits@localhost:5432/migration" \

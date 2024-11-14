@@ -1,18 +1,6 @@
 <q-tab-panel name="server">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none">Server Management</h6>
     <div>
-      <div class="row">
-        <div class="col-md-6">
-          <p>Base URL</p>
-          <q-input
-            filled
-            v-model.number="formData.lnbits_baseurl"
-            label="Static/Base url for the server"
-          ></q-input>
-          <br />
-        </div>
-      </div>
       <h6 class="q-my-none">Currency Settings</h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
@@ -91,95 +79,6 @@
               <q-toggle
                 size="md"
                 v-model="formData.lnbits_service_fee_ignore_internal"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-          <br />
-        </div>
-      </div>
-      <q-separator></q-separator>
-      <h6 class="q-my-none">Extensions</h6>
-      <div class="row q-col-gutter-md">
-        <div class="col-12">
-          <p>Extension Sources</p>
-          <q-input
-            filled
-            v-model="formAddExtensionsManifest"
-            @keydown.enter="addExtensionsManifest"
-            type="text"
-            label="Source URL (only use the official LNbits extension source, and sources you can trust)"
-            hint="Repositories from where the extensions can be downloaded"
-          >
-            <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
-          </q-input>
-          <div>
-            <q-chip
-              v-for="manifestUrl in formData.lnbits_extensions_manifests"
-              :key="manifestUrl"
-              removable
-              @remove="removeExtensionsManifest(manifestUrl)"
-              color="primary"
-              text-color="white"
-              ><span v-text="manifestUrl"></span
-            ></q-chip>
-          </div>
-        </div>
-      </div>
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
-          <p>Admin Extensions</p>
-          <q-select
-            filled
-            v-model="formData.lnbits_admin_extensions"
-            multiple
-            hint="Extensions only user with admin privileges can use"
-            label="Admin extensions"
-            :options="g.extensions"
-          ></q-select>
-        </div>
-
-        <div class="col-12 col-md-6">
-          <p>User Default Extensions</p>
-          <q-select
-            filled
-            v-model="formData.lnbits_user_default_extensions"
-            multiple
-            hint="Extensions that will be enabled by default for the users."
-            label="User extensions"
-            :options="g.extensions"
-          ></q-select>
-        </div>
-        <div class="col-12 col-md-6">
-          <p>Miscellaneous</p>
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label>Disable Extensions</q-item-label>
-              <q-item-label caption>Disables all extensions</q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_extensions_deactivate_all"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label>Hide API</q-item-label>
-              <q-item-label caption
-                >Hides wallet api, extensions can choose to honor</q-item-label
-              >
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_hide_api"
                 checked-icon="check"
                 color="green"
                 unchecked-icon="clear"

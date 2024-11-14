@@ -26,33 +26,31 @@ class InvoiceError(Exception):
 def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     # Only the browser sends "text/html" request
     # not fail proof, but everything else get's a JSON response
+    if not request.headers:
+        return None
+    if "text/html" not in request.headers.get("accept", ""):
+        return None
+
     if (
-        request.headers
-        and "accept" in request.headers
-        and "text/html" in request.headers["accept"]
+        isinstance(exc, HTTPException)
+        and exc.headers
+        and "token-expired" in exc.headers
     ):
-        if (
-            isinstance(exc, HTTPException)
-            and exc.headers
-            and "token-expired" in exc.headers
-        ):
-            response = RedirectResponse("/")
-            response.delete_cookie("cookie_access_token")
-            response.delete_cookie("is_lnbits_user_authorized")
-            response.set_cookie("is_access_token_expired", "true")
-            return response
+        response = RedirectResponse("/")
+        response.delete_cookie("cookie_access_token")
+        response.delete_cookie("is_lnbits_user_authorized")
+        response.set_cookie("is_access_token_expired", "true")
+        return response
 
-        status_code: int = (
-            exc.status_code
-            if isinstance(exc, HTTPException)
-            else HTTPStatus.INTERNAL_SERVER_ERROR
-        )
+    status_code: int = (
+        exc.status_code
+        if isinstance(exc, HTTPException)
+        else HTTPStatus.INTERNAL_SERVER_ERROR
+    )
 
-        return template_renderer().TemplateResponse(
-            request, "error.html", {"err": f"Error: {exc!s}"}, status_code
-        )
-
-    return None
+    return template_renderer().TemplateResponse(
+        request, "error.html", {"err": f"Error: {exc!s}"}, status_code
+    )
 
 
 def register_exception_handlers(app: FastAPI):

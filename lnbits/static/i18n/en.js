@@ -2,6 +2,7 @@ window.localisation.en = {
   confirm: 'Yes',
   server: 'Server',
   theme: 'Theme',
+  site_customisation: 'Site Customisation',
   funding: 'Funding',
   users: 'Users',
   apps: 'Apps',

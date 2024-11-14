@@ -7,7 +7,7 @@ import os
 import shutil
 import zipfile
 from pathlib import Path
-from typing import Any, NamedTuple, Optional
+from typing import Any, Optional
 
 import httpx
 from loguru import logger
@@ -138,7 +138,7 @@ class UserExtension(BaseModel):
         return ext
 
 
-class Extension(NamedTuple):
+class Extension(BaseModel):
     code: str
     is_valid: bool
     name: Optional[str] = None
@@ -169,7 +169,11 @@ class Extension(NamedTuple):
             name=ext_info.name,
             short_description=ext_info.short_description,
             tile=ext_info.icon,
-            upgrade_hash=settings.extension_upgrade_hash(ext_info.id),
+            upgrade_hash=(
+                ext_info.hash
+                if settings.extension_has_been_activated(ext_info.id)
+                else ""
+            ),
         )
 
 

@@ -61,50 +61,75 @@
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md">
     <q-card>
-      <div class="q-pa-md">
-        <div class="q-gutter-y-md">
-          <q-tabs v-model="tab" active-color="primary" align="justify">
+      <q-splitter v-model="tabsPercent">
+        <template v-slot:before>
+          <q-tabs v-model="tab" vertical active-color="primary">
             <q-tab
               name="funding"
+              icon="account_balance_wallet"
               :label="$t('funding')"
               @update="val => tab = val.name"
             ></q-tab>
-
-            <q-tab
-              name="users"
-              :label="$t('users')"
-              @update="val => tab = val.name"
-            ></q-tab>
-
-            <q-tab
-              name="server"
-              :label="$t('server')"
-              @update="val => tab = val.name"
-            ></q-tab>
-
             <q-tab
               name="security"
+              icon="security"
               :label="$t('security')"
               @update="val => tab = val.name"
             ></q-tab>
 
             <q-tab
-              name="theme"
-              :label="$t('theme')"
+              name="users"
+              icon="group"
+              :label="$t('users')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="extensions"
+              icon="extension"
+              :label="$t('extensions')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="server"
+              icon="price_change"
+              :label="$t('payments')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="notifications"
+              icon="notifications"
+              :label="$t('notifications')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="site_customisation"
+              icon="language"
+              :label="$t('site_customisation')"
               @update="val => tab = val.name"
             ></q-tab>
           </q-tabs>
-        </div>
-      </div>
+        </template>
 
-      <q-form name="settings_form" id="settings_form">
-        <q-tab-panels v-model="tab" animated>
-          {% include "admin/_tab_funding.html" %} {% include
-          "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %} {%
-          include "admin/_tab_security.html" %} {% include
-          "admin/_tab_theme.html" %}
-        </q-tab-panels>
-      </q-form>
+        <template v-slot:after>
+          <q-form name="settings_form" id="settings_form">
+            <q-tab-panels
+              v-model="tab"
+              animated
+              swipeable
+              vertical
+              transition-prev="jump-up"
+              transition-next="jump-up"
+            >
+              {% include "admin/_tab_funding.html" %} {% include
+              "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %}
+              {% include "admin/_tab_extensions.html" %} {% include
+              "admin/_tab_notifications.html" %} {% include
+              "admin/_tab_security.html" %} {% include "admin/_tab_theme.html"
+              %}
+            </q-tab-panels>
+          </q-form>
+        </template>
+      </q-splitter>
     </q-card>
   </div>
 </div>
