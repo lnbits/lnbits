@@ -52,6 +52,10 @@ class Account(BaseModel):
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         return pwd_context.verify(password, self.password_hash)
 
+    def refresh_privileges(self):
+        self.is_super_user = self.id == settings.super_user
+        self.is_admin = self.is_super_user or self.id in settings.lnbits_admin_users
+
 
 class AccountOverview(Account):
     transaction_count: Optional[int] = 0
