@@ -114,13 +114,6 @@ window.app = Vue.createApp({
             field: 'password',
             sortable: false
           },
-          // {
-          //   name: 'wallet_count',
-          //   align: 'left',
-          //   label: 'Wallets',
-          //   field: 'wallet_count',
-          //   sortable: true
-          // },
           {
             name: 'wallet_id',
             align: 'left',
