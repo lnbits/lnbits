@@ -3,12 +3,17 @@ window.app = Vue.createApp({
   mixins: [window.windowMixin],
   data: function () {
     return {
-      isSuperUser: false,
       activeWallet: {},
       wallet: {},
       cancel: {},
       users: [],
       wallets: [],
+      searchData: {
+        user: '',
+        username: '',
+        email: '',
+        pubkey: ''
+      },
       paymentDialog: {
         show: false
       },
@@ -97,24 +102,31 @@ window.app = Vue.createApp({
             sortable: false
           },
           {
-            name: 'wallet_count',
-            align: 'left',
-            label: 'Wallets',
-            field: 'wallet_count',
-            sortable: true
-          },
-          {
             name: 'password',
             align: 'left',
             label: 'Password',
             field: 'password',
             sortable: false
           },
+          // {
+          //   name: 'wallet_count',
+          //   align: 'left',
+          //   label: 'Wallets',
+          //   field: 'wallet_count',
+          //   sortable: true
+          // },
           {
-            name: 'id',
+            name: 'wallet_id',
+            align: 'left',
+            label: 'Wallets',
+            field: 'wallet_id',
+            sortable: false
+          },
+          {
+            name: 'user',
             align: 'left',
             label: 'User Id',
-            field: 'id',
+            field: 'user',
             sortable: false
           },
 
@@ -151,7 +163,7 @@ window.app = Vue.createApp({
           {
             name: 'transaction_count',
             align: 'left',
-            label: 'Transactions',
+            label: 'Payments',
             field: 'transaction_count',
             sortable: true
           },
@@ -388,6 +400,16 @@ window.app = Vue.createApp({
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
+    },
+    searchUserBy(fieldName) {
+      console.log('### searchUser', fieldName, this.searchData[fieldName])
+      const fieldValue = this.searchData[fieldName]
+      this.usersTable.filter = {}
+      if (fieldValue) {
+        this.usersTable.filter[fieldName] = fieldValue
+      }
+
+      this.fetchUsers()
     },
     shortify(value) {
       valueLength = (value || '').length

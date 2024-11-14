@@ -29,33 +29,23 @@ include "users/_createWalletDialog.html" %}
               <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 <q-input
-                  v-if="col.name=='id'"
+                  v-if="['user', 'username', 'email', 'pubkey', 'wallet_id'].includes(col.name)"
+                  v-model="searchData[col.name]"
+                  @keydown.enter="searchUserBy(col.name)"
                   dense
                   type="text"
                   filled
-                  label="User Id"
-                ></q-input>
-                <q-input
-                  v-else-if="col.name=='username'"
-                  dense
-                  type="text"
-                  filled
-                  label="Username"
-                ></q-input>
-                <q-input
-                  v-else-if="col.name=='email'"
-                  dense
-                  type="text"
-                  filled
-                  label="Email"
-                ></q-input>
-                <q-input
-                  v-else-if="col.name=='pubkey'"
-                  dense
-                  type="text"
-                  filled
-                  label="Public Key"
-                ></q-input>
+                  :label="col.label"
+                >
+                  <template v-slot:append>
+                    <q-icon
+                      name="search"
+                      @click="searchUserBy(col.name)"
+                      class="cursor-pointer"
+                    />
+                  </template>
+                </q-input>
+
                 <span v-else v-text="col.label"></span>
               </q-th>
             </q-tr>
@@ -97,17 +87,6 @@ include "users/_createWalletDialog.html" %}
               </q-td>
               <q-td>
                 <q-btn
-                  icon="list"
-                  size="sm"
-                  color="secondary"
-                  :label="props.row.wallet_count"
-                  @click="fetchWallets(props.row.id)"
-                >
-                  <q-tooltip>Show Wallets</q-tooltip>
-                </q-btn>
-              </q-td>
-              <q-td>
-                <q-btn
                   round
                   icon="refresh"
                   size="sm"
@@ -117,6 +96,18 @@ include "users/_createWalletDialog.html" %}
                   <q-tooltip>Generate and copy password reset url</q-tooltip>
                 </q-btn>
               </q-td>
+              <q-td>
+                <q-btn
+                  icon="list"
+                  size="sm"
+                  color="secondary"
+                  :label="props.row.wallet_count"
+                  @click="fetchWallets(props.row.id)"
+                >
+                  <q-tooltip>Show Wallets</q-tooltip>
+                </q-btn>
+              </q-td>
+
               <q-td>
                 <q-btn
                   icon="content_copy"
@@ -133,7 +124,19 @@ include "users/_createWalletDialog.html" %}
 
               <q-td v-text="props.row.email"></q-td>
 
-              <q-td v-text="shortify(props.row.pubkey)"></q-td>
+              <q-td>
+                <q-btn
+                  v-if="props.row.pubkey"
+                  icon="content_copy"
+                  size="sm"
+                  flat
+                  class="cursor-pointer q-mr-xs"
+                  @click="copyText(props.row.pubkey)"
+                >
+                  <q-tooltip>Copy Public Key</q-tooltip>
+                </q-btn>
+                <span v-text="shortify(props.row.pubkey)"></span>
+              </q-td>
               <q-td v-text="formatSat(props.row.balance_msat)"></q-td>
 
               <q-td v-text="props.row.transaction_count"></q-td>

@@ -61,7 +61,7 @@ class AccountOverview(Account):
 
 
 class AccountFilters(FilterModel):
-    __search_fields__ = ["id", "email", "username", "pubkey"]
+    __search_fields__ = ["user", "email", "username", "pubkey", "wallet_id"]
     __sort_fields__ = [
         "balance_msat",
         "email",
@@ -77,6 +77,9 @@ class AccountFilters(FilterModel):
     wallet_count: Optional[int] = None
     username: Optional[str] = None
     email: Optional[str] = None
+    user: Optional[str] = None
+    pubkey: Optional[str] = None
+    wallet_id: Optional[str] = None
 
 
 class User(BaseModel):

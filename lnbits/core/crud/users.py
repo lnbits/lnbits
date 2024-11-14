@@ -51,7 +51,8 @@ async def get_accounts(
             accounts.id,
             accounts.username,
             accounts.email,
-
+            accounts.pubkey,
+            wallets.id as wallet_id,
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0)) as balance_msat,
