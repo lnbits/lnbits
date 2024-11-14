@@ -3,6 +3,11 @@
 "users/_topupDialog.html" %} {% include "users/_createUserDialog.html" %}
 
 <div class="row q-col-gutter-md justify-center">
+  <div class="col q-my-md">
+  <q-btn :label="$t('create_account')" color="primary"> </q-btn>
+</div>
+</div>
+<div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md">
     <div v-if="walletDialog.show">
       {%include "users/_createWalletDialog.html" %}
