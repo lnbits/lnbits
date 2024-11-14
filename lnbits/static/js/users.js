@@ -104,21 +104,6 @@ window.app = Vue.createApp({
             sortable: true
           },
           {
-            name: 'id',
-            align: 'left',
-            label: 'User Id',
-            field: 'id',
-            sortable: true
-          },
-
-          {
-            name: 'username',
-            align: 'left',
-            label: 'Username',
-            field: 'username',
-            sortable: true
-          },
-          {
             name: 'password',
             align: 'left',
             label: 'Password',
@@ -126,18 +111,34 @@ window.app = Vue.createApp({
             sortable: false
           },
           {
+            name: 'id',
+            align: 'left',
+            label: 'User Id',
+            field: 'id',
+            sortable: false
+          },
+
+          {
+            name: 'username',
+            align: 'left',
+            label: 'Username',
+            field: 'username',
+            sortable: false
+          },
+
+          {
             name: 'email',
             align: 'left',
             label: 'Email',
             field: 'email',
-            sortable: true
+            sortable: false
           },
           {
             name: 'pubkey',
             align: 'left',
             label: 'Public Key',
             field: 'pubkey',
-            sortable: true
+            sortable: false
           },
           {
             name: 'balance_msat',

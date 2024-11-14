@@ -27,12 +27,37 @@ include "users/_createWalletDialog.html" %}
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
-              <q-th
-                v-for="col in props.cols"
-                v-text="col.label"
-                :key="col.name"
-                :props="props"
-              ></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                <q-input
+                  v-if="col.name=='id'"
+                  dense
+                  type="text"
+                  filled
+                  label="User Id"
+                ></q-input>
+                <q-input
+                  v-else-if="col.name=='username'"
+                  dense
+                  type="text"
+                  filled
+                  label="Username"
+                ></q-input>
+                <q-input
+                  v-else-if="col.name=='email'"
+                  dense
+                  type="text"
+                  filled
+                  label="Email"
+                ></q-input>
+                <q-input
+                  v-else-if="col.name=='pubkey'"
+                  dense
+                  type="text"
+                  filled
+                  label="Public Key"
+                ></q-input>
+                <span v-else v-text="col.label"></span>
+              </q-th>
             </q-tr>
           </template>
           <template v-slot:body="props">
@@ -83,6 +108,17 @@ include "users/_createWalletDialog.html" %}
               </q-td>
               <q-td>
                 <q-btn
+                  round
+                  icon="refresh"
+                  size="sm"
+                  color="primary"
+                  @click="resetPassword(props.row.id)"
+                >
+                  <q-tooltip>Generate and copy password reset url</q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td>
+                <q-btn
                   icon="content_copy"
                   size="sm"
                   flat
@@ -94,17 +130,6 @@ include "users/_createWalletDialog.html" %}
                 <span v-text="shortify(props.row.id)"></span>
               </q-td>
               <q-td v-text="props.row.username"></q-td>
-              <q-td>
-                <q-btn
-                  round
-                  icon="refresh"
-                  size="sm"
-                  color="secondary"
-                  @click="resetPassword(props.row.id)"
-                >
-                  <q-tooltip>Generate and copy password reset url</q-tooltip>
-                </q-btn>
-              </q-td>
 
               <q-td v-text="props.row.email"></q-td>
 
