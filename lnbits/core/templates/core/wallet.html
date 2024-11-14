@@ -101,11 +101,25 @@
             </div>
           </div>
         </q-card>
-        <payment-list
-          :update="updatePayments"
-          :wallet="this.g.wallet"
-          :mobile-simple="mobileSimple"
-        />
+        <q-card
+          :style="
+          $q.screen.lt.md
+            ? {
+                background: $q.screen.lt.md ? 'none !important' : '',
+                boxShadow: $q.screen.lt.md ? 'none !important' : '',
+                marginTop: $q.screen.lt.md ? '0px !important' : ''
+              }
+            : ''
+        "
+        >
+          <q-card-section>
+            <payment-list
+              :update="updatePayments"
+              :wallet="this.g.wallet"
+              :mobile-simple="mobileSimple"
+            />
+          </q-card-section>
+        </q-card>
       </div>
       {% if HIDE_API %}
       <div class="col-12 col-md-4 q-gutter-y-md">

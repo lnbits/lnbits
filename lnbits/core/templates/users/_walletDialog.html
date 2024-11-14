@@ -1,11 +1,20 @@
-<div v-if="walletDialog.show">
+<div v-if="paymentDialog.show">
+  <q-card class="q-pa-lg">
+    <q-card-section>
+      <payment-list :wallet="activeWallet" />
+    </q-card-section>
+    <q-card-section>
+      <q-btn
+        flat
+        @click="paymentDialog.show = false"
+        :label="$t('back')"
+      ></q-btn>
+    </q-card-section>
+  </q-card>
+</div>
+<div v-else-if="walletDialog.show">
   <q-card class="q-pa-lg">
     <h2 class="text-h6 q-mb-md">Wallets</h2>
-    <q-dialog v-model="paymentDialog.show">
-      <q-card class="q-pa-lg" style="width: 700px; max-width: 80vw">
-        <payment-list :wallet="activeWallet" />
-      </q-card>
-    </q-dialog>
     <q-table :rows="wallets" :columns="walletTable.columns">
       <template v-slot:header="props">
         <q-tr :props="props">
