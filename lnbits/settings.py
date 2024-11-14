@@ -673,8 +673,11 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
             or user_id == self.super_user
         )
 
+    def is_super_user(self, user_id: str) -> bool:
+        return user_id == self.super_user
+
     def is_admin_user(self, user_id: str) -> bool:
-        return user_id in self.lnbits_admin_users or user_id == self.super_user
+        return self.is_super_user(user_id) or user_id in self.lnbits_admin_users
 
     def is_admin_extension(self, ext_id: str) -> bool:
         return ext_id in self.lnbits_admin_extensions

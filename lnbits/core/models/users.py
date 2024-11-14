@@ -53,8 +53,8 @@ class Account(BaseModel):
         return pwd_context.verify(password, self.password_hash)
 
     def refresh_privileges(self):
-        self.is_super_user = self.id == settings.super_user
-        self.is_admin = self.is_super_user or self.id in settings.lnbits_admin_users
+        self.is_super_user = settings.is_super_user(self.id)
+        self.is_admin = settings.is_admin_user(self.id)
 
 
 class AccountOverview(Account):
