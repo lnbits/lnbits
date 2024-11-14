@@ -406,6 +406,7 @@ window.app = Vue.createApp({
             icon: null
           })
           this.wallet = {}
+          this.fetchWallets(this.g.user.id)
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
