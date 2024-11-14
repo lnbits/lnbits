@@ -67,6 +67,12 @@ window.app = Vue.createApp({
       walletTable: {
         columns: [
           {
+            name: 'id',
+            align: 'left',
+            label: 'Wallet Id',
+            field: 'id'
+          },
+          {
             name: 'name',
             align: 'left',
             label: 'Name',
