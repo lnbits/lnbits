@@ -138,6 +138,7 @@
   <q-card-section v-if="activeUser.data.id">
     <q-btn
       @click="resetPassword(activeUser.data.id)"
+      :disable="activeUser.data.is_super_user"
       :label="$t('reset_password')"
       icon="refresh"
       color="primary"
@@ -147,6 +148,7 @@
     <!-- disable for super admin -->
     <q-btn
       @click="deleteUser(activeUser.data.id)"
+      :disable="activeUser.data.is_super_user"
       :label="$t('delete')"
       icon="delete"
       color="negative"
