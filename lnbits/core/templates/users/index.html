@@ -1,9 +1,10 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
-%} {% block page %} {% include "users/_walletDialog.html" %} {% include
-"users/_topupDialog.html" %}
+%} {% block page %}
 
-<div class="row q-col-gutter-md justify-center q-mt-md">
-  <div class="col q-gutter-y-md">
+<div class="row q-col-gutter-md justify-center">
+  <div class="col">
+    {% include "users/_walletDialog.html" %} {% include
+    "users/_topupDialog.html" %}
     <div v-if="createUserDialog.show" class="row">
       <div class="col-12 col-md-6">
         {%include "users/_createUserDialog.html" %}
@@ -13,14 +14,14 @@
       {%include "users/_createWalletDialog.html" %}
     </div>
     <div v-else>
-      <div class="col q-my-md">
-        <q-btn
-          @click="showUpdateAccount()"
-          :label="$t('create_account')"
-          color="primary"
-        >
-        </q-btn>
-      </div>
+      <q-btn
+        @click="showUpdateAccount()"
+        :label="$t('create_account')"
+        color="primary"
+        class="q-mb-md"
+      >
+      </q-btn>
+
       <q-card>
         <q-card-section>
           <q-table

@@ -1,18 +1,29 @@
 <div v-if="paymentDialog.show">
+  <div class="row q-mb-lg">
+    <div class="col">
+      <q-btn
+        icon="arrow_back_ios"
+        @click="paymentDialog.show = false"
+        :label="$t('back')"
+      ></q-btn>
+    </div>
+  </div>
   <q-card class="q-pa-lg">
     <q-card-section>
       <payment-list :wallet="activeWallet" />
     </q-card-section>
-    <q-card-section>
-      <q-btn
-        flat
-        @click="paymentDialog.show = false"
-        :label="$t('back')"
-      ></q-btn>
-    </q-card-section>
   </q-card>
 </div>
 <div v-else-if="walletDialog.show">
+  <div class="row q-mb-lg">
+    <div class="col">
+      <q-btn
+        icon="arrow_back_ios"
+        @click="walletDialog.show = false"
+        :label="$t('back')"
+      ></q-btn>
+    </div>
+  </div>
   <q-card class="q-pa-lg">
     <h2 class="text-h6 q-mb-md">Wallets</h2>
     <q-table :rows="wallets" :columns="walletTable.columns">
@@ -117,12 +128,5 @@
         </q-tr>
       </template>
     </q-table>
-    <div class="row q-mt-lg">
-      <q-btn
-        flat
-        @click="walletDialog.show = false"
-        :label="$t('back')"
-      ></q-btn>
-    </div>
   </q-card>
 </div>

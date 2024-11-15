@@ -352,8 +352,8 @@ window.app = Vue.createApp({
     exportUsers() {
       console.log('export users')
     },
-    showUpdateAccount(userData){
-      this.createUserDialog.data = userData || {extra:{}}
+    showUpdateAccount(userData) {
+      this.createUserDialog.data = userData || {extra: {}}
       this.createUserDialog.show = true
     },
     showTopupDialog(walletId) {
