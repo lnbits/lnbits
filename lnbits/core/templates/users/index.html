@@ -1,10 +1,9 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
-%} {% block page %}
+%} {% block page %}{% include "users/_topupDialog.html" %}
 
 <div class="row q-col-gutter-md justify-center">
   <div class="col">
-    {% include "users/_manageWallet.html" %} {% include
-    "users/_topupDialog.html" %}
+    {% include "users/_manageWallet.html" %}
     <div v-if="activeUser.show" class="row">
       <div class="col-12 col-md-6">{%include "users/_manageUser.html" %}</div>
     </div>

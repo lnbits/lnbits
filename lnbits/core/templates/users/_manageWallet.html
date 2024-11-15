@@ -59,12 +59,6 @@
               <q-tooltip>Show Payments</q-tooltip>
             </q-btn>
 
-            <lnbits-update-balance
-              v-if="!props.row.deleted"
-              :wallet_id="props.row.id"
-              :callback="topupCallback"
-              class="q-ml-xs"
-            ></lnbits-update-balance>
             <q-btn
               round
               v-if="!props.row.deleted"
