@@ -24,39 +24,13 @@ window.app = Vue.createApp({
         show: false
       },
       createUserDialog: {
-        data: {},
-        fields: [
-          {
-            description: 'Username',
-            name: 'username'
-          },
-          {
-            description: 'Email',
-            name: 'email'
-          },
-          {
-            type: 'password',
-            description: 'Password',
-            name: 'password'
-          },
-          {
-            type: 'password',
-            description: 'Password Repeat',
-            name: 'password_repeat'
-          },
-          {
-            description: 'x1',
-            name: 'x1',
-            otptions: [
-              {
-                description: 'Email',
-                name: 'email'
-              }
-            ]
-          }
-        ],
+        data: {
+          extra: {}
+        },
+        showUserId: false,
         show: false
       },
+      // TODO: is it required?
       createWalletDialog: {
         data: {},
         fields: [
@@ -120,13 +94,6 @@ window.app = Vue.createApp({
             align: 'left',
             label: 'Admin',
             field: 'admin',
-            sortable: false
-          },
-          {
-            name: 'password',
-            align: 'left',
-            label: 'Password',
-            field: 'password',
             sortable: false
           },
           {
@@ -384,6 +351,10 @@ window.app = Vue.createApp({
     },
     exportUsers() {
       console.log('export users')
+    },
+    showUpdateAccount(userData){
+      this.createUserDialog.data = userData || {extra:{}}
+      this.createUserDialog.show = true
     },
     showTopupDialog(walletId) {
       this.wallet.id = walletId

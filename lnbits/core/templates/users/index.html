@@ -4,8 +4,10 @@
 
 <div class="row q-col-gutter-md justify-center q-mt-md">
   <div class="col q-gutter-y-md">
-    <div v-if="createUserDialog.show">
-      {%include "users/_createUserDialog.html" %}
+    <div v-if="createUserDialog.show" class="row">
+      <div class="col-12 col-md-6">
+        {%include "users/_createUserDialog.html" %}
+      </div>
     </div>
     <div v-else-if="walletDialog.show">
       {%include "users/_createWalletDialog.html" %}
@@ -13,7 +15,7 @@
     <div v-else>
       <div class="col q-my-md">
         <q-btn
-          @click="createUserDialog.show = true"
+          @click="showUpdateAccount()"
           :label="$t('create_account')"
           color="primary"
         >
@@ -61,14 +63,16 @@
               <q-tr auto-width :props="props">
                 <q-td>
                   <q-btn
+                    @click="showUpdateAccount(props.row)"
                     round
-                    icon="delete"
+                    icon="edit"
                     size="sm"
-                    color="negative"
+                    color="secondary"
                     class="q-ml-xs"
-                    @click="deleteUser(props.row.id, props)"
                   >
-                    <q-tooltip>Delete User</q-tooltip>
+                    <q-tooltip>
+                      <span v-text="$t('update_account')"></span>
+                    </q-tooltip>
                   </q-btn>
                 </q-td>
                 <q-td>
@@ -92,17 +96,7 @@
                     <q-tooltip>Super User</q-tooltip>
                   </q-btn>
                 </q-td>
-                <q-td>
-                  <q-btn
-                    round
-                    icon="refresh"
-                    size="sm"
-                    color="primary"
-                    @click="resetPassword(props.row.id)"
-                  >
-                    <q-tooltip>Generate and copy password reset url</q-tooltip>
-                  </q-btn>
-                </q-td>
+
                 <q-td>
                   <q-btn
                     icon="list"
