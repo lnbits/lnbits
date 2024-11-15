@@ -3,11 +3,11 @@
 
 <div class="row q-col-gutter-md justify-center">
   <div class="col">
-    {% include "users/_walletDialog.html" %} {% include
+    {% include "users/_manageWallet.html" %} {% include
     "users/_topupDialog.html" %}
     <div v-if="createUserDialog.show" class="row">
       <div class="col-12 col-md-6">
-        {%include "users/_createUserDialog.html" %}
+        {%include "users/_manageUser.html" %}
       </div>
     </div>
     <div v-else-if="walletDialog.show">
