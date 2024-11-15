@@ -3,7 +3,9 @@ import json
 import time
 from http import HTTPStatus
 from typing import List
+from uuid import uuid4
 
+import shortuuid
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
 
@@ -20,13 +22,20 @@ from lnbits.core.models import (
     AccountFilters,
     AccountOverview,
     CreateTopup,
+    CreateUser,
     User,
+    UserExtra,
     Wallet,
 )
-from lnbits.core.services import update_wallet_balance
+from lnbits.core.models.users import Account
+from lnbits.core.services import create_user_account_no_ckeck, update_wallet_balance
 from lnbits.db import Filters, Page
 from lnbits.decorators import check_admin, check_super_user, parse_filters
-from lnbits.helpers import encrypt_internal_message, generate_filter_params_openapi
+from lnbits.helpers import (
+    encrypt_internal_message,
+    generate_filter_params_openapi,
+    is_valid_email_address,
+)
 from lnbits.settings import EditableSettings, settings
 
 users_router = APIRouter(prefix="/users/api/v1", dependencies=[Depends(check_admin)])
@@ -42,6 +51,39 @@ async def api_get_users(
     filters: Filters = Depends(parse_filters(AccountFilters)),
 ) -> Page[AccountOverview]:
     return await get_accounts(filters=filters)
+
+
+@users_router.post("/user")
+async def register(data: CreateUser) -> CreateUser:
+    if data.email and not is_valid_email_address(data.email):
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
+
+    if data.password and not data.username:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Username required when password provided."
+        )
+
+    if data.password != data.password_repeat:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Passwords do not match.")
+
+    if not data.password:
+        random_password = shortuuid.uuid()
+        data.password = random_password
+        data.password_repeat = random_password
+    data.extra = data.extra or UserExtra()
+    data.extra.provider = data.extra.provider or "lnbits"
+
+    account = Account(
+        id=uuid4().hex,
+        username=data.username,
+        email=data.email,
+        pubkey=data.pubkey,
+        extra=data.extra,
+    )
+    account.hash_password(data.password)
+    user = await create_user_account_no_ckeck(account)
+    data.id = user.id
+    return data
 
 
 @users_router.delete("/user/{user_id}", status_code=HTTPStatus.OK)

@@ -13,8 +13,9 @@
     ></q-btn>
     <q-btn
       v-else
-      color="primary"
+      @click="createUser()"
       :label="$t('create_account')"
+      color="primary"
       class="float-right"
     ></q-btn>
   </div>
@@ -61,19 +62,29 @@
     >
       <q-tooltip>Toggle Admin</q-tooltip>
     </q-toggle>
+
     <q-input
       v-if="activeUser.setPassword"
-      v-model="activeUser.data.newPassword"
-      type="password"
+      v-model="activeUser.data.password"
+      :type="activeUser.data.showPassword ? 'text': 'password'"
       autocomplete="off"
       :label="$t('password')"
       filled
       dense
       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
-    ></q-input>
+    >
+      <q-btn
+        @click="activeUser.data.showPassword = !activeUser.data.showPassword"
+        dense
+        flat
+        :icon="activeUser.data.showPassword ? 'visibility_off' : 'visibility'"
+        color="grey"
+      ></q-btn>
+    </q-input>
     <q-input
       v-if="activeUser.setPassword"
-      v-model="activeUser.data.newPasswordRepeat"
+      v-model="activeUser.data.password_repeat"
+      :type="activeUser.data.showPassword ? 'text': 'password'"
       type="password"
       autocomplete="off"
       :label="$t('password_repeat')"
@@ -81,7 +92,15 @@
       dense
       class="q-mb-md"
       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
-    ></q-input>
+    >
+      <q-btn
+        @click="activeUser.data.showPassword = !activeUser.data.showPassword"
+        dense
+        flat
+        :icon="activeUser.data.showPassword ? 'visibility_off' : 'visibility'"
+        color="grey"
+      ></q-btn>
+    </q-input>
 
     <q-input
       v-model="activeUser.data.pubkey"

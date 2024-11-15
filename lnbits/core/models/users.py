@@ -120,11 +120,21 @@ class User(BaseModel):
         return False
 
 
-class CreateUser(BaseModel):
+class RegisterUser(BaseModel):
     email: Optional[str] = Query(default=None)
     username: str = Query(default=..., min_length=2, max_length=20)
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
+
+
+class CreateUser(BaseModel):
+    id: Optional[str] = Query(default=None)
+    email: Optional[str] = Query(default=None)
+    username: Optional[str] = Query(default=None, min_length=2, max_length=20)
+    password: Optional[str] = Query(default=None, min_length=8, max_length=50)
+    password_repeat: Optional[str] = Query(default=None, min_length=8, max_length=50)
+    pubkey: str = Query(default=None, max_length=64)
+    extra: Optional[UserExtra] = None
 
 
 class UpdateUser(BaseModel):

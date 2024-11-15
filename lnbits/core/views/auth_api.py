@@ -35,9 +35,9 @@ from ..crud import (
 from ..models import (
     AccessTokenPayload,
     Account,
-    CreateUser,
     LoginUsernamePassword,
     LoginUsr,
+    RegisterUser,
     ResetUserPassword,
     UpdateSuperuserPassword,
     UpdateUser,
@@ -145,7 +145,7 @@ async def logout() -> JSONResponse:
 
 
 @auth_router.post("/register")
-async def register(data: CreateUser) -> JSONResponse:
+async def register(data: RegisterUser) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED,

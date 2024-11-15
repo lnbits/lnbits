@@ -24,9 +24,7 @@ window.app = Vue.createApp({
         show: false
       },
       activeUser: {
-        data: {
-          extra: {}
-        },
+        data: null,
         showUserId: false,
         show: false
       },
@@ -213,13 +211,16 @@ window.app = Vue.createApp({
     createUser() {
       LNbits.api
         .request('POST', '/users/api/v1/user', null, this.activeUser.data)
-        .then(() => {
+        .then(resp => {
           this.fetchUsers()
           Quasar.Notify.create({
             type: 'positive',
-            message: 'Success! User created!',
+            message: 'User created!',
             icon: null
           })
+          console.log('### resp.data', resp.data)
+          this.activeUser.setPassword = true
+          this.activeUser.data = resp.data
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
@@ -237,7 +238,7 @@ window.app = Vue.createApp({
           this.fetchUsers()
           Quasar.Notify.create({
             type: 'positive',
-            message: 'Success! User created!',
+            message: 'User created!',
             icon: null
           })
         })
@@ -255,9 +256,11 @@ window.app = Vue.createApp({
               this.fetchUsers()
               Quasar.Notify.create({
                 type: 'positive',
-                message: 'Success! User deleted!',
+                message: 'User deleted!',
                 icon: null
               })
+              this.activeUser.data = null
+              this.activeUser.show = false
             })
             .catch(function (error) {
               LNbits.utils.notifyApiError(error)
@@ -274,7 +277,7 @@ window.app = Vue.createApp({
           this.fetchWallets(user_id)
           Quasar.Notify.create({
             type: 'positive',
-            message: 'Success! Undeleted user wallet!',
+            message: 'Undeleted user wallet!',
             icon: null
           })
         })
@@ -293,7 +296,7 @@ window.app = Vue.createApp({
             this.fetchWallets(user_id)
             Quasar.Notify.create({
               type: 'positive',
-              message: 'Success! User wallet deleted!',
+              message: 'User wallet deleted!',
               icon: null
             })
           })
@@ -341,7 +344,7 @@ window.app = Vue.createApp({
           this.fetchUsers()
           Quasar.Notify.create({
             type: 'positive',
-            message: 'Success! Toggled admin!',
+            message: 'Toggled admin!',
             icon: null
           })
         })
@@ -353,7 +356,11 @@ window.app = Vue.createApp({
       console.log('export users')
     },
     showUpdateAccount(userData) {
-      this.activeUser.data = userData || {extra: {}}
+      this.activeUser.data = userData || {
+        extra: {},
+        showPassword: false,
+        showUserId: false
+      }
       this.activeUser.setPassword = false
       this.activeUser.show = true
     },
@@ -382,7 +389,7 @@ window.app = Vue.createApp({
         .then(_ => {
           Quasar.Notify.create({
             type: 'positive',
-            message: `Success! Added ${this.wallet.amount} to ${this.wallet.id}`,
+            message: `Added ${this.wallet.amount} to ${this.wallet.id}`,
             icon: null
           })
           this.wallet = {}

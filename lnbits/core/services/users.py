@@ -39,6 +39,13 @@ async def create_user_account(
 ) -> User:
     if not settings.new_accounts_allowed:
         raise ValueError("Account creation is disabled.")
+
+    return await create_user_account_no_ckeck(account, wallet_name)
+
+
+async def create_user_account_no_ckeck(
+    account: Optional[Account] = None, wallet_name: Optional[str] = None
+) -> User:
     if account:
         if account.username and await get_account_by_username(account.username):
             raise ValueError("Username already exists.")
