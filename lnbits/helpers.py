@@ -186,6 +186,16 @@ def is_valid_username(username: str) -> bool:
     return re.fullmatch(username_regex, username) is not None
 
 
+def is_valid_pubkey(pubkey: str) -> bool:
+    if len(pubkey) != 64:
+        return False
+    try:
+        int(pubkey, 16)
+        return True
+    except Exception as _:
+        return False
+
+
 def create_access_token(data: dict):
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.auth_token_expire_minutes

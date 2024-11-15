@@ -13,7 +13,7 @@
     </div>
     <div v-else>
       <q-btn
-        @click="showUpdateAccount()"
+        @click="showAccountPage()"
         :label="$t('create_account')"
         color="primary"
         class="q-mb-md"
@@ -62,7 +62,7 @@
               <q-tr auto-width :props="props">
                 <q-td>
                   <q-btn
-                    @click="showUpdateAccount(props.row)"
+                    @click="showAccountPage(props.row.id)"
                     round
                     icon="edit"
                     size="sm"

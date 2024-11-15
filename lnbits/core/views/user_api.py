@@ -13,6 +13,7 @@ from lnbits.core.crud import (
     delete_account,
     delete_wallet,
     force_delete_wallet,
+    get_account,
     get_accounts,
     get_wallet,
     get_wallets,
@@ -28,13 +29,16 @@ from lnbits.core.models import (
     Wallet,
 )
 from lnbits.core.models.users import Account
-from lnbits.core.services import create_user_account_no_ckeck, update_wallet_balance
+from lnbits.core.services import (
+    create_user_account_no_ckeck,
+    update_user_account,
+    update_wallet_balance,
+)
 from lnbits.db import Filters, Page
 from lnbits.decorators import check_admin, check_super_user, parse_filters
 from lnbits.helpers import (
     encrypt_internal_message,
     generate_filter_params_openapi,
-    is_valid_email_address,
 )
 from lnbits.settings import EditableSettings, settings
 
@@ -53,12 +57,17 @@ async def api_get_users(
     return await get_accounts(filters=filters)
 
 
-@users_router.post("/user")
-async def register(data: CreateUser) -> CreateUser:
-    if data.email and not is_valid_email_address(data.email):
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
+@users_router.get("/user/{user_id}")
+async def api_get_user(user_id: str) -> Account:
+    account = await get_account(user_id)
+    if not account:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Username not found.")
+    return account
 
-    if data.password and not data.username:
+
+@users_router.post("/user")
+async def api_create_user(data: CreateUser) -> CreateUser:
+    if not data.username and data.password:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Username required when password provided."
         )
@@ -80,9 +89,32 @@ async def register(data: CreateUser) -> CreateUser:
         pubkey=data.pubkey,
         extra=data.extra,
     )
+    account.validate_fields()
     account.hash_password(data.password)
     user = await create_user_account_no_ckeck(account)
     data.id = user.id
+    return data
+
+
+@users_router.put("/user/{user_id}")
+async def api_update_user(user_id: str, data: CreateUser) -> CreateUser:
+    if user_id != data.id:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "User Id missmatch.")
+
+    if data.password or data.password_repeat:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Use 'reset password' functionality."
+        )
+
+    account = Account(
+        id=user_id,
+        username=data.username,
+        email=data.email,
+        pubkey=data.pubkey,
+        extra=data.extra or UserExtra(),
+    )
+    await update_user_account(account)
+
     return data
 
 

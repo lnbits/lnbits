@@ -7,6 +7,7 @@
     ></q-btn>
     <q-btn
       v-if="activeUser.data.id"
+      @click="updateUser()"
       color="primary"
       :label="$t('update_account')"
       class="float-right"
@@ -164,7 +165,6 @@
     >
       <q-tooltip>Generate and copy password reset url</q-tooltip>
     </q-btn>
-    <!-- disable for super admin -->
     <q-btn
       @click="deleteUser(activeUser.data.id)"
       :disable="activeUser.data.is_super_user"

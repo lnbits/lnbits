@@ -22,6 +22,7 @@ from ..crud import (
     get_account_by_username,
     get_super_settings,
     get_user_from_account,
+    update_account,
     update_super_user,
     update_user_extension,
 )
@@ -76,6 +77,38 @@ async def create_user_account_no_ckeck(
     assert user, "Cannot find user for account."
 
     return user
+
+
+async def update_user_account(account: Account) -> Account:
+    account.validate_fields()
+
+    existing_account = await get_account(account.id)
+    if not existing_account:
+        raise ValueError("User does not exist.")
+
+    account.password_hash = existing_account.password_hash
+
+    if existing_account.username and not account.username:
+        raise ValueError("Cannot remove username.")
+
+    if account.username:
+        existing_account = await get_account_by_username(account.username)
+        if existing_account and existing_account.id != account.id:
+            raise ValueError("Username already exists.")
+    elif existing_account.username:
+        raise ValueError("Cannot remove username.")
+
+    if account.email:
+        existing_account = await get_account_by_email(account.email)
+        if existing_account and existing_account.id != account.id:
+            raise ValueError("Email already exists.")
+
+    if account.pubkey:
+        existing_account = await get_account_by_pubkey(account.pubkey)
+        if existing_account and existing_account.id != account.id:
+            raise ValueError("Pubkey already exists.")
+
+    return await update_account(account)
 
 
 async def check_admin_settings():

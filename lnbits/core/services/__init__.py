@@ -25,6 +25,7 @@ from .users import (
     create_user_account,
     create_user_account_no_ckeck,
     init_admin_settings,
+    update_user_account,
 )
 from .websockets import websocket_manager, websocket_updater
 
@@ -55,6 +56,7 @@ __all__ = [
     "create_user_account",
     "create_user_account_no_ckeck",
     "init_admin_settings",
+    "update_user_account",
     # websockets
     "websocket_manager",
     "websocket_updater",

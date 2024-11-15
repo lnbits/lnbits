@@ -8,6 +8,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel, Field
 
 from lnbits.db import FilterModel
+from lnbits.helpers import is_valid_email_address, is_valid_pubkey, is_valid_username
 from lnbits.settings import settings
 
 from .wallets import Wallet
@@ -51,6 +52,14 @@ class Account(BaseModel):
             return False
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         return pwd_context.verify(password, self.password_hash)
+
+    def validate_fields(self):
+        if self.username and not is_valid_username(self.username):
+            raise ValueError("Invalid username.")
+        if self.email and not is_valid_email_address(self.email):
+            raise ValueError("Invalid email.")
+        if self.pubkey and not is_valid_pubkey(self.pubkey):
+            raise ValueError("Invalid pubkey.")
 
     def refresh_privileges(self):
         # TODO: replace with pydating 2 'model_post_init'

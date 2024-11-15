@@ -212,15 +212,37 @@ window.app = Vue.createApp({
       LNbits.api
         .request('POST', '/users/api/v1/user', null, this.activeUser.data)
         .then(resp => {
-          this.fetchUsers()
           Quasar.Notify.create({
             type: 'positive',
             message: 'User created!',
             icon: null
           })
-          console.log('### resp.data', resp.data)
+
           this.activeUser.setPassword = true
           this.activeUser.data = resp.data
+          this.fetchUsers()
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
+    },
+    updateUser() {
+      LNbits.api
+        .request(
+          'PUT',
+          `/users/api/v1/user/${this.activeUser.data.id}`,
+          null,
+          this.activeUser.data
+        )
+        .then(resp => {
+          Quasar.Notify.create({
+            type: 'positive',
+            message: 'User updated!',
+            icon: null
+          })
+          this.activeUser.data = null
+          this.activeUser.show = false
+          this.fetchUsers()
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
@@ -333,10 +355,7 @@ window.app = Vue.createApp({
           LNbits.utils.notifyApiError(error)
         })
     },
-    showPayments(wallet_id) {
-      this.paymentsWallet = this.wallets.find(wallet => wallet.id === wallet_id)
-      this.paymentPage.show = true
-    },
+
     toggleAdmin(user_id) {
       LNbits.api
         .request('GET', `/users/api/v1/user/${user_id}/admin`)
@@ -355,18 +374,39 @@ window.app = Vue.createApp({
     exportUsers() {
       console.log('export users')
     },
-    showUpdateAccount(userData) {
-      this.activeUser.data = userData || {
-        extra: {},
-        showPassword: false,
-        showUserId: false
-      }
+    async showAccountPage(user_id) {
+      this.activeUser.showPassword = false
+      this.activeUser.showUserId = false
       this.activeUser.setPassword = false
-      this.activeUser.show = true
+      if (!user_id) {
+        this.activeUser.data = {extra: {}}
+        this.activeUser.show = true
+        return
+      }
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/users/api/v1/user/${user_id}`
+        )
+        this.activeUser.data = data
+
+        this.activeUser.show = true
+      } catch (error) {
+        console.warn(error)
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'Failed to get user!'
+        })
+        this.activeUser.show = false
+      }
     },
     showTopupDialog(walletId) {
       this.wallet.id = walletId
       this.topupDialog.show = true
+    },
+    showPayments(wallet_id) {
+      this.paymentsWallet = this.wallets.find(wallet => wallet.id === wallet_id)
+      this.paymentPage.show = true
     },
     topupCallback(res) {
       if (res.success) {
