@@ -3,7 +3,7 @@ window.app = Vue.createApp({
   mixins: [window.windowMixin],
   data: function () {
     return {
-      activeWallet: {},
+      paymentsWallet: {},
       wallet: {},
       cancel: {},
       users: [],
@@ -331,7 +331,7 @@ window.app = Vue.createApp({
         })
     },
     showPayments(wallet_id) {
-      this.activeWallet = this.wallets.find(wallet => wallet.id === wallet_id)
+      this.paymentsWallet = this.wallets.find(wallet => wallet.id === wallet_id)
       this.paymentDialog.show = true
     },
     toggleAdmin(user_id) {
