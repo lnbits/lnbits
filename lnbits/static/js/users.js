@@ -28,27 +28,9 @@ window.app = Vue.createApp({
         showUserId: false,
         show: false
       },
-      // TODO: is it required?
+
       createWalletDialog: {
         data: {},
-        fields: [
-          {
-            type: 'str',
-            description: 'Wallet Name',
-            name: 'name'
-          },
-          {
-            type: 'select',
-            values: ['', 'EUR', 'USD'],
-            description: 'Currency',
-            name: 'currency'
-          },
-          {
-            type: 'str',
-            description: 'Balance',
-            name: 'balance'
-          }
-        ],
         show: false
       },
       walletTable: {
@@ -234,7 +216,7 @@ window.app = Vue.createApp({
           null,
           this.activeUser.data
         )
-        .then(resp => {
+        .then(() => {
           Quasar.Notify.create({
             type: 'positive',
             message: 'User updated!',

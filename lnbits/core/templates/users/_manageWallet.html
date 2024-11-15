@@ -22,9 +22,15 @@
         @click="activeWallet.show = false"
         :label="$t('back')"
       ></q-btn>
+      <q-btn
+        @click="createWalletDialog.show = true"
+        :label="$t('create_new_wallet')"
+        color="primary"
+        class="float-right"
+      ></q-btn>
     </div>
   </div>
-  <q-card class="q-pa-lg">
+  <q-card class="q-pa-sm">
     <h2 class="text-h6 q-mb-md">Wallets</h2>
     <q-table :rows="wallets" :columns="walletTable.columns">
       <template v-slot:header="props">
