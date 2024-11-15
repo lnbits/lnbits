@@ -53,6 +53,7 @@ class Account(BaseModel):
         return pwd_context.verify(password, self.password_hash)
 
     def refresh_privileges(self):
+        # TODO: replace with pydating 2 'model_post_init'
         self.is_super_user = settings.is_super_user(self.id)
         self.is_admin = settings.is_admin_user(self.id)
 

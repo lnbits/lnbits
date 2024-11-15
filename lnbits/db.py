@@ -647,6 +647,7 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
         if value is None:
             continue
         if key not in model.__fields__:
+            # TODO: remove log, somethimes SQL JOIN will create additional column
             logger.warning(f"Converting {key} to model `{model}`.")
             continue
         type_ = model.__fields__[key].type_

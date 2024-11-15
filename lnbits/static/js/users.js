@@ -51,9 +51,9 @@ window.app = Vue.createApp({
               {
                 description: 'Email',
                 name: 'email'
-              },
+              }
             ]
-          },
+          }
         ],
         show: false
       },
