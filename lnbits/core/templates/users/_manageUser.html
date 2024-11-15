@@ -2,11 +2,11 @@
   <div class="col">
     <q-btn
       icon="arrow_back_ios"
-      @click="createUserDialog.show = false"
+      @click="activeUser.show = false"
       :label="$t('back')"
     ></q-btn>
     <q-btn
-      v-if="createUserDialog.data.id"
+      v-if="activeUser.data.id"
       color="primary"
       :label="$t('update_account')"
       class="float-right"
@@ -19,11 +19,11 @@
     ></q-btn>
   </div>
 </div>
-<q-card v-if="createUserDialog.show" class="q-pa-sm">
+<q-card v-if="activeUser.show" class="q-pa-sm">
   <q-card-section>
     <div class="text-h6">
       <span
-        v-if="createUserDialog.data.id"
+        v-if="activeUser.data.id"
         v-text="$t('update_account')"
       ></span>
       <span v-else v-text="$t('create_account')"></span>
@@ -31,24 +31,24 @@
   </q-card-section>
   <q-card-section>
     <q-input
-      v-if="createUserDialog.data.id"
-      v-model="createUserDialog.data.id"
+      v-if="activeUser.data.id"
+      v-model="activeUser.data.id"
       :label="$t('user_id')"
       filled
       dense
       readonly
-      :type="createUserDialog.data.showUserId ? 'text': 'password'"
+      :type="activeUser.data.showUserId ? 'text': 'password'"
       class="q-mb-md"
       ><q-btn
-        @click="createUserDialog.data.showUserId = !createUserDialog.data.showUserId"
+        @click="activeUser.data.showUserId = !activeUser.data.showUserId"
         dense
         flat
-        :icon="createUserDialog.data.showUserId ? 'visibility_off' : 'visibility'"
+        :icon="activeUser.data.showUserId ? 'visibility_off' : 'visibility'"
         color="grey"
       ></q-btn>
     </q-input>
     <q-input
-      v-model="createUserDialog.data.username"
+      v-model="activeUser.data.username"
       :label="$t('username')"
       filled
       dense
@@ -57,16 +57,16 @@
     </q-input>
     <q-toggle
       size="xs"
-      v-if="!createUserDialog.data.id"
+      v-if="!activeUser.data.id"
       color="secondary"
       :label="$t('set_password')"
-      v-model="createUserDialog.setPassword"
+      v-model="activeUser.setPassword"
     >
       <q-tooltip>Toggle Admin</q-tooltip>
     </q-toggle>
     <q-input
-      v-if="createUserDialog.setPassword"
-      v-model="createUserDialog.data.newPassword"
+      v-if="activeUser.setPassword"
+      v-model="activeUser.data.newPassword"
       type="password"
       autocomplete="off"
       :label="$t('password')"
@@ -75,8 +75,8 @@
       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
     ></q-input>
     <q-input
-      v-if="createUserDialog.setPassword"
-      v-model="createUserDialog.data.newPasswordRepeat"
+      v-if="activeUser.setPassword"
+      v-model="activeUser.data.newPasswordRepeat"
       type="password"
       autocomplete="off"
       :label="$t('password_repeat')"
@@ -87,7 +87,7 @@
     ></q-input>
 
     <q-input
-      v-model="createUserDialog.data.pubkey"
+      v-model="activeUser.data.pubkey"
       :label="$t('pubkey')"
       filled
       dense
@@ -95,7 +95,7 @@
     >
     </q-input>
     <q-input
-      v-model="createUserDialog.data.email"
+      v-model="activeUser.data.email"
       :label="$t('email')"
       filled
       dense
@@ -104,9 +104,9 @@
     </q-input>
   </q-card-section>
 
-  <q-card-section v-if="createUserDialog.data.extra">
+  <q-card-section v-if="activeUser.data.extra">
     <q-input
-      v-model="createUserDialog.data.extra.first_name"
+      v-model="activeUser.data.extra.first_name"
       :label="$t('first_name')"
       filled
       dense
@@ -114,7 +114,7 @@
     >
     </q-input>
     <q-input
-      v-model="createUserDialog.data.extra.last_name"
+      v-model="activeUser.data.extra.last_name"
       :label="$t('last_name')"
       filled
       dense
@@ -122,7 +122,7 @@
     >
     </q-input>
     <q-input
-      v-model="createUserDialog.data.extra.provider"
+      v-model="activeUser.data.extra.provider"
       :label="$t('auth_provider')"
       filled
       dense
@@ -130,7 +130,7 @@
     >
     </q-input>
     <q-input
-      v-model="createUserDialog.data.extra.picture"
+      v-model="activeUser.data.extra.picture"
       :label="$t('picture')"
       filled
       dense
@@ -138,9 +138,9 @@
     >
     </q-input>
   </q-card-section>
-  <q-card-section v-if="createUserDialog.data.id">
+  <q-card-section v-if="activeUser.data.id">
     <q-btn
-      @click="resetPassword(createUserDialog.data.id)"
+      @click="resetPassword(activeUser.data.id)"
       :label="$t('reset_password')"
       icon="refresh"
       color="primary"
@@ -149,7 +149,7 @@
     </q-btn>
     <!-- disable for super admin -->
     <q-btn
-      @click="deleteUser(createUserDialog.data.id)"
+      @click="deleteUser(activeUser.data.id)"
       :label="$t('delete')"
       icon="delete"
       color="negative"

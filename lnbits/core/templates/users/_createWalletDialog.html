@@ -6,7 +6,7 @@
         <q-form @submit="createWallet">
           <lnbits-dynamic-fields
             :options="createWalletDialog.fields"
-            v-model="createUserDialog.data"
+            v-model="activeUser.data"
           ></lnbits-dynamic-fields>
           <div class="row q-mt-lg">
             <q-btn v-close-popup unelevated color="primary" type="submit"

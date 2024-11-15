@@ -23,7 +23,7 @@ window.app = Vue.createApp({
       topupDialog: {
         show: false
       },
-      createUserDialog: {
+      activeUser: {
         data: {
           extra: {}
         },
@@ -212,7 +212,7 @@ window.app = Vue.createApp({
     },
     createUser() {
       LNbits.api
-        .request('POST', '/users/api/v1/user', null, this.createUserDialog.data)
+        .request('POST', '/users/api/v1/user', null, this.activeUser.data)
         .then(() => {
           this.fetchUsers()
           Quasar.Notify.create({
@@ -353,9 +353,9 @@ window.app = Vue.createApp({
       console.log('export users')
     },
     showUpdateAccount(userData) {
-      this.createUserDialog.data = userData || {extra: {}}
-      this.createUserDialog.setPassword = false
-      this.createUserDialog.show = true
+      this.activeUser.data = userData || {extra: {}}
+      this.activeUser.setPassword = false
+      this.activeUser.show = true
     },
     showTopupDialog(walletId) {
       this.wallet.id = walletId
