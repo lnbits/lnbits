@@ -38,7 +38,22 @@ window.app = Vue.createApp({
             type: 'password',
             description: 'Password',
             name: 'password'
-          }
+          },
+          {
+            type: 'password',
+            description: 'Password Repeat',
+            name: 'password_repeat'
+          },
+          {
+            description: 'x1',
+            name: 'x1',
+            otptions: [
+              {
+                description: 'Email',
+                name: 'email'
+              },
+            ]
+          },
         ],
         show: false
       },

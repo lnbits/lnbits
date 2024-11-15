@@ -1,152 +1,161 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %} {% include "users/_walletDialog.html" %} {% include
-"users/_topupDialog.html" %} {% include "users/_createUserDialog.html" %}
+"users/_topupDialog.html" %}
 
-<div class="row q-col-gutter-md justify-center">
-  <div class="col q-my-md">
-    <q-btn :label="$t('create_account')" color="primary"> </q-btn>
-  </div>
-</div>
-<div class="row q-col-gutter-md justify-center">
+
+<div class="row q-col-gutter-md justify-center q-mt-md">
   <div class="col q-gutter-y-md">
-    <div v-if="walletDialog.show">
+    <div v-if="createUserDialog.show">
+      {%include "users/_createUserDialog.html" %}
+    </div>
+    <div v-else-if="walletDialog.show">
       {%include "users/_createWalletDialog.html" %}
     </div>
-    <q-card v-else>
-      <q-card-section>
-        <q-table
-          row-key="id"
-          :rows="users"
-          :columns="usersTable.columns"
-          v-model:pagination="usersTable.pagination"
-          :no-data-label="$t('no_users')"
-          :filter="usersTable.search"
-          :loading="usersTable.loading"
-          @request="fetchUsers"
+    <div v-else>
+      <div class="col q-my-md">
+        <q-btn
+          @click="createUserDialog.show = true"
+          :label="$t('create_account')"
+          color="primary"
         >
-          <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                <q-input
-                  v-if="['user', 'username', 'email', 'pubkey', 'wallet_id'].includes(col.name)"
-                  v-model="searchData[col.name]"
-                  @keydown.enter="searchUserBy(col.name)"
-                  dense
-                  type="text"
-                  filled
-                  :label="col.label"
-                >
-                  <template v-slot:append>
-                    <q-icon
-                      name="search"
-                      @click="searchUserBy(col.name)"
-                      class="cursor-pointer"
-                    />
-                  </template>
-                </q-input>
+        </q-btn>
+      </div>
+      <q-card>
+        <q-card-section>
+          <q-table
+            row-key="id"
+            :rows="users"
+            :columns="usersTable.columns"
+            v-model:pagination="usersTable.pagination"
+            :no-data-label="$t('no_users')"
+            :filter="usersTable.search"
+            :loading="usersTable.loading"
+            @request="fetchUsers"
+          >
+            <template v-slot:header="props">
+              <q-tr :props="props">
+                <q-th auto-width></q-th>
+                <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                  <q-input
+                    v-if="['user', 'username', 'email', 'pubkey', 'wallet_id'].includes(col.name)"
+                    v-model="searchData[col.name]"
+                    @keydown.enter="searchUserBy(col.name)"
+                    dense
+                    type="text"
+                    filled
+                    :label="col.label"
+                  >
+                    <template v-slot:append>
+                      <q-icon
+                        name="search"
+                        @click="searchUserBy(col.name)"
+                        class="cursor-pointer"
+                      />
+                    </template>
+                  </q-input>
 
-                <span v-else v-text="col.label"></span>
-              </q-th>
-            </q-tr>
-          </template>
-          <template v-slot:body="props">
-            <q-tr auto-width :props="props">
-              <q-td>
-                <q-btn
-                  round
-                  icon="delete"
-                  size="sm"
-                  color="negative"
-                  class="q-ml-xs"
-                  @click="deleteUser(props.row.id, props)"
-                >
-                  <q-tooltip>Delete User</q-tooltip>
-                </q-btn>
-              </q-td>
-              <q-td>
-                <q-toggle
-                  size="xs"
-                  v-if="!props.row.is_super_user"
-                  color="secondary"
-                  v-model="props.row.is_admin"
-                  @update:model-value="toggleAdmin(props.row.id)"
-                >
-                  <q-tooltip>Toggle Admin</q-tooltip>
-                </q-toggle>
-                <q-btn
-                  round
-                  v-if="props.row.is_super_user"
-                  icon="verified"
-                  size="sm"
-                  color="secondary"
-                  class="q-ml-xs"
-                >
-                  <q-tooltip>Super User</q-tooltip>
-                </q-btn>
-              </q-td>
-              <q-td>
-                <q-btn
-                  round
-                  icon="refresh"
-                  size="sm"
-                  color="primary"
-                  @click="resetPassword(props.row.id)"
-                >
-                  <q-tooltip>Generate and copy password reset url</q-tooltip>
-                </q-btn>
-              </q-td>
-              <q-td>
-                <q-btn
-                  icon="list"
-                  size="sm"
-                  color="secondary"
-                  :label="props.row.wallet_count"
-                  @click="fetchWallets(props.row.id)"
-                >
-                  <q-tooltip>Show Wallets</q-tooltip>
-                </q-btn>
-              </q-td>
+                  <span v-else v-text="col.label"></span>
+                </q-th>
+              </q-tr>
+            </template>
+            <template v-slot:body="props">
+              <q-tr auto-width :props="props">
+                <q-td>
+                  <q-btn
+                    round
+                    icon="delete"
+                    size="sm"
+                    color="negative"
+                    class="q-ml-xs"
+                    @click="deleteUser(props.row.id, props)"
+                  >
+                    <q-tooltip>Delete User</q-tooltip>
+                  </q-btn>
+                </q-td>
+                <q-td>
+                  <q-toggle
+                    size="xs"
+                    v-if="!props.row.is_super_user"
+                    color="secondary"
+                    v-model="props.row.is_admin"
+                    @update:model-value="toggleAdmin(props.row.id)"
+                  >
+                    <q-tooltip>Toggle Admin</q-tooltip>
+                  </q-toggle>
+                  <q-btn
+                    round
+                    v-if="props.row.is_super_user"
+                    icon="verified"
+                    size="sm"
+                    color="secondary"
+                    class="q-ml-xs"
+                  >
+                    <q-tooltip>Super User</q-tooltip>
+                  </q-btn>
+                </q-td>
+                <q-td>
+                  <q-btn
+                    round
+                    icon="refresh"
+                    size="sm"
+                    color="primary"
+                    @click="resetPassword(props.row.id)"
+                  >
+                    <q-tooltip>Generate and copy password reset url</q-tooltip>
+                  </q-btn>
+                </q-td>
+                <q-td>
+                  <q-btn
+                    icon="list"
+                    size="sm"
+                    color="secondary"
+                    :label="props.row.wallet_count"
+                    @click="fetchWallets(props.row.id)"
+                  >
+                    <q-tooltip>Show Wallets</q-tooltip>
+                  </q-btn>
+                </q-td>
 
-              <q-td>
-                <q-btn
-                  icon="content_copy"
-                  size="sm"
-                  flat
-                  class="cursor-pointer q-mr-xs"
-                  @click="copyText(props.row.id)"
-                >
-                  <q-tooltip>Copy User ID</q-tooltip>
-                </q-btn>
-                <span v-text="shortify(props.row.id)"></span>
-              </q-td>
-              <q-td v-text="props.row.username"></q-td>
+                <q-td>
+                  <q-btn
+                    icon="content_copy"
+                    size="sm"
+                    flat
+                    class="cursor-pointer q-mr-xs"
+                    @click="copyText(props.row.id)"
+                  >
+                    <q-tooltip>Copy User ID</q-tooltip>
+                  </q-btn>
+                  <span v-text="shortify(props.row.id)"></span>
+                </q-td>
+                <q-td v-text="props.row.username"></q-td>
 
-              <q-td v-text="props.row.email"></q-td>
+                <q-td v-text="props.row.email"></q-td>
 
-              <q-td>
-                <q-btn
-                  v-if="props.row.pubkey"
-                  icon="content_copy"
-                  size="sm"
-                  flat
-                  class="cursor-pointer q-mr-xs"
-                  @click="copyText(props.row.pubkey)"
-                >
-                  <q-tooltip>Copy Public Key</q-tooltip>
-                </q-btn>
-                <span v-text="shortify(props.row.pubkey)"></span>
-              </q-td>
-              <q-td v-text="formatSat(props.row.balance_msat)"></q-td>
+                <q-td>
+                  <q-btn
+                    v-if="props.row.pubkey"
+                    icon="content_copy"
+                    size="sm"
+                    flat
+                    class="cursor-pointer q-mr-xs"
+                    @click="copyText(props.row.pubkey)"
+                  >
+                    <q-tooltip>Copy Public Key</q-tooltip>
+                  </q-btn>
+                  <span v-text="shortify(props.row.pubkey)"></span>
+                </q-td>
+                <q-td v-text="formatSat(props.row.balance_msat)"></q-td>
 
-              <q-td v-text="props.row.transaction_count"></q-td>
+                <q-td v-text="props.row.transaction_count"></q-td>
 
-              <q-td v-text="formatDate(props.row.last_payment)"></q-td>
-            </q-tr>
-          </template>
-        </q-table>
-      </q-card-section>
-    </q-card>
+                <q-td v-text="formatDate(props.row.last_payment)"></q-td>
+              </q-tr>
+            </template>
+          </q-table>
+        </q-card-section>
+      </q-card>
+    </div>
   </div>
 </div>
 
