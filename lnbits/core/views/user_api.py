@@ -109,6 +109,7 @@ async def api_users_get_user_wallet(user_id: str) -> List[Wallet]:
 
 @users_router.get("/user/{user_id}/wallet/{wallet}/undelete")
 async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> None:
+    # TODO: find this in the UI
     wal = await get_wallet(wallet)
     if not wal:
         raise HTTPException(

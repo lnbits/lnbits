@@ -354,6 +354,7 @@ window.app = Vue.createApp({
     },
     showUpdateAccount(userData) {
       this.createUserDialog.data = userData || {extra: {}}
+      this.createUserDialog.setPassword = false
       this.createUserDialog.show = true
     },
     showTopupDialog(walletId) {

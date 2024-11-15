@@ -55,6 +55,37 @@
       class="q-mb-md"
     >
     </q-input>
+    <q-toggle
+      size="xs"
+      v-if="!createUserDialog.data.id"
+      color="secondary"
+      :label="$t('set_password')"
+      v-model="createUserDialog.setPassword"
+    >
+      <q-tooltip>Toggle Admin</q-tooltip>
+    </q-toggle>
+    <q-input
+      v-if="createUserDialog.setPassword"
+      v-model="createUserDialog.data.newPassword"
+      type="password"
+      autocomplete="off"
+      :label="$t('password')"
+      filled
+      dense
+      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+    ></q-input>
+    <q-input
+      v-if="createUserDialog.setPassword"
+      v-model="createUserDialog.data.newPasswordRepeat"
+      type="password"
+      autocomplete="off"
+      :label="$t('password_repeat')"
+      filled
+      dense
+      class="q-mb-md"
+      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+    ></q-input>
+
     <q-input
       v-model="createUserDialog.data.pubkey"
       :label="$t('pubkey')"
