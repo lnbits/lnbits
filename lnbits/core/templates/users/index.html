@@ -6,11 +6,9 @@
     {% include "users/_manageWallet.html" %} {% include
     "users/_topupDialog.html" %}
     <div v-if="activeUser.show" class="row">
-      <div class="col-12 col-md-6">
-        {%include "users/_manageUser.html" %}
-      </div>
+      <div class="col-12 col-md-6">{%include "users/_manageUser.html" %}</div>
     </div>
-    <div v-else-if="walletDialog.show">
+    <div v-else-if="activeWallet.show">
       {%include "users/_createWalletDialog.html" %}
     </div>
     <div v-else>

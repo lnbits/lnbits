@@ -14,10 +14,10 @@ window.app = Vue.createApp({
         email: '',
         pubkey: ''
       },
-      paymentDialog: {
+      paymentPage: {
         show: false
       },
-      walletDialog: {
+      activeWallet: {
         show: false
       },
       topupDialog: {
@@ -321,8 +321,8 @@ window.app = Vue.createApp({
         .request('GET', `/users/api/v1/user/${user_id}/wallet`)
         .then(res => {
           this.wallets = res.data
-          this.walletDialog.show = this.wallets.length > 0
-          if (!this.walletDialog.show) {
+          this.activeWallet.show = this.wallets.length > 0
+          if (!this.activeWallet.show) {
             this.fetchUsers()
           }
         })
@@ -332,7 +332,7 @@ window.app = Vue.createApp({
     },
     showPayments(wallet_id) {
       this.paymentsWallet = this.wallets.find(wallet => wallet.id === wallet_id)
-      this.paymentDialog.show = true
+      this.paymentPage.show = true
     },
     toggleAdmin(user_id) {
       LNbits.api

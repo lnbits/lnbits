@@ -22,10 +22,7 @@
 <q-card v-if="activeUser.show" class="q-pa-sm">
   <q-card-section>
     <div class="text-h6">
-      <span
-        v-if="activeUser.data.id"
-        v-text="$t('update_account')"
-      ></span>
+      <span v-if="activeUser.data.id" v-text="$t('update_account')"></span>
       <span v-else v-text="$t('create_account')"></span>
     </div>
   </q-card-section>

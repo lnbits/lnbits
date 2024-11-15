@@ -1,9 +1,9 @@
-<div v-if="paymentDialog.show">
+<div v-if="paymentPage.show">
   <div class="row q-mb-lg">
     <div class="col">
       <q-btn
         icon="arrow_back_ios"
-        @click="paymentDialog.show = false"
+        @click="paymentPage.show = false"
         :label="$t('back')"
       ></q-btn>
     </div>
@@ -14,12 +14,12 @@
     </q-card-section>
   </q-card>
 </div>
-<div v-else-if="walletDialog.show">
+<div v-else-if="activeWallet.show">
   <div class="row q-mb-lg">
     <div class="col">
       <q-btn
         icon="arrow_back_ios"
-        @click="walletDialog.show = false"
+        @click="activeWallet.show = false"
         :label="$t('back')"
       ></q-btn>
     </div>
