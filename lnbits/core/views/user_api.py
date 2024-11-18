@@ -45,12 +45,14 @@ from lnbits.helpers import (
 from lnbits.settings import EditableSettings, settings
 from lnbits.utils.exchange_rates import allowed_currencies
 
-users_router = APIRouter(prefix="/users/api/v1", dependencies=[Depends(check_admin)])
+users_router = APIRouter(
+    prefix="/users/api/v1", dependencies=[Depends(check_admin)], tags=["Users"]
+)
 
 
 @users_router.get(
     "/user",
-    name="get accounts",
+    name="Get accounts",
     summary="Get paginated list of accounts",
     openapi_extra=generate_filter_params_openapi(AccountFilters),
 )
@@ -60,7 +62,11 @@ async def api_get_users(
     return await get_accounts(filters=filters)
 
 
-@users_router.get("/user/{user_id}")
+@users_router.get(
+    "/user/{user_id}",
+    name="Get user",
+    summary="Get user by Id",
+)
 async def api_get_user(user_id: str) -> Account:
     account = await get_account(user_id)
     if not account:
@@ -68,7 +74,7 @@ async def api_get_user(user_id: str) -> Account:
     return account
 
 
-@users_router.post("/user")
+@users_router.post("/user", name="Create user")
 async def api_create_user(data: CreateUser) -> CreateUser:
     if not data.username and data.password:
         raise HTTPException(
@@ -99,7 +105,7 @@ async def api_create_user(data: CreateUser) -> CreateUser:
     return data
 
 
-@users_router.put("/user/{user_id}")
+@users_router.put("/user/{user_id}", name="Update user")
 async def api_update_user(user_id: str, data: CreateUser) -> CreateUser:
     if user_id != data.id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "User Id missmatch.")
@@ -121,7 +127,11 @@ async def api_update_user(user_id: str, data: CreateUser) -> CreateUser:
     return data
 
 
-@users_router.delete("/user/{user_id}", status_code=HTTPStatus.OK)
+@users_router.delete(
+    "/user/{user_id}",
+    status_code=HTTPStatus.OK,
+    name="Delete user by Id",
+)
 async def api_users_delete_user(
     user_id: str, user: User = Depends(check_admin)
 ) -> None:
@@ -147,7 +157,9 @@ async def api_users_delete_user(
 
 
 @users_router.put(
-    "/user/{user_id}/reset_password", dependencies=[Depends(check_super_user)]
+    "/user/{user_id}/reset_password",
+    dependencies=[Depends(check_super_user)],
+    name="Reset user password",
 )
 async def api_users_reset_password(user_id: str) -> str:
     if user_id == settings.super_user:
@@ -164,7 +176,11 @@ async def api_users_reset_password(user_id: str) -> str:
     return f"reset_key_{reset_key_b64}"
 
 
-@users_router.get("/user/{user_id}/admin", dependencies=[Depends(check_super_user)])
+@users_router.get(
+    "/user/{user_id}/admin",
+    dependencies=[Depends(check_super_user)],
+    name="Give or revoke admin permsisions to a user",
+)
 async def api_users_toggle_admin(user_id: str) -> None:
     if user_id == settings.super_user:
         raise HTTPException(
@@ -179,12 +195,12 @@ async def api_users_toggle_admin(user_id: str) -> None:
     await update_admin_settings(update_settings)
 
 
-@users_router.get("/user/{user_id}/wallet")
+@users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
 async def api_users_get_user_wallet(user_id: str) -> List[Wallet]:
     return await get_wallets(user_id)
 
 
-@users_router.post("/user/{user_id}/wallet")
+@users_router.post("/user/{user_id}/wallet", name="Create a new wallet for user")
 async def api_users_create_user_wallet(
     user_id: str, name: Optional[str] = Body(None), currency: Optional[str] = Body(None)
 ):
@@ -200,9 +216,10 @@ async def api_users_create_user_wallet(
     return wallet
 
 
-@users_router.get("/user/{user_id}/wallet/{wallet}/undelete")
+@users_router.get(
+    "/user/{user_id}/wallet/{wallet}/undelete", name="Reactivate deleted wallet"
+)
 async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> None:
-    # TODO: find this in the UI
     wal = await get_wallet(wallet)
     if not wal:
         raise HTTPException(
@@ -219,7 +236,12 @@ async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> None:
         await delete_wallet(user_id=user_id, wallet_id=wallet, deleted=False)
 
 
-@users_router.delete("/user/{user_id}/wallet/{wallet}")
+@users_router.delete(
+    "/user/{user_id}/wallet/{wallet}",
+    name="Delete wallet by id",
+    summary="First time it is called it does a soft delete (only sets a flag)."
+    "The second time it is called will delete the entry from the DB",
+)
 async def api_users_delete_user_wallet(user_id: str, wallet: str) -> None:
     wal = await get_wallet(wallet)
     if not wal:
@@ -235,6 +257,7 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> None:
 @users_router.put(
     "/topup",
     name="Topup",
+    summary="Update balance for a particular wallet.",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
 )
