@@ -40,6 +40,11 @@ class Account(BaseModel):
     is_super_user: bool = Field(default=False, no_database=True)
     is_admin: bool = Field(default=False, no_database=True)
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.is_super_user = settings.is_super_user(self.id)
+        self.is_admin = settings.is_admin_user(self.id)
+
     def hash_password(self, password: str) -> str:
         """sets and returns the hashed password"""
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -60,11 +65,6 @@ class Account(BaseModel):
             raise ValueError("Invalid email.")
         if self.pubkey and not is_valid_pubkey(self.pubkey):
             raise ValueError("Invalid pubkey.")
-
-    def refresh_privileges(self):
-        # TODO: replace with pydating 2 'model_post_init'
-        self.is_super_user = settings.is_super_user(self.id)
-        self.is_admin = settings.is_admin_user(self.id)
 
 
 class AccountOverview(Account):

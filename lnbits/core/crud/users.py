@@ -44,7 +44,7 @@ async def get_accounts(
     filters: Optional[Filters[AccountFilters]] = None,
     conn: Optional[Connection] = None,
 ) -> Page[AccountOverview]:
-    accounts = await (conn or db).fetch_page(
+    return await (conn or db).fetch_page(
         """
         SELECT
             accounts.id,
@@ -73,23 +73,16 @@ async def get_accounts(
         model=AccountOverview,
         group_by=["accounts.id"],
     )
-    for account in accounts.data:
-        account.refresh_privileges()
-    return accounts
 
 
 async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
-    account = await (conn or db).fetchone(
+    return await (conn or db).fetchone(
         "SELECT * FROM accounts WHERE id = :id",
         {"id": user_id},
         Account,
     )
-    if account:
-        account.refresh_privileges()
-
-    return account
 
 
 async def delete_accounts_no_wallets(
@@ -114,57 +107,41 @@ async def delete_accounts_no_wallets(
 async def get_account_by_username(
     username: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
-    account = await (conn or db).fetchone(
+    return await (conn or db).fetchone(
         "SELECT * FROM accounts WHERE username = :username",
         {"username": username},
         Account,
     )
-    if account:
-        account.refresh_privileges()
-
-    return account
 
 
 async def get_account_by_pubkey(
     pubkey: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
-    account = await (conn or db).fetchone(
+    return await (conn or db).fetchone(
         "SELECT * FROM accounts WHERE pubkey = :pubkey",
         {"pubkey": pubkey},
         Account,
     )
-    if account:
-        account.refresh_privileges()
-
-    return account
 
 
 async def get_account_by_email(
     email: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
-    account = await (conn or db).fetchone(
+    return await (conn or db).fetchone(
         "SELECT * FROM accounts WHERE email = :email",
         {"email": email},
         Account,
     )
-    if account:
-        account.refresh_privileges()
-
-    return account
 
 
 async def get_account_by_username_or_email(
     username_or_email: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
-    account = await (conn or db).fetchone(
+    return await (conn or db).fetchone(
         "SELECT * FROM accounts WHERE email = :value or username = :value",
         {"value": username_or_email},
         Account,
     )
-    if account:
-        account.refresh_privileges()
-
-    return account
 
 
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
