@@ -211,7 +211,7 @@ async def api_users_create_user_wallet(
     user_id: str, name: Optional[str] = Body(None), currency: Optional[str] = Body(None)
 ):
     if currency and currency not in allowed_currencies():
-        raise ValueError(f"Currency '{currency}' not allowed")
+        raise ValueError(f"Currency '{currency}' not allowed.")
 
     wallet = await create_wallet(user_id=user_id, wallet_name=name)
 
