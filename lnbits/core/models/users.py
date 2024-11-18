@@ -89,13 +89,9 @@ class AccountFilters(FilterModel):
         "last_payment",
     ]
 
-    id: str
-    last_payment: Optional[datetime] = None
-    transaction_count: Optional[int] = None
-    wallet_count: Optional[int] = None
-    username: Optional[str] = None
     email: Optional[str] = None
     user: Optional[str] = None
+    username: Optional[str] = None
     pubkey: Optional[str] = None
     wallet_id: Optional[str] = None
 

@@ -26,6 +26,7 @@ from lnbits.core.models import (
     AccountOverview,
     CreateTopup,
     CreateUser,
+    SimpleStatus,
     User,
     UserExtra,
     Wallet,
@@ -134,7 +135,7 @@ async def api_update_user(user_id: str, data: CreateUser) -> CreateUser:
 )
 async def api_users_delete_user(
     user_id: str, user: User = Depends(check_admin)
-) -> None:
+) -> SimpleStatus:
     wallets = await get_wallets(user_id)
     if len(wallets) > 0:
         raise HTTPException(
@@ -154,6 +155,7 @@ async def api_users_delete_user(
             detail="Only super_user can delete admin user.",
         )
     await delete_account(user_id)
+    return SimpleStatus(success=True, message="User deleted.")
 
 
 @users_router.put(
@@ -181,18 +183,22 @@ async def api_users_reset_password(user_id: str) -> str:
     dependencies=[Depends(check_super_user)],
     name="Give or revoke admin permsisions to a user",
 )
-async def api_users_toggle_admin(user_id: str) -> None:
+async def api_users_toggle_admin(user_id: str) -> SimpleStatus:
     if user_id == settings.super_user:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Cannot change super user.",
         )
-    if user_id in settings.lnbits_admin_users:
+
+    if settings.is_admin_user(user_id):
         settings.lnbits_admin_users.remove(user_id)
     else:
         settings.lnbits_admin_users.append(user_id)
     update_settings = EditableSettings(lnbits_admin_users=settings.lnbits_admin_users)
     await update_admin_settings(update_settings)
+    return SimpleStatus(
+        success=True, message=f"User admin: '{settings.is_admin_user(user_id)}'."
+    )
 
 
 @users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
@@ -216,10 +222,10 @@ async def api_users_create_user_wallet(
     return wallet
 
 
-@users_router.get(
+@users_router.put(
     "/user/{user_id}/wallet/{wallet}/undelete", name="Reactivate deleted wallet"
 )
-async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> None:
+async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> SimpleStatus:
     wal = await get_wallet(wallet)
     if not wal:
         raise HTTPException(
@@ -234,6 +240,9 @@ async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> None:
         )
     if wal.deleted:
         await delete_wallet(user_id=user_id, wallet_id=wallet, deleted=False)
+        return SimpleStatus(success=True, message="Wallet undeleted.")
+
+    return SimpleStatus(success=True, message="Wallet is already active.")
 
 
 @users_router.delete(
@@ -242,7 +251,7 @@ async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> None:
     summary="First time it is called it does a soft delete (only sets a flag)."
     "The second time it is called will delete the entry from the DB",
 )
-async def api_users_delete_user_wallet(user_id: str, wallet: str) -> None:
+async def api_users_delete_user_wallet(user_id: str, wallet: str) -> SimpleStatus:
     wal = await get_wallet(wallet)
     if not wal:
         raise HTTPException(
@@ -252,6 +261,7 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> None:
     if wal.deleted:
         await force_delete_wallet(wallet)
     await delete_wallet(user_id=user_id, wallet_id=wallet)
+    return SimpleStatus(success=True, message="Wallet deleted.")
 
 
 @users_router.put(
@@ -261,10 +271,10 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> None:
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
 )
-async def api_topup_balance(data: CreateTopup) -> dict[str, str]:
+async def api_topup_balance(data: CreateTopup) -> SimpleStatus:
     await get_wallet(data.id)
     if settings.lnbits_backend_wallet_class == "VoidWallet":
         raise Exception("VoidWallet active")
 
     await update_wallet_balance(wallet_id=data.id, amount=int(data.amount))
-    return {"status": "Success"}
+    return SimpleStatus(success=True, message="Balance updated.")

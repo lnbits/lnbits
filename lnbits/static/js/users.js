@@ -293,7 +293,7 @@ window.app = Vue.createApp({
     undeleteUserWallet(user_id, wallet) {
       LNbits.api
         .request(
-          'GET',
+          'PUT',
           `/users/api/v1/user/${user_id}/wallet/${wallet}/undelete`
         )
         .then(() => {
