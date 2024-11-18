@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Optional
+from uuid import UUID
 
 from fastapi import Query
 from passlib.context import CryptContext
@@ -65,6 +66,9 @@ class Account(BaseModel):
             raise ValueError("Invalid email.")
         if self.pubkey and not is_valid_pubkey(self.pubkey):
             raise ValueError("Invalid pubkey.")
+        user_uuid4 = UUID(hex=self.id, version=4)
+        if user_uuid4.hex != self.id:
+            raise ValueError("User ID is not valid UUID4 hex string.")
 
 
 class AccountOverview(Account):
