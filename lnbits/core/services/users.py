@@ -116,17 +116,13 @@ async def update_user_extensions(user_id: str, extensions: list[str]):
     user_extensions = await get_user_extensions(user_id)
     for user_ext in user_extensions:
         if user_ext.active:
-            if user_ext.extension in extensions:
-                continue
-            else:
+            if user_ext.extension not in extensions:
                 user_ext.active = False
                 await update_user_extension(user_ext)
         else:
             if user_ext.extension in extensions:
                 user_ext.active = True
                 await update_user_extension(user_ext)
-            else:
-                continue
 
     user_extension_ids = [ue.extension for ue in user_extensions]
     for ext in extensions:
