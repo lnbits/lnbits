@@ -14,8 +14,8 @@ from lnbits.core.crud import (
     delete_account,
     delete_wallet,
     force_delete_wallet,
-    get_account,
     get_accounts,
+    get_user,
     get_wallet,
     get_wallets,
     update_admin_settings,
@@ -35,6 +35,7 @@ from lnbits.core.models.users import Account
 from lnbits.core.services import (
     create_user_account_no_ckeck,
     update_user_account,
+    update_user_extensions,
     update_wallet_balance,
 )
 from lnbits.db import Filters, Page
@@ -68,11 +69,11 @@ async def api_get_users(
     name="Get user",
     summary="Get user by Id",
 )
-async def api_get_user(user_id: str) -> Account:
-    account = await get_account(user_id)
-    if not account:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Username not found.")
-    return account
+async def api_get_user(user_id: str) -> User:
+    user = await get_user(user_id)
+    if not user:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
+    return user
 
 
 @users_router.post("/user", name="Create user")
@@ -125,6 +126,7 @@ async def api_update_user(user_id: str, data: CreateUser) -> CreateUser:
     )
     await update_user_account(account)
 
+    await update_user_extensions(user_id, data.extensions or [])
     return data
 
 

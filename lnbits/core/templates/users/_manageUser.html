@@ -154,6 +154,14 @@
       class="q-mb-md"
     >
     </q-input>
+    <q-select
+      filled
+      dense
+      v-model="activeUser.data.extensions"
+      multiple
+      label="User extensions"
+      :options="g.extensions"
+    ></q-select>
   </q-card-section>
   <q-card-section v-if="activeUser.data.id">
     <q-btn

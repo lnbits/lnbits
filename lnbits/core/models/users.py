@@ -143,6 +143,7 @@ class CreateUser(BaseModel):
     password: Optional[str] = Query(default=None, min_length=8, max_length=50)
     password_repeat: Optional[str] = Query(default=None, min_length=8, max_length=50)
     pubkey: str = Query(default=None, max_length=64)
+    extensions: Optional[list[str]] = None
     extra: Optional[UserExtra] = None
 
 

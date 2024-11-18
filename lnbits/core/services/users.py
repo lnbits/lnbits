@@ -15,12 +15,14 @@ from lnbits.settings import (
 from ..crud import (
     create_account,
     create_admin_settings,
+    create_user_extension,
     create_wallet,
     get_account,
     get_account_by_email,
     get_account_by_pubkey,
     get_account_by_username,
     get_super_settings,
+    get_user_extensions,
     get_user_from_account,
     update_account,
     update_super_user,
@@ -108,6 +110,30 @@ async def update_user_account(account: Account) -> Account:
             raise ValueError("Pubkey already exists.")
 
     return await update_account(account)
+
+
+async def update_user_extensions(user_id: str, extensions: list[str]):
+    user_extensions = await get_user_extensions(user_id)
+    for user_ext in user_extensions:
+        if user_ext.active:
+            if user_ext.extension in extensions:
+                continue
+            else:
+                user_ext.active = False
+                await update_user_extension(user_ext)
+        else:
+            if user_ext.extension in extensions:
+                user_ext.active = True
+                await update_user_extension(user_ext)
+            else:
+                continue
+
+    user_extension_ids = [ue.extension for ue in user_extensions]
+    for ext in extensions:
+        if ext in user_extension_ids:
+            continue
+        user_extension = UserExtension(user=user_id, extension=ext, active=True)
+        await create_user_extension(user_extension)
 
 
 async def check_admin_settings():
