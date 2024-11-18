@@ -2,14 +2,15 @@ import base64
 import json
 import time
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 from uuid import uuid4
 
 import shortuuid
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends
 from fastapi.exceptions import HTTPException
 
 from lnbits.core.crud import (
+    create_wallet,
     delete_account,
     delete_wallet,
     force_delete_wallet,
@@ -18,6 +19,7 @@ from lnbits.core.crud import (
     get_wallet,
     get_wallets,
     update_admin_settings,
+    update_wallet,
 )
 from lnbits.core.models import (
     AccountFilters,
@@ -41,6 +43,7 @@ from lnbits.helpers import (
     generate_filter_params_openapi,
 )
 from lnbits.settings import EditableSettings, settings
+from lnbits.utils.exchange_rates import allowed_currencies
 
 users_router = APIRouter(prefix="/users/api/v1", dependencies=[Depends(check_admin)])
 
@@ -179,6 +182,22 @@ async def api_users_toggle_admin(user_id: str) -> None:
 @users_router.get("/user/{user_id}/wallet")
 async def api_users_get_user_wallet(user_id: str) -> List[Wallet]:
     return await get_wallets(user_id)
+
+
+@users_router.post("/user/{user_id}/wallet")
+async def api_users_create_user_wallet(
+    user_id: str, name: Optional[str] = Body(None), currency: Optional[str] = Body(None)
+):
+    if currency and currency not in allowed_currencies():
+        raise ValueError(f"Currency '{currency}' not allowed")
+
+    wallet = await create_wallet(user_id=user_id, wallet_name=name)
+
+    if currency:
+        wallet.currency = currency
+        await update_wallet(wallet)
+
+    return wallet
 
 
 @users_router.get("/user/{user_id}/wallet/{wallet}/undelete")
