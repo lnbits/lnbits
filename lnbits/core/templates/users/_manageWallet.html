@@ -26,7 +26,7 @@
         @click="createWalletDialog.show = true"
         :label="$t('create_new_wallet')"
         color="primary"
-        class="float-right"
+        class="q-ml-md"
       ></q-btn>
     </div>
   </div>
@@ -100,6 +100,16 @@
             </q-btn>
           </q-td>
           <q-td auto-width>
+            <q-btn
+              icon="link"
+              size="sm"
+              flat
+              class="cursor-pointer q-mr-xs"
+              @click="copyWalletLink(props.row.id)"
+            >
+              <q-tooltip>Copy Wallet Link</q-tooltip>
+            </q-btn>
+
             <span v-text="props.row.name"></span>
             <q-btn
               round

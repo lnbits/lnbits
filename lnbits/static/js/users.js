@@ -328,6 +328,10 @@ window.app = Vue.createApp({
           })
       })
     },
+    copyWalletLink(walletId) {
+      const url = `${window.location.origin}/wallet?usr=${this.activeWallet.userId}&wal=${walletId}`
+      this.copyText(url)
+    },
 
     fetchUsers(props) {
       const params = LNbits.utils.prepareFilterQuery(this.usersTable, props)
