@@ -18,6 +18,7 @@ window.app = Vue.createApp({
         show: false
       },
       activeWallet: {
+        userId: null,
         show: false
       },
       topupDialog: {
@@ -65,7 +66,14 @@ window.app = Vue.createApp({
             label: 'Deleted',
             field: 'deleted'
           }
-        ]
+        ],
+        pagination: {
+          sortBy: 'name',
+          rowsPerPage: 10,
+          page: 1,
+          descending: true,
+          rowsNumber: 10
+        },
       },
       usersTable: {
         columns: [
@@ -173,6 +181,12 @@ window.app = Vue.createApp({
     formatSat: function (value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
     },
+    backToUsersPage(){
+      this.activeUser.show = false
+      this.paymentPage.show = false
+      this.activeWallet.show = false
+      this.fetchUsers()
+    },
     resetPassword(user_id) {
       return LNbits.api
         .request('PUT', `/users/api/v1/user/${user_id}/reset_password`)
@@ -230,20 +244,28 @@ window.app = Vue.createApp({
           LNbits.utils.notifyApiError(error)
         })
     },
-    createWallet(user_id) {
+    createWallet() {
+      const userId = this.activeWallet.userId
+      if (!userId) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'No user selected!',
+          icon: null
+        })
+        return
+      }
       LNbits.api
         .request(
           'POST',
-          `/users/api/v1/user/${user_id}/wallet`,
+          `/users/api/v1/user/${userId}/wallet`,
           null,
           this.createWalletDialog.data
         )
         .then(() => {
-          this.fetchUsers()
+          this.fetchWallets(userId)
           Quasar.Notify.create({
             type: 'positive',
-            message: 'User created!',
-            icon: null
+            message: 'Wallet created!'
           })
         })
         .catch(function (error) {
@@ -323,24 +345,22 @@ window.app = Vue.createApp({
           LNbits.utils.notifyApiError(error)
         })
     },
-    fetchWallets(user_id) {
+    fetchWallets(userId) {
       LNbits.api
-        .request('GET', `/users/api/v1/user/${user_id}/wallet`)
+        .request('GET', `/users/api/v1/user/${userId}/wallet`)
         .then(res => {
           this.wallets = res.data
-          this.activeWallet.show = this.wallets.length > 0
-          if (!this.activeWallet.show) {
-            this.fetchUsers()
-          }
+          this.activeWallet.userId = userId
+          this.activeWallet.show = true
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
     },
 
-    toggleAdmin(user_id) {
+    toggleAdmin(userId) {
       LNbits.api
-        .request('GET', `/users/api/v1/user/${user_id}/admin`)
+        .request('GET', `/users/api/v1/user/${userId}/admin`)
         .then(() => {
           this.fetchUsers()
           Quasar.Notify.create({
