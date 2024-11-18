@@ -700,7 +700,7 @@ window.app = Vue.createApp({
     LNbits.events.onInvoicePaid(this.g.wallet, payment => {
       this.onPaymentReceived(payment.payment_hash)
     })
-    eventReactionWebocket(wallet.id)
+    eventReactionWebocket(wallet.inkey)
   }
 })
 
