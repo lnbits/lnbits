@@ -37,16 +37,16 @@ window.app = Vue.createApp({
       walletTable: {
         columns: [
           {
-            name: 'id',
-            align: 'left',
-            label: 'Wallet Id',
-            field: 'id'
-          },
-          {
             name: 'name',
             align: 'left',
             label: 'Name',
             field: 'name'
+          },
+          {
+            name: 'id',
+            align: 'left',
+            label: 'Wallet Id',
+            field: 'id'
           },
           {
             name: 'currency',
@@ -59,12 +59,6 @@ window.app = Vue.createApp({
             align: 'left',
             label: 'Balance',
             field: 'balance_msat'
-          },
-          {
-            name: 'deleted',
-            align: 'left',
-            label: 'Deleted',
-            field: 'deleted'
           }
         ],
         pagination: {
@@ -74,6 +68,9 @@ window.app = Vue.createApp({
           descending: true,
           rowsNumber: 10
         },
+        search: null,
+        hideEmpty: true,
+        loading: false
       },
       usersTable: {
         columns: [
@@ -181,7 +178,7 @@ window.app = Vue.createApp({
     formatSat: function (value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
     },
-    backToUsersPage(){
+    backToUsersPage() {
       this.activeUser.show = false
       this.paymentPage.show = false
       this.activeWallet.show = false
@@ -435,7 +432,7 @@ window.app = Vue.createApp({
             icon: null
           })
           this.wallet = {}
-          this.fetchWallets(this.g.user.id)
+          this.fetchWallets(this.activeWallet.userId)
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)

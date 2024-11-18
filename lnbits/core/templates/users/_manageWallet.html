@@ -8,7 +8,7 @@
       ></q-btn>
     </div>
   </div>
-  <q-card class="q-pa-lg">
+  <q-card class="q-pa-md">
     <q-card-section>
       <payment-list :wallet="paymentsWallet" />
     </q-card-section>
@@ -30,7 +30,7 @@
       ></q-btn>
     </div>
   </div>
-  <q-card class="q-pa-sm">
+  <q-card class="q-pa-md">
     <h2 class="text-h6 q-mb-md">Wallets</h2>
     <q-table :rows="wallets" :columns="walletTable.columns">
       <template v-slot:header="props">
@@ -87,17 +87,7 @@
             >
               <q-tooltip>Copy Invoice Key</q-tooltip>
             </q-btn>
-            <q-btn
-              round
-              v-if="props.row.deleted"
-              icon="toggle_off"
-              size="sm"
-              color="secondary"
-              class="q-ml-xs"
-              @click="undeleteUserWallet(props.row.user, props.row.id)"
-            >
-              <q-tooltip>Undelete Wallet</q-tooltip>
-            </q-btn>
+
             <q-btn
               round
               icon="delete"
@@ -110,6 +100,20 @@
             </q-btn>
           </q-td>
           <q-td auto-width>
+            <span v-text="props.row.name"></span>
+            <q-btn
+              round
+              v-if="props.row.deleted"
+              icon="toggle_off"
+              size="sm"
+              color="secondary"
+              class="q-ml-xs"
+              @click="undeleteUserWallet(props.row.user, props.row.id)"
+            >
+              <q-tooltip>Undelete Wallet</q-tooltip>
+            </q-btn>
+          </q-td>
+          <q-td auto-width>
             <q-btn
               icon="content_copy"
               size="sm"
@@ -119,12 +123,15 @@
             >
               <q-tooltip>Copy Wallet ID</q-tooltip>
             </q-btn>
-            <span v-text="props.row.id"></span>
+
+            <span
+              v-text="props.row.id"
+              :class="props.row.deleted ? 'text-strike' : ''"
+            ></span>
           </q-td>
-          <q-td auto-width v-text="props.row.name"></q-td>
+
           <q-td auto-width v-text="props.row.currency"></q-td>
           <q-td auto-width v-text="formatSat(props.row.balance_msat)"></q-td>
-          <q-td auto-width v-text="props.row.deleted"></q-td>
         </q-tr>
       </template>
     </q-table>
