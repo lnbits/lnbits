@@ -1,0 +1,10 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+
+<div class="row q-col-gutter-md justify-center">
+  <div class="col">xxxxx</div>
+</div>
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="{{ static_url_for('static', 'js/audit.js') }}"></script>
+{% endblock %}

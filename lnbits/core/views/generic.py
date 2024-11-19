@@ -384,6 +384,19 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
         },
     )
 
+@generic_router.get("/audit", response_class=HTMLResponse)
+async def users_index(request: Request, user: User = Depends(check_admin)):
+    if not settings.lnbits_audit_enabled:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Audit not enabled")
+
+    return template_renderer().TemplateResponse(
+        "audit/index.html",
+        {
+            "request": request,
+            "user": user.json(),
+        },
+    )
+
 
 @generic_router.get("/uuidv4/{hex_value}")
 async def hex_to_uuid4(hex_value: str):
