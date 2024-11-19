@@ -5,6 +5,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from lnbits.db import FilterModel
 from lnbits.settings import settings
 
 
@@ -23,8 +24,27 @@ class AuditEntry(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __init__(self, **data):
-        super.__init__(**data)
-        if settings.lnbits_audit_retention_days > 0:
-            self.delete_at = self.created_at + timedelta(
-                days=settings.lnbits_audit_retention_days
-            )
+        super().__init__(**data)
+        retention_days = max(0, settings.lnbits_audit_retention_days) or 365
+        self.delete_at = self.created_at + timedelta(days=retention_days)
+
+
+class AuditFilters(FilterModel):
+    __search_fields__ = [
+        "ip_address",
+        "user_id",
+        "path",
+        "route_path",
+        "request_method",
+        "response_code",
+    ]
+    __sort_fields__ = [
+        "duration",
+    ]
+
+    ip_address: Optional[str] = None
+    user_id: Optional[str] = None
+    path: Optional[str] = None
+    route_path: Optional[str] = None
+    request_method: Optional[str] = None
+    response_code: Optional[str] = None

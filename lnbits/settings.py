@@ -527,7 +527,9 @@ class AuditSettings(LNbitsSettings):
 
     # List of HTTP methods to be included. Empty lists means all.
     # Options (case-sensitive): GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
-    lnbits_audit_http_methods: list[str] = Field(default=[])
+    lnbits_audit_http_methods: list[str] = Field(
+        default=["POST", "PUT", "PATCH", "DELETE"]
+    )
 
     # List of HTTP codes to be included (regex match). Empty lists means all.
     lnbits_audit_http_response_codes: list[str] = Field(default=[])

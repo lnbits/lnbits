@@ -1,4 +1,4 @@
-from .audit import AuditEntry
+from .audit import AuditEntry, AuditFilters
 from .lnurl import CreateLnurl, CreateLnurlAuth, PayLnurlWData
 from .misc import (
     BalanceDelta,
@@ -44,6 +44,7 @@ from .webpush import CreateWebPushSubscription, WebPushSubscription
 __all__ = [
     # audit
     "AuditEntry",
+    "AuditFilters",
     # lnurl
     "CreateLnurl",
     "CreateLnurlAuth",
