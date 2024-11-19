@@ -86,6 +86,8 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
     t.env.globals["LNBITS_EXTENSIONS_DEACTIVATE_ALL"] = (
         settings.lnbits_extensions_deactivate_all
     )
+    t.env.globals["LNBITS_AUDIT_ENABLED"] = settings.lnbits_audit_enabled
+
     t.env.globals["LNBITS_SERVICE_FEE"] = settings.lnbits_service_fee
     t.env.globals["LNBITS_SERVICE_FEE_MAX"] = settings.lnbits_service_fee_max
     t.env.globals["LNBITS_SERVICE_FEE_WALLET"] = settings.lnbits_service_fee_wallet

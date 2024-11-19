@@ -195,6 +195,24 @@
           <q-item-label lines="1" v-text="$t('users')"></q-item-label>
         </q-item-section>
       </q-item>
+      <q-item
+        v-if="showAudit"
+        clickable
+        tag="a"
+        href="/audit"
+        :active="isActive('/audit')"
+      >
+        <q-item-section side>
+          <q-icon
+            name="playlist_add_check_circle"
+            :color="isActive('/users') ? 'primary' : 'grey-5'"
+            size="md"
+          ></q-icon>
+        </q-item-section>
+        <q-item-section>
+          <q-item-label lines="1" v-text="$t('audit')"></q-item-label>
+        </q-item-section>
+      </q-item>
     </div>
     <q-item
       v-if="showExtensions"
