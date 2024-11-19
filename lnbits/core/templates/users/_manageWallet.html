@@ -1,11 +1,37 @@
-<q-dialog v-model="walletDialog.show">
-  <q-card class="q-pa-lg" style="width: 700px; max-width: 80vw">
+<div v-if="paymentPage.show">
+  <div class="row q-mb-lg">
+    <div class="col">
+      <q-btn
+        icon="arrow_back_ios"
+        @click="paymentPage.show = false"
+        :label="$t('back')"
+      ></q-btn>
+    </div>
+  </div>
+  <q-card class="q-pa-md">
+    <q-card-section>
+      <payment-list :wallet="paymentsWallet" />
+    </q-card-section>
+  </q-card>
+</div>
+<div v-else-if="activeWallet.show">
+  <div class="row q-mb-lg">
+    <div class="col">
+      <q-btn
+        icon="arrow_back_ios"
+        @click="backToUsersPage()"
+        :label="$t('back')"
+      ></q-btn>
+      <q-btn
+        @click="createWalletDialog.show = true"
+        :label="$t('create_new_wallet')"
+        color="primary"
+        class="q-ml-md"
+      ></q-btn>
+    </div>
+  </div>
+  <q-card class="q-pa-md">
     <h2 class="text-h6 q-mb-md">Wallets</h2>
-    <q-dialog v-model="paymentDialog.show">
-      <q-card class="q-pa-lg" style="width: 700px; max-width: 80vw">
-        <payment-list :wallet="activeWallet" />
-      </q-card>
-    </q-dialog>
     <q-table :rows="wallets" :columns="walletTable.columns">
       <template v-slot:header="props">
         <q-tr :props="props">
@@ -23,6 +49,13 @@
         <q-tr :props="props">
           <q-td auto-width>
             <q-btn
+              :label="$t('topup')"
+              @click="showTopupDialog(props.row.id)"
+              color="secondary"
+              size="sm"
+              class="q-mr-md"
+            ></q-btn>
+            <q-btn
               round
               icon="menu"
               size="sm"
@@ -31,23 +64,7 @@
             >
               <q-tooltip>Show Payments</q-tooltip>
             </q-btn>
-            <q-btn
-              v-if="!props.row.deleted"
-              round
-              icon="content_copy"
-              size="sm"
-              color="primary"
-              class="q-ml-xs"
-              @click="copyText(props.row.id)"
-            >
-              <q-tooltip>Copy Wallet ID</q-tooltip>
-            </q-btn>
-            <lnbits-update-balance
-              v-if="!props.row.deleted"
-              :wallet_id="props.row.id"
-              :callback="topupCallback"
-              class="q-ml-xs"
-            ></lnbits-update-balance>
+
             <q-btn
               round
               v-if="!props.row.deleted"
@@ -70,17 +87,7 @@
             >
               <q-tooltip>Copy Invoice Key</q-tooltip>
             </q-btn>
-            <q-btn
-              round
-              v-if="props.row.deleted"
-              icon="toggle_off"
-              size="sm"
-              color="secondary"
-              class="q-ml-xs"
-              @click="undeleteUserWallet(props.row.user, props.row.id)"
-            >
-              <q-tooltip>Undelete Wallet</q-tooltip>
-            </q-btn>
+
             <q-btn
               round
               icon="delete"
@@ -92,21 +99,51 @@
               <q-tooltip>Delete Wallet</q-tooltip>
             </q-btn>
           </q-td>
-          <q-td auto-width v-text="props.row.name"></q-td>
+          <q-td auto-width>
+            <q-btn
+              icon="link"
+              size="sm"
+              flat
+              class="cursor-pointer q-mr-xs"
+              @click="copyWalletLink(props.row.id)"
+            >
+              <q-tooltip>Copy Wallet Link</q-tooltip>
+            </q-btn>
+
+            <span v-text="props.row.name"></span>
+            <q-btn
+              round
+              v-if="props.row.deleted"
+              icon="toggle_off"
+              size="sm"
+              color="secondary"
+              class="q-ml-xs"
+              @click="undeleteUserWallet(props.row.user, props.row.id)"
+            >
+              <q-tooltip>Undelete Wallet</q-tooltip>
+            </q-btn>
+          </q-td>
+          <q-td auto-width>
+            <q-btn
+              icon="content_copy"
+              size="sm"
+              flat
+              class="cursor-pointer q-mr-xs"
+              @click="copyText(props.row.id)"
+            >
+              <q-tooltip>Copy Wallet ID</q-tooltip>
+            </q-btn>
+
+            <span
+              v-text="props.row.id"
+              :class="props.row.deleted ? 'text-strike' : ''"
+            ></span>
+          </q-td>
+
           <q-td auto-width v-text="props.row.currency"></q-td>
           <q-td auto-width v-text="formatSat(props.row.balance_msat)"></q-td>
-          <q-td auto-width v-text="props.row.deleted"></q-td>
         </q-tr>
       </template>
     </q-table>
-    <div class="row q-mt-lg">
-      <q-btn
-        v-close-popup
-        flat
-        color="grey"
-        class="q-ml-auto"
-        :label="$t('close')"
-      ></q-btn>
-    </div>
   </q-card>
-</q-dialog>
+</div>

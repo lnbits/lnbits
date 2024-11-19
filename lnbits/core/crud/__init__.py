@@ -13,6 +13,7 @@ from .extensions import (
     get_installed_extensions,
     get_user_active_extensions_ids,
     get_user_extension,
+    get_user_extensions,
     update_installed_extension,
     update_installed_extension_state,
     update_user_extension,
@@ -98,6 +99,7 @@ __all__ = [
     "update_installed_extension",
     "update_installed_extension_state",
     "update_user_extension",
+    "get_user_extensions",
     # payments
     "DateTrunc",
     "check_internal",

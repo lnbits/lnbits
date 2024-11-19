@@ -3,60 +3,35 @@ window.app = Vue.createApp({
   mixins: [window.windowMixin],
   data: function () {
     return {
-      isSuperUser: false,
-      activeWallet: {},
+      paymentsWallet: {},
       wallet: {},
       cancel: {},
       users: [],
       wallets: [],
-      paymentDialog: {
+      searchData: {
+        user: '',
+        username: '',
+        email: '',
+        pubkey: ''
+      },
+      paymentPage: {
         show: false
       },
-      walletDialog: {
+      activeWallet: {
+        userId: null,
         show: false
       },
       topupDialog: {
         show: false
       },
-      createUserDialog: {
-        data: {},
-        fields: [
-          {
-            description: 'Username',
-            name: 'username'
-          },
-          {
-            description: 'Email',
-            name: 'email'
-          },
-          {
-            type: 'password',
-            description: 'Password',
-            name: 'password'
-          }
-        ],
+      activeUser: {
+        data: null,
+        showUserId: false,
         show: false
       },
+
       createWalletDialog: {
         data: {},
-        fields: [
-          {
-            type: 'str',
-            description: 'Wallet Name',
-            name: 'name'
-          },
-          {
-            type: 'select',
-            values: ['', 'EUR', 'USD'],
-            description: 'Currency',
-            name: 'currency'
-          },
-          {
-            type: 'str',
-            description: 'Balance',
-            name: 'balance'
-          }
-        ],
         show: false
       },
       walletTable: {
@@ -66,6 +41,12 @@ window.app = Vue.createApp({
             align: 'left',
             label: 'Name',
             field: 'name'
+          },
+          {
+            name: 'id',
+            align: 'left',
+            label: 'Wallet Id',
+            field: 'id'
           },
           {
             name: 'currency',
@@ -78,17 +59,65 @@ window.app = Vue.createApp({
             align: 'left',
             label: 'Balance',
             field: 'balance_msat'
-          },
-          {
-            name: 'deleted',
-            align: 'left',
-            label: 'Deleted',
-            field: 'deleted'
           }
-        ]
+        ],
+        pagination: {
+          sortBy: 'name',
+          rowsPerPage: 10,
+          page: 1,
+          descending: true,
+          rowsNumber: 10
+        },
+        search: null,
+        hideEmpty: true,
+        loading: false
       },
       usersTable: {
         columns: [
+          {
+            name: 'admin',
+            align: 'left',
+            label: 'Admin',
+            field: 'admin',
+            sortable: false
+          },
+          {
+            name: 'wallet_id',
+            align: 'left',
+            label: 'Wallets',
+            field: 'wallet_id',
+            sortable: false
+          },
+          {
+            name: 'user',
+            align: 'left',
+            label: 'User Id',
+            field: 'user',
+            sortable: false
+          },
+
+          {
+            name: 'username',
+            align: 'left',
+            label: 'Username',
+            field: 'username',
+            sortable: false
+          },
+
+          {
+            name: 'email',
+            align: 'left',
+            label: 'Email',
+            field: 'email',
+            sortable: false
+          },
+          {
+            name: 'pubkey',
+            align: 'left',
+            label: 'Public Key',
+            field: 'pubkey',
+            sortable: false
+          },
           {
             name: 'balance_msat',
             align: 'left',
@@ -96,34 +125,15 @@ window.app = Vue.createApp({
             field: 'balance_msat',
             sortable: true
           },
-          {
-            name: 'wallet_count',
-            align: 'left',
-            label: 'Wallet Count',
-            field: 'wallet_count',
-            sortable: true
-          },
+
           {
             name: 'transaction_count',
             align: 'left',
-            label: 'Transaction Count',
+            label: 'Payments',
             field: 'transaction_count',
             sortable: true
           },
-          {
-            name: 'username',
-            align: 'left',
-            label: 'Username',
-            field: 'username',
-            sortable: true
-          },
-          {
-            name: 'email',
-            align: 'left',
-            label: 'Email',
-            field: 'email',
-            sortable: true
-          },
+
           {
             name: 'last_payment',
             align: 'left',
@@ -160,50 +170,7 @@ window.app = Vue.createApp({
   created() {
     this.fetchUsers()
   },
-  mounted() {
-    this.chart1 = new Chart(this.$refs.chart1.getContext('2d'), {
-      type: 'bubble',
-      options: {
-        scales: {
-          x: {
-            type: 'linear',
-            beginAtZero: true,
-            title: {
-              text: 'Transaction count'
-            }
-          },
-          y: {
-            type: 'linear',
-            beginAtZero: true,
-            title: {
-              text: 'User balance in million sats'
-            }
-          }
-        },
-        tooltip: {
-          callbacks: {
-            label: function (tooltipItem, data) {
-              const dataset = data.datasets[tooltipItem.datasetIndex]
-              const dataPoint = dataset.data[tooltipItem.index]
-              return dataPoint.customLabel || ''
-            }
-          }
-        },
-        layout: {
-          padding: 10
-        }
-      },
-      data: {
-        datasets: [
-          {
-            label: 'Wallet balance vs transaction count',
-            backgroundColor: 'rgb(255, 99, 132)',
-            data: []
-          }
-        ]
-      }
-    })
-  },
+
   methods: {
     formatDate: function (value) {
       return LNbits.utils.formatDate(value)
@@ -211,17 +178,24 @@ window.app = Vue.createApp({
     formatSat: function (value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
     },
+    backToUsersPage() {
+      this.activeUser.show = false
+      this.paymentPage.show = false
+      this.activeWallet.show = false
+      this.fetchUsers()
+    },
     resetPassword(user_id) {
       return LNbits.api
         .request('PUT', `/users/api/v1/user/${user_id}/reset_password`)
         .then(res => {
-          this.$q.notify({
-            type: 'positive',
-            message: 'generated key for password reset',
-            icon: null
-          })
-          const url = window.location.origin + '?reset_key=' + res.data
-          this.copyText(url)
+          LNbits.utils
+            .confirmDialog(
+              'A reset key has been generated. Click OK to copy the rest key to your clipboard.'
+            )
+            .onOk(() => {
+              const url = window.location.origin + '?reset_key=' + res.data
+              this.copyText(url)
+            })
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
@@ -229,33 +203,66 @@ window.app = Vue.createApp({
     },
     createUser() {
       LNbits.api
-        .request('POST', '/users/api/v1/user', null, this.createUserDialog.data)
-        .then(() => {
-          this.fetchUsers()
+        .request('POST', '/users/api/v1/user', null, this.activeUser.data)
+        .then(resp => {
           Quasar.Notify.create({
             type: 'positive',
-            message: 'Success! User created!',
+            message: 'User created!',
             icon: null
           })
+
+          this.activeUser.setPassword = true
+          this.activeUser.data = resp.data
+          this.fetchUsers()
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
     },
-    createWallet(user_id) {
+    updateUser() {
+      LNbits.api
+        .request(
+          'PUT',
+          `/users/api/v1/user/${this.activeUser.data.id}`,
+          null,
+          this.activeUser.data
+        )
+        .then(() => {
+          Quasar.Notify.create({
+            type: 'positive',
+            message: 'User updated!',
+            icon: null
+          })
+          this.activeUser.data = null
+          this.activeUser.show = false
+          this.fetchUsers()
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
+    },
+    createWallet() {
+      const userId = this.activeWallet.userId
+      if (!userId) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'No user selected!',
+          icon: null
+        })
+        return
+      }
       LNbits.api
         .request(
           'POST',
-          `/users/api/v1/user/${user_id}/wallet`,
+          `/users/api/v1/user/${userId}/wallet`,
           null,
           this.createWalletDialog.data
         )
         .then(() => {
-          this.fetchUsers()
+          this.fetchWallets(userId)
           Quasar.Notify.create({
             type: 'positive',
-            message: 'Success! User created!',
-            icon: null
+            message: 'Wallet created!'
           })
         })
         .catch(function (error) {
@@ -272,9 +279,11 @@ window.app = Vue.createApp({
               this.fetchUsers()
               Quasar.Notify.create({
                 type: 'positive',
-                message: 'Success! User deleted!',
+                message: 'User deleted!',
                 icon: null
               })
+              this.activeUser.data = null
+              this.activeUser.show = false
             })
             .catch(function (error) {
               LNbits.utils.notifyApiError(error)
@@ -284,14 +293,14 @@ window.app = Vue.createApp({
     undeleteUserWallet(user_id, wallet) {
       LNbits.api
         .request(
-          'GET',
+          'PUT',
           `/users/api/v1/user/${user_id}/wallet/${wallet}/undelete`
         )
         .then(() => {
           this.fetchWallets(user_id)
           Quasar.Notify.create({
             type: 'positive',
-            message: 'Success! Undeleted user wallet!',
+            message: 'Undeleted user wallet!',
             icon: null
           })
         })
@@ -310,7 +319,7 @@ window.app = Vue.createApp({
             this.fetchWallets(user_id)
             Quasar.Notify.create({
               type: 'positive',
-              message: 'Success! User wallet deleted!',
+              message: 'User wallet deleted!',
               icon: null
             })
           })
@@ -319,38 +328,11 @@ window.app = Vue.createApp({
           })
       })
     },
-    updateChart(users) {
-      const filtered = users.filter(user => {
-        if (
-          user.balance_msat === null ||
-          user.balance_msat === 0 ||
-          user.wallet_count === 0
-        ) {
-          return false
-        }
-        return true
-      })
-
-      const data = filtered.map(user => {
-        const labelUsername = `${user.username ? 'User: ' + user.username + '. ' : ''}`
-        const userBalanceSats = Math.floor(
-          user.balance_msat / 1000
-        ).toLocaleString()
-        return {
-          x: user.transaction_count,
-          y: user.balance_msat / 1000000000,
-          r: 4,
-          customLabel:
-            labelUsername +
-            'Balance: ' +
-            userBalanceSats +
-            ' sats. Tx count: ' +
-            user.transaction_count
-        }
-      })
-      this.chart1.data.datasets[0].data = data
-      this.chart1.update()
+    copyWalletLink(walletId) {
+      const url = `${window.location.origin}/wallet?usr=${this.activeWallet.userId}&wal=${walletId}`
+      this.copyText(url)
     },
+
     fetchUsers(props) {
       const params = LNbits.utils.prepareFilterQuery(this.usersTable, props)
       LNbits.api
@@ -359,38 +341,32 @@ window.app = Vue.createApp({
           this.usersTable.loading = false
           this.usersTable.pagination.rowsNumber = res.data.total
           this.users = res.data.data
-          this.updateChart(this.users)
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
     },
-    fetchWallets(user_id) {
+    fetchWallets(userId) {
       LNbits.api
-        .request('GET', `/users/api/v1/user/${user_id}/wallet`)
+        .request('GET', `/users/api/v1/user/${userId}/wallet`)
         .then(res => {
           this.wallets = res.data
-          this.walletDialog.show = this.wallets.length > 0
-          if (!this.walletDialog.show) {
-            this.fetchUsers()
-          }
+          this.activeWallet.userId = userId
+          this.activeWallet.show = true
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
     },
-    showPayments(wallet_id) {
-      this.activeWallet = this.wallets.find(wallet => wallet.id === wallet_id)
-      this.paymentDialog.show = true
-    },
-    toggleAdmin(user_id) {
+
+    toggleAdmin(userId) {
       LNbits.api
-        .request('GET', `/users/api/v1/user/${user_id}/admin`)
+        .request('GET', `/users/api/v1/user/${userId}/admin`)
         .then(() => {
           this.fetchUsers()
           Quasar.Notify.create({
             type: 'positive',
-            message: 'Success! Toggled admin!',
+            message: 'Toggled admin!',
             icon: null
           })
         })
@@ -400,6 +376,40 @@ window.app = Vue.createApp({
     },
     exportUsers() {
       console.log('export users')
+    },
+    async showAccountPage(user_id) {
+      this.activeUser.showPassword = false
+      this.activeUser.showUserId = false
+      this.activeUser.setPassword = false
+      if (!user_id) {
+        this.activeUser.data = {extra: {}}
+        this.activeUser.show = true
+        return
+      }
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/users/api/v1/user/${user_id}`
+        )
+        this.activeUser.data = data
+
+        this.activeUser.show = true
+      } catch (error) {
+        console.warn(error)
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'Failed to get user!'
+        })
+        this.activeUser.show = false
+      }
+    },
+    showTopupDialog(walletId) {
+      this.wallet.id = walletId
+      this.topupDialog.show = true
+    },
+    showPayments(wallet_id) {
+      this.paymentsWallet = this.wallets.find(wallet => wallet.id === wallet_id)
+      this.paymentPage.show = true
     },
     topupCallback(res) {
       if (res.success) {
@@ -422,14 +432,31 @@ window.app = Vue.createApp({
         .then(_ => {
           Quasar.Notify.create({
             type: 'positive',
-            message: `Success! Added ${this.wallet.amount} to ${this.wallet.id}`,
+            message: `Added ${this.wallet.amount} to ${this.wallet.id}`,
             icon: null
           })
           this.wallet = {}
+          this.fetchWallets(this.activeWallet.userId)
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
+    },
+    searchUserBy(fieldName) {
+      const fieldValue = this.searchData[fieldName]
+      this.usersTable.filter = {}
+      if (fieldValue) {
+        this.usersTable.filter[fieldName] = fieldValue
+      }
+
+      this.fetchUsers()
+    },
+    shortify(value) {
+      valueLength = (value || '').length
+      if (valueLength <= 10) {
+        return value
+      }
+      return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
     }
   }
 })

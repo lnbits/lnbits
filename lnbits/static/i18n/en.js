@@ -122,6 +122,7 @@ window.localisation.en = {
   pay_to_enable: 'Pay To Enable',
   enable_extension_details: 'Enable extension for current user',
   disable: 'Disable',
+  delete: 'Delete',
   installed: 'Installed',
   activated: 'Activated',
   deactivated: 'Deactivated',

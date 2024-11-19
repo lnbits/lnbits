@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Optional
+from uuid import UUID
 
 from fastapi import Query
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field
 
 from lnbits.db import FilterModel
+from lnbits.helpers import is_valid_email_address, is_valid_pubkey, is_valid_username
 from lnbits.settings import settings
 
 from .wallets import Wallet
@@ -36,13 +38,13 @@ class Account(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    @property
-    def is_super_user(self) -> bool:
-        return self.id == settings.super_user
+    is_super_user: bool = Field(default=False, no_database=True)
+    is_admin: bool = Field(default=False, no_database=True)
 
-    @property
-    def is_admin(self) -> bool:
-        return self.id in settings.lnbits_admin_users or self.is_super_user
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.is_super_user = settings.is_super_user(self.id)
+        self.is_admin = settings.is_admin_user(self.id)
 
     def hash_password(self, password: str) -> str:
         """sets and returns the hashed password"""
@@ -57,6 +59,17 @@ class Account(BaseModel):
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         return pwd_context.verify(password, self.password_hash)
 
+    def validate_fields(self):
+        if self.username and not is_valid_username(self.username):
+            raise ValueError("Invalid username.")
+        if self.email and not is_valid_email_address(self.email):
+            raise ValueError("Invalid email.")
+        if self.pubkey and not is_valid_pubkey(self.pubkey):
+            raise ValueError("Invalid pubkey.")
+        user_uuid4 = UUID(hex=self.id, version=4)
+        if user_uuid4.hex != self.id:
+            raise ValueError("User ID is not valid UUID4 hex string.")
+
 
 class AccountOverview(Account):
     transaction_count: Optional[int] = 0
@@ -66,7 +79,7 @@ class AccountOverview(Account):
 
 
 class AccountFilters(FilterModel):
-    __search_fields__ = ["id", "email", "username"]
+    __search_fields__ = ["user", "email", "username", "pubkey", "wallet_id"]
     __sort_fields__ = [
         "balance_msat",
         "email",
@@ -76,12 +89,11 @@ class AccountFilters(FilterModel):
         "last_payment",
     ]
 
-    id: str
-    last_payment: Optional[datetime] = None
-    transaction_count: Optional[int] = None
-    wallet_count: Optional[int] = None
-    username: Optional[str] = None
     email: Optional[str] = None
+    user: Optional[str] = None
+    username: Optional[str] = None
+    pubkey: Optional[str] = None
+    wallet_id: Optional[str] = None
 
 
 class User(BaseModel):
@@ -117,11 +129,22 @@ class User(BaseModel):
         return False
 
 
-class CreateUser(BaseModel):
+class RegisterUser(BaseModel):
     email: Optional[str] = Query(default=None)
     username: str = Query(default=..., min_length=2, max_length=20)
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
+
+
+class CreateUser(BaseModel):
+    id: Optional[str] = Query(default=None)
+    email: Optional[str] = Query(default=None)
+    username: Optional[str] = Query(default=None, min_length=2, max_length=20)
+    password: Optional[str] = Query(default=None, min_length=8, max_length=50)
+    password_repeat: Optional[str] = Query(default=None, min_length=8, max_length=50)
+    pubkey: str = Query(default=None, max_length=64)
+    extensions: Optional[list[str]] = None
+    extra: Optional[UserExtra] = None
 
 
 class UpdateUser(BaseModel):

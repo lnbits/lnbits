@@ -20,7 +20,9 @@ async def create_account(
     account: Optional[Account] = None,
     conn: Optional[Connection] = None,
 ) -> Account:
-    if not account:
+    if account:
+        account.validate_fields()
+    else:
         now = datetime.now(timezone.utc)
         account = Account(id=uuid4().hex, created_at=now, updated_at=now)
     await (conn or db).insert("accounts", account)
@@ -50,6 +52,8 @@ async def get_accounts(
             accounts.id,
             accounts.username,
             accounts.email,
+            accounts.pubkey,
+            wallets.id as wallet_id,
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0)) as balance_msat,

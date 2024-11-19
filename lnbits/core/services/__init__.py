@@ -20,7 +20,14 @@ from .settings import (
     check_webpush_settings,
     update_cached_settings,
 )
-from .users import check_admin_settings, create_user_account, init_admin_settings
+from .users import (
+    check_admin_settings,
+    create_user_account,
+    create_user_account_no_ckeck,
+    init_admin_settings,
+    update_user_account,
+    update_user_extensions,
+)
 from .websockets import websocket_manager, websocket_updater
 
 __all__ = [
@@ -48,7 +55,10 @@ __all__ = [
     # users
     "check_admin_settings",
     "create_user_account",
+    "create_user_account_no_ckeck",
     "init_admin_settings",
+    "update_user_account",
+    "update_user_extensions",
     # websockets
     "websocket_manager",
     "websocket_updater",
