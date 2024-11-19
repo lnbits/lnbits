@@ -19,6 +19,7 @@ from lnbits.settings import get_funding_source, settings
 from lnbits.tasks import send_push_notification
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = {}
+audit_queue: asyncio.Queue = asyncio.Queue()
 
 
 async def killswitch_task():
@@ -157,3 +158,12 @@ async def send_payment_push_notification(payment: Payment):
                 f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
             )
             await send_push_notification(subscription, title, body, url)
+
+
+async def wait_for_audit_data():
+    """
+    .
+    """
+    while settings.lnbits_running:
+        data: dict = await audit_queue.get()
+        print("### data", data)

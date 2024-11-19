@@ -4,6 +4,7 @@ import importlib
 import importlib.metadata
 import inspect
 import json
+import re
 from enum import Enum
 from hashlib import sha256
 from os import path
@@ -24,6 +25,7 @@ def list_parse_fallback(v: str):
             return v.split(",")
     else:
         return []
+
 
 
 class LNbitsSettings(BaseModel):
@@ -509,6 +511,70 @@ class KeycloakAuthSettings(LNbitsSettings):
     keycloak_client_secret: str = Field(default="")
 
 
+class AuditSettings(LNbitsSettings):
+    lnbits_audit_enabled: bool = Field(default=True)
+
+    # If true the client IP address will be loged
+    lnbits_audit_log_ip: bool = Field(default=False)
+
+    # List of paths to be included (regex match). Empty list means all.
+    lnbits_audit_include_paths: list[str] = Field(default=[".*api/v1/.*"])
+    # List of paths to be excluded (regex match). Empty list means none.
+    lnbits_audit_exclude_paths: list[str] = Field(
+        default=["/static", "service-worker.js"]
+    )
+
+    # List of HTTP methods to be included. Empty lists means all.
+    # GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+    lnbits_audit_http_methods: list[str] = Field(default=[])
+
+    # List of HTTP codes to be included (regex match). Empty lists means all.
+    lnbits_audit_http_response_codes: list[str] = Field(default=[])
+
+    def is_http_request_auditable(
+        self,
+        http_method: Optional[str],
+        path: Optional[str],
+        http_response_code: Optional[str],
+    ) -> bool:
+        if not self.lnbits_audit_enabled:
+            return False
+        if len(self.lnbits_audit_http_methods) != 0:
+            if not http_method or http_method not in self.lnbits_audit_http_methods:
+                return False
+
+        if not self._is_http_request_path_auditable(path):
+            return False
+
+        if len(self.lnbits_audit_http_response_codes) != 0:
+            is_response_code_included = True
+            if not http_response_code:
+                return False
+            for response_code in self.lnbits_audit_http_response_codes:
+                if _re_fullmatch_safe(response_code, http_response_code):
+                    is_response_code_included = True
+                    break
+            if not is_response_code_included:
+                return False
+
+        return True
+
+    def _is_http_request_path_auditable(self, path: Optional[str]):
+        if len(self.lnbits_audit_exclude_paths) != 0 and path:
+            for exclude_path in self.lnbits_audit_exclude_paths:
+                if _re_fullmatch_safe(exclude_path, path):
+                    return False
+
+        if len(self.lnbits_audit_include_paths) != 0:
+            if not path:
+                return False
+            for include_path in self.lnbits_audit_include_paths:
+                if _re_fullmatch_safe(include_path, path):
+                    return True
+
+        return False
+
+
 class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
@@ -520,6 +586,7 @@ class EditableSettings(
     LightningSettings,
     WebPushSettings,
     NodeUISettings,
+    AuditSettings,
     AuthSettings,
     NostrAuthSettings,
     GoogleAuthSettings,
@@ -700,6 +767,14 @@ class SettingsField(BaseModel):
     id: str
     value: Optional[Any]
     tag: str = "core"
+
+def _re_fullmatch_safe(pattern: str, string: str):
+    try:
+        return re.fullmatch(pattern, string) is not None
+    except Exception as _:
+        logger.warning(f"Regex error for pattern {pattern}")
+        return False
+
 
 
 def set_cli_settings(**kwargs):

@@ -1,11 +1,15 @@
+import asyncio
+from datetime import datetime, timezone
 from http import HTTPStatus
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from loguru import logger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -118,6 +122,51 @@ class ExtensionsRedirectMiddleware:
             scope["path"] = redirect.new_path_from(scope["path"])
 
         await self.app(scope, receive, send)
+
+
+class AuditMiddleware(BaseHTTPMiddleware):
+
+    def __init__(self, app: ASGIApp, audit_queue: asyncio.Queue) -> None:
+        super().__init__(app)
+        self.audit_queue = audit_queue
+        # delete_time purge after X days
+        # time, # include pats, exclude paths (regex)
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        start_time = datetime.now(timezone.utc)
+        response: Optional[Response] = None
+        try:
+            response = await call_next(request)
+            assert response
+            return response
+        finally:
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+            await self._log_audit(request, response, duration)
+
+    async def _log_audit(
+        self, request: Request, response: Optional[Response], duration: float
+    ):
+        try:
+            http_method = request.scope.get("method", None)
+            path = request.scope.get("path", None)
+            response_code = str(response.status_code) if response else None
+            if not settings.is_http_request_auditable(http_method, path, response_code):
+                print("### NOT", http_method, path, response_code)
+                return None
+            data = {
+                "ip": request.client.host if request.client else None,
+                "user_id": request.scope.get("user_id", None),
+                "path": path,
+                "route_path": getattr(request.scope.get("route", {}), "path", None),
+                "request_type": request.scope.get("type", None),
+                "request_method": http_method,
+                "query_string": request.scope.get("query_string", None),
+                "response_code": response_code,
+                "duration": duration,
+            }
+            await self.audit_queue.put(data)
+        except Exception as ex:
+            logger.warning(ex)
 
 
 def add_ratelimit_middleware(app: FastAPI):
