@@ -5,11 +5,12 @@ import httpx
 from loguru import logger
 
 from lnbits.core.crud import (
+    create_audit_entry,
     get_wallet,
     get_webpush_subscriptions_for_user,
     mark_webhook_sent,
 )
-from lnbits.core.models import Payment
+from lnbits.core.models import AuditEntry, Payment
 from lnbits.core.services import (
     get_balance_delta,
     send_payment_notification,
@@ -162,8 +163,13 @@ async def send_payment_push_notification(payment: Payment):
 
 async def wait_for_audit_data():
     """
-    .
+    Waits for audit entries to be pushed to the queue.
+    Then it inserts the entries into the DB.
     """
     while settings.lnbits_running:
-        data: dict = await audit_queue.get()
-        print("### data", data)
+        data: AuditEntry = await audit_queue.get()
+        try:
+            await create_audit_entry(data)
+        except Exception as ex:
+            logger.warning(ex)
+            await asyncio.sleep(3)

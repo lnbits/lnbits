@@ -27,7 +27,6 @@ def list_parse_fallback(v: str):
         return []
 
 
-
 class LNbitsSettings(BaseModel):
     @classmethod
     def validate_list(cls, val):
@@ -514,7 +513,9 @@ class KeycloakAuthSettings(LNbitsSettings):
 class AuditSettings(LNbitsSettings):
     lnbits_audit_enabled: bool = Field(default=True)
 
-    # If true the client IP address will be loged
+    # number of days to keep the audit entry
+    lnbits_audit_retention_days: int = Field(default=7)
+
     lnbits_audit_log_ip: bool = Field(default=False)
 
     # List of paths to be included (regex match). Empty list means all.
@@ -525,7 +526,7 @@ class AuditSettings(LNbitsSettings):
     )
 
     # List of HTTP methods to be included. Empty lists means all.
-    # GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+    # Options (case-sensitive): GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
     lnbits_audit_http_methods: list[str] = Field(default=[])
 
     # List of HTTP codes to be included (regex match). Empty lists means all.
@@ -768,13 +769,13 @@ class SettingsField(BaseModel):
     value: Optional[Any]
     tag: str = "core"
 
+
 def _re_fullmatch_safe(pattern: str, string: str):
     try:
         return re.fullmatch(pattern, string) is not None
     except Exception as _:
         logger.warning(f"Regex error for pattern {pattern}")
         return False
-
 
 
 def set_cli_settings(**kwargs):

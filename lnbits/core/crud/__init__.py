@@ -1,3 +1,4 @@
+from .audit import create_audit_entry
 from .db_versions import (
     delete_dbversion,
     get_db_version,
@@ -82,6 +83,8 @@ from .webpush import (
 )
 
 __all__ = [
+    # audit
+    "create_audit_entry",
     # db_versions
     "get_db_version",
     "get_db_versions",

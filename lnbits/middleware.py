@@ -14,6 +14,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.core.db import core_app_extra
+from lnbits.core.models import AuditEntry
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 
@@ -151,19 +152,18 @@ class AuditMiddleware(BaseHTTPMiddleware):
             path = request.scope.get("path", None)
             response_code = str(response.status_code) if response else None
             if not settings.is_http_request_auditable(http_method, path, response_code):
-                print("### NOT", http_method, path, response_code)
                 return None
-            data = {
-                "ip": request.client.host if request.client else None,
-                "user_id": request.scope.get("user_id", None),
-                "path": path,
-                "route_path": getattr(request.scope.get("route", {}), "path", None),
-                "request_type": request.scope.get("type", None),
-                "request_method": http_method,
-                "query_string": request.scope.get("query_string", None),
-                "response_code": response_code,
-                "duration": duration,
-            }
+            data = AuditEntry(
+                ip_address=request.client.host if request.client else None,
+                user_id=request.scope.get("user_id", None),
+                path=path,
+                route_path=getattr(request.scope.get("route", {}), "path", None),
+                request_type=request.scope.get("type", None),
+                request_method=http_method,
+                query_string=request.scope.get("query_string", None),
+                response_code=response_code,
+                duration=duration,
+            )
             await self.audit_queue.put(data)
         except Exception as ex:
             logger.warning(ex)

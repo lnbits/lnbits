@@ -664,3 +664,24 @@ async def m028_update_settings(db: Connection):
             await _insert_key_value(key, value)
 
     await db.execute("drop table settings")
+
+
+async def m029_create_audit_table(db):
+    await db.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS audit (
+            id {db.serial_primary_key},
+            ip_address TEXT,
+            user_id TEXT,
+            path TEXT,
+            route_path TEXT,
+            request_type TEXT,
+            request_method TEXT,
+            query_string TEXT,
+            response_code TEXT,
+            duration REAL NOT NULL,
+            delete_at TIMESTAMP,
+            created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+        );
+        """
+    )
