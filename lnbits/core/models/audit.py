@@ -14,10 +14,9 @@ class AuditEntry(BaseModel):
     ip_address: Optional[str] = None
     user_id: Optional[str] = None
     path: Optional[str] = None
-    route_path: Optional[str] = None
     request_type: Optional[str] = None
     request_method: Optional[str] = None
-    query_string: Optional[str] = None
+    request_details: Optional[str] = None
     response_code: Optional[str] = None
     duration: float
     delete_at: Optional[datetime] = None
@@ -34,7 +33,6 @@ class AuditFilters(FilterModel):
         "ip_address",
         "user_id",
         "path",
-        "route_path",
         "request_method",
         "response_code",
     ]
@@ -46,6 +44,5 @@ class AuditFilters(FilterModel):
     ip_address: Optional[str] = None
     user_id: Optional[str] = None
     path: Optional[str] = None
-    route_path: Optional[str] = None
     request_method: Optional[str] = None
     response_code: Optional[str] = None

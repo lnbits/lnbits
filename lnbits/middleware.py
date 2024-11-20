@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any, List, Optional, Union
@@ -135,23 +136,29 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         start_time = datetime.now(timezone.utc)
+        request_details = await self._request_details(request)
         response: Optional[Response] = None
+
         try:
             response = await call_next(request)
             assert response
             return response
         finally:
             duration = (datetime.now(timezone.utc) - start_time).total_seconds()
-            await self._log_audit(request, response, duration)
+            await self._log_audit(request, response, duration, request_details)
 
     async def _log_audit(
-        self, request: Request, response: Optional[Response], duration: float
+        self,
+        request: Request,
+        response: Optional[Response],
+        duration: float,
+        request_details: Optional[str],
     ):
         try:
             http_method = request.scope.get("method", None)
             path = request.scope.get("path", None)
             response_code = str(response.status_code) if response else None
-            if not settings.is_http_request_auditable(http_method, path, response_code):
+            if not settings.audit_http_request(http_method, path, response_code):
                 return None
             ip_address = (
                 request.client.host
@@ -161,17 +168,40 @@ class AuditMiddleware(BaseHTTPMiddleware):
             data = AuditEntry(
                 ip_address=ip_address,
                 user_id=request.scope.get("user_id", None),
-                path=path,
-                route_path=getattr(request.scope.get("route", {}), "path", None),
+                path=getattr(request.scope.get("route", {}), "path", None),
                 request_type=request.scope.get("type", None),
                 request_method=http_method,
-                query_string=request.scope.get("query_string", None),
+                request_details=request_details,
                 response_code=response_code,
                 duration=duration,
             )
             await self.audit_queue.put(data)
         except Exception as ex:
             logger.warning(ex)
+
+    async def _request_details(self, request: Request) -> Optional[str]:
+        if not settings.audit_http_request_details():
+            return None
+
+        try:
+            http_method = request.scope.get("method", None)
+            path = request.scope.get("path", None)
+
+            if not settings.audit_http_request(http_method, path):
+                return None
+
+            details: dict = {}
+            if settings.lnbits_audit_log_path_params:
+                details["path_params"] = request.path_params
+            if settings.lnbits_audit_log_query_params:
+                details["query_params"] = dict(request.query_params)
+            if settings.lnbits_audit_log_request_body:
+                _body = await request.body()
+                details["body"] = _body.decode("utf-8")
+            return json.dumps(details)
+        except Exception as e:
+            logger.warning(e)
+        return None
 
 
 def add_ratelimit_middleware(app: FastAPI):

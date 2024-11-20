@@ -2,8 +2,8 @@
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none q-mb-sm">Audit</h6>
 
-    <div class="row">
-      <div class="col-md-6 col-sm-12 q-pr-sm">
+    <div class="row q-mb-lg">
+      <div class="col">
         <q-item tag="label" v-ripple>
           <q-item-section avatar>
             <q-toggle
@@ -23,7 +23,30 @@
           </q-item-section>
         </q-item>
       </div>
-      <div class="col-md-6 col-sm-12 q-pr-sm">
+    </div>
+    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <div class="row">
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_request_body"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Record Request Body</q-item-label>
+            <q-item-label caption
+              >Warning: the request body can have large size. Use it with
+              caution.</q-item-label
+            >
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-3 col-sm-12 q-pr-sm">
         <q-item tag="label" v-ripple>
           <q-item-section avatar>
             <q-toggle
@@ -36,15 +59,46 @@
           </q-item-section>
           <q-item-section>
             <q-item-label>Record IP Address</q-item-label>
-            <q-item-label caption
-              >If disabled audit entries will not record the IP
-              address</q-item-label
-            >
+            <q-item-label caption>Save the client IP address.</q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_path_params"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Record Path Parameters</q-item-label>
+            <q-item-label caption>Recommended. </q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_query_params"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Record Query Parameters</q-item-label>
+            <q-item-label caption>Recommended.</q-item-label>
           </q-item-section>
         </q-item>
       </div>
     </div>
-    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <q-separator class="q-mb-xl q-mt-sm"></q-separator>
     <div class="row q-mb-lg">
       <div class="col-md-6 col-sm-12 q-pr-sm">
         <p>Include HTTP Methods</p>
@@ -65,7 +119,7 @@
           @keydown.enter="addIncludeResponseCode"
           type="text"
           label="HTTP Response code (regex)"
-          hint="List of HTTP codes to be included (regex match). Empty lists means all."
+          hint="List of HTTP codes to be included (regex match). Empty lists means all. Eg: 4.*, 5.*"
         >
           <q-btn @click="addIncludeResponseCode" dense flat icon="add"></q-btn>
         </q-input>
@@ -83,7 +137,7 @@
         </div>
       </div>
     </div>
-    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+
     <div class="row">
       <div class="col-md-6 col-sm-12 q-pr-sm">
         <p>Include Paths</p>

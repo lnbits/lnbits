@@ -205,7 +205,7 @@
         <q-item-section side>
           <q-icon
             name="playlist_add_check_circle"
-            :color="isActive('/users') ? 'primary' : 'grey-5'"
+            :color="isActive('/audit') ? 'primary' : 'grey-5'"
             size="md"
           ></q-icon>
         </q-item-section>

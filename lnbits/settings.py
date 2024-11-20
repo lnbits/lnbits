@@ -517,6 +517,9 @@ class AuditSettings(LNbitsSettings):
     lnbits_audit_retention_days: int = Field(default=7)
 
     lnbits_audit_log_ip_address: bool = Field(default=False)
+    lnbits_audit_log_path_params: bool = Field(default=True)
+    lnbits_audit_log_query_params: bool = Field(default=True)
+    lnbits_audit_log_request_body: bool = Field(default=False)
 
     # List of paths to be included (regex match). Empty list means all.
     lnbits_audit_include_paths: list[str] = Field(default=[".*api/v1/.*"])
@@ -534,31 +537,32 @@ class AuditSettings(LNbitsSettings):
     # List of HTTP codes to be included (regex match). Empty lists means all.
     lnbits_audit_http_response_codes: list[str] = Field(default=[])
 
-    def is_http_request_auditable(
+    def audit_http_request_details(self) -> bool:
+        return (
+            self.lnbits_audit_log_path_params
+            or self.lnbits_audit_log_query_params
+            or self.lnbits_audit_log_request_body
+        )
+
+    def audit_http_request(
         self,
-        http_method: Optional[str],
-        path: Optional[str],
-        http_response_code: Optional[str],
+        http_method: Optional[str] = None,
+        path: Optional[str] = None,
+        http_response_code: Optional[str] = None,
     ) -> bool:
         if not self.lnbits_audit_enabled:
             return False
         if len(self.lnbits_audit_http_methods) != 0:
-            if not http_method or http_method not in self.lnbits_audit_http_methods:
+            if not http_method:
+                return False
+            if http_method not in self.lnbits_audit_http_methods:
                 return False
 
         if not self._is_http_request_path_auditable(path):
             return False
 
-        if len(self.lnbits_audit_http_response_codes) != 0:
-            is_response_code_included = True
-            if not http_response_code:
-                return False
-            for response_code in self.lnbits_audit_http_response_codes:
-                if _re_fullmatch_safe(response_code, http_response_code):
-                    is_response_code_included = True
-                    break
-            if not is_response_code_included:
-                return False
+        if not self._is_http_response_code_auditable(http_response_code):
+            return False
 
         return True
 
@@ -574,6 +578,22 @@ class AuditSettings(LNbitsSettings):
             for include_path in self.lnbits_audit_include_paths:
                 if _re_fullmatch_safe(include_path, path):
                     return True
+
+        return False
+
+    def _is_http_response_code_auditable(
+        self, http_response_code: Optional[str]
+    ) -> bool:
+        if not http_response_code:
+            # No response code means only request filters should apply
+            return True
+
+        if len(self.lnbits_audit_http_response_codes) == 0:
+            return True
+
+        for response_code in self.lnbits_audit_http_response_codes:
+            if _re_fullmatch_safe(response_code, http_response_code):
+                return True
 
         return False
 

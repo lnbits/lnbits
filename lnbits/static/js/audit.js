@@ -10,14 +10,13 @@ window.app = Vue.createApp({
         request_type: '',
         request_method: '',
         response_code: '',
-        path: '',
-        route_path: ''
+        path: ''
       },
       auditTable: {
         columns: [
           {
             name: 'created_at',
-            align: 'left',
+            align: 'center',
             label: 'Date',
             field: 'created_at',
             sortable: true
@@ -29,7 +28,13 @@ window.app = Vue.createApp({
             field: 'duration',
             sortable: true
           },
-
+          {
+            name: 'request_method',
+            align: 'left',
+            label: 'Method',
+            field: 'request_method',
+            sortable: false
+          },
           {
             name: 'user_id',
             align: 'left',
@@ -44,21 +49,6 @@ window.app = Vue.createApp({
             field: 'ip_address',
             sortable: false
           },
-
-          {
-            name: 'request_type',
-            align: 'left',
-            label: 'Type',
-            field: 'request_type',
-            sortable: false
-          },
-          {
-            name: 'request_method',
-            align: 'left',
-            label: 'Method',
-            field: 'request_method',
-            sortable: false
-          },
           {
             name: 'response_code',
             align: 'left',
@@ -71,22 +61,6 @@ window.app = Vue.createApp({
             align: 'left',
             label: 'Path',
             field: 'path',
-            sortable: false
-          },
-
-          {
-            name: 'route_path',
-            align: 'left',
-            label: 'Route Path',
-            field: 'route_path',
-            sortable: false
-          },
-
-          {
-            name: 'query_string',
-            align: 'left',
-            label: 'Query',
-            field: 'query_string',
             sortable: false
           }
         ],

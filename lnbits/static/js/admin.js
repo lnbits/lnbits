@@ -112,7 +112,10 @@ window.app = Vue.createApp({
       }
       const paths = this.formData.lnbits_audit_include_paths
       if (!paths.includes(this.formAddIncludePath)) {
-        paths.push(this.formAddIncludePath)
+        this.formData.lnbits_audit_include_paths = [
+          ...paths,
+          this.formAddIncludePath
+        ]
       }
       this.formAddIncludePath = ''
     },
@@ -126,7 +129,10 @@ window.app = Vue.createApp({
       }
       const paths = this.formData.lnbits_audit_exclude_paths
       if (!paths.includes(this.formAddExcludePath)) {
-        paths.push(this.formAddExcludePath)
+        this.formData.lnbits_audit_exclude_paths = [
+          ...paths,
+          this.formAddExcludePath
+        ]
       }
       this.formAddExcludePath = ''
     },
@@ -139,9 +145,12 @@ window.app = Vue.createApp({
       if (!this.formAddIncludeResponseCode) {
         return
       }
-      const paths = this.formData.lnbits_audit_http_response_codes
-      if (!paths.includes(this.formAddIncludeResponseCode)) {
-        paths.push(this.formAddIncludeResponseCode)
+      const codes = this.formData.lnbits_audit_http_response_codes
+      if (!codes.includes(this.formAddIncludeResponseCode)) {
+        this.formData.lnbits_audit_http_response_codes = [
+          ...codes,
+          this.formAddIncludeResponseCode
+        ]
       }
       this.formAddIncludeResponseCode = ''
     },
