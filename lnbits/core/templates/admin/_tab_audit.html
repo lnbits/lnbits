@@ -1,0 +1,105 @@
+<q-tab-panel name="audit">
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none q-mb-sm">Audit</h6>
+
+    <div class="row">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_enabled"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Enable audit</q-item-label>
+            <q-item-label caption
+              >Record HTTP requests according with the specified
+              filters</q-item-label
+            >
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_ip_address"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Record IP Address</q-item-label>
+            <q-item-label caption
+              >If disabled audit entries will not record the IP
+              address</q-item-label
+            >
+          </q-item-section>
+        </q-item>
+      </div>
+    </div>
+    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <div class="row">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p>Include Paths</p>
+        <q-input
+          filled
+          v-model="formAddIncludePath"
+          @keydown.enter="addIncludePath"
+          type="text"
+          label="HTTP Path (regex)"
+          hint="List of paths to be included (regex match). Empty list means all."
+        >
+          <q-btn @click="addIncludePath" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="path in formData.lnbits_audit_include_paths"
+            :key="path"
+            removable
+            @remove="removeIncludePath(path)"
+            color="primary"
+            text-color="white"
+            :label="path"
+          >
+          </q-chip>
+        </div>
+        <br />
+      </div>
+      <div class="col-md-6 col-sm-12">
+        <p>Exclude Paths</p>
+        <q-input
+          filled
+          v-model="formAddExcludePath"
+          @keydown.enter="addExcludePath"
+          type="text"
+          label="HTTP Path (regex)"
+          hint="List of paths to be excluded (regex match). Empty list means none."
+        >
+          <q-btn @click="addExcludePath" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="path in formData.lnbits_audit_exclude_paths"
+            :key="path"
+            removable
+            @remove="removeExcludePath(path)"
+            color="primary"
+            text-color="white"
+            :label="path"
+          >
+          </q-chip>
+        </div>
+        <br />
+
+        <br />
+      </div>
+    </div>
+  </q-card-section>
+</q-tab-panel>

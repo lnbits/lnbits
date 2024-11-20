@@ -153,8 +153,13 @@ class AuditMiddleware(BaseHTTPMiddleware):
             response_code = str(response.status_code) if response else None
             if not settings.is_http_request_auditable(http_method, path, response_code):
                 return None
+            ip_address = (
+                request.client.host
+                if settings.lnbits_audit_log_ip_address and request.client
+                else None
+            )
             data = AuditEntry(
-                ip_address=request.client.host if request.client else None,
+                ip_address=ip_address,
                 user_id=request.scope.get("user_id", None),
                 path=path,
                 route_path=getattr(request.scope.get("route", {}), "path", None),

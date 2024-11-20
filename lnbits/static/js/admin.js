@@ -42,6 +42,8 @@ window.app = Vue.createApp({
       formAllowedIPs: '',
       formBlockedIPs: '',
       nostrAcceptedUrl: '',
+      formAddIncludePath: '',
+      formAddExcludePath: '',
       isSuperUser: false,
       wallet: {},
       cancel: {},
@@ -102,6 +104,34 @@ window.app = Vue.createApp({
     removeAllowedUser(user) {
       let allowed_users = this.formData.lnbits_allowed_users
       this.formData.lnbits_allowed_users = allowed_users.filter(u => u !== user)
+    },
+    addIncludePath() {
+      if (!this.formAddIncludePath) {
+        return
+      }
+      const paths = this.formData.lnbits_audit_include_paths
+      if (!paths.includes(this.formAddIncludePath)) {
+        paths.push(this.formAddIncludePath)
+      }
+      this.formAddIncludePath = ''
+    },
+    removeIncludePath(path) {
+      this.formData.lnbits_audit_include_paths =
+        this.formData.lnbits_audit_include_paths.filter(p => p !== path)
+    },
+    addExcludePath() {
+      if (!this.formAddExcludePath) {
+        return
+      }
+      const paths = this.formData.lnbits_audit_exclude_paths
+      if (!paths.includes(this.formAddExcludePath)) {
+        paths.push(this.formAddExcludePath)
+      }
+      this.formAddExcludePath = ''
+    },
+    removeExcludePath(path) {
+      this.formData.lnbits_audit_exclude_paths =
+        this.formData.lnbits_audit_exclude_paths.filter(p => p !== path)
     },
     addExtensionsManifest() {
       const addManifest = this.formAddExtensionsManifest.trim()

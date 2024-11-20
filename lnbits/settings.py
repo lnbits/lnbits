@@ -516,7 +516,7 @@ class AuditSettings(LNbitsSettings):
     # number of days to keep the audit entry
     lnbits_audit_retention_days: int = Field(default=7)
 
-    lnbits_audit_log_ip: bool = Field(default=False)
+    lnbits_audit_log_ip_address: bool = Field(default=False)
 
     # List of paths to be included (regex match). Empty list means all.
     lnbits_audit_include_paths: list[str] = Field(default=[".*api/v1/.*"])
