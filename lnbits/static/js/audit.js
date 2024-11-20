@@ -25,7 +25,7 @@ window.app = Vue.createApp({
           {
             name: 'duration',
             align: 'left',
-            label: 'Duration',
+            label: 'Duration (sec)',
             field: 'duration',
             sortable: true
           },
@@ -104,16 +104,41 @@ window.app = Vue.createApp({
     }
   },
 
-  created() {
+  async created() {
     console.log('### audit entries')
+    await this.fetchAudit()
   },
 
   methods: {
-    async fetchAudit() {
+    async fetchAudit(props) {
       console.log('### fetchAudit')
+
+      try {
+        const params = LNbits.utils.prepareFilterQuery(this.auditTable, props)
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/audit/api/v1?${params}`
+        )
+        this.auditTable.loading = false
+        this.auditTable.pagination.rowsNumber = data.total
+        this.auditEntries = data.data
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      }
     },
     async searchAuditBy(fieldName) {
       console.log('### searchAuditBy', fieldName)
+    },
+    formatDate: function (value) {
+      return Quasar.date.formatDate(new Date(value), 'YYYY-MM-DD HH:mm')
+    },
+    shortify(value) {
+      valueLength = (value || '').length
+      if (valueLength <= 10) {
+        return value
+      }
+      return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
     }
   }
 })

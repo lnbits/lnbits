@@ -15,7 +15,6 @@
       >
         <template v-slot:header="props">
           <q-tr :props="props">
-            <q-th auto-width></q-th>
             <q-th v-for="col in props.cols" :key="col.name" :props="props">
               <q-input
                 v-if="['ip_address', 'user_id', 'path', 'route_path', 'request_method', 'request_type', 'response_code',].includes(col.name)"
@@ -42,7 +41,27 @@
         <template v-slot:body="props">
           <q-tr auto-width :props="props">
             <q-td v-for="col in props.cols" :key="col.name" :props="props">
-              <span v-text="props.row[col.name]"></span>
+              <span
+                v-if="col.name == 'created_at'"
+                v-text="formatDate(props.row.created_at)"
+              ></span>
+              <div v-else-if="['user_id', 'query_string'].includes(col.name)">
+                <q-btn
+                  v-if="props.row[col.name]"
+                  icon="content_copy"
+                  size="sm"
+                  flat
+                  class="cursor-pointer q-mr-xs"
+                  @click="copyText(props.row[col.name])"
+                >
+                  <q-tooltip>Copy</q-tooltip>
+                </q-btn>
+                <span v-text="shortify(props.row[col.name])"> </span>
+                <q-tooltip>
+                  <span v-text="props.row[col.name]"></span>
+                </q-tooltip>
+              </div>
+              <span v-else v-text="props.row[col.name]"></span>
             </q-td>
           </q-tr>
         </template>

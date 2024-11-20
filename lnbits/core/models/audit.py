@@ -39,6 +39,7 @@ class AuditFilters(FilterModel):
         "response_code",
     ]
     __sort_fields__ = [
+        "created_at",
         "duration",
     ]
 
