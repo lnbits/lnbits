@@ -44,6 +44,7 @@ window.app = Vue.createApp({
       nostrAcceptedUrl: '',
       formAddIncludePath: '',
       formAddExcludePath: '',
+      formAddIncludeResponseCode: '',
       isSuperUser: false,
       wallet: {},
       cancel: {},
@@ -129,9 +130,24 @@ window.app = Vue.createApp({
       }
       this.formAddExcludePath = ''
     },
+
     removeExcludePath(path) {
       this.formData.lnbits_audit_exclude_paths =
         this.formData.lnbits_audit_exclude_paths.filter(p => p !== path)
+    },
+    addIncludeResponseCode() {
+      if (!this.formAddIncludeResponseCode) {
+        return
+      }
+      const paths = this.formData.lnbits_audit_http_response_codes
+      if (!paths.includes(this.formAddIncludeResponseCode)) {
+        paths.push(this.formAddIncludeResponseCode)
+      }
+      this.formAddIncludeResponseCode = ''
+    },
+    removeIncludeResponseCode(code) {
+      this.formData.lnbits_audit_http_response_codes =
+        this.formData.lnbits_audit_http_response_codes.filter(c => c !== code)
     },
     addExtensionsManifest() {
       const addManifest = this.formAddExtensionsManifest.trim()

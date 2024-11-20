@@ -45,6 +45,45 @@
       </div>
     </div>
     <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <div class="row q-mb-lg">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p>Include HTTP Methods</p>
+        <q-select
+          filled
+          v-model="formData.lnbits_audit_http_methods"
+          multiple
+          hint="List of HTTP methods to be included. Empty lists means all."
+          label="HTTP Methods"
+          :options="['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']"
+        ></q-select>
+      </div>
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p>Include HTTP Response Codes</p>
+        <q-input
+          filled
+          v-model="formAddIncludeResponseCode"
+          @keydown.enter="addIncludeResponseCode"
+          type="text"
+          label="HTTP Response code (regex)"
+          hint="List of HTTP codes to be included (regex match). Empty lists means all."
+        >
+          <q-btn @click="addIncludeResponseCode" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="code in formData.lnbits_audit_http_response_codes"
+            :key="code"
+            removable
+            @remove="removeIncludeResponseCode(code)"
+            color="primary"
+            text-color="white"
+            :label="code"
+          >
+          </q-chip>
+        </div>
+      </div>
+    </div>
+    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
     <div class="row">
       <div class="col-md-6 col-sm-12 q-pr-sm">
         <p>Include Paths</p>
