@@ -201,7 +201,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
             if settings.lnbits_audit_log_request_body:
                 _body = await request.body()
                 details["body"] = _body.decode("utf-8")
-            return json.dumps(details)
+            details_str = json.dumps(details)
+            # Make sure the super_user id is not leaked
+            return details_str.replace(settings.super_user, "super_user")
         except Exception as e:
             logger.warning(e)
         return None
