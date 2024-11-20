@@ -2,7 +2,53 @@
 %} {% block page %}
 
 <div class="row q-col-gutter-md justify-center">
-  <div class="col">xxxxx</div>
+  <div class="col">
+    <q-card class="q-pa-md">
+      <q-table
+        row-key="id"
+        :rows="auditEntries"
+        :columns="auditTable.columns"
+        v-model:pagination="auditTable.pagination"
+        :filter="auditTable.search"
+        :loading="auditTable.loading"
+        @request="fetchAudit"
+      >
+        <template v-slot:header="props">
+          <q-tr :props="props">
+            <q-th auto-width></q-th>
+            <q-th v-for="col in props.cols" :key="col.name" :props="props">
+              <q-input
+                v-if="['ip_address', 'user_id', 'path', 'route_path', 'request_method', 'request_type', 'response_code',].includes(col.name)"
+                v-model="searchData[col.name]"
+                @keydown.enter="searchAuditBy(col.name)"
+                dense
+                type="text"
+                filled
+                :label="col.label"
+              >
+                <template v-slot:append>
+                  <q-icon
+                    name="search"
+                    @click="searchAuditBy(col.name)"
+                    class="cursor-pointer"
+                  />
+                </template>
+              </q-input>
+
+              <span v-else v-text="col.label"></span>
+            </q-th>
+          </q-tr>
+        </template>
+        <template v-slot:body="props">
+          <q-tr auto-width :props="props">
+            <q-td v-for="col in props.cols" :key="col.name" :props="props">
+              <span v-text="props.row[col.name]"></span>
+            </q-td>
+          </q-tr>
+        </template>
+      </q-table>
+    </q-card>
+  </div>
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}

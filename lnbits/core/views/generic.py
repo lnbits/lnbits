@@ -384,8 +384,9 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
         },
     )
 
+
 @generic_router.get("/audit", response_class=HTMLResponse)
-async def users_index(request: Request, user: User = Depends(check_admin)):
+async def audit_index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_audit_enabled:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Audit not enabled")
 
