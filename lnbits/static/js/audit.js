@@ -111,8 +111,6 @@ window.app = Vue.createApp({
 
   methods: {
     async fetchAudit(props) {
-      console.log('### fetchAudit')
-
       try {
         const params = LNbits.utils.prepareFilterQuery(this.auditTable, props)
         const {data} = await LNbits.api.request(
@@ -128,7 +126,13 @@ window.app = Vue.createApp({
       }
     },
     async searchAuditBy(fieldName) {
-      console.log('### searchAuditBy', fieldName)
+      const fieldValue = this.searchData[fieldName]
+      this.auditTable.filter = {}
+      if (fieldValue) {
+        this.auditTable.filter[fieldName] = fieldValue
+      }
+
+      await this.fetchAudit()
     },
     formatDate: function (value) {
       return Quasar.date.formatDate(new Date(value), 'YYYY-MM-DD HH:mm')
