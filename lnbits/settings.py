@@ -764,7 +764,7 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
             or user_id == self.super_user
         )
 
-    def is_super_user(self, user_id: str) -> bool:
+    def is_super_user(self, user_id: Optional[str] = None) -> bool:
         return user_id == self.super_user
 
     def is_admin_user(self, user_id: str) -> bool:

@@ -165,9 +165,12 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 if settings.lnbits_audit_log_ip_address and request.client
                 else None
             )
+            user_id = request.scope.get("user_id", None)
+            if settings.is_super_user(user_id):
+                user_id = "super_user"
             data = AuditEntry(
                 ip_address=ip_address,
-                user_id=request.scope.get("user_id", None),
+                user_id=user_id,
                 path=getattr(request.scope.get("route", {}), "path", None),
                 request_type=request.scope.get("type", None),
                 request_method=http_method,

@@ -48,7 +48,7 @@
                   size="sm"
                   flat
                   class="cursor-pointer q-mr-xs"
-                  @click="copyText(props.row[col.name])"
+                  @click="showDetailsDialog(props.row)"
                 >
                   <q-tooltip>Request Details</q-tooltip>
                 </q-btn>
@@ -86,6 +86,36 @@
     </q-card>
   </div>
 </div>
+
+<q-dialog v-model="auditDetailsDialog.show" position="top">
+  <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+    <strong>HTTP Request Details</strong>
+    <q-input
+      filled
+      dense
+      v-model.trim="auditDetailsDialog.data"
+      type="textarea"
+      rows="25"
+    ></q-input>
+
+    <div class="row q-mt-lg">
+      <q-btn
+        @click="copyText(auditDetailsDialog.data)"
+        icon="copy_content"
+        color="grey"
+        flat
+        v-text="$t('copy')"
+      ></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('close')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="{{ static_url_for('static', 'js/audit.js') }}"></script>

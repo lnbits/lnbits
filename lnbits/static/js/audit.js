@@ -74,12 +74,15 @@ window.app = Vue.createApp({
         search: null,
         hideEmpty: true,
         loading: false
+      },
+      auditDetailsDialog: {
+        data: null,
+        show: false
       }
     }
   },
 
   async created() {
-    console.log('### audit entries')
     await this.fetchAudit()
   },
 
@@ -107,6 +110,18 @@ window.app = Vue.createApp({
       }
 
       await this.fetchAudit()
+    },
+    showDetailsDialog(entry) {
+      const details = JSON.parse(entry?.request_details || '')
+      try {
+        if (details.body) {
+          details.body = JSON.parse(details.body)
+        }
+      } catch (e) {
+        // do nothing
+      }
+      this.auditDetailsDialog.data = JSON.stringify(details, null, 4)
+      this.auditDetailsDialog.show = true
     },
     formatDate: function (value) {
       return Quasar.date.formatDate(new Date(value), 'YYYY-MM-DD HH:mm')
