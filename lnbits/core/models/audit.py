@@ -46,3 +46,13 @@ class AuditFilters(FilterModel):
     path: Optional[str] = None
     request_method: Optional[str] = None
     response_code: Optional[str] = None
+
+
+class AuditCountStat(BaseModel):
+    field: str
+    total: int
+
+
+class AuditStats(BaseModel):
+    request_method: list[AuditCountStat] = []
+    response_code: list[AuditCountStat] = []
