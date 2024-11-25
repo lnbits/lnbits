@@ -106,13 +106,13 @@ window.app = Vue.createApp({
   methods: {
     async fetchAudit(props) {
       try {
-        console.log("### fetchAudit", this.searchData)
+        console.log('### fetchAudit', this.searchData)
         const params = LNbits.utils.prepareFilterQuery(this.auditTable, props)
         const {data} = await LNbits.api.request(
           'GET',
           `/audit/api/v1?${params}`
         )
-        console.log("### data", data)
+        console.log('### data', data)
         this.auditTable.pagination.rowsNumber = data.total
         this.auditEntries = data.data
         await this.fetchAuditStats(props)
@@ -132,7 +132,9 @@ window.app = Vue.createApp({
         )
 
         const request_methods = data.request_method.map(rm => rm.field)
-        this.searchOptions.request_method = request_methods
+        this.searchOptions.request_method = [
+          ...new Set(this.searchOptions.request_method.concat(request_methods))
+        ]
         this.requestMethodChart.data.labels = request_methods
         this.requestMethodChart.data.datasets[0].data = data.request_method.map(
           rm => rm.total
@@ -140,7 +142,9 @@ window.app = Vue.createApp({
         this.requestMethodChart.update()
 
         const response_codes = data.response_code.map(rm => rm.field)
-        this.searchOptions.response_code = response_codes
+        this.searchOptions.response_code = [
+          ...new Set(this.searchOptions.response_code.concat(response_codes))
+        ]
         this.responseCodeChart.data.labels = response_codes
         this.responseCodeChart.data.datasets[0].data = data.response_code.map(
           rm => rm.total
@@ -148,7 +152,9 @@ window.app = Vue.createApp({
         this.responseCodeChart.update()
 
         const components = data.component.map(rm => rm.field)
-        this.searchOptions.component = components
+        this.searchOptions.component = [
+          ...new Set(this.searchOptions.component.concat(components))
+        ]
         this.componentUseChart.data.labels = components
         this.componentUseChart.data.datasets[0].data = data.component.map(
           rm => rm.total
@@ -249,7 +255,7 @@ window.app = Vue.createApp({
             maintainAspectRatio: false,
             plugins: {
               title: {
-                display: false,
+                display: false
               }
             }
           },

@@ -156,7 +156,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
     ):
         try:
             http_method = request.scope.get("method", None)
-            path = request.scope.get("path", None)
+            path: Optional[str] = getattr(request.scope.get("route", {}), "path", None)
             response_code = str(response.status_code) if response else None
             if not settings.audit_http_request(http_method, path, response_code):
                 return None
@@ -168,7 +168,6 @@ class AuditMiddleware(BaseHTTPMiddleware):
             user_id = request.scope.get("user_id", None)
             if settings.is_super_user(user_id):
                 user_id = "super_user"
-            path: Optional[str] = getattr(request.scope.get("route", {}), "path", None)
             component = "core"
             if path and not path.startswith("/api"):
                 component = path.split("/")[1]

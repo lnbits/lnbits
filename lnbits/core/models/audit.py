@@ -36,6 +36,7 @@ class AuditFilters(FilterModel):
         "path",
         "request_method",
         "response_code",
+        "component",
     ]
     __sort_fields__ = [
         "created_at",
@@ -47,6 +48,7 @@ class AuditFilters(FilterModel):
     path: Optional[str] = None
     request_method: Optional[str] = None
     response_code: Optional[str] = None
+    component: Optional[str] = None
 
 
 class AuditCountStat(BaseModel):
