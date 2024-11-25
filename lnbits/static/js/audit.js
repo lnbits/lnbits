@@ -106,12 +106,13 @@ window.app = Vue.createApp({
   methods: {
     async fetchAudit(props) {
       try {
+        console.log("### fetchAudit", this.searchData)
         const params = LNbits.utils.prepareFilterQuery(this.auditTable, props)
         const {data} = await LNbits.api.request(
           'GET',
           `/audit/api/v1?${params}`
         )
-
+        console.log("### data", data)
         this.auditTable.pagination.rowsNumber = data.total
         this.auditEntries = data.data
         await this.fetchAuditStats(props)
@@ -248,15 +249,14 @@ window.app = Vue.createApp({
             maintainAspectRatio: false,
             plugins: {
               title: {
-                display: true,
-                text: 'HTTP Methods'
+                display: false,
               }
             }
           },
           data: {
             datasets: [
               {
-                label: 'HTTP Methods',
+                label: '',
                 data: [],
                 backgroundColor: [
                   'rgb(255, 99, 132)',

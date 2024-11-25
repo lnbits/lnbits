@@ -72,6 +72,7 @@
                 v-else-if="['component', 'response_code','request_method'].includes(col.name)"
                 v-model="searchData[col.name]"
                 :options="searchOptions[col.name]"
+                @update:model-value="searchAuditBy(col.name)"
                 :label="col.label"
                 style="width: 100px"
               ></q-select>
