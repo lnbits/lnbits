@@ -168,10 +168,16 @@ class AuditMiddleware(BaseHTTPMiddleware):
             user_id = request.scope.get("user_id", None)
             if settings.is_super_user(user_id):
                 user_id = "super_user"
+            path: Optional[str] = getattr(request.scope.get("route", {}), "path", None)
+            component = "core"
+            if path and not path.startswith("/api"):
+                component = path.split("/")[1]
+
             data = AuditEntry(
+                component=component,
                 ip_address=ip_address,
                 user_id=user_id,
-                path=getattr(request.scope.get("route", {}), "path", None),
+                path=path,
                 request_type=request.scope.get("type", None),
                 request_method=http_method,
                 request_details=request_details,

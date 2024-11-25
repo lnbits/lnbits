@@ -11,6 +11,7 @@ from lnbits.settings import settings
 
 class AuditEntry(BaseModel):
     id: Optional[int] = None
+    component: Optional[str] = None
     ip_address: Optional[str] = None
     user_id: Optional[str] = None
     path: Optional[str] = None
@@ -50,9 +51,11 @@ class AuditFilters(FilterModel):
 
 class AuditCountStat(BaseModel):
     field: str
-    total: int
+    total: float
 
 
 class AuditStats(BaseModel):
     request_method: list[AuditCountStat] = []
     response_code: list[AuditCountStat] = []
+    component: list[AuditCountStat] = []
+    long_duration: list[AuditCountStat] = []

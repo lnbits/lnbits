@@ -85,6 +85,9 @@ window.app = Vue.createApp({
   async created() {
     await this.fetchAudit()
   },
+  mounted() {
+    this.initCharts()
+  },
 
   methods: {
     async fetchAudit(props) {
@@ -94,13 +97,66 @@ window.app = Vue.createApp({
           'GET',
           `/audit/api/v1?${params}`
         )
-        this.auditTable.loading = false
+
         this.auditTable.pagination.rowsNumber = data.total
         this.auditEntries = data.data
+        await this.fetchAuditStats(props)
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        this.auditTable.loading = false
+      }
+    },
+    async fetchAuditStats(props) {
+      try {
+        const params = LNbits.utils.prepareFilterQuery(this.auditTable, props)
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/audit/api/v1/stats?${params}`
+        )
+        console.log('### data', data)
+
+        this.requestMethodChart.data.labels = data.request_method.map(
+          rm => rm.field
+        )
+        this.requestMethodChart.data.datasets[0].data = data.request_method.map(
+          rm => rm.total
+        )
+
+        this.requestMethodChart.update()
+
+        this.responseCodeChart.data.labels = data.response_code.map(
+          rm => rm.field
+        )
+        this.responseCodeChart.data.datasets[0].data = data.response_code.map(
+          rm => rm.total
+        )
+
+        this.responseCodeChart.update()
+
+        this.componentUseChart.data.labels = data.component.map(
+          rm => rm.field
+        )
+        this.componentUseChart.data.datasets[0].data = data.component.map(
+          rm => rm.total
+        )
+
+        this.componentUseChart.update()
+
+        this.longDurationChart.data.labels = data.long_duration.map(
+          rm => rm.field
+        )
+        this.longDurationChart.data.datasets[0].data = data.long_duration.map(
+          rm => rm.total
+        )
+
+        this.longDurationChart.update()
       } catch (error) {
         console.warn(error)
         LNbits.utils.notifyApiError(error)
       }
+
     },
     async searchAuditBy(fieldName) {
       const fieldValue = this.searchData[fieldName]
@@ -132,6 +188,174 @@ window.app = Vue.createApp({
         return value
       }
       return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
+    },
+    initCharts() {
+      // Chart.defaults.color = 'secondary'
+      this.responseCodeChart = new Chart(
+        this.$refs.responseCodeChart.getContext('2d'),
+        {
+          type: 'doughnut',
+
+          options: {
+            responsive: true,
+
+
+            plugins: {
+              legend: {
+                position: 'bottom'
+              },
+              title: {
+                display: true,
+                text: 'HTTP Response Codes'
+              }
+            }
+          },
+          data: {
+            datasets: [
+              {
+                label: '',
+                data: [20, 10],
+                backgroundColor: [
+                  'rgb(100, 99, 200)',
+                  'rgb(54, 162, 235)',
+                  'rgb(255, 205, 86)',
+                  'rgb(255, 5, 86)',
+                  'rgb(25, 205, 86)',
+                  'rgb(255, 205, 250)'
+                ]
+              }
+            ],
+            labels: []
+          }
+        }
+      )
+      this.requestMethodChart = new Chart(
+        this.$refs.requestMethodChart.getContext('2d'),
+        {
+          type: 'bar',
+
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+
+              title: {
+                display: true,
+                text: 'HTTP Methods'
+              }
+            }
+          },
+          data: {
+            datasets: [
+              {
+                label: 'HTTP Methods',
+                data: [],
+                backgroundColor: [
+                  'rgb(255, 99, 132)',
+                  'rgb(54, 162, 235)',
+                  'rgb(255, 205, 86)',
+                  'rgb(255, 5, 86)',
+                  'rgb(25, 205, 86)',
+                  'rgb(255, 205, 250)'
+                ],
+                hoverOffset: 4
+              }
+            ]
+          }
+        }
+      )
+      this.componentUseChart = new Chart(
+          this.$refs.componentUseChart.getContext('2d'),
+          {
+            type: 'pie',
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'xxx'
+                },
+                title: {
+                  display: true,
+                  text: 'Components'
+                }
+              },
+              onClick: (event, elements, chart) => {
+                if (elements[0]) {
+                   const i = elements[0].index;
+                   console.log("#### click",chart.data.labels[i] + ': ' + chart.data.datasets[0]);
+                }
+              }
+            },
+            data: {
+              datasets: [
+                {
+                  label: 'Components',
+                  data: [],
+                  backgroundColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 205, 86)',
+                    'rgb(255, 5, 86)',
+                    'rgb(25, 205, 86)',
+                    'rgb(255, 205, 250)',
+                    'rgb(100, 205, 250)',
+                    'rgb(120, 205, 250)',
+                    'rgb(140, 205, 250)',
+                    'rgb(160, 205, 250)'
+                  ],
+                  hoverOffset: 4
+                }
+              ]
+            }
+          }
+        )
+        this.longDurationChart = new Chart(
+          this.$refs.longDurationChart.getContext('2d'),
+          {
+            type: 'bar',
+            options: {
+              responsive: true,
+              indexAxis: 'y',
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'xxx'
+                },
+                title: {
+                  display: true,
+                  text: 'Long Duration'
+                }
+              },
+              onClick: (event, elements, chart) => {
+                if (elements[0]) {
+                   const i = elements[0].index;
+                   console.log("#### click",chart.data.labels[i] + ': ' + chart.data.datasets[0]);
+                }
+              }
+            },
+            data: {
+              datasets: [
+                {
+                  label: 'Components',
+                  data: [],
+                  backgroundColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 205, 86)',
+                    'rgb(255, 5, 86)',
+                    'rgb(25, 205, 86)',
+                    'rgb(255, 205, 250)',
+                    'rgb(100, 205, 250)',
+                    'rgb(120, 205, 250)',
+                    'rgb(140, 205, 250)',
+                    'rgb(160, 205, 250)'
+                  ],
+                  hoverOffset: 4
+                }
+              ]
+            }
+          }
+        )
     }
   }
 })

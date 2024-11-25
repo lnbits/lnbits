@@ -671,6 +671,7 @@ async def m029_create_audit_table(db):
         f"""
         CREATE TABLE IF NOT EXISTS audit (
             id {db.serial_primary_key},
+            component TEXT,
             ip_address TEXT,
             user_id TEXT,
             path TEXT,

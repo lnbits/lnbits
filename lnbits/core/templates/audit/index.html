@@ -1,6 +1,37 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 
+<div class="row q-col-gutter-md justify-center q-mb-xl">
+  <div class="col-lg-3 col-md-6 col-sm-12">
+    <q-card>
+      <div style="width: 250px; height:250px" class="q-pa-sm">
+        <canvas ref="responseCodeChart"></canvas>
+      </div>
+    </q-card>
+  </div>
+  <div class="col-lg-3 col-md-6 col-sm-12">
+    <q-card>
+      <div style="width: 250px; height:250px" class="q-pa-sm">
+        <canvas ref="requestMethodChart"></canvas>
+      </div>
+    </q-card>
+  </div>
+  <div class="col-lg-3 col-md-6 col-sm-12">
+    <q-card>
+      <div style="width: 250px" class="q-pa-sm">
+        <canvas ref="componentUseChart"></canvas>
+      </div>
+    </q-card>
+  </div>
+  <div class="col-lg-3 col-md-6 col-sm-12">
+    <q-card>
+      <div style="width: 250px; height:250px" class="q-pa-sm">
+        <canvas ref="longDurationChart"></canvas>
+      </div>
+    </q-card>
+  </div>
+</div>
+
 <div class="row q-col-gutter-md justify-center">
   <div class="col">
     <q-card class="q-pa-md">

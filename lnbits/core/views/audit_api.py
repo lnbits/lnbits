@@ -1,6 +1,12 @@
 from fastapi import APIRouter, Depends
 
-from lnbits.core.crud.audit import get_audit_entries, get_audit_stats
+from lnbits.core.crud.audit import (
+    get_audit_entries,
+    get_component_stats,
+    get_long_duration_stats,
+    get_request_method_stats,
+    get_response_codes_stats,
+)
 from lnbits.core.models import AuditEntry, AuditFilters
 from lnbits.core.models.audit import AuditStats
 from lnbits.db import Filters, Page
@@ -33,5 +39,13 @@ async def api_get_audit(
 async def api_get_audit_stats(
     filters: Filters = Depends(parse_filters(AuditFilters)),
 ) -> AuditStats:
-    request_mothod_stats = await get_audit_stats(filters)
-    return AuditStats(request_method=request_mothod_stats)
+    request_mothod_stats = await get_request_method_stats(filters)
+    response_code_stats = await get_response_codes_stats(filters)
+    components_stats = await get_component_stats(filters)
+    long_duration_stats = await get_long_duration_stats(filters)
+    return AuditStats(
+        request_method=request_mothod_stats,
+        response_code=response_code_stats,
+        component=components_stats,
+        long_duration=long_duration_stats
+    )

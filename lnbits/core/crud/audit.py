@@ -26,7 +26,7 @@ async def get_audit_entries(
     )
 
 
-async def get_audit_stats(
+async def get_request_method_stats(
     filters: Optional[Filters[AuditFilters]] = None,
     conn: Optional[Connection] = None,
 ) -> list[AuditCountStat]:
@@ -39,10 +39,76 @@ async def get_audit_stats(
             FROM audit
             {clause}
             GROUP BY request_method
-            ORDER BY total DESC
+            ORDER BY request_method
         """,
         values=filters.values(),
         model=AuditCountStat,
     )
 
     return request_methods
+
+
+async def get_component_stats(
+    filters: Optional[Filters[AuditFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> list[AuditCountStat]:
+    if not filters:
+        filters = Filters()
+    clause = filters.where()
+    components = await (conn or db).fetchall(
+        query=f"""
+            SELECT component as field, count(component) as total
+            FROM audit
+            {clause}
+            GROUP BY component
+            ORDER BY component
+        """,
+        values=filters.values(),
+        model=AuditCountStat,
+    )
+
+    return components
+
+
+async def get_response_codes_stats(
+    filters: Optional[Filters[AuditFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> list[AuditCountStat]:
+    if not filters:
+        filters = Filters()
+    clause = filters.where()
+    request_methods = await (conn or db).fetchall(
+        query=f"""
+            SELECT response_code as field, count(response_code) as total
+            FROM audit
+            {clause}
+            GROUP BY response_code
+            ORDER BY response_code
+        """,
+        values=filters.values(),
+        model=AuditCountStat,
+    )
+
+    return request_methods
+
+
+async def get_long_duration_stats(
+    filters: Optional[Filters[AuditFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> list[AuditCountStat]:
+    if not filters:
+        filters = Filters()
+    clause = filters.where()
+    long_duration_paths = await (conn or db).fetchall(
+        query=f"""
+            SELECT path as field, max(duration) as total FROM audit
+            {clause}
+            GROUP BY path
+            ORDER BY total DESC
+            LIMIT 5
+        """,
+        values=filters.values(),
+        model=AuditCountStat,
+    )
+
+    return long_duration_paths
