@@ -175,12 +175,16 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(error)
       }
     },
-    async searchAuditBy(fieldName) {
-      const fieldValue = this.searchData[fieldName]
-      this.auditTable.filter = {}
-      if (fieldValue) {
-        this.auditTable.filter[fieldName] = fieldValue
+    async searchAuditBy(fieldName, fieldValue) {
+      console.group('### searchAuditBy', fieldName, fieldValue)
+      if (fieldName) {
+        this.searchData[fieldName] = fieldValue
       }
+      // remove empty fields
+      this.auditTable.filter = Object.entries(this.searchData).reduce(
+        (a, [k, v]) => (v ? ((a[k] = v), a) : a),
+        {}
+      )
 
       await this.fetchAudit()
     },
@@ -207,7 +211,6 @@ window.app = Vue.createApp({
       return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
     },
     initCharts() {
-      // Chart.defaults.color = 'secondary'
       this.responseCodeChart = new Chart(
         this.$refs.responseCodeChart.getContext('2d'),
         {
@@ -221,8 +224,14 @@ window.app = Vue.createApp({
                 position: 'bottom'
               },
               title: {
-                display: true,
+                display: false,
                 text: 'HTTP Response Codes'
+              },
+              onClick: (_, elements, chart) => {
+                if (elements[0]) {
+                  const i = elements[0].index
+                  this.searchAuditBy('response_code', chart.data.labels[i])
+                }
               }
             }
           },
@@ -256,6 +265,12 @@ window.app = Vue.createApp({
             plugins: {
               title: {
                 display: false
+              }
+            },
+            onClick: (_, elements, chart) => {
+              if (elements[0]) {
+                const i = elements[0].index
+                this.searchAuditBy('request_method', chart.data.labels[i])
               }
             }
           },
@@ -293,13 +308,10 @@ window.app = Vue.createApp({
                 text: 'Components'
               }
             },
-            onClick: (event, elements, chart) => {
+            onClick: (_, elements, chart) => {
               if (elements[0]) {
                 const i = elements[0].index
-                console.log(
-                  '#### click',
-                  chart.data.labels[i] + ': ' + chart.data.datasets[0]
-                )
+                this.searchAuditBy('component', chart.data.labels[i])
               }
             }
           },
@@ -335,27 +347,23 @@ window.app = Vue.createApp({
             maintainAspectRatio: false,
             plugins: {
               legend: {
-                position: 'xxx'
-              },
-              title: {
-                display: true,
-                text: 'Long Duration'
+                title: {
+                  display: false,
+                  text: 'Long Duration'
+                }
               }
             },
-            onClick: (event, elements, chart) => {
+            onClick: (_, elements, chart) => {
               if (elements[0]) {
                 const i = elements[0].index
-                console.log(
-                  '#### click',
-                  chart.data.labels[i] + ': ' + chart.data.datasets[0]
-                )
+                this.searchAuditBy('path', chart.data.labels[i])
               }
             }
           },
           data: {
             datasets: [
               {
-                label: 'Components',
+                label: '',
                 data: [],
                 backgroundColor: [
                   'rgb(255, 99, 132)',
