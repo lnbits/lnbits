@@ -8,11 +8,13 @@ window.app = Vue.createApp({
         user_id: '',
         ip_address: '',
         request_type: '',
+        component: '',
         request_method: '',
         response_code: '',
         path: ''
       },
       searchOptions: {
+        component: [],
         request_method: [],
         response_code: []
       },
@@ -31,6 +33,13 @@ window.app = Vue.createApp({
             label: 'Duration (sec)',
             field: 'duration',
             sortable: true
+          },
+          {
+            name: 'component',
+            align: 'left',
+            label: 'Component',
+            field: 'component',
+            sortable: false
           },
           {
             name: 'request_method',
@@ -120,14 +129,13 @@ window.app = Vue.createApp({
           'GET',
           `/audit/api/v1/stats?${params}`
         )
-        console.log('### data', data)
+
         const request_methods = data.request_method.map(rm => rm.field)
         this.searchOptions.request_method = request_methods
         this.requestMethodChart.data.labels = request_methods
         this.requestMethodChart.data.datasets[0].data = data.request_method.map(
           rm => rm.total
         )
-
         this.requestMethodChart.update()
 
         const response_codes = data.response_code.map(rm => rm.field)
@@ -136,10 +144,11 @@ window.app = Vue.createApp({
         this.responseCodeChart.data.datasets[0].data = data.response_code.map(
           rm => rm.total
         )
-
         this.responseCodeChart.update()
 
-        this.componentUseChart.data.labels = data.component.map(rm => rm.field)
+        const components = data.component.map(rm => rm.field)
+        this.searchOptions.component = components
+        this.componentUseChart.data.labels = components
         this.componentUseChart.data.datasets[0].data = data.component.map(
           rm => rm.total
         )

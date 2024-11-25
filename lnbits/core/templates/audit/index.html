@@ -69,7 +69,7 @@
                 </template>
               </q-input>
               <q-select
-                v-else-if="['response_code','request_method'].includes(col.name)"
+                v-else-if="['component', 'response_code','request_method'].includes(col.name)"
                 v-model="searchData[col.name]"
                 :options="searchOptions[col.name]"
                 :label="col.label"
