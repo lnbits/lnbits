@@ -50,9 +50,13 @@
           <q-item-section>
             <q-item-label>Record Request Body</q-item-label>
             <q-item-label caption
-              >Warning: the request body can have large size. Use it with
-              caution.</q-item-label
-            >
+              >Warning:
+              <ul>
+                <li>confidential data (like passwords) will be logged</li>
+                <li>the request body can have large size.</li>
+              </ul>
+              Use it with caution.
+            </q-item-label>
           </q-item-section>
         </q-item>
       </div>

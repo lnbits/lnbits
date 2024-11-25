@@ -2,31 +2,35 @@
 %} {% block page %}
 
 <div class="row q-col-gutter-md justify-center q-mb-xl">
-  <div class="col-lg-3 col-md-6 col-sm-12">
-    <q-card>
-      <div style="width: 250px; height:250px" class="q-pa-sm">
-        <canvas ref="responseCodeChart"></canvas>
-      </div>
-    </q-card>
-  </div>
-  <div class="col-lg-3 col-md-6 col-sm-12">
-    <q-card>
-      <div style="width: 250px; height:250px" class="q-pa-sm">
-        <canvas ref="requestMethodChart"></canvas>
-      </div>
-    </q-card>
-  </div>
-  <div class="col-lg-3 col-md-6 col-sm-12">
-    <q-card>
+  <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+    <q-card class="q-pt-sm">
+      <strong>Components</strong>
       <div style="width: 250px" class="q-pa-sm">
         <canvas ref="componentUseChart"></canvas>
       </div>
     </q-card>
   </div>
-  <div class="col-lg-3 col-md-6 col-sm-12">
-    <q-card>
-      <div style="width: 250px; height:250px" class="q-pa-sm">
+  <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+    <q-card class="q-pt-sm">
+      <strong>Long Running Endpoints</strong>
+      <div style="width: 250px; height: 250px" class="q-pa-sm">
         <canvas ref="longDurationChart"></canvas>
+      </div>
+    </q-card>
+  </div>
+  <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+    <q-card class="q-pt-sm">
+      <strong>HTTP Request Methods</strong>
+      <div style="width: 250px; height: 250px" class="q-pa-sm">
+        <canvas ref="requestMethodChart"></canvas>
+      </div>
+    </q-card>
+  </div>
+  <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+    <q-card class="q-pt-sm">
+      <strong>HTTP Response Codes</strong>
+      <div style="width: 250px; height: 250px" class="q-pa-sm">
+        <canvas ref="responseCodeChart"></canvas>
       </div>
     </q-card>
   </div>
@@ -48,7 +52,7 @@
           <q-tr :props="props">
             <q-th v-for="col in props.cols" :key="col.name" :props="props">
               <q-input
-                v-if="['ip_address', 'user_id', 'path', 'request_method', 'response_code',].includes(col.name)"
+                v-if="['ip_address', 'user_id', 'path',].includes(col.name)"
                 v-model="searchData[col.name]"
                 @keydown.enter="searchAuditBy(col.name)"
                 dense
@@ -64,6 +68,13 @@
                   />
                 </template>
               </q-input>
+              <q-select
+                v-else-if="['response_code','request_method'].includes(col.name)"
+                v-model="searchData[col.name]"
+                :options="searchOptions[col.name]"
+                :label="col.label"
+                style="width: 100px"
+              ></q-select>
 
               <span v-else v-text="col.label"></span>
             </q-th>

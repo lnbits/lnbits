@@ -47,5 +47,5 @@ async def api_get_audit_stats(
         request_method=request_mothod_stats,
         response_code=response_code_stats,
         component=components_stats,
-        long_duration=long_duration_stats
+        long_duration=long_duration_stats,
     )
