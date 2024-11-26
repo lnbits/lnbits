@@ -670,7 +670,6 @@ async def m029_create_audit_table(db):
     await db.execute(
         f"""
         CREATE TABLE IF NOT EXISTS audit (
-            id {db.serial_primary_key},
             component TEXT,
             ip_address TEXT,
             user_id TEXT,
@@ -681,8 +680,7 @@ async def m029_create_audit_table(db):
             response_code TEXT,
             duration REAL NOT NULL,
             delete_at TIMESTAMP,
-            created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
-            created_at_minute INT NOT NULL
+            created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
         """
     )

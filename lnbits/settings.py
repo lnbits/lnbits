@@ -524,9 +524,7 @@ class AuditSettings(LNbitsSettings):
     # List of paths to be included (regex match). Empty list means all.
     lnbits_audit_include_paths: list[str] = Field(default=[".*api/v1/.*"])
     # List of paths to be excluded (regex match). Empty list means none.
-    lnbits_audit_exclude_paths: list[str] = Field(
-        default=["/static", "service-worker.js"]
-    )
+    lnbits_audit_exclude_paths: list[str] = Field(default=["/static"])
 
     # List of HTTP methods to be included. Empty lists means all.
     # Options (case-sensitive): GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
@@ -535,7 +533,7 @@ class AuditSettings(LNbitsSettings):
     )
 
     # List of HTTP codes to be included (regex match). Empty lists means all.
-    lnbits_audit_http_response_codes: list[str] = Field(default=[])
+    lnbits_audit_http_response_codes: list[str] = Field(default=["4.*", "5.*"])
 
     def audit_http_request_details(self) -> bool:
         return (
