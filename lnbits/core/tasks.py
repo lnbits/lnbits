@@ -10,6 +10,7 @@ from lnbits.core.crud import (
     get_webpush_subscriptions_for_user,
     mark_webhook_sent,
 )
+from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.models import AuditEntry, Payment
 from lnbits.core.services import (
     get_balance_delta,
@@ -173,3 +174,17 @@ async def wait_for_audit_data():
         except Exception as ex:
             logger.warning(ex)
             await asyncio.sleep(3)
+
+
+async def purge_audit_data():
+    """
+    Remove audit entries which have passed their retention period.
+    """
+    while settings.lnbits_running:
+        try:
+            await delete_expired_audit_entries()
+        except Exception as ex:
+            logger.warning(ex)
+
+        # clean every hour
+        await asyncio.sleep(60 * 60)

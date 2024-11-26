@@ -26,6 +26,22 @@ async def get_audit_entries(
     )
 
 
+async def delete_expired_audit_entries(
+    conn: Optional[Connection] = None,
+):
+    q = f"""
+            DELETE from audit
+            WHERE delete_at < {db.timestamp_now}
+        """
+    print("### q", q)
+    await (conn or db).execute(
+        f"""
+            DELETE from audit
+            WHERE delete_at < {db.timestamp_now}
+        """,
+    )
+
+
 async def get_request_method_stats(
     filters: Optional[Filters[AuditFilters]] = None,
     conn: Optional[Connection] = None,
