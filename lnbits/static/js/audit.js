@@ -106,13 +106,12 @@ window.app = Vue.createApp({
   methods: {
     async fetchAudit(props) {
       try {
-        console.log('### fetchAudit', this.searchData)
         const params = LNbits.utils.prepareFilterQuery(this.auditTable, props)
         const {data} = await LNbits.api.request(
           'GET',
           `/audit/api/v1?${params}`
         )
-        console.log('### data', data)
+
         this.auditTable.pagination.rowsNumber = data.total
         this.auditEntries = data.data
         await this.fetchAuditStats(props)
@@ -176,7 +175,6 @@ window.app = Vue.createApp({
       }
     },
     async searchAuditBy(fieldName, fieldValue) {
-      console.group('### searchAuditBy', fieldName, fieldValue)
       if (fieldName) {
         this.searchData[fieldName] = fieldValue
       }
@@ -226,12 +224,12 @@ window.app = Vue.createApp({
               title: {
                 display: false,
                 text: 'HTTP Response Codes'
-              },
-              onClick: (_, elements, chart) => {
-                if (elements[0]) {
-                  const i = elements[0].index
-                  this.searchAuditBy('response_code', chart.data.labels[i])
-                }
+              }
+            },
+            onClick: (_, elements, chart) => {
+              if (elements[0]) {
+                const i = elements[0].index
+                this.searchAuditBy('response_code', chart.data.labels[i])
               }
             }
           },
