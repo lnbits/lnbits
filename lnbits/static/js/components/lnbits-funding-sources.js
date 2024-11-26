@@ -64,7 +64,8 @@ window.app.component('lnbits-funding-sources', {
             lnd_rest_cert: 'Certificate',
             lnd_rest_macaroon: 'Macaroon',
             lnd_rest_macaroon_encrypted: 'Encrypted Macaroon',
-            lnd_rest_route_hints: 'Enable Route Hints'
+            lnd_rest_route_hints: 'Enable Route Hints',
+            lnd_rest_allow_self_payment: 'Allow Self Payment'
           }
         ],
         [

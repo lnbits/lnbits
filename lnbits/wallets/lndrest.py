@@ -2,7 +2,7 @@ import asyncio
 import base64
 import hashlib
 import json
-from typing import AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
@@ -168,9 +168,15 @@ class LndRestWallet(Wallet):
         lnrpc_fee_limit["fixed_msat"] = f"{fee_limit_msat}"
 
         try:
+            json_: dict[str, Any] = {
+                "payment_request": bolt11,
+                "fee_limit": lnrpc_fee_limit,
+            }
+            if settings.lnd_rest_allow_self_payment:
+                json_["allow_self_payment"] = 1
             r = await self.client.post(
                 url="/v1/channels/transactions",
-                json={"payment_request": bolt11, "fee_limit": lnrpc_fee_limit, "allow_self_payment": true},
+                json=json_,
                 timeout=None,
             )
             r.raise_for_status()
