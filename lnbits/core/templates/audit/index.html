@@ -124,7 +124,12 @@
                   <span v-text="props.row[col.name]"></span>
                 </q-tooltip>
               </div>
-              <span v-else v-text="props.row[col.name]"></span>
+              <span
+                v-else
+                v-text="props.row[col.name]"
+                @click="searchAuditBy(col.name, props.row[col.name])"
+                class="cursor-pointer"
+              ></span>
             </q-td>
           </q-tr>
         </template>

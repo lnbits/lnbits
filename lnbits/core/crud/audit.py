@@ -29,11 +29,6 @@ async def get_audit_entries(
 async def delete_expired_audit_entries(
     conn: Optional[Connection] = None,
 ):
-    q = f"""
-            DELETE from audit
-            WHERE delete_at < {db.timestamp_now}
-        """
-    print("### q", q)
     await (conn or db).execute(
         f"""
             DELETE from audit
@@ -42,70 +37,29 @@ async def delete_expired_audit_entries(
     )
 
 
-async def get_request_method_stats(
+async def get_count_stats(
+    field: str,
     filters: Optional[Filters[AuditFilters]] = None,
     conn: Optional[Connection] = None,
 ) -> list[AuditCountStat]:
+    if field not in ["request_method", "component", "response_code"]:
+        return []
     if not filters:
         filters = Filters()
     clause = filters.where()
-    request_methods = await (conn or db).fetchall(
+    data = await (conn or db).fetchall(
         query=f"""
-            SELECT request_method as field, count(request_method) as total
+            SELECT {field} as field, count({field}) as total
             FROM audit
             {clause}
-            GROUP BY request_method
-            ORDER BY request_method
+            GROUP BY {field}
+            ORDER BY {field}
         """,
         values=filters.values(),
         model=AuditCountStat,
     )
 
-    return request_methods
-
-
-async def get_component_stats(
-    filters: Optional[Filters[AuditFilters]] = None,
-    conn: Optional[Connection] = None,
-) -> list[AuditCountStat]:
-    if not filters:
-        filters = Filters()
-    clause = filters.where()
-    components = await (conn or db).fetchall(
-        query=f"""
-            SELECT component as field, count(component) as total
-            FROM audit
-            {clause}
-            GROUP BY component
-            ORDER BY component
-        """,
-        values=filters.values(),
-        model=AuditCountStat,
-    )
-
-    return components
-
-
-async def get_response_codes_stats(
-    filters: Optional[Filters[AuditFilters]] = None,
-    conn: Optional[Connection] = None,
-) -> list[AuditCountStat]:
-    if not filters:
-        filters = Filters()
-    clause = filters.where()
-    request_methods = await (conn or db).fetchall(
-        query=f"""
-            SELECT response_code as field, count(response_code) as total
-            FROM audit
-            {clause}
-            GROUP BY response_code
-            ORDER BY response_code
-        """,
-        values=filters.values(),
-        model=AuditCountStat,
-    )
-
-    return request_methods
+    return data
 
 
 async def get_long_duration_stats(

@@ -681,7 +681,8 @@ async def m029_create_audit_table(db):
             response_code TEXT,
             duration REAL NOT NULL,
             delete_at TIMESTAMP,
-            created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+            created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
+            created_at_minute INT NOT NULL
         );
         """
     )

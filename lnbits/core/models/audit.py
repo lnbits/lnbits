@@ -22,6 +22,9 @@ class AuditEntry(BaseModel):
     duration: float
     delete_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at_minute: int = Field(
+        default_factory=lambda: int(datetime.now(timezone.utc).timestamp() / 60)
+    )
 
     def __init__(self, **data):
         super().__init__(**data)
