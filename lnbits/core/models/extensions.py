@@ -169,11 +169,7 @@ class Extension(BaseModel):
             name=ext_info.name,
             short_description=ext_info.short_description,
             tile=ext_info.icon,
-            upgrade_hash=(
-                ext_info.hash
-                if settings.extension_has_been_activated(ext_info.id)
-                else ""
-            ),
+            upgrade_hash=ext_info.hash if ext_info.ext_upgrade_dir.is_dir() else "",
         )
 
 
