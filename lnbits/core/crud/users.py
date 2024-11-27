@@ -48,15 +48,18 @@ async def get_accounts(
 ) -> Page[AccountOverview]:
     where_clauses = []
     values: dict[str, Any] = {}
-    if filters:
-        wallet_filter = next(
-            (f for f in filters.filters if f.field == "wallet_id"), None
-        )
-        if wallet_filter and wallet_filter.values:
-            where_clauses.append("wallets.id = :wallet_id")
 
-            values = {**values, "wallet_id": next(iter(wallet_filter.values.values()))}
+    # Make wallet filter explicit
+    wallet_filter = (
+        next((f for f in filters.filters if f.field == "wallet_id"), None)
+        if filters
+        else None
+    )
+    if filters and wallet_filter and wallet_filter.values:
+        where_clauses.append("wallets.id = :wallet_id")
+        values = {**values, "wallet_id": next(iter(wallet_filter.values.values()))}
         filters.filters = [f for f in filters.filters if f.field != "wallet_id"]
+
     return await (conn or db).fetch_page(
         """
         SELECT
