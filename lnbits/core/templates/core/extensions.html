@@ -1023,6 +1023,10 @@
             })
             if (this.uninstallAndDropDb) {
               this.showDropDb()
+            } else {
+              setTimeout(() => {
+                window.location.reload()
+              }, 300)
             }
           })
           .catch(err => {
@@ -1051,6 +1055,9 @@
               type: 'positive',
               message: 'Extension DB deleted!'
             })
+            setTimeout(() => {
+              window.location.reload()
+            }, 300)
           })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
@@ -1073,6 +1080,7 @@
           })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
+            extension.isActive = false
             extension.inProgress = false
           })
       },
