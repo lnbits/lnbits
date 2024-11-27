@@ -1,15 +1,21 @@
+import asyncio
+import json
+from datetime import datetime, timezone
 from http import HTTPStatus
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from loguru import logger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.core.db import core_app_extra
+from lnbits.core.models import AuditEntry
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 
@@ -118,6 +124,94 @@ class ExtensionsRedirectMiddleware:
             scope["path"] = redirect.new_path_from(scope["path"])
 
         await self.app(scope, receive, send)
+
+
+class AuditMiddleware(BaseHTTPMiddleware):
+
+    def __init__(self, app: ASGIApp, audit_queue: asyncio.Queue) -> None:
+        super().__init__(app)
+        self.audit_queue = audit_queue
+        # delete_time purge after X days
+        # time, # include pats, exclude paths (regex)
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        start_time = datetime.now(timezone.utc)
+        request_details = await self._request_details(request)
+        response: Optional[Response] = None
+
+        try:
+            response = await call_next(request)
+            assert response
+            return response
+        finally:
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+            await self._log_audit(request, response, duration, request_details)
+
+    async def _log_audit(
+        self,
+        request: Request,
+        response: Optional[Response],
+        duration: float,
+        request_details: Optional[str],
+    ):
+        try:
+            http_method = request.scope.get("method", None)
+            path: Optional[str] = getattr(request.scope.get("route", {}), "path", None)
+            response_code = str(response.status_code) if response else None
+            if not settings.audit_http_request(http_method, path, response_code):
+                return None
+            ip_address = (
+                request.client.host
+                if settings.lnbits_audit_log_ip_address and request.client
+                else None
+            )
+            user_id = request.scope.get("user_id", None)
+            if settings.is_super_user(user_id):
+                user_id = "super_user"
+            component = "core"
+            if path and not path.startswith("/api"):
+                component = path.split("/")[1]
+
+            data = AuditEntry(
+                component=component,
+                ip_address=ip_address,
+                user_id=user_id,
+                path=path,
+                request_type=request.scope.get("type", None),
+                request_method=http_method,
+                request_details=request_details,
+                response_code=response_code,
+                duration=duration,
+            )
+            await self.audit_queue.put(data)
+        except Exception as ex:
+            logger.warning(ex)
+
+    async def _request_details(self, request: Request) -> Optional[str]:
+        if not settings.audit_http_request_details():
+            return None
+
+        try:
+            http_method = request.scope.get("method", None)
+            path = request.scope.get("path", None)
+
+            if not settings.audit_http_request(http_method, path):
+                return None
+
+            details: dict = {}
+            if settings.lnbits_audit_log_path_params:
+                details["path_params"] = request.path_params
+            if settings.lnbits_audit_log_query_params:
+                details["query_params"] = dict(request.query_params)
+            if settings.lnbits_audit_log_request_body:
+                _body = await request.body()
+                details["body"] = _body.decode("utf-8")
+            details_str = json.dumps(details)
+            # Make sure the super_user id is not leaked
+            return details_str.replace(settings.super_user, "super_user")
+        except Exception as e:
+            logger.warning(e)
+        return None
 
 
 def add_ratelimit_middleware(app: FastAPI):

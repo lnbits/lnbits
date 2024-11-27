@@ -3,6 +3,7 @@ from fastapi import APIRouter, FastAPI
 from .db import core_app_extra, db
 from .views.admin_api import admin_router
 from .views.api import api_router
+from .views.audit_api import audit_router
 from .views.auth_api import auth_router
 from .views.extension_api import extension_router
 
@@ -38,6 +39,7 @@ def init_core_routers(app: FastAPI):
     app.include_router(tinyurl_router)
     app.include_router(webpush_router)
     app.include_router(users_router)
+    app.include_router(audit_router)
 
 
 __all__ = ["core_app", "core_app_extra", "db"]

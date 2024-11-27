@@ -24,7 +24,10 @@ from lnbits.core.crud import (
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
 from lnbits.core.tasks import (  # watchdog_task
+    audit_queue,
     killswitch_task,
+    purge_audit_data,
+    wait_for_audit_data,
     wait_for_paid_invoices,
 )
 from lnbits.exceptions import register_exception_handlers
@@ -49,6 +52,7 @@ from .core.db import core_app_extra
 from .core.models.extensions import Extension, ExtensionMeta, InstallableExtension
 from .core.services import check_admin_settings, check_webpush_settings
 from .middleware import (
+    AuditMiddleware,
     CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,
     InstalledExtensionMiddleware,
@@ -148,6 +152,8 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CustomGZipMiddleware, minimum_size=1000, exclude_paths=["/api/v1/payments/sse"]
     )
+
+    app.add_middleware(AuditMiddleware, audit_queue=audit_queue)
 
     # required for SSO login
     app.add_middleware(SessionMiddleware, secret_key=settings.auth_secret_key)
@@ -414,6 +420,7 @@ def register_async_tasks(app: FastAPI):
     if not settings.lnbits_extensions_deactivate_all:
         create_task(check_and_register_extensions(app))
 
+    create_permanent_task(wait_for_audit_data)
     create_permanent_task(check_pending_payments)
     create_permanent_task(invoice_listener)
     create_permanent_task(internal_invoice_listener)
@@ -427,6 +434,7 @@ def register_async_tasks(app: FastAPI):
     # TODO: implement watchdog properly
     # create_permanent_task(watchdog_task)
     create_permanent_task(killswitch_task)
+    create_permanent_task(purge_audit_data)
 
     # server logs for websocket
     if settings.lnbits_admin_ui:

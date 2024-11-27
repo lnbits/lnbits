@@ -90,6 +90,7 @@ class KeyChecker(SecurityBase):
                 detail="Wallet not found.",
             )
 
+        request.scope["user_id"] = wallet.user
         if self.expected_key_type is KeyType.admin and wallet.adminkey != key_value:
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED,
@@ -148,6 +149,7 @@ async def check_user_exists(
     if not account:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
 
+    r.scope["user_id"] = account.id
     if not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not allowed.")
 

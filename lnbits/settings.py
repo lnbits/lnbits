@@ -4,6 +4,7 @@ import importlib
 import importlib.metadata
 import inspect
 import json
+import re
 from enum import Enum
 from hashlib import sha256
 from os import path
@@ -509,6 +510,92 @@ class KeycloakAuthSettings(LNbitsSettings):
     keycloak_client_secret: str = Field(default="")
 
 
+class AuditSettings(LNbitsSettings):
+    lnbits_audit_enabled: bool = Field(default=True)
+
+    # number of days to keep the audit entry
+    lnbits_audit_retention_days: int = Field(default=7)
+
+    lnbits_audit_log_ip_address: bool = Field(default=False)
+    lnbits_audit_log_path_params: bool = Field(default=True)
+    lnbits_audit_log_query_params: bool = Field(default=True)
+    lnbits_audit_log_request_body: bool = Field(default=False)
+
+    # List of paths to be included (regex match). Empty list means all.
+    lnbits_audit_include_paths: list[str] = Field(default=[".*api/v1/.*"])
+    # List of paths to be excluded (regex match). Empty list means none.
+    lnbits_audit_exclude_paths: list[str] = Field(default=["/static"])
+
+    # List of HTTP methods to be included. Empty lists means all.
+    # Options (case-sensitive): GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+    lnbits_audit_http_methods: list[str] = Field(
+        default=["POST", "PUT", "PATCH", "DELETE"]
+    )
+
+    # List of HTTP codes to be included (regex match). Empty lists means all.
+    lnbits_audit_http_response_codes: list[str] = Field(default=["4.*", "5.*"])
+
+    def audit_http_request_details(self) -> bool:
+        return (
+            self.lnbits_audit_log_path_params
+            or self.lnbits_audit_log_query_params
+            or self.lnbits_audit_log_request_body
+        )
+
+    def audit_http_request(
+        self,
+        http_method: Optional[str] = None,
+        path: Optional[str] = None,
+        http_response_code: Optional[str] = None,
+    ) -> bool:
+        if not self.lnbits_audit_enabled:
+            return False
+        if len(self.lnbits_audit_http_methods) != 0:
+            if not http_method:
+                return False
+            if http_method not in self.lnbits_audit_http_methods:
+                return False
+
+        if not self._is_http_request_path_auditable(path):
+            return False
+
+        if not self._is_http_response_code_auditable(http_response_code):
+            return False
+
+        return True
+
+    def _is_http_request_path_auditable(self, path: Optional[str]):
+        if len(self.lnbits_audit_exclude_paths) != 0 and path:
+            for exclude_path in self.lnbits_audit_exclude_paths:
+                if _re_fullmatch_safe(exclude_path, path):
+                    return False
+
+        if len(self.lnbits_audit_include_paths) != 0:
+            if not path:
+                return False
+            for include_path in self.lnbits_audit_include_paths:
+                if _re_fullmatch_safe(include_path, path):
+                    return True
+
+        return False
+
+    def _is_http_response_code_auditable(
+        self, http_response_code: Optional[str]
+    ) -> bool:
+        if not http_response_code:
+            # No response code means only request filters should apply
+            return True
+
+        if len(self.lnbits_audit_http_response_codes) == 0:
+            return True
+
+        for response_code in self.lnbits_audit_http_response_codes:
+            if _re_fullmatch_safe(response_code, http_response_code):
+                return True
+
+        return False
+
+
 class EditableSettings(
     UsersSettings,
     ExtensionsSettings,
@@ -520,6 +607,7 @@ class EditableSettings(
     LightningSettings,
     WebPushSettings,
     NodeUISettings,
+    AuditSettings,
     AuthSettings,
     NostrAuthSettings,
     GoogleAuthSettings,
@@ -674,7 +762,7 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
             or user_id == self.super_user
         )
 
-    def is_super_user(self, user_id: str) -> bool:
+    def is_super_user(self, user_id: Optional[str] = None) -> bool:
         return user_id == self.super_user
 
     def is_admin_user(self, user_id: str) -> bool:
@@ -700,6 +788,14 @@ class SettingsField(BaseModel):
     id: str
     value: Optional[Any]
     tag: str = "core"
+
+
+def _re_fullmatch_safe(pattern: str, string: str):
+    try:
+        return re.fullmatch(pattern, string) is not None
+    except Exception as _:
+        logger.warning(f"Regex error for pattern {pattern}")
+        return False
 
 
 def set_cli_settings(**kwargs):

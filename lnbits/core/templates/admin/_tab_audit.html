@@ -1,0 +1,212 @@
+<q-tab-panel name="audit">
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none q-mb-sm">Audit</h6>
+
+    <div class="row q-mb-lg">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_enabled"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Enable audit</q-item-label>
+            <q-item-label caption
+              >Record HTTP requests according with the specified
+              filters</q-item-label
+            >
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-6 col-sm-12">
+        <q-input
+          filled
+          v-model="formData.lnbits_audit_retention_days"
+          type="number"
+          label="Retention days"
+          hint="Number of days to keep the audit entry."
+        >
+        </q-input>
+      </div>
+    </div>
+    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <div class="row">
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_request_body"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Record Request Body</q-item-label>
+            <q-item-label caption
+              >Warning:
+              <ul>
+                <li>confidential data (like passwords) will be logged</li>
+                <li>the request body can have large size.</li>
+              </ul>
+              Use it with caution.
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_ip_address"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Record IP Address</q-item-label>
+            <q-item-label caption>Save the client IP address.</q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_path_params"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Record Path Parameters</q-item-label>
+            <q-item-label caption>Recommended. </q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_query_params"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Record Query Parameters</q-item-label>
+            <q-item-label caption>Recommended.</q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+    </div>
+    <q-separator class="q-mb-xl q-mt-sm"></q-separator>
+    <div class="row q-mb-lg">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p>Include HTTP Methods</p>
+        <q-select
+          filled
+          v-model="formData.lnbits_audit_http_methods"
+          multiple
+          hint="List of HTTP methods to be included. Empty lists means all."
+          label="HTTP Methods"
+          :options="['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']"
+        ></q-select>
+      </div>
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p>Include HTTP Response Codes</p>
+        <q-input
+          filled
+          v-model="formAddIncludeResponseCode"
+          @keydown.enter="addIncludeResponseCode"
+          type="text"
+          label="HTTP Response code (regex)"
+          hint="List of HTTP codes to be included (regex match). Empty lists means all. Eg: 4.*, 5.*"
+        >
+          <q-btn @click="addIncludeResponseCode" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="code in formData.lnbits_audit_http_response_codes"
+            :key="code"
+            removable
+            @remove="removeIncludeResponseCode(code)"
+            color="primary"
+            text-color="white"
+            :label="code"
+          >
+          </q-chip>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p>Include Paths</p>
+        <q-input
+          filled
+          v-model="formAddIncludePath"
+          @keydown.enter="addIncludePath"
+          type="text"
+          label="HTTP Path (regex)"
+          hint="List of paths to be included (regex match). Empty list means all."
+        >
+          <q-btn @click="addIncludePath" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="path in formData.lnbits_audit_include_paths"
+            :key="path"
+            removable
+            @remove="removeIncludePath(path)"
+            color="primary"
+            text-color="white"
+            :label="path"
+          >
+          </q-chip>
+        </div>
+        <br />
+      </div>
+      <div class="col-md-6 col-sm-12">
+        <p>Exclude Paths</p>
+        <q-input
+          filled
+          v-model="formAddExcludePath"
+          @keydown.enter="addExcludePath"
+          type="text"
+          label="HTTP Path (regex)"
+          hint="List of paths to be excluded (regex match). Empty list means none."
+        >
+          <q-btn @click="addExcludePath" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="path in formData.lnbits_audit_exclude_paths"
+            :key="path"
+            removable
+            @remove="removeExcludePath(path)"
+            color="primary"
+            text-color="white"
+            :label="path"
+          >
+          </q-chip>
+        </div>
+        <br />
+
+        <br />
+      </div>
+    </div>
+  </q-card-section>
+</q-tab-panel>

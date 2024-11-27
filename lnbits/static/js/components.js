@@ -125,7 +125,7 @@ window.app.component('lnbits-extension-list', {
 
 window.app.component('lnbits-manage', {
   template: '#lnbits-manage',
-  props: ['showAdmin', 'showNode', 'showExtensions', 'showUsers'],
+  props: ['showAdmin', 'showNode', 'showExtensions', 'showUsers', 'showAudit'],
   methods: {
     isActive: function (path) {
       return window.location.pathname === path

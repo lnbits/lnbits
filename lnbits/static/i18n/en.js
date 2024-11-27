@@ -5,6 +5,7 @@ window.localisation.en = {
   site_customisation: 'Site Customisation',
   funding: 'Funding',
   users: 'Users',
+  audit: 'Audit',
   apps: 'Apps',
   channels: 'Channels',
   transactions: 'Transactions',
