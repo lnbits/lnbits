@@ -21,6 +21,7 @@ from lnbits.core.crud import (
     get_installed_extensions,
     update_installed_extension_state,
 )
+from lnbits.core.crud.extensions import create_installed_extension
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
 from lnbits.core.tasks import (  # watchdog_task
@@ -264,6 +265,19 @@ async def build_all_installed_extensions_list(
     """
     installed_extensions = await get_installed_extensions()
     settings.lnbits_all_extensions_ids = {e.id for e in installed_extensions}
+
+    for ext_dir in Path(settings.lnbits_extensions_path, "extensions").iterdir():
+        if not ext_dir.is_dir():
+            continue
+        ext_id = ext_dir.name
+        if ext_id in settings.lnbits_all_extensions_ids:
+            continue
+        ext_info = InstallableExtension.from_ext_dir(ext_id)
+        if not ext_info:
+            continue
+
+        await create_installed_extension(ext_info)
+        installed_extensions.append(ext_info)
 
     for ext_id in settings.lnbits_extensions_default_install:
         if ext_id in settings.lnbits_all_extensions_ids:

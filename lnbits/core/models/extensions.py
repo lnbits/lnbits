@@ -552,6 +552,39 @@ class InstallableExtension(BaseModel):
         )
 
     @classmethod
+    def from_ext_dir(cls, ext_id: str) -> Optional[InstallableExtension]:
+        try:
+            conf_path = Path(
+                settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
+            )
+            with open(conf_path, "r+") as json_file:
+                config_json = json.load(json_file)
+                version = config_json.get("version", "0.0")
+
+                return InstallableExtension(
+                    id=ext_id,
+                    name=config_json.get("name", ext_id),
+                    active=True,
+                    version=version,
+                    short_description=config_json.get("short_description"),
+                    icon=config_json.get("tile"),
+                    meta=ExtensionMeta(
+                        installed_release=ExtensionRelease(
+                            name=ext_id,
+                            version=version,
+                            archive=f"{conf_path}",
+                            source_repo=f"{conf_path}",
+                            min_lnbits_version=config_json.get("min_lnbits_version"),
+                        )
+                    ),
+                )
+
+        except Exception as e:
+            logger.warning(e)
+
+        return None
+
+    @classmethod
     async def get_installable_extensions(
         cls,
     ) -> list[InstallableExtension]:
