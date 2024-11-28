@@ -129,10 +129,6 @@ class InstalledExtensionsSettings(LNbitsSettings):
     # list of all extension ids
     lnbits_all_extensions_ids: set[str] = Field(default=[])
 
-    # list of all extension ids that have been activated at least once
-    # only add to this set, do not remove
-    lnbits_activated_paths_extensions_ids: set[str] = Field(default=[])
-
     def find_extension_redirect(
         self, path: str, req_headers: list[tuple[bytes, bytes]]
     ) -> Optional[RedirectPath]:
@@ -165,14 +161,10 @@ class InstalledExtensionsSettings(LNbitsSettings):
             self._activate_extension_redirects(ext_id, ext_redirects)
 
         self.lnbits_all_extensions_ids.add(ext_id)
-        self.lnbits_activated_paths_extensions_ids.add(ext_id)
 
     def deactivate_extension_paths(self, ext_id: str):
         self.lnbits_deactivated_extensions.add(ext_id)
         self._remove_extension_redirects(ext_id)
-
-    def extension_has_been_activated(self, ext_id: str) -> bool:
-        return ext_id in settings.lnbits_activated_paths_extensions_ids
 
     def extension_upgrade_hash(self, ext_id: str) -> str:
         return settings.lnbits_upgraded_extensions.get(ext_id, "")
