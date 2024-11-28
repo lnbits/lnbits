@@ -267,17 +267,23 @@ async def build_all_installed_extensions_list(
     settings.lnbits_all_extensions_ids = {e.id for e in installed_extensions}
 
     for ext_dir in Path(settings.lnbits_extensions_path, "extensions").iterdir():
-        if not ext_dir.is_dir():
-            continue
-        ext_id = ext_dir.name
-        if ext_id in settings.lnbits_all_extensions_ids:
-            continue
-        ext_info = InstallableExtension.from_ext_dir(ext_id)
-        if not ext_info:
-            continue
+        try:
+            if not ext_dir.is_dir():
+                continue
+            ext_id = ext_dir.name
+            if ext_id in settings.lnbits_all_extensions_ids:
+                continue
+            ext_info = InstallableExtension.from_ext_dir(ext_id)
+            if not ext_info:
+                continue
 
-        await create_installed_extension(ext_info)
-        installed_extensions.append(ext_info)
+            installed_extensions.append(ext_info)
+            await create_installed_extension(ext_info)
+            current_version = await get_db_version(ext_id)
+            await migrate_extension_database(ext_info, current_version)
+
+        except Exception as e:
+            logger.warning(e)
 
     for ext_id in settings.lnbits_extensions_default_install:
         if ext_id in settings.lnbits_all_extensions_ids:
