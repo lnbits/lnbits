@@ -520,14 +520,14 @@ async def _check_wallet_for_payment(
     wallet_id: str,
     tag: str,
     amount_msat: int,
-    conn: Optional[Connection],
+    conn: Optional[Connection] = None,
 ):
     wallet = await get_wallet(wallet_id, conn=conn)
     if not wallet:
         raise PaymentError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
 
     # check if the payment is made for an extension that the user disabled
-    status = await check_user_extension_access(wallet.user, tag)
+    status = await check_user_extension_access(wallet.user, tag, conn=conn)
     if not status.success:
         raise PaymentError(status.message)
 
