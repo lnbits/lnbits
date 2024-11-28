@@ -553,6 +553,8 @@ class InstallableExtension(BaseModel):
             conf_path = Path(
                 settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
             )
+            if not conf_path.is_file():
+                return None
             with open(conf_path, "r+") as json_file:
                 config_json = json.load(json_file)
                 version = config_json.get("version", "0.0")
