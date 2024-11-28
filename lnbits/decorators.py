@@ -26,7 +26,7 @@ from lnbits.core.models import (
     User,
     WalletTypeInfo,
 )
-from lnbits.db import Filter, Filters, TFilterModel
+from lnbits.db import Connection, Filter, Filters, TFilterModel
 from lnbits.settings import AuthMethods, settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth", auto_error=False)
@@ -235,7 +235,9 @@ def parse_filters(model: Type[TFilterModel]):
     return dependency
 
 
-async def check_user_extension_access(user_id: str, ext_id: str) -> SimpleStatus:
+async def check_user_extension_access(
+    user_id: str, ext_id: str, conn: Optional[Connection] = None
+) -> SimpleStatus:
     """
     Check if the user has access to a particular extension.
     Raises HTTP Forbidden if the user is not allowed.
@@ -246,7 +248,7 @@ async def check_user_extension_access(user_id: str, ext_id: str) -> SimpleStatus
         )
 
     if settings.is_extension_id(ext_id):
-        ext_ids = await get_user_active_extensions_ids(user_id)
+        ext_ids = await get_user_active_extensions_ids(user_id, conn=conn)
         if ext_id not in ext_ids:
             return SimpleStatus(
                 success=False, message=f"User extension '{ext_id}' not enabled."
