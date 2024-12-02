@@ -10,6 +10,98 @@
 <!---->
 {% block page %}
 <div class="row q-col-gutter-md">
+  <div class="col-12 q-gutter-y-md">
+    <q-virtual-scroll
+      :items="this.g.user.wallets"
+      virtual-scroll-horizontal
+      v-slot="{ item, index }"
+      class="hide-scrollbar"
+    >
+    <!-- :class="item.id === this.g.wallet.id ? 'bg-dark text-white': ''" -->
+      <q-card
+        class="q-mr-md cursor-pointer"
+        color="positive"
+        style="min-width: 250px"
+      >
+        <q-card-section class="q-pa-none">
+          <div class="row">
+            <div class="col-8">
+              <span v-text="item.name" class="text-h6 q-pa-md q-mt-lg"></span>
+            </div>
+            <div class="col-4">
+              <q-btn
+                square
+                outline
+                flat
+                class="float-right q-ma-none"
+                color="grey"
+                icon="photo_camera"
+                @click="showCamera"
+              >
+                <q-tooltip
+                  ><span v-text="$t('camera_tooltip')"></span
+                ></q-tooltip>
+              </q-btn>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-12">
+              <div class="float-right">
+                <strong v-text="formattedBalance"></strong>
+                <small> {{LNBITS_DENOMINATION}}</small>
+                <lnbits-update-balance
+                  :wallet_id="this.g.wallet.id"
+                  flat
+                  :callback="updateBalanceCallback"
+                  round
+                />
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="float-right">
+                <span
+                  v-if="g.wallet.currency"
+                  class="text-h6 text-italic"
+                  v-text="formattedFiatBalance"
+                  style="opacity: 0.75"
+                ></span>
+                <span class="text-h6 text-italic">&nbsp;</span>
+              </div>
+            </div>
+          </div>
+        </q-card-section>
+        <!-- <q-card-section v-if="item.id === this.g.wallet.id">
+
+        </q-card-section> -->
+
+
+        <q-card-actions class="q-pa-none">
+          <div class="row full-width">
+            <div class="col-4">
+              <q-btn
+                unelevated
+                square
+                color="secondary"
+                class="full-width"
+                @click="showParseDialog"
+                label="Pay"
+              ></q-btn>
+            </div>
+            <div class="col-8">
+              <q-btn
+                unelevated
+                square
+                color="primary"
+                class="full-width"
+                @click="showReceiveDialog"
+                :label="$t('create_invoice')"
+              ></q-btn>
+            </div>
+          </div>
+        </q-card-actions>
+      </q-card>
+    </q-virtual-scroll>
+  </div>
   {% if HIDE_API and AD_SPACE %}
   <div class="col-12 col-md-8 q-gutter-y-md">
     {% elif HIDE_API %}
@@ -25,7 +117,7 @@
     } : ''"
       >
         {% endif %}
-        <q-card
+        <!-- <q-card
           :style="$q.screen.lt.md ? {
             background: $q.screen.lt.md ? 'none !important': ''
           , boxShadow: $q.screen.lt.md ? 'none !important': ''
@@ -100,7 +192,7 @@
               </q-btn>
             </div>
           </div>
-        </q-card>
+        </q-card> -->
         <q-card
           :style="
           $q.screen.lt.md
