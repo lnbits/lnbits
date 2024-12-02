@@ -9,7 +9,7 @@ from lnbits import bolt11
 from lnbits.db import Connection
 
 
-async def m000_create_migrations_table(db):
+async def m000_create_migrations_table(db: Connection):
     await db.execute(
         """
     CREATE TABLE IF NOT EXISTS dbversions (
@@ -20,7 +20,7 @@ async def m000_create_migrations_table(db):
     )
 
 
-async def m001_initial(db):
+async def m001_initial(db: Connection):
     """
     Initial LNbits tables.
     """
@@ -89,7 +89,7 @@ async def m001_initial(db):
     )
 
 
-async def m002_add_fields_to_apipayments(db):
+async def m002_add_fields_to_apipayments(db: Connection):
     """
     Adding fields to apipayments for better accounting,
     and renaming payhash to checking_id since that is what it really is.
@@ -133,7 +133,7 @@ async def m002_add_fields_to_apipayments(db):
         pass
 
 
-async def m003_add_invoice_webhook(db):
+async def m003_add_invoice_webhook(db: Connection):
     """
     Special column for webhook endpoints that can be assigned
     to each different invoice.
@@ -143,7 +143,7 @@ async def m003_add_invoice_webhook(db):
     await db.execute("ALTER TABLE apipayments ADD COLUMN webhook_status TEXT")
 
 
-async def m004_ensure_fees_are_always_negative(db):
+async def m004_ensure_fees_are_always_negative(db: Connection):
     """
     Use abs() so wallet backends don't have to care about the sign of the fees.
     """
@@ -168,7 +168,7 @@ async def m004_ensure_fees_are_always_negative(db):
     )
 
 
-async def m005_balance_check_balance_notify(db):
+async def m005_balance_check_balance_notify(db: Connection):
     """
     Keep track of balanceCheck-enabled lnurl-withdrawals to be consumed by an
     LNbits wallet and of balanceNotify URLs supplied by users to empty their wallets.
@@ -198,7 +198,7 @@ async def m005_balance_check_balance_notify(db):
     )
 
 
-async def m006_add_invoice_expiry_to_apipayments(db):
+async def m006_add_invoice_expiry_to_apipayments(db: Connection):
     """
     Adds invoice expiry column to apipayments.
     """
@@ -208,7 +208,7 @@ async def m006_add_invoice_expiry_to_apipayments(db):
         pass
 
 
-async def m007_set_invoice_expiries(db):
+async def m007_set_invoice_expiries(db: Connection):
     """
     Precomputes invoice expiry for existing pending incoming payments.
     """
@@ -258,7 +258,7 @@ async def m007_set_invoice_expiries(db):
         pass
 
 
-async def m008_create_admin_settings_table(db):
+async def m008_create_admin_settings_table(db: Connection):
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS settings (
@@ -269,7 +269,7 @@ async def m008_create_admin_settings_table(db):
     )
 
 
-async def m009_create_tinyurl_table(db):
+async def m009_create_tinyurl_table(db: Connection):
     await db.execute(
         f"""
         CREATE TABLE IF NOT EXISTS tiny_url (
@@ -283,7 +283,7 @@ async def m009_create_tinyurl_table(db):
     )
 
 
-async def m010_create_installed_extensions_table(db):
+async def m010_create_installed_extensions_table(db: Connection):
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS installed_extensions (
@@ -300,7 +300,7 @@ async def m010_create_installed_extensions_table(db):
     )
 
 
-async def m011_optimize_balances_view(db):
+async def m011_optimize_balances_view(db: Connection):
     """
     Make the calculation of the balance a single aggregation
     over the payments table instead of 2.
@@ -317,7 +317,7 @@ async def m011_optimize_balances_view(db):
     )
 
 
-async def m012_add_currency_to_wallet(db):
+async def m012_add_currency_to_wallet(db: Connection):
     await db.execute(
         """
         ALTER TABLE wallets ADD COLUMN currency TEXT
@@ -325,7 +325,7 @@ async def m012_add_currency_to_wallet(db):
     )
 
 
-async def m013_add_deleted_to_wallets(db):
+async def m013_add_deleted_to_wallets(db: Connection):
     """
     Adds deleted column to wallets.
     """
@@ -337,7 +337,7 @@ async def m013_add_deleted_to_wallets(db):
         pass
 
 
-async def m014_set_deleted_wallets(db):
+async def m014_set_deleted_wallets(db: Connection):
     """
     Sets deleted column to wallets.
     """
@@ -381,7 +381,7 @@ async def m014_set_deleted_wallets(db):
         pass
 
 
-async def m015_create_push_notification_subscriptions_table(db):
+async def m015_create_push_notification_subscriptions_table(db: Connection):
     await db.execute(
         f"""
         CREATE TABLE IF NOT EXISTS webpush_subscriptions (
@@ -396,7 +396,7 @@ async def m015_create_push_notification_subscriptions_table(db):
     )
 
 
-async def m016_add_username_column_to_accounts(db):
+async def m016_add_username_column_to_accounts(db: Connection):
     """
     Adds username column to accounts.
     """
@@ -407,7 +407,7 @@ async def m016_add_username_column_to_accounts(db):
         pass
 
 
-async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
+async def m017_add_timestamp_columns_to_accounts_and_wallets(db: Connection):
     """
     Adds created_at and updated_at column to accounts and wallets.
     """
@@ -473,7 +473,7 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db):
         pass
 
 
-async def m018_balances_view_exclude_deleted(db):
+async def m018_balances_view_exclude_deleted(db: Connection):
     """
     Make deleted wallets not show up in the balances view.
     """
@@ -493,7 +493,7 @@ async def m018_balances_view_exclude_deleted(db):
     )
 
 
-async def m019_balances_view_based_on_wallets(db):
+async def m019_balances_view_based_on_wallets(db: Connection):
     """
     Make deleted wallets not show up in the balances view.
     Important for querying whole lnbits balances.
@@ -514,14 +514,14 @@ async def m019_balances_view_based_on_wallets(db):
     )
 
 
-async def m020_add_column_column_to_user_extensions(db):
+async def m020_add_column_column_to_user_extensions(db: Connection):
     """
     Adds extra column to user extensions.
     """
     await db.execute("ALTER TABLE extensions ADD COLUMN extra TEXT")
 
 
-async def m021_add_success_failed_to_apipayments(db):
+async def m021_add_success_failed_to_apipayments(db: Connection):
     """
     Adds success and failed columns to apipayments.
     """
@@ -547,7 +547,7 @@ async def m021_add_success_failed_to_apipayments(db):
     )
 
 
-async def m022_add_pubkey_to_accounts(db):
+async def m022_add_pubkey_to_accounts(db: Connection):
     """
     Adds pubkey column to accounts.
     """
@@ -557,7 +557,7 @@ async def m022_add_pubkey_to_accounts(db):
         pass
 
 
-async def m023_add_column_column_to_apipayments(db):
+async def m023_add_column_column_to_apipayments(db: Connection):
     """
     renames hash to payment_hash and drops unused index
     """
@@ -569,11 +569,11 @@ async def m023_add_column_column_to_apipayments(db):
     await db.execute("CREATE INDEX by_hash ON apipayments (payment_hash)")
 
 
-async def m024_drop_pending(db):
+async def m024_drop_pending(db: Connection):
     await db.execute("ALTER TABLE apipayments DROP COLUMN pending")
 
 
-async def m025_refresh_view(db):
+async def m025_refresh_view(db: Connection):
     await db.execute("DROP VIEW balances")
     await db.execute(
         """
@@ -592,7 +592,7 @@ async def m025_refresh_view(db):
     )
 
 
-async def m026_update_payment_table(db):
+async def m026_update_payment_table(db: Connection):
     await db.execute("ALTER TABLE apipayments ADD COLUMN tag TEXT")
     await db.execute("ALTER TABLE apipayments ADD COLUMN extension TEXT")
     await db.execute("ALTER TABLE apipayments ADD COLUMN created_at TIMESTAMP")
@@ -666,7 +666,7 @@ async def m028_update_settings(db: Connection):
     await db.execute("drop table settings")
 
 
-async def m029_create_audit_table(db):
+async def m029_create_audit_table(db: Connection):
     await db.execute(
         f"""
         CREATE TABLE IF NOT EXISTS audit (
