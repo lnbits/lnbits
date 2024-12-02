@@ -1,7 +1,7 @@
 window.app = Vue.createApp({
   el: '#vue',
   mixins: [window.windowMixin],
-  data: function () {
+  data() {
     return {
       user: null,
       hasUsername: false,
@@ -25,21 +25,21 @@ window.app = Vue.createApp({
     }
   },
   methods: {
-    activeLanguage: function (lang) {
+    activeLanguage(lang) {
       return window.i18n.global.locale === lang
     },
-    changeLanguage: function (newValue) {
+    changeLanguage(newValue) {
       window.i18n.global.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)
     },
-    toggleDarkMode: function () {
+    toggleDarkMode() {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
       if (!this.$q.dark.isActive && this.gradientChoice) {
         this.toggleGradient()
       }
     },
-    applyGradient: function () {
+    applyGradient() {
       darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
       primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
       if (this.gradientChoice) {
@@ -64,8 +64,7 @@ window.app = Vue.createApp({
         this.$q.localStorage.set('lnbits.gradientBg', false)
       }
     },
-    applyBorder: function () {
-      slef = this
+    applyBorder() {
       if (this.borderChoice) {
         this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
       }
@@ -85,7 +84,7 @@ window.app = Vue.createApp({
       style.innerHTML = `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
       document.head.appendChild(style)
     },
-    toggleGradient: function () {
+    toggleGradient() {
       this.gradientChoice = !this.gradientChoice
       this.applyGradient()
       if (!this.gradientChoice) {
@@ -93,10 +92,10 @@ window.app = Vue.createApp({
       }
       this.gradientChoice = this.$q.localStorage.getItem('lnbits.gradientBg')
     },
-    reactionChoiceFunc: function () {
+    reactionChoiceFunc() {
       this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
     },
-    changeColor: function (newValue) {
+    changeColor(newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
       this.setColors()
@@ -104,7 +103,7 @@ window.app = Vue.createApp({
         this.applyGradient()
       }
     },
-    updateAccount: async function () {
+    async updateAccount() {
       try {
         const {data} = await LNbits.api.request(
           'PUT',
@@ -127,7 +126,7 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
-    disableUpdatePassword: function () {
+    disableUpdatePassword() {
       return (
         !this.credentialsData.newPassword ||
         !this.credentialsData.newPasswordRepeat ||
@@ -135,7 +134,7 @@ window.app = Vue.createApp({
           this.credentialsData.newPasswordRepeat
       )
     },
-    updatePassword: async function () {
+    async updatePassword() {
       if (!this.credentialsData.username) {
         Quasar.Notify.create({
           type: 'warning',
@@ -167,7 +166,7 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
-    updatePubkey: async function () {
+    async updatePubkey() {
       try {
         const {data} = await LNbits.api.request(
           'PUT',
@@ -189,7 +188,7 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
-    showUpdateCredentials: function () {
+    showUpdateCredentials() {
       this.credentialsData = {
         show: true,
         oldPassword: null,
@@ -200,7 +199,7 @@ window.app = Vue.createApp({
       }
     }
   },
-  created: async function () {
+  async created() {
     try {
       const {data} = await LNbits.api.getAuthenticatedUser()
       this.user = data

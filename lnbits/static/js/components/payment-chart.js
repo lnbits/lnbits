@@ -85,7 +85,7 @@ window.app.component('payment-chart', {
   name: 'payment-chart',
   props: ['wallet'],
   mixins: [window.windowMixin],
-  data: function () {
+  data() {
     return {
       paymentsChart: {
         show: false,
@@ -105,7 +105,7 @@ window.app.component('payment-chart', {
     }
   },
   methods: {
-    showChart: function () {
+    showChart() {
       this.paymentsChart.show = true
       LNbits.api
         .request(

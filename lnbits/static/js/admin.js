@@ -1,7 +1,7 @@
 window.app = Vue.createApp({
   el: '#vue',
   mixins: [windowMixin],
-  data: function () {
+  data() {
     return {
       settings: {},
       logs: [],
@@ -258,9 +258,7 @@ window.app = Vue.createApp({
           })
           this.needsRestart = false
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     formatDate(date) {
       return moment(date * 1000).fromNow()
@@ -286,9 +284,7 @@ window.app = Vue.createApp({
         .then(response => {
           this.auditData = response.data
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     getSettings() {
       LNbits.api
@@ -303,12 +299,10 @@ window.app = Vue.createApp({
           this.formData = {...this.settings}
           this.getNotifications()
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     updateSettings() {
-      let data = _.omit(this.formData, [
+      const data = _.omit(this.formData, [
         'is_super_user',
         'lnbits_allowed_funding_sources'
       ])
@@ -334,9 +328,7 @@ window.app = Vue.createApp({
             icon: null
           })
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     deleteSettings() {
       LNbits.utils
@@ -353,9 +345,7 @@ window.app = Vue.createApp({
               })
               this.needsRestart = true
             })
-            .catch(function (error) {
-              LNbits.utils.notifyApiError(error)
-            })
+            .catch(LNbits.utils.notifyApiError)
         })
     },
     downloadBackup() {

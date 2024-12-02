@@ -1,7 +1,7 @@
 window.app = Vue.createApp({
   el: '#vue',
   mixins: [window.windowMixin],
-  data: function () {
+  data() {
     return {
       disclaimerDialog: {
         show: false,
@@ -30,11 +30,11 @@ window.app = Vue.createApp({
     }
   },
   methods: {
-    showLogin: function (authMethod) {
+    showLogin(authMethod) {
       this.authAction = 'login'
       this.authMethod = authMethod
     },
-    showRegister: function (authMethod) {
+    showRegister(authMethod) {
       this.user = ''
       this.username = null
       this.password = null
@@ -43,7 +43,7 @@ window.app = Vue.createApp({
       this.authAction = 'register'
       this.authMethod = authMethod
     },
-    signInWithNostr: async function () {
+    async signInWithNostr() {
       try {
         const nostrToken = await this.createNostrToken()
         if (!nostrToken) {
@@ -65,7 +65,7 @@ window.app = Vue.createApp({
         })
       }
     },
-    createNostrToken: async function () {
+    async createNostrToken() {
       try {
         async function _signEvent(e) {
           try {
@@ -116,7 +116,7 @@ window.app = Vue.createApp({
         })
       }
     },
-    register: async function () {
+    async register() {
       try {
         await LNbits.api.register(
           this.username,
@@ -129,7 +129,7 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
-    reset: async function () {
+    async reset() {
       try {
         await LNbits.api.reset(
           this.reset_key,
@@ -141,7 +141,7 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
-    login: async function () {
+    async login() {
       try {
         await LNbits.api.login(this.username, this.password)
         window.location.href = '/wallet'
@@ -149,7 +149,7 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
-    loginUsr: async function () {
+    async loginUsr() {
       try {
         await LNbits.api.loginUsr(this.usr)
         this.usr = ''
@@ -159,19 +159,19 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(e)
       }
     },
-    createWallet: function () {
+    createWallet() {
       LNbits.api.createAccount(this.walletName).then(res => {
         window.location = '/wallet?usr=' + res.data.user + '&wal=' + res.data.id
       })
     },
-    processing: function () {
+    processing() {
       Quasar.Notify.create({
         timeout: 0,
         message: 'Processing...',
         icon: null
       })
     },
-    validateUsername: function (val) {
+    validateUsername(val) {
       const usernameRegex = new RegExp(
         '^(?=[a-zA-Z0-9._]{2,20}$)(?!.*[_.]{2})[^_.].*[^_.]$'
       )
