@@ -26,6 +26,7 @@ window.app.component('lnbits-wallet-list', {
   props: ['balance'],
   data: function () {
     return {
+      vertical: true,
       user: null,
       activeWallet: null,
       balance: 0,
@@ -59,6 +60,8 @@ window.app.component('lnbits-wallet-list', {
       this.activeWallet = LNbits.map.wallet(window.wallet)
     }
     document.addEventListener('updateWalletBalance', this.updateWalletBalance)
+    const urlParams = new URLSearchParams(window.location.search);
+    this.vertical=!urlParams.get('vertical')
   }
 })
 
