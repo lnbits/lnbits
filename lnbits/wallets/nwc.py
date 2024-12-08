@@ -323,7 +323,7 @@ class NWCConnection:
         self.subscriptions = {}
         # Timeout in seconds after which a subscription is closed
         # if no response is received
-        self.subscription_timeout = 60
+        self.subscription_timeout = 10
         # Incremental counter to generate unique subscription ids for the connection
         self.subscriptions_count = 0
 
