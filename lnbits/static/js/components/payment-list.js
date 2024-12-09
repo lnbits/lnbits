@@ -219,7 +219,6 @@ window.app.component('payment-list', {
   },
   watch: {
     failedPaymentsToggle(newVal) {
-      console.log('failedPaymentsToggle', newVal)
       if (newVal === false) {
         this.paymentsTable.filter = {
           'status[ne]': 'failed'
