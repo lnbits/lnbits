@@ -20,8 +20,8 @@
     v-model:pagination="exchangesTable.pagination"
     :filter="exchangesTable.search"
     :loading="exchangesTable.loading"
-    @request="fetchUsers"
   >
+    <!-- @request="fetchUsers" -->
     <template v-slot:header="props">
       <q-tr :props="props">
         <q-th auto-width></q-th>

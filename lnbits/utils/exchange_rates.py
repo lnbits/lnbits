@@ -229,8 +229,6 @@ async def btc_price(currency: str) -> float:
     )
     rates = [r for r in results if not isinstance(r, BaseException)]
 
-    print("### rates", rates)
-
     if not rates:
         return 9999999999
     elif len(rates) == 1:
