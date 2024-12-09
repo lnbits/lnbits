@@ -211,7 +211,7 @@ exchange_rate_providers = {
         "blockchain.com",
         "https://blockchain.info/frombtc?currency={TO}&value=100000000",
         lambda data, replacements: 1000000 / data,
-        "$",
+        "",
     ),
     "exir": Provider(
         "Exir",
@@ -292,13 +292,18 @@ async def btc_price(currency: str) -> float:
             raise Exception(f"Provider {provider.name} does not support {currency}.")
 
         url = provider.api_url.format(**replacements)
+
         try:
             headers = {"User-Agent": settings.user_agent}
             async with httpx.AsyncClient(headers=headers) as client:
+                # print("### provider", url)
                 r = await client.get(url, timeout=0.5)
                 r.raise_for_status()
-                data = r.json()
 
+                # print("### data", data)
+                if not provider.path:
+                    return float(r.text.replace(",", ""))
+                data = r.json()
                 price_query = jpx.parse(provider.path.format(**replacements))
                 result = price_query.find(data)
                 y = float(result[0].value)
