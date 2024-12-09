@@ -76,7 +76,6 @@ async def api_update_settings(data: UpdateSettings, user: User = Depends(check_a
     dependencies=[Depends(check_admin)],
 )
 async def api_reset_settings(field_name: str):
-    print("### field_name", field_name)
     default_settings = Settings()
     return {"default_value": getattr(default_settings, field_name)}
 
