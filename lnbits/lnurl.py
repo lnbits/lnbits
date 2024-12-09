@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import Callable
 
 from fastapi import HTTPException, Request, Response
@@ -31,21 +32,21 @@ class LnurlErrorResponseHandler(APIRoute):
             except (InvoiceError, PaymentError) as exc:
                 logger.debug(f"Wallet Error: {exc}")
                 response = JSONResponse(
-                    status_code=200,
+                    status_code=HTTPStatus.OK,
                     content={"status": "ERROR", "reason": f"{exc.message}"},
                 )
                 return response
             except HTTPException as exc:
                 logger.debug(f"HTTPException: {exc}")
                 response = JSONResponse(
-                    status_code=200,
+                    status_code=HTTPStatus.OK,
                     content={"status": "ERROR", "reason": f"{exc.detail}"},
                 )
                 return response
             except Exception as exc:
                 logger.error("Unknown Error:", exc)
                 response = JSONResponse(
-                    status_code=200,
+                    status_code=HTTPStatus.OK,
                     content={
                         "status": "ERROR",
                         "reason": f"UNKNOWN ERROR: {exc!s}",
