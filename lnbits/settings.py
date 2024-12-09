@@ -118,6 +118,13 @@ class RedirectPath(BaseModel):
         return False
 
 
+class ExchangeRateProvider(BaseModel):
+    name: str
+    api_url: str
+    path: str
+    exclude_to: list = []
+
+
 class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
     lnbits_deactivated_extensions: set[str] = Field(default=[])
@@ -248,6 +255,66 @@ class FeeSettings(LNbitsSettings):
         reserve_min = self.lnbits_reserve_fee_min
         reserve_percent = self.lnbits_reserve_fee_percent
         return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+
+
+class ExchangeProvidersSettings(LNbitsSettings):
+    lnbits_exchange_rate_providers: list[ExchangeRateProvider] = [
+        ExchangeRateProvider(
+            name="Binance",
+            api_url="https://api.binance.com/api/v3/ticker/price?symbol=BTC{TO}",
+            path="$.price",
+            exclude_to=["czk"],
+        ),
+        ExchangeRateProvider(
+            name="Blockchain",
+            api_url="https://blockchain.info/frombtc?currency={TO}&value=100000000",
+            path="",
+        ),
+        ExchangeRateProvider(
+            name="Exir",
+            api_url="https://api.exir.io/v1/ticker?symbol=btc-{to}",
+            path="$.last",
+            exclude_to=["czk", "eur"],
+        ),
+        ExchangeRateProvider(
+            name="Bitfinex",
+            api_url="https://api.bitfinex.com/v1/pubticker/btc{to}",
+            path="$.last_price",
+            exclude_to=["czk"],
+        ),
+        ExchangeRateProvider(
+            name="Bitstamp",
+            api_url="https://www.bitstamp.net/api/v2/ticker/btc{to}/",
+            path="$.last",
+            exclude_to=["czk"],
+        ),
+        ExchangeRateProvider(
+            name="Coinbase",
+            api_url="https://api.coinbase.com/v2/exchange-rates?currency=BTC",
+            path="$.data.rates.{TO}",
+        ),
+        ExchangeRateProvider(
+            name="CoinMate",
+            api_url="https://coinmate.io/api/ticker?currencyPair=BTC_{TO}",
+            path="$.data.last",
+        ),
+        ExchangeRateProvider(
+            name="Kraken",
+            api_url="https://api.kraken.com/0/public/Ticker?pair=XBT{TO}",
+            path="$.result.XXBTZ{TO}.c[0]",
+            exclude_to=["czk"],
+        ),
+        ExchangeRateProvider(
+            name="BitPay",
+            api_url="https://bitpay.com/rates",
+            path="""$.data[?(@.code == "{TO}")].rate""",
+        ),
+        ExchangeRateProvider(
+            name="yadio",
+            api_url="https://api.yadio.io/exrates/BTC",
+            path="$.BTC.{TO}",
+        ),
+    ]
 
 
 class SecuritySettings(LNbitsSettings):
@@ -594,6 +661,7 @@ class EditableSettings(
     ThemesSettings,
     OpsSettings,
     FeeSettings,
+    ExchangeProvidersSettings,
     SecuritySettings,
     FundingSourcesSettings,
     LightningSettings,

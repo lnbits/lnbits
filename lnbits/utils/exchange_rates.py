@@ -1,11 +1,10 @@
 import asyncio
-from typing import NamedTuple
 
 import httpx
 import jsonpath_ng.ext as jpx
 from loguru import logger
 
-from lnbits.settings import settings
+from lnbits.settings import ExchangeRateProvider, settings
 from lnbits.utils.cache import cache
 
 currencies = {
@@ -187,84 +186,6 @@ def allowed_currencies():
     return list(currencies.keys())
 
 
-class Provider(NamedTuple):
-    name: str
-    domain: str
-    api_url: str
-    path: str
-    exclude_to: list = []
-
-
-exchange_rate_providers = {
-    # https://binance-docs.github.io/apidocs/spot/en/#symbol-price-ticker
-    "binance": Provider(
-        "Binance",
-        "binance.com",
-        "https://api.binance.com/api/v3/ticker/price?symbol=BTC{TO}",
-        "$.price",
-        ["czk"],
-    ),
-    "blockchain": Provider(
-        "Blockchain",
-        "blockchain.com",
-        "https://blockchain.info/frombtc?currency={TO}&value=100000000",
-        "",
-    ),
-    "exir": Provider(
-        "Exir",
-        "exir.io",
-        "https://api.exir.io/v1/ticker?symbol=btc-{to}",
-        "$.last",
-        ["czk", "eur"],
-    ),
-    "bitfinex": Provider(
-        "Bitfinex",
-        "bitfinex.com",
-        "https://api.bitfinex.com/v1/pubticker/btc{to}",
-        "$.last_price",
-        ["czk"],
-    ),
-    "bitstamp": Provider(
-        "Bitstamp",
-        "bitstamp.net",
-        "https://www.bitstamp.net/api/v2/ticker/btc{to}/",
-        "$.last",
-        ["czk"],
-    ),
-    "coinbase": Provider(
-        "Coinbase",
-        "coinbase.com",
-        "https://api.coinbase.com/v2/exchange-rates?currency=BTC",
-        "$.data.rates.{TO}",
-    ),
-    "coinmate": Provider(
-        "CoinMate",
-        "coinmate.io",
-        "https://coinmate.io/api/ticker?currencyPair=BTC_{TO}",
-        "$.data.last",
-    ),
-    "kraken": Provider(
-        "Kraken",
-        "kraken.com",
-        "https://api.kraken.com/0/public/Ticker?pair=XBT{TO}",
-        "$.result.XXBTZ{TO}.c[0]",
-        ["czk"],
-    ),
-    "bitpay": Provider(
-        "BitPay",
-        "bitpay.com",
-        "https://bitpay.com/rates",
-        """$.data[?(@.code == "{TO}")].rate""",
-    ),
-    "yadio": Provider(
-        "yadio",
-        "yadio.io",
-        "https://api.yadio.io/exrates/BTC",
-        "$.BTC.{TO}",
-    ),
-}
-
-
 async def btc_price(currency: str) -> float:
     replacements = {
         "FROM": "BTC",
@@ -273,7 +194,7 @@ async def btc_price(currency: str) -> float:
         "to": currency.lower(),
     }
 
-    async def fetch_price(provider: Provider):
+    async def fetch_price(provider: ExchangeRateProvider):
         if currency.lower() in provider.exclude_to:
             raise Exception(f"Provider {provider.name} does not support {currency}.")
 
@@ -300,10 +221,15 @@ async def btc_price(currency: str) -> float:
             raise
 
     results = await asyncio.gather(
-        *[fetch_price(provider) for provider in exchange_rate_providers.values()],
+        *[
+            fetch_price(provider)
+            for provider in settings.lnbits_exchange_rate_providers
+        ],
         return_exceptions=True,
     )
     rates = [r for r in results if not isinstance(r, BaseException)]
+
+    print("### rates", rates)
 
     if not rates:
         return 9999999999
