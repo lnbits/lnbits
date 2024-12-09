@@ -104,7 +104,7 @@ window.app = Vue.createApp({
   },
 
   methods: {
-    formatDateString(dateString) {
+    formatDate(dateString) {
       return LNbits.utils.formatDateString(dateString)
     },
     async fetchAudit(props) {
