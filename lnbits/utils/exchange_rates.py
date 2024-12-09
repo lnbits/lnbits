@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 import httpx
 import jsonpath_ng.ext as jpx
@@ -191,7 +191,6 @@ class Provider(NamedTuple):
     name: str
     domain: str
     api_url: str
-    getter: Callable
     path: str
     exclude_to: list = []
 
@@ -202,7 +201,6 @@ exchange_rate_providers = {
         "Binance",
         "binance.com",
         "https://api.binance.com/api/v3/ticker/price?symbol=BTC{TO}",
-        lambda data, replacements: data["price"],
         "$.price",
         ["czk"],
     ),
@@ -210,14 +208,12 @@ exchange_rate_providers = {
         "Blockchain",
         "blockchain.com",
         "https://blockchain.info/frombtc?currency={TO}&value=100000000",
-        lambda data, replacements: 1000000 / data,
         "",
     ),
     "exir": Provider(
         "Exir",
         "exir.io",
         "https://api.exir.io/v1/ticker?symbol=btc-{to}",
-        lambda data, replacements: data["last"],
         "$.last",
         ["czk", "eur"],
     ),
@@ -225,7 +221,6 @@ exchange_rate_providers = {
         "Bitfinex",
         "bitfinex.com",
         "https://api.bitfinex.com/v1/pubticker/btc{to}",
-        lambda data, replacements: data["last_price"],
         "$.last_price",
         ["czk"],
     ),
@@ -233,7 +228,6 @@ exchange_rate_providers = {
         "Bitstamp",
         "bitstamp.net",
         "https://www.bitstamp.net/api/v2/ticker/btc{to}/",
-        lambda data, replacements: data["last"],
         "$.last",
         ["czk"],
     ),
@@ -241,22 +235,18 @@ exchange_rate_providers = {
         "Coinbase",
         "coinbase.com",
         "https://api.coinbase.com/v2/exchange-rates?currency=BTC",
-        lambda data, replacements: data["data"]["rates"][replacements["TO"]],
         "$.data.rates.{TO}",
-        [],
     ),
     "coinmate": Provider(
         "CoinMate",
         "coinmate.io",
         "https://coinmate.io/api/ticker?currencyPair=BTC_{TO}",
-        lambda data, replacements: data["data"]["last"],
         "$.data.last",
     ),
     "kraken": Provider(
         "Kraken",
         "kraken.com",
         "https://api.kraken.com/0/public/Ticker?pair=XBT{TO}",
-        lambda data, replacements: data["result"]["XXBTZ" + replacements["TO"]]["c"][0],
         "$.result.XXBTZ{TO}.c[0]",
         ["czk"],
     ),
@@ -264,16 +254,12 @@ exchange_rate_providers = {
         "BitPay",
         "bitpay.com",
         "https://bitpay.com/rates",
-        lambda data, replacements: next(
-            i["rate"] for i in data["data"] if i["code"] == replacements["TO"]
-        ),
         """$.data[?(@.code == "{TO}")].rate""",
     ),
     "yadio": Provider(
         "yadio",
         "yadio.io",
         "https://api.yadio.io/exrates/BTC",
-        lambda data, replacements: data[replacements["FROM"]][replacements["TO"]],
         "$.BTC.{TO}",
     ),
 }
@@ -296,19 +282,16 @@ async def btc_price(currency: str) -> float:
         try:
             headers = {"User-Agent": settings.user_agent}
             async with httpx.AsyncClient(headers=headers) as client:
-                # print("### provider", url)
                 r = await client.get(url, timeout=0.5)
                 r.raise_for_status()
 
-                # print("### data", data)
                 if not provider.path:
                     return float(r.text.replace(",", ""))
                 data = r.json()
                 price_query = jpx.parse(provider.path.format(**replacements))
                 result = price_query.find(data)
-                y = float(result[0].value)
-                print("### price", y)
-                return y
+                return float(result[0].value)
+
         except Exception as e:
             logger.warning(
                 f"Failed to fetch Bitcoin price "
