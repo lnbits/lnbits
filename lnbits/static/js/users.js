@@ -173,7 +173,7 @@ window.app = Vue.createApp({
 
   methods: {
     formatDate: function (value) {
-      return LNbits.utils.formatDate(value)
+      return Quasar.date.formatDate(new Date(value), 'YYYY-MM-DD HH:mm')
     },
     formatSat: function (value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
