@@ -1,0 +1,80 @@
+<q-tab-panel name="exchange_providers">
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none q-mb-sm">User Management</h6>
+
+    <div class="row">
+      <div class="col-12 col-md-6 q-pr-sm">
+        <p>Admin Users</p>
+        <q-input
+          filled
+          v-model="formAddAdmin"
+          @keydown.enter="addAdminUser"
+          type="text"
+          label="User ID"
+          hint="Users with admin privileges"
+        >
+          <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="user in formData.lnbits_admin_users"
+            :key="user"
+            removable
+            @remove="removeAdminUser(user)"
+            color="primary"
+            text-color="white"
+            :label="user"
+            class="ellipsis"
+          >
+          </q-chip>
+        </div>
+        <br />
+      </div>
+      <div class="col-12 col-md-6">
+        <p>Allowed Users</p>
+        <q-input
+          filled
+          v-model="formAddUser"
+          @keydown.enter="addAllowedUser"
+          type="text"
+          label="User ID"
+          hint="Only these users can use LNbits"
+        >
+          <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="user in formData.lnbits_allowed_users"
+            :key="user"
+            removable
+            @remove="removeAllowedUser(user)"
+            color="primary"
+            text-color="white"
+            :label="user"
+            class="ellipsis"
+          >
+          </q-chip>
+        </div>
+        <br />
+        <q-item tag="label" v-ripple>
+          <q-item-section>
+            <q-item-label>Allow creation of new users</q-item-label>
+            <q-item-label caption
+              >Allow creation of new users on the index page</q-item-label
+            >
+          </q-item-section>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_allow_new_accounts"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+        </q-item>
+        <br />
+      </div>
+    </div>
+  </q-card-section>
+</q-tab-panel>
