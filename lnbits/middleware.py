@@ -230,7 +230,7 @@ def add_ip_block_middleware(app: FastAPI):
     async def block_allow_ip_middleware(request: Request, call_next):
         if not request.client:
             return JSONResponse(
-                status_code=403,  # Forbidden
+                status_code=HTTPStatus.FORBIDDEN,
                 content={"detail": "No request client"},
             )
         if (
@@ -238,7 +238,7 @@ def add_ip_block_middleware(app: FastAPI):
             and request.client.host not in settings.lnbits_allowed_ips
         ):
             return JSONResponse(
-                status_code=403,  # Forbidden
+                status_code=HTTPStatus.FORBIDDEN,
                 content={"detail": "IP is blocked"},
             )
         return await call_next(request)
