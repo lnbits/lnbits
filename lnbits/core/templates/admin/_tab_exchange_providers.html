@@ -1,80 +1,68 @@
 <q-tab-panel name="exchange_providers">
-  <q-card-section class="q-pa-none">
-    <h6 class="q-my-none q-mb-sm">User Management</h6>
+  <h6 class="q-my-none q-mb-sm">Exchange Providers</h6>
 
-    <div class="row">
-      <div class="col-12 col-md-6 q-pr-sm">
-        <p>Admin Users</p>
-        <q-input
-          filled
-          v-model="formAddAdmin"
-          @keydown.enter="addAdminUser"
-          type="text"
-          label="User ID"
-          hint="Users with admin privileges"
-        >
-          <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
-        </q-input>
-        <div>
-          <q-chip
-            v-for="user in formData.lnbits_admin_users"
-            :key="user"
-            removable
-            @remove="removeAdminUser(user)"
-            color="primary"
-            text-color="white"
-            :label="user"
-            class="ellipsis"
-          >
-          </q-chip>
-        </div>
-        <br />
-      </div>
-      <div class="col-12 col-md-6">
-        <p>Allowed Users</p>
-        <q-input
-          filled
-          v-model="formAddUser"
-          @keydown.enter="addAllowedUser"
-          type="text"
-          label="User ID"
-          hint="Only these users can use LNbits"
-        >
-          <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
-        </q-input>
-        <div>
-          <q-chip
-            v-for="user in formData.lnbits_allowed_users"
-            :key="user"
-            removable
-            @remove="removeAllowedUser(user)"
-            color="primary"
-            text-color="white"
-            :label="user"
-            class="ellipsis"
-          >
-          </q-chip>
-        </div>
-        <br />
-        <q-item tag="label" v-ripple>
-          <q-item-section>
-            <q-item-label>Allow creation of new users</q-item-label>
-            <q-item-label caption
-              >Allow creation of new users on the index page</q-item-label
-            >
-          </q-item-section>
-          <q-item-section avatar>
-            <q-toggle
-              size="md"
-              v-model="formData.lnbits_allow_new_accounts"
-              checked-icon="check"
-              color="green"
-              unchecked-icon="clear"
-            />
-          </q-item-section>
-        </q-item>
-        <br />
-      </div>
+  <div class="row q-mb-md">
+    <div class="col-12">
+      <q-btn
+        @click="addExchangeProvider()"
+        label="Add Exchange Provider"
+        color="primary"
+        class="q-mb-md"
+      >
+      </q-btn>
     </div>
-  </q-card-section>
+  </div>
+
+  <q-table
+    row-key="name"
+    :rows="formData.lnbits_exchange_rate_providers"
+    :columns="exchangesTable.columns"
+    v-model:pagination="exchangesTable.pagination"
+    :filter="exchangesTable.search"
+    :loading="exchangesTable.loading"
+    @request="fetchUsers"
+  >
+    <template v-slot:header="props">
+      <q-tr :props="props">
+        <q-th auto-width></q-th>
+        <q-th v-for="col in props.cols" :key="col.name" :props="props">
+          <span v-text="col.label"></span>
+        </q-th>
+      </q-tr>
+    </template>
+    <template v-slot:body="props">
+      <q-tr auto-width :props="props">
+        <q-td>
+          <q-btn
+            @click="removeExchangeProvider(props.row)"
+            round
+            icon="delete"
+            size="sm"
+            color="negative"
+            class="q-ml-xs"
+          >
+          </q-btn>
+        </q-td>
+        <q-td>
+          <q-input dense filled v-model="props.row.name" type="text"> </q-input>
+        </q-td>
+        <q-td>
+          <q-input dense filled v-model="props.row.api_url" type="text">
+          </q-input
+        ></q-td>
+        <q-td>
+          <q-input dense filled v-model="props.row.path" type="text"> </q-input>
+        </q-td>
+        <q-td>
+          <q-select
+            filled
+            dense
+            v-model="props.row.exclude_to"
+            multiple
+            :options="{{ currencies | safe }}"
+          ></q-select>
+        </q-td>
+      </q-tr>
+    </template>
+  </q-table>
 </q-tab-panel>

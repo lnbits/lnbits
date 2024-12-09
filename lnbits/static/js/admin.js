@@ -61,7 +61,49 @@ window.app = Vue.createApp({
         'orange'
       ],
       tab: 'funding',
-      needsRestart: false
+      needsRestart: false,
+      exchangesTable: {
+        columns: [
+          {
+            name: 'name',
+            align: 'left',
+            label: 'Exchange Name',
+            field: 'name',
+            sortable: true
+          },
+          {
+            name: 'api_url',
+            align: 'left',
+            label: 'URL',
+            field: 'api_url',
+            sortable: false
+          },
+          {
+            name: 'path',
+            align: 'left',
+            label: 'JSON Path',
+            field: 'path',
+            sortable: false
+          },
+
+          {
+            name: 'exclude_to',
+            align: 'left',
+            label: 'Exclude Currencies',
+            field: 'exclude_to',
+            sortable: false
+          }
+        ],
+        pagination: {
+          sortBy: 'name',
+          rowsPerPage: 10,
+          page: 1,
+          rowsNumber: 10
+        },
+        search: null,
+        hideEmpty: true,
+        loading: false
+      }
     }
   },
   created() {
@@ -246,6 +288,18 @@ window.app = Vue.createApp({
     removeNostrUrl(url) {
       this.formData.nostr_absolute_request_urls =
         this.formData.nostr_absolute_request_urls.filter(b => b !== url)
+    },
+    addExchangeProvider() {
+      this.formData.lnbits_exchange_rate_providers.unshift({
+        name: '',
+        api_url: '',
+        path: '',
+        exclude_to: []
+      })
+    },
+    removeExchangeProvider(provider) {
+      this.formData.lnbits_exchange_rate_providers =
+        this.formData.lnbits_exchange_rate_providers.filter(p => p !== provider)
     },
     restartServer() {
       LNbits.api
