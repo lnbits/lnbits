@@ -4,7 +4,7 @@
     dense
     class="lnbits-drawer__q-list"
   >
-    <q-item :href="activeWallet.url+'&vertical='+vertical" class="cursor-pointer">
+    <q-item class="cursor-pointer">
       <q-item-label header v-text="$t('wallets')" class="q-pl-none">
       </q-item-label>
 

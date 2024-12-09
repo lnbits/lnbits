@@ -60,8 +60,8 @@ window.app.component('lnbits-wallet-list', {
       this.activeWallet = LNbits.map.wallet(window.wallet)
     }
     document.addEventListener('updateWalletBalance', this.updateWalletBalance)
-    const urlParams = new URLSearchParams(window.location.search);
-    this.vertical=!urlParams.get('vertical')
+    // const urlParams = new URLSearchParams(window.location.search);
+    // this.vertical=!urlParams.get('vertical')
   }
 })
 
