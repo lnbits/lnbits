@@ -141,6 +141,7 @@ module = [
   "pywebpush.*",
   "fastapi_sso.sso.*",
   "json5.*",
+  "jsonpath_ng.*",
 ]
 ignore_missing_imports = "True"
 
