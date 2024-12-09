@@ -6,6 +6,7 @@ window.app.component('payment-list', {
   data: function () {
     return {
       denomination: LNBITS_DENOMINATION,
+      failedPaymentsToggle: false,
       payments: [],
       paymentsTable: {
         columns: [
@@ -32,6 +33,9 @@ window.app.component('payment-list', {
           rowsNumber: 10
         },
         search: null,
+        filter: {
+          'status[ne]': 'failed'
+        },
         loading: false
       },
       exportTagName: '',
@@ -107,7 +111,6 @@ window.app.component('payment-list', {
             field: row => row.extra.wallet_fiat_amount
           }
         ],
-        filter: null,
         loading: false
       }
     }
@@ -215,6 +218,17 @@ window.app.component('payment-list', {
     }
   },
   watch: {
+    failedPaymentsToggle(newVal) {
+      console.log('failedPaymentsToggle', newVal)
+      if (newVal === false) {
+        this.paymentsTable.filter = {
+          'status[ne]': 'failed'
+        }
+      } else {
+        this.paymentsTable.filter = null
+      }
+      this.fetchPayments()
+    },
     lazy: function (newVal) {
       if (newVal === true) this.fetchPayments()
     },

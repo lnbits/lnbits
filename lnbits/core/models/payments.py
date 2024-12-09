@@ -127,6 +127,7 @@ class Payment(BaseModel):
 class PaymentFilters(FilterModel):
     __search_fields__ = ["memo", "amount"]
 
+    status: str
     checking_id: str
     amount: int
     fee: int

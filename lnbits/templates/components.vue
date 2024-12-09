@@ -573,6 +573,17 @@
       <h5 class="text-subtitle1 q-my-none" :v-text="$t('transactions')"></h5>
     </div>
     <div class="gt-sm col-auto">
+      <span>
+        <q-toggle
+          class="q-mr-md"
+          size="md"
+          label="Failed Payments"
+          v-model="failedPaymentsToggle"
+          checked-icon="check"
+          color="green"
+          unchecked-icon="clear"
+        />
+      </span>
       <q-btn-dropdown
         outline
         persistent
