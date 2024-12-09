@@ -2,12 +2,22 @@
   <h6 class="q-my-none q-mb-sm">Exchange Providers</h6>
 
   <div class="row q-mb-md">
-    <div class="col-12">
+    <div class="col-6">
       <q-btn
         @click="addExchangeProvider()"
         label="Add Exchange Provider"
         color="primary"
         class="q-mb-md"
+      >
+      </q-btn>
+    </div>
+    <div class="col-6">
+      <q-btn
+        @click="getDefaultSetting('lnbits_exchange_rate_providers')"
+        flat
+        :label="$t('reset_defaults')"
+        color="primary"
+        class="float-right"
       >
       </q-btn>
     </div>
@@ -18,8 +28,6 @@
     :rows="formData.lnbits_exchange_rate_providers"
     :columns="exchangesTable.columns"
     v-model:pagination="exchangesTable.pagination"
-    :filter="exchangesTable.search"
-    :loading="exchangesTable.loading"
   >
     <!-- @request="fetchUsers" -->
     <template v-slot:header="props">

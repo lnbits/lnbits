@@ -101,8 +101,7 @@ window.app = Vue.createApp({
           rowsNumber: 10
         },
         search: null,
-        hideEmpty: true,
-        loading: false
+        hideEmpty: true
       }
     }
   },
@@ -290,16 +289,32 @@ window.app = Vue.createApp({
         this.formData.nostr_absolute_request_urls.filter(b => b !== url)
     },
     addExchangeProvider() {
-      this.formData.lnbits_exchange_rate_providers.unshift({
-        name: '',
-        api_url: '',
-        path: '',
-        exclude_to: []
-      })
+      this.formData.lnbits_exchange_rate_providers = [
+        {
+          name: '',
+          api_url: '',
+          path: '',
+          exclude_to: []
+        },
+        ...this.formData.lnbits_exchange_rate_providers
+      ]
     },
     removeExchangeProvider(provider) {
       this.formData.lnbits_exchange_rate_providers =
         this.formData.lnbits_exchange_rate_providers.filter(p => p !== provider)
+    },
+    getDefaultSetting(fieldName) {
+      LNbits.api
+        .request(
+          'GET',
+          `/admin/api/v1/settings/default?field_name=${fieldName}`
+        )
+        .then(response => {
+          this.formData[fieldName] = response.data.default_value
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
     },
     restartServer() {
       LNbits.api
