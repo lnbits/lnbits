@@ -85,14 +85,13 @@
               ><q-tooltip v-if="!$q.screen.gt.sm"
                 ><span v-text="$t('security')"></span></q-tooltip
             ></q-tab>
-
             <q-tab
-              name="users"
-              icon="group"
-              :label="$q.screen.gt.sm ? $t('users') : null"
+              name="server"
+              icon="price_change"
+              :label="$q.screen.gt.sm ? $t('payments') : null"
               @update="val => tab = val.name"
               ><q-tooltip v-if="!$q.screen.gt.sm"
-                ><span v-text="$t('users')"></span></q-tooltip
+                ><span v-text="$t('payments')"></span></q-tooltip
             ></q-tab>
             <q-tab
               name="exchange_providers"
@@ -102,6 +101,15 @@
                 ><span v-text="$t('exchanges')"></span></q-tooltip
             ></q-tab>
             <q-tab
+              name="users"
+              icon="group"
+              :label="$q.screen.gt.sm ? $t('users') : null"
+              @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('users')"></span></q-tooltip
+            ></q-tab>
+
+            <q-tab
               name="extensions"
               icon="extension"
               :label="$q.screen.gt.sm ? $t('extensions') : null"
@@ -109,14 +117,7 @@
               ><q-tooltip v-if="!$q.screen.gt.sm"
                 ><span v-text="$t('extensions')"></span></q-tooltip
             ></q-tab>
-            <q-tab
-              name="server"
-              icon="price_change"
-              :label="$q.screen.gt.sm ? $t('payments') : null"
-              @update="val => tab = val.name"
-              ><q-tooltip v-if="!$q.screen.gt.sm"
-                ><span v-text="$t('payments')"></span></q-tooltip
-            ></q-tab>
+
             <q-tab
               name="notifications"
               icon="notifications"
