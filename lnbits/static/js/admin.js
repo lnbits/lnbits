@@ -448,14 +448,18 @@ window.app = Vue.createApp({
         data: data.map(d => d.rates[exchange.name]),
         pointStyle: exchange.name === 'LNbits',
         borderWidth: 1,
-        tension: 1
+        tension: 0.4
       }))
       this.exchangeRatesChart = new Chart(
         this.$refs.exchangeRatesChart.getContext('2d'),
         {
           type: 'line',
           options: {
-            legend: {display: false}
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
           },
           data: {
             labels: xValues,

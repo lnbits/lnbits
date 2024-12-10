@@ -2,7 +2,12 @@
   <h6 class="q-my-none q-mb-sm">Exchange Providers</h6>
 
   <div class="row">
-    <div class="col-md-4 col-sm-12 q-pr-lg">
+    <div class="col-md-8 col-sm-12">
+      <div class="q-pa-sm">
+        <canvas style="width: 100%" ref="exchangeRatesChart"></canvas>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-12">
       <q-input
         filled
         v-model="formData.lnbits_exchange_history_refresh_interval_seconds"
@@ -11,8 +16,6 @@
         hint="How often should the exchange rates be fetched."
       >
       </q-input>
-    </div>
-    <div class="col-md-4 col-sm-12 q-pr-lg">
       <q-input
         filled
         v-model="formData.lnbits_exchange_history_size"
@@ -21,22 +24,21 @@
         hint="How many data points should be kept in memory."
       >
       </q-input>
-    </div>
-    <div class="col-md-4 col-sm-12 q-pr-lg">
       <ul>
         <li>
           <code>Refresh Interval</code> and <code> History Size </code>are for
           historical purposes only.
         </li>
-        <li>These two settings do not affect the</li>
+        <li>These two settings do not affect the live price computation.</li>
+        <li>
+          Chart currency:
+          <strong
+            ><span
+              v-text="formData.lnbits_default_accounting_currency || 'USD'"
+            ></span
+          ></strong>
+        </li>
       </ul>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-lg-10 col-md-12">
-      <div style="width: 1000px" class="q-pa-sm">
-        <canvas ref="exchangeRatesChart"></canvas>
-      </div>
     </div>
   </div>
 
