@@ -357,7 +357,7 @@ window.app = Vue.createApp({
     },
     getExchangeRateHistory() {
       LNbits.api
-        .request('GET', '/api/v1/rate/history')
+        .request('GET', '/api/v1/rate/history', this.g.user.wallets[0].inkey)
         .then(response => {
           this.initExchangeChart(response.data)
         })

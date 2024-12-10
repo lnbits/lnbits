@@ -225,7 +225,10 @@ async def api_perform_lnurlauth(
     return ""
 
 
-@api_router.get("/api/v1/rate/history")
+@api_router.get(
+    "/api/v1/rate/history",
+    dependencies=[Depends(require_invoice_key)],
+)
 async def api_exchange_rate_history() -> list[dict]:
     return settings.lnbits_exchange_rate_history
 
