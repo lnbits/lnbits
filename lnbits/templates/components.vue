@@ -570,7 +570,10 @@
 <template id="payment-list">
   <div class="row items-center no-wrap q-mb-sm">
     <div class="col">
-      <h5 class="text-subtitle1 q-my-none" :v-text="$t('transactions')"></h5>
+      <span
+        class="text-subtitle1 q-my-none col q-mr-sm"
+        v-text="$t('transactions')"
+      ></span>
     </div>
     <div class="gt-sm col-auto">
       <q-btn-dropdown
@@ -578,7 +581,7 @@
         persistent
         class="q-mr-sm"
         color="grey"
-        :label="$t('export_csv')"
+        label="Export"
         split
         @click="exportCSV(false)"
       >
@@ -627,26 +630,38 @@
           </q-item>
         </q-list>
       </q-btn-dropdown>
-      <payment-chart :wallet="wallet" />
+      <payment-chart :wallet="wallet"></payment-chart>
+      <q-checkbox
+        v-model="failedPaymentsToggle"
+        checked-icon="warning"
+        unchecked-icon="warning_off"
+        :color="failedPaymentsToggle ? 'yellow' : 'grey'"
+        size="xs"
+      >
+        <q-tooltip>
+          <span v-text="`View failed payments`"></span>
+        </q-tooltip>
+      </q-checkbox>
     </div>
   </div>
-  <q-input
-    :style="
-      $q.screen.lt.md
-        ? {
-            display: mobileSimple ? 'none !important' : ''
-          }
-        : ''
-    "
-    filled
-    dense
-    clearable
-    v-model="paymentsTable.search"
-    debounce="300"
-    :placeholder="$t('search_by_tag_memo_amount')"
-    class="q-mb-md"
-  >
-  </q-input>
+  <div class="row q-my-md">
+    <q-input
+      :style="
+        $q.screen.lt.md
+          ? {
+              display: mobileSimple ? 'none !important' : ''
+            }
+          : ''
+      "
+      filled
+      dense
+      clearable
+      v-model="paymentsTable.search"
+      debounce="300"
+      :placeholder="$t('search_by_tag_memo_amount')"
+      class="col"
+    />
+  </div>
   <q-table
     dense
     flat

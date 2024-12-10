@@ -378,6 +378,7 @@ window.LNbits = {
     prepareFilterQuery(tableConfig, props) {
       if (props) {
         tableConfig.pagination = props.pagination
+        tableConfig.filter = props.filter
       }
       let pagination = tableConfig.pagination
       tableConfig.loading = true
