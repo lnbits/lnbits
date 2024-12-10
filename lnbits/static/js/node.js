@@ -1,6 +1,6 @@
 window.app.component('lnbits-node-ranks', {
   props: ['ranks'],
-  data: function () {
+  data() {
     return {
       user: {},
       stats: [
@@ -31,7 +31,7 @@ window.app.component('lnbits-node-ranks', {
 
 window.app.component('lnbits-channel-stats', {
   props: ['stats'],
-  data: function () {
+  data() {
     return {
       states: [
         {label: 'Active', value: 'active', color: 'green'},
@@ -58,7 +58,7 @@ window.app.component('lnbits-channel-stats', {
     </div>
     </q-card>
   `,
-  created: function () {
+  created() {
     if (window.user) {
       this.user = LNbits.map.user(window.user)
     }
@@ -68,7 +68,7 @@ window.app.component('lnbits-channel-stats', {
 window.app.component('lnbits-stat', {
   props: ['title', 'amount', 'msat', 'btc'],
   computed: {
-    value: function () {
+    value() {
       return (
         this.amount ??
         (this.btc
@@ -178,7 +178,7 @@ window.app.component('lnbits-node-info', {
 window.app.component('lnbits-stat', {
   props: ['title', 'amount', 'msat', 'btc'],
   computed: {
-    value: function () {
+    value() {
       return (
         this.amount ??
         (this.btc
@@ -206,7 +206,7 @@ window.app.component('lnbits-stat', {
 window.app.component('lnbits-channel-balance', {
   props: ['balance', 'color'],
   methods: {
-    formatMsat: function (msat) {
+    formatMsat(msat) {
       return LNbits.utils.formatMsat(msat)
     }
   },
@@ -247,10 +247,10 @@ window.app.component('lnbits-channel-balance', {
 window.app.component('lnbits-date', {
   props: ['ts'],
   computed: {
-    date: function () {
+    date() {
       return LNbits.utils.formatDate(this.ts)
     },
-    dateFrom: function () {
+    dateFrom() {
       return moment(this.date).fromNow()
     }
   },

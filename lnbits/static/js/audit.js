@@ -1,7 +1,7 @@
 window.app = Vue.createApp({
   el: '#vue',
   mixins: [window.windowMixin],
-  data: function () {
+  data() {
     return {
       auditEntries: [],
       searchData: {

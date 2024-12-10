@@ -8,7 +8,7 @@ window.i18n = new VueI18n.createI18n({
 
 window.LNbits = {
   api: {
-    request: function (method, url, apiKey, data) {
+    request(method, url, apiKey, data) {
       return axios({
         method: method,
         url: url,
@@ -18,10 +18,10 @@ window.LNbits = {
         data: data
       })
     },
-    getServerHealth: function () {
+    getServerHealth() {
       return this.request('get', '/api/v1/health')
     },
-    createInvoice: async function (
+    async createInvoice(
       wallet,
       amount,
       memo,
@@ -36,13 +36,13 @@ window.LNbits = {
         unit: unit
       })
     },
-    payInvoice: function (wallet, bolt11) {
+    payInvoice(wallet, bolt11) {
       return this.request('post', '/api/v1/payments', wallet.adminkey, {
         out: true,
         bolt11: bolt11
       })
     },
-    payLnurl: function (
+    payLnurl(
       wallet,
       callback,
       description_hash,
@@ -60,17 +60,17 @@ window.LNbits = {
         unit
       })
     },
-    authLnurl: function (wallet, callback) {
+    authLnurl(wallet, callback) {
       return this.request('post', '/api/v1/lnurlauth', wallet.adminkey, {
         callback
       })
     },
-    createAccount: function (name) {
+    createAccount(name) {
       return this.request('post', '/api/v1/account', null, {
         name: name
       })
     },
-    register: function (username, email, password, password_repeat) {
+    register(username, email, password, password_repeat) {
       return axios({
         method: 'POST',
         url: '/api/v1/auth/register',
@@ -82,7 +82,7 @@ window.LNbits = {
         }
       })
     },
-    reset: function (reset_key, password, password_repeat) {
+    reset(reset_key, password, password_repeat) {
       return axios({
         method: 'PUT',
         url: '/api/v1/auth/reset',
@@ -93,14 +93,14 @@ window.LNbits = {
         }
       })
     },
-    login: function (username, password) {
+    login(username, password) {
       return axios({
         method: 'POST',
         url: '/api/v1/auth',
         data: {username, password}
       })
     },
-    loginByProvider: function (provider, headers, data) {
+    loginByProvider(provider, headers, data) {
       return axios({
         method: 'POST',
         url: `/api/v1/auth/${provider}`,
@@ -108,38 +108,38 @@ window.LNbits = {
         data
       })
     },
-    loginUsr: function (usr) {
+    loginUsr(usr) {
       return axios({
         method: 'POST',
         url: '/api/v1/auth/usr',
         data: {usr}
       })
     },
-    logout: function () {
+    logout() {
       return axios({
         method: 'POST',
         url: '/api/v1/auth/logout'
       })
     },
-    getAuthenticatedUser: function () {
+    getAuthenticatedUser() {
       return this.request('get', '/api/v1/auth')
     },
-    getWallet: function (wallet) {
+    getWallet(wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
-    createWallet: function (wallet, name) {
+    createWallet(wallet, name) {
       return this.request('post', '/api/v1/wallet', wallet.adminkey, {
         name: name
       }).then(res => {
         window.location = '/wallet?wal=' + res.data.id
       })
     },
-    updateWallet: function (name, wallet) {
+    updateWallet(name, wallet) {
       return this.request('patch', '/api/v1/wallet', wallet.adminkey, {
         name: name
       })
     },
-    deleteWallet: function (wallet) {
+    deleteWallet(wallet) {
       return this.request('delete', '/api/v1/wallet', wallet.adminkey).then(
         _ => {
           let url = new URL(window.location.href)
@@ -148,21 +148,21 @@ window.LNbits = {
         }
       )
     },
-    getPayments: function (wallet, params) {
+    getPayments(wallet, params) {
       return this.request(
         'get',
         '/api/v1/payments/paginated?' + params,
         wallet.inkey
       )
     },
-    getPayment: function (wallet, paymentHash) {
+    getPayment(wallet, paymentHash) {
       return this.request(
         'get',
         '/api/v1/payments/' + paymentHash,
         wallet.inkey
       )
     },
-    updateBalance: function (credit, wallet_id) {
+    updateBalance(credit, wallet_id) {
       return this.request('PUT', '/users/api/v1/topup', null, {
         amount: credit,
         id: wallet_id
@@ -175,7 +175,7 @@ window.LNbits = {
     }
   },
   events: {
-    onInvoicePaid: function (wallet, cb) {
+    onInvoicePaid(wallet, cb) {
       let listener = ev => {
         cb(JSON.parse(ev.data))
       }
@@ -209,12 +209,12 @@ window.LNbits = {
     }
   },
   map: {
-    extension: function (data) {
+    extension(data) {
       const obj = {...data}
       obj.url = ['/', obj.code, '/'].join('')
       return obj
     },
-    user: function (data) {
+    user(data) {
       const obj = {
         id: data.id,
         admin: data.admin,
@@ -225,13 +225,13 @@ window.LNbits = {
       }
       const mapWallet = this.wallet
       obj.wallets = obj.wallets
-        .map(function (obj) {
+        .map(obj => {
           return mapWallet(obj)
         })
-        .sort(function (a, b) {
+        .sort((a, b) => {
           return a.name.localeCompare(b.name)
         })
-      obj.walletOptions = obj.wallets.map(function (obj) {
+      obj.walletOptions = obj.wallets.map(obj => {
         return {
           label: [obj.name, ' - ', obj.id].join(''),
           value: obj.id
@@ -239,7 +239,7 @@ window.LNbits = {
       })
       return obj
     },
-    wallet: function (data) {
+    wallet(data) {
       newWallet = {
         id: data.id,
         name: data.name,
@@ -255,7 +255,7 @@ window.LNbits = {
       newWallet.url = `/wallet?&wal=${data.id}`
       return newWallet
     },
-    payment: function (data) {
+    payment(data) {
       obj = {
         checking_id: data.checking_id,
         status: data.status,
@@ -301,7 +301,7 @@ window.LNbits = {
     }
   },
   utils: {
-    confirmDialog: function (msg) {
+    confirmDialog(msg) {
       return Quasar.Dialog.create({
         message: msg,
         ok: {
@@ -314,7 +314,7 @@ window.LNbits = {
         }
       })
     },
-    digestMessage: async function (message) {
+    async digestMessage(message) {
       const msgUint8 = new TextEncoder().encode(message)
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
       const hashArray = Array.from(new Uint8Array(hashBuffer))
@@ -332,19 +332,19 @@ window.LNbits = {
     formatDateString(isoDateString) {
       return Quasar.date.formatDate(new Date(isoDateString), window.dateFormat)
     },
-    formatCurrency: function (value, currency) {
+    formatCurrency(value, currency) {
       return new Intl.NumberFormat(window.LOCALE, {
         style: 'currency',
         currency: currency
       }).format(value)
     },
-    formatSat: function (value) {
+    formatSat(value) {
       return new Intl.NumberFormat(window.LOCALE).format(value)
     },
-    formatMsat: function (value) {
+    formatMsat(value) {
       return this.formatSat(value / 1000)
     },
-    notifyApiError: function (error) {
+    notifyApiError(error) {
       if (!error.response) {
         return console.error(error)
       }
@@ -365,12 +365,12 @@ window.LNbits = {
         icon: null
       })
     },
-    search: function (data, q, field, separator) {
+    search(data, q, field, separator) {
       try {
         const queries = q.toLowerCase().split(separator || ' ')
-        return data.filter(function (obj) {
+        return data.filter(obj => {
           let matches = 0
-          _.each(queries, function (q) {
+          _.each(queries, q => {
             if (obj[field].indexOf(q) !== -1) matches++
           })
           return matches === queries.length
@@ -384,7 +384,7 @@ window.LNbits = {
         tableConfig.pagination = props.pagination
         tableConfig.filter = props.filter
       }
-      let pagination = tableConfig.pagination
+      const pagination = tableConfig.pagination
       tableConfig.loading = true
       const query = {
         limit: pagination.rowsPerPage,
@@ -398,8 +398,8 @@ window.LNbits = {
       }
       return new URLSearchParams(query)
     },
-    exportCSV: function (columns, data, fileName) {
-      const wrapCsvValue = function (val, formatFn) {
+    exportCSV(columns, data, fileName) {
+      const wrapCsvValue = (val, formatFn) => {
         let formatted = formatFn !== void 0 ? formatFn(val) : val
 
         formatted =
@@ -411,14 +411,14 @@ window.LNbits = {
       }
 
       const content = [
-        columns.map(function (col) {
+        columns.map(col => {
           return wrapCsvValue(col.label)
         })
       ]
         .concat(
-          data.map(function (row) {
+          data.map(row => {
             return columns
-              .map(function (col) {
+              .map(col => {
                 return wrapCsvValue(
                   typeof col.field === 'function'
                     ? col.field(row)
@@ -451,16 +451,16 @@ window.LNbits = {
       converter.setOption('simpleLineBreaks', true)
       return converter.makeHtml(text)
     },
-    hexToRgb: function (hex) {
+    hexToRgb(hex) {
       return Quasar.colors.hexToRgb(hex)
     },
-    hexDarken: function (hex, percent) {
+    hexDarken(hex, percent) {
       return Quasar.colors.lighten(hex, percent)
     },
-    hexAlpha: function (hex, alpha) {
+    hexAlpha(hex, alpha) {
       return Quasar.colors.changeAlpha(hex, alpha)
     },
-    getPaletteColor: function (color) {
+    getPaletteColor(color) {
       return Quasar.colors.getPaletteColor(color)
     }
   }
@@ -468,7 +468,7 @@ window.LNbits = {
 
 window.windowMixin = {
   i18n: window.i18n,
-  data: function () {
+  data() {
     return {
       toggleSubs: true,
       reactionChoice: 'confettiBothSides',
@@ -490,11 +490,11 @@ window.windowMixin = {
   },
 
   methods: {
-    changeColor: function (newValue) {
+    changeColor(newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
     },
-    applyGradient: function () {
+    applyGradient() {
       if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
         this.setColors()
         darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
@@ -514,7 +514,7 @@ window.windowMixin = {
         document.head.appendChild(style)
       }
     },
-    applyBorder: function () {
+    applyBorder() {
       if (this.borderChoice) {
         this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
       }
@@ -538,7 +538,7 @@ window.windowMixin = {
       style.innerHTML = `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
       document.head.appendChild(style)
     },
-    setColors: function () {
+    setColors() {
       this.$q.localStorage.set(
         'lnbits.primaryColor',
         LNbits.utils.getPaletteColor('primary')
@@ -552,15 +552,15 @@ window.windowMixin = {
         LNbits.utils.getPaletteColor('dark')
       )
     },
-    copyText: function (text, message, position) {
-      Quasar.copyToClipboard(text).then(function () {
+    copyText(text, message, position) {
+      Quasar.copyToClipboard(text).then(() => {
         Quasar.Notify.create({
           message: message || 'Copied to clipboard!',
           position: position || 'bottom'
         })
       })
     },
-    checkUsrInUrl: async function () {
+    async checkUsrInUrl() {
       try {
         const params = new URLSearchParams(window.location.search)
         const usr = params.get('usr')
@@ -586,7 +586,7 @@ window.windowMixin = {
         )
       }
     },
-    logout: async function () {
+    async logout() {
       LNbits.utils
         .confirmDialog(
           'Do you really want to logout?' +
@@ -652,7 +652,7 @@ window.windowMixin = {
       this.setColors()
     }
   },
-  created: async function () {
+  async created() {
     if (
       this.$q.localStorage.getItem('lnbits.darkMode') == true ||
       this.$q.localStorage.getItem('lnbits.darkMode') == false
@@ -721,7 +721,7 @@ window.windowMixin = {
   }
 }
 
-window.decryptLnurlPayAES = function (success_action, preimage) {
+window.decryptLnurlPayAES = (success_action, preimage) => {
   let keyb = new Uint8Array(
     preimage.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16))
   )

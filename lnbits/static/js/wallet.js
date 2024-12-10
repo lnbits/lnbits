@@ -1,7 +1,7 @@
 window.app = Vue.createApp({
   el: '#vue',
   mixins: [window.windowMixin],
-  data: function () {
+  data() {
     return {
       updatePayments: false,
       origin: window.location.origin,
@@ -63,7 +63,7 @@ window.app = Vue.createApp({
     }
   },
   computed: {
-    formattedBalance: function () {
+    formattedBalance() {
       if (LNBITS_DENOMINATION != 'sats') {
         return this.balance / 100
       } else {
@@ -78,11 +78,11 @@ window.app = Vue.createApp({
         )
       }
     },
-    canPay: function () {
+    canPay() {
       if (!this.parse.invoice) return false
       return this.parse.invoice.sat <= this.balance
     },
-    formattedAmount: function () {
+    formattedAmount() {
       if (this.receive.unit != 'sat') {
         return LNbits.utils.formatCurrency(
           Number(this.receive.data.amount).toFixed(2),
@@ -92,24 +92,24 @@ window.app = Vue.createApp({
         return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
       }
     },
-    formattedSatAmount: function () {
+    formattedSatAmount() {
       return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
     }
   },
   methods: {
-    msatoshiFormat: function (value) {
+    msatoshiFormat(value) {
       return LNbits.utils.formatSat(value / 1000)
     },
-    closeCamera: function () {
+    closeCamera() {
       this.parse.camera.show = false
     },
-    showCamera: function () {
+    showCamera() {
       this.parse.camera.show = true
     },
     focusInput(el) {
       this.$nextTick(() => this.$refs[el].focus())
     },
-    showReceiveDialog: function () {
+    showReceiveDialog() {
       this.receive.show = true
       this.receive.status = 'pending'
       this.receive.paymentReq = null
@@ -121,12 +121,12 @@ window.app = Vue.createApp({
       this.receive.lnurl = null
       this.focusInput('setAmount')
     },
-    onReceiveDialogHide: function () {
+    onReceiveDialogHide() {
       if (this.hasNfc) {
         this.nfcReaderAbortController.abort()
       }
     },
-    showParseDialog: function () {
+    showParseDialog() {
       this.parse.show = true
       this.parse.invoice = null
       this.parse.lnurlpay = null
@@ -139,19 +139,19 @@ window.app = Vue.createApp({
       this.parse.camera.show = false
       this.focusInput('textArea')
     },
-    closeParseDialog: function () {
+    closeParseDialog() {
       setTimeout(() => {
         clearInterval(this.parse.paymentChecker)
       }, 10000)
     },
-    onPaymentReceived: function (paymentHash) {
+    onPaymentReceived(paymentHash) {
       this.updatePayments = !this.updatePayments
       if (this.receive.paymentHash === paymentHash) {
         this.receive.show = false
         this.receive.paymentHash = null
       }
     },
-    createInvoice: function () {
+    createInvoice() {
       this.receive.status = 'loading'
       if (LNBITS_DENOMINATION != 'sats') {
         this.receive.data.amount = this.receive.data.amount * 100
@@ -206,11 +206,11 @@ window.app = Vue.createApp({
           this.receive.status = 'pending'
         })
     },
-    onInitQR: async function (promise) {
+    async onInitQR(promise) {
       try {
         await promise
       } catch (error) {
-        let mapping = {
+        const mapping = {
           NotAllowedError: 'ERROR: you need to grant camera access permission',
           NotFoundError: 'ERROR: no camera on this device',
           NotSupportedError:
@@ -222,10 +222,10 @@ window.app = Vue.createApp({
           InsecureContextError:
             'ERROR: Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.'
         }
-        let valid_error = Object.keys(mapping).filter(key => {
+        const valid_error = Object.keys(mapping).filter(key => {
           return error.name === key
         })
-        let camera_error = valid_error
+        const camera_error = valid_error
           ? mapping[valid_error]
           : `ERROR: Camera error (${error.name})`
         this.parse.camera.show = false
@@ -246,7 +246,7 @@ window.app = Vue.createApp({
           LNbits.utils.notifyApiError(err)
         })
         .then(response => {
-          let data = response.data
+          const data = response.data
 
           if (data.status === 'ERROR') {
             Quasar.Notify.create({
@@ -283,15 +283,15 @@ window.app = Vue.createApp({
           }
         })
     },
-    decodeQR: function (res) {
+    decodeQR(res) {
       this.parse.data.request = res[0].rawValue
       this.decodeRequest()
       this.parse.camera.show = false
     },
-    decodeRequest: function () {
+    decodeRequest() {
       this.parse.show = true
       this.parse.data.request = this.parse.data.request.trim().toLowerCase()
-      let req = this.parse.data.request
+      const req = this.parse.data.request
       if (req.startsWith('lightning:')) {
         this.parse.data.request = req.slice(10)
       } else if (req.startsWith('lnurl:')) {
@@ -342,7 +342,7 @@ window.app = Vue.createApp({
           } else if (tag.description === 'description') {
             cleanInvoice.description = tag.value
           } else if (tag.description === 'expiry') {
-            var expireDate = new Date(
+            const expireDate = new Date(
               (invoice.data.time_stamp + tag.value) * 1000
             )
             cleanInvoice.expireDate = Quasar.date.formatDate(
@@ -356,8 +356,8 @@ window.app = Vue.createApp({
 
       this.parse.invoice = Object.freeze(cleanInvoice)
     },
-    payInvoice: function () {
-      let dismissPaymentMsg = Quasar.Notify.create({
+    payInvoice() {
+      const dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
         message: this.$t('processing_payment')
       })
@@ -389,8 +389,8 @@ window.app = Vue.createApp({
           this.parse.show = false
         })
     },
-    payLnurl: function () {
-      let dismissPaymentMsg = Quasar.Notify.create({
+    payLnurl() {
+      const dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
         message: 'Processing payment...'
       })
@@ -472,8 +472,8 @@ window.app = Vue.createApp({
           LNbits.utils.notifyApiError(err)
         })
     },
-    authLnurl: function () {
-      let dismissAuthMsg = Quasar.Notify.create({
+    authLnurl() {
+      const dismissAuthMsg = Quasar.Notify.create({
         timeout: 10,
         message: 'Performing authentication...'
       })
@@ -503,7 +503,7 @@ window.app = Vue.createApp({
           }
         })
     },
-    updateWallet: function (data) {
+    updateWallet(data) {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
         .then(_ => {
@@ -518,7 +518,7 @@ window.app = Vue.createApp({
           LNbits.utils.notifyApiError(err)
         })
     },
-    deleteWallet: function () {
+    deleteWallet() {
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this wallet?')
         .onOk(() => {
@@ -536,7 +536,7 @@ window.app = Vue.createApp({
             })
         })
     },
-    fetchBalance: function () {
+    fetchBalance() {
       LNbits.api.getWallet(this.g.wallet).then(response => {
         this.balance = Math.floor(response.data.balance / 1000)
         document.dispatchEvent(
@@ -561,18 +561,18 @@ window.app = Vue.createApp({
         })
         .catch(e => console.error(e))
     },
-    updateBalanceCallback: function (res) {
+    updateBalanceCallback(res) {
       if (res.success && wallet.id === res.wallet_id) {
         this.balance += res.credit
       }
     },
-    pasteToTextArea: function () {
+    pasteToTextArea() {
       this.$refs.textArea.focus() // Set cursor to textarea
       navigator.clipboard.readText().then(text => {
         this.parse.data.request = text.trim()
       })
     },
-    readNfcTag: function () {
+    readNfcTag() {
       try {
         if (typeof NDEFReader == 'undefined') {
           console.debug('NFC not supported on this device or browser.')
@@ -587,7 +587,7 @@ window.app = Vue.createApp({
         }
 
         this.hasNfc = true
-        let dismissNfcTapMsg = Quasar.Notify.create({
+        const dismissNfcTapMsg = Quasar.Notify.create({
           message: 'Tap your NFC tag to pay this invoice with LNURLw.'
         })
 
@@ -635,8 +635,8 @@ window.app = Vue.createApp({
         })
       }
     },
-    payInvoiceWithNfc: function (lnurl) {
-      let dismissPaymentMsg = Quasar.Notify.create({
+    payInvoiceWithNfc(lnurl) {
+      const dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
         spinner: true,
         message: this.$t('processing_payment')
@@ -669,8 +669,8 @@ window.app = Vue.createApp({
         })
     }
   },
-  created: function () {
-    let urlParams = new URLSearchParams(window.location.search)
+  created() {
+    const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
       this.parse.data.request =
         urlParams.get('lightning') || urlParams.get('lnurl')
@@ -686,11 +686,11 @@ window.app = Vue.createApp({
     this.updateFiatBalance()
   },
   watch: {
-    updatePayments: function () {
+    updatePayments() {
       this.fetchBalance()
     }
   },
-  mounted: function () {
+  mounted() {
     // show disclaimer
     if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
@@ -705,9 +705,7 @@ window.app = Vue.createApp({
 })
 
 if (navigator.serviceWorker != null) {
-  navigator.serviceWorker
-    .register('/service-worker.js')
-    .then(function (registration) {
-      console.log('Registered events at scope: ', registration.scope)
-    })
+  navigator.serviceWorker.register('/service-worker.js').then(registration => {
+    console.log('Registered events at scope: ', registration.scope)
+  })
 }

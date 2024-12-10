@@ -1,7 +1,7 @@
 window.app = Vue.createApp({
   el: '#vue',
   mixins: [window.windowMixin],
-  data: function () {
+  data() {
     return {
       paymentsWallet: {},
       wallet: {},
@@ -175,7 +175,7 @@ window.app = Vue.createApp({
     formatDate(date) {
       return LNbits.utils.formatDateString(date)
     },
-    formatSat: function (value) {
+    formatSat(value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
     },
     backToUsersPage() {
@@ -197,9 +197,7 @@ window.app = Vue.createApp({
               this.copyText(url)
             })
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     createUser() {
       LNbits.api
@@ -215,9 +213,7 @@ window.app = Vue.createApp({
           this.activeUser.data = resp.data
           this.fetchUsers()
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     updateUser() {
       LNbits.api
@@ -237,9 +233,7 @@ window.app = Vue.createApp({
           this.activeUser.show = false
           this.fetchUsers()
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     createWallet() {
       const userId = this.activeWallet.userId
@@ -265,9 +259,7 @@ window.app = Vue.createApp({
             message: 'Wallet created!'
           })
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     deleteUser(user_id) {
       LNbits.utils
@@ -285,9 +277,7 @@ window.app = Vue.createApp({
               this.activeUser.data = null
               this.activeUser.show = false
             })
-            .catch(function (error) {
-              LNbits.utils.notifyApiError(error)
-            })
+            .catch(LNbits.utils.notifyApiError)
         })
     },
     undeleteUserWallet(user_id, wallet) {
@@ -304,9 +294,7 @@ window.app = Vue.createApp({
             icon: null
           })
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     deleteUserWallet(user_id, wallet, deleted) {
       const dialogText = deleted
@@ -323,9 +311,7 @@ window.app = Vue.createApp({
               icon: null
             })
           })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+          .catch(LNbits.utils.notifyApiError)
       })
     },
     copyWalletLink(walletId) {
@@ -342,9 +328,7 @@ window.app = Vue.createApp({
           this.usersTable.pagination.rowsNumber = res.data.total
           this.users = res.data.data
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     fetchWallets(userId) {
       LNbits.api
@@ -354,9 +338,7 @@ window.app = Vue.createApp({
           this.activeWallet.userId = userId
           this.activeWallet.show = true
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
 
     toggleAdmin(userId) {
@@ -370,9 +352,7 @@ window.app = Vue.createApp({
             icon: null
           })
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     exportUsers() {
       console.log('export users')
@@ -438,9 +418,7 @@ window.app = Vue.createApp({
           this.wallet = {}
           this.fetchWallets(this.activeWallet.userId)
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     searchUserBy(fieldName) {
       const fieldValue = this.searchData[fieldName]
