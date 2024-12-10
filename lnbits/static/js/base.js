@@ -1,4 +1,5 @@
 window.LOCALE = 'en'
+window.dateFormat = 'YYYY-MM-DD HH:mm'
 window.i18n = new VueI18n.createI18n({
   locale: window.LOCALE,
   fallbackLocale: window.LOCALE,
@@ -274,11 +275,11 @@ window.LNbits = {
         fiat_currency: data.fiat_currency
       }
 
-      obj.date = Quasar.date.formatDate(new Date(obj.time), 'YYYY-MM-DD HH:mm')
+      obj.date = Quasar.date.formatDate(new Date(obj.time), window.dateFormat)
       obj.dateFrom = moment(obj.date).fromNow()
       obj.expirydate = Quasar.date.formatDate(
         new Date(obj.expiry),
-        'YYYY-MM-DD HH:mm'
+        window.dateFormat
       )
       obj.expirydateFrom = moment(obj.expirydate).fromNow()
       obj.msat = obj.amount
@@ -322,11 +323,14 @@ window.LNbits = {
         .join('')
       return hashHex
     },
-    formatDate: function (timestamp) {
+    formatDate(timestamp) {
       return Quasar.date.formatDate(
         new Date(timestamp * 1000),
-        'YYYY-MM-DD HH:mm'
+        window.dateFormat
       )
+    },
+    formatDateString(isoDateString) {
+      return Quasar.date.formatDate(new Date(isoDateString), window.dateFormat)
     },
     formatCurrency: function (value, currency) {
       return new Intl.NumberFormat(window.LOCALE, {

@@ -172,8 +172,8 @@ window.app = Vue.createApp({
   },
 
   methods: {
-    formatDate: function (value) {
-      return LNbits.utils.formatDate(value)
+    formatDate(date) {
+      return LNbits.utils.formatDateString(date)
     },
     formatSat: function (value) {
       return LNbits.utils.formatSat(Math.floor(value / 1000))
