@@ -203,6 +203,10 @@ async def collect_exchange_rates_data():
         if sleep_time > 0:
             try:
                 rates = await btc_rates(currency)
+                if rates:
+                    rates_values = [r[1] for r in rates]
+                    lnbits_rate = sum(rates_values) / len(rates_values)
+                    rates.append(("LNbits", lnbits_rate))
                 settings.append_exchange_rate_datapoint(dict(rates), max_history_size)
             except Exception as ex:
                 logger.warning(ex)

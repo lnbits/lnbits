@@ -203,16 +203,16 @@ class InstalledExtensionsSettings(LNbitsSettings):
 
 class ExchangeHistorySettings(LNbitsSettings):
 
-    lnbits_exchange_rates_history: list[dict] = Field(default=[])
+    lnbits_exchange_rate_history: list[dict] = Field(default=[])
 
     def append_exchange_rate_datapoint(self, rates: dict, max_size: int):
         data = {
             "timestamp": int(datetime.now(timezone.utc).timestamp()),
             "rates": rates,
         }
-        self.lnbits_exchange_rates_history.append(data)
-        if len(self.lnbits_exchange_rates_history) > max_size:
-            self.lnbits_exchange_rates_history.pop(0)
+        self.lnbits_exchange_rate_history.append(data)
+        if len(self.lnbits_exchange_rate_history) > max_size:
+            self.lnbits_exchange_rate_history.pop(0)
 
 
 class ThemesSettings(LNbitsSettings):
@@ -273,8 +273,8 @@ class FeeSettings(LNbitsSettings):
 
 
 class ExchangeProvidersSettings(LNbitsSettings):
-    lnbits_exchange_history_size: int = Field(default=180)
-    lnbits_exchange_history_refresh_interval_seconds: int = Field(default=10)
+    lnbits_exchange_history_size: int = Field(default=60)
+    lnbits_exchange_history_refresh_interval_seconds: int = Field(default=300)
 
     lnbits_exchange_rate_providers: list[ExchangeRateProvider] = Field(
         default=[

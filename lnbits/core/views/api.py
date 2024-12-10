@@ -225,6 +225,11 @@ async def api_perform_lnurlauth(
     return ""
 
 
+@api_router.get("/api/v1/rate/history")
+async def api_exchange_rate_history() -> list[dict]:
+    return settings.lnbits_exchange_rate_history
+
+
 @api_router.get("/api/v1/rate/{currency}")
 async def api_check_fiat_rate(currency: str) -> dict[str, float]:
     rate = await get_fiat_rate_satoshis(currency)

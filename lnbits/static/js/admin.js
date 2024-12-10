@@ -355,6 +355,16 @@ window.app = Vue.createApp({
         })
         .catch(LNbits.utils.notifyApiError)
     },
+    getExchangeRateHistory() {
+      LNbits.api
+        .request('GET', '/api/v1/rate/history')
+        .then(response => {
+          this.initExchangeChart(response.data)
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
+    },
     getSettings() {
       LNbits.api
         .request(
@@ -422,11 +432,24 @@ window.app = Vue.createApp({
     },
     showExchangeProvidersTab(tabName) {
       if (tabName === 'exchange_providers') {
-        setTimeout(() => this.initExchangeChart(), 100)
+        this.getExchangeRateHistory()
       }
     },
-    initExchangeChart() {
-      const xValues = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+    initExchangeChart(data) {
+      const xValues = data.map(d =>
+        Quasar.date.formatDate(new Date(d.timestamp * 1000), 'HH:mm')
+      )
+      const exchanges = [
+        ...this.formData.lnbits_exchange_rate_providers,
+        {name: 'LNbits'}
+      ]
+      const datasets = exchanges.map(exchange => ({
+        label: exchange.name,
+        data: data.map(d => d.rates[exchange.name]),
+        pointStyle: exchange.name === 'LNbits',
+        borderWidth: 1,
+        tension: 1
+      }))
       this.exchangeRatesChart = new Chart(
         this.$refs.exchangeRatesChart.getContext('2d'),
         {
@@ -436,22 +459,7 @@ window.app = Vue.createApp({
           },
           data: {
             labels: xValues,
-            datasets: [
-              {
-                label: 'Binance',
-                data: [65, 59, 80, 81, 56, 55, 40],
-                fill: false,
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-              },
-              {
-                label: 'Kraken',
-                data: [59, 80, 81, 56, 55, 40, 100],
-                fill: false,
-                borderColor: 'rgb(175, 92, 192)',
-                tension: 0.1
-              }
-            ]
+            datasets
           }
         }
       )
