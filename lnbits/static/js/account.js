@@ -64,6 +64,26 @@ window.app = Vue.createApp({
         this.$q.localStorage.set('lnbits.gradientBg', false)
       }
     },
+    applyBackgroundImage: function () {
+      if (this.backgroundImage) {
+      this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+      }
+      let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
+      if (bgImage) {
+      const style = document.createElement('style')
+      style.innerHTML = `
+        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] {
+        background: url(${bgImage}) no-repeat center center fixed;
+        background-size: cover;
+        filter: blur(8px);
+        }
+        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
+        backdrop-filter: blur(8px);
+        }
+      `
+      document.head.appendChild(style)
+      }
+    },
     applyBorder: function () {
       slef = this
       if (this.borderChoice) {
@@ -88,6 +108,7 @@ window.app = Vue.createApp({
     toggleGradient: function () {
       this.gradientChoice = !this.gradientChoice
       this.applyGradient()
+      this.applyBackgroundImage()
       if (!this.gradientChoice) {
         window.location.reload()
       }
@@ -96,12 +117,16 @@ window.app = Vue.createApp({
     reactionChoiceFunc: function () {
       this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
     },
+    backgroundImageFunc: function () {
+      this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+    },
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
       this.setColors()
       if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
         this.applyGradient()
+        this.applyBackgroundImage()
       }
     },
     updateAccount: async function () {
@@ -211,6 +236,7 @@ window.app = Vue.createApp({
     }
     if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
       this.applyGradient()
+      this.applyBackgroundImage()
     }
     if (this.$q.localStorage.getItem('lnbits.border')) {
       this.applyBorder()

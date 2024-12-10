@@ -21,7 +21,7 @@ from lnbits.settings import get_funding_source, settings
 from lnbits.tasks import send_push_notification
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = {}
-audit_queue: asyncio.Queue = asyncio.Queue()
+audit_queue: asyncio.Queue = asyncio.Queue(0)
 
 
 async def killswitch_task():

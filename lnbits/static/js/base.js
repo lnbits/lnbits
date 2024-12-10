@@ -468,6 +468,7 @@ window.windowMixin = {
       toggleSubs: true,
       reactionChoice: 'confettiBothSides',
       borderChoice: '',
+      backgroundImage: '',
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
@@ -507,6 +508,26 @@ window.windowMixin = {
           `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
           `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
+      }
+    },
+    applyBackgroundImage: function () {
+      if (this.backgroundImage) {
+      this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+      }
+      let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
+      if (bgImage) {
+      const style = document.createElement('style')
+      style.innerHTML = `
+        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] {
+        background: url(${bgImage}) no-repeat center center fixed;
+        background-size: cover;
+        filter: blur(8px);
+        }
+        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
+        backdrop-filter: blur(8px);
+        }
+      `
+      document.head.appendChild(style)
       }
     },
     applyBorder: function () {
