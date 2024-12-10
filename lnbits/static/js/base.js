@@ -225,13 +225,13 @@ window.LNbits = {
       }
       const mapWallet = this.wallet
       obj.wallets = obj.wallets
-        .map((obj) => {
+        .map(obj => {
           return mapWallet(obj)
         })
         .sort((a, b) => {
           return a.name.localeCompare(b.name)
         })
-      obj.walletOptions = obj.wallets.map((obj) => {
+      obj.walletOptions = obj.wallets.map(obj => {
         return {
           label: [obj.name, ' - ', obj.id].join(''),
           value: obj.id
@@ -368,9 +368,9 @@ window.LNbits = {
     search(data, q, field, separator) {
       try {
         const queries = q.toLowerCase().split(separator || ' ')
-        return data.filter((obj) => {
+        return data.filter(obj => {
           let matches = 0
-          _.each(queries, (q) => {
+          _.each(queries, q => {
             if (obj[field].indexOf(q) !== -1) matches++
           })
           return matches === queries.length
@@ -411,14 +411,14 @@ window.LNbits = {
       }
 
       const content = [
-        columns.map((col) => {
+        columns.map(col => {
           return wrapCsvValue(col.label)
         })
       ]
         .concat(
-          data.map((row) => {
+          data.map(row => {
             return columns
-              .map((col) => {
+              .map(col => {
                 return wrapCsvValue(
                   typeof col.field === 'function'
                     ? col.field(row)

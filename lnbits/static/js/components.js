@@ -37,7 +37,7 @@ window.app.component('lnbits-wallet-list', {
   computed: {
     wallets() {
       const bal = this.balance
-      return this.user.wallets.map((obj) => {
+      return this.user.wallets.map(obj => {
         obj.live_fsat =
           bal.length && bal[0] === obj.id
             ? LNbits.utils.formatSat(bal[1])
@@ -85,10 +85,10 @@ window.app.component('lnbits-extension-list', {
       const userExtensions = this.user.extensions
 
       return this.extensions
-        .filter((o) => {
+        .filter(o => {
           return userExtensions.indexOf(o.code) !== -1
         })
-        .filter((o) => {
+        .filter(o => {
           if (!filterBy) return true
           return (
             `${o.code} ${o.name} ${o.short_description} ${o.url}`
@@ -96,7 +96,7 @@ window.app.component('lnbits-extension-list', {
               .indexOf(filterBy.toLocaleLowerCase()) !== -1
           )
         })
-        .map((obj) => {
+        .map(obj => {
           obj.isActive = path.startsWith(obj.url)
           return obj
         })
@@ -110,7 +110,7 @@ window.app.component('lnbits-extension-list', {
     try {
       const {data} = await LNbits.api.request('GET', '/api/v1/extension')
       this.extensions = data
-        .map((data) => {
+        .map(data => {
           return LNbits.map.extension(data)
         })
         .sort((a, b) => {
@@ -320,7 +320,7 @@ window.app.component('lnbits-notifications-btn', {
         navigator.serviceWorker.getRegistration().then(registration => {
           registration.pushManager
             .getSubscription()
-            .then((subscription) => {
+            .then(subscription => {
               if (
                 subscription === null ||
                 !this.isUserSubscribed(this.g.user.id)
@@ -332,7 +332,7 @@ window.app.component('lnbits-notifications-btn', {
 
                 registration.pushManager
                   .subscribe(options)
-                  .then((subscription) => {
+                  .then(subscription => {
                     LNbits.api
                       .request(
                         'POST',
@@ -342,7 +342,7 @@ window.app.component('lnbits-notifications-btn', {
                           subscription: JSON.stringify(subscription)
                         }
                       )
-                      .then((response) => {
+                      .then(response => {
                         this.saveUserSubscribed(response.data.user)
                         this.isSubscribed = true
                       })
