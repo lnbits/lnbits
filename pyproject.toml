@@ -66,10 +66,6 @@ liquid = ["wallycore"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8.0"
-# we are stuck with pytest-asyncio 0.21.x because of https://github.com/pytest-dev/pytest-asyncio/issues/706
-pytest-asyncio = "^0.21.2"
-pytest = "^8.3.2"
-pytest-cov = "^4.1.0"
 mypy = "^1.11.2"
 types-protobuf = "^5.27.0.20240626"
 pre-commit = "^3.8.0"
@@ -79,6 +75,9 @@ types-passlib = "^1.7.7.20240327"
 openai = "^1.39.0"
 json5 = "^0.9.25"
 asgi-lifespan = "^2.1.0"
+pytest = "^8.3.4"
+pytest-asyncio = "^0.24.0"
+pytest-cov = "^6.0.0"
 pytest-md = "^0.2.0"
 pytest-httpserver = "^1.1.0"
 pytest-mock = "^3.14.0"
