@@ -1,7 +1,46 @@
 <q-tab-panel name="exchange_providers">
   <h6 class="q-my-none q-mb-sm">Exchange Providers</h6>
 
-  <div class="row q-mb-md">
+  <div class="row">
+    <div class="col-md-4 col-sm-12 q-pr-lg">
+      <q-input
+        filled
+        v-model="formData.lnbits_exchange_history_refresh_interval_seconds"
+        type="number"
+        label="Refresh Interval (seconds)"
+        hint="How often should the exchange rates be fetched."
+      >
+      </q-input>
+    </div>
+    <div class="col-md-4 col-sm-12 q-pr-lg">
+      <q-input
+        filled
+        v-model="formData.lnbits_exchange_history_size"
+        type="number"
+        label="History Size"
+        hint="How many data points should be kept in memory."
+      >
+      </q-input>
+    </div>
+    <div class="col-md-4 col-sm-12 q-pr-lg">
+      <ul>
+        <li>
+          <code>Refresh Interval</code> and <code> History Size </code>are for
+          historical purposes only.
+        </li>
+        <li>These two settings do not affect the</li>
+      </ul>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-lg-10 col-md-12">
+      <div style="width: 1000px" class="q-pa-sm">
+        <canvas ref="exchangeRatesChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="row q-mt-md">
     <div class="col-6">
       <q-btn
         @click="addExchangeProvider()"
@@ -20,14 +59,6 @@
         class="float-right"
       >
       </q-btn>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-12">
-      <div style="width: 800px" class="q-pa-sm">
-        <canvas ref="exchangeRatesChart"></canvas>
-      </div>
     </div>
   </div>
 
