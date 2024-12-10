@@ -57,13 +57,6 @@ def run_before_and_after_tests(settings: Settings):
     _settings_cleanup(settings)
 
 
-@pytest_asyncio.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
-    loop.close()
-
-
 # use session scope to run once before and once after all tests
 @pytest_asyncio.fixture(scope="session")
 async def app(settings: Settings):
