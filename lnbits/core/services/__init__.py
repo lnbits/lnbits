@@ -3,6 +3,7 @@ from .funding_source import (
     switch_to_voidwallet,
 )
 from .lnurl import perform_lnurlauth, redeem_lnurl_withdraw
+from .migration import delete_table_column
 from .payments import (
     calculate_fiat_amounts,
     check_transaction_status,
@@ -49,6 +50,8 @@ __all__ = [
     "service_fee",
     "update_pending_payments",
     "update_wallet_balance",
+    # migration
+    "delete_table_column",
     # settings
     "check_webpush_settings",
     "update_cached_settings",
