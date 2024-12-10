@@ -383,7 +383,8 @@ window.app = Vue.createApp({
     updateSettings() {
       const data = _.omit(this.formData, [
         'is_super_user',
-        'lnbits_allowed_funding_sources'
+        'lnbits_allowed_funding_sources',
+        'touch'
       ])
       LNbits.api
         .request(
@@ -434,6 +435,9 @@ window.app = Vue.createApp({
       if (tabName === 'exchange_providers') {
         this.getExchangeRateHistory()
       }
+    },
+    touchSettings() {
+      this.formData.touch = null
     },
     initExchangeChart(data) {
       const xValues = data.map(d =>

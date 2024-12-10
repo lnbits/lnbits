@@ -4,7 +4,15 @@
   <div class="row">
     <div class="col-md-8 col-sm-12">
       <div class="q-pa-sm">
-        <canvas style="width: 100%" ref="exchangeRatesChart"></canvas>
+        <canvas
+          style="
+            width: 100% !important;
+            height: auto !important;
+            min-height: 350px;
+            max-height: 50vh;
+          "
+          ref="exchangeRatesChart"
+        ></canvas>
       </div>
     </div>
     <div class="col-md-4 col-sm-12">
@@ -92,20 +100,41 @@
           </q-btn>
         </q-td>
         <q-td>
-          <q-input dense filled v-model="props.row.name" type="text"> </q-input>
+          <q-input
+            dense
+            filled
+            v-model="props.row.name"
+            @update:model-value="touchSettings()"
+            type="text"
+          >
+          </q-input>
         </q-td>
         <q-td>
-          <q-input dense filled v-model="props.row.api_url" type="text">
+          <q-input
+            dense
+            filled
+            v-model="props.row.api_url"
+            @update:model-value="touchSettings()"
+            type="text"
+          >
           </q-input
         ></q-td>
         <q-td>
-          <q-input dense filled v-model="props.row.path" type="text"> </q-input>
+          <q-input
+            dense
+            filled
+            v-model="props.row.path"
+            @update:model-value="touchSettings()"
+            type="text"
+          >
+          </q-input>
         </q-td>
         <q-td>
           <q-select
             filled
             dense
             v-model="props.row.exclude_to"
+            @update:model-value="touchSettings()"
             multiple
             :options="{{ currencies | safe }}"
           ></q-select>
