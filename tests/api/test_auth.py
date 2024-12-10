@@ -27,6 +27,7 @@ nostr_event = {
 private_key = secp256k1.PrivateKey(
     bytes.fromhex("6e00ecda7d3c8945f07b7d6ecc18cfff34c07bc99677309e2b9310d9fc1bb138")
 )
+assert private_key.pubkey, "Pubkey not created."
 pubkey_hex = private_key.pubkey.serialize().hex()[2:]
 
 
@@ -487,6 +488,7 @@ async def test_register_nostr_ok(http_client: AsyncClient, settings: Settings):
     event["created_at"] = int(time.time())
 
     private_key = secp256k1.PrivateKey(bytes.fromhex(os.urandom(32).hex()))
+    assert private_key.pubkey, "Pubkey not created."
     pubkey_hex = private_key.pubkey.serialize().hex()[2:]
     event_signed = sign_event(event, pubkey_hex, private_key)
     base64_event = base64.b64encode(json.dumps(event_signed).encode()).decode("ascii")
@@ -692,6 +694,7 @@ async def test_change_pubkey_npub_ok(http_client: AsyncClient, settings: Setting
     access_token_payload = AccessTokenPayload(**payload)
 
     private_key = secp256k1.PrivateKey(bytes.fromhex(os.urandom(32).hex()))
+    assert private_key.pubkey, "Pubkey not created."
     pubkey_hex = private_key.pubkey.serialize().hex()[2:]
     npub = hex_to_npub(pubkey_hex)
 
@@ -734,6 +737,7 @@ async def test_change_pubkey_ok(
     access_token_payload = AccessTokenPayload(**payload)
 
     private_key = secp256k1.PrivateKey(bytes.fromhex(os.urandom(32).hex()))
+    assert private_key.pubkey, "Pubkey not created."
     pubkey_hex = private_key.pubkey.serialize().hex()[2:]
 
     response = await http_client.put(
