@@ -186,7 +186,7 @@ def allowed_currencies():
     return list(currencies.keys())
 
 
-async def btc_price(currency: str) -> float:
+async def btc_rates(currency: str) -> list[tuple[str, float]]:
     replacements = {
         "FROM": "BTC",
         "from": "btc",
@@ -194,7 +194,7 @@ async def btc_price(currency: str) -> float:
         "to": currency.lower(),
     }
 
-    async def fetch_price(provider: ExchangeRateProvider):
+    async def fetch_price(provider: ExchangeRateProvider) -> tuple[str, float]:
         if currency.lower() in provider.exclude_to:
             raise Exception(f"Provider {provider.name} does not support {currency}.")
 
@@ -207,11 +207,11 @@ async def btc_price(currency: str) -> float:
                 r.raise_for_status()
 
                 if not provider.path:
-                    return float(r.text.replace(",", ""))
+                    return provider.name, float(r.text.replace(",", ""))
                 data = r.json()
                 price_query = jpx.parse(provider.path.format(**replacements))
                 result = price_query.find(data)
-                return float(result[0].value)
+                return provider.name, float(result[0].value)
 
         except Exception as e:
             logger.warning(
@@ -227,14 +227,18 @@ async def btc_price(currency: str) -> float:
         ],
         return_exceptions=True,
     )
-    rates = [r for r in results if not isinstance(r, BaseException)]
+    return [r for r in results if not isinstance(r, BaseException)]
 
+
+async def btc_price(currency: str) -> float:
+    rates = await btc_rates(currency)
     if not rates:
         return 9999999999
     elif len(rates) == 1:
         logger.warning("Could only fetch one Bitcoin price.")
 
-    return sum(rates) / len(rates)
+    rates_values = [r[1] for r in rates]
+    return sum(rates_values) / len(rates_values)
 
 
 async def get_fiat_rate_satoshis(currency: str) -> float:

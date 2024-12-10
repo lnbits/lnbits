@@ -5,6 +5,7 @@ import importlib.metadata
 import inspect
 import json
 import re
+from datetime import datetime, timezone
 from enum import Enum
 from hashlib import sha256
 from os import path
@@ -200,6 +201,20 @@ class InstalledExtensionsSettings(LNbitsSettings):
         ]
 
 
+class ExchangeHistorySettings(LNbitsSettings):
+
+    lnbits_exchange_rates_history: list[dict] = Field(default=[])
+
+    def append_exchange_rate_datapoint(self, rates: dict, max_size: int):
+        data = {
+            "timestamp": int(datetime.now(timezone.utc).timestamp()),
+            "rates": rates,
+        }
+        self.lnbits_exchange_rates_history.append(data)
+        if len(self.lnbits_exchange_rates_history) > max_size:
+            self.lnbits_exchange_rates_history.pop(0)
+
+
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
@@ -258,10 +273,13 @@ class FeeSettings(LNbitsSettings):
 
 
 class ExchangeProvidersSettings(LNbitsSettings):
+    lnbits_exchange_history_size: int = Field(default=180)
+    lnbits_exchange_history_refresh_interval_seconds: int = Field(default=10)
+
     lnbits_exchange_rate_providers: list[ExchangeRateProvider] = Field(
         default=[
             ExchangeRateProvider(
-                name="Binance",
+                name="Binance",  # todo: USDT instead of USD
                 api_url="https://api.binance.com/api/v3/ticker/price?symbol=BTC{TO}",
                 path="$.price",
                 exclude_to=["czk"],
@@ -768,7 +786,7 @@ class SuperUserSettings(LNbitsSettings):
     )
 
 
-class TransientSettings(InstalledExtensionsSettings):
+class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     # Transient Settings:
     #  - are initialized, updated and used at runtime
     #  - are not read from a file or from the `settings` table

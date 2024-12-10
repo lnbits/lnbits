@@ -96,9 +96,9 @@ window.app = Vue.createApp({
         ],
         pagination: {
           sortBy: 'name',
-          rowsPerPage: 10,
+          rowsPerPage: 100,
           page: 1,
-          rowsNumber: 10
+          rowsNumber: 100
         },
         search: null,
         hideEmpty: true
@@ -419,6 +419,42 @@ window.app = Vue.createApp({
     },
     downloadBackup() {
       window.open('/admin/api/v1/backup', '_blank')
+    },
+    showExchangeProvidersTab(tabName) {
+      if (tabName === 'exchange_providers') {
+        setTimeout(() => this.initExchangeChart(), 100)
+      }
+    },
+    initExchangeChart() {
+      const xValues = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+      this.exchangeRatesChart = new Chart(
+        this.$refs.exchangeRatesChart.getContext('2d'),
+        {
+          type: 'line',
+          options: {
+            legend: {display: false}
+          },
+          data: {
+            labels: xValues,
+            datasets: [
+              {
+                label: 'Binance',
+                data: [65, 59, 80, 81, 56, 55, 40],
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+              },
+              {
+                label: 'Kraken',
+                data: [59, 80, 81, 56, 55, 40, 100],
+                fill: false,
+                borderColor: 'rgb(175, 92, 192)',
+                tension: 0.1
+              }
+            ]
+          }
+        }
+      )
     }
   }
 })

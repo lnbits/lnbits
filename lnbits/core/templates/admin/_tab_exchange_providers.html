@@ -23,13 +23,20 @@
     </div>
   </div>
 
+  <div class="row">
+    <div class="col-12">
+      <div style="width: 500px" class="q-pa-sm">
+        <canvas ref="exchangeRatesChart"></canvas>
+      </div>
+    </div>
+  </div>
+
   <q-table
     row-key="name"
     :rows="formData.lnbits_exchange_rate_providers"
     :columns="exchangesTable.columns"
     v-model:pagination="exchangesTable.pagination"
   >
-    <!-- @request="fetchUsers" -->
     <template v-slot:header="props">
       <q-tr :props="props">
         <q-th auto-width></q-th>

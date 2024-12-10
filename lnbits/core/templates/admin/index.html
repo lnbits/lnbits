@@ -63,7 +63,12 @@
     <q-card>
       <q-splitter>
         <template v-slot:before>
-          <q-tabs v-model="tab" vertical active-color="primary">
+          <q-tabs
+            @update:model-value="showExchangeProvidersTab"
+            v-model="tab"
+            vertical
+            active-color="primary"
+          >
             <q-tab
               name="funding"
               icon="account_balance_wallet"
@@ -93,7 +98,6 @@
               name="exchange_providers"
               icon="show_chart"
               :label="$q.screen.gt.sm ? $t('exchanges') : null"
-              @update="val => tab = val.name"
               ><q-tooltip v-if="!$q.screen.gt.sm"
                 ><span v-text="$t('exchanges')"></span></q-tooltip
             ></q-tab>

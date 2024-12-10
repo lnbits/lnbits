@@ -19,6 +19,7 @@ from lnbits.core.services import (
 )
 from lnbits.settings import get_funding_source, settings
 from lnbits.tasks import send_push_notification
+from lnbits.utils.exchange_rates import btc_rates
 
 api_invoice_listeners: Dict[str, asyncio.Queue] = {}
 audit_queue: asyncio.Queue = asyncio.Queue()
@@ -188,3 +189,23 @@ async def purge_audit_data():
 
         # clean every hour
         await asyncio.sleep(60 * 60)
+
+
+async def collect_exchange_rates_data():
+    """
+    Collect exchange rates data. Used for monitoring only.
+    """
+    while settings.lnbits_running:
+        currency = settings.lnbits_default_accounting_currency or "USD"
+        max_history_size = settings.lnbits_exchange_history_size
+        sleep_time = settings.lnbits_exchange_history_refresh_interval_seconds
+
+        if sleep_time > 0:
+            try:
+                rates = await btc_rates(currency)
+                settings.append_exchange_rate_datapoint(dict(rates), max_history_size)
+            except Exception as ex:
+                logger.warning(ex)
+        else:
+            sleep_time = 60
+        await asyncio.sleep(sleep_time)
