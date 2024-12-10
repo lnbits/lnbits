@@ -674,6 +674,7 @@ async def test_register_nostr_bad_event_tag_menthod(http_client: AsyncClient):
 
 
 ################################ CHANGE PUBLIC KEY ################################
+@pytest.mark.asyncio
 async def test_change_pubkey_npub_ok(http_client: AsyncClient, settings: Settings):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
