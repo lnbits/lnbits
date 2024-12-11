@@ -88,7 +88,7 @@ def test_client(app):
 
 
 @pytest.fixture(scope="session")
-def db():
+async def db():
     return Database("database")
 
 
