@@ -40,28 +40,35 @@ window.app = Vue.createApp({
       }
     },
     applyGradient() {
-      darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
-      primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
-      if (this.gradientChoice) {
-        if (!this.$q.dark.isActive) {
-          this.toggleDarkMode()
-        }
+      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
+        this.setColors()
+        darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
+        primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
         document.body.style.setProperty(
           'background-image',
           gradientStyle,
           'important'
         )
-        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
+        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.55)} !important`
         const style = document.createElement('style')
-        style.innerHTML =
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
-          `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
-        document.head.appendChild(style)
-        this.$q.localStorage.set('lnbits.gradientBg', true)
-      } else {
-        this.$q.localStorage.set('lnbits.gradientBg', false)
+        style.innerHTML = `
+          body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark),
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header,
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer,
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-tab-panels {
+          ${gradientStyleCards}
+          }
+
+          body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark {
+          background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important;
+          }
+
+          [data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark {
+          background: ${String(darkBgColor)} !important;
+          }
+        `
+  document.head.appendChild(style)
       }
     },
     applyBackgroundImage() {
@@ -70,17 +77,28 @@ window.app = Vue.createApp({
       }
       let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
       if (bgImage) {
+        this.backgroundImage = bgImage
       const style = document.createElement('style')
       style.innerHTML = `
-        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] {
-        background: url(${bgImage}) no-repeat center center fixed;
-        background-size: cover;
-        filter: blur(8px);
-        }
-        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
-        backdrop-filter: blur(8px);
-        }
-      `
+  body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"]::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url(${bgImage});
+    background-size: cover;
+    filter: blur(8px);
+    z-index: -1;
+    background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  }
+
+  body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
+    backdrop-filter: none; /* Ensure the page content is not affected */
+  }`
       document.head.appendChild(style)
       }
     },
@@ -235,6 +253,8 @@ window.app = Vue.createApp({
     }
     if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
       this.applyGradient()
+    }
+    if (this.$q.localStorage.getItem('lnbits.backgroundImage')) {
       this.applyBackgroundImage()
     }
     if (this.$q.localStorage.getItem('lnbits.border')) {

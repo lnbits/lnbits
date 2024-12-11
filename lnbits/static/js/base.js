@@ -506,16 +506,28 @@ window.windowMixin = {
           gradientStyle,
           'important'
         )
-        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
+        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.55)} !important`
         const style = document.createElement('style')
-        style.innerHTML =
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
-          `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
-        document.head.appendChild(style)
+        style.innerHTML = `
+          body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark),
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header,
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer,
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-tab-panels {
+          ${gradientStyleCards}
+          }
+
+          body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark {
+          background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important;
+          }
+
+          [data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark {
+          background: ${String(darkBgColor)} !important;
+          }
+        `
+  document.head.appendChild(style)
       }
     },
-    applyBackgroundImage: function () {
+    applyBackgroundImage() {
       if (this.backgroundImage) {
       this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
       }
@@ -523,19 +535,29 @@ window.windowMixin = {
       if (bgImage) {
       const style = document.createElement('style')
       style.innerHTML = `
-        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] {
-        background: url(${bgImage}) no-repeat center center fixed;
-        background-size: cover;
-        filter: blur(8px);
-        }
-        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
-        backdrop-filter: blur(8px);
-        }
-      `
+  body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"]::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url(${bgImage});
+    background-size: cover;
+    filter: blur(8px);
+    z-index: -1;
+    background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  }
+
+  body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
+    backdrop-filter: none; /* Ensure the page content is not affected */
+  }`
       document.head.appendChild(style)
       }
     },
-    applyBorder: function () {
+    applyBorder() {
       if (this.borderChoice) {
         this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
       }
@@ -725,6 +747,7 @@ window.windowMixin = {
 
     this.applyGradient()
     this.applyBorder()
+    this.applyBackgroundImage()
 
     if (window.user) {
       this.g.user = Object.freeze(window.LNbits.map.user(window.user))
