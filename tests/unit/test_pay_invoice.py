@@ -11,6 +11,7 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.crud import get_standalone_payment, get_wallet
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.db import Connection
 from lnbits.exceptions import PaymentError
 from lnbits.settings import Settings
 from lnbits.tasks import (
@@ -22,8 +23,8 @@ from lnbits.wallets.base import PaymentResponse
 from lnbits.wallets.fake import FakeWallet
 
 
-@pytest.mark.asyncio
-async def test_invalid_bolt11(to_wallet):
+@pytest.mark.anyio
+async def test_invalid_bolt11(to_wallet: Wallet):
     with pytest.raises(PaymentError):
         await pay_invoice(
             wallet_id=to_wallet.id,
@@ -31,7 +32,7 @@ async def test_invalid_bolt11(to_wallet):
         )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_amountless_invoice(to_wallet: Wallet):
     zero_amount_invoice = (
         "lnbc1pnsu5z3pp57getmdaxhg5kc9yh2a2qsh7cjf4gnccgkw0qenm8vsqv50w7s"
@@ -47,7 +48,7 @@ async def test_amountless_invoice(to_wallet: Wallet):
         )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio(scope="session")
 async def test_bad_wallet_id(to_wallet: Wallet):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=31, memo="Bad Wallet")
     bad_wallet_id = to_wallet.id[::-1]
@@ -60,33 +61,37 @@ async def test_bad_wallet_id(to_wallet: Wallet):
         )
 
 
-@pytest.mark.asyncio
-async def test_payment_limit(to_wallet: Wallet):
-    payment = await create_invoice(wallet_id=to_wallet.id, amount=101, memo="")
+@pytest.mark.anyio
+async def test_payment_limit(db: Connection, to_wallet: Wallet):
+    payment = await create_invoice(wallet_id=to_wallet.id, amount=101, memo="", conn=db)
     with pytest.raises(PaymentError, match="Amount in invoice is too high."):
-
         await pay_invoice(
             wallet_id=to_wallet.id,
             max_sat=100,
             payment_request=payment.bolt11,
+            conn=db,
         )
 
 
-@pytest.mark.asyncio
-async def test_pay_twice(to_wallet: Wallet):
-    payment = await create_invoice(wallet_id=to_wallet.id, amount=3, memo="Twice")
+@pytest.mark.anyio
+async def test_pay_twice(db: Connection, to_wallet: Wallet):
+    payment = await create_invoice(
+        wallet_id=to_wallet.id, amount=3, memo="Twice", conn=db
+    )
     await pay_invoice(
         wallet_id=to_wallet.id,
         payment_request=payment.bolt11,
+        conn=db,
     )
     with pytest.raises(PaymentError, match="Internal invoice already paid."):
         await pay_invoice(
             wallet_id=to_wallet.id,
             payment_request=payment.bolt11,
+            conn=db,
         )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_fake_wallet_pay_external(
     to_wallet: Wallet, external_funding_source: FakeWallet
 ):
@@ -101,7 +106,7 @@ async def test_fake_wallet_pay_external(
         )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_invoice_changed(to_wallet: Wallet):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=21, memo="original")
 
@@ -126,7 +131,7 @@ async def test_invoice_changed(to_wallet: Wallet):
         )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_for_extension(to_wallet: Wallet, settings: Settings):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=3, memo="Allowed")
     await pay_invoice(
@@ -144,7 +149,7 @@ async def test_pay_for_extension(to_wallet: Wallet, settings: Settings):
         )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_notification_for_internal_payment(to_wallet: Wallet):
     test_name = "test_notification_for_internal_payment"
 
@@ -168,7 +173,7 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
             break  # we found our payment, success
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_failed(
     to_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
@@ -194,7 +199,7 @@ async def test_pay_failed(
     assert payment.amount == -2101_000
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_retry_failed_invoice(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
@@ -264,7 +269,7 @@ async def test_retry_failed_invoice(
     assert ws_notification.call_count == 0, "Websocket notification not sent."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_external_invoice_pending(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
@@ -310,7 +315,7 @@ async def test_pay_external_invoice_pending(
     assert ws_notification.call_count == 0, "Websocket notification not sent."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_retry_pay_external_invoice_pending(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
@@ -355,7 +360,7 @@ async def test_retry_pay_external_invoice_pending(
     assert ws_notification.call_count == 0, "Websocket notification not sent."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_external_invoice_success(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
@@ -401,7 +406,7 @@ async def test_pay_external_invoice_success(
     assert ws_notification.call_count == 1, "Websocket notification sent."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_retry_pay_success(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
@@ -446,7 +451,7 @@ async def test_retry_pay_success(
     assert ws_notification.call_count == 1, "No new websocket notification sent."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_external_invoice_success_bad_checking_id(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
@@ -479,7 +484,7 @@ async def test_pay_external_invoice_success_bad_checking_id(
     assert payment.status == PaymentState.SUCCESS.value
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_no_checking_id(
     from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
 ):
@@ -512,8 +517,9 @@ async def test_no_checking_id(
     assert payment.status == PaymentState.PENDING.value
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_service_fee(
+    db: Connection,
     from_wallet: Wallet,
     to_wallet: Wallet,
     mocker: MockerFixture,
@@ -540,9 +546,10 @@ async def test_service_fee(
     payment = await pay_invoice(
         wallet_id=from_wallet.id,
         payment_request=external_invoice.payment_request,
+        conn=db,
     )
 
-    _payment = await get_standalone_payment(payment.payment_hash)
+    _payment = await get_standalone_payment(payment.payment_hash, conn=db)
     assert _payment
     assert _payment.status == PaymentState.SUCCESS.value
     assert _payment.checking_id == payment.payment_hash
@@ -552,7 +559,8 @@ async def test_service_fee(
     assert _payment.preimage == preimage
 
     service_fee_payment = await get_standalone_payment(
-        f"service_fee_{payment.payment_hash}"
+        f"service_fee_{payment.payment_hash}",
+        conn=db,
     )
     assert service_fee_payment
     assert service_fee_payment.status == PaymentState.SUCCESS.value

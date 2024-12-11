@@ -1,18 +1,9 @@
-# ruff: noqa: E402
 import asyncio
 from datetime import datetime, timezone
-
-import uvloop
-
-from lnbits.core.views.payment_api import _api_payments_create_invoice
-from lnbits.wallets.fake import FakeWallet
-
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
 from uuid import uuid4
 
 import pytest
-import pytest_asyncio
+import uvloop
 from asgi_lifespan import LifespanManager
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
@@ -29,15 +20,24 @@ from lnbits.core.crud import (
 )
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
 from lnbits.core.services import create_user_account, update_wallet_balance
+from lnbits.core.views.payment_api import _api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import AuthMethods, Settings
 from lnbits.settings import settings as lnbits_settings
+from lnbits.wallets.fake import FakeWallet
 from tests.helpers import (
     get_random_invoice_data,
 )
 
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-@pytest_asyncio.fixture(scope="session")
+
+@pytest.fixture(scope="session")
+def anyio_backend():
+    return "asyncio"
+
+
+@pytest.fixture(scope="session")
 def settings():
     # override settings for tests
     lnbits_settings.lnbits_admin_extensions = []
@@ -58,7 +58,7 @@ def run_before_and_after_tests(settings: Settings):
 
 
 # use session scope to run once before and once after all tests
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def app(settings: Settings):
     app = create_app()
     async with LifespanManager(app) as manager:
@@ -66,7 +66,7 @@ async def app(settings: Settings):
         yield manager.app
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def client(app, settings: Settings):
     url = f"http://{settings.host}:{settings.port}"
     async with AsyncClient(transport=ASGITransport(app=app), base_url=url) as client:
@@ -74,7 +74,7 @@ async def client(app, settings: Settings):
 
 
 # function scope
-@pytest_asyncio.fixture(scope="function")
+@pytest.fixture(scope="function")
 async def http_client(app, settings: Settings):
     url = f"http://{settings.host}:{settings.port}"
 
@@ -87,12 +87,14 @@ def test_client(app):
     return TestClient(app)
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def db():
-    yield Database("database")
+    db = Database("database")
+    async with db.connect() as conn:
+        yield conn
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def user_alan():
     account = await get_account_by_username("alan")
     if account:
@@ -109,13 +111,13 @@ async def user_alan():
     yield user
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def from_user():
     user = await create_user_account()
     yield user
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def from_wallet(from_user):
     user = from_user
 
@@ -127,7 +129,7 @@ async def from_wallet(from_user):
     yield wallet
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def to_wallet_pagination_tests(to_user):
     user = to_user
     wallet = await create_wallet(
@@ -136,7 +138,7 @@ async def to_wallet_pagination_tests(to_user):
     yield wallet
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def from_wallet_ws(from_wallet, test_client):
     # wait a bit in order to avoid receiving topup notification
     await asyncio.sleep(0.1)
@@ -144,7 +146,7 @@ async def from_wallet_ws(from_wallet, test_client):
         yield ws
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def to_user():
     user = await create_user_account()
     yield user
@@ -158,7 +160,7 @@ def from_super_user(from_user: User, settings: Settings):
     settings.super_user = prev
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def superuser(settings: Settings):
     account = await get_account(settings.super_user)
     assert account, "Superuser not found"
@@ -166,7 +168,7 @@ async def superuser(settings: Settings):
     yield user
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def to_wallet(to_user):
     user = to_user
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_to")
@@ -177,14 +179,14 @@ async def to_wallet(to_user):
     yield wallet
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def to_fresh_wallet(to_user):
     user = to_user
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_to_fresh")
     yield wallet
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def to_wallet_ws(to_wallet, test_client):
     # wait a bit in order to avoid receiving topup notification
     await asyncio.sleep(0.1)
@@ -192,7 +194,7 @@ async def to_wallet_ws(to_wallet, test_client):
         yield ws
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def inkey_fresh_headers_to(to_fresh_wallet):
     wallet = to_fresh_wallet
     yield {
@@ -201,7 +203,7 @@ async def inkey_fresh_headers_to(to_fresh_wallet):
     }
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def inkey_headers_from(from_wallet):
     wallet = from_wallet
     yield {
@@ -210,7 +212,7 @@ async def inkey_headers_from(from_wallet):
     }
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def adminkey_headers_from(from_wallet):
     wallet = from_wallet
     yield {
@@ -219,7 +221,7 @@ async def adminkey_headers_from(from_wallet):
     }
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def inkey_headers_to(to_wallet):
     wallet = to_wallet
     yield {
@@ -228,7 +230,7 @@ async def inkey_headers_to(to_wallet):
     }
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def adminkey_headers_to(to_wallet):
     wallet = to_wallet
     yield {
@@ -237,7 +239,7 @@ async def adminkey_headers_to(to_wallet):
     }
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def invoice(to_wallet):
     data = await get_random_invoice_data()
     invoice_data = CreateInvoice(**data)
@@ -246,12 +248,12 @@ async def invoice(to_wallet):
     del invoice
 
 
-@pytest_asyncio.fixture(scope="function")
+@pytest.fixture(scope="function")
 async def external_funding_source():
     yield FakeWallet()
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def fake_payments(client, inkey_fresh_headers_to):
 
     ts = datetime.now(timezone.utc).timestamp()
