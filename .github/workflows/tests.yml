@@ -11,7 +11,7 @@ on:
         default: "3.10"
         type: string
       os-version:
-        default: "ubuntu-latest"
+        default: "ubuntu-24.04"
         type: string
       db-url:
         default: ""
