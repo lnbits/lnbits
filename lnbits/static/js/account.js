@@ -68,18 +68,18 @@ window.app = Vue.createApp({
           background: ${String(darkBgColor)} !important;
           }
         `
-  document.head.appendChild(style)
+        document.head.appendChild(style)
       }
     },
     applyBackgroundImage() {
       if (this.backgroundImage) {
-      this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+        this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
       }
       let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
       if (bgImage) {
         this.backgroundImage = bgImage
-      const style = document.createElement('style')
-      style.innerHTML = `
+        const style = document.createElement('style')
+        style.innerHTML = `
   body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"]::before {
     content: '';
     position: fixed;
@@ -99,7 +99,7 @@ window.app = Vue.createApp({
   body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
     backdrop-filter: none; /* Ensure the page content is not affected */
   }`
-      document.head.appendChild(style)
+        document.head.appendChild(style)
       }
     },
     applyBorder() {
@@ -126,6 +126,7 @@ window.app = Vue.createApp({
       this.gradientChoice = !this.gradientChoice
       this.applyGradient()
       this.applyBackgroundImage()
+      this.applyBorder()
       if (!this.gradientChoice) {
         window.location.reload()
       }
@@ -141,10 +142,9 @@ window.app = Vue.createApp({
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
       this.setColors()
-      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
-        this.applyGradient()
-        this.applyBackgroundImage()
-      }
+      this.applyGradient()
+      this.applyBackgroundImage()
+      this.applyBorder()
     },
     async updateAccount() {
       try {
@@ -251,14 +251,8 @@ window.app = Vue.createApp({
     } catch (e) {
       LNbits.utils.notifyApiError(e)
     }
-    if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
-      this.applyGradient()
-    }
-    if (this.$q.localStorage.getItem('lnbits.backgroundImage')) {
-      this.applyBackgroundImage()
-    }
-    if (this.$q.localStorage.getItem('lnbits.border')) {
-      this.applyBorder()
-    }
+    this.applyGradient()
+    this.applyBackgroundImage()
+    this.applyBorder()
   }
 })

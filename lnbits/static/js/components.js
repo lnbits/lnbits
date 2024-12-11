@@ -62,7 +62,6 @@ window.app.component('lnbits-wallet-list', {
   }
 })
 
-
 window.app.component('lnbits-top-wallet-list', {
   template: '#lnbits-top-wallet-list',
   props: ['balance'],

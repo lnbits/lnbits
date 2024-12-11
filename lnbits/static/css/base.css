@@ -467,54 +467,24 @@ body.body--dark .q-field--error .q-field__messages {
   color: yellow !important;
 }
 
-.wallet-list-card {
-  min-width: 300px;
-  height: 150px;
-  flex-shrink: 0;
-  transition: color 0.3s, background-color 0.3s;
-  text-decoration: none; /* Removes underlining for links */
-}
-
-.wallet-list-card:hover {
-  background: #fff; /* Change background color on hover */
-  opacity: 0.8; /* Semi-transparent effect */
-  text-decoration: none; /* Ensure hover doesn't underline */
-}
-.wallet-list-card a {
-  text-decoration: none; /* Explicitly target nested links inside the card */
-}
-
-.active-wallet-card {
-  border: 2px solid var(--q-primary); /* Highlight border for active wallet */
-  background-color: var(--q-dark-bg); /* Adjust background for dark mode */
-}
-
-.text-bold {
-  font-weight: bold;
-}
-
-.wallets-scroll-area {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-}
-
-.wallet-list-container {
-  max-width: 100%;
-}
-
-.lnbits-drawer__wallet-cards {
-  max-width: 100%;
-}
-
 .lnbits-drawer__q-list .q-item {
   padding-top: 5px !important;
   padding-bottom: 5px !important;
   border-top-right-radius: 3px;
   border-bottom-right-radius: 3px;
 }
-
 .lnbits-drawer__q-list .q-item.q-item--active {
+  color: inherit;
+  font-weight: bold;
+}
+
+.lnbits-drawer__wallet-cards {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+.lnbits-drawer__wallet-cards.q-item--active {
   color: inherit;
   font-weight: bold;
 }

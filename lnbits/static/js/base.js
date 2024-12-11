@@ -524,17 +524,17 @@ window.windowMixin = {
           background: ${String(darkBgColor)} !important;
           }
         `
-  document.head.appendChild(style)
+        document.head.appendChild(style)
       }
     },
     applyBackgroundImage() {
       if (this.backgroundImage) {
-      this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+        this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
       }
       let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
       if (bgImage) {
-      const style = document.createElement('style')
-      style.innerHTML = `
+        const style = document.createElement('style')
+        style.innerHTML = `
   body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"]::before {
     content: '';
     position: fixed;
@@ -554,7 +554,7 @@ window.windowMixin = {
   body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
     backdrop-filter: none; /* Ensure the page content is not affected */
   }`
-      document.head.appendChild(style)
+        document.head.appendChild(style)
       }
     },
     applyBorder() {
