@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       python-version:
-        default: "3.12"
+        default: "3.10"
         type: string
       os-version:
         default: "ubuntu-latest"
