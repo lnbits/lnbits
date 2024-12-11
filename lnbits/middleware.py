@@ -11,7 +11,6 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.middleware.gzip import GZipMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.core.db import core_app_extra
@@ -91,18 +90,6 @@ class InstalledExtensionMiddleware:
             status_code=status_code,
             content={"detail": msg},
         )
-
-
-class CustomGZipMiddleware(GZipMiddleware):
-    def __init__(self, *args, exclude_paths=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.exclude_paths = exclude_paths or []
-
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if "path" in scope and scope["path"] in self.exclude_paths:
-            await self.app(scope, receive, send)
-            return
-        await super().__call__(scope, receive, send)
 
 
 class ExtensionsRedirectMiddleware:

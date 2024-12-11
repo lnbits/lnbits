@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from lnbits.core.crud import (
@@ -61,7 +62,6 @@ from .middleware import (
     add_ip_block_middleware,
     add_ratelimit_middleware,
 )
-from starlette.middleware.gzip import GZipMiddleware
 from .requestvars import g
 from .tasks import (
     check_pending_payments,

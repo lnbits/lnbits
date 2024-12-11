@@ -53,7 +53,6 @@ from ..services import (
     pay_invoice,
     update_pending_payments,
 )
-from ..tasks import api_invoice_listeners
 
 payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
 

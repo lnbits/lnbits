@@ -4,6 +4,7 @@ from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
+from websockets.client import connect
 
 from lnbits.settings import settings
 
@@ -36,6 +37,7 @@ class LNbitsWallet(Wallet):
                 "missing lnbits_key or lnbits_admin_key or lnbits_invoice_key"
             )
         self.endpoint = self.normalize_endpoint(settings.lnbits_endpoint)
+        self.ws_url = f"{self.endpoint}/api/v1/ws/{key}"
         self.headers = {"X-Api-Key": key, "User-Agent": settings.user_agent}
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
 
@@ -194,38 +196,24 @@ class LNbitsWallet(Wallet):
             return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        url = f"{self.endpoint}/api/v1/payments/sse"
-
         while settings.lnbits_running:
             try:
-                async with httpx.AsyncClient(
-                    timeout=None, headers=self.headers
-                ) as client:
-                    del client.headers[
-                        "accept-encoding"
-                    ]  # we have to disable compression for SSEs
-                    async with client.stream(
-                        "GET", url, content="text/event-stream"
-                    ) as r:
-                        sse_trigger = False
-                        async for line in r.aiter_lines():
-                            # The data we want to listen to is of this shape:
-                            # event: payment-received
-                            # data: {.., "payment_hash" : "asd"}
-                            if line.startswith("event: payment-received"):
-                                sse_trigger = True
-                                continue
-                            elif sse_trigger and line.startswith("data:"):
-                                data = json.loads(line[len("data:") :])
-                                sse_trigger = False
-                                yield data["payment_hash"]
-                            else:
-                                sse_trigger = False
-
-            except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
-                pass
-
-            logger.error(
-                "lost connection to lnbits /payments/sse, retrying in 5 seconds"
-            )
-            await asyncio.sleep(5)
+                async with connect(self.ws_url) as ws:
+                    logger.info("connected to LNbits fundingsource websocket.")
+                    while settings.lnbits_running:
+                        message = await ws.recv()
+                        message_dict = json.loads(message)
+                        if (
+                            message_dict
+                            and message_dict.get("payment")
+                            and message_dict["payment"].get("payment_hash")
+                        ):
+                            payment_hash = message_dict["payment"]["payment_hash"]
+                            logger.info(f"payment-received: {payment_hash}")
+                            yield payment_hash
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to LNbits fundingsource websocket: '{exc}'"
+                    "retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
