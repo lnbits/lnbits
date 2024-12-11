@@ -38,6 +38,7 @@ jobs:
           git clone https://github.com/lnbits/lnbits-extensions --single-branch
           cd lnbits-extensions
           git rev-parse --abbrev-ref HEAD
+          cat ./integration/001_extensions-enable-all.jmx
           mkdir logs
           mkdir reports
           make install-jmeter
