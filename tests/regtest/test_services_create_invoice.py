@@ -10,7 +10,7 @@ from lnbits.wallets.base import PaymentStatus
 description = "test create invoice"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_invoice(from_wallet):
     payment = await create_invoice(
         wallet_id=from_wallet.id,
@@ -28,7 +28,7 @@ async def test_create_invoice(from_wallet):
     assert status.pending
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_internal_invoice(from_wallet):
     payment = await create_invoice(
         wallet_id=from_wallet.id, amount=1000, memo=description, internal=True

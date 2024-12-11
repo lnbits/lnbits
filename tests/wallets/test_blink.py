@@ -47,7 +47,7 @@ def outbound_bolt11():
     return bolt11
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_environment_variables():
     if use_real_api:
         assert "X-API-KEY" in headers, "X-API-KEY is not present in headers"
@@ -56,7 +56,7 @@ async def test_environment_variables():
         assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_wallet_id():
     if use_real_api:
         wallet_id = await funding_source._init_wallet_id()
@@ -66,7 +66,7 @@ async def test_get_wallet_id():
         assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_status():
     if use_real_api:
         status = await funding_source.status()
@@ -76,7 +76,7 @@ async def test_status():
         assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_invoice():
     if use_real_api:
         invoice_response = await funding_source.create_invoice(amount=1000, memo="test")
@@ -107,7 +107,7 @@ async def test_create_invoice():
         assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_invoice_self_payment():
     if use_real_api:
         invoice_response = await funding_source.create_invoice(amount=100, memo="test")
@@ -122,7 +122,7 @@ async def test_pay_invoice_self_payment():
         assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_outbound_invoice_payment(outbound_bolt11):
     if use_real_api:
         payment_response = await funding_source.pay_invoice(
@@ -138,7 +138,7 @@ async def test_outbound_invoice_payment(outbound_bolt11):
         assert True, "BLINK_TOKEN is not set. Skipping test using mock api"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_payment_status(payhash):
     if use_real_api:
         payment_status = await funding_source.get_payment_status(payhash)

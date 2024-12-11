@@ -144,7 +144,6 @@ module = [
 ignore_missing_imports = "True"
 
 [tool.pytest.ini_options]
-asyncio_default_fixture_loop_scope = "session"
 log_cli = false
 addopts = "--durations=1 -s --cov=lnbits --cov-report=xml"
 testpaths = [
