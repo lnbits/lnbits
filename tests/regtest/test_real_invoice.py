@@ -24,7 +24,7 @@ async def get_node_balance_sats():
     return balance.node_balance_msats / 1000
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_real_invoice(
     client, real_invoice, adminkey_headers_from, inkey_headers_from, from_wallet_ws
@@ -60,7 +60,7 @@ async def test_pay_real_invoice(
     assert prev_balance - balance == 100
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_from):
     prev_balance = await get_node_balance_sats()
@@ -106,7 +106,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         await task
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_real_invoice_set_pending_and_check_state(
     client, real_invoice, adminkey_headers_from, inkey_headers_from
@@ -145,7 +145,7 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     assert payment.success
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_hold_invoice_check_pending(
     client, hold_invoice, adminkey_headers_from
@@ -174,7 +174,7 @@ async def test_pay_hold_invoice_check_pending(
     assert payment_db_after_settlement
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_hold_invoice_check_pending_and_fail(
     client, hold_invoice, adminkey_headers_from
@@ -209,7 +209,7 @@ async def test_pay_hold_invoice_check_pending_and_fail(
     assert payment_db_after_settlement.failed is True
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_meantime(
     client, hold_invoice, adminkey_headers_from
@@ -248,7 +248,7 @@ async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_me
     assert status.failed
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_receive_real_invoice_set_pending_and_check_state(
     client, adminkey_headers_from, inkey_headers_from
@@ -308,7 +308,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
         await task
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 async def test_check_fee_reserve(client, adminkey_headers_from):
     # if regtest, create a real invoice, otherwise create an internal invoice
     # call /api/v1/payments/fee-reserve?invoice=... with it and check if the fee reserve

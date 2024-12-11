@@ -168,3 +168,9 @@ async def test_peer_management(node_client):
 
     response = await node_client.delete(f"/node/api/v1/peers/{peer_id}")
     assert response.status_code == 400
+
+
+@pytest.mark.anyio(scope="session")
+async def test_connect_invalid_uri(node_client):
+    response = await node_client.post("/node/api/v1/peers", json={"uri": "invalid"})
+    assert response.status_code == 400
