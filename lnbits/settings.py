@@ -279,7 +279,7 @@ class ExchangeProvidersSettings(LNbitsSettings):
     lnbits_exchange_rate_providers: list[ExchangeRateProvider] = Field(
         default=[
             ExchangeRateProvider(
-                name="Binance",  # todo: USDT instead of USD
+                name="Binance",
                 api_url="https://api.binance.com/api/v3/ticker/price?symbol=BTC{TO}",
                 path="$.price",
                 exclude_to=["czk"],
