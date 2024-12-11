@@ -1,28 +1,19 @@
-function eventReactionWebocket(event_id) {
+function eventReaction(amount) {
   localUrl = ''
   reaction = localStorage.getItem('lnbits.reactions')
   if (!reaction || reaction === 'None') {
     return
   }
-  if (location.protocol !== 'http:') {
-    localUrl = 'wss://' + location.host + '/api/v1/ws/' + event_id
-  } else {
-    localUrl = 'ws://' + location.host + '/api/v1/ws/' + event_id
-  }
-  connection = new WebSocket(localUrl)
-  connection.onmessage = function (e) {
-    try {
-      const parsedData = JSON.parse(e.data)
-      if (parsedData.payment.amount < 0) {
-        return
-      }
-      reaction = localStorage.getItem('lnbits.reactions')
-      if (reaction) {
-        window[reaction.split('|')[1]]()
-      }
-    } catch (e) {
-      console.log(e)
+  try {
+    if (amount < 0) {
+      return
     }
+    reaction = localStorage.getItem('lnbits.reactions')
+    if (reaction) {
+      window[reaction.split('|')[1]]()
+    }
+  } catch (e) {
+    console.log(e)
   }
 }
 function confettiBothSides() {

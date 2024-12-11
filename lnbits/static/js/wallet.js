@@ -536,19 +536,6 @@ window.app = Vue.createApp({
             })
         })
     },
-    fetchBalance() {
-      LNbits.api.getWallet(this.g.wallet).then(response => {
-        this.balance = Math.floor(response.data.balance / 1000)
-        document.dispatchEvent(
-          new CustomEvent('updateWalletBalance', {
-            detail: [this.g.wallet.id, this.balance]
-          })
-        )
-      })
-      if (this.g.wallet.currency) {
-        this.updateFiatBalance()
-      }
-    },
     updateFiatBalance() {
       if (!this.g.wallet.currency) return 0
       LNbits.api
@@ -560,11 +547,6 @@ window.app = Vue.createApp({
           this.fiatBalance = response.data[this.g.wallet.currency]
         })
         .catch(e => console.error(e))
-    },
-    updateBalanceCallback(res) {
-      if (res.success && wallet.id === res.wallet_id) {
-        this.balance += res.credit
-      }
     },
     pasteToTextArea() {
       this.$refs.textArea.focus() // Set cursor to textarea
@@ -687,7 +669,7 @@ window.app = Vue.createApp({
   },
   watch: {
     updatePayments() {
-      this.fetchBalance()
+      this.updateFiatBalance()
     }
   },
   mounted() {
@@ -697,10 +679,14 @@ window.app = Vue.createApp({
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
     // listen to incoming payments
-    LNbits.events.onInvoicePaid(this.g.wallet, payment => {
-      this.onPaymentReceived(payment.payment_hash)
+    LNbits.events.onInvoicePaid(this.g.wallet, data => {
+      console.log('Payment received:', data.payment.payment_hash)
+      console.log('Wallet balance:', data.wallet_balance)
+      console.log('Wallet ID:', this.g.wallet)
+      this.onPaymentReceived(data.payment.payment_hash)
+      this.balance = data.wallet_balance
+      eventReaction(data.payment.amount)
     })
-    eventReactionWebocket(wallet.inkey)
   }
 })
 

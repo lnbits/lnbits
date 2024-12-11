@@ -515,7 +515,7 @@
         v-model="scope.value"
         dense
         autofocus
-        @keyup.enter="updateBalance(scope.value)"
+        @keyup.enter="scope.set"
       >
         <template v-slot:append>
           <q-icon name="edit" />

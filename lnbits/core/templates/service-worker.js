@@ -30,9 +30,6 @@ self.addEventListener('activate', evt =>
 // from the network before returning it to the page.
 self.addEventListener('fetch', event => {
   if (
-    !event.request.url.startsWith(
-      self.location.origin + '/api/v1/payments/sse'
-    ) &&
     event.request.url.startsWith(self.location.origin) &&
     event.request.method == 'GET'
   ) {
