@@ -148,15 +148,42 @@ body.body--dark .q-field--error {
   }
 }
 
-.lnbits-drawer__wallet-cards {
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
-  border-top-right-radius: 3px;
-  border-bottom-right-radius: 3px;
-  &.q-item--active {
-    color: inherit;
-    font-weight: bold;
-  }
+.wallet-list-card {
+  min-width: 300px;
+  height: 150px;
+  flex-shrink: 0;
+  transition:
+    color 0.3s,
+    background-color 0.3s;
+  text-decoration: none;
+}
+
+.wallet-list-card:hover {
+  background: #fff;
+  opacity: 0.8;
+  text-decoration: none;
+}
+.wallet-list-card a {
+  text-decoration: none;
+}
+
+.active-wallet-card {
+  border: 2px solid var(--q-primary);
+  background-color: var(--q-dark-bg);
+}
+
+.text-bold {
+  font-weight: bold;
+}
+
+.wallets-scroll-area {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.wallet-list-container {
+  max-width: 100%;
 }
 
 .lnbits__dialog-card {
