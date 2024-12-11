@@ -88,10 +88,8 @@ def test_client(app):
 
 
 @pytest.fixture(scope="session")
-async def db():
-    db = Database("database")
-    async with db.connect() as conn:
-        yield conn
+def db():
+    return Database("database")
 
 
 @pytest.fixture(scope="session")
