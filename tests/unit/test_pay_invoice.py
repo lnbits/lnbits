@@ -517,7 +517,7 @@ async def test_no_checking_id(
     assert payment.status == PaymentState.PENDING.value
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 async def test_service_fee(
     from_wallet: Wallet,
     to_wallet: Wallet,
