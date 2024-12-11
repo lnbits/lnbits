@@ -64,7 +64,7 @@ window.app = Vue.createApp({
         this.$q.localStorage.set('lnbits.gradientBg', false)
       }
     },
-    applyBackgroundImage: function () {
+    applyBackgroundImage() {
       if (this.backgroundImage) {
       this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
       }
@@ -84,8 +84,7 @@ window.app = Vue.createApp({
       document.head.appendChild(style)
       }
     },
-    applyBorder: function () {
-      slef = this
+    applyBorder() {
       if (this.borderChoice) {
         this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
       }
@@ -117,7 +116,7 @@ window.app = Vue.createApp({
     reactionChoiceFunc() {
       this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
     },
-    backgroundImageFunc: function () {
+    backgroundImageFunc() {
       this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
     },
     changeColor: function (newValue) {
