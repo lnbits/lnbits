@@ -89,7 +89,7 @@ def test_client(app):
 
 @pytest.fixture(scope="session")
 async def db():
-    return Database("database")
+    yield Database("database")
 
 
 @pytest.fixture(scope="session")

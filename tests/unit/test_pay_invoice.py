@@ -47,7 +47,7 @@ async def test_amountless_invoice(to_wallet: Wallet):
         )
 
 
-@pytest.mark.anyio(scope="session")
+@pytest.mark.anyio
 async def test_bad_wallet_id(to_wallet: Wallet):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=31, memo="Bad Wallet")
     bad_wallet_id = to_wallet.id[::-1]
@@ -511,7 +511,7 @@ async def test_no_checking_id(
     assert payment.status == PaymentState.PENDING.value
 
 
-@pytest.mark.anyio(scope="session")
+@pytest.mark.anyio
 async def test_service_fee(
     from_wallet: Wallet,
     to_wallet: Wallet,
