@@ -11,7 +11,6 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.crud import get_standalone_payment, get_wallet
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, pay_invoice
-from lnbits.db import Connection
 from lnbits.exceptions import PaymentError
 from lnbits.settings import Settings
 from lnbits.tasks import (
@@ -62,32 +61,27 @@ async def test_bad_wallet_id(to_wallet: Wallet):
 
 
 @pytest.mark.anyio
-async def test_payment_limit(db: Connection, to_wallet: Wallet):
-    payment = await create_invoice(wallet_id=to_wallet.id, amount=101, memo="", conn=db)
+async def test_payment_limit(to_wallet: Wallet):
+    payment = await create_invoice(wallet_id=to_wallet.id, amount=101, memo="")
     with pytest.raises(PaymentError, match="Amount in invoice is too high."):
         await pay_invoice(
             wallet_id=to_wallet.id,
             max_sat=100,
             payment_request=payment.bolt11,
-            conn=db,
         )
 
 
 @pytest.mark.anyio
-async def test_pay_twice(db: Connection, to_wallet: Wallet):
-    payment = await create_invoice(
-        wallet_id=to_wallet.id, amount=3, memo="Twice", conn=db
-    )
+async def test_pay_twice(to_wallet: Wallet):
+    payment = await create_invoice(wallet_id=to_wallet.id, amount=3, memo="Twice")
     await pay_invoice(
         wallet_id=to_wallet.id,
         payment_request=payment.bolt11,
-        conn=db,
     )
     with pytest.raises(PaymentError, match="Internal invoice already paid."):
         await pay_invoice(
             wallet_id=to_wallet.id,
             payment_request=payment.bolt11,
-            conn=db,
         )
 
 
