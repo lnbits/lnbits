@@ -65,16 +65,15 @@
               class="q-mr-md gt-md"
             >
             </q-badge>
-            {%endif%}
+            {%endif%} {% if LNBITS_CUSTOM_BADGE is defined %}
             <q-badge
-              v-if="'{{LNBITS_CUSTOM_BADGE}}' && '{{LNBITS_CUSTOM_BADGE}}' != 'None'"
               v-show="$q.screen.gt.sm"
               color="{{ LNBITS_CUSTOM_BADGE_COLOR }}"
               class="q-mr-md"
               label="{{LNBITS_CUSTOM_BADGE}}"
             >
             </q-badge>
-            {% if LNBITS_SERVICE_FEE > 0 %}
+            {%endif%} {% if LNBITS_SERVICE_FEE > 0 %}
             <q-badge
               v-show="$q.screen.gt.sm"
               v-if="g.user"
