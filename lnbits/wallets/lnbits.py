@@ -37,7 +37,7 @@ class LNbitsWallet(Wallet):
                 "missing lnbits_key or lnbits_admin_key or lnbits_invoice_key"
             )
         self.endpoint = self.normalize_endpoint(settings.lnbits_endpoint)
-        self.ws_url = f"{self.endpoint}/api/v1/ws/{key}"
+        self.ws_url = f"{self.endpoint.replace('http', 'ws', 1)}/api/v1/ws/{key}"
         self.headers = {"X-Api-Key": key, "User-Agent": settings.user_agent}
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
 
