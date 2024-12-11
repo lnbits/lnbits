@@ -24,7 +24,7 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.fixture()
-def node_client(client, from_super_user, settings):
+async def node_client(client, from_super_user, settings):
     settings.lnbits_node_ui = True
     settings.lnbits_public_node_ui = False
     settings.lnbits_node_ui_transactions = True
@@ -36,7 +36,7 @@ def node_client(client, from_super_user, settings):
 
 
 @pytest.fixture()
-def public_node_client(node_client, settings):
+async def public_node_client(node_client, settings):
     settings.lnbits_public_node_ui = True
     yield node_client
     settings.lnbits_public_node_ui = False
@@ -170,7 +170,7 @@ async def test_peer_management(node_client):
     assert response.status_code == 400
 
 
-@pytest.mark.anyio(scope="session")
+@pytest.mark.anyio
 async def test_connect_invalid_uri(node_client):
     response = await node_client.post("/node/api/v1/peers", json={"uri": "invalid"})
     assert response.status_code == 400
