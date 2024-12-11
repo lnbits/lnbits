@@ -26,7 +26,7 @@ test_data = DbTestModel3(
 )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_helpers_insert_query():
     q = insert_query("test_helpers_query", test_data)
     assert q == (
@@ -36,7 +36,7 @@ async def test_helpers_insert_query():
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_helpers_update_query():
     q = update_query("test_helpers_query", test_data)
     assert q == (
@@ -65,7 +65,7 @@ test_dict = {
 }
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_helpers_model_to_dict():
     d = model_to_dict(test_data)
     assert d.get("id") == test_data.id
@@ -75,7 +75,7 @@ async def test_helpers_model_to_dict():
     assert d == test_dict
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_helpers_dict_to_model():
     m = dict_to_model(test_dict, DbTestModel3)
     assert m == test_data

@@ -75,8 +75,8 @@ types-passlib = "^1.7.7.20240327"
 openai = "^1.39.0"
 json5 = "^0.9.25"
 asgi-lifespan = "^2.1.0"
+anyio = "^4.7.0"
 pytest = "^8.3.4"
-pytest-asyncio = "^0.24.0"
 pytest-cov = "^6.0.0"
 pytest-md = "^0.2.0"
 pytest-httpserver = "^1.1.0"
@@ -144,6 +144,7 @@ module = [
 ignore_missing_imports = "True"
 
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "session"
 log_cli = false
 addopts = "--durations=1 -s --cov=lnbits --cov-report=xml"
 testpaths = [
