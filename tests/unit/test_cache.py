@@ -3,13 +3,12 @@ import asyncio
 import pytest
 
 from lnbits.utils.cache import Cache
-from tests.conftest import pytest_asyncio
 
 key = "foo"
 value = "bar"
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def cache():
     cache = Cache(interval=0.1)
 
@@ -18,7 +17,7 @@ async def cache():
     task.cancel()
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_cache_get_set(cache):
     cache.set(key, value)
     assert cache.get(key) == value
@@ -26,7 +25,7 @@ async def test_cache_get_set(cache):
     assert cache.get("i-dont-exist", default="default") == "default"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_cache_expiry(cache):
     # gets expired by `get` call
     cache.set(key, value, expiry=0.01)
@@ -40,7 +39,7 @@ async def test_cache_expiry(cache):
     assert not cache.get(key)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_cache_pop(cache):
     cache.set(key, value)
     assert cache.pop(key) == value
@@ -48,7 +47,7 @@ async def test_cache_pop(cache):
     assert cache.pop(key, default="a") == "a"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_cache_coro(cache):
     called = 0
 

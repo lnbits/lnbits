@@ -4,13 +4,13 @@ from lnbits.core.models import User
 from lnbits.settings import Settings
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_admin_get_settings_permission_denied(client, from_user):
     response = await client.get(f"/admin/api/v1/settings?usr={from_user.id}")
     assert response.status_code == 401
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_admin_get_settings(client, superuser):
     response = await client.get(f"/admin/api/v1/settings?usr={superuser.id}")
     assert response.status_code == 200
@@ -18,7 +18,7 @@ async def test_admin_get_settings(client, superuser):
     assert "super_user" not in result
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_admin_update_settings(client, superuser: User, settings: Settings):
     new_site_title = "UPDATED SITETITLE"
     response = await client.put(
@@ -32,7 +32,7 @@ async def test_admin_update_settings(client, superuser: User, settings: Settings
     assert settings.lnbits_site_title == new_site_title
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_admin_update_noneditable_settings(client, superuser):
     response = await client.put(
         f"/admin/api/v1/settings?usr={superuser.id}",

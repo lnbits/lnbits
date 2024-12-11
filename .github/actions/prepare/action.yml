@@ -47,6 +47,7 @@ runs:
     - name: Install the project dependencies
       shell: bash
       run: |
+        poetry env use python${{ inputs.python-version }}
         poetry install
         # needed for conv tests
         poetry add psycopg2-binary

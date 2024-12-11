@@ -3,7 +3,7 @@ from http import HTTPStatus
 import pytest
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create___bad_body(client, adminkey_headers_from):
     response = await client.post(
         "/api/v1/webpush",
@@ -13,7 +13,7 @@ async def test_create___bad_body(client, adminkey_headers_from):
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create___missing_fields(client, adminkey_headers_from):
     response = await client.post(
         "/api/v1/webpush",
@@ -23,7 +23,7 @@ async def test_create___missing_fields(client, adminkey_headers_from):
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create___bad_access_key(client, inkey_headers_from):
     response = await client.post(
         "/api/v1/webpush",
@@ -33,7 +33,7 @@ async def test_create___bad_access_key(client, inkey_headers_from):
     assert response.status_code == HTTPStatus.UNAUTHORIZED
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_delete__bad_endpoint_format(client, adminkey_headers_from):
     response = await client.delete(
         "/api/v1/webpush",
@@ -43,7 +43,7 @@ async def test_delete__bad_endpoint_format(client, adminkey_headers_from):
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_delete__no_endpoint_param(client, adminkey_headers_from):
     response = await client.delete(
         "/api/v1/webpush",
@@ -52,7 +52,7 @@ async def test_delete__no_endpoint_param(client, adminkey_headers_from):
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_delete__no_endpoint_found(client, adminkey_headers_from):
     response = await client.delete(
         "/api/v1/webpush",
@@ -63,7 +63,7 @@ async def test_delete__no_endpoint_found(client, adminkey_headers_from):
     assert response.json()["count"] == 0
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_delete__bad_access_key(client, inkey_headers_from):
     response = await client.delete(
         "/api/v1/webpush",
@@ -72,7 +72,7 @@ async def test_delete__bad_access_key(client, inkey_headers_from):
     assert response.status_code == HTTPStatus.UNAUTHORIZED
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_and_delete(client, adminkey_headers_from):
     response = await client.post(
         "/api/v1/webpush",

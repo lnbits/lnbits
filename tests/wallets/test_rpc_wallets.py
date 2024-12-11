@@ -18,7 +18,7 @@ from tests.wallets.helpers import (
 )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "test_data",
     wallet_fixtures_from_json("tests/wallets/fixtures/json/fixtures_rpc.json"),

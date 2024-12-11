@@ -174,7 +174,7 @@ async def run(data: WalletTest):
             await nwcwallet.cleanup()
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "test_data",
     wallet_fixtures_from_json("tests/wallets/fixtures/json/fixtures_nwc.json"),
@@ -184,7 +184,7 @@ async def test_nwc_wallet(test_data: WalletTest):
     await run(test_data)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "test_data",
     wallet_fixtures_from_json("tests/wallets/fixtures/json/fixtures_nwc_bad.json"),
