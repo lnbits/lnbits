@@ -9,7 +9,7 @@ from lnbits.exceptions import PaymentError
 description = "test pay invoice"
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 async def test_services_pay_invoice(to_wallet, real_invoice):
     payment = await pay_invoice(
         wallet_id=to_wallet.id,
@@ -21,7 +21,7 @@ async def test_services_pay_invoice(to_wallet, real_invoice):
     assert payment.memo == description
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio(scope="session")
 async def test_services_pay_invoice_0_amount_invoice(
     to_wallet, real_amountless_invoice
 ):
