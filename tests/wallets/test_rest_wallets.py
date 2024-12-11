@@ -28,7 +28,7 @@ def httpserver_listen_address():
     return ("127.0.0.1", 8555)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "test_data",
     wallet_fixtures_from_json("tests/wallets/fixtures/json/fixtures_rest.json"),

@@ -15,7 +15,7 @@ window.app.component('lnbits-fsat', {
     }
   },
   computed: {
-    fsat: function () {
+    fsat() {
       return LNbits.utils.formatSat(this.amount)
     }
   }
@@ -24,7 +24,7 @@ window.app.component('lnbits-fsat', {
 window.app.component('lnbits-wallet-list', {
   template: '#lnbits-wallet-list',
   props: ['balance'],
-  data: function () {
+  data() {
     return {
       vertical: true,
       user: null,
@@ -36,9 +36,9 @@ window.app.component('lnbits-wallet-list', {
     }
   },
   computed: {
-    wallets: function () {
-      var bal = this.balance
-      return this.user.wallets.map(function (obj) {
+    wallets() {
+      const bal = this.balance
+      return this.user.wallets.map(obj => {
         obj.live_fsat =
           bal.length && bal[0] === obj.id
             ? LNbits.utils.formatSat(bal[1])
@@ -48,11 +48,11 @@ window.app.component('lnbits-wallet-list', {
     }
   },
   methods: {
-    createWallet: function () {
+    createWallet() {
       LNbits.api.createWallet(this.user.wallets[0], this.walletName)
     }
   },
-  created: function () {
+  created() {
     if (window.user) {
       this.user = LNbits.map.user(window.user)
     }
@@ -67,7 +67,7 @@ window.app.component('lnbits-wallet-list', {
 
 window.app.component('lnbits-extension-list', {
   template: '#lnbits-extension-list',
-  data: function () {
+  data() {
     return {
       extensions: [],
       user: null,
@@ -81,17 +81,17 @@ window.app.component('lnbits-extension-list', {
     }
   },
   methods: {
-    updateUserExtensions: function (filterBy) {
+    updateUserExtensions(filterBy) {
       if (!this.user) return []
 
       const path = window.location.pathname
       const userExtensions = this.user.extensions
 
       return this.extensions
-        .filter(function (o) {
+        .filter(o => {
           return userExtensions.indexOf(o.code) !== -1
         })
-        .filter(function (o) {
+        .filter(o => {
           if (!filterBy) return true
           return (
             `${o.code} ${o.name} ${o.short_description} ${o.url}`
@@ -99,13 +99,13 @@ window.app.component('lnbits-extension-list', {
               .indexOf(filterBy.toLocaleLowerCase()) !== -1
           )
         })
-        .map(function (obj) {
+        .map(obj => {
           obj.isActive = path.startsWith(obj.url)
           return obj
         })
     }
   },
-  created: async function () {
+  async created() {
     if (window.user) {
       this.user = LNbits.map.user(window.user)
     }
@@ -113,10 +113,10 @@ window.app.component('lnbits-extension-list', {
     try {
       const {data} = await LNbits.api.request('GET', '/api/v1/extension')
       this.extensions = data
-        .map(function (data) {
+        .map(data => {
           return LNbits.map.extension(data)
         })
-        .sort(function (a, b) {
+        .sort((a, b) => {
           return a.name.localeCompare(b.name)
         })
       this.userExtensions = this.updateUserExtensions()
@@ -130,7 +130,7 @@ window.app.component('lnbits-manage', {
   template: '#lnbits-manage',
   props: ['showAdmin', 'showNode', 'showExtensions', 'showUsers', 'showAudit'],
   methods: {
-    isActive: function (path) {
+    isActive(path) {
       return window.location.pathname === path
     }
   },
@@ -151,7 +151,7 @@ window.app.component('lnbits-payment-details', {
   template: '#lnbits-payment-details',
   props: ['payment'],
   mixins: [window.windowMixin],
-  data: function () {
+  data() {
     return {
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
     }
@@ -206,7 +206,7 @@ window.app.component('lnbits-lnurlpay-success-action', {
       decryptedValue: this.success_action.ciphertext
     }
   },
-  mounted: function () {
+  mounted() {
     if (this.success_action.tag !== 'aes') return null
     decryptLnurlPayAES(this.success_action, this.payment.preimage).then(
       value => {
@@ -305,8 +305,6 @@ window.app.component('lnbits-notifications-btn', {
       return subscribedUsers.includes(user)
     },
     subscribe() {
-      var self = this
-
       // catch clicks from disabled type='a' button (https://github.com/quasarframework/quasar/issues/9258)
       if (!this.isSupported || this.isPermissionDenied) {
         return
@@ -318,56 +316,48 @@ window.app.component('lnbits-notifications-btn', {
           this.isPermissionGranted = permission === 'granted'
           this.isPermissionDenied = permission === 'denied'
         })
-        .catch(function (e) {
-          console.log(e)
-        })
+        .catch(console.log)
 
       // create push subscription
       navigator.serviceWorker.ready.then(registration => {
         navigator.serviceWorker.getRegistration().then(registration => {
           registration.pushManager
             .getSubscription()
-            .then(function (subscription) {
+            .then(subscription => {
               if (
                 subscription === null ||
-                !self.isUserSubscribed(self.g.user.id)
+                !this.isUserSubscribed(this.g.user.id)
               ) {
-                const applicationServerKey = self.urlB64ToUint8Array(
-                  self.pubkey
+                const applicationServerKey = this.urlB64ToUint8Array(
+                  this.pubkey
                 )
                 const options = {applicationServerKey, userVisibleOnly: true}
 
                 registration.pushManager
                   .subscribe(options)
-                  .then(function (subscription) {
+                  .then(subscription => {
                     LNbits.api
                       .request(
                         'POST',
                         '/api/v1/webpush',
-                        self.g.user.wallets[0].adminkey,
+                        this.g.user.wallets[0].adminkey,
                         {
                           subscription: JSON.stringify(subscription)
                         }
                       )
-                      .then(function (response) {
-                        self.saveUserSubscribed(response.data.user)
-                        self.isSubscribed = true
+                      .then(response => {
+                        this.saveUserSubscribed(response.data.user)
+                        this.isSubscribed = true
                       })
-                      .catch(function (error) {
-                        LNbits.utils.notifyApiError(error)
-                      })
+                      .catch(LNbits.utils.notifyApiError)
                   })
               }
             })
-            .catch(function (e) {
-              console.log(e)
-            })
+            .catch(console.log)
         })
       })
     },
     unsubscribe() {
-      var self = this
-
       navigator.serviceWorker.ready
         .then(registration => {
           registration.pushManager.getSubscription().then(subscription => {
@@ -376,23 +366,19 @@ window.app.component('lnbits-notifications-btn', {
                 .request(
                   'DELETE',
                   '/api/v1/webpush?endpoint=' + btoa(subscription.endpoint),
-                  self.g.user.wallets[0].adminkey
+                  this.g.user.wallets[0].adminkey
                 )
-                .then(function () {
-                  self.removeUserSubscribed(self.g.user.id)
-                  self.isSubscribed = false
+                .then(() => {
+                  this.removeUserSubscribed(this.g.user.id)
+                  this.isSubscribed = false
                 })
-                .catch(function (error) {
-                  LNbits.utils.notifyApiError(error)
-                })
+                .catch(LNbits.utils.notifyApiError)
             }
           })
         })
-        .catch(function (e) {
-          console.log(e)
-        })
+        .catch(console.log)
     },
-    checkSupported: function () {
+    checkSupported() {
       let https = window.location.protocol === 'https:'
       let serviceWorkerApi = 'serviceWorker' in navigator
       let notificationApi = 'Notification' in window
@@ -414,22 +400,18 @@ window.app.component('lnbits-notifications-btn', {
 
       return this.isSupported
     },
-    updateSubscriptionStatus: async function () {
-      var self = this
-
+    async updateSubscriptionStatus() {
       await navigator.serviceWorker.ready
         .then(registration => {
           registration.pushManager.getSubscription().then(subscription => {
-            self.isSubscribed =
-              !!subscription && self.isUserSubscribed(self.g.user.id)
+            this.isSubscribed =
+              !!subscription && this.isUserSubscribed(this.g.user.id)
           })
         })
-        .catch(function (e) {
-          console.log(e)
-        })
+        .catch(console.log)
     }
   },
-  created: function () {
+  created() {
     this.isPermissionDenied = Notification.permission === 'denied'
 
     if (this.checkSupported()) {
@@ -514,13 +496,13 @@ window.app.component('lnbits-update-balance', {
       return user.super_user
     }
   },
-  data: function () {
+  data() {
     return {
       credit: 0
     }
   },
   methods: {
-    updateBalance: function (credit) {
+    updateBalance(credit) {
       LNbits.api
         .updateBalance(credit, this.wallet_id)
         .then(res => {
@@ -544,9 +526,7 @@ window.app.component('lnbits-update-balance', {
           })
           return credit
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+        .catch(LNbits.utils.notifyApiError)
     }
   }
 })

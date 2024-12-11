@@ -69,7 +69,7 @@ public_node_router = APIRouter(
 @node_router.get(
     "/ok",
     description="Check if node api can be enabled",
-    status_code=200,
+    status_code=HTTPStatus.OK,
     dependencies=[Depends(require_node)],
 )
 async def api_get_ok():
@@ -197,5 +197,5 @@ async def api_get_1ml_stats(node: Node = Depends(require_node)) -> Optional[Node
             return r.json()["noderank"]
         except httpx.HTTPStatusError as exc:
             raise HTTPException(
-                status_code=404, detail="Node not found on 1ml.com"
+                status_code=HTTPStatus.NOT_FOUND, detail="Node not found on 1ml.com"
             ) from exc

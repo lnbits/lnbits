@@ -16,7 +16,7 @@ from ..helpers import (
 
 
 # create account POST /api/v1/account
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_account(client, settings: Settings):
     settings.lnbits_allow_new_accounts = False
     response = await client.post("/api/v1/account", json={"name": "test"})
@@ -37,7 +37,7 @@ async def test_create_account(client, settings: Settings):
 
 # check POST and DELETE /api/v1/wallet with adminkey:
 # create additional wallet and delete it
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_wallet_and_delete(client, adminkey_headers_to):
     response = await client.post(
         "/api/v1/wallet", json={"name": "test"}, headers=adminkey_headers_to
@@ -80,7 +80,7 @@ async def test_create_wallet_and_delete(client, adminkey_headers_to):
 
 
 # check GET /api/v1/wallet with inkey: wallet info, no balance
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_wallet_inkey(client, inkey_headers_to):
     response = await client.get("/api/v1/wallet", headers=inkey_headers_to)
     assert response.status_code == 200
@@ -91,7 +91,7 @@ async def test_get_wallet_inkey(client, inkey_headers_to):
 
 
 # check GET /api/v1/wallet with adminkey: wallet info with balance
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_wallet_adminkey(client, adminkey_headers_to):
     response = await client.get("/api/v1/wallet", headers=adminkey_headers_to)
     assert response.status_code == 200
@@ -102,21 +102,21 @@ async def test_get_wallet_adminkey(client, adminkey_headers_to):
 
 
 # check PUT /api/v1/wallet/newwallet: empty request where admin key is needed
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_put_empty_request_expected_admin_keys(client):
     response = await client.put("/api/v1/wallet/newwallet")
     assert response.status_code == 401
 
 
 # check POST /api/v1/payments: empty request where invoice key is needed
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_post_empty_request_expected_invoice_keys(client):
     response = await client.post("/api/v1/payments")
     assert response.status_code == 401
 
 
 # check POST /api/v1/payments: invoice creation
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_invoice(client, inkey_headers_to):
     data = await get_random_invoice_data()
     response = await client.post(
@@ -132,7 +132,7 @@ async def test_create_invoice(client, inkey_headers_to):
     return invoice
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_invoice_fiat_amount(client, inkey_headers_to):
     data = await get_random_invoice_data()
     data["unit"] = "EUR"
@@ -156,7 +156,7 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
     assert extra["fiat_rate"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("currency", ("msat", "RRR"))
 async def test_create_invoice_validates_used_currency(
     currency, client, inkey_headers_to
@@ -172,7 +172,7 @@ async def test_create_invoice_validates_used_currency(
 
 
 # check POST /api/v1/payments: invoice creation for internal payments only
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_internal_invoice(client, inkey_headers_to):
     data = await get_random_invoice_data()
     data["internal"] = True
@@ -190,7 +190,7 @@ async def test_create_internal_invoice(client, inkey_headers_to):
 
 
 # check POST /api/v1/payments: invoice with custom expiry
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_invoice_custom_expiry(client, inkey_headers_to):
     data = await get_random_invoice_data()
     expiry_seconds = 600 * 6 * 24 * 31  # 31 days in the future
@@ -205,7 +205,7 @@ async def test_create_invoice_custom_expiry(client, inkey_headers_to):
 
 
 # check POST /api/v1/payments: make payment
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_invoice(
     client, from_wallet_ws, invoice: Payment, adminkey_headers_from
 ):
@@ -231,7 +231,7 @@ async def test_pay_invoice(
 
 
 # check GET /api/v1/payments/<hash>: payment status
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_payment_without_key(client, invoice: Payment):
     # check the payment status
     response = await client.get(f"/api/v1/payments/{invoice.payment_hash}")
@@ -247,7 +247,7 @@ async def test_check_payment_without_key(client, invoice: Payment):
 # If postgres: it will succeed only with inkey_headers_from
 # If sqlite: it will succeed only with adminkey_headers_to
 # TODO: fix this
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_payment_with_key(client, invoice: Payment, inkey_headers_from):
     # check the payment status
     response = await client.get(
@@ -261,7 +261,7 @@ async def test_check_payment_with_key(client, invoice: Payment, inkey_headers_fr
 
 
 # check POST /api/v1/payments: payment with wrong key type
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_invoice_wrong_key(client, invoice, adminkey_headers_from):
     data = {"out": True, "bolt11": invoice.bolt11}
     # try payment with wrong key
@@ -274,7 +274,7 @@ async def test_pay_invoice_wrong_key(client, invoice, adminkey_headers_from):
 
 
 # check POST /api/v1/payments: payment with self payment
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_invoice_self_payment(client, adminkey_headers_from):
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
     response = await client.post(
@@ -292,7 +292,7 @@ async def test_pay_invoice_self_payment(client, adminkey_headers_from):
 
 
 # check POST /api/v1/payments: payment with invoice key [should fail]
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_invoice_invoicekey(client, invoice, inkey_headers_from):
     data = {"out": True, "bolt11": invoice.bolt11}
     # try payment with invoice key
@@ -303,7 +303,7 @@ async def test_pay_invoice_invoicekey(client, invoice, inkey_headers_from):
 
 
 # check POST /api/v1/payments: payment with admin key, trying to pay twice [should fail]
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
     data = {"out": True, "bolt11": invoice.bolt11}
     # try payment with admin key
@@ -313,7 +313,7 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
     assert response.status_code > 300  # should fail
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_payments(client, inkey_fresh_headers_to, fake_payments):
     fake_data, filters = fake_payments
 
@@ -348,7 +348,7 @@ async def test_get_payments(client, inkey_fresh_headers_to, fake_payments):
     assert len(payments) == 2
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_payments_paginated(client, inkey_fresh_headers_to, fake_payments):
     fake_data, filters = fake_payments
 
@@ -363,7 +363,7 @@ async def test_get_payments_paginated(client, inkey_fresh_headers_to, fake_payme
     assert paginated["total"] == len(fake_data)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_payments_history(client, inkey_fresh_headers_to, fake_payments):
     fake_data, filters = fake_payments
 
@@ -393,7 +393,7 @@ async def test_get_payments_history(client, inkey_fresh_headers_to, fake_payment
 
 
 # check POST /api/v1/payments/decode
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_decode_invoice(client, invoice: Payment):
     data = {"data": invoice.bolt11}
     response = await client.post(
@@ -405,7 +405,7 @@ async def test_decode_invoice(client, invoice: Payment):
 
 
 # check api_payment() internal function call (NOT API): payment status
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_api_payment_without_key(invoice: Payment):
     # check the payment status
     response = await api_payment(invoice.payment_hash)
@@ -416,7 +416,7 @@ async def test_api_payment_without_key(invoice: Payment):
 
 
 # check api_payment() internal function call (NOT API): payment status
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_api_payment_with_key(invoice: Payment, inkey_headers_from):
     # check the payment status
     response = await api_payment(invoice.payment_hash, inkey_headers_from["X-Api-Key"])
@@ -426,7 +426,7 @@ async def test_api_payment_with_key(invoice: Payment, inkey_headers_from):
 
 
 # check POST /api/v1/payments: invoice creation with a description hash
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     data = await get_random_invoice_data()
     description = "asdasdasd"
@@ -443,7 +443,7 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     return invoice
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_invoice_with_unhashed_description(client, inkey_headers_to):
     data = await get_random_invoice_data()
     description = "test description"
@@ -461,7 +461,7 @@ async def test_create_invoice_with_unhashed_description(client, inkey_headers_to
     return invoice
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_update_wallet(client, adminkey_headers_from):
     name = "new name"
     currency = "EUR"
@@ -481,7 +481,7 @@ async def test_update_wallet(client, adminkey_headers_from):
     assert response.json()["name"] == name
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
     async def create_invoice():
         data = await get_random_invoice_data()
@@ -522,7 +522,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
     assert extra["wallet_fiat_rate"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "lnurl_response_data, callback_response_data, expected_response",
     [

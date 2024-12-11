@@ -24,7 +24,7 @@ from ..models.extensions import Extension, ExtensionMeta, InstallableExtension
 
 async def install_extension(ext_info: InstallableExtension) -> Extension:
     ext_id = ext_info.id
-    extension = Extension.from_installable_ext(ext_info)
+
     installed_ext = await get_installed_extension(ext_id)
     if installed_ext and installed_ext.meta:
         ext_info.meta = ext_info.meta or ExtensionMeta()
@@ -44,6 +44,7 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
     else:
         await update_installed_extension(ext_info)
 
+    extension = Extension.from_installable_ext(ext_info)
     if extension.is_upgrade_extension:
         # call stop while the old routes are still active
         await stop_extension_background_work(ext_id)

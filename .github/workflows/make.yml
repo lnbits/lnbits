@@ -21,7 +21,7 @@ jobs:
     name: ${{ inputs.make }} (${{ inputs.python-version }})
     strategy:
       matrix:
-        os-version: ["ubuntu-latest"]
+        os-version: ["ubuntu-24.04"]
         node-version: ["18.x"]
     runs-on: ${{ matrix.os-version }}
     steps:

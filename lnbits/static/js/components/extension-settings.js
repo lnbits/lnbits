@@ -22,7 +22,7 @@ window.app.component('lnbits-extension-settings-form', {
         LNbits.utils.notifyApiError(error)
       }
     },
-    getSettings: async function () {
+    async getSettings() {
       try {
         const {data} = await LNbits.api.request(
           'GET',
@@ -34,7 +34,7 @@ window.app.component('lnbits-extension-settings-form', {
         LNbits.utils.notifyApiError(error)
       }
     },
-    resetSettings: async function () {
+    async resetSettings() {
       LNbits.utils
         .confirmDialog('Are you sure you want to reset the settings?')
         .onOk(async () => {
@@ -47,10 +47,10 @@ window.app.component('lnbits-extension-settings-form', {
         })
     }
   },
-  created: async function () {
+  async created() {
     await this.getSettings()
   },
-  data: function () {
+  data() {
     return {
       settings: undefined
     }
@@ -61,7 +61,7 @@ window.app.component('lnbits-extension-settings-btn-dialog', {
   template: '#lnbits-extension-settings-btn-dialog',
   name: 'lnbits-extension-settings-btn-dialog',
   props: ['options', 'adminkey', 'endpoint'],
-  data: function () {
+  data() {
     return {
       show: false
     }

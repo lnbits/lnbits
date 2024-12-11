@@ -11,7 +11,7 @@ from lnbits.core.crud import (
 from lnbits.db import POSTGRES
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_date_conversion(db):
     if db.type == POSTGRES:
         row = await db.fetchone("SELECT now()::date as now")
@@ -19,7 +19,7 @@ async def test_date_conversion(db):
 
 
 # make test to create wallet and delete wallet
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_wallet_and_delete_wallet(app, to_user):
     # create wallet
     wallet = await create_wallet(user_id=to_user.id, wallet_name="test_wallet_delete")

@@ -47,9 +47,13 @@ def catch_rpc_errors(f):
         except RpcError as exc:
             msg = exc.error["message"]
             if exc.error["code"] == -32602:
-                raise HTTPException(status_code=400, detail=msg) from exc
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST, detail=msg
+                ) from exc
             else:
-                raise HTTPException(status_code=500, detail=msg) from exc
+                raise HTTPException(
+                    status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg
+                ) from exc
 
     return wrapper
 
@@ -152,7 +156,9 @@ class CoreLightningNode(Node):
         force: bool = False,
     ):
         if not short_id:
-            raise HTTPException(status_code=400, detail="Short id required")
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="Short id required"
+            )
         try:
             await self.ln_rpc("close", short_id)
         except RpcError as exc:

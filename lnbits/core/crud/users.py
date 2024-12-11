@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from time import time
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from lnbits.core.crud.extensions import get_user_active_extensions_ids
@@ -46,6 +46,20 @@ async def get_accounts(
     filters: Optional[Filters[AccountFilters]] = None,
     conn: Optional[Connection] = None,
 ) -> Page[AccountOverview]:
+    where_clauses = []
+    values: dict[str, Any] = {}
+
+    # Make wallet filter explicit
+    wallet_filter = (
+        next((f for f in filters.filters if f.field == "wallet_id"), None)
+        if filters
+        else None
+    )
+    if filters and wallet_filter and wallet_filter.values:
+        where_clauses.append("wallets.id = :wallet_id")
+        values = {**values, "wallet_id": next(iter(wallet_filter.values.values()))}
+        filters.filters = [f for f in filters.filters if f.field != "wallet_id"]
+
     return await (conn or db).fetch_page(
         """
         SELECT
@@ -53,7 +67,6 @@ async def get_accounts(
             accounts.username,
             accounts.email,
             accounts.pubkey,
-            wallets.id as wallet_id,
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0)) as balance_msat,
@@ -69,8 +82,8 @@ async def get_accounts(
             )) as last_payment
             FROM accounts LEFT JOIN wallets ON accounts.id = wallets.user
         """,
-        [],
-        {},
+        where_clauses,
+        values,
         filters=filters,
         model=AccountOverview,
         group_by=["accounts.id"],

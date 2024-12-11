@@ -7,7 +7,6 @@ from pydantic import parse_obj_as
 
 from lnbits import bolt11
 from lnbits.nodes.base import ChannelPoint, ChannelState, NodeChannel
-from tests.conftest import pytest_asyncio
 
 from ..helpers import (
     funding_source,
@@ -24,7 +23,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest_asyncio.fixture()
+@pytest.fixture()
 async def node_client(client, from_super_user, settings):
     settings.lnbits_node_ui = True
     settings.lnbits_public_node_ui = False
@@ -36,39 +35,39 @@ async def node_client(client, from_super_user, settings):
     settings.lnbits_node_ui = False
 
 
-@pytest_asyncio.fixture()
+@pytest.fixture()
 async def public_node_client(node_client, settings):
     settings.lnbits_public_node_ui = True
     yield node_client
     settings.lnbits_public_node_ui = False
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_node_info_not_found(client, from_super_user, settings):
     settings.lnbits_node_ui = False
     response = await client.get("/node/api/v1/info", params={"usr": from_super_user.id})
     assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_public_node_info_not_found(node_client):
     response = await node_client.get("/node/public/api/v1/info")
     assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_public_node_info(public_node_client):
     response = await public_node_client.get("/node/public/api/v1/info")
     assert response.status_code == 200
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_node_info(node_client):
     response = await node_client.get("/node/api/v1/info")
     assert response.status_code == 200
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_node_invoices(inkey_headers_from, node_client):
     data = await get_random_invoice_data()
     response = await node_client.post(
@@ -83,7 +82,7 @@ async def test_node_invoices(inkey_headers_from, node_client):
     assert invoices[0]["payment_hash"] == invoice["payment_hash"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_node_payments(node_client, real_invoice, adminkey_headers_from):
     response = await node_client.post(
         "/api/v1/payments", json=real_invoice, headers=adminkey_headers_from
@@ -100,7 +99,7 @@ async def test_node_payments(node_client, real_invoice, adminkey_headers_from):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_channel_management(node_client):
     async def get_channels():
         response = await node_client.get("/node/api/v1/channels")
@@ -147,7 +146,7 @@ async def test_channel_management(node_client):
     mine_blocks(5)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_peer_management(node_client):
     connect_uri = get_unconnected_node_uri()
     peer_id = connect_uri.split("@")[0]
@@ -171,7 +170,7 @@ async def test_peer_management(node_client):
     assert response.status_code == 400
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_connect_invalid_uri(node_client):
     response = await node_client.post("/node/api/v1/peers", json={"uri": "invalid"})
     assert response.status_code == 400

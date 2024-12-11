@@ -27,11 +27,12 @@ nostr_event = {
 private_key = secp256k1.PrivateKey(
     bytes.fromhex("6e00ecda7d3c8945f07b7d6ecc18cfff34c07bc99677309e2b9310d9fc1bb138")
 )
+assert private_key.pubkey, "Pubkey not created."
 pubkey_hex = private_key.pubkey.serialize().hex()[2:]
 
 
 ################################ LOGIN ################################
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_login_bad_user(http_client: AsyncClient):
     response = await http_client.post(
         "/api/v1/auth", json={"username": "non_existing_user", "password": "secret1234"}
@@ -41,7 +42,7 @@ async def test_login_bad_user(http_client: AsyncClient):
     assert response.json().get("detail") == "Invalid credentials."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_login_alan_usr(user_alan: User, http_client: AsyncClient):
     response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
 
@@ -60,7 +61,7 @@ async def test_login_alan_usr(user_alan: User, http_client: AsyncClient):
     assert alan["email"] == user_alan.email
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_login_usr_not_allowed(
     user_alan: User, http_client: AsyncClient, settings: Settings
 ):
@@ -81,7 +82,7 @@ async def test_login_usr_not_allowed(
     ), "Expected access token after login."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_login_alan_username_password_ok(
     user_alan: User, http_client: AsyncClient, settings: Settings
 ):
@@ -119,7 +120,7 @@ async def test_login_alan_username_password_ok(
     ), f"Expected 1 default wallet, not {len(user.wallets)}."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_login_alan_email_password_ok(user_alan: User, http_client: AsyncClient):
     response = await http_client.post(
         "/api/v1/auth", json={"username": user_alan.email, "password": "secret1234"}
@@ -130,7 +131,7 @@ async def test_login_alan_email_password_ok(user_alan: User, http_client: AsyncC
     assert access_token is not None
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_login_alan_password_nok(user_alan: User, http_client: AsyncClient):
     response = await http_client.post(
         "/api/v1/auth", json={"username": user_alan.username, "password": "bad_pasword"}
@@ -140,7 +141,7 @@ async def test_login_alan_password_nok(user_alan: User, http_client: AsyncClient
     assert response.json().get("detail") == "Invalid credentials."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_login_username_password_not_allowed(
     user_alan: User, http_client: AsyncClient, settings: Settings
 ):
@@ -165,7 +166,7 @@ async def test_login_username_password_not_allowed(
     assert response.json().get("access_token") is not None
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_login_alan_change_auth_secret_key(
     user_alan: User, http_client: AsyncClient, settings: Settings
 ):
@@ -196,7 +197,7 @@ async def test_login_alan_change_auth_secret_key(
 
 
 ################################ REGISTER WITH PASSWORD ################################
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_ok(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -229,7 +230,7 @@ async def test_register_ok(http_client: AsyncClient):
     ), f"Expected 1 default wallet, not {len(user.wallets)}."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_email_twice(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -260,7 +261,7 @@ async def test_register_email_twice(http_client: AsyncClient):
     assert response.json().get("detail") == "Email already exists."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_username_twice(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -290,7 +291,7 @@ async def test_register_username_twice(http_client: AsyncClient):
     assert response.json().get("detail") == "Username already exists."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_passwords_do_not_match(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -307,7 +308,7 @@ async def test_register_passwords_do_not_match(http_client: AsyncClient):
     assert response.json().get("detail") == "Passwords do not match."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_bad_email(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -325,7 +326,7 @@ async def test_register_bad_email(http_client: AsyncClient):
 
 
 ################################ CHANGE PASSWORD ################################
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_change_password_ok(http_client: AsyncClient, settings: Settings):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -377,7 +378,7 @@ async def test_change_password_ok(http_client: AsyncClient, settings: Settings):
     assert response.json().get("access_token") is not None, "Access token created."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_change_password_not_authenticated(http_client: AsyncClient):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.put(
@@ -395,7 +396,7 @@ async def test_change_password_not_authenticated(http_client: AsyncClient):
     assert response.json().get("detail") == "Missing user ID or access token."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_alan_change_password_old_nok(user_alan: User, http_client: AsyncClient):
     response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
 
@@ -419,7 +420,7 @@ async def test_alan_change_password_old_nok(user_alan: User, http_client: AsyncC
     assert response.json().get("detail") == "Invalid old password."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_alan_change_password_different_user(
     user_alan: User, http_client: AsyncClient
 ):
@@ -445,7 +446,7 @@ async def test_alan_change_password_different_user(
     assert response.json().get("detail") == "Invalid user ID."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_alan_change_password_auth_threshold_expired(
     user_alan: User, http_client: AsyncClient, settings: Settings
 ):
@@ -481,12 +482,13 @@ async def test_alan_change_password_auth_threshold_expired(
 ################################ REGISTER PUBLIC KEY ################################
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_nostr_ok(http_client: AsyncClient, settings: Settings):
     event = {**nostr_event}
     event["created_at"] = int(time.time())
 
     private_key = secp256k1.PrivateKey(bytes.fromhex(os.urandom(32).hex()))
+    assert private_key.pubkey, "Pubkey not created."
     pubkey_hex = private_key.pubkey.serialize().hex()[2:]
     event_signed = sign_event(event, pubkey_hex, private_key)
     base64_event = base64.b64encode(json.dumps(event_signed).encode()).decode("ascii")
@@ -521,7 +523,7 @@ async def test_register_nostr_ok(http_client: AsyncClient, settings: Settings):
     ), f"Expected 1 default wallet, not {len(user.wallets)}."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_nostr_not_allowed(http_client: AsyncClient, settings: Settings):
     # exclude 'nostr_auth_nip98'
     settings.auth_allowed_methods = [AuthMethods.username_and_password.value]
@@ -536,7 +538,7 @@ async def test_register_nostr_not_allowed(http_client: AsyncClient, settings: Se
     settings.auth_allowed_methods = AuthMethods.all()
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_nostr_bad_header(http_client: AsyncClient):
     response = await http_client.post("/api/v1/auth/nostr")
 
@@ -559,7 +561,7 @@ async def test_register_nostr_bad_header(http_client: AsyncClient):
     assert response.json().get("detail") == "Nostr login event cannot be parsed."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_nostr_bad_event(http_client: AsyncClient, settings: Settings):
     settings.auth_allowed_methods = AuthMethods.all()
     base64_event = base64.b64encode(json.dumps(nostr_event).encode()).decode("ascii")
@@ -587,7 +589,7 @@ async def test_register_nostr_bad_event(http_client: AsyncClient, settings: Sett
     assert response.json().get("detail") == "Nostr login event is not valid."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_nostr_bad_event_kind(http_client: AsyncClient):
     event_bad_kind = {**nostr_event}
     event_bad_kind["kind"] = "12345"
@@ -604,7 +606,7 @@ async def test_register_nostr_bad_event_kind(http_client: AsyncClient):
     assert response.json().get("detail") == "Invalid event kind."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_nostr_bad_event_tag_u(http_client: AsyncClient):
     event_bad_kind = {**nostr_event}
     event_bad_kind["created_at"] = int(time.time())
@@ -636,7 +638,7 @@ async def test_register_nostr_bad_event_tag_u(http_client: AsyncClient):
     assert response.json().get("detail") == "Invalid value for tag 'method'."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_register_nostr_bad_event_tag_menthod(http_client: AsyncClient):
     event_bad_kind = {**nostr_event}
     event_bad_kind["created_at"] = int(time.time())
@@ -672,6 +674,7 @@ async def test_register_nostr_bad_event_tag_menthod(http_client: AsyncClient):
 
 
 ################################ CHANGE PUBLIC KEY ################################
+@pytest.mark.anyio
 async def test_change_pubkey_npub_ok(http_client: AsyncClient, settings: Settings):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -692,6 +695,7 @@ async def test_change_pubkey_npub_ok(http_client: AsyncClient, settings: Setting
     access_token_payload = AccessTokenPayload(**payload)
 
     private_key = secp256k1.PrivateKey(bytes.fromhex(os.urandom(32).hex()))
+    assert private_key.pubkey, "Pubkey not created."
     pubkey_hex = private_key.pubkey.serialize().hex()[2:]
     npub = hex_to_npub(pubkey_hex)
 
@@ -711,7 +715,7 @@ async def test_change_pubkey_npub_ok(http_client: AsyncClient, settings: Setting
     assert user.pubkey == pubkey_hex
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_change_pubkey_ok(
     http_client: AsyncClient, user_alan: User, settings: Settings
 ):
@@ -734,6 +738,7 @@ async def test_change_pubkey_ok(
     access_token_payload = AccessTokenPayload(**payload)
 
     private_key = secp256k1.PrivateKey(bytes.fromhex(os.urandom(32).hex()))
+    assert private_key.pubkey, "Pubkey not created."
     pubkey_hex = private_key.pubkey.serialize().hex()[2:]
 
     response = await http_client.put(
@@ -798,7 +803,7 @@ async def test_change_pubkey_ok(
     assert response.json().get("detail") == "Public key already in use."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_change_pubkey_not_authenticated(
     http_client: AsyncClient, user_alan: User
 ):
@@ -814,7 +819,7 @@ async def test_change_pubkey_not_authenticated(
     assert response.json().get("detail") == "Missing user ID or access token."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_change_pubkey_other_user(http_client: AsyncClient, user_alan: User):
     response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
 
@@ -834,7 +839,7 @@ async def test_change_pubkey_other_user(http_client: AsyncClient, user_alan: Use
     assert response.json().get("detail") == "Invalid user ID."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_alan_change_pubkey_auth_threshold_expired(
     user_alan: User, http_client: AsyncClient, settings: Settings
 ):
@@ -865,7 +870,7 @@ async def test_alan_change_pubkey_auth_threshold_expired(
 
 
 ################################ RESET PASSWORD ################################
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_request_reset_key_ok(http_client: AsyncClient, settings: Settings):
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -917,7 +922,7 @@ async def test_request_reset_key_ok(http_client: AsyncClient, settings: Settings
     assert access_token is not None
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_request_reset_key_user_not_found(http_client: AsyncClient):
     user_id = "926abb2ab59a48ebb2485bcceb58d05e"
     reset_key = await api_users_reset_password(user_id)
@@ -937,7 +942,7 @@ async def test_request_reset_key_user_not_found(http_client: AsyncClient):
     assert response.json().get("detail") == "User not found."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_reset_username_password_not_allowed(
     http_client: AsyncClient, settings: Settings
 ):
@@ -964,7 +969,7 @@ async def test_reset_username_password_not_allowed(
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_reset_username_passwords_do_not_matcj(
     http_client: AsyncClient, user_alan: User
 ):
@@ -985,7 +990,7 @@ async def test_reset_username_passwords_do_not_matcj(
     assert response.json().get("detail") == "Passwords do not match."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_reset_username_password_bad_key(http_client: AsyncClient):
 
     response = await http_client.put(
@@ -1000,7 +1005,7 @@ async def test_reset_username_password_bad_key(http_client: AsyncClient):
     assert response.json().get("detail") == "Invalid reset key."
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_reset_password_auth_threshold_expired(
     user_alan: User, http_client: AsyncClient, settings: Settings
 ):
