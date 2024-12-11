@@ -6,7 +6,7 @@ on:
       python-version:
         description: "python version"
         type: string
-        default: "3.10"
+        default: "3.12"
 
 jobs:
   make:

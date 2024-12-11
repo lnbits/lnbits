@@ -16,7 +16,7 @@ jobs:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.12"]
         db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
@@ -30,7 +30,7 @@ jobs:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.12"]
         db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
@@ -44,7 +44,7 @@ jobs:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.12"]
         db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
@@ -58,7 +58,7 @@ jobs:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.12"]
     uses: ./.github/workflows/migration.yml
     with:
       python-version: ${{ matrix.python-version }}
@@ -74,7 +74,7 @@ jobs:
     uses: ./.github/workflows/regtest.yml
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.12"]
         backend-wallet-class: ["LndRestWallet", "LndWallet", "CoreLightningWallet", "CoreLightningRestWallet", "LNbitsWallet", "EclairWallet"]
     with:
       custom-pytest: "poetry run pytest tests/regtest"
@@ -87,7 +87,7 @@ jobs:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.12"]
         poetry-version: ["1.5.1"]
     uses: ./.github/workflows/jmeter.yml
     with:
