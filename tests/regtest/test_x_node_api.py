@@ -24,7 +24,7 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.fixture()
-async def node_client(client, from_super_user, settings):
+def node_client(client, from_super_user, settings):
     settings.lnbits_node_ui = True
     settings.lnbits_public_node_ui = False
     settings.lnbits_node_ui_transactions = True
@@ -36,7 +36,7 @@ async def node_client(client, from_super_user, settings):
 
 
 @pytest.fixture()
-async def public_node_client(node_client, settings):
+def public_node_client(node_client, settings):
     settings.lnbits_public_node_ui = True
     yield node_client
     settings.lnbits_public_node_ui = False
