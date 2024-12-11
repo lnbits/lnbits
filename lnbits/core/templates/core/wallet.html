@@ -25,14 +25,17 @@
     } : ''"
       >
         {% endif %}
+
+        <lnbits-top-wallet-list v-if="!mobileSimple" :balance="balance"></lnbits-top-wallet-list>
+
         <q-card
-          :style="$q.screen.lt.md ? {
-            background: $q.screen.lt.md ? 'none !important': ''
-          , boxShadow: $q.screen.lt.md ? 'none !important': ''
-          , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
-          , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
-        } : ''"
-        >
+        :style="$q.screen.lt.md ? {
+          background: $q.screen.lt.md ? 'none !important': ''
+        , boxShadow: $q.screen.lt.md ? 'none !important': ''
+        , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
+        , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
+      } : ''"
+      >
           <q-card-section>
             <h3 class="q-my-none text-no-wrap">
               <strong v-text="formattedBalance"></strong>
@@ -125,7 +128,7 @@
       <div class="col-12 col-md-4 q-gutter-y-md">
         {% else %}
         <div
-          v-if="!mobileSimple || $q.screen.gt.sm"
+          v-if="!mobileSimple"
           class="col-12 col-md-5 q-gutter-y-md"
         >
           <q-card>

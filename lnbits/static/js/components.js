@@ -62,6 +62,48 @@ window.app.component('lnbits-wallet-list', {
   }
 })
 
+
+window.app.component('lnbits-top-wallet-list', {
+  template: '#lnbits-top-wallet-list',
+  props: ['balance'],
+  data() {
+    return {
+      user: null,
+      activeWallet: null,
+      balance: 0,
+      showForm: false,
+      walletName: '',
+      LNBITS_DENOMINATION: LNBITS_DENOMINATION
+    }
+  },
+  computed: {
+    wallets() {
+      const bal = this.balance
+      return this.user.wallets.map(obj => {
+        obj.live_fsat =
+          bal.length && bal[0] === obj.id
+            ? LNbits.utils.formatSat(bal[1])
+            : obj.fsat
+        return obj
+      })
+    }
+  },
+  methods: {
+    createWallet() {
+      LNbits.api.createWallet(this.user.wallets[0], this.walletName)
+    }
+  },
+  created() {
+    if (window.user) {
+      this.user = LNbits.map.user(window.user)
+    }
+    if (window.wallet) {
+      this.activeWallet = LNbits.map.wallet(window.wallet)
+    }
+    document.addEventListener('updateWalletBalance', this.updateWalletBalance)
+  }
+})
+
 window.app.component('lnbits-extension-list', {
   template: '#lnbits-extension-list',
   data() {

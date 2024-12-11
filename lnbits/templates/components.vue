@@ -94,6 +94,70 @@
   </q-list>
 </template>
 
+<template id="lnbits-top-wallet-list">
+  <div v-if="user && user.wallets.length" class="lnbits-drawer__wallet-cards">
+    <div class="wallet-list-container">
+      <!-- Horizontal scroll area -->
+      <div class="wallets-scroll-area row no-wrap q-gutter-md">
+        <q-card
+          v-for="wallet in wallets"
+          :key="wallet.id"
+          class="wallet-list-card"
+          bordered
+          tag="a"
+          :href="wallet.url"
+          :class="{
+            'active-wallet-card': activeWallet && activeWallet.id === wallet.id,
+          }"
+        >
+          <q-card-section>
+            <div class="row items-center">
+              <q-avatar
+                size="lg"
+                :color="
+                  activeWallet && activeWallet.id === wallet.id
+                    ? $q.dark.isActive
+                      ? 'primary'
+                      : 'primary'
+                    : 'grey-5'
+                "
+              >
+                <q-icon
+                  name="flash_on"
+                  :size="$q.dark.isActive ? '21px' : '20px'"
+                  :color="$q.dark.isActive ? 'blue-grey-10' : 'grey-3'"
+                ></q-icon>
+              </q-avatar>   
+                <div
+                  class="text-h6 q-pl-md"
+                  :class="{
+                    'text-bold': activeWallet && activeWallet.id === wallet.id,
+                  }"
+                  v-text="wallet.name"
+                ></div>
+              </div>
+              <div class="row items-center q-pt-sm">
+                <div v-if="LNBITS_DENOMINATION != 'sats'" >
+                  <span
+                  class="text-h4"
+                    v-text="
+                      parseFloat(String(wallet.live_fsat).replaceAll(',', '')) / 100
+                    "
+                  ></span><span class="text-h6 q-pl-sm" v-text="LNBITS_DENOMINATION"></span>
+                </div>
+                <div v-else>
+                  <span class="text-h4" v-text="wallet.live_fsat"></span>
+                  <span class="text-h6 q-pl-sm" v-text="LNBITS_DENOMINATION"></span>
+                </div>
+            
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+    </div>
+  </div>
+</template>
+
 <template id="lnbits-extension-list">
   <q-list
     v-if="user && (userExtensions.length > 0 || !!searchTerm)"
