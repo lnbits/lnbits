@@ -291,7 +291,7 @@ window.app = Vue.createApp({
     decodeRequest() {
       this.parse.show = true
       this.parse.data.request = this.parse.data.request.trim().toLowerCase()
-      const req = this.parse.data.request
+      let req = this.parse.data.request
       if (req.startsWith('lightning:')) {
         this.parse.data.request = req.slice(10)
       } else if (req.startsWith('lnurl:')) {
