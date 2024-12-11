@@ -4,19 +4,7 @@
     dense
     class="lnbits-drawer__q-list"
   >
-    <q-item class="cursor-pointer">
-      <q-item-label header v-text="$t('wallets')" class="q-pl-none">
-      </q-item-label>
-
-      <!-- <q-item-section class="">
-        <q-icon name="vertical_split" />
-      </q-item-section> -->
-      <q-item-section class="q-mr-md">
-        <q-icon name="pivot_table_chart" />
-
-      </q-item-section>
-    </q-item>
-
+    <q-item-label header v-text="$t('wallets')"></q-item-label>
     <q-item
       v-for="wallet in wallets"
       :key="wallet.id"
