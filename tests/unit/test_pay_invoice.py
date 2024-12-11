@@ -519,7 +519,6 @@ async def test_no_checking_id(
 
 @pytest.mark.anyio
 async def test_service_fee(
-    db: Connection,
     from_wallet: Wallet,
     to_wallet: Wallet,
     mocker: MockerFixture,
@@ -546,10 +545,9 @@ async def test_service_fee(
     payment = await pay_invoice(
         wallet_id=from_wallet.id,
         payment_request=external_invoice.payment_request,
-        conn=db,
     )
 
-    _payment = await get_standalone_payment(payment.payment_hash, conn=db)
+    _payment = await get_standalone_payment(payment.payment_hash)
     assert _payment
     assert _payment.status == PaymentState.SUCCESS.value
     assert _payment.checking_id == payment.payment_hash
@@ -560,7 +558,6 @@ async def test_service_fee(
 
     service_fee_payment = await get_standalone_payment(
         f"service_fee_{payment.payment_hash}",
-        conn=db,
     )
     assert service_fee_payment
     assert service_fee_payment.status == PaymentState.SUCCESS.value
