@@ -40,6 +40,7 @@ jobs:
           git clone https://github.com/lnbits/lnbits-extensions --single-branch
           cd lnbits-extensions
           git rev-parse --abbrev-ref HEAD
+          git rev-parse HEAD
           mkdir logs
           mkdir reports
           make install-jmeter
