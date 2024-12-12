@@ -589,9 +589,11 @@ window.app = Vue.createApp({
           null,
         )
         .then(response => {
-          this.priceChange = response.data.change.toFixed(2)
-          this.$q.localStorage.set('lnbits.priceChange', this.priceChange)
-          console.log(this.priceChange)
+          priceChange = response.data.change.toFixed(2)
+          if(response.data.change !== 0.0){
+            this.$q.localStorage.set('lnbits.priceChange', this.priceChange)
+            this.priceChange = priceChange
+          }
         })
         .catch(err => {
           console.log(err)
