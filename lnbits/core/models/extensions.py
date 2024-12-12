@@ -348,6 +348,11 @@ class InstallableExtension(BaseModel):
 
     @property
     def module_name(self) -> str:
+        if self.ext_upgrade_dir.is_dir():
+            if settings.has_default_extension_path:
+                return f"lnbits.upgrades.{self.id}-{self.hash}"
+            return f"{self.id}-{self.hash}"
+
         if settings.has_default_extension_path:
             return f"lnbits.extensions.{self.id}"
         return self.id
