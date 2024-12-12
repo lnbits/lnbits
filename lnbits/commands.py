@@ -1,5 +1,6 @@
 import asyncio
 import importlib
+import sys
 import time
 from functools import wraps
 from pathlib import Path
@@ -338,12 +339,17 @@ async def extensions_update(
     if not await _can_run_operation(url):
         return
 
+    upgrades_dir = Path(settings.lnbits_extensions_path, "upgrades")
+    Path(upgrades_dir).mkdir(parents=True, exist_ok=True)
+    sys.path.append(str(upgrades_dir))
+
     if extension:
         await update_extension(extension, repo_index, source_repo, url, admin_user)
         return
 
-    click.echo("Updating all extensions...")
+    click.echo("Updating all extensions:")
     installed_extensions = await get_installed_extensions()
+    click.echo(f"   {[e.id for e in installed_extensions]}")
     updated_extensions = []
     for e in installed_extensions:
         try:
