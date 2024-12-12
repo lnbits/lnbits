@@ -55,5 +55,6 @@ jobs:
           path: |
             lnbits-extensions/reports/
             lnbits-extensions/integration/
-            data
-            logs
+            lnbits-extensions/logs
+            data/
+            logs/
