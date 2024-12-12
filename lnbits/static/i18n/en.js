@@ -32,6 +32,7 @@ window.localisation.en = {
   topup_wallet: 'Topup a wallet',
   topup_hint: 'Use the wallet ID to topup any wallet',
   restart_tooltip: 'Restart the server for changes to take effect',
+  current_price: 'Current Price',
   add_funds_tooltip: 'Add funds to a wallet.',
   reset_defaults: 'Reset to defaults',
   reset_defaults_tooltip: 'Delete all settings and reset to defaults.',

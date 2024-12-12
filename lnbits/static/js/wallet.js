@@ -52,6 +52,7 @@ window.app = Vue.createApp({
       balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
       exchangeRate: 0,
+      priceChange: null,
       mobileSimple: false,
       credit: 0,
       update: {
@@ -76,6 +77,14 @@ window.app = Vue.createApp({
       if (this.fiatBalance) {
         return LNbits.utils.formatCurrency(
           this.fiatBalance.toFixed(2),
+          this.g.wallet.currency
+        )
+      }
+    },
+    formattedExchange() {
+      if (this.fiatBalance) {
+        return LNbits.utils.formatCurrency(
+          this.exchangeRate,
           this.g.wallet.currency
         )
       }
@@ -565,10 +574,28 @@ window.app = Vue.createApp({
           this.fiatBalance =
             (response.data[this.g.wallet.currency] / 100000000) *
             (this.balance || this.g.wallet.sat)
-          this.exchangeRate = response.data[this.g.wallet.currency]
+          this.exchangeRate = response.data[this.g.wallet.currency].toFixed(2)
           this.$q.localStorage.set('lnbits.exchangeRate', this.exchangeRate)
         })
         .catch(e => console.error(e))
+    },
+    getPriceChange() {
+      if (!this.g.wallet.currency) return 0
+      this.priceChange = this.$q.localStorage.getItem('lnbits.priceChange')
+      LNbits.api
+        .request(
+          'GET',
+          '/api/v1/change/' + this.g.wallet.currency,
+          null,
+        )
+        .then(response => {
+          this.priceChange = response.data.change.toFixed(2)
+          this.$q.localStorage.set('lnbits.priceChange', this.priceChange)
+          console.log(this.priceChange)
+        })
+        .catch(err => {
+          console.log(err)
+        })
     },
     updateBalanceCallback(res) {
       if (res.success && wallet.id === res.wallet_id) {
@@ -700,6 +727,7 @@ window.app = Vue.createApp({
     this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
     this.updateFiatBalance()
+    this.getPriceChange()
   },
   watch: {
     updatePayments() {

@@ -37,6 +37,7 @@ from lnbits.utils.exchange_rates import (
     fiat_amount_as_satoshis,
     get_fiat_rate_satoshis,
     satoshis_amount_as_fiat,
+    satoshis_day_change_amount,
 )
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import StatusResponse
@@ -227,9 +228,13 @@ async def api_perform_lnurlauth(
 
 @api_router.get("/api/v1/rate/{currency}")
 async def api_check_fiat_rate(currency: str) -> dict[str, float]:
-    rate = await get_fiat_rate_satoshis(currency)
+    rate, _ = await get_fiat_rate_satoshis(currency)
     return {"rate": rate}
 
+@api_router.get("/api/v1/change/{currency}")
+async def api_check_fiat_change(currency: str) -> dict[str, float]:
+    change = await satoshis_day_change_amount(currency)
+    return {"24hr_change": change}
 
 @api_router.get("/api/v1/currencies")
 async def api_list_currencies_available() -> list[str]:

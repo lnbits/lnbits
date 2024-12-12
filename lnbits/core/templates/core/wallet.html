@@ -63,7 +63,7 @@
                         <div v-if="g.wallet.currency">
                           <span
                             class="text-h5 text-italic"
-                            v-text="formattedFiatBalance"
+                            :v-text="formattedFiatBalance"
                             style="opacity: 0.75"
                           ></span>
                         </div>
@@ -138,7 +138,25 @@
               :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
               :label="mobileSimple ? $t('more') : $t('less')"
             ></q-btn>
-            <q-card v-if="!$q.screen.lt.md"> sdgsd </q-card>
+            <q-card v-if="!$q.screen.lt.md"> 
+              <q-card-section>
+                <div class="row">
+                  <div class="col">
+                    <span v-text="$t('current_price')"></span><br/>
+                    <span class="text-bold text-italic" v-text="formattedExchange"></span>
+                  </div>
+                  <div class="col">
+                    <div 
+    :class="{'text-positive': priceChange > 0, 'text-negative': priceChange < 0}" 
+    class="text-bold text-italic"
+  ><span v-text="priceChange"></span>
+    <q-icon :name="priceChange > 0 ? 'arrow_upward' : 'arrow_downward'" class="q-mr-xs" />
+    {{ priceChange }}
+    </div>
+                  </div>
+                </div>
+              </q-card-section> 
+            </q-card>
           </div>
         </div>
         <q-card
