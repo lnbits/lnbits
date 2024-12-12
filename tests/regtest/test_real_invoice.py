@@ -57,6 +57,7 @@ async def test_pay_real_invoice(
 
     await asyncio.sleep(1)
     balance = await get_node_balance_sats()
+    # TODO: maybe take fee into consideration?
     assert prev_balance - balance == 100
 
 
@@ -158,7 +159,7 @@ async def test_pay_hold_invoice_check_pending(
             headers=adminkey_headers_from,
         )
     )
-    await asyncio.sleep(1)
+    await asyncio.sleep(3)
     # get payment hash from the invoice
     invoice_obj = bolt11.decode(invoice["payment_request"])
     settle_invoice(preimage)

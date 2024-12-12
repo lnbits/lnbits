@@ -159,9 +159,15 @@ class LndRestNode(Node):
             timeout=None,
         ) as stream:
             async for chunk in stream.aiter_text():
-                if chunk:
-                    chunk = json.loads(chunk)
-                    logger.info(f"LND Channel close update: {chunk['result']}")
+                if not chunk:
+                    continue
+                chunk = json.loads(chunk)
+                if "error" in chunk:
+                    raise HTTPException(
+                        status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                        detail=chunk["error"].get("message"),
+                    )
+                logger.info(f"LND Channel close update: {chunk.get('result')}")
 
     async def close_channel(
         self,

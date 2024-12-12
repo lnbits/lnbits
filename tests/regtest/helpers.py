@@ -20,7 +20,8 @@ docker_lightning_cli = [
 docker_bitcoin_cli = [
     "docker",
     "exec",
-    "lnbits-bitcoind-1-1" "bitcoin-cli",
+    "lnbits-bitcoind-1",
+    "bitcoin-cli",
     "-rpcuser=lnbits",
     "-rpcpassword=lnbits",
     "-regtest",

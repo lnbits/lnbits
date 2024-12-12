@@ -102,6 +102,8 @@ async def test_node_payments(node_client, real_invoice, adminkey_headers_from):
 @pytest.mark.anyio
 async def test_channel_management(node_client):
     async def get_channels():
+        # lndrest is slow / async with channel commands
+        await asyncio.sleep(3)
         response = await node_client.get("/node/api/v1/channels")
         assert response.status_code == 200
         return parse_obj_as(list[NodeChannel], response.json())
@@ -134,6 +136,7 @@ async def test_channel_management(node_client):
     )
     assert response.status_code == 200
     created = ChannelPoint(**response.json())
+
     data = await get_channels()
     assert any(
         channel.point == created and channel.state == ChannelState.PENDING
@@ -144,6 +147,8 @@ async def test_channel_management(node_client):
     # gets confirmed to avoid a situation where no channels are
     # left for testing
     mine_blocks(5)
+
+    await asyncio.sleep(1)
 
 
 @pytest.mark.anyio
