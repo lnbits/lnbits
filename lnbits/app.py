@@ -398,15 +398,20 @@ def register_new_ratelimiter(app: FastAPI) -> Callable:
     return register_new_ratelimiter_fn
 
 
+def register_ext_tasks(ext: Extension) -> None:
+    """Register extension async tasks."""
+    ext_module = importlib.import_module(ext.module_name)
+
+    if hasattr(ext_module, f"{ext.code}_start"):
+        ext_start_func = getattr(ext_module, f"{ext.code}_start")
+        ext_start_func()
+
+
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
     ext_module = importlib.import_module(ext.module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
-
-    if hasattr(ext_module, f"{ext.code}_start"):
-        ext_start_func = getattr(ext_module, f"{ext.code}_start")
-        ext_start_func()
 
     if hasattr(ext_module, f"{ext.code}_static_files"):
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
@@ -434,6 +439,7 @@ async def check_and_register_extensions(app: FastAPI):
     for ext in await get_valid_extensions(False):
         try:
             register_ext_routes(app, ext)
+            register_ext_tasks(ext)
         except Exception as exc:
             logger.error(f"Could not load extension `{ext.code}`: {exc!s}")
 
