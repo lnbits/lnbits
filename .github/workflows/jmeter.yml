@@ -31,7 +31,7 @@ jobs:
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |
           poetry run lnbits &
-          sleep 5
+          sleep 10
 
       - name: clone lnbits-extensions, install jmeter and run tests
         run: |
