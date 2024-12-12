@@ -577,8 +577,14 @@
 </template>
 
 <template id="lnbits-update-balance">
-  <q-btn v-if="admin" round color="primary" icon="add" size="sm">
-    <q-popup-edit class="bg-accent text-white" v-slot="scope" v-model="credit">
+  <q-btn
+    v-if="admin"
+    color="primary"
+    :label="$t('credit_debit')"
+    class="float-right q-mt-sm"
+    size="sm"
+  >
+    <q-popup-edit class="bg-primary text-white" v-slot="scope" v-model="credit">
       <q-input
         filled
         :label="$t('credit_label', {denomination: denomination})"
@@ -593,7 +599,7 @@
         </template>
       </q-input>
     </q-popup-edit>
-    <q-tooltip>Topup Wallet</q-tooltip>
+    <q-tooltip>Add/remove balance</q-tooltip>
   </q-btn>
 </template>
 

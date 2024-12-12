@@ -9,6 +9,7 @@ window.app = Vue.createApp({
       user: LNbits.map.user(window.user),
       exportUrl: `${window.location.origin}/wallet?usr=${window.user.id}&wal=${window.wallet.id}`,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
+      isPrioritySwapped: false,
       receive: {
         show: false,
         status: 'pending',
@@ -50,6 +51,7 @@ window.app = Vue.createApp({
       },
       balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
+      exchangeRate: 0,
       mobileSimple: false,
       credit: 0,
       update: {
@@ -551,13 +553,20 @@ window.app = Vue.createApp({
     },
     updateFiatBalance() {
       if (!this.g.wallet.currency) return 0
+      this.exchangeRate = this.$q.localStorage.getItem('lnbits.exchangeRate')
+      this.fiatBalance =
+        (this.exchangeRate / 100000000) * (this.balance || this.g.wallet.sat)
       LNbits.api
         .request('POST', `/api/v1/conversion`, null, {
-          amount: this.balance || this.g.wallet.sat,
+          amount: 100000000,
           to: this.g.wallet.currency
         })
         .then(response => {
-          this.fiatBalance = response.data[this.g.wallet.currency]
+          this.fiatBalance =
+            (response.data[this.g.wallet.currency] / 100000000) *
+            (this.balance || this.g.wallet.sat)
+          this.exchangeRate = response.data[this.g.wallet.currency]
+          this.$q.localStorage.set('lnbits.exchangeRate', this.exchangeRate)
         })
         .catch(e => console.error(e))
     },
@@ -667,6 +676,13 @@ window.app = Vue.createApp({
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
         })
+    },
+    swapBalancePriority() {
+      this.isPrioritySwapped = !this.isPrioritySwapped
+      this.$q.localStorage.setItem(
+        'lnbits.isPrioritySwapped',
+        this.isPrioritySwapped
+      )
     }
   },
   created() {
@@ -695,6 +711,12 @@ window.app = Vue.createApp({
     if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
+    }
+    // check blanace priority
+    if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped')) {
+      this.isPrioritySwapped = this.$q.localStorage.getItem(
+        'lnbits.isPrioritySwapped'
+      )
     }
     // listen to incoming payments
     LNbits.events.onInvoicePaid(this.g.wallet, payment => {
