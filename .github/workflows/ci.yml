@@ -84,7 +84,7 @@ jobs:
   #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   jmeter:
-    needs: [ lint ]
+    # needs: [ lint ]
     strategy:
       matrix:
         python-version: ["3.10"]
