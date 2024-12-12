@@ -47,6 +47,13 @@ jobs:
           make test
           ls -la
 
+      - name: print lnbits log
+        if: ${{ always() }}
+        run: |
+          # catch up time for lnbits
+          sleep 1
+          cat data/logs/debug.log
+
       - name: upload jmeter test results
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
