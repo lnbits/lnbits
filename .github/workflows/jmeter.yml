@@ -54,5 +54,6 @@ jobs:
           name: jmeter-extension-test-results
           path: |
             lnbits-extensions/reports/
-            data/logs/
+            lnbits-extensions/integration/
+            data
             logs
