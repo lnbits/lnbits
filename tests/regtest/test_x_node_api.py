@@ -100,6 +100,55 @@ async def test_node_payments(node_client, real_invoice, adminkey_headers_from):
 
 
 @pytest.mark.anyio
+async def test_get_channel(node_client):
+    # lndrest is slow / async with channel commands
+    await asyncio.sleep(3)
+    response = await node_client.get("/node/api/v1/channels")
+    assert response.status_code == 200
+    channels = parse_obj_as(list[NodeChannel], response.json())
+
+    ch = random.choice(
+        [channel for channel in channels if channel.state == ChannelState.ACTIVE]
+    )
+    assert ch, "No active channel found"
+    assert ch.point, "No channel point found"
+
+    await asyncio.sleep(3)
+    response = await node_client.get(f"/node/api/v1/channels/{ch.id}")
+    assert response.status_code == 200
+
+    channel = parse_obj_as(NodeChannel, response.json())
+    assert channel.id == ch.id
+
+
+@pytest.mark.anyio
+async def test_set_channel_fees(node_client):
+    # lndrest is slow / async with channel commands
+    await asyncio.sleep(3)
+    response = await node_client.get("/node/api/v1/channels")
+    assert response.status_code == 200
+    channels = parse_obj_as(list[NodeChannel], response.json())
+
+    ch = random.choice(
+        [channel for channel in channels if channel.state == ChannelState.ACTIVE]
+    )
+    assert ch, "No active channel found"
+    assert ch.point, "No channel point found"
+
+    response = await node_client.put(
+        f"/node/api/v1/channels/{ch.id}", json={"fee_base_msat": 42, "fee_ppm": 69}
+    )
+    assert response.status_code == 200
+
+    await asyncio.sleep(3)
+    response = await node_client.get(f"/node/api/v1/channels/{ch.id}")
+    assert response.status_code == 200
+    channel = parse_obj_as(NodeChannel, response.json())
+    assert channel.fee_ppm == 69
+    assert channel.fee_base_msat == 42
+
+
+@pytest.mark.anyio
 async def test_channel_management(node_client):
     async def get_channels():
         # lndrest is slow / async with channel commands

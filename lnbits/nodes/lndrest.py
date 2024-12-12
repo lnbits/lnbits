@@ -41,6 +41,14 @@ def _decode_bytes(data: str) -> str:
     return base64.b64decode(data).hex()
 
 
+def _encode_bytes(data: str) -> str:
+    return base64.b64encode(bytes.fromhex(data)).decode()
+
+
+def _encode_urlsafe_bytes(data: str) -> str:
+    return base64.urlsafe_b64encode(bytes.fromhex(data)).decode()
+
+
 def _parse_channel_point(raw: str) -> ChannelPoint:
     funding_tx, output_index = raw.split(":")
     return ChannelPoint(
@@ -129,15 +137,12 @@ class LndRestNode(Node):
         response = await self.request(
             "POST",
             "/v1/channels",
-            data=json.dumps(
-                {
-                    # 'node_pubkey': base64.b64encode(peer_id.encode()).decode(),
-                    "node_pubkey_string": peer_id,
-                    "sat_per_vbyte": fee_rate,
-                    "local_funding_amount": local_amount,
-                    "push_sat": push_amount,
-                }
-            ),
+            json={
+                "node_pubkey": _encode_bytes(peer_id),
+                "sat_per_vbyte": fee_rate,
+                "local_funding_amount": local_amount,
+                "push_sat": push_amount,
+            },
         )
         return ChannelPoint(
             # WHY IS THIS REVERSED?!
@@ -184,6 +189,66 @@ class LndRestNode(Node):
 
         asyncio.create_task(self._close_channel(point, force))  # noqa: RUF006
 
+    async def set_channel_fee(self, channel_id: str, base_msat: int, ppm: int):
+        # https://lightning.engineering/api-docs/api/lnd/lightning/update-channel-policy/
+        channel = await self.get_channel(channel_id)
+        if not channel:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="Channel not found"
+            )
+        if not channel.point:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="Channel point required"
+            )
+        await self.request(
+            "POST",
+            "/v1/chanpolicy",
+            json={
+                "base_fee_msat": base_msat,
+                "fee_rate_ppm": ppm,
+                "chan_point": {
+                    "funding_txid_str": channel.point.funding_txid,
+                    "output_index": channel.point.output_index,
+                },
+                # https://docs.lightning.engineering/lightning-network-tools/lnd/optimal-configuration-of-a-routing-node#channel-defaults
+                "time_lock_delta": 80,
+                # 'max_htlc_msat': <uint64>,
+                # 'min_htlc_msat': <uint64>,
+                # 'inbound_fee': <InboundFee>,
+            },
+        )
+
+    async def get_channel(self, channel_id: str) -> Optional[NodeChannel]:
+        channel_info = await self.get(f"/v1/graph/edge/{channel_id}")
+        peer_id = channel_info["node2_pub"]
+        peer_b64 = _encode_urlsafe_bytes(peer_id)
+        channels = await self.get(f"/v1/channels?peer={peer_b64}")
+        if "error" in channel_info and "error" in channels:
+            return None
+        for channel in channels["channels"]:
+            if channel["chan_id"] == channel_id:
+                peer_info = await self.get_peer_info(peer_id)
+                return NodeChannel(
+                    id=channel.get("chan_id"),
+                    peer_id=peer_info.id,
+                    name=peer_info.alias,
+                    color=peer_info.color,
+                    state=(
+                        ChannelState.ACTIVE
+                        if channel["active"]
+                        else ChannelState.INACTIVE
+                    ),
+                    fee_ppm=channel_info["node1_policy"]["fee_rate_milli_msat"],
+                    fee_base_msat=channel_info["node1_policy"]["fee_base_msat"],
+                    point=_parse_channel_point(channel["channel_point"]),
+                    balance=ChannelBalance(
+                        local_msat=msat(channel["local_balance"]),
+                        remote_msat=msat(channel["remote_balance"]),
+                        total_msat=msat(channel["capacity"]),
+                    ),
+                )
+        return None
+
     async def get_channels(self) -> list[NodeChannel]:
         normal, pending, closed = await asyncio.gather(
             self.get("/v1/channels"),
@@ -203,6 +268,7 @@ class LndRestNode(Node):
                         state=state,
                         name=info.alias,
                         color=info.color,
+                        id=channel.get("chan_id", "node is for pending channels"),
                         point=_parse_channel_point(channel["channel_point"]),
                         balance=ChannelBalance(
                             local_msat=msat(channel["local_balance"]),
@@ -222,6 +288,7 @@ class LndRestNode(Node):
             info = await self.get_peer_info(channel["remote_pubkey"])
             channels.append(
                 NodeChannel(
+                    id=channel.get("chan_id", "node is for closing channels"),
                     peer_id=info.id,
                     state=ChannelState.CLOSED,
                     name=info.alias,
@@ -239,6 +306,7 @@ class LndRestNode(Node):
             info = await self.get_peer_info(channel["remote_pubkey"])
             channels.append(
                 NodeChannel(
+                    id=channel["chan_id"],
                     short_id=channel["chan_id"],
                     point=_parse_channel_point(channel["channel_point"]),
                     peer_id=channel["remote_pubkey"],

@@ -52,7 +52,7 @@
       }
     },
     mixins: [window.windowMixin],
-    data: function () {
+    data() {
       return {
         isSuperUser: false,
         wallet: {},
@@ -77,6 +77,14 @@
         connectPeerDialog: {
           show: false,
           data: {}
+        },
+
+        setFeeDialog: {
+          show: false,
+          data: {
+            fee_ppm: 0,
+            fee_base_msat: 0
+          }
         },
 
         openChannelDialog: {
@@ -119,12 +127,6 @@
               label: ''
             },
             {
-              name: 'memo',
-              align: 'left',
-              label: this.$t('memo'),
-              field: 'memo'
-            },
-            {
               name: 'date',
               align: 'left',
               label: this.$t('date'),
@@ -149,6 +151,12 @@
               align: 'right',
               label: 'Destination',
               field: 'destination'
+            },
+            {
+              name: 'memo',
+              align: 'left',
+              label: this.$t('memo'),
+              field: 'memo'
             }
           ],
           pagination: {
@@ -166,15 +174,9 @@
               label: ''
             },
             {
-              name: 'memo',
-              align: 'left',
-              label: this.$t('memo'),
-              field: 'memo'
-            },
-            {
               name: 'paid_at',
               field: 'paid_at',
-              align: 'right',
+              align: 'left',
               label: 'Paid at',
               sortable: true
             },
@@ -182,7 +184,7 @@
               name: 'expiry',
               label: this.$t('expiry'),
               field: 'expiry',
-              align: 'right',
+              align: 'left',
               sortable: true
             },
             {
@@ -190,6 +192,12 @@
               label: this.$t('amount') + ' (' + LNBITS_DENOMINATION + ')',
               field: row => this.formatMsat(row.amount),
               sortable: true
+            },
+            {
+              name: 'memo',
+              align: 'left',
+              label: this.$t('memo'),
+              field: 'memo'
             }
           ],
           pagination: {
@@ -201,12 +209,12 @@
         }
       }
     },
-    created: function () {
+    created() {
       this.getInfo()
       this.get1MLStats()
     },
     watch: {
-      tab: function (val) {
+      tab(val) {
         if (val === 'transactions' && !this.paymentsTable.data.length) {
           this.getPayments()
           this.getInvoices()
@@ -220,14 +228,14 @@
       checkChanges() {
         return !_.isEqual(this.settings, this.formData)
       },
-      filteredChannels: function () {
+      filteredChannels() {
         return this.stateFilters
           ? this.channels.data.filter(channel => {
               return this.stateFilters.find(({value}) => value == channel.state)
             })
           : this.channels.data
       },
-      totalBalance: function () {
+      totalBalance() {
         return this.filteredChannels.reduce(
           (balance, channel) => {
             balance.local_msat += channel.balance.local_msat
@@ -240,10 +248,10 @@
       }
     },
     methods: {
-      formatMsat: function (msat) {
+      formatMsat(msat) {
         return LNbits.utils.formatMsat(msat)
       },
-      api: function (method, url, options) {
+      api(method, url, options) {
         const params = new URLSearchParams(options?.query)
         return LNbits.api
           .request(method, `/node/api/v1${url}?${params}`, {}, options?.data)
@@ -251,23 +259,29 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      getChannels: function () {
+      getChannel(channel_id) {
+        return this.api('GET', `/channels/${channel_id}`).then(response => {
+          this.setFeeDialog.data.fee_ppm = response.data.fee_ppm
+          this.setFeeDialog.data.fee_base_msat = response.data.fee_base_msat
+        })
+      },
+      getChannels() {
         return this.api('GET', '/channels').then(response => {
           this.channels.data = response.data
         })
       },
-      getInfo: function () {
+      getInfo() {
         return this.api('GET', '/info').then(response => {
           this.info = response.data
           this.channel_stats = response.data.channel_stats
         })
       },
-      get1MLStats: function () {
+      get1MLStats() {
         return this.api('GET', '/rank').then(response => {
           this.ranks = response.data
         })
       },
-      getPayments: function (props) {
+      getPayments(props) {
         if (props) {
           this.paymentsTable.pagination = props.pagination
         }
@@ -281,7 +295,7 @@
           this.paymentsTable.pagination.rowsNumber = response.data.total
         })
       },
-      getInvoices: function (props) {
+      getInvoices(props) {
         if (props) {
           this.invoiceTable.pagination = props.pagination
         }
@@ -295,14 +309,13 @@
           this.invoiceTable.pagination.rowsNumber = response.data.total
         })
       },
-      getPeers: function () {
+      getPeers() {
         return this.api('GET', '/peers').then(response => {
           this.peers.data = response.data
           console.log('peers', this.peers)
         })
       },
-      connectPeer: function () {
-        console.log('peer', this.connectPeerDialog)
+      connectPeer() {
         this.api('POST', '/peers', {data: this.connectPeerDialog.data}).then(
           () => {
             this.connectPeerDialog.show = false
@@ -310,7 +323,7 @@
           }
         )
       },
-      disconnectPeer: function (id) {
+      disconnectPeer(id) {
         LNbits.utils
           .confirmDialog('Do you really wanna disconnect this peer?')
           .onOk(() => {
@@ -324,7 +337,17 @@
             })
           })
       },
-      openChannel: function () {
+      setChannelFee(channel_id) {
+        this.api('PUT', `/channels/${channel_id}`, {
+          data: this.setFeeDialog.data
+        })
+          .then(response => {
+            this.setFeeDialog.show = false
+            this.getChannels()
+          })
+          .catch(LNbits.utils.notifyApiError)
+      },
+      openChannel() {
         this.api('POST', '/channels', {data: this.openChannelDialog.data})
           .then(response => {
             this.openChannelDialog.show = false
@@ -334,7 +357,7 @@
             console.log(error)
           })
       },
-      showCloseChannelDialog: function (channel) {
+      showCloseChannelDialog(channel) {
         this.closeChannelDialog.show = true
         this.closeChannelDialog.data = {
           force: false,
@@ -342,7 +365,7 @@
           ...channel.point
         }
       },
-      closeChannel: function () {
+      closeChannel() {
         this.api('DELETE', '/channels', {
           query: this.closeChannelDialog.data
         }).then(response => {
@@ -350,15 +373,20 @@
           this.getChannels()
         })
       },
-      showOpenChannelDialog: function (peer_id) {
+      showSetFeeDialog(channel_id) {
+        this.setFeeDialog.show = true
+        this.setFeeDialog.channel_id = channel_id
+        this.getChannel(channel_id)
+      },
+      showOpenChannelDialog(peer_id) {
         this.openChannelDialog.show = true
         this.openChannelDialog.data = {peer_id, funding_amount: 0}
       },
-      showNodeInfoDialog: function (node) {
+      showNodeInfoDialog(node) {
         this.nodeInfoDialog.show = true
         this.nodeInfoDialog.data = node
       },
-      showTransactionDetailsDialog: function (details) {
+      showTransactionDetailsDialog(details) {
         this.transactionDetailsDialog.show = true
         this.transactionDetailsDialog.data = details
         console.log('details', details)
