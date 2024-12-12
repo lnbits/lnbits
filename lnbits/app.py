@@ -65,7 +65,6 @@ from .middleware import (
 from .requestvars import g
 from .tasks import (
     check_pending_payments,
-    create_task,
     internal_invoice_listener,
     invoice_listener,
 )
@@ -83,6 +82,10 @@ async def startup(app: FastAPI):
 
     log_server_info()
 
+    # check extensions after restart
+    if not settings.lnbits_extensions_deactivate_all:
+        await check_and_register_extensions(app)
+
     # initialize WALLET
     try:
         set_funding_source()
@@ -97,7 +100,7 @@ async def startup(app: FastAPI):
     init_core_routers(app)
 
     # initialize tasks
-    register_async_tasks(app)
+    register_async_tasks()
 
 
 async def shutdown():
@@ -435,11 +438,7 @@ async def check_and_register_extensions(app: FastAPI):
             logger.error(f"Could not load extension `{ext.code}`: {exc!s}")
 
 
-def register_async_tasks(app: FastAPI):
-
-    # check extensions after restart
-    if not settings.lnbits_extensions_deactivate_all:
-        create_task(check_and_register_extensions(app))
+def register_async_tasks():
 
     create_permanent_task(wait_for_audit_data)
     create_permanent_task(check_pending_payments)
