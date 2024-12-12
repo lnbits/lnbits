@@ -80,11 +80,11 @@ async def startup(app: FastAPI):
     await check_admin_settings()
     await check_webpush_settings()
 
-    log_server_info()
-
     # check extensions after restart
     if not settings.lnbits_extensions_deactivate_all:
         await check_and_register_extensions(app)
+
+    log_server_info()
 
     # initialize WALLET
     try:
