@@ -29,6 +29,7 @@ jobs:
           LNBITS_ADMIN_UI: true
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar, tpos, lnurlp, withdraw"
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
+          LNBITS_EXTENSIONS_MANIFESTS: "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         run: |
           poetry run lnbits &
           sleep 15
