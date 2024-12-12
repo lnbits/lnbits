@@ -31,7 +31,7 @@ jobs:
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
         run: |
           poetry run lnbits &
-          sleep 5
+          sleep 15
 
       - name: setup java version
         run: |
