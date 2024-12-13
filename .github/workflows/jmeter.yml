@@ -33,7 +33,16 @@ jobs:
           poetry run lnbits &
           sleep 5
 
+      - name: setup java version
+        run: |
+          update-java-alternatives --list
+          sudo update-java-alternatives --set /usr/lib/jvm/temurin-8-jdk-amd64
+          java -version
+
       - name: clone lnbits-extensions, install jmeter and run tests
+        env:
+          JAVA_HOME: /usr/lib/jvm/temurin-8-jdk-amd64
+          EXTENSIONS_MANIFEST_PATH: "/lnbits/lnbits-extensions/refs/heads/main/extensions.json"
         run: |
           git clone https://github.com/lnbits/lnbits-extensions
           cd lnbits-extensions
@@ -42,6 +51,13 @@ jobs:
           make install-jmeter
           make start-mirror-server
           make test
+
+      - name: print lnbits log
+        if: ${{ always() }}
+        run: |
+          # catch up time for lnbits
+          sleep 1
+          cat data/logs/debug.log
 
       - name: upload jmeter test results
         uses: actions/upload-artifact@v4
