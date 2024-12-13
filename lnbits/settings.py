@@ -123,8 +123,20 @@ class ExchangeRateProvider(BaseModel):
     name: str
     api_url: str
     path: str
-    exclude_to: list = []
-    ticker_conversion: list = []
+    exclude_to: list[str] = []
+    ticker_conversion: list[str] = []
+
+    def convert_ticker(self, currency: str) -> str:
+        if not self.ticker_conversion:
+            return currency
+        try:
+            for t in self.ticker_conversion:
+                _from, _to = t.split(":")
+                if _from == currency:
+                    return _to
+        except Exception as err:
+            logger.warning(err)
+        return currency
 
 
 class InstalledExtensionsSettings(LNbitsSettings):
@@ -299,7 +311,7 @@ class ExchangeProvidersSettings(LNbitsSettings):
                 api_url="https://api.exir.io/v1/ticker?symbol=btc-{to}",
                 path="$.last",
                 exclude_to=["czk", "eur"],
-                ticker_conversion=[],
+                ticker_conversion=["USD:USDT"],
             ),
             ExchangeRateProvider(
                 name="Bitfinex",
@@ -327,7 +339,7 @@ class ExchangeProvidersSettings(LNbitsSettings):
                 api_url="https://coinmate.io/api/ticker?currencyPair=BTC_{TO}",
                 path="$.data.last",
                 exclude_to=[],
-                ticker_conversion=[],
+                ticker_conversion=["USD:USDT"],
             ),
             ExchangeRateProvider(
                 name="Kraken",

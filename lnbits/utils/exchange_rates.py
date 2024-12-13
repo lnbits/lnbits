@@ -187,18 +187,21 @@ def allowed_currencies():
 
 
 async def btc_rates(currency: str) -> list[tuple[str, float]]:
-    replacements = {
-        "FROM": "BTC",
-        "from": "btc",
-        "TO": currency.upper(),
-        "to": currency.lower(),
-    }
+    def replacements(ticker: str):
+        return {
+            "FROM": "BTC",
+            "from": "btc",
+            "TO": ticker.upper(),
+            "to": ticker.lower(),
+        }
 
     async def fetch_price(provider: ExchangeRateProvider) -> tuple[str, float]:
         if currency.lower() in provider.exclude_to:
             raise Exception(f"Provider {provider.name} does not support {currency}.")
 
-        url = provider.api_url.format(**replacements)
+        ticker = provider.convert_ticker(currency)
+        url = provider.api_url.format(**replacements(ticker))
+        json_path = provider.path.format(**replacements(ticker))
 
         try:
             headers = {"User-Agent": settings.user_agent}
@@ -209,7 +212,7 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
                 if not provider.path:
                     return provider.name, float(r.text.replace(",", ""))
                 data = r.json()
-                price_query = jpx.parse(provider.path.format(**replacements))
+                price_query = jpx.parse(json_path)
                 result = price_query.find(data)
                 return provider.name, float(result[0].value)
 
