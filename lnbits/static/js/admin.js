@@ -450,8 +450,8 @@ window.app = Vue.createApp({
       const datasets = exchanges.map(exchange => ({
         label: exchange.name,
         data: data.map(d => d.rates[exchange.name]),
-        pointStyle: exchange.name === 'LNbits',
-        borderWidth: 1,
+        pointStyle: true,
+        borderWidth: exchange.name === 'LNbits'? 4 : 1,
         tension: 0.4
       }))
       this.exchangeRatesChart = new Chart(

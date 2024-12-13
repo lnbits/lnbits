@@ -153,4 +153,19 @@
       lowercase code
     </li>
   </ul>
+
+  <q-separator class="q-ma-md"></q-separator>
+  <div class="row">
+    <div class="col-md-4 col-sm-12">
+      <q-input
+        filled
+        v-model="formData.lnbits_exchange_rate_cache_seconds"
+        type="number"
+        label="Exchange rate cache (seconds)"
+        hint="For how many seconds should the exchange rate be cached."
+      >
+      </q-input>
+    </div>
+    <div class="col-md-8 col-sm-12"></div>
+  </div>
 </q-tab-panel>

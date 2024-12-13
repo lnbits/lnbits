@@ -273,6 +273,7 @@ class FeeSettings(LNbitsSettings):
 
 
 class ExchangeProvidersSettings(LNbitsSettings):
+    lnbits_exchange_rate_cache_seconds: int = Field(default=30)
     lnbits_exchange_history_size: int = Field(default=60)
     lnbits_exchange_history_refresh_interval_seconds: int = Field(default=300)
 
@@ -322,11 +323,6 @@ class ExchangeProvidersSettings(LNbitsSettings):
                 api_url="https://api.kraken.com/0/public/Ticker?pair=XBT{TO}",
                 path="$.result.XXBTZ{TO}.c[0]",
                 exclude_to=["czk"],
-            ),
-            ExchangeRateProvider(
-                name="BitPay",
-                api_url="https://bitpay.com/rates",
-                path="""$.data[?(@.code == "{TO}")].rate""",
             ),
             ExchangeRateProvider(
                 name="yadio",
