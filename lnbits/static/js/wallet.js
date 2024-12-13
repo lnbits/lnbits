@@ -726,6 +726,11 @@ window.app = Vue.createApp({
     this.getPriceChange()
   },
   watch: {
+    '$q.screen.gt.sm'(value) {
+      if (value == true) {
+        this.mobileSimple = false
+      }
+    },
     updatePayments() {
       this.fetchBalance()
     }

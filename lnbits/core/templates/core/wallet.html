@@ -34,7 +34,6 @@
           :style="$q.screen.lt.md ? {
           background: $q.screen.lt.md ? 'none !important': ''
         , boxShadow: $q.screen.lt.md ? 'none !important': ''
-        , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
         , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
       } : ''"
         >
@@ -143,6 +142,7 @@
                   class="q-ml-xl absolute-right"
                   dense
                   size="sm"
+                  style="height:20px;margin-top:75px"
                   flat
                   :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
                   :label="mobileSimple ? $t('more') : $t('less')"
