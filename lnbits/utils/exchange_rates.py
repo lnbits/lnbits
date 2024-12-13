@@ -199,7 +199,8 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
         provider: ExchangeRateProvider,
     ) -> Optional[tuple[str, float]]:
         if currency.lower() in provider.exclude_to:
-            raise Exception(f"Provider {provider.name} does not support {currency}.")
+            logger.warning(f"Provider {provider.name} does not support {currency}.")
+            return
 
         ticker = provider.convert_ticker(currency)
         url = provider.api_url.format(**replacements(ticker))
@@ -231,6 +232,7 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
         await fetch_price(provider)
         for provider in settings.lnbits_exchange_rate_providers
     ]
+
     return [r for r in results if r is not None]
 
 
