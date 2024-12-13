@@ -73,14 +73,6 @@ window.app = Vue.createApp({
         return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
       }
     },
-    formattedFiatBalance() {
-      if (this.fiatBalance) {
-        return LNbits.utils.formatCurrency(
-          this.fiatBalance.toFixed(2),
-          this.g.wallet.currency
-        )
-      }
-    },
     formattedExchange() {
       if (this.fiatBalance) {
         return LNbits.utils.formatCurrency(
@@ -108,6 +100,12 @@ window.app = Vue.createApp({
     }
   },
   methods: {
+    formattedFiatAmount(amount) {
+      return LNbits.utils.formatCurrency(
+        amount.toFixed(2),
+        this.g.wallet.currency
+      )
+    },
     msatoshiFormat(value) {
       return LNbits.utils.formatSat(value / 1000)
     },
@@ -583,14 +581,10 @@ window.app = Vue.createApp({
       if (!this.g.wallet.currency) return 0
       this.priceChange = this.$q.localStorage.getItem('lnbits.priceChange')
       LNbits.api
-        .request(
-          'GET',
-          '/api/v1/change/' + this.g.wallet.currency,
-          null,
-        )
+        .request('GET', '/api/v1/change/' + this.g.wallet.currency, null)
         .then(response => {
           priceChange = response.data.change.toFixed(2)
-          if(response.data.change !== 0.0){
+          if (response.data.change !== 0.0) {
             this.$q.localStorage.set('lnbits.priceChange', this.priceChange)
             this.priceChange = priceChange
           }

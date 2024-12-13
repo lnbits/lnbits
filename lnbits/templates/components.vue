@@ -578,11 +578,36 @@
 
 <template id="lnbits-update-balance">
   <q-btn
-    v-if="admin"
+    v-if="admin && !small_btn"
     color="primary"
     :label="$t('credit_debit')"
     class="float-right q-mt-sm"
     size="sm"
+  >
+    <q-popup-edit class="bg-primary text-white" v-slot="scope" v-model="credit">
+      <q-input
+        filled
+        :label="$t('credit_label', {denomination: denomination})"
+        :hint="$t('credit_hint')"
+        v-model="scope.value"
+        dense
+        autofocus
+        @keyup.enter="updateBalance(scope.value)"
+      >
+        <template v-slot:append>
+          <q-icon name="edit" />
+        </template>
+      </q-input>
+    </q-popup-edit>
+    <q-tooltip>Add/remove balance</q-tooltip>
+  </q-btn>
+  <q-btn
+    v-if="admin && small_btn"
+    color="primary"
+    round
+    icon="add"
+    flat
+    size="md"
   >
     <q-popup-edit class="bg-primary text-white" v-slot="scope" v-model="credit">
       <q-input

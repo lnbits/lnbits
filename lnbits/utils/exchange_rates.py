@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable, NamedTuple, Tuple, Optional
+from typing import Callable, NamedTuple, Optional, Tuple
 
 import httpx
 from loguru import logger
@@ -199,7 +199,11 @@ exchange_rate_providers = {
     "binance": Provider(
         "Binance",
         "binance.com",
-        "https://api.binance.com/api/v3/ticker/24hr?symbol={FROM}{TO}" if "{TO}" != 'USD' else "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT",
+        (
+            "https://api.binance.com/api/v3/ticker/24hr?symbol={FROM}{TO}"
+            if "{TO}" != "USD"
+            else "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT"
+        ),
         lambda data, replacements: data["lastPrice"],
         ["czk"],
         lambda data, replacements: float(data["priceChangePercent"]),
@@ -242,7 +246,11 @@ exchange_rate_providers = {
     "coinmate": Provider(
         "CoinMate",
         "coinmate.io",
-        "https://coinmate.io/api/ticker?currencyPair={FROM}_{TO}" if "{TO}" != 'USD' else "https://coinmate.io/api/ticker?currencyPair=BTC_USDT",
+        (
+            "https://coinmate.io/api/ticker?currencyPair={FROM}_{TO}"
+            if "{TO}" != "USD"
+            else "https://coinmate.io/api/ticker?currencyPair=BTC_USDT"
+        ),
         lambda data, replacements: data["data"]["last"],
     ),
     "bitpay": Provider(
@@ -261,9 +269,14 @@ exchange_rate_providers = {
     ),
 }
 
-async def fetch_price(provider: Provider, replacements: dict) -> Tuple[Optional[float], Optional[float]]:
+
+async def fetch_price(
+    provider: Provider, replacements: dict
+) -> Tuple[Optional[float], Optional[float]]:
     if replacements["to"] in provider.exclude_to:
-        raise Exception(f"Provider {provider.name} does not support {replacements['TO']}.")
+        raise Exception(
+            f"Provider {provider.name} does not support {replacements['TO']}."
+        )
 
     try:
         url = provider.api_url.format(**replacements)
@@ -294,27 +307,30 @@ async def btc_price(currency: str) -> Tuple[Optional[float], Optional[float]]:
     }
 
     results = await asyncio.gather(
-        *[fetch_price(provider, replacements) for provider in exchange_rate_providers.values()],
+        *[
+            fetch_price(provider, replacements)
+            for provider in exchange_rate_providers.values()
+        ],
         return_exceptions=True,
     )
     logger.debug(results)
     rates = [r[0] for r in results if isinstance(r, tuple) and r[0] is not None]
     changes = [r[1] for r in results if isinstance(r, tuple) and r[1] is not None]
-    if not rates:
-        return 9999999999, None
-    elif len(rates) == 1:
+    if len(rates) == 1:
         logger.warning("Could only fetch one Bitcoin price.")
-
-    avg_price = sum(rates) / len(rates)
-    avg_change = sum(changes) / len(changes) if changes else None
-    return avg_price, avg_change
+    try:
+        avg_price = sum(rates) / len(rates)
+        avg_change = sum(changes) / len(changes) if changes else None
+        return avg_price, avg_change
+    except ZeroDivisionError:
+        return 0, 0
 
 
 async def get_fiat_rate_satoshis(currency: str) -> Tuple[float, float]:
     avg_price, avg_change = await cache.save_result(
         lambda: btc_price(currency), f"btc-price-{currency}"
     )
-    rate_in_satoshis = float(100_000_000 / avg_price)
+    rate_in_satoshis = float(100_000_000 / avg_price or 0)
     return rate_in_satoshis, avg_change
 
 
@@ -328,6 +344,7 @@ async def satoshis_amount_as_fiat(amount: float, currency: str) -> float:
     rate_in_satoshis, _ = await get_fiat_rate_satoshis(currency)
     fiat_amount = float(amount / rate_in_satoshis)
     return fiat_amount
+
 
 async def satoshis_day_change_amount(currency: str) -> float:
     _, avg_change = await get_fiat_rate_satoshis(currency)

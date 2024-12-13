@@ -231,10 +231,12 @@ async def api_check_fiat_rate(currency: str) -> dict[str, float]:
     rate, _ = await get_fiat_rate_satoshis(currency)
     return {"rate": rate}
 
+
 @api_router.get("/api/v1/change/{currency}")
 async def api_check_fiat_change(currency: str) -> dict[str, float]:
     change = await satoshis_day_change_amount(currency)
     return {"24hr_change": change}
+
 
 @api_router.get("/api/v1/currencies")
 async def api_list_currencies_available() -> list[str]:

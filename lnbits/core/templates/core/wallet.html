@@ -30,135 +30,162 @@
           v-if="!mobileSimple"
           :balance="balance"
         ></lnbits-top-wallet-list>
-        <div class="row">
-          <div class="col-9 q-pr-md">
-            <q-card
-              :style="$q.screen.lt.md ? {
+        <q-card
+          :style="$q.screen.lt.md ? {
           background: $q.screen.lt.md ? 'none !important': ''
         , boxShadow: $q.screen.lt.md ? 'none !important': ''
         , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
         , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
       } : ''"
-            >
-              <q-card-section>
-                <div class="row">
-                  <q-btn
-                    v-if="g.wallet.currency"
-                    @click="swapBalancePriority"
-                    style="height: 50px"
-                    class="q-mt-lg"
-                    flat
-                    dense
-                    icon="swap_vert"
-                  ></q-btn>
-                  <div v-if="isPrioritySwapped" class="col">
-                    <div class="column" style="height: 100px">
-                      <div class="col-7">
+        >
+          <q-card-section>
+            <div class="row">
+              <div class="col-1" style="max-width: 30px">
+                <q-btn
+                  v-if="g.wallet.currency"
+                  @click="swapBalancePriority"
+                  style="height: 50px"
+                  class="q-mt-lg"
+                  flat
+                  dense
+                  icon="swap_vert"
+                ></q-btn>
+              </div>
+              <div class="col-11">
+                <div
+                  class="column"
+                  v-if="isPrioritySwapped"
+                  style="height: 100px"
+                >
+                  <div class="col-7">
+                    <div class="row">
+                      <div class="col-auto">
                         <div class="text-h3 q-my-none text-no-wrap">
                           <strong v-text="formattedBalance"></strong>
                           <small> {{LNBITS_DENOMINATION}}</small>
                         </div>
                       </div>
-                      <div class="col-2">
-                        <div v-if="g.wallet.currency">
-                          <span
-                            class="text-h5 text-italic"
-                            :v-text="formattedFiatBalance"
-                            style="opacity: 0.75"
-                          ></span>
-                        </div>
+                      <div class="col-auto">
+                        <lnbits-update-balance
+                          v-if="$q.screen.lt.lg"
+                          :wallet_id="this.g.wallet.id"
+                          :callback="updateBalanceCallback"
+                          :small_btn="true"
+                        ></lnbits-update-balance>
                       </div>
                     </div>
                   </div>
-                  <div v-if="!isPrioritySwapped" class="col">
-                    <div class="column" style="height: 100px">
-                      <div class="col-7">
-                        <div v-if="g.wallet.currency">
-                          <div class="text-h3 q-my-none text-no-wrap">
-                            <strong v-text="formattedFiatBalance"></strong>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-2">
-                        <span
-                          class="text-h5 text-italic"
-                          style="opacity: 0.75"
-                          v-text="formattedBalance + ' {{LNBITS_DENOMINATION}}'"
+                  <div class="col-2">
+                    <div v-if="g.wallet.currency">
+                      <span
+                        class="text-h5 text-italic"
+                        v-text="formattedFiatAmount(fiatBalance)"
+                        style="opacity: 0.75"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="column"
+                  v-if="!isPrioritySwapped"
+                  style="height: 100px"
+                >
+                  <div class="col-7">
+                    <div class="row">
+                      <div class="col-auto">
+                        <div
+                          v-if="g.wallet.currency"
+                          class="text-h3 q-my-none text-no-wrap"
                         >
-                        </span>
+                          <strong
+                            v-text="formattedFiatAmount(fiatBalance)"
+                          ></strong>
+                        </div>
+                      </div>
+                      <div class="col-auto">
+                        <lnbits-update-balance
+                          v-if="$q.screen.lt.lg"
+                          :wallet_id="this.g.wallet.id"
+                          :callback="updateBalanceCallback"
+                          :small_btn="true"
+                        ></lnbits-update-balance>
                       </div>
                     </div>
                   </div>
+                  <div class="col-2">
+                    <span
+                      class="text-h5 text-italic"
+                      style="opacity: 0.75"
+                      v-text="formattedBalance + ' {{LNBITS_DENOMINATION}}'"
+                    >
+                    </span>
+                  </div>
                 </div>
-              </q-card-section>
-              <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
-                <div class="col">
-                  <q-btn
-                    unelevated
-                    color="primary"
-                    class="q-mr-md"
-                    @click="showParseDialog"
-                    :label="$t('paste_request')"
-                  ></q-btn>
-                  <q-btn
-                    unelevated
-                    color="primary"
-                    class="q-mr-md"
-                    @click="showReceiveDialog"
-                    :label="$t('create_invoice')"
-                  ></q-btn>
-                  <q-btn
-                    unelevated
-                    color="secondary"
-                    icon="photo_camera"
-                    @click="showCamera"
-                    :label="$t('scan')"
-                  >
-                    <q-tooltip
-                      ><span v-text="$t('camera_tooltip')"></span
-                    ></q-tooltip>
-                  </q-btn>
-                  <lnbits-update-balance
-                    :wallet_id="this.g.wallet.id"
-                    :callback="updateBalanceCallback"
-                  ></lnbits-update-balance>
+
+                <div class="absolute-right q-pa-md" v-if="$q.screen.gt.md">
+                  <div class="text-bold text-italic">
+                    BTC Price
+                    <span
+                      :class="{'text-positive q-pl-xs': priceChange > 0, 'text-negative q-pl-xs': priceChange < 0}"
+                      v-text="priceChange"
+                    ></span>
+                  </div>
+                  <span
+                    class="text-bold text-italic"
+                    v-text="formattedExchange"
+                  ></span>
                 </div>
+                <q-btn
+                  v-if="$q.screen.lt.md"
+                  @click="mobileSimple = !mobileSimple"
+                  color="primary"
+                  class="q-ml-xl absolute-right"
+                  dense
+                  size="sm"
+                  flat
+                  :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
+                  :label="mobileSimple ? $t('more') : $t('less')"
+                ></q-btn>
               </div>
-            </q-card>
+            </div>
+          </q-card-section>
+          <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
+            <div class="col">
+              <q-btn
+                unelevated
+                color="primary"
+                class="q-mr-md"
+                @click="showParseDialog"
+                :label="$t('paste_request')"
+              ></q-btn>
+              <q-btn
+                unelevated
+                color="primary"
+                class="q-mr-md"
+                @click="showReceiveDialog"
+                :label="$t('create_invoice')"
+              ></q-btn>
+              <q-btn
+                unelevated
+                color="secondary"
+                icon="qr_code_scanner"
+                @click="showCamera"
+              >
+                <q-tooltip
+                  ><span v-text="$t('camera_tooltip')"></span
+                ></q-tooltip>
+              </q-btn>
+              <lnbits-update-balance
+                v-if="$q.screen.gt.md"
+                :wallet_id="this.g.wallet.id"
+                :callback="updateBalanceCallback"
+                :small_btn="false"
+              ></lnbits-update-balance>
+            </div>
           </div>
-          <div class="col-3">
-            <q-btn
-              v-if="$q.screen.lt.md"
-              @click="mobileSimple = !mobileSimple"
-              color="primary"
-              class="q-mt-xl q-ml-xl"
-              dense
-              size="sm"
-              flat
-              :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
-              :label="mobileSimple ? $t('more') : $t('less')"
-            ></q-btn>
-            <q-card v-if="!$q.screen.lt.md"> 
-              <q-card-section>
-                <div class="row">
-                  <div class="col">
-                    <span v-text="$t('current_price')"></span><br/>
-                    <span class="text-bold text-italic" v-text="formattedExchange"></span>
-                  </div>
-                  <div class="col">
-                    <div 
-    :class="{'text-positive': priceChange > 0, 'text-negative': priceChange < 0}" 
-    class="text-bold text-italic q-pt-md"
-  ><span v-text="priceChange"></span>
-    <q-icon :name="priceChange > 0 ? 'arrow_upward' : 'arrow_downward'" class="q-mr-xs" />
-    {{ priceChange }}
-    </div>
-                  </div>
-                </div>
-              </q-card-section> 
-            </q-card>
-          </div>
-        </div>
+        </q-card>
+
         <q-card
           :style="
           $q.screen.lt.md
