@@ -20,16 +20,23 @@
               v-text="$t('only_admins_can_install')"
             ></i>
             <q-input
+              :label="$t('search_extensions')"
+              :dense="dense"
               class="absolute-right q-pr-xl"
               v-model="searchTerm"
-              :label="$t('search_extensions')"
             >
-              <q-icon
-                v-if="searchTerm !== ''"
-                name="close"
-                @click="searchTerm = ''"
-                class="cursor-pointer"
-              ></q-icon>
+              <template v-slot:before>
+                <q-icon name="search"> </q-icon>
+              </template>
+              <template v-slot:append>
+                <q-icon
+                  v-if="searchTerm !== ''"
+                  name="close"
+                  @click="searchTerm = ''"
+                  class="cursor-pointer"
+                >
+                </q-icon>
+              </template>
             </q-input>
           </q-tabs>
         </div>

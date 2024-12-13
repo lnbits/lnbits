@@ -251,6 +251,10 @@ window.app = Vue.createApp({
     } catch (e) {
       LNbits.utils.notifyApiError(e)
     }
+    const hash = window.location.hash.replace('#', '')
+    if (hash) {
+      this.tab = hash
+    }
     this.applyGradient()
     this.applyBackgroundImage()
     this.applyBorder()
