@@ -200,7 +200,7 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
     ) -> Optional[tuple[str, float]]:
         if currency.lower() in provider.exclude_to:
             logger.warning(f"Provider {provider.name} does not support {currency}.")
-            return
+            return None
 
         ticker = provider.convert_ticker(currency)
         url = provider.api_url.format(**replacements(ticker))
