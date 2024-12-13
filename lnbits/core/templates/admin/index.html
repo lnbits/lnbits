@@ -63,7 +63,12 @@
     <q-card>
       <q-splitter>
         <template v-slot:before>
-          <q-tabs v-model="tab" vertical active-color="primary">
+          <q-tabs
+            @update:model-value="showExchangeProvidersTab"
+            v-model="tab"
+            vertical
+            active-color="primary"
+          >
             <q-tab
               name="funding"
               icon="account_balance_wallet"
@@ -80,23 +85,6 @@
               ><q-tooltip v-if="!$q.screen.gt.sm"
                 ><span v-text="$t('security')"></span></q-tooltip
             ></q-tab>
-
-            <q-tab
-              name="users"
-              icon="group"
-              :label="$q.screen.gt.sm ? $t('users') : null"
-              @update="val => tab = val.name"
-              ><q-tooltip v-if="!$q.screen.gt.sm"
-                ><span v-text="$t('users')"></span></q-tooltip
-            ></q-tab>
-            <q-tab
-              name="extensions"
-              icon="extension"
-              :label="$q.screen.gt.sm ? $t('extensions') : null"
-              @update="val => tab = val.name"
-              ><q-tooltip v-if="!$q.screen.gt.sm"
-                ><span v-text="$t('extensions')"></span></q-tooltip
-            ></q-tab>
             <q-tab
               name="server"
               icon="price_change"
@@ -105,6 +93,31 @@
               ><q-tooltip v-if="!$q.screen.gt.sm"
                 ><span v-text="$t('payments')"></span></q-tooltip
             ></q-tab>
+            <q-tab
+              name="exchange_providers"
+              icon="show_chart"
+              :label="$q.screen.gt.sm ? $t('exchanges') : null"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('exchanges')"></span></q-tooltip
+            ></q-tab>
+            <q-tab
+              name="users"
+              icon="group"
+              :label="$q.screen.gt.sm ? $t('users') : null"
+              @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('users')"></span></q-tooltip
+            ></q-tab>
+
+            <q-tab
+              name="extensions"
+              icon="extension"
+              :label="$q.screen.gt.sm ? $t('extensions') : null"
+              @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('extensions')"></span></q-tooltip
+            ></q-tab>
+
             <q-tab
               name="notifications"
               icon="notifications"
@@ -145,7 +158,8 @@
             >
               {% include "admin/_tab_funding.html" %} {% include
               "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %}
-              {% include "admin/_tab_extensions.html" %} {% include
+              {% include "admin/_tab_exchange_providers.html" %} {% include
+              "admin/_tab_extensions.html" %} {% include
               "admin/_tab_notifications.html" %} {% include
               "admin/_tab_security.html" %} {% include "admin/_tab_theme.html"
               %}{% include "admin/_tab_audit.html"%}
@@ -156,6 +170,47 @@
     </q-card>
   </div>
 </div>
+
+<q-dialog v-model="exchangeData.showTickerConversion" position="top">
+  <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+    <strong>Create Currecny Ticker Converter</strong>
+    <div class="row">
+      <div class="col-12 q-mb-md">
+        <q-select
+          filled
+          dense
+          v-model="exchangeData.convertFromTicker"
+          label="From Currency"
+          :options="{{ currencies | safe }}"
+        ></q-select>
+      </div>
+      <div class="col-12">
+        <q-input
+          v-model="exchangeData.convertToTicker"
+          dense
+          filled
+          label="New Ticker"
+          hint="This ticker will be used for the exchange API calls."
+        >
+        </q-input>
+      </div>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn
+        @click="addExchangeTickerConversion()"
+        label="Add Ticker Conversion"
+        color="primary"
+      ></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('close')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="{{ static_url_for('static', 'js/admin.js') }}"></script>

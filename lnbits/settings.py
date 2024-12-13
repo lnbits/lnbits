@@ -5,6 +5,7 @@ import importlib.metadata
 import inspect
 import json
 import re
+from datetime import datetime, timezone
 from enum import Enum
 from hashlib import sha256
 from os import path
@@ -118,6 +119,26 @@ class RedirectPath(BaseModel):
         return False
 
 
+class ExchangeRateProvider(BaseModel):
+    name: str
+    api_url: str
+    path: str
+    exclude_to: list[str] = []
+    ticker_conversion: list[str] = []
+
+    def convert_ticker(self, currency: str) -> str:
+        if not self.ticker_conversion:
+            return currency
+        try:
+            for t in self.ticker_conversion:
+                _from, _to = t.split(":")
+                if _from == currency:
+                    return _to
+        except Exception as err:
+            logger.warning(err)
+        return currency
+
+
 class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
     lnbits_deactivated_extensions: set[str] = Field(default=[])
@@ -193,6 +214,20 @@ class InstalledExtensionsSettings(LNbitsSettings):
         ]
 
 
+class ExchangeHistorySettings(LNbitsSettings):
+
+    lnbits_exchange_rate_history: list[dict] = Field(default=[])
+
+    def append_exchange_rate_datapoint(self, rates: dict, max_size: int):
+        data = {
+            "timestamp": int(datetime.now(timezone.utc).timestamp()),
+            "rates": rates,
+        }
+        self.lnbits_exchange_rate_history.append(data)
+        if len(self.lnbits_exchange_rate_history) > max_size:
+            self.lnbits_exchange_rate_history.pop(0)
+
+
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
@@ -248,6 +283,80 @@ class FeeSettings(LNbitsSettings):
         reserve_min = self.lnbits_reserve_fee_min
         reserve_percent = self.lnbits_reserve_fee_percent
         return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+
+
+class ExchangeProvidersSettings(LNbitsSettings):
+    lnbits_exchange_rate_cache_seconds: int = Field(default=30)
+    lnbits_exchange_history_size: int = Field(default=60)
+    lnbits_exchange_history_refresh_interval_seconds: int = Field(default=300)
+
+    lnbits_exchange_rate_providers: list[ExchangeRateProvider] = Field(
+        default=[
+            ExchangeRateProvider(
+                name="Binance",
+                api_url="https://api.binance.com/api/v3/ticker/price?symbol=BTC{TO}",
+                path="$.price",
+                exclude_to=["czk"],
+                ticker_conversion=["USD:USDT"],
+            ),
+            ExchangeRateProvider(
+                name="Blockchain",
+                api_url="https://blockchain.info/frombtc?currency={TO}&value=100000000",
+                path="",
+                exclude_to=[],
+                ticker_conversion=[],
+            ),
+            ExchangeRateProvider(
+                name="Exir",
+                api_url="https://api.exir.io/v1/ticker?symbol=btc-{to}",
+                path="$.last",
+                exclude_to=["czk", "eur"],
+                ticker_conversion=["USD:USDT"],
+            ),
+            ExchangeRateProvider(
+                name="Bitfinex",
+                api_url="https://api.bitfinex.com/v1/pubticker/btc{to}",
+                path="$.last_price",
+                exclude_to=["czk"],
+                ticker_conversion=[],
+            ),
+            ExchangeRateProvider(
+                name="Bitstamp",
+                api_url="https://www.bitstamp.net/api/v2/ticker/btc{to}/",
+                path="$.last",
+                exclude_to=["czk"],
+                ticker_conversion=[],
+            ),
+            ExchangeRateProvider(
+                name="Coinbase",
+                api_url="https://api.coinbase.com/v2/exchange-rates?currency=BTC",
+                path="$.data.rates.{TO}",
+                exclude_to=[],
+                ticker_conversion=[],
+            ),
+            ExchangeRateProvider(
+                name="CoinMate",
+                api_url="https://coinmate.io/api/ticker?currencyPair=BTC_{TO}",
+                path="$.data.last",
+                exclude_to=[],
+                ticker_conversion=["USD:USDT"],
+            ),
+            ExchangeRateProvider(
+                name="Kraken",
+                api_url="https://api.kraken.com/0/public/Ticker?pair=XBT{TO}",
+                path="$.result.XXBTZ{TO}.c[0]",
+                exclude_to=["czk"],
+                ticker_conversion=[],
+            ),
+            ExchangeRateProvider(
+                name="yadio",
+                api_url="https://api.yadio.io/exrates/BTC",
+                path="$.BTC.{TO}",
+                exclude_to=[],
+                ticker_conversion=[],
+            ),
+        ]
+    )
 
 
 class SecuritySettings(LNbitsSettings):
@@ -594,6 +703,7 @@ class EditableSettings(
     ThemesSettings,
     OpsSettings,
     FeeSettings,
+    ExchangeProvidersSettings,
     SecuritySettings,
     FundingSourcesSettings,
     LightningSettings,
@@ -698,7 +808,7 @@ class SuperUserSettings(LNbitsSettings):
     )
 
 
-class TransientSettings(InstalledExtensionsSettings):
+class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     # Transient Settings:
     #  - are initialized, updated and used at runtime
     #  - are not read from a file or from the `settings` table

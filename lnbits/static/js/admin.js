@@ -61,7 +61,61 @@ window.app = Vue.createApp({
         'orange'
       ],
       tab: 'funding',
-      needsRestart: false
+      needsRestart: false,
+      exchangesTable: {
+        columns: [
+          {
+            name: 'name',
+            align: 'left',
+            label: 'Exchange Name',
+            field: 'name',
+            sortable: true
+          },
+          {
+            name: 'api_url',
+            align: 'left',
+            label: 'URL',
+            field: 'api_url',
+            sortable: false
+          },
+          {
+            name: 'path',
+            align: 'left',
+            label: 'JSON Path',
+            field: 'path',
+            sortable: false
+          },
+
+          {
+            name: 'exclude_to',
+            align: 'left',
+            label: 'Exclude Currencies',
+            field: 'exclude_to',
+            sortable: false
+          },
+          {
+            name: 'ticker_conversion',
+            align: 'left',
+            label: 'Ticker Conversion',
+            field: 'ticker_conversion',
+            sortable: false
+          }
+        ],
+        pagination: {
+          sortBy: 'name',
+          rowsPerPage: 100,
+          page: 1,
+          rowsNumber: 100
+        },
+        search: null,
+        hideEmpty: true
+      },
+      exchangeData: {
+        selectedProvider: null,
+        showTickerConversion: false,
+        convertFromTicker: null,
+        convertToTicker: null
+      }
     }
   },
   created() {
@@ -247,6 +301,57 @@ window.app = Vue.createApp({
       this.formData.nostr_absolute_request_urls =
         this.formData.nostr_absolute_request_urls.filter(b => b !== url)
     },
+    addExchangeProvider() {
+      this.formData.lnbits_exchange_rate_providers = [
+        {
+          name: '',
+          api_url: '',
+          path: '',
+          exclude_to: []
+        },
+        ...this.formData.lnbits_exchange_rate_providers
+      ]
+    },
+    removeExchangeProvider(provider) {
+      this.formData.lnbits_exchange_rate_providers =
+        this.formData.lnbits_exchange_rate_providers.filter(p => p !== provider)
+    },
+    removeExchangeTickerConversion(provider, ticker) {
+      provider.ticker_conversion = provider.ticker_conversion.filter(
+        t => t !== ticker
+      )
+      this.touchSettings()
+    },
+    addExchangeTickerConversion() {
+      if (!this.exchangeData.selectedProvider) {
+        return
+      }
+      this.exchangeData.selectedProvider.ticker_conversion.push(
+        `${this.exchangeData.convertFromTicker}:${this.exchangeData.convertToTicker}`
+      )
+      this.touchSettings()
+      this.exchangeData.showTickerConversion = false
+    },
+    showTickerConversionDialog(provider) {
+      this.exchangeData.convertFromTicker = null
+      this.exchangeData.convertToTicker = null
+      this.exchangeData.selectedProvider = provider
+      this.exchangeData.showTickerConversion = true
+    },
+
+    getDefaultSetting(fieldName) {
+      LNbits.api
+        .request(
+          'GET',
+          `/admin/api/v1/settings/default?field_name=${fieldName}`
+        )
+        .then(response => {
+          this.formData[fieldName] = response.data.default_value
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
+    },
     restartServer() {
       LNbits.api
         .request('GET', '/admin/api/v1/restart/')
@@ -286,6 +391,16 @@ window.app = Vue.createApp({
         })
         .catch(LNbits.utils.notifyApiError)
     },
+    getExchangeRateHistory() {
+      LNbits.api
+        .request('GET', '/api/v1/rate/history', this.g.user.wallets[0].inkey)
+        .then(response => {
+          this.initExchangeChart(response.data)
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
+    },
     getSettings() {
       LNbits.api
         .request(
@@ -304,7 +419,8 @@ window.app = Vue.createApp({
     updateSettings() {
       const data = _.omit(this.formData, [
         'is_super_user',
-        'lnbits_allowed_funding_sources'
+        'lnbits_allowed_funding_sources',
+        'touch'
       ])
       LNbits.api
         .request(
@@ -350,6 +466,47 @@ window.app = Vue.createApp({
     },
     downloadBackup() {
       window.open('/admin/api/v1/backup', '_blank')
+    },
+    showExchangeProvidersTab(tabName) {
+      if (tabName === 'exchange_providers') {
+        this.getExchangeRateHistory()
+      }
+    },
+    touchSettings() {
+      this.formData.touch = null
+    },
+    initExchangeChart(data) {
+      const xValues = data.map(d =>
+        Quasar.date.formatDate(new Date(d.timestamp * 1000), 'HH:mm')
+      )
+      const exchanges = [
+        ...this.formData.lnbits_exchange_rate_providers,
+        {name: 'LNbits'}
+      ]
+      const datasets = exchanges.map(exchange => ({
+        label: exchange.name,
+        data: data.map(d => d.rates[exchange.name]),
+        pointStyle: true,
+        borderWidth: exchange.name === 'LNbits' ? 4 : 1,
+        tension: 0.4
+      }))
+      this.exchangeRatesChart = new Chart(
+        this.$refs.exchangeRatesChart.getContext('2d'),
+        {
+          type: 'line',
+          options: {
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
+          },
+          data: {
+            labels: xValues,
+            datasets
+          }
+        }
+      )
     }
   }
 })

@@ -4,6 +4,7 @@ from typing import Any, Optional
 from loguru import logger
 
 from lnbits.core.db import db
+from lnbits.db import dict_to_model
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,
@@ -18,7 +19,8 @@ async def get_super_settings() -> Optional[SuperSettings]:
     if data:
         super_user = await get_settings_field("super_user")
         super_user_id = super_user.value if super_user else None
-        return SuperSettings(**{"super_user": super_user_id, **data})
+        settings_dict = {"super_user": super_user_id, **data}
+        return dict_to_model(settings_dict, SuperSettings)
     return None
 
 

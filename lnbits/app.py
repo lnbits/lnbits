@@ -26,6 +26,7 @@ from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
 from lnbits.core.tasks import (  # watchdog_task
     audit_queue,
+    collect_exchange_rates_data,
     killswitch_task,
     purge_audit_data,
     wait_for_audit_data,
@@ -455,6 +456,7 @@ def register_async_tasks(app: FastAPI):
     # create_permanent_task(watchdog_task)
     create_permanent_task(killswitch_task)
     create_permanent_task(purge_audit_data)
+    create_permanent_task(collect_exchange_rates_data)
 
     # server logs for websocket
     if settings.lnbits_admin_ui:

@@ -3,6 +3,7 @@ from loguru import logger
 from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
 
+from lnbits.db import dict_to_model
 from lnbits.settings import (
     EditableSettings,
     readonly_variables,
@@ -37,14 +38,16 @@ async def check_webpush_settings():
 
 
 def update_cached_settings(sets_dict: dict):
-    for key, value in sets_dict.items():
+    editable_settings = dict_to_model(sets_dict, EditableSettings)
+    for key in sets_dict.keys():
         if key in readonly_variables:
             continue
         if key not in settings.dict().keys():
             continue
         try:
+            value = getattr(editable_settings, key)
             setattr(settings, key, value)
         except Exception:
-            logger.warning(f"Failed overriding setting: {key}, value: {value}")
+            logger.warning(f"Failed overriding setting: {key}.")
     if "super_user" in sets_dict:
         settings.super_user = sets_dict["super_user"]

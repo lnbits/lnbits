@@ -17,7 +17,7 @@ from lnbits.core.services import (
 from lnbits.core.tasks import api_invoice_listeners
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
-from lnbits.settings import AdminSettings, UpdateSettings, settings
+from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
 from lnbits.tasks import invoice_listeners
 
 from .. import core_app_extra
@@ -68,6 +68,16 @@ async def api_update_settings(data: UpdateSettings, user: User = Depends(check_a
     update_cached_settings(admin_settings.dict())
     core_app_extra.register_new_ratelimiter()
     return {"status": "Success"}
+
+
+@admin_router.get(
+    "/api/v1/settings/default",
+    status_code=HTTPStatus.OK,
+    dependencies=[Depends(check_admin)],
+)
+async def api_reset_settings(field_name: str):
+    default_settings = Settings()
+    return {"default_value": getattr(default_settings, field_name)}
 
 
 @admin_router.delete(
