@@ -171,6 +171,47 @@
   </div>
 </div>
 
+<q-dialog v-model="exchangeData.showTickerConversion" position="top">
+  <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+    <strong>Create Currecny Ticker Converter</strong>
+    <div class="row">
+      <div class="col-12 q-mb-md">
+        <q-select
+          filled
+          dense
+          v-model="exchangeData.convertFromTicker"
+          label="From Currency"
+          :options="{{ currencies | safe }}"
+        ></q-select>
+      </div>
+      <div class="col-12">
+        <q-input
+          v-model="exchangeData.convertToTicker"
+          dense
+          filled
+          label="New Ticker"
+          hint="This ticker will be used for the exchange API calls."
+        >
+        </q-input>
+      </div>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn
+        @click="addExchangeTickerConversion()"
+        label="Add Ticker Conversion"
+        color="primary"
+      ></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('close')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
+
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="{{ static_url_for('static', 'js/admin.js') }}"></script>
 {% endblock %}

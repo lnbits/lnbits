@@ -92,6 +92,13 @@ window.app = Vue.createApp({
             label: 'Exclude Currencies',
             field: 'exclude_to',
             sortable: false
+          },
+          {
+            name: 'ticker_conversion',
+            align: 'left',
+            label: 'Ticker Conversion',
+            field: 'ticker_conversion',
+            sortable: false
           }
         ],
         pagination: {
@@ -102,6 +109,12 @@ window.app = Vue.createApp({
         },
         search: null,
         hideEmpty: true
+      },
+      exchangeData: {
+        selectedProvider: null,
+        showTickerConversion: false,
+        convertFromTicker: null,
+        convertToTicker: null
       }
     }
   },
@@ -303,6 +316,29 @@ window.app = Vue.createApp({
       this.formData.lnbits_exchange_rate_providers =
         this.formData.lnbits_exchange_rate_providers.filter(p => p !== provider)
     },
+    removeExchangeTickerConversion(provider, ticker) {
+      provider.ticker_conversion = provider.ticker_conversion.filter(
+        t => t !== ticker
+      )
+      this.touchSettings()
+    },
+    addExchangeTickerConversion() {
+      if (!this.exchangeData.selectedProvider) {
+        return
+      }
+      this.exchangeData.selectedProvider.ticker_conversion.push(
+        `${this.exchangeData.convertFromTicker}:${this.exchangeData.convertToTicker}`
+      )
+      this.touchSettings()
+      this.exchangeData.showTickerConversion = false
+    },
+    showTickerConversionDialog(provider) {
+      this.exchangeData.convertFromTicker = null
+      this.exchangeData.convertToTicker = null
+      this.exchangeData.selectedProvider = provider
+      this.exchangeData.showTickerConversion = true
+    },
+
     getDefaultSetting(fieldName) {
       LNbits.api
         .request(
@@ -451,7 +487,7 @@ window.app = Vue.createApp({
         label: exchange.name,
         data: data.map(d => d.rates[exchange.name]),
         pointStyle: true,
-        borderWidth: exchange.name === 'LNbits'? 4 : 1,
+        borderWidth: exchange.name === 'LNbits' ? 4 : 1,
         tension: 0.4
       }))
       this.exchangeRatesChart = new Chart(

@@ -87,7 +87,7 @@
       </q-tr>
     </template>
     <template v-slot:body="props">
-      <q-tr auto-width :props="props">
+      <q-tr :props="props">
         <q-td>
           <q-btn
             @click="removeExchangeProvider(props.row)"
@@ -109,7 +109,7 @@
           >
           </q-input>
         </q-td>
-        <q-td>
+        <q-td full-width>
           <q-input
             dense
             filled
@@ -138,6 +138,30 @@
             multiple
             :options="{{ currencies | safe }}"
           ></q-select>
+        </q-td>
+        <q-td>
+          <q-btn
+            @click="showTickerConversionDialog(props.row)"
+            round
+            icon="add"
+            size="sm"
+            color="gray"
+            class="q-ml-xs"
+          >
+          </q-btn>
+          <q-chip
+            v-for="ticker, index in props.row.ticker_conversion"
+            :key="ticker"
+            removable
+            dense
+            filled
+            @remove="removeExchangeTickerConversion(props.row, ticker)"
+            color="primary"
+            text-color="white"
+            :label="ticker"
+            class="ellipsis"
+          >
+          </q-chip>
         </q-td>
       </q-tr>
     </template>
