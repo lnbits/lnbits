@@ -1,4 +1,4 @@
-import asyncio
+from typing import Optional
 
 import httpx
 import jsonpath_ng.ext as jpx
@@ -195,7 +195,9 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
             "to": ticker.lower(),
         }
 
-    async def fetch_price(provider: ExchangeRateProvider) -> tuple[str, float]:
+    async def fetch_price(
+        provider: ExchangeRateProvider,
+    ) -> Optional[tuple[str, float]]:
         if currency.lower() in provider.exclude_to:
             raise Exception(f"Provider {provider.name} does not support {currency}.")
 
@@ -221,16 +223,15 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
                 f"Failed to fetch Bitcoin price "
                 f"for {currency} from {provider.name}: {e}"
             )
-            raise
 
-    results = await asyncio.gather(
-        *[
-            fetch_price(provider)
-            for provider in settings.lnbits_exchange_rate_providers
-        ],
-        return_exceptions=True,
-    )
-    return [r for r in results if not isinstance(r, BaseException)]
+        return None
+
+    # OK to be in squence: fetch_price times out after 0.5 seconds
+    results = [
+        await fetch_price(provider)
+        for provider in settings.lnbits_exchange_rate_providers
+    ]
+    return [r for r in results if r is not None]
 
 
 async def btc_price(currency: str) -> float:
