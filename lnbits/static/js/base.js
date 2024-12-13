@@ -571,6 +571,9 @@ window.windowMixin = {
       if (borderStyle == 'hard-border') {
         borderStyleCSS = `box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #ffffff47; border: none;`
       }
+      if (borderStyle == 'neon-border') {
+        borderStyleCSS = `border: 2px solid ${this.$q.localStorage.getItem('lnbits.primaryColor')}; box-shadow: none;`
+      }
       if (borderStyle == 'no-border') {
         borderStyleCSS = `box-shadow: none; border: none;`
       }

@@ -72,7 +72,8 @@ window.app.component('lnbits-top-wallet-list', {
       balance: 0,
       showForm: false,
       walletName: '',
-      LNBITS_DENOMINATION: LNBITS_DENOMINATION
+      LNBITS_DENOMINATION: LNBITS_DENOMINATION,
+      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor')
     }
   },
   computed: {

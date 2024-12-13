@@ -95,7 +95,11 @@
 </template>
 
 <template id="lnbits-top-wallet-list">
-  <div v-if="user && user.wallets.length" class="lnbits-drawer__wallet-cards">
+  <div
+    v-if="user && user.wallets.length"
+    style="margin-bottom: 10px"
+    class="lnbits-drawer__wallet-cards"
+  >
     <div class="wallet-list-container">
       <!-- Horizontal scroll area -->
       <div class="wallets-scroll-area row no-wrap q-gutter-md">
@@ -106,6 +110,11 @@
           bordered
           tag="a"
           :href="wallet.url"
+          :style="
+            activeWallet && activeWallet.id === wallet.id
+              ? `border: 2px solid ${primaryColor};`
+              : ''
+          "
           :class="{
             'active-wallet-card': activeWallet && activeWallet.id === wallet.id
           }"
@@ -125,7 +134,7 @@
                 <q-icon
                   name="flash_on"
                   :size="$q.dark.isActive ? '21px' : '20px'"
-                  :color="$q.dark.isActive ? 'blue-grey-10' : 'grey-3'"
+                  :color="$q.dark.isActive ? 'black' : 'grey-3'"
                 ></q-icon>
               </q-avatar>
               <div

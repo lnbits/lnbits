@@ -168,7 +168,6 @@ body.body--dark .q-field--error {
 }
 
 .active-wallet-card {
-  border: 2px solid var(--q-primary);
   background-color: var(--q-dark-bg);
 }
 
@@ -180,6 +179,7 @@ body.body--dark .q-field--error {
   display: flex;
   flex-wrap: nowrap;
   overflow-x: auto;
+  min-height: 170px;
 }
 
 .wallet-list-container {
