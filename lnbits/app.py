@@ -448,7 +448,7 @@ def register_async_tasks(app: FastAPI):
     create_permanent_task(cache.invalidate_forever)
 
     # core invoice listener
-    invoice_queue: asyncio.Queue = asyncio.Queue(5)
+    invoice_queue: asyncio.Queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, "core")
     create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
 
