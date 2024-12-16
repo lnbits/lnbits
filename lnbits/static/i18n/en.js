@@ -156,6 +156,7 @@ window.localisation.en = {
   expiry: 'Expiry',
   webhook: 'Webhook',
   payment_proof: 'Payment Proof',
+  update: 'Update',
   update_available: 'Update {version} available!',
   latest_update: 'You are on the latest version {version}.',
   notifications: 'Notifications',
@@ -273,5 +274,6 @@ window.localisation.en = {
   license: 'License',
   reset_key: 'Reset Key',
   reset_password: 'Reset Password',
-  border_choices: 'Border Choices'
+  border_choices: 'Border Choices',
+  select_all: 'Select All'
 }

@@ -35,6 +35,17 @@
               v-if="!g.user.admin && tab != 'installed'"
               v-text="$t('only_admins_can_install')"
             ></i>
+            <q-space></q-space>
+            <q-badge
+              v-if="g.user.admin && updatableExtensions?.length"
+              @click="showUpdateAllDialog = true"
+              color="primary"
+              class="float-right q-pa-sm q-mr-md cursor-pointer"
+            >
+              <span
+                v-text="$t('new_version') + ` (${updatableExtensions?.length})`"
+              ></span>
+            </q-badge>
           </q-tabs>
         </div>
       </div>
@@ -229,7 +240,7 @@
   </div>
 </div>
 
-<q-dialog v-model="showUninstallDialog">
+<q-dialog v-model="showUninstallDialog" position="top">
   <q-card class="q-pa-lg">
     <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
     <p>
@@ -266,7 +277,7 @@
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="showDropDbDialog">
+<q-dialog v-model="showDropDbDialog" position="top">
   <q-card v-if="selectedExtension" class="q-pa-lg">
     <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
     <p><span v-text="$t('extension_db_drop_warning')"></span><br /></p>
@@ -296,7 +307,7 @@
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="showManageExtensionDialog">
+<q-dialog v-model="showManageExtensionDialog" position="top">
   <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
     <q-card-section>
       <div v-if="selectedRelease.paymentRequest">
@@ -632,7 +643,7 @@
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="showPayToEnableDialog">
+<q-dialog v-model="showPayToEnableDialog" position="top">
   <q-card v-if="selectedExtension" class="q-pa-md">
     <q-card-section>
       <p>
@@ -738,7 +749,7 @@
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="showExtensionDetailsDialog">
+<q-dialog v-model="showExtensionDetailsDialog" position="top">
   <q-card
     v-if="selectedExtensionDetails"
     class="q-pa-sm"
@@ -884,6 +895,63 @@
     </q-card-section>
   </q-card>
 </q-dialog>
+<q-dialog v-model="showUpdateAllDialog" position="top">
+  <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+    <div class="row">
+      <div class="col-12">
+        <h6 class="q-my-md" v-text="$t('update')"></h6>
+      </div>
+    </div>
+    <div v-if="updatableExtensions?.length > 1" class="row">
+      <div class="col-12">
+        <q-btn
+          outline
+          color="grey"
+          @click="selectAllUpdatableExtensionss()"
+          v-text="$t('select_all')"
+        ></q-btn>
+      </div>
+    </div>
+
+    <q-virtual-scroll :items="updatableExtensions" style="max-height: 400px">
+      <template v-slot="{ item, index }">
+        <div class="row">
+          <div class="q-col">
+            <q-checkbox
+              v-model="item.selectedForUpdate"
+              :disable="item.isUpgraded"
+              value="false"
+              :label="item.name + ` (v${item.latestRelease?.version})`"
+            >
+              <q-spinner
+                v-if="item.inProgress"
+                color="primary"
+                size="1.5em"
+                class="q-ml-md"
+              ></q-spinner>
+            </q-checkbox>
+          </div>
+        </div>
+      </template>
+    </q-virtual-scroll>
+    <div class="row q-mt-lg">
+      <q-btn
+        @click="updateSelectedExtensions()"
+        outline
+        color="grey"
+        v-text="$t('update')"
+      ></q-btn>
+
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('cancel')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
   window.app = Vue.createApp({
@@ -898,11 +966,13 @@
         tab: 'all',
         manageExtensionTab: 'releases',
         filteredExtensions: null,
+        updatableExtensions: [],
         showUninstallDialog: false,
         showManageExtensionDialog: false,
         showExtensionDetailsDialog: false,
         showDropDbDialog: false,
         showPayToEnableDialog: false,
+        showUpdateAllDialog: false,
         dropDbExtensionId: '',
         selectedExtension: null,
         selectedImage: null,
@@ -1074,6 +1144,7 @@
           )
           .then(response => {
             Quasar.Notify.create({
+              timeout: 2000,
               type: 'positive',
               message: `Extension '${extension.id}' ${action}d!`
             })
@@ -1476,12 +1547,63 @@
         } finally {
           release.inProgress = false
         }
+      },
+      selectAllUpdatableExtensionss: async function () {
+        this.updatableExtensions.forEach(e => (e.selectedForUpdate = true))
+      },
+      updateSelectedExtensions: async function () {
+        let count = 0
+        for (const ext of this.updatableExtensions) {
+          try {
+            if (!ext.selectedForUpdate) {
+              continue
+            }
+            ext.inProgress = true
+            await LNbits.api.request(
+              'POST',
+              `/api/v1/extension`,
+              this.g.user.wallets[0].adminkey,
+              {
+                ext_id: ext.id,
+                archive: ext.latestRelease.archive,
+                source_repo: ext.latestRelease.source_repo,
+                payment_hash: ext.latestRelease.payment_hash,
+                version: ext.latestRelease.version
+              }
+            )
+            count++
+            ext.isAvailable = true
+            ext.isInstalled = true
+            ext.isUpgraded = true
+            ext.inProgress = false
+            ext.installedRelease = ext.latestRelease
+            this.toggleExtension(ext)
+          } catch (err) {
+            console.warn(err)
+            Quasar.Notify.create({
+              type: 'negative',
+              message: `Failed to update ${ext.code}!`
+            })
+          } finally {
+            ext.inProgress = false
+          }
+        }
+        Quasar.Notify.create({
+          type: 'positive',
+          message: `${count} extensions updated!`
+        })
+        this.showUpdateAllDialog = false
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000)
       }
     },
+
     created: function () {
       this.extensions = JSON.parse('{{extensions | tojson | safe}}').map(e => ({
         ...e,
-        inProgress: false
+        inProgress: false,
+        selectedForUpdate: false
       }))
       this.filteredExtensions = this.extensions.concat([])
       for (let i = 0; i < this.filteredExtensions.length; i++) {
@@ -1493,6 +1615,9 @@
       if (window.user) {
         this.user = LNbits.map.user(window.user)
       }
+      this.updatableExtensions = this.extensions.filter(ext =>
+        this.hasNewVersion(ext)
+      )
     },
     mixins: [windowMixin]
   })
