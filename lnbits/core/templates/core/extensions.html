@@ -37,12 +37,14 @@
             ></i>
             <q-space></q-space>
             <q-badge
+              v-if="updatableExtensions?.length"
               @click="showUpdateAllDialog = true"
               color="primary"
-              class="float-right q-pa-sm q-ma-md"
-              style="cursor: pointer; margin: 5px 0"
+              class="float-right q-pa-sm q-ma-md cursor-pointer"
             >
-              <span v-text="$t('new_version')"></span>
+              <span
+                v-text="$t('new_version') + ` (${updatableExtensions?.length})`"
+              ></span>
             </q-badge>
           </q-tabs>
         </div>
@@ -900,7 +902,7 @@
         <h6 class="q-my-md" v-text="$t('update')"></h6>
       </div>
     </div>
-    <div class="row">
+    <div v-if="updatableExtensions?.length > 1" class="row">
       <div class="col-12">
         <q-btn
           outline
@@ -911,12 +913,7 @@
       </div>
     </div>
 
-    <q-virtual-scroll
-      :items="updatableExtensions"
-      style="max-height: 400px"
-      class="full-height"
-      class="full-height"
-    >
+    <q-virtual-scroll :items="updatableExtensions" style="max-height: 400px">
       <template v-slot="{ item, index }">
         <div class="row">
           <div class="q-col">
@@ -1147,6 +1144,7 @@
           )
           .then(response => {
             Quasar.Notify.create({
+              timeout: 2000,
               type: 'positive',
               message: `Extension '${extension.id}' ${action}d!`
             })
@@ -1581,15 +1579,13 @@
             ext.isUpgraded = true
             ext.inProgress = false
             ext.installedRelease = ext.latestRelease
-            ext.isActive = false
-            Quasar.Notify.create({
-              type: 'positive',
-              message: `Extension ${ext.id} updated!`
-            })
             this.toggleExtension(ext)
           } catch (err) {
             logger.warning(err)
-            LNbits.utils.notifyApiError(err)
+            Quasar.Notify.create({
+              type: 'negative',
+              message: `Failed to update ${ext.code}!`
+            })
           } finally {
             ext.inProgress = false
           }
