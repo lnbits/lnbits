@@ -143,7 +143,8 @@ window.localisation.cs = {
     'Všechna data pro rozšíření budou trvale odstraněna. Tuto operaci nelze vrátit zpět!',
   extension_db_drop_warning:
     'Chystáte se odstranit všechna data pro rozšíření. Prosím, pokračujte zadáním názvu rozšíření:',
-  extension_min_lnbits_version: 'Toto vydání vyžaduje alespoň verzi LNbits',
+  extension_required_lnbits_version:
+    'Toto vydání vyžaduje alespoň verzi LNbits',
   payment_hash: 'Hash platby',
   fee: 'Poplatek',
   amount: 'Částka',

@@ -23,18 +23,23 @@ from ..models.extensions import Extension, ExtensionMeta, InstallableExtension
 
 
 async def install_extension(ext_info: InstallableExtension) -> Extension:
-    ext_id = ext_info.id
 
-    installed_ext = await get_installed_extension(ext_id)
+    ext_info.meta = ext_info.meta or ExtensionMeta()
+
+    if ext_info.meta.installed_release:
+        assert (
+            ext_info.meta.installed_release.is_version_compatible
+        ), "Incompatible extension version"
+
+    installed_ext = await get_installed_extension(ext_info.id)
     if installed_ext and installed_ext.meta:
-        ext_info.meta = ext_info.meta or ExtensionMeta()
         ext_info.meta.payments = installed_ext.meta.payments
 
     await ext_info.download_archive()
 
     ext_info.extract_archive()
 
-    db_version = await get_db_version(ext_id)
+    db_version = await get_db_version(ext_info.id)
     await migrate_extension_database(ext_info, db_version)
 
     # if the extensions does not exist in the installed extensions table, create it
@@ -47,9 +52,9 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
     extension = Extension.from_installable_ext(ext_info)
     if extension.is_upgrade_extension:
         # call stop while the old routes are still active
-        await stop_extension_background_work(ext_id)
+        await stop_extension_background_work(ext_info.id)
 
-    await start_extension_background_work(ext_id)
+    await start_extension_background_work(ext_info.id)
 
     return extension
 

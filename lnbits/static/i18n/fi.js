@@ -144,7 +144,8 @@ window.localisation.fi = {
     'Kaikki laajennuksen tallettama tieto poistetaan pysyvästi. Poistoa ei voi jälkikäteen peruuttaa!',
   extension_db_drop_warning:
     'Olet tuhoamassa laajennuksen tallettamat tiedot. Vahvista poisto kirjoittamalla viivalle seuraavassa näkyvä laajennuksen nimi:',
-  extension_min_lnbits_version: 'Tämä julkaisu vaatii vähintään LNbits-version',
+  extension_required_lnbits_version:
+    'Tämä julkaisu vaatii vähintään LNbits-version',
   payment_hash: 'Maksun tiiviste',
   fee: 'Kulu',
   amount: 'Määrä',

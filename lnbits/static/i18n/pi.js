@@ -144,7 +144,7 @@ window.localisation.pi = {
     "All data fer th' extension will be permanently deleted. There be no way to undo this operation!",
   extension_db_drop_warning:
     "Ye be about to scuttle all data fer th' extension. Please scribble th' extension name to continue:",
-  extension_min_lnbits_version:
+  extension_required_lnbits_version:
     "This release be needin' at least LNbits version",
   payment_hash: 'Payment Hash like a treasure map, arrr',
   fee: 'Fee like a toll to cross a strait, matey',

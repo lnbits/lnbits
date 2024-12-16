@@ -148,7 +148,7 @@ window.localisation.fr = {
     "Toutes les données pour l'extension seront supprimées de manière permanente. Il n'est pas possible d'annuler cette opération !",
   extension_db_drop_warning:
     "Vous êtes sur le point de supprimer toutes les données de l'extension. Veuillez taper le nom de l'extension pour continuer :",
-  extension_min_lnbits_version:
+  extension_required_lnbits_version:
     'Cette version nécessite au moins LNbits version',
   payment_hash: 'Hash de paiement',
   fee: 'Frais',

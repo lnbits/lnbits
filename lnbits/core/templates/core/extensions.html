@@ -538,10 +538,26 @@
                     ></a>
                   </q-card-section>
                   <q-card-section v-else>
-                    <span v-text="$t('extension_min_lnbits_version')"></span>
-                    <strong>
-                      <span v-text="release.min_lnbits_version"></span>
-                    </strong>
+                    <span
+                      v-text="$t('extension_required_lnbits_version')"
+                    ></span>
+                    <span class="q-mr-sm">:</span>
+                    <ul>
+                      <li v-if="release.min_lnbits_version">
+                        <span v-text="$t('min_version')"></span>
+                        <span class="q-mr-sm">:</span>
+                        <strong>
+                          <span v-text="release.min_lnbits_version"></span>
+                        </strong>
+                      </li>
+                      <li v-if="release.max_lnbits_version">
+                        <span v-text="$t('max_version')"></span>
+                        <span class="q-mr-sm">:</span>
+                        <strong>
+                          <span v-text="release.max_lnbits_version"></span>
+                        </strong>
+                      </li>
+                    </ul>
                   </q-card-section>
                   <q-card v-if="release.warning">
                     <q-card-section>

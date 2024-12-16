@@ -144,7 +144,7 @@ window.localisation.es = {
     'Todos los datos para la extensión se eliminarán permanentemente. ¡No hay manera de deshacer esta operación!',
   extension_db_drop_warning:
     'Está a punto de eliminar todos los datos para la extensión. Por favor, escriba el nombre de la extensión para continuar:',
-  extension_min_lnbits_version:
+  extension_required_lnbits_version:
     'Esta versión requiere al menos una versión de LNbits',
   payment_hash: 'Hash de pago',
   fee: 'Cuota',

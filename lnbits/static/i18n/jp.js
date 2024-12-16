@@ -142,7 +142,7 @@ window.localisation.jp = {
     'エクステンションのすべてのデータが完全に削除されます。この操作を元に戻す方法はありません！',
   extension_db_drop_warning:
     'エクステンションのすべてのデータを削除しようとしています。続行するには、エクステンションの名前を入力してください：',
-  extension_min_lnbits_version:
+  extension_required_lnbits_version:
     'このリリースには少なくとも LNbits バージョンが必要です',
   payment_hash: '支払いハッシュ',
   fee: '料金',

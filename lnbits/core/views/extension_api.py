@@ -69,11 +69,6 @@ async def api_install_extension(data: CreateExtension):
             status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
         )
 
-    if not release.is_version_compatible:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
-        )
-
     release.payment_hash = data.payment_hash
     ext_meta = ExtensionMeta(installed_release=release)
     ext_info = InstallableExtension(
