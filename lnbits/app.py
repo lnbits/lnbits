@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from lnbits.core.crud import (
@@ -55,7 +56,6 @@ from .core.models.extensions import Extension, ExtensionMeta, InstallableExtensi
 from .core.services import check_admin_settings, check_webpush_settings
 from .middleware import (
     AuditMiddleware,
-    CustomGZipMiddleware,
     ExtensionsRedirectMiddleware,
     InstalledExtensionMiddleware,
     add_first_install_middleware,
@@ -153,10 +153,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
     )
-
-    app.add_middleware(
-        CustomGZipMiddleware, minimum_size=1000, exclude_paths=["/api/v1/payments/sse"]
-    )
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     app.add_middleware(AuditMiddleware, audit_queue=audit_queue)
 

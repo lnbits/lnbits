@@ -6,6 +6,10 @@ window.i18n = new VueI18n.createI18n({
   messages: window.localisation
 })
 
+const websocketPrefix =
+  window.location.protocol === 'http:' ? 'ws://' : 'wss://'
+const websocketUrl = `${websocketPrefix}${window.location.host}/api/v1/ws`
+
 window.LNbits = {
   api: {
     request(method, url, apiKey, data) {
@@ -176,36 +180,14 @@ window.LNbits = {
   },
   events: {
     onInvoicePaid(wallet, cb) {
-      let listener = ev => {
-        cb(JSON.parse(ev.data))
-      }
-      this.listenersCount = this.listenersCount || {[wallet.inkey]: 0}
-      this.listenersCount[wallet.inkey]++
-
-      this.listeners = this.listeners || {}
-      if (!(wallet.inkey in this.listeners)) {
-        this.listeners[wallet.inkey] = new EventSource(
-          '/api/v1/payments/sse?api-key=' + wallet.inkey
-        )
-      }
-
-      this.listeners[wallet.inkey].addEventListener(
-        'payment-received',
-        listener
-      )
-
-      return () => {
-        this.listeners[wallet.inkey].removeEventListener(
-          'payment-received',
-          listener
-        )
-        this.listenersCount[wallet.inkey]--
-
-        if (this.listenersCount[wallet.inkey] <= 0) {
-          this.listeners[wallet.inkey].close()
-          delete this.listeners[wallet.inkey]
+      ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
+      ws.onmessage = ev => {
+        const data = JSON.parse(ev.data)
+        if (data.payment) {
+          cb(data)
         }
       }
+      return ws.onclose
     }
   },
   map: {

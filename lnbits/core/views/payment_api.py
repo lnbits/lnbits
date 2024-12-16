@@ -1,6 +1,4 @@
-import asyncio
 import json
-import uuid
 from http import HTTPStatus
 from math import ceil
 from typing import List, Optional
@@ -13,11 +11,9 @@ from fastapi import (
     Header,
     HTTPException,
     Query,
-    Request,
 )
 from fastapi.responses import JSONResponse
 from loguru import logger
-from sse_starlette.sse import EventSourceResponse
 
 from lnbits import bolt11
 from lnbits.core.models import (
@@ -57,7 +53,6 @@ from ..services import (
     pay_invoice,
     update_pending_payments,
 )
-from ..tasks import api_invoice_listeners
 
 payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
 
@@ -311,47 +306,6 @@ async def api_payments_pay_lnurl(
         extra=extra,
     )
     return payment
-
-
-async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
-    """
-    Subscribe to new invoices for a wallet. Can be wrapped in EventSourceResponse.
-    Listenes invoming payments for a wallet and yields jsons with payment details.
-    """
-    this_wallet_id = wallet.id
-
-    payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
-
-    uid = f"{this_wallet_id}_{str(uuid.uuid4())[:8]}"
-    logger.debug(f"adding sse listener for wallet: {uid}")
-    api_invoice_listeners[uid] = payment_queue
-
-    try:
-        while settings.lnbits_running:
-            if await request.is_disconnected():
-                await request.close()
-                break
-            payment: Payment = await payment_queue.get()
-            if payment.wallet_id == this_wallet_id:
-                logger.debug("sse listener: payment received", payment)
-                yield {"data": payment.json(), "event": "payment-received"}
-    except asyncio.CancelledError:
-        logger.debug(f"removing listener for wallet {uid}")
-    except Exception as exc:
-        logger.error(f"Error in sse: {exc}")
-    finally:
-        api_invoice_listeners.pop(uid)
-
-
-@payment_router.get("/sse")
-async def api_payments_sse(
-    request: Request, key_info: WalletTypeInfo = Depends(require_invoice_key)
-):
-    return EventSourceResponse(
-        subscribe_wallet_invoices(request, key_info.wallet),
-        ping=20,
-        media_type="text/event-stream",
-    )
 
 
 # TODO: refactor this route into a public and admin one

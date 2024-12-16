@@ -484,7 +484,7 @@ window.app.component('lnbits-dynamic-chips', {
 window.app.component('lnbits-update-balance', {
   template: '#lnbits-update-balance',
   mixins: [window.windowMixin],
-  props: ['wallet_id', 'callback'],
+  props: ['wallet_id'],
   computed: {
     denomination() {
       return LNBITS_DENOMINATION
@@ -498,21 +498,19 @@ window.app.component('lnbits-update-balance', {
       credit: 0
     }
   },
+  watch: {
+    credit(val) {
+      this.updateBalance(val)
+    }
+  },
   methods: {
     updateBalance(credit) {
       LNbits.api
         .updateBalance(credit, this.wallet_id)
         .then(res => {
-          if (res.data.status !== 'Success') {
+          if (res.data.success !== true) {
             throw new Error(res.data)
           }
-          this.callback({
-            success: true,
-            credit: parseInt(credit),
-            wallet_id: this.wallet_id
-          })
-        })
-        .then(_ => {
           credit = parseInt(credit)
           Quasar.Notify.create({
             type: 'positive',

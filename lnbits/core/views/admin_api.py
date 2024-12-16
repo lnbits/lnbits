@@ -14,7 +14,6 @@ from lnbits.core.services import (
     get_balance_delta,
     update_cached_settings,
 )
-from lnbits.core.tasks import api_invoice_listeners
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
@@ -45,7 +44,6 @@ async def api_auditor():
 async def api_monitor():
     return {
         "invoice_listeners": list(invoice_listeners.keys()),
-        "api_invoice_listeners": list(api_invoice_listeners.keys()),
     }
 
 
