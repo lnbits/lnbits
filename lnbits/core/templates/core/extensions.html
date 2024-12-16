@@ -895,25 +895,48 @@
 </q-dialog>
 <q-dialog v-model="showUpdateAllDialog" position="top">
   <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-    <h6 class="q-my-md" v-text="$t('update')"></h6>
-
-    <div class="row q-mt-lg">
-      <div v-for="ext in updatableExtensions">
-        <q-checkbox
-          v-model="ext.selectedForUpdate"
-          :disable="ext.isUpgraded"
-          value="false"
-          :label="ext.name + ` (${ext.latestRelease?.version})`"
-        >
-          <q-spinner
-            v-if="ext.inProgress"
-            color="primary"
-            size="1.5em"
-            class="q-ml-md"
-          ></q-spinner>
-        </q-checkbox>
+    <div class="row">
+      <div class="col-12">
+        <h6 class="q-my-md" v-text="$t('update')"></h6>
       </div>
     </div>
+    <div class="row">
+      <div class="col-12">
+        <q-btn
+          outline
+          color="grey"
+          @click="selectAllUpdatableExtensionss()"
+          v-text="$t('select_all')"
+        ></q-btn>
+      </div>
+    </div>
+
+    <q-virtual-scroll
+      :items="updatableExtensions"
+      style="max-height: 400px"
+      class="full-height"
+      class="full-height"
+    >
+      <template v-slot="{ item, index }">
+        <div class="row">
+          <div class="q-col">
+            <q-checkbox
+              v-model="item.selectedForUpdate"
+              :disable="item.isUpgraded"
+              value="false"
+              :label="item.name + ` (v${item.latestRelease?.version})`"
+            >
+              <q-spinner
+                v-if="item.inProgress"
+                color="primary"
+                size="1.5em"
+                class="q-ml-md"
+              ></q-spinner>
+            </q-checkbox>
+          </div>
+        </div>
+      </template>
+    </q-virtual-scroll>
     <div class="row q-mt-lg">
       <q-btn
         @click="updateSelectedExtensions()"
@@ -921,6 +944,7 @@
         color="grey"
         v-text="$t('update')"
       ></q-btn>
+
       <q-btn
         v-close-popup
         flat
@@ -1526,8 +1550,12 @@
           release.inProgress = false
         }
       },
+      selectAllUpdatableExtensionss: async function () {
+        this.updatableExtensions.forEach(e => (e.selectedForUpdate = true))
+      },
       updateSelectedExtensions: async function () {
         console.log('### updateSelectedExtensions', this.updatableExtensions)
+        let count = 0
         for (const ext of this.updatableExtensions) {
           console.log('### ext 1', ext)
           try {
@@ -1547,21 +1575,33 @@
                 version: ext.latestRelease.version
               }
             )
+            count++
             ext.isAvailable = true
             ext.isInstalled = true
             ext.isUpgraded = true
-            extension.inProgress = false
+            ext.inProgress = false
             ext.installedRelease = ext.latestRelease
             ext.isActive = false
-            this.toggleExtension(extension)
-
-            console.log('### ext 2', ext)
-          } catch (error) {
+            Quasar.Notify.create({
+              type: 'positive',
+              message: `Extension ${ext.id} updated!`
+            })
+            this.toggleExtension(ext)
+          } catch (err) {
+            logger.warning(err)
+            LNbits.utils.notifyApiError(err)
           } finally {
             ext.inProgress = false
           }
         }
-        // this.showUpdateAllDialog = false
+        Quasar.Notify.create({
+          type: 'positive',
+          message: `${count} extensions updated!`
+        })
+        this.showUpdateAllDialog = false
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000)
       }
     },
 

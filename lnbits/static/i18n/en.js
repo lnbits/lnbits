@@ -274,5 +274,6 @@ window.localisation.en = {
   license: 'License',
   reset_key: 'Reset Key',
   reset_password: 'Reset Password',
-  border_choices: 'Border Choices'
+  border_choices: 'Border Choices',
+  select_all: 'Select All'
 }
