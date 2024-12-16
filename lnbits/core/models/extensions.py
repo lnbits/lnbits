@@ -32,6 +32,7 @@ class ExplicitRelease(BaseModel):
     icon: Optional[str]
     short_description: Optional[str]
     min_lnbits_version: Optional[str]
+    max_lnbits_version: Optional[str]
     html_url: Optional[str]  # todo: release_url
     warning: Optional[str]
     info_notification: Optional[str]
@@ -40,9 +41,16 @@ class ExplicitRelease(BaseModel):
     pay_link: Optional[str]
 
     def is_version_compatible(self):
-        if not self.min_lnbits_version:
-            return True
-        return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
+        if self.min_lnbits_version and (
+            version_parse(self.min_lnbits_version) > version_parse(settings.version)
+        ):
+            return False
+        if self.max_lnbits_version and (
+            version_parse(self.max_lnbits_version) <= version_parse(settings.version)
+        ):
+            return False
+
+        return True
 
 
 class GitHubRelease(BaseModel):
@@ -79,11 +87,18 @@ class ExtensionConfig(BaseModel):
     tile: str = ""
     warning: Optional[str] = ""
     min_lnbits_version: Optional[str]
+    max_lnbits_version: Optional[str]
 
-    def is_version_compatible(self):
-        if not self.min_lnbits_version:
-            return True
-        return version_parse(self.min_lnbits_version) <= version_parse(settings.version)
+    def is_version_compatible(self) -> bool:
+        if self.min_lnbits_version and (
+            version_parse(self.min_lnbits_version) > version_parse(settings.version)
+        ):
+            return False
+        if self.max_lnbits_version and (
+            version_parse(self.max_lnbits_version) <= version_parse(settings.version)
+        ):
+            return False
+        return False
 
     @classmethod
     async def fetch_github_release_config(
@@ -181,6 +196,7 @@ class ExtensionRelease(BaseModel):
     is_github_release: bool = False
     hash: Optional[str] = None
     min_lnbits_version: Optional[str] = None
+    max_lnbits_version: Optional[str] = None
     is_version_compatible: Optional[bool] = True
     html_url: Optional[str] = None
     description: Optional[str] = None
@@ -251,6 +267,7 @@ class ExtensionRelease(BaseModel):
             source_repo=source_repo,
             description=e.short_description,
             min_lnbits_version=e.min_lnbits_version,
+            max_lnbits_version=e.max_lnbits_version,
             is_version_compatible=e.is_version_compatible(),
             warning=e.warning,
             html_url=e.html_url,
@@ -578,6 +595,7 @@ class InstallableExtension(BaseModel):
                             archive=f"{conf_path}",
                             source_repo=f"{conf_path}",
                             min_lnbits_version=config_json.get("min_lnbits_version"),
+                            max_lnbits_version=config_json.get("max_lnbits_version"),
                         )
                     ),
                 )
