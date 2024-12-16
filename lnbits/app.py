@@ -65,7 +65,6 @@ from .middleware import (
 from .requestvars import g
 from .tasks import (
     check_pending_payments,
-    create_task,
     internal_invoice_listener,
     invoice_listener,
 )
@@ -80,6 +79,10 @@ async def startup(app: FastAPI):
     # setup admin settings
     await check_admin_settings()
     await check_webpush_settings()
+
+    # check extensions after restart
+    if not settings.lnbits_extensions_deactivate_all:
+        await check_and_register_extensions(app)
 
     log_server_info()
 
@@ -97,7 +100,7 @@ async def startup(app: FastAPI):
     init_core_routers(app)
 
     # initialize tasks
-    register_async_tasks(app)
+    register_async_tasks()
 
 
 async def shutdown():
@@ -395,15 +398,20 @@ def register_new_ratelimiter(app: FastAPI) -> Callable:
     return register_new_ratelimiter_fn
 
 
+def register_ext_tasks(ext: Extension) -> None:
+    """Register extension async tasks."""
+    ext_module = importlib.import_module(ext.module_name)
+
+    if hasattr(ext_module, f"{ext.code}_start"):
+        ext_start_func = getattr(ext_module, f"{ext.code}_start")
+        ext_start_func()
+
+
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
     ext_module = importlib.import_module(ext.module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
-
-    if hasattr(ext_module, f"{ext.code}_start"):
-        ext_start_func = getattr(ext_module, f"{ext.code}_start")
-        ext_start_func()
 
     if hasattr(ext_module, f"{ext.code}_static_files"):
         ext_statics = getattr(ext_module, f"{ext.code}_static_files")
@@ -431,15 +439,12 @@ async def check_and_register_extensions(app: FastAPI):
     for ext in await get_valid_extensions(False):
         try:
             register_ext_routes(app, ext)
+            register_ext_tasks(ext)
         except Exception as exc:
             logger.error(f"Could not load extension `{ext.code}`: {exc!s}")
 
 
-def register_async_tasks(app: FastAPI):
-
-    # check extensions after restart
-    if not settings.lnbits_extensions_deactivate_all:
-        create_task(check_and_register_extensions(app))
+def register_async_tasks():
 
     create_permanent_task(wait_for_audit_data)
     create_permanent_task(check_pending_payments)

@@ -49,6 +49,8 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
         # call stop while the old routes are still active
         await stop_extension_background_work(ext_id)
 
+    await start_extension_background_work(ext_id)
+
     return extension
 
 
@@ -76,7 +78,7 @@ async def deactivate_extension(ext_id: str):
 async def stop_extension_background_work(ext_id: str) -> bool:
     """
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
-    Extensions SHOULD expose a `api_stop()` function.
+    Extension must expose a `myextension_stop()` function if it is starting tasks.
     """
     upgrade_hash = settings.extension_upgrade_hash(ext_id)
     ext = Extension(code=ext_id, is_valid=True, upgrade_hash=upgrade_hash)
@@ -85,11 +87,10 @@ async def stop_extension_background_work(ext_id: str) -> bool:
         logger.info(f"Stopping background work for extension '{ext.module_name}'.")
         old_module = importlib.import_module(ext.module_name)
 
-        # Extensions must expose an `{ext_id}_stop()` function at the module level
-        # The `api_stop()` function is for backwards compatibility (will be deprecated)
-        stop_fns = [f"{ext_id}_stop", "api_stop"]
-        stop_fn_name = next((fn for fn in stop_fns if hasattr(old_module, fn)), None)
-        assert stop_fn_name, f"No stop function found for '{ext.module_name}'."
+        stop_fn_name = f"{ext_id}_stop"
+        assert hasattr(
+            old_module, stop_fn_name
+        ), f"No stop function found for '{ext.module_name}'."
 
         stop_fn = getattr(old_module, stop_fn_name)
         if stop_fn:
@@ -97,7 +98,6 @@ async def stop_extension_background_work(ext_id: str) -> bool:
                 await stop_fn()
             else:
                 stop_fn()
-
         logger.info(f"Stopped background work for extension '{ext.module_name}'.")
     except Exception as ex:
         logger.warning(f"Failed to stop background work for '{ext.module_name}'.")
@@ -105,6 +105,38 @@ async def stop_extension_background_work(ext_id: str) -> bool:
         return False
 
     return True
+
+
+async def start_extension_background_work(ext_id: str) -> bool:
+    """
+    Start background work for extension (like asyncio.Tasks, WebSockets, etc).
+    Extension CAN expose a `myextension_start()` function if it is starting tasks.
+    Extension MUST expose a `myextension_stop()` in that case.
+    """
+    upgrade_hash = settings.extension_upgrade_hash(ext_id)
+    ext = Extension(code=ext_id, is_valid=True, upgrade_hash=upgrade_hash)
+
+    try:
+        logger.info(f"Starting background work for extension '{ext.module_name}'.")
+        new_module = importlib.import_module(ext.module_name)
+        start_fn_name = f"{ext_id}_start"
+
+        # start function is optional, return False if not found
+        if not hasattr(new_module, start_fn_name):
+            return False
+
+        start_fn = getattr(new_module, start_fn_name)
+        if start_fn:
+            if asyncio.iscoroutinefunction(start_fn):
+                await start_fn()
+            else:
+                start_fn()
+        logger.info(f"Started background work for extension '{ext.module_name}'.")
+        return True
+    except Exception as ex:
+        logger.warning(f"Failed to start background work for '{ext.module_name}'.")
+        logger.warning(ex)
+        return False
 
 
 async def get_valid_extensions(
