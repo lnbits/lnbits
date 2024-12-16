@@ -1,5 +1,5 @@
 <q-tab-panel name="channels">
-  <q-dialog v-model="connectPeerDialog.show">
+  <q-dialog v-model="connectPeerDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form class="q-gutter-md">
         <q-input
@@ -29,7 +29,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="openChannelDialog.show">
+  <q-dialog v-model="openChannelDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form class="q-gutter-md">
         <q-input
@@ -89,7 +89,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="closeChannelDialog.show">
+  <q-dialog v-model="closeChannelDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form class="q-gutter-md">
         <div>

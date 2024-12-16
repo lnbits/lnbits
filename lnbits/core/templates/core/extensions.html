@@ -229,7 +229,7 @@
   </div>
 </div>
 
-<q-dialog v-model="showUninstallDialog">
+<q-dialog v-model="showUninstallDialog" position="top">
   <q-card class="q-pa-lg">
     <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
     <p>
@@ -266,7 +266,7 @@
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="showDropDbDialog">
+<q-dialog v-model="showDropDbDialog" position="top">
   <q-card v-if="selectedExtension" class="q-pa-lg">
     <h6 class="q-my-md text-primary" v-text="$t('warning')"></h6>
     <p><span v-text="$t('extension_db_drop_warning')"></span><br /></p>
@@ -296,7 +296,7 @@
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="showManageExtensionDialog">
+<q-dialog v-model="showManageExtensionDialog" position="top">
   <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
     <q-card-section>
       <div v-if="selectedRelease.paymentRequest">
@@ -632,7 +632,7 @@
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="showPayToEnableDialog">
+<q-dialog v-model="showPayToEnableDialog" position="top">
   <q-card v-if="selectedExtension" class="q-pa-md">
     <q-card-section>
       <p>
@@ -738,7 +738,7 @@
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="showExtensionDetailsDialog">
+<q-dialog v-model="showExtensionDetailsDialog" position="top">
   <q-card
     v-if="selectedExtensionDetails"
     class="q-pa-sm"
