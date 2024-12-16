@@ -2110,13 +2110,13 @@ files = [
 
 [[package]]
 name = "pyln-client"
-version = "24.8.1"
+version = "24.11"
 description = "Client library and plugin library for Core Lightning"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "pyln_client-24.8.1-py3-none-any.whl", hash = "sha256:4a389de96813a23b587007f181a5d4ba37bb8a4ac6bed7074a591b6b710e4615"},
-    {file = "pyln_client-24.8.1.tar.gz", hash = "sha256:47e1bcadc91df511b7dbd66059d25a6c67fb0d49953291762272abf151fe8846"},
+    {file = "pyln_client-24.11-py3-none-any.whl", hash = "sha256:0daa689e980fdd0367800453b7038c0faf47e89c2e35f31a4ec231493c3d241d"},
+    {file = "pyln_client-24.11.tar.gz", hash = "sha256:243320ebfc4ca6705ec31f35dbf07decf7d50e3c172d9506d5b8f355c88dd455"},
 ]
 
 [package.dependencies]
@@ -3213,4 +3213,4 @@ liquid = ["wallycore"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12 | ^3.11 | ^3.10 | ^3.9"
-content-hash = "e8077cd36e9647b0715d8aceeda4505eef0fe3d8eb0eb599025ea1584855c134"
+content-hash = "13f823a2b436da412337ef1f0512d32dc9c06dfd0c134588102889f6dc0d0cac"
