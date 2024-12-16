@@ -28,6 +28,7 @@ class LNPayWallet(Wallet):
         if not settings.lnpay_api_key:
             raise ValueError("cannot initialize LNPayWallet: missing lnpay_api_key")
 
+        super().__init__()
         wallet_key = settings.lnpay_wallet_key or settings.lnpay_admin_key
         if not wallet_key:
             raise ValueError(
@@ -35,7 +36,6 @@ class LNPayWallet(Wallet):
                 "missing lnpay_wallet_key or lnpay_admin_key"
             )
         self.wallet_key = wallet_key
-
         self.endpoint = self.normalize_endpoint(settings.lnpay_api_endpoint)
 
         headers = {
@@ -101,6 +101,8 @@ class LNPayWallet(Wallet):
         if ok:
             data = r.json()
             checking_id, payment_request = data["id"], data["payment_request"]
+
+            self.pending_invoices.append(checking_id)
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
