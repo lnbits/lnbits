@@ -156,6 +156,7 @@ window.localisation.en = {
   expiry: 'Expiry',
   webhook: 'Webhook',
   payment_proof: 'Payment Proof',
+  update: 'Update',
   update_available: 'Update {version} available!',
   latest_update: 'You are on the latest version {version}.',
   notifications: 'Notifications',
