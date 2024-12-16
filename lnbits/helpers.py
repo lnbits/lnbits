@@ -241,7 +241,7 @@ def version_parse(v: str):
         return version.parse("0.0.0")
 
 
-def is_version_compatible_with_lnbits(
+def is_lnbits_version_ok(
     min_lnbits_version: Optional[str], max_lnbits_version: Optional[str]
 ) -> bool:
     if min_lnbits_version and (

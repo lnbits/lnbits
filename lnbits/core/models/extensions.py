@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from lnbits.helpers import (
     download_url,
     file_hash,
-    is_version_compatible_with_lnbits,
+    is_lnbits_version_ok,
     version_parse,
 )
 from lnbits.settings import settings
@@ -42,9 +42,7 @@ class ExplicitRelease(BaseModel):
     pay_link: Optional[str]
 
     def is_version_compatible(self):
-        return is_version_compatible_with_lnbits(
-            self.min_lnbits_version, self.max_lnbits_version
-        )
+        return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
 
 
 class GitHubRelease(BaseModel):
@@ -84,9 +82,7 @@ class ExtensionConfig(BaseModel):
     max_lnbits_version: Optional[str]
 
     def is_version_compatible(self) -> bool:
-        return is_version_compatible_with_lnbits(
-            self.min_lnbits_version, self.max_lnbits_version
-        )
+        return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
 
     @classmethod
     async def fetch_github_release_config(
