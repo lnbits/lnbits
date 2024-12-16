@@ -269,14 +269,26 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> SimpleStatu
 @users_router.put(
     "/topup",
     name="Topup",
+    summary="Increase balance for a particular wallet.",
+    dependencies=[Depends(check_super_user)],
+    deprecated=True,
+)
+@users_router.put(
+    "/balance",
+    name="UpdateBalance",
     summary="Update balance for a particular wallet.",
-    status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
 )
-async def api_topup_balance(data: CreateTopup) -> SimpleStatus:
-    await get_wallet(data.id)
-    if settings.lnbits_backend_wallet_class == "VoidWallet":
-        raise Exception("VoidWallet active")
-
-    await update_wallet_balance(wallet_id=data.id, amount=int(data.amount))
+async def api_update_balance(data: CreateTopup) -> SimpleStatus:
+    wallet = await get_wallet(data.id)
+    if not wallet:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found."
+        )
+    try:
+        await update_wallet_balance(wallet=wallet, amount=int(data.amount))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
     return SimpleStatus(success=True, message="Balance updated.")

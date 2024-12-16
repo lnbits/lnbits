@@ -1,11 +1,15 @@
 import base64
 import getpass
-from hashlib import md5
+from hashlib import md5, sha256
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
 BLOCK_SIZE = 16
+
+
+def random_hash() -> str:
+    return sha256(Random.new().read(32)).hexdigest()
 
 
 class AESCipher:
