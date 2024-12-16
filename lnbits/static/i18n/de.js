@@ -145,7 +145,7 @@ window.localisation.de = {
     'Alle Daten für die Erweiterung werden dauerhaft gelöscht. Es gibt keine Möglichkeit, diesen Vorgang rückgängig zu machen!',
   extension_db_drop_warning:
     'Sie sind dabei, alle Daten für die Erweiterung zu entfernen. Bitte geben Sie den Namen der Erweiterung ein, um fortzufahren:',
-  extension_min_lnbits_version:
+  extension_required_lnbits_version:
     'Diese Version erfordert mindestens die LNbits-Version',
   payment_hash: 'Zahlungs-Hash',
   fee: 'Gebühr',

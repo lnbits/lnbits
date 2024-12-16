@@ -145,7 +145,8 @@ window.localisation.nl = {
     'Alle gegevens voor de extensie zullen permanent worden verwijderd. Er is geen manier om deze bewerking ongedaan te maken!',
   extension_db_drop_warning:
     'U staat op het punt alle gegevens voor de extensie te verwijderen. Typ de naam van de extensie om door te gaan:',
-  extension_min_lnbits_version: 'Deze release vereist ten minste LNbits-versie',
+  extension_required_lnbits_version:
+    'Deze release vereist ten minste LNbits-versie',
   payment_hash: 'Betalings-hash',
   fee: 'Kosten',
   amount: 'Bedrag',

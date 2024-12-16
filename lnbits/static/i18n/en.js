@@ -145,7 +145,9 @@ window.localisation.en = {
     'All data for the extension will be permanently deleted. There is no way to undo this operation!',
   extension_db_drop_warning:
     'You are about to remove all data for the extension. Please type the extension name to continue:',
-  extension_min_lnbits_version: 'This release requires at least LNbits version',
+  extension_required_lnbits_version: 'This release requires LNbits version',
+  min_version: 'Minimum (included)',
+  max_version: 'Maximum (excluded)',
   payment_hash: 'Payment Hash',
   fee: 'Fee',
   amount: 'Amount',

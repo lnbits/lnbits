@@ -142,7 +142,7 @@ window.localisation.kr = {
     '해당 확장 기능의 모든 데이터가 영구적으로 삭제됩니다. 작업 수행 후에는 되돌릴 수 없습니다!',
   extension_db_drop_warning:
     '해당 확장 기능의 모든 데이터가 영구적으로 삭제될 겁니다. 계속하려면 확장 기능의 이름을 입력해주세요:',
-  extension_min_lnbits_version:
+  extension_required_lnbits_version:
     '이 배포 버전은 더 높은 버전의 lnbits가 설치되어 있어야 합니다.',
   payment_hash: '결제 해쉬값',
   fee: '수수료',

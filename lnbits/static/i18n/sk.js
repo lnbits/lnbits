@@ -143,7 +143,8 @@ window.localisation.sk = {
     'Všetky údaje pre rozšírenie budú trvalo vymazané. Túto operáciu nie je možné vrátiť!',
   extension_db_drop_warning:
     'Chystáte sa odstrániť všetky údaje pre rozšírenie. Pre pokračovanie prosím napíšte názov rozšírenia:',
-  extension_min_lnbits_version: 'Toto vydanie vyžaduje aspoň verziu LNbits',
+  extension_required_lnbits_version:
+    'Toto vydanie vyžaduje aspoň verziu LNbits',
   payment_hash: 'Hash platby',
   fee: 'Poplatok',
   amount: 'Suma',

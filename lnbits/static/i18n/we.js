@@ -142,7 +142,7 @@ window.localisation.we = {
     "Bydd yr holl ddata ar gyfer yr estyniad yn cael ei ddileu'n barhaol. Does dim ffordd o dadwneud y weithrediad hwn!",
   extension_db_drop_warning:
     "Rydych chi ar fin dileu'r holl ddata ar gyfer yr estyniad. Teipiwch enw'r estyniad i barhau:",
-  extension_min_lnbits_version:
+  extension_required_lnbits_version:
     "Mae'r rhyddhau hwn yn gofyn o leiaf am fersiwn LNbits",
   payment_hash: 'Hais Taliad',
   fee: 'Fee',

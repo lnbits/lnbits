@@ -143,7 +143,7 @@ window.localisation.pl = {
     'Wszystkie dane dla rozszerzenia zostaną trwale usunięte. Nie ma sposobu, aby cofnąć tę operację!',
   extension_db_drop_warning:
     'Za chwilę usuniesz wszystkie dane dla rozszerzenia. Proszę wpisz nazwę rozszerzenia, aby kontynuować:',
-  extension_min_lnbits_version: 'To wymaga przynajmniej wersji LNbits',
+  extension_required_lnbits_version: 'To wymaga przynajmniej wersji LNbits',
   payment_hash: 'Hash Płatności',
   fee: 'Opłata',
   amount: 'Wartość',

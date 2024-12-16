@@ -143,7 +143,7 @@ window.localisation.br = {
     'Todos os dados da extensão serão permanentemente excluídos. Não há como desfazer essa operação!',
   extension_db_drop_warning:
     'Você está prestes a remover todos os dados para a extensão. Por favor, digite o nome da extensão para continuar:',
-  extension_min_lnbits_version:
+  extension_required_lnbits_version:
     'Esta versão requer no mínimo a versão do LNbits',
   payment_hash: 'Hash de pagamento',
   fee: 'Taxa',

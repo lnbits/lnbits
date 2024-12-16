@@ -145,7 +145,7 @@ window.localisation.it = {
     "Tutti i dati relativi all'estensione saranno cancellati permanentemente. Non c'è modo di annullare questa operazione!",
   extension_db_drop_warning:
     "Stai per rimuovere tutti i dati per l'estensione. Digita il nome dell'estensione per continuare:",
-  extension_min_lnbits_version:
+  extension_required_lnbits_version:
     'Questa versione richiede almeno la versione LNbits',
   payment_hash: 'Hash del pagamento',
   fee: 'Tariffa',
