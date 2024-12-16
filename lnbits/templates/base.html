@@ -67,10 +67,11 @@
             </q-badge>
             {%endif%} {% if LNBITS_CUSTOM_BADGE is defined %}
             <q-badge
+              v-if="`{{LNBITS_CUSTOM_BADGE}}`.length > 0"
               v-show="$q.screen.gt.sm"
               color="{{ LNBITS_CUSTOM_BADGE_COLOR }}"
               class="q-mr-md"
-              label="{{LNBITS_CUSTOM_BADGE}}"
+              label="{{LNBITS_CUSTOM_BADGE|e}}"
             >
             </q-badge>
             {%endif%} {% if LNBITS_SERVICE_FEE > 0 %}
