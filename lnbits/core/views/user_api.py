@@ -285,10 +285,5 @@ async def api_update_balance(data: CreateTopup) -> SimpleStatus:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found."
         )
-    try:
-        await update_wallet_balance(wallet=wallet, amount=int(data.amount))
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
+    await update_wallet_balance(wallet=wallet, amount=int(data.amount))
     return SimpleStatus(success=True, message="Balance updated.")
