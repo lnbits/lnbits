@@ -241,6 +241,21 @@ def version_parse(v: str):
         return version.parse("0.0.0")
 
 
+def is_version_compatible_with_lnbits(
+    min_lnbits_version: Optional[str], max_lnbits_version: Optional[str]
+) -> bool:
+    if min_lnbits_version and (
+        version_parse(min_lnbits_version) > version_parse(settings.version)
+    ):
+        return False
+    if max_lnbits_version and (
+        version_parse(max_lnbits_version) <= version_parse(settings.version)
+    ):
+        return False
+
+    return True
+
+
 def download_url(url, save_path):
     with request.urlopen(url, timeout=60) as dl_file:
         with open(save_path, "wb") as out_file:
