@@ -1,6 +1,6 @@
 <q-tab-panel name="transactions">
   <q-card-section class="q-pa-none">
-    <q-dialog v-model="transactionDetailsDialog.show">
+    <q-dialog v-model="transactionDetailsDialog.show" position="top">
       <q-card class="my-card">
         <q-card-section>
           <div class="text-center q-mb-lg">
@@ -120,7 +120,11 @@
                   >
                     <q-tooltip>Pending</q-tooltip>
                   </q-icon>
-                  <q-dialog v-model="props.row.expand" :props="props">
+                  <q-dialog
+                    v-model="props.row.expand"
+                    :props="props"
+                    position="top"
+                  >
                     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
                       <div class="text-center q-mb-lg">
                         <div v-if="props.row.isIn && props.row.pending">
