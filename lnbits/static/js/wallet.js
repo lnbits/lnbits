@@ -51,7 +51,6 @@ window.app = Vue.createApp({
       balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
       mobileSimple: false,
-      credit: 0,
       update: {
         name: null,
         currency: null

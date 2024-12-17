@@ -206,7 +206,7 @@ async def update_wallet_balance(
 
     # negative topup
     if amount < 0:
-        if wallet.balance_msat + amount < 0:
+        if wallet.balance + amount < 0:
             raise ValueError("Balance change failed, can not go into negative balance.")
         async with db.reuse_conn(conn) if conn else db.connect() as conn:
             payment_hash = random_hash()
