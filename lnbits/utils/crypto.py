@@ -8,8 +8,9 @@ from Cryptodome.Cipher import AES
 BLOCK_SIZE = 16
 
 
-def random_hash() -> str:
-    return sha256(Random.new().read(32)).hexdigest()
+def random_secret_and_hash() -> tuple[str, str]:
+    secret = Random.new().read(32)
+    return secret.hex(), sha256(secret).hexdigest()
 
 
 def fake_privkey(secret: str) -> str:

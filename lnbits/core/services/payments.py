@@ -12,7 +12,7 @@ from lnbits.db import Connection
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import settings
-from lnbits.utils.crypto import fake_privkey, random_hash
+from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
@@ -210,16 +210,15 @@ async def update_wallet_balance(
         if wallet.balance + amount < 0:
             raise ValueError("Balance change failed, can not go into negative balance.")
         async with db.reuse_conn(conn) if conn else db.connect() as conn:
-            payment_hash = random_hash()
-            amount_msat = abs(amount) * 1000
+            payment_secret, payment_hash = random_secret_and_hash()
             invoice = Bolt11(
                 currency="bc",
-                amount_msat=MilliSatoshi(amount_msat),
+                amount_msat=MilliSatoshi(abs(amount) * 1000),
                 date=int(time.time()),
                 tags=Tags.from_dict(
                     {
                         "payment_hash": payment_hash,
-                        "payment_secret": "1" * 64,
+                        "payment_secret": payment_secret,
                         "description": "Admin withdrawal",
                     }
                 ),
@@ -232,7 +231,7 @@ async def update_wallet_balance(
                     wallet_id=wallet.id,
                     bolt11=bolt11,
                     payment_hash=payment_hash,
-                    amount_msat=amount_msat,
+                    amount_msat=amount * 1000,
                     memo="Admin withdrawal",
                 ),
                 status=PaymentState.SUCCESS,
