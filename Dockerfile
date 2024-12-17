@@ -1,4 +1,4 @@
-FROM python:3.10-slim-bookworm AS builder
+FROM python:3.12-slim-bookworm AS builder
 
 RUN apt-get clean
 RUN apt-get update
@@ -21,7 +21,7 @@ ENV POETRY_NO_INTERACTION=1 \
 
 RUN poetry install --only main
 
-FROM python:3.10-slim-bookworm
+FROM python:3.12-slim-bookworm
 
 # needed for backups postgresql-client version 14 (pg_dump)
 RUN apt-get update && apt-get -y upgrade && \
