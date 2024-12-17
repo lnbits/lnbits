@@ -219,7 +219,7 @@ async def update_wallet_balance(
                     {
                         "payment_hash": payment_hash,
                         "payment_secret": payment_secret,
-                        "description": "Admin withdrawal",
+                        "description": "Admin debit",
                     }
                 ),
             )
@@ -232,7 +232,7 @@ async def update_wallet_balance(
                     bolt11=bolt11,
                     payment_hash=payment_hash,
                     amount_msat=amount * 1000,
-                    memo="Admin withdrawal",
+                    memo="Admin debit",
                 ),
                 status=PaymentState.SUCCESS,
                 conn=conn,
@@ -249,7 +249,7 @@ async def update_wallet_balance(
         payment = await create_invoice(
             wallet_id=wallet.id,
             amount=amount,
-            memo="Admin top up",
+            memo="Admin credit",
             internal=True,
             conn=conn,
         )
