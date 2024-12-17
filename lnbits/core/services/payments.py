@@ -2,8 +2,9 @@ import json
 import time
 from typing import Optional
 
-from bolt11 import Bolt11
+from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
+from bolt11 import encode as bolt11_encode
 from loguru import logger
 
 from lnbits.core.db import db
@@ -11,7 +12,7 @@ from lnbits.db import Connection
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import settings
-from lnbits.utils.crypto import random_hash
+from lnbits.utils.crypto import fake_privkey, random_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
@@ -210,13 +211,28 @@ async def update_wallet_balance(
             raise ValueError("Balance change failed, can not go into negative balance.")
         async with db.reuse_conn(conn) if conn else db.connect() as conn:
             payment_hash = random_hash()
+            amount_msat = abs(amount) * 1000
+            invoice = Bolt11(
+                currency="bc",
+                amount_msat=MilliSatoshi(amount_msat),
+                date=int(time.time()),
+                tags=Tags.from_dict(
+                    {
+                        "payment_hash": payment_hash,
+                        "payment_secret": "1" * 64,
+                        "description": "Admin withdrawal",
+                    }
+                ),
+            )
+            privkey = fake_privkey(settings.fake_wallet_secret)
+            bolt11 = bolt11_encode(invoice, privkey)
             await create_payment(
                 checking_id=f"internal_{payment_hash}",
                 data=CreatePayment(
                     wallet_id=wallet.id,
-                    bolt11="fake_bolt11",
+                    bolt11=bolt11,
                     payment_hash=payment_hash,
-                    amount_msat=amount * 1000,
+                    amount_msat=amount_msat,
                     memo="Admin withdrawal",
                 ),
                 status=PaymentState.SUCCESS,
