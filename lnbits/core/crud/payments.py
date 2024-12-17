@@ -123,7 +123,9 @@ async def get_payments_paginated(
         clause.append("wallet_id = :wallet_id")
 
     if complete and pending:
-        pass
+        clause.append(
+            f"status = '{PaymentState.SUCCESS}' OR status = '{PaymentState.PENDING}"
+        )
     elif complete:
         clause.append(
             f"((amount > 0 AND status = '{PaymentState.SUCCESS}') OR amount < 0)"
@@ -131,7 +133,7 @@ async def get_payments_paginated(
     elif pending:
         clause.append(f"status = '{PaymentState.PENDING}'")
     else:
-        pass
+        clause.append(f"status = '{PaymentState.FAILED}'")
 
     if outgoing and incoming:
         pass
