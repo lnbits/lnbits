@@ -201,36 +201,14 @@ async def update_wallet_balance(
     amount: int,
     conn: Optional[Connection] = None,
 ):
-
     if amount == 0:
         raise ValueError("Amount cannot be 0.")
-    if (
-        settings.lnbits_wallet_limit_max_balance > 0
-        and wallet.balance + amount > settings.lnbits_wallet_limit_max_balance
-    ):
-        raise ValueError("Balance change failed, amount exceeds maximum balance.")
 
     # negative topup
     if amount < 0:
         if wallet.balance_msat + amount < 0:
             raise ValueError("Balance change failed, can not go into negative balance.")
-
-    async with db.reuse_conn(conn) if conn else db.connect() as conn:
-        if amount > 0:
-            payment = await create_invoice(
-                wallet_id=wallet.id,
-                amount=amount,
-                memo="Admin top up" if amount < 0 else "Admin withdrawal",
-                internal=True,
-                conn=conn,
-            )
-            payment.status = PaymentState.SUCCESS
-            await update_payment(payment, conn=conn)
-            # notify receiver asynchronously
-            from lnbits.tasks import internal_invoice_queue
-
-            await internal_invoice_queue.put(payment.checking_id)
-        else:
+        async with db.reuse_conn(conn) if conn else db.connect() as conn:
             payment_hash = random_hash()
             await create_payment(
                 checking_id=f"internal_{payment_hash}",
@@ -244,6 +222,28 @@ async def update_wallet_balance(
                 status=PaymentState.SUCCESS,
                 conn=conn,
             )
+        return None
+
+    # positive topup
+    if (
+        settings.lnbits_wallet_limit_max_balance > 0
+        and wallet.balance + amount > settings.lnbits_wallet_limit_max_balance
+    ):
+        raise ValueError("Balance change failed, amount exceeds maximum balance.")
+    async with db.reuse_conn(conn) if conn else db.connect() as conn:
+        payment = await create_invoice(
+            wallet_id=wallet.id,
+            amount=amount,
+            memo="Admin top up" if amount < 0 else "Admin withdrawal",
+            internal=True,
+            conn=conn,
+        )
+        payment.status = PaymentState.SUCCESS
+        await update_payment(payment, conn=conn)
+        # notify receiver asynchronously
+        from lnbits.tasks import internal_invoice_queue
+
+        await internal_invoice_queue.put(payment.checking_id)
 
 
 async def send_payment_notification(wallet: Wallet, payment: Payment):

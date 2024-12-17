@@ -267,13 +267,6 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> SimpleStatu
 
 
 @users_router.put(
-    "/topup",
-    name="Topup",
-    summary="Increase balance for a particular wallet.",
-    dependencies=[Depends(check_super_user)],
-    deprecated=True,
-)
-@users_router.put(
     "/balance",
     name="UpdateBalance",
     summary="Update balance for a particular wallet.",

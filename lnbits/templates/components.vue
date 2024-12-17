@@ -506,7 +506,7 @@
 </template>
 
 <template id="lnbits-update-balance">
-  <q-btn v-if="admin" round color="primary" icon="add" size="sm">
+  <q-btn v-if="admin" :label="$t('topup')" color="secondary" size="sm">
     <q-popup-edit class="bg-accent text-white" v-slot="scope" v-model="credit">
       <q-input
         filled
