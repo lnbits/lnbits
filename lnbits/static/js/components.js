@@ -495,7 +495,7 @@ window.app.component('lnbits-update-balance', {
   },
   data() {
     return {
-      current_credit: 0
+      credit: 0
     }
   },
   watch: {
