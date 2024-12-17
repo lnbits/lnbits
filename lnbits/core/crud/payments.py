@@ -124,7 +124,7 @@ async def get_payments_paginated(
 
     if complete and pending:
         clause.append(
-            f"status = '{PaymentState.SUCCESS}' OR status = '{PaymentState.PENDING}"
+            f"status = '{PaymentState.SUCCESS}' OR status = '{PaymentState.PENDING}'"
         )
     elif complete:
         clause.append(
