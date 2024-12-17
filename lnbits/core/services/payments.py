@@ -234,7 +234,7 @@ async def update_wallet_balance(
         payment = await create_invoice(
             wallet_id=wallet.id,
             amount=amount,
-            memo="Admin top up" if amount < 0 else "Admin withdrawal",
+            memo="Admin top up",
             internal=True,
             conn=conn,
         )
