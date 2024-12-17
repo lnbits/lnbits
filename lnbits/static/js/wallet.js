@@ -150,6 +150,9 @@ window.app = Vue.createApp({
         this.receive.paymentHash = null
       }
     },
+    handleBalanceUpdate(value) {
+      console.log('### handleBalanceUpdate', value)
+    },
     createInvoice() {
       this.receive.status = 'loading'
       if (LNBITS_DENOMINATION != 'sats') {

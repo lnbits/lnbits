@@ -39,6 +39,7 @@
               <small> {{LNBITS_DENOMINATION}}</small>
               <lnbits-update-balance
                 :wallet_id="this.g.wallet.id"
+                @credit-value="handleBalanceUpdate"
                 class="q-ml-md"
               ></lnbits-update-balance>
             </h3>
