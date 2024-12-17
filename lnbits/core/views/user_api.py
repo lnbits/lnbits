@@ -275,8 +275,6 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> SimpleStatu
 async def api_update_balance(data: CreateTopup) -> SimpleStatus:
     wallet = await get_wallet(data.id)
     if not wallet:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found."
-        )
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet not found.")
     await update_wallet_balance(wallet=wallet, amount=int(data.amount))
     return SimpleStatus(success=True, message="Balance updated.")
