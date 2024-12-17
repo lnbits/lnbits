@@ -167,7 +167,7 @@ window.LNbits = {
       )
     },
     updateBalance(credit, wallet_id) {
-      return this.request('PUT', '/users/api/v1/topup', null, {
+      return this.request('PUT', '/users/api/v1/balance', null, {
         amount: credit,
         id: wallet_id
       })

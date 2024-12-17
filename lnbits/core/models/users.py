@@ -195,6 +195,6 @@ class AccessTokenPayload(BaseModel):
     auth_time: Optional[int] = 0
 
 
-class CreateTopup(BaseModel):
+class UpdateBalance(BaseModel):
     id: str
     amount: int

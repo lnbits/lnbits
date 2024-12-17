@@ -121,7 +121,7 @@ async def from_wallet(from_user):
 
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_from")
     await update_wallet_balance(
-        wallet_id=wallet.id,
+        wallet=wallet,
         amount=999999999,
     )
     yield wallet
@@ -138,7 +138,7 @@ async def to_wallet_pagination_tests(to_user):
 
 @pytest.fixture
 async def from_wallet_ws(from_wallet, test_client):
-    # wait a bit in order to avoid receiving topup notification
+    # wait a bit in order to avoid receiving change_balance notification
     await asyncio.sleep(0.1)
     with test_client.websocket_connect(f"/api/v1/ws/{from_wallet.inkey}") as ws:
         yield ws
@@ -171,7 +171,7 @@ async def to_wallet(to_user):
     user = to_user
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_to")
     await update_wallet_balance(
-        wallet_id=wallet.id,
+        wallet=wallet,
         amount=999999999,
     )
     yield wallet
@@ -186,7 +186,7 @@ async def to_fresh_wallet(to_user):
 
 @pytest.fixture
 async def to_wallet_ws(to_wallet, test_client):
-    # wait a bit in order to avoid receiving topup notification
+    # wait a bit in order to avoid receiving change_balance notification
     await asyncio.sleep(0.1)
     with test_client.websocket_connect(f"/api/v1/ws/{to_wallet.inkey}") as ws:
         yield ws

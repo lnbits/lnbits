@@ -24,9 +24,9 @@ from lnbits.core.crud import (
 from lnbits.core.models import (
     AccountFilters,
     AccountOverview,
-    CreateTopup,
     CreateUser,
     SimpleStatus,
+    UpdateBalance,
     User,
     UserExtra,
     Wallet,
@@ -267,16 +267,14 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> SimpleStatu
 
 
 @users_router.put(
-    "/topup",
-    name="Topup",
+    "/balance",
+    name="UpdateBalance",
     summary="Update balance for a particular wallet.",
-    status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
 )
-async def api_topup_balance(data: CreateTopup) -> SimpleStatus:
-    await get_wallet(data.id)
-    if settings.lnbits_backend_wallet_class == "VoidWallet":
-        raise Exception("VoidWallet active")
-
-    await update_wallet_balance(wallet_id=data.id, amount=int(data.amount))
+async def api_update_balance(data: UpdateBalance) -> SimpleStatus:
+    wallet = await get_wallet(data.id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet not found.")
+    await update_wallet_balance(wallet=wallet, amount=int(data.amount))
     return SimpleStatus(success=True, message="Balance updated.")

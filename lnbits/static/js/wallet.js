@@ -51,7 +51,6 @@ window.app = Vue.createApp({
       balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
       mobileSimple: false,
-      credit: 0,
       update: {
         name: null,
         currency: null
@@ -150,6 +149,9 @@ window.app = Vue.createApp({
         this.receive.show = false
         this.receive.paymentHash = null
       }
+    },
+    handleBalanceUpdate(value) {
+      this.balance = this.balance + value
     },
     createInvoice() {
       this.receive.status = 'loading'

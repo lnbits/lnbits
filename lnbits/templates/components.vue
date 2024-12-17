@@ -506,12 +506,11 @@
 </template>
 
 <template id="lnbits-update-balance">
-  <q-btn v-if="admin" round color="primary" icon="add" size="sm">
+  <q-btn v-if="admin" :label="$t('credit_debit')" color="secondary" size="sm">
     <q-popup-edit class="bg-accent text-white" v-slot="scope" v-model="credit">
       <q-input
         filled
         :label="$t('credit_label', {denomination: denomination})"
-        :hint="$t('credit_hint')"
         v-model="scope.value"
         dense
         autofocus
@@ -522,7 +521,7 @@
         </template>
       </q-input>
     </q-popup-edit>
-    <q-tooltip>Topup Wallet</q-tooltip>
+    <q-tooltip v-text="$t('credit_hint')"></q-tooltip>
   </q-btn>
 </template>
 

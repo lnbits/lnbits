@@ -2,8 +2,9 @@ import json
 import time
 from typing import Optional
 
+from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
-from bolt11.types import Bolt11
+from bolt11 import encode as bolt11_encode
 from loguru import logger
 
 from lnbits.core.db import db
@@ -11,6 +12,7 @@ from lnbits.db import Connection
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import settings
+from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
@@ -195,12 +197,59 @@ def service_fee(amount_msat: int, internal: bool = False) -> int:
         return 0
 
 
-async def update_wallet_balance(wallet_id: str, amount: int):
-    async with db.connect() as conn:
+async def update_wallet_balance(
+    wallet: Wallet,
+    amount: int,
+    conn: Optional[Connection] = None,
+):
+    if amount == 0:
+        raise ValueError("Amount cannot be 0.")
+
+    # negative balance change
+    if amount < 0:
+        if wallet.balance + amount < 0:
+            raise ValueError("Balance change failed, can not go into negative balance.")
+        async with db.reuse_conn(conn) if conn else db.connect() as conn:
+            payment_secret, payment_hash = random_secret_and_hash()
+            invoice = Bolt11(
+                currency="bc",
+                amount_msat=MilliSatoshi(abs(amount) * 1000),
+                date=int(time.time()),
+                tags=Tags.from_dict(
+                    {
+                        "payment_hash": payment_hash,
+                        "payment_secret": payment_secret,
+                        "description": "Admin debit",
+                    }
+                ),
+            )
+            privkey = fake_privkey(settings.fake_wallet_secret)
+            bolt11 = bolt11_encode(invoice, privkey)
+            await create_payment(
+                checking_id=f"internal_{payment_hash}",
+                data=CreatePayment(
+                    wallet_id=wallet.id,
+                    bolt11=bolt11,
+                    payment_hash=payment_hash,
+                    amount_msat=amount * 1000,
+                    memo="Admin debit",
+                ),
+                status=PaymentState.SUCCESS,
+                conn=conn,
+            )
+        return None
+
+    # positive balance change
+    if (
+        settings.lnbits_wallet_limit_max_balance > 0
+        and wallet.balance + amount > settings.lnbits_wallet_limit_max_balance
+    ):
+        raise ValueError("Balance change failed, amount exceeds maximum balance.")
+    async with db.reuse_conn(conn) if conn else db.connect() as conn:
         payment = await create_invoice(
-            wallet_id=wallet_id,
+            wallet_id=wallet.id,
             amount=amount,
-            memo="Admin top up",
+            memo="Admin credit",
             internal=True,
             conn=conn,
         )

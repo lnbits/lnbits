@@ -37,7 +37,11 @@
             <h3 class="q-my-none text-no-wrap">
               <strong v-text="formattedBalance"></strong>
               <small> {{LNBITS_DENOMINATION}}</small>
-              <lnbits-update-balance :wallet_id="this.g.wallet.id" flat round />
+              <lnbits-update-balance
+                :wallet_id="this.g.wallet.id"
+                @credit-value="handleBalanceUpdate"
+                class="q-ml-md"
+              ></lnbits-update-balance>
             </h3>
             <div class="row">
               <div class="col">

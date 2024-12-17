@@ -48,13 +48,11 @@
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td auto-width>
-            <q-btn
-              :label="$t('topup')"
-              @click="showTopupDialog(props.row.id)"
-              color="secondary"
-              size="sm"
+            <lnbits-update-balance
+              :wallet_id="props.row.id"
+              @credit-value="handleBalanceUpdate"
               class="q-mr-md"
-            ></q-btn>
+            ></lnbits-update-balance>
             <q-btn
               round
               icon="menu"

@@ -4,7 +4,6 @@ window.app = Vue.createApp({
   data() {
     return {
       paymentsWallet: {},
-      wallet: {},
       cancel: {},
       users: [],
       wallets: [],
@@ -19,9 +18,6 @@ window.app = Vue.createApp({
       },
       activeWallet: {
         userId: null,
-        show: false
-      },
-      topupDialog: {
         show: false
       },
       activeUser: {
@@ -183,6 +179,9 @@ window.app = Vue.createApp({
       this.paymentPage.show = false
       this.activeWallet.show = false
       this.fetchUsers()
+    },
+    handleBalanceUpdate() {
+      this.fetchWallets(this.activeWallet.userId)
     },
     resetPassword(user_id) {
       return LNbits.api
@@ -383,42 +382,9 @@ window.app = Vue.createApp({
         this.activeUser.show = false
       }
     },
-    showTopupDialog(walletId) {
-      this.wallet.id = walletId
-      this.topupDialog.show = true
-    },
     showPayments(wallet_id) {
       this.paymentsWallet = this.wallets.find(wallet => wallet.id === wallet_id)
       this.paymentPage.show = true
-    },
-    topupCallback(res) {
-      if (res.success) {
-        this.wallets.forEach(wallet => {
-          if (res.wallet_id === wallet.id) {
-            wallet.balance_msat += res.credit * 1000
-          }
-        })
-        this.fetchUsers()
-      }
-    },
-    topupWallet() {
-      LNbits.api
-        .request(
-          'PUT',
-          '/users/api/v1/topup',
-          this.g.user.wallets[0].adminkey,
-          this.wallet
-        )
-        .then(_ => {
-          Quasar.Notify.create({
-            type: 'positive',
-            message: `Added ${this.wallet.amount} to ${this.wallet.id}`,
-            icon: null
-          })
-          this.wallet = {}
-          this.fetchWallets(this.activeWallet.userId)
-        })
-        .catch(LNbits.utils.notifyApiError)
     },
     searchUserBy(fieldName) {
       const fieldValue = this.searchData[fieldName]

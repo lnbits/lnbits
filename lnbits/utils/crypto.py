@@ -1,11 +1,26 @@
 import base64
 import getpass
-from hashlib import md5
+from hashlib import md5, pbkdf2_hmac, sha256
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
 BLOCK_SIZE = 16
+
+
+def random_secret_and_hash() -> tuple[str, str]:
+    secret = Random.new().read(32)
+    return secret.hex(), sha256(secret).hexdigest()
+
+
+def fake_privkey(secret: str) -> str:
+    return pbkdf2_hmac(
+        "sha256",
+        secret.encode(),
+        b"FakeWallet",
+        2048,
+        32,
+    ).hex()
 
 
 class AESCipher:
