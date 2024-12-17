@@ -24,9 +24,9 @@ from lnbits.core.crud import (
 from lnbits.core.models import (
     AccountFilters,
     AccountOverview,
-    CreateTopup,
     CreateUser,
     SimpleStatus,
+    UpdateBalance,
     User,
     UserExtra,
     Wallet,
@@ -272,7 +272,7 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> SimpleStatu
     summary="Update balance for a particular wallet.",
     dependencies=[Depends(check_super_user)],
 )
-async def api_update_balance(data: CreateTopup) -> SimpleStatus:
+async def api_update_balance(data: UpdateBalance) -> SimpleStatus:
     wallet = await get_wallet(data.id)
     if not wallet:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet not found.")

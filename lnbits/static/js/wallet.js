@@ -151,7 +151,7 @@ window.app = Vue.createApp({
       }
     },
     handleBalanceUpdate(value) {
-      console.log('### handleBalanceUpdate', value)
+      this.balance = this.balance + value
     },
     createInvoice() {
       this.receive.status = 'loading'

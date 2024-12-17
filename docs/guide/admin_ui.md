@@ -67,7 +67,7 @@ You can access your super user account at `/wallet?usr=super_user_id`. You just 
 
 After that you will find the **`Admin` / `Manage Server`** between `Wallets` and `Extensions`
 
-Here you can design the interface, it has TOPUP to fill wallets and you can restrict access rights to extensions only for admins or generally deactivated for everyone. You can make users admins or set up Allowed Users if you want to restrict access. And of course the classic settings of the .env file, e.g. to change the funding source wallet or set a charge fee.
+Here you can design the interface, it has credit/debit to change wallets balances and you can restrict access rights to extensions only for admins or generally deactivated for everyone. You can make users admins or set up Allowed Users if you want to restrict access. And of course the classic settings of the .env file, e.g. to change the funding source wallet or set a charge fee.
 
 Do not forget
 

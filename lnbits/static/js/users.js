@@ -180,6 +180,9 @@ window.app = Vue.createApp({
       this.activeWallet.show = false
       this.fetchUsers()
     },
+    handleBalanceUpdate() {
+      this.fetchWallets(this.activeWallet.userId)
+    },
     resetPassword(user_id) {
       return LNbits.api
         .request('PUT', `/users/api/v1/user/${user_id}/reset_password`)

@@ -50,6 +50,7 @@
           <q-td auto-width>
             <lnbits-update-balance
               :wallet_id="props.row.id"
+              @credit-value="handleBalanceUpdate"
               class="q-mr-md"
             ></lnbits-update-balance>
             <q-btn

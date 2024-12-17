@@ -514,7 +514,7 @@ window.app.component('lnbits-update-balance', {
           credit = parseInt(credit)
           Quasar.Notify.create({
             type: 'positive',
-            message: this.$t('wallet_topup_ok', {
+            message: this.$t('credit_ok', {
               amount: credit
             }),
             icon: null

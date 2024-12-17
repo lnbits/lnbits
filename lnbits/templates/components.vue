@@ -511,7 +511,6 @@
       <q-input
         filled
         :label="$t('credit_label', {denomination: denomination})"
-        :hint="$t('credit_hint')"
         v-model="scope.value"
         dense
         autofocus
@@ -522,7 +521,7 @@
         </template>
       </q-input>
     </q-popup-edit>
-    <q-tooltip>Topup Wallet</q-tooltip>
+    <q-tooltip v-text="$t('credit_hint')"></q-tooltip>
   </q-btn>
 </template>
 

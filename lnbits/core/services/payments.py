@@ -205,7 +205,7 @@ async def update_wallet_balance(
     if amount == 0:
         raise ValueError("Amount cannot be 0.")
 
-    # negative topup
+    # negative balance change
     if amount < 0:
         if wallet.balance + amount < 0:
             raise ValueError("Balance change failed, can not go into negative balance.")
@@ -239,7 +239,7 @@ async def update_wallet_balance(
             )
         return None
 
-    # positive topup
+    # positive balance change
     if (
         settings.lnbits_wallet_limit_max_balance > 0
         and wallet.balance + amount > settings.lnbits_wallet_limit_max_balance
