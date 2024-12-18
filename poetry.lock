@@ -1905,7 +1905,7 @@ files = [
 name = "nostr"
 version = "0.0.2"
 description = "A Python library for making Nostr clients"
-optional = false
+optional = true
 python-versions = ">3.6.0"
 files = [
     {file = "nostr-0.0.2-py3-none-any.whl", hash = "sha256:3d17d22dbd3aecf1ddf8cc72e330f14702e159fb0f43320d1ac88142db96aaba"},
@@ -3414,4 +3414,4 @@ liquid = ["wallycore"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12 | ^3.11 | ^3.10 | ^3.9"
-content-hash = "52f2893d7250ad17a314d682ec322d6065dc602a5d48e7dda85eecb909c6409b"
+content-hash = "cd588a567d4223b742905dac52538e12dbb89c39bfc4243b6362b8d073ef70ef"
