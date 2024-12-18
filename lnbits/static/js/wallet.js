@@ -524,7 +524,6 @@ window.app = Vue.createApp({
             type: 'positive',
             timeout: 3500
           })
-          window.location.reload()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -698,7 +697,6 @@ window.app = Vue.createApp({
     }
     if(this.g.wallet.currency){
       this.updateFiatBalance(this.g.wallet.currency)
-      this.getPriceChange()
     }
     this.update.name = this.g.wallet.name
     this.receive.units = ['sat', ...window.currencies]
@@ -710,12 +708,12 @@ window.app = Vue.createApp({
       }
     },
     updatePayments() {
-      this.updateFiatBalance()
+      this.updateFiatBalance(this.g.wallet.currenc)
     },
     'update.currency'(newValue) {
       this.updateWallet({ currency: newValue })
       this.updateFiatBalance(newValue)
-      this.getPriceChange()
+    }
   },
   mounted() {
     // show disclaimer
