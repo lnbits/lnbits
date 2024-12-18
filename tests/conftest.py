@@ -264,10 +264,11 @@ async def fake_payments(client, inkey_fresh_headers_to):
     fake_data = [
         CreateInvoice(amount=10, memo="aaaa", out=False),
         CreateInvoice(amount=100, memo="bbbb", out=False),
-        CreateInvoice(amount=1000, memo="aabb", out=False),
+        CreateInvoice(amount=1000, memo="cccc", out=False),
+        CreateInvoice(amount=10000, memo="dddd", out=False),
     ]
 
-    for invoice in fake_data:
+    for i, invoice in enumerate(fake_data):
         response = await client.post(
             "/api/v1/payments", headers=inkey_fresh_headers_to, json=invoice.dict()
         )
@@ -275,7 +276,10 @@ async def fake_payments(client, inkey_fresh_headers_to):
         data = response.json()
         assert data["checking_id"]
         payment = await get_payment(data["checking_id"])
-        payment.status = PaymentState.SUCCESS
+        # make last payment fail
+        payment.status = (
+            PaymentState.SUCCESS if i == len(fake_data) - 1 else PaymentState.FAILED
+        )
         await update_payment(payment)
 
     params = {
