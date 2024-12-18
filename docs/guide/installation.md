@@ -12,11 +12,14 @@ Note that by default LNbits uses SQLite as its database, which is simple and eff
 
 ## Option 1 (recommended): Poetry
 
-It is recommended to use the latest version of Poetry. Make sure you have Python version 3.9 or higher installed.
+It is recommended to use the latest version of Poetry. Make sure you have Python version `3.12` installed.
 
-### Verify Python version
+### Install Python 3.12
 
 ```sh
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.12
 python3 --version
 ```
 
@@ -31,13 +34,11 @@ export PATH="/home/user/.local/bin:$PATH"
 ```sh
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
+poetry env use 3.12
 git checkout main
-
 poetry install --only main
-
 cp .env.example .env
-# set funding source amongst other options
-nano .env
+# Optional: to set funding source amongst other options via the env `nano .env`
 ```
 
 #### Running the server
@@ -51,7 +52,8 @@ poetry run lnbits
 
 #### Updating the server
 
-```
+
+```sh
 cd lnbits
 # Stop LNbits with `ctrl + x`
 git pull
