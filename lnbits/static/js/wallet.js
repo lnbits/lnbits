@@ -10,6 +10,8 @@ window.app = Vue.createApp({
       exportUrl: `${window.location.origin}/wallet?usr=${window.user.id}&wal=${window.wallet.id}`,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
       isPrioritySwapped: false,
+      fiatTracking: false,
+      formattedFiatAmount: 0,
       receive: {
         show: false,
         status: 'pending',
@@ -74,7 +76,7 @@ window.app = Vue.createApp({
       }
     },
     formattedExchange() {
-      if (this.fiatBalance) {
+      if (this.fiatTracking) {
         return LNbits.utils.formatCurrency(
           this.exchangeRate,
           this.g.wallet.currency
@@ -100,10 +102,10 @@ window.app = Vue.createApp({
     }
   },
   methods: {
-    formattedFiatAmount(amount) {
-      return LNbits.utils.formatCurrency(
+    formatFiatAmount(amount, currency) {
+      this.formattedFiatAmount = LNbits.utils.formatCurrency(
         amount.toFixed(2),
-        this.g.wallet.currency
+        currency
       )
     },
     msatoshiFormat(value) {
@@ -512,7 +514,7 @@ window.app = Vue.createApp({
           }
         })
     },
-    updateWallet(data) {
+    async updateWallet(data) {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
         .then(_ => {
@@ -521,7 +523,6 @@ window.app = Vue.createApp({
             type: 'positive',
             timeout: 3500
           })
-          window.location.reload()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -555,24 +556,22 @@ window.app = Vue.createApp({
         )
       })
       if (this.g.wallet.currency) {
-        this.updateFiatBalance()
+        this.updateFiatBalance(this.g.wallet.currency)
       }
     },
-    updateFiatBalance() {
-      if (!this.g.wallet.currency) return 0
+    updateFiatBalance(currency) {
       this.exchangeRate = this.$q.localStorage.getItem('lnbits.exchangeRate')
       this.fiatBalance =
-        (this.exchangeRate / 100000000) * (this.balance || this.g.wallet.sat)
+        (this.exchangeRate / 100000000) * (this.g.wallet.sat)
       LNbits.api
-        .request('POST', `/api/v1/conversion`, null, {
-          amount: 100000000,
-          to: this.g.wallet.currency
-        })
+        .request('GET', `/api/v1/rate/` + currency, null)
         .then(response => {
           this.fiatBalance =
-            (response.data[this.g.wallet.currency] / 100000000) *
-            (this.balance || this.g.wallet.sat)
-          this.exchangeRate = response.data[this.g.wallet.currency].toFixed(2)
+            (response.data.rate / 100000000) *
+            (this.g.wallet.sat)
+          this.exchangeRate = response.data.rate.toFixed(2)
+          this.fiatTracking = true
+          this.formatFiatAmount(this.fiatBalance, currency)
           this.$q.localStorage.set('lnbits.exchangeRate', this.exchangeRate)
         })
         .catch(e => console.error(e))
@@ -706,7 +705,17 @@ window.app = Vue.createApp({
         'lnbits.isPrioritySwapped',
         this.isPrioritySwapped
       )
-    }
+    },
+    handleFiatTracking() {
+      if (this.fiatTracking === false) {
+        this.updateWallet({ currency: ''})
+        this.$q.localStorage.setItem(
+          'lnbits.isPrioritySwapped',
+          false
+        )
+        this.$q.localStorage.remove(`lnbits.exchangeRate`)
+      }
+  },
   },
   created() {
     const urlParams = new URLSearchParams(window.location.search)
@@ -719,11 +728,13 @@ window.app = Vue.createApp({
     if (this.$q.screen.lt.md) {
       this.mobileSimple = true
     }
+    if(this.g.wallet.currency){
+      this.updateFiatBalance(this.g.wallet.currency)
+      this.getPriceChange()
+    }
     this.update.name = this.g.wallet.name
-    this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
-    this.updateFiatBalance()
-    this.getPriceChange()
+    
   },
   watch: {
     '$q.screen.gt.sm'(value) {
@@ -733,6 +744,11 @@ window.app = Vue.createApp({
     },
     updatePayments() {
       this.fetchBalance()
+    },
+    'update.currency'(newValue) {
+      this.updateWallet({ currency: newValue })
+      this.updateFiatBalance(newValue)
+      this.getPriceChange()
     }
   },
   mounted() {

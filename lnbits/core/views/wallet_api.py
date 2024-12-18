@@ -25,7 +25,7 @@ from ..crud import (
     get_wallet,
     update_wallet,
 )
-
+from loguru import logger
 wallet_router = APIRouter(prefix="/api/v1/wallet", tags=["Wallet"])
 
 
@@ -62,6 +62,7 @@ async def api_update_wallet(
     currency: Optional[str] = Body(None),
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
+    logger.debug(currency)
     wallet = await get_wallet(key_info.wallet.id)
     if not wallet:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")

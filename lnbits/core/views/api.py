@@ -235,7 +235,7 @@ async def api_check_fiat_rate(currency: str) -> dict[str, float]:
 @api_router.get("/api/v1/change/{currency}")
 async def api_check_fiat_change(currency: str) -> dict[str, float]:
     change = await satoshis_day_change_amount(currency)
-    return {"24hr_change": change}
+    return {"change": change}
 
 
 @api_router.get("/api/v1/currencies")

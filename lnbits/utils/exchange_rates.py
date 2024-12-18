@@ -313,14 +313,13 @@ async def btc_price(currency: str) -> Tuple[Optional[float], Optional[float]]:
         ],
         return_exceptions=True,
     )
-    logger.debug(results)
     rates = [r[0] for r in results if isinstance(r, tuple) and r[0] is not None]
     changes = [r[1] for r in results if isinstance(r, tuple) and r[1] is not None]
     if len(rates) == 1:
         logger.warning("Could only fetch one Bitcoin price.")
     try:
-        avg_price = sum(rates) / len(rates)
-        avg_change = sum(changes) / len(changes) if changes else None
+        avg_price = int(sum(rates) / len(rates))
+        avg_change = sum(changes) / len(changes)
         return avg_price, avg_change
     except ZeroDivisionError:
         return 0, 0
@@ -330,8 +329,7 @@ async def get_fiat_rate_satoshis(currency: str) -> Tuple[float, float]:
     avg_price, avg_change = await cache.save_result(
         lambda: btc_price(currency), f"btc-price-{currency}"
     )
-    rate_in_satoshis = float(100_000_000 / avg_price or 0)
-    return rate_in_satoshis, avg_change
+    return avg_price, avg_change
 
 
 async def fiat_amount_as_satoshis(amount: float, currency: str) -> int:

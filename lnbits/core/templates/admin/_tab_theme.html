@@ -126,6 +126,81 @@
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
+          <p>Global Language</p>
+          <q-select
+            filled
+            v-model="formData.lnbits_theme_options"
+            multiple
+            hint="Choose themes available for users"
+            :options="lnbits_theme_options"
+            label="Themes"
+          ></q-select>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p>Global Payment Reactions</p>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_custom_logo"
+            label="https://example.com/image.png"
+            hint="URL to logo image"
+          ></q-input>
+          <br />
+        </div>
+      </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <p>Global Light/Dark Mode</p>
+          <q-select
+            filled
+            v-model="formData.lnbits_theme_options"
+            multiple
+            hint="Choose themes available for users"
+            :options="lnbits_theme_options"
+            label="Themes"
+          ></q-select>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p>Global Gradient On/Off</p>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_custom_logo"
+            label="https://example.com/image.png"
+            hint="URL to logo image"
+          ></q-input>
+          <br />
+        </div>
+      </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <p>Global Background Image</p>
+          <q-select
+            filled
+            v-model="formData.lnbits_theme_options"
+            multiple
+            hint="Choose themes available for users"
+            :options="lnbits_theme_options"
+            label="Themes"
+          ></q-select>
+          <br />
+        </div>
+        <div class="col-12 col-md-6">
+          <p>Global Border Choice</p>
+          <q-input
+            filled
+            type="text"
+            v-model="formData.lnbits_custom_logo"
+            label="https://example.com/image.png"
+            hint="URL to logo image"
+          ></q-input>
+          <br />
+        </div>
+      </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
           <p>Ad Space Title</p>
           <q-input
             filled
