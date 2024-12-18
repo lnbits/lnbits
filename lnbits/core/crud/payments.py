@@ -134,12 +134,17 @@ async def get_payments_paginated(
             (
                 (amount > 0 AND status = '{PaymentState.SUCCESS}')
                 OR
-                (amount < 0 AND status != '{PaymentState.FAILED}')
+                (amount < 0 AND status = '{PaymentState.PENDING}')
             )
             """
         )
     elif pending:
         clause.append(f"status = '{PaymentState.PENDING}'")
+    else:
+        # pending and complete are both false as default values
+        # it could also mean if both are false, we want to return failed payments
+        # clause.append(f"status = '{PaymentState.FAILED}'")
+        pass
 
     if outgoing and incoming:
         pass
@@ -297,11 +302,12 @@ async def get_payments_history(
     values = {
         "wallet_id": wallet_id,
     }
+    # count outgoing payments if they are still pending
     where = [
         f"""
         wallet_id = :wallet_id AND (
             status = '{PaymentState.SUCCESS}'
-            OR (amount < 0 AND status != '{PaymentState.FAILED}')
+            OR (amount < 0 AND status = '{PaymentState.PENDING}')
         )
         """
     ]
