@@ -722,10 +722,11 @@ window.app = Vue.createApp({
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
     // check blanace priority
-    if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped')) {
-      this.isPrioritySwapped = this.$q.localStorage.getItem(
-        'lnbits.isPrioritySwapped'
-      )
+    if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped')){
+      this.isPrioritySwapped = this.$q.localStorage.getItem('lnbits.isPrioritySwapped')
+    } else {
+      this.isPrioritySwapped = false
+      this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
     }
     // listen to incoming payments
     LNbits.events.onInvoicePaid(this.g.wallet, data => {

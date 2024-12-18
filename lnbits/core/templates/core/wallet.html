@@ -51,7 +51,7 @@
                   v-if="!isPrioritySwapped"
                   style="height: 100px"
                 >
-                  <div class="col-7">
+                  <div class="col-7" :class="{'q-pt-lg': !g.wallet.currency && !fiatTracking}">
                     <div class="row">
                       <div class="col-auto">
                         <div class="text-h3 q-my-none text-no-wrap">
@@ -120,10 +120,6 @@
                 <div class="absolute-right q-pa-md" v-if="$q.screen.gt.md && g.wallet.currency && fiatTracking">
                   <div class="text-bold text-italic">
                     BTC Price
-                    <span
-                      :class="{'text-positive q-pl-xs': priceChange > 0, 'text-negative q-pl-xs': priceChange < 0}"
-                      v-text="priceChange"
-                    ></span>
                   </div>
                   <span
                     class="text-bold text-italic"
@@ -146,7 +142,7 @@
             </div>
           </q-card-section>
           <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
-            <div class="col">
+
               <q-btn
                 unelevated
                 color="primary"
@@ -154,8 +150,6 @@
                 @click="showParseDialog"
                 :label="$t('paste_request')"
               ></q-btn>
-            </div>
-            <div class="col">
               <q-btn
                 unelevated
                 color="primary"
@@ -163,8 +157,6 @@
                 @click="showReceiveDialog"
                 :label="$t('create_invoice')"
               ></q-btn>
-            </div>
-            <div class="col">
               <q-btn
                 unelevated
                 color="secondary"
@@ -180,8 +172,7 @@
               :callback="updateBalanceCallback"
               :small_btn="false"
             ></lnbits-update-balance>
-            </div>
-          </div>
+</div>
         </q-card>
        
         <q-card
