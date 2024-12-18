@@ -101,9 +101,9 @@ window.app = Vue.createApp({
         currency
       )
       this.formattedExchange = LNbits.utils.formatCurrency(
-          this.exchangeRate,
-          currency
-        )
+        this.exchangeRate,
+        currency
+      )
     },
     msatoshiFormat(value) {
       return LNbits.utils.formatSat(value / 1000)
@@ -554,15 +554,15 @@ window.app = Vue.createApp({
       this.formatFiatAmount(this.fiatBalance, currency)
       // make api call
       LNbits.api
-      .request('GET', `/api/v1/rate/` + currency, null)
+        .request('GET', `/api/v1/rate/` + currency, null)
         .then(response => {
           this.fiatBalance =
-          (response.data.price / 100000000) *
-          (this.balance || this.g.wallet.sat)
-        this.exchangeRate = response.data.price.toFixed(2)
-        this.fiatTracking = true
-        this.formatFiatAmount(this.fiatBalance, currency)
-        this.$q.localStorage.set('lnbits.exchangeRate', this.exchangeRate)
+            (response.data.price / 100000000) *
+            (this.balance || this.g.wallet.sat)
+          this.exchangeRate = response.data.price.toFixed(2)
+          this.fiatTracking = true
+          this.formatFiatAmount(this.fiatBalance, currency)
+          this.$q.localStorage.set('lnbits.exchangeRate', this.exchangeRate)
         })
         .catch(e => console.error(e))
     },
@@ -678,10 +678,7 @@ window.app = Vue.createApp({
     handleFiatTracking() {
       if (this.fiatTracking === false) {
         this.update.currency = ''
-        this.$q.localStorage.setItem(
-          'lnbits.isPrioritySwapped',
-          false
-        )
+        this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
         this.$q.localStorage.remove(`lnbits.exchangeRate`)
       }
     }
@@ -700,7 +697,7 @@ window.app = Vue.createApp({
     setTimeout(() => {
       this.ignoreWatcher = false
     }, 3000)
-    if(this.g.wallet.currency){
+    if (this.g.wallet.currency) {
       this.fiatTracking = true
       this.updateFiatBalance(this.g.wallet.currency)
     }
@@ -718,7 +715,7 @@ window.app = Vue.createApp({
     },
     'update.currency'(newValue) {
       if (this.ignoreWatcher) return
-      this.updateWallet({ currency: newValue })
+      this.updateWallet({currency: newValue})
       this.updateFiatBalance(newValue)
     }
   },
@@ -729,8 +726,10 @@ window.app = Vue.createApp({
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
     // check blanace priority
-    if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped')){
-      this.isPrioritySwapped = this.$q.localStorage.getItem('lnbits.isPrioritySwapped')
+    if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped')) {
+      this.isPrioritySwapped = this.$q.localStorage.getItem(
+        'lnbits.isPrioritySwapped'
+      )
     } else {
       this.isPrioritySwapped = false
       this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)

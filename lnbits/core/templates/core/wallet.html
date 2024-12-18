@@ -55,7 +55,7 @@
                   v-if="!isPrioritySwapped"
                   style="height: 90px"
                 >
-                  <div class="col-7" >
+                  <div class="col-7">
                     <div class="row">
                       <div class="col-auto">
                         <div class="text-h3 q-my-none text-no-wrap">
@@ -100,9 +100,7 @@
                           v-if="update.currency"
                           class="text-h3 q-my-none text-no-wrap"
                         >
-                          <strong
-                            v-text="formattedFiatAmount"
-                          ></strong>
+                          <strong v-text="formattedFiatAmount"></strong>
                         </div>
                       </div>
                       <div class="col-auto">
@@ -125,10 +123,11 @@
                   </div>
                 </div>
 
-                <div class="absolute-right q-pa-md" v-if="$q.screen.gt.md && update.currency">
-                  <div class="text-bold text-italic">
-                    BTC Price
-                  </div>
+                <div
+                  class="absolute-right q-pa-md"
+                  v-if="$q.screen.gt.md && update.currency"
+                >
+                  <div class="text-bold text-italic">BTC Price</div>
                   <span
                     class="text-bold text-italic"
                     v-text="formattedExchange"
@@ -150,8 +149,7 @@
             </div>
           </q-card-section>
           <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
-
-              <div class="col">
+            <div class="col">
               <q-btn
                 unelevated
                 color="primary"
@@ -166,24 +164,21 @@
                 @click="showReceiveDialog"
                 :label="$t('create_invoice')"
               ></q-btn>
-              <q-btn
-                unelevated
-                color="secondary"
-                icon="qr_code_scanner"
-              >
+              <q-btn unelevated color="secondary" icon="qr_code_scanner">
                 <q-tooltip
                   ><span v-text="$t('camera_tooltip')"></span
                 ></q-tooltip>
               </q-btn>
               <lnbits-update-balance
-              v-if="$q.screen.gt.md"
-              :wallet_id="this.g.wallet.id"
-              :callback="updateBalanceCallback"
-              :small_btn="false"
-            ></lnbits-update-balance>
-          </div></div>
+                v-if="$q.screen.gt.md"
+                :wallet_id="this.g.wallet.id"
+                :callback="updateBalanceCallback"
+                :small_btn="false"
+              ></lnbits-update-balance>
+            </div>
+          </div>
         </q-card>
-       
+
         <q-card
           :style="
           $q.screen.lt.md
@@ -302,18 +297,18 @@
                               v-model="fiatTracking"
                               color="primary"
                               @update:model-value="handleFiatTracking"
-                      ></q-toggle>
+                            ></q-toggle>
                           </div>
                           <div class="col">
                             <q-select
-                            filled
-                            dense
-                            v-model="update.currency"
-                            type="text"
-                            :label="!fiatTracking ? 'Disabled' : $t('currency')"
-                            :options="receive.units.filter((u) => u !== 'sat')"
-                            :disable="!fiatTracking"
-                          ></q-select>
+                              filled
+                              dense
+                              v-model="update.currency"
+                              type="text"
+                              :label="!fiatTracking ? 'Disabled' : $t('currency')"
+                              :options="receive.units.filter((u) => u !== 'sat')"
+                              :disable="!fiatTracking"
+                            ></q-select>
                           </div>
                         </div>
                       </div>
