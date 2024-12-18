@@ -51,6 +51,12 @@ poetry run lnbits
 # Note that you have to add the line DEBUG=true in your .env file, too.
 ```
 
+#### LNbits-cli
+```sh
+# A very useful terminal client for getting the supersuer ID, updating extensions, etc
+poetry run lnbits-cli --help
+```
+
 #### Updating the server
 
 
