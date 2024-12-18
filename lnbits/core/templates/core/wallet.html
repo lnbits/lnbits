@@ -300,24 +300,27 @@
                   <q-card>
                     <q-card-section>
                       <div style="max-width: 360px">
-                        <q-select
-                          filled
-                          dense
-                          clearable
-                          v-model="update.currency"
-                          type="text"
-                          :label="$t('currency')"
-                          :options="receive.units.filter((u) => u !== 'sat')"
-                        ></q-select>
+                        <div class="row">
+                          <div class="col-auto">
+                            <q-toggle
+                              v-model="fiatTracking"
+                              color="primary"
+                              @update:model-value="handleFiatTracking"
+                      ></q-toggle>
+                          </div>
+                          <div class="col">
+                            <q-select
+                            filled
+                            dense
+                            v-model="update.currency"
+                            type="text"
+                            :label="!fiatTracking ? 'Disabled' : $t('currency')"
+                            :options="receive.units.filter((u) => u !== 'sat')"
+                            :disable="!fiatTracking"
+                          ></q-select>
+                          </div>
+                        </div>
                       </div>
-                      <q-btn
-                        :disable="!update.name.length"
-                        unelevated
-                        class="q-mt-sm"
-                        color="primary"
-                        :label="$t('update_currency')"
-                        @click="updateWallet({ currency: update.currency || '' })"
-                      ></q-btn>
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
