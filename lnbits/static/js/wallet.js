@@ -708,7 +708,7 @@ window.app = Vue.createApp({
       }
     },
     updatePayments() {
-      this.updateFiatBalance(this.g.wallet.currenc)
+      this.fetchBalance()
     },
     'update.currency'(newValue) {
       this.updateWallet({ currency: newValue })

@@ -28,10 +28,9 @@
         <q-card
           :style="$q.screen.lt.md ? {
             background: $q.screen.lt.md ? 'none !important': ''
-          , boxShadow: $q.screen.lt.md ? 'none !important': ''
-          , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
-          , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
-        } : ''"
+            , boxShadow: $q.screen.lt.md ? 'none !important': ''
+            , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
+          } : ''"
         >
           <q-card-section>
             <div class="row">
@@ -170,7 +169,6 @@
                 unelevated
                 color="secondary"
                 icon="qr_code_scanner"
-                :label="$t('scan')"
               >
                 <q-tooltip
                   ><span v-text="$t('camera_tooltip')"></span
