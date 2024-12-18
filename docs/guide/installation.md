@@ -32,6 +32,8 @@ curl -sSL https://install.python-poetry.org | python3 -
 export PATH="/home/user/.local/bin:$PATH"
 ```
 
+### install LNbits
+
 ```sh
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
