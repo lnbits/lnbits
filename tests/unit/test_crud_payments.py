@@ -11,38 +11,39 @@ async def test_crud_get_payments():
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
 
-    payments = await get_payments(wallet_id=wallet.id)
-    assert len(payments) == 0
+    await update_wallet_balance(wallet, 10)
+    wallet.balance_msat += 10 * 1000
+
+    await update_wallet_balance(wallet, -10)
+    wallet.balance_msat += -10 * 1000
 
     await update_wallet_balance(wallet, 10)
     wallet.balance_msat += 10 * 1000
 
     payments = await get_payments(wallet_id=wallet.id)
-    print(payments)
-    assert len(payments) == 1
+    assert len(payments) == 3, "should return 3 successful payments"
 
-    await update_wallet_balance(wallet, -10)
-    wallet.balance_msat += -10 * 1000
-
-    payments = await get_payments(wallet_id=wallet.id)
-    assert len(payments) == 2
-
+    # make one of the payments fail
     payment = payments[0]
     payment.status = PaymentState.FAILED
     await update_payment(payment)
 
-    # should return no pending payments
+    # make one of the payments pending
+    payment = payments[1]
+    payment.status = PaymentState.PENDING
+    await update_payment(payment)
+
     payments = await get_payments(wallet_id=wallet.id, pending=True)
-    assert len(payments) == 0
+    assert len(payments) == 1, "should return 1 pending payment"
 
-    # default should not return failed payments
+    payments = await get_payments(wallet_id=wallet.id, complete=True, pending=True)
+    assert len(payments) == 2, "should return 1 pending and 1 complete payment"
+
     payments = await get_payments(wallet_id=wallet.id)
-    assert len(payments) == 1
+    assert len(payments) == 3, "should return all payments"
 
-    # should return only complete payments
     payments = await get_payments(wallet_id=wallet.id, complete=True)
-    assert len(payments) == 1
+    assert len(payments) == 1, "should return 1 successful payment"
 
-    # should return only failed payments
-    # payments = await get_payments(wallet_id=wallet.id, complete=False)
-    # assert len(payments) == 1
+    payments = await get_payments(wallet_id=wallet.id, complete=False, pending=False)
+    assert len(payments) == 1, "should return 1 failed payment"
