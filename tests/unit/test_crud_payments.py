@@ -6,7 +6,7 @@ from lnbits.core.services import create_user_account, update_wallet_balance
 
 
 @pytest.mark.anyio
-async def test_crud_get_payments(db):
+async def test_crud_get_payments(app):
 
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
