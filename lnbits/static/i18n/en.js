@@ -256,6 +256,8 @@ window.localisation.en = {
   back: 'Back',
   logout: 'Logout',
   look_and_feel: 'Look and Feel',
+  api_tokens: 'API Tokens',
+  new_api_token: 'New API Token',
   toggle_gradient: 'Toggle Gradient',
   gradient_background: 'Gradient Background',
   language: 'Language',

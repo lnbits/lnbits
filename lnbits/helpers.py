@@ -9,6 +9,7 @@ from urllib import request
 import jinja2
 import jwt
 import shortuuid
+from fastapi.routing import APIRoute
 from packaging import version
 from pydantic.schema import field_schema
 
@@ -270,3 +271,19 @@ def file_hash(filename):
         while n := f.readinto(mv):
             h.update(mv[:n])
     return h.hexdigest()
+
+
+def get_api_routes(routes: list) -> dict:
+    data = {}
+    for route in routes:
+        if not isinstance(route, APIRoute):
+            continue
+        segments = route.path.split("/")
+        if len(segments) < 3:
+            continue
+        if "/".join(segments[1:3]) == "api/v1":
+            data["/".join(segments[1:4])] = segments[3].capitalize()
+        elif "/".join(segments[2:4]) == "api/v1":
+            data["/".join(segments[1:4])] = segments[1].capitalize()
+
+    return data

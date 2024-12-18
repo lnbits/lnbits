@@ -684,3 +684,11 @@ async def m029_create_audit_table(db: Connection):
         );
         """
     )
+
+
+async def m030_add_user_api_tokens_column(db: Connection):
+    await db.execute(
+        """
+        ALTER TABLE accounts ADD COLUMN api_tokens TEXT
+        """
+    )

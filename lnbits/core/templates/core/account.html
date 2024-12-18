@@ -21,6 +21,11 @@
                 :label="$t('look_and_feel')"
                 @update="val => tab = val.name"
               ></q-tab>
+              <q-tab
+                name="api_tokens"
+                :label="$t('api_tokens')"
+                @update="val => tab = val.name"
+              ></q-tab>
             </q-tabs>
             <q-tab-panels v-model="tab">
               <q-tab-panel name="user">
@@ -504,6 +509,33 @@
                     </q-select>
                   </div>
                 </div>
+              </q-tab-panel>
+              <q-tab-panel name="api_tokens">
+                <div class="row q-mb-md"></div>
+
+                <q-card-section>
+                  <div class="row q-mb-md">
+                    <div class="col-sm-12 col-md-6">
+                      <q-select
+                        v-model="borderChoice"
+                        :options="borderOptions"
+                        dense
+                      >
+
+                      </q-select>
+                    </div>
+                    <div class="col-sm-12 col-md-6">
+                      <q-btn
+                        @click="showUpdateCredentials()"
+                        :label="$t('new_api_token')"
+                        filled
+                        color="primary"
+                        class="float-right"
+                      ></q-btn>
+                    </div>
+                  </div>
+                  <q-separator></q-separator>
+                </q-card-section>
               </q-tab-panel>
             </q-tab-panels>
           </div>
