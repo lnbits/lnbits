@@ -36,7 +36,7 @@
             <div class="row">
               <div class="col-1" style="max-width: 30px">
                 <q-btn
-                  v-if="g.wallet.currency"
+                  v-if="update.currency"
                   @click="swapBalancePriority"
                   style="height: 50px"
                   class="q-mt-lg"
@@ -48,10 +48,14 @@
               <div class="col-11">
                 <div
                   class="column"
+                  :class="{
+                    'q-pt-sm': update.currency,
+                    'q-pt-lg': !update.currency
+                  }"
                   v-if="!isPrioritySwapped"
-                  style="height: 100px"
+                  style="height: 90px"
                 >
-                  <div class="col-7" :class="{'q-pt-lg': !g.wallet.currency && !fiatTracking}">
+                  <div class="col-7" >
                     <div class="row">
                       <div class="col-auto">
                         <div class="text-h3 q-my-none text-no-wrap">
@@ -70,7 +74,7 @@
                     </div>
                   </div>
                   <div class="col-2">
-                    <div v-if="g.wallet.currency && fiatTracking">
+                    <div v-if="update.currency">
                       <span
                         class="text-h5 text-italic"
                         v-text="formattedFiatAmount"
@@ -82,14 +86,18 @@
 
                 <div
                   class="column"
-                  v-if="isPrioritySwapped && fiatTracking"
+                  v-if="isPrioritySwapped"
+                  :class="{
+                    'q-pt-sm': update.currency,
+                    'q-pt-lg': !update.currency
+                  }"
                   style="height: 100px"
                 >
                   <div class="col-7">
                     <div class="row">
                       <div class="col-auto">
                         <div
-                          v-if="g.wallet.currency"
+                          v-if="update.currency"
                           class="text-h3 q-my-none text-no-wrap"
                         >
                           <strong
@@ -117,7 +125,7 @@
                   </div>
                 </div>
 
-                <div class="absolute-right q-pa-md" v-if="$q.screen.gt.md && g.wallet.currency && fiatTracking">
+                <div class="absolute-right q-pa-md" v-if="$q.screen.gt.md && update.currency">
                   <div class="text-bold text-italic">
                     BTC Price
                   </div>
@@ -143,6 +151,7 @@
           </q-card-section>
           <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
 
+              <div class="col">
               <q-btn
                 unelevated
                 color="primary"
@@ -172,7 +181,7 @@
               :callback="updateBalanceCallback"
               :small_btn="false"
             ></lnbits-update-balance>
-</div>
+          </div></div>
         </q-card>
        
         <q-card

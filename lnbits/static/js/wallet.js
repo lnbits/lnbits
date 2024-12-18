@@ -62,7 +62,9 @@ window.app = Vue.createApp({
       isPrioritySwapped: false,
       fiatTracking: false,
       formattedFiatAmount: 0,
-      exchangeRate: 0
+      exchangeRate: 0,
+      formattedExchange: null,
+      ignoreWatcher: true
     }
   },
   computed: {
@@ -71,14 +73,6 @@ window.app = Vue.createApp({
         return this.balance / 100
       } else {
         return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
-      }
-    },
-    formattedExchange() {
-      if (this.fiatTracking) {
-        return LNbits.utils.formatCurrency(
-          this.exchangeRate,
-          this.g.wallet.currency
-        )
       }
     },
     canPay() {
@@ -101,10 +95,15 @@ window.app = Vue.createApp({
   },
   methods: {
     formatFiatAmount(amount, currency) {
+      this.update.currency = currency
       this.formattedFiatAmount = LNbits.utils.formatCurrency(
         amount.toFixed(2),
         currency
       )
+      this.formattedExchange = LNbits.utils.formatCurrency(
+          this.exchangeRate,
+          currency
+        )
     },
     msatoshiFormat(value) {
       return LNbits.utils.formatSat(value / 1000)
@@ -548,16 +547,19 @@ window.app = Vue.createApp({
         })
     },
     updateFiatBalance(currency) {
+      // set rate from local storage to avoid clunky api calls
       this.exchangeRate = this.$q.localStorage.getItem('lnbits.exchangeRate')
       this.fiatBalance =
-        (this.exchangeRate / 100000000) * (this.g.wallet.sat)
+        (this.exchangeRate / 100000000) * (this.balance || this.g.wallet.sat)
+      this.formatFiatAmount(this.fiatBalance, currency)
+      // make api call
       LNbits.api
       .request('GET', `/api/v1/rate/` + currency, null)
         .then(response => {
           this.fiatBalance =
-          (response.data.rate / 100000000) *
-          (this.g.wallet.sat)
-        this.exchangeRate = response.data.rate.toFixed(2)
+          (response.data.price / 100000000) *
+          (this.balance || this.g.wallet.sat)
+        this.exchangeRate = response.data.price.toFixed(2)
         this.fiatTracking = true
         this.formatFiatAmount(this.fiatBalance, currency)
         this.$q.localStorage.set('lnbits.exchangeRate', this.exchangeRate)
@@ -675,7 +677,7 @@ window.app = Vue.createApp({
     },
     handleFiatTracking() {
       if (this.fiatTracking === false) {
-        this.updateWallet({ currency: ''})
+        this.update.currency = ''
         this.$q.localStorage.setItem(
           'lnbits.isPrioritySwapped',
           false
@@ -695,7 +697,11 @@ window.app = Vue.createApp({
     if (this.$q.screen.lt.md) {
       this.mobileSimple = true
     }
+    setTimeout(() => {
+      this.ignoreWatcher = false
+    }, 3000)
     if(this.g.wallet.currency){
+      this.fiatTracking = true
       this.updateFiatBalance(this.g.wallet.currency)
     }
     this.update.name = this.g.wallet.name
@@ -711,6 +717,7 @@ window.app = Vue.createApp({
       this.fetchBalance()
     },
     'update.currency'(newValue) {
+      if (this.ignoreWatcher) return
       this.updateWallet({ currency: newValue })
       this.updateFiatBalance(newValue)
     }
