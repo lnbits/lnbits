@@ -298,7 +298,12 @@ async def get_payments_history(
         "wallet_id": wallet_id,
     }
     where = [
-        f"wallet_id = :wallet_id AND (status = '{PaymentState.SUCCESS}' OR amount < 0)"
+        f"""
+        wallet_id = :wallet_id AND (
+            status = '{PaymentState.SUCCESS}'
+            OR (amount < 0 AND status != '{PaymentState.FAILED}')
+        )
+        """
     ]
     transactions: list[dict] = await db.fetchall(
         f"""
