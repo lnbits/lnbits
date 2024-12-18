@@ -58,7 +58,11 @@ window.app = Vue.createApp({
       inkeyHidden: true,
       adminkeyHidden: true,
       hasNfc: false,
-      nfcReaderAbortController: null
+      nfcReaderAbortController: null,
+      isPrioritySwapped: false,
+      fiatTracking: false,
+      formattedFiatAmount: 0,
+      exchangeRate: 0
     }
   },
   computed: {
@@ -69,10 +73,10 @@ window.app = Vue.createApp({
         return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
       }
     },
-    formattedFiatBalance() {
-      if (this.fiatBalance) {
+    formattedExchange() {
+      if (this.fiatTracking) {
         return LNbits.utils.formatCurrency(
-          this.fiatBalance.toFixed(2),
+          this.exchangeRate,
           this.g.wallet.currency
         )
       }
@@ -96,6 +100,12 @@ window.app = Vue.createApp({
     }
   },
   methods: {
+    formatFiatAmount(amount, currency) {
+      this.formattedFiatAmount = LNbits.utils.formatCurrency(
+        amount.toFixed(2),
+        currency
+      )
+    },
     msatoshiFormat(value) {
       return LNbits.utils.formatSat(value / 1000)
     },
@@ -538,15 +548,20 @@ window.app = Vue.createApp({
             })
         })
     },
-    updateFiatBalance() {
-      if (!this.g.wallet.currency) return 0
+    updateFiatBalance(currency) {
+      this.exchangeRate = this.$q.localStorage.getItem('lnbits.exchangeRate')
+      this.fiatBalance =
+        (this.exchangeRate / 100000000) * (this.g.wallet.sat)
       LNbits.api
-        .request('POST', `/api/v1/conversion`, null, {
-          amount: this.balance || this.g.wallet.sat,
-          to: this.g.wallet.currency
-        })
+      .request('GET', `/api/v1/rate/` + currency, null)
         .then(response => {
-          this.fiatBalance = response.data[this.g.wallet.currency]
+          this.fiatBalance =
+          (response.data.rate / 100000000) *
+          (this.g.wallet.sat)
+        this.exchangeRate = response.data.rate.toFixed(2)
+        this.fiatTracking = true
+        this.formatFiatAmount(this.fiatBalance, currency)
+        this.$q.localStorage.set('lnbits.exchangeRate', this.exchangeRate)
         })
         .catch(e => console.error(e))
     },
@@ -651,6 +666,23 @@ window.app = Vue.createApp({
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
         })
+    },
+    swapBalancePriority() {
+      this.isPrioritySwapped = !this.isPrioritySwapped
+      this.$q.localStorage.setItem(
+        'lnbits.isPrioritySwapped',
+        this.isPrioritySwapped
+      )
+    },
+    handleFiatTracking() {
+      if (this.fiatTracking === false) {
+        this.updateWallet({ currency: ''})
+        this.$q.localStorage.setItem(
+          'lnbits.isPrioritySwapped',
+          false
+        )
+        this.$q.localStorage.remove(`lnbits.exchangeRate`)
+      }
     }
   },
   created() {
@@ -664,21 +696,38 @@ window.app = Vue.createApp({
     if (this.$q.screen.lt.md) {
       this.mobileSimple = true
     }
+    if(this.g.wallet.currency){
+      this.updateFiatBalance(this.g.wallet.currency)
+      this.getPriceChange()
+    }
     this.update.name = this.g.wallet.name
-    this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
-    this.updateFiatBalance()
   },
   watch: {
+    '$q.screen.gt.sm'(value) {
+      if (value == true) {
+        this.mobileSimple = false
+      }
+    },
     updatePayments() {
       this.updateFiatBalance()
-    }
+    },
+    'update.currency'(newValue) {
+      this.updateWallet({ currency: newValue })
+      this.updateFiatBalance(newValue)
+      this.getPriceChange()
   },
   mounted() {
     // show disclaimer
     if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
+    }
+    // check blanace priority
+    if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped')) {
+      this.isPrioritySwapped = this.$q.localStorage.getItem(
+        'lnbits.isPrioritySwapped'
+      )
     }
     // listen to incoming payments
     LNbits.events.onInvoicePaid(this.g.wallet, data => {
