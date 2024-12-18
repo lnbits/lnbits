@@ -140,8 +140,6 @@ async def get_payments_paginated(
         )
     elif pending:
         clause.append(f"status = '{PaymentState.PENDING}'")
-    else:
-        clause.append(f"status = '{PaymentState.FAILED}'")
 
     if outgoing and incoming:
         pass
