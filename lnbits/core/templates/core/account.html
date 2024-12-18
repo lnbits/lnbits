@@ -517,16 +517,16 @@
                   <div class="row q-mb-md">
                     <div class="col-sm-12 col-md-6">
                       <q-select
-                        v-model="borderChoice"
-                        :options="borderOptions"
+                        v-if="apiTokens.data?.length"
+                        v-model="selectedApiToken.id"
+                        :options="apiTokens.data.map(t => ({label: t.name, value: t.id}))"
                         dense
                       >
-
                       </q-select>
                     </div>
                     <div class="col-sm-12 col-md-6">
                       <q-btn
-                        @click="showUpdateCredentials()"
+                        @click="newApiTokenDialog()"
                         :label="$t('new_api_token')"
                         filled
                         color="primary"
@@ -534,7 +534,93 @@
                       ></q-btn>
                     </div>
                   </div>
+                  <!-- <q-table
+                    row-key="name"
+                    :rows="formData.lnbits_exchange_rate_providers"
+                    :columns="exchangesTable.columns"
+                    v-model:pagination="exchangesTable.pagination"
+                  >
+                    <template v-slot:header="props">
+                      <q-tr :props="props">
+                        <q-th auto-width></q-th>
+                        <q-th
+                          v-for="col in props.cols"
+                          :key="col.name"
+                          :props="props"
+                        >
+                          <span v-text="col.label"></span>
+                        </q-th>
+                      </q-tr>
+                    </template>
+                    <template v-slot:body="props">
+                      <q-tr :props="props">
+                        <q-td>
+                          <q-btn
+                            @click="removeExchangeProvider(props.row)"
+                            round
+                            icon="delete"
+                            size="sm"
+                            color="negative"
+                            class="q-ml-xs"
+                          >
+                          </q-btn>
+                        </q-td>
+                        <q-td>
+                          <q-input
+                            dense
+                            filled
+                            v-model="props.row.name"
+                            @update:model-value="touchSettings()"
+                            type="text"
+                          >
+                          </q-input>
+                        </q-td>
+                        <q-td full-width>
+                          <q-input
+                            dense
+                            filled
+                            v-model="props.row.api_url"
+                            @update:model-value="touchSettings()"
+                            type="text"
+                          >
+                          </q-input
+                        ></q-td>
+                        <q-td>
+                          <q-input
+                            dense
+                            filled
+                            v-model="props.row.path"
+                            @update:model-value="touchSettings()"
+                            type="text"
+                          >
+                          </q-input>
+                        </q-td>
+                        <q-td>
+                          <q-select
+                            filled
+                            dense
+                            v-model="props.row.exclude_to"
+                            @update:model-value="touchSettings()"
+                            multiple
+                            :options="{{ currencies | safe }}"
+                          ></q-select>
+                        </q-td>
+                      </q-tr>
+                    </template>
+                  </q-table> -->
                   <q-separator></q-separator>
+                  <div class="row q-mt-md">
+                    <div class="col-sm-12 col-md-6"></div>
+                    <div class="col-sm-12 col-md-6">
+                      <q-btn
+                        @click="updateApiTokens()"
+                        :label="$t('update')"
+                        filled
+                        color="primary"
+                        class="float-right"
+                      ></q-btn>
+                    </div>
+                  </div>
                 </q-card-section>
               </q-tab-panel>
             </q-tab-panels>
@@ -551,4 +637,31 @@
     </q-card>
   </div>
 </div>
+
+<q-dialog v-model="apiTokens.showNewTokenDialog" position="top">
+  <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+    <strong>New API token</strong>
+    <div class="row q-mt-md">
+      <div class="col-12">
+        <q-input
+          v-model="selectedApiToken.name"
+          dense
+          filled
+          label="Token Name"
+        >
+        </q-input>
+      </div>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn @click="addApiToken()" label="Create" color="primary"></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('close')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
 {% endblock %}

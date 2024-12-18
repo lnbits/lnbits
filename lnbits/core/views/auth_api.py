@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
+from lnbits.core.crud.users import get_user_tokens, update_user_tokens
 from lnbits.core.services import create_user_account
 from lnbits.decorators import access_token_payload, check_user_exists
 from lnbits.helpers import (
@@ -45,6 +46,7 @@ from ..models import (
     UpdateUserPubkey,
     User,
     UserExtra,
+    UserTokens,
 )
 
 auth_router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
@@ -96,6 +98,28 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
     if not account:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User ID does not exist.")
     return _auth_success_response(account.username, account.id, account.email)
+
+
+@auth_router.get("/tokens")
+async def api_get_user_tokens(
+    user: User = Depends(check_user_exists),
+) -> Optional[UserTokens]:
+    return await get_user_tokens(user.id)
+
+
+@auth_router.put("/tokens")
+async def api_update_user_tokens(
+    user_tokens: UserTokens,
+    user: User = Depends(check_user_exists),
+) -> UserTokens:
+    assert user_tokens.id == user.id, "Wrong user id."
+    for token in user_tokens.api_tokens:
+        if token.id == token.name:
+            token.id = uuid4().hex
+
+    await update_user_tokens(user_tokens)
+
+    return user_tokens
 
 
 @auth_router.get("/{provider}", description="SSO Provider")

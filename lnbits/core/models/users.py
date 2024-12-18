@@ -32,10 +32,18 @@ class EndpointAccess(BaseModel):
     path: str
     read: bool = False
     write: bool = False
+
+
 class ApiToken(BaseModel):
     id: str
     name: str
-    endpoints: list[str] = []
+    endpoints: list[EndpointAccess] = []
+
+
+class UserTokens(BaseModel):
+    id: str
+    api_tokens: list[ApiToken] = []
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class Account(BaseModel):
@@ -45,7 +53,6 @@ class Account(BaseModel):
     pubkey: Optional[str] = None
     email: Optional[str] = None
     extra: UserExtra = UserExtra()
-    api_tokens: list[ApiToken] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

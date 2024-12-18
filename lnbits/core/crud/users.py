@@ -6,6 +6,7 @@ from uuid import uuid4
 from lnbits.core.crud.extensions import get_user_active_extensions_ids
 from lnbits.core.crud.wallets import get_wallets
 from lnbits.core.db import db
+from lnbits.core.models import UserTokens
 from lnbits.db import Connection, Filters, Page
 
 from ..models import (
@@ -184,4 +185,19 @@ async def get_user_from_account(
         admin=account.is_admin,
         super_user=account.is_super_user,
         has_password=account.password_hash is not None,
+    )
+
+
+async def update_user_tokens(user_tokens: UserTokens):
+    user_tokens.updated_at = datetime.now(timezone.utc)
+    await db.update("accounts", user_tokens)
+
+
+async def get_user_tokens(
+    user_id: str, conn: Optional[Connection] = None
+) -> Optional[UserTokens]:
+    return await (conn or db).fetchone(
+        "SELECT id, api_tokens FROM accounts WHERE id = :id",
+        {"id": user_id},
+        UserTokens,
     )

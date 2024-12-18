@@ -59,6 +59,7 @@ from .users import (
     get_accounts,
     get_user,
     get_user_from_account,
+    get_user_tokens,
     update_account,
 )
 from .wallets import (
@@ -145,6 +146,7 @@ __all__ = [
     "get_accounts",
     "get_user",
     "get_user_from_account",
+    "get_user_tokens",
     "update_account",
     # wallets
     "create_wallet",

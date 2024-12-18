@@ -21,6 +21,14 @@ window.AccountPageLogic = {
         newPasswordRepeat: null,
         username: null,
         pubkey: null
+      },
+      apiTokens: {
+        showNewTokenDialog: false,
+        data: []
+      },
+      selectedApiToken: {
+        id: null,
+        name: null
       }
     }
   },
@@ -151,6 +159,56 @@ window.AccountPageLogic = {
         newPassword: null,
         newPasswordRepeat: null
       }
+    },
+    newApiTokenDialog() {
+      this.selectedApiToken.name = null
+      this.apiTokens.showNewTokenDialog = true
+    },
+    addApiToken() {
+      const name = this.selectedApiToken.name
+      if (!name) {
+        return
+      }
+      if (this.apiTokens.data.find(t => t.name === name)) {
+        this.apiTokens.showNewTokenDialog = false
+        return
+      }
+      this.apiTokens.data.push({
+        name,
+        id: name
+      })
+      this.selectedApiToken.id = this.selectedApiToken.name
+      this.apiTokens.showNewTokenDialog = false
+    },
+    async getApiTokens() {
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          '/api/v1/auth/tokens',
+          null
+        )
+        console.log('### data', data)
+        this.apiTokens.data = data.api_tokens
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
+    },
+    async updateApiTokens() {
+      try {
+        console.log('### his.apiTokens.data', this.apiTokens.data)
+        const {data} = await LNbits.api.request(
+          'PUT',
+          '/api/v1/auth/tokens',
+          null,
+          {
+            id: this.user.id,
+            api_tokens: this.apiTokens.data.map(t => ({...t, endpoints: []}))
+          }
+        )
+        console.log('### data', data)
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
     }
   },
   async created() {
@@ -166,5 +224,6 @@ window.AccountPageLogic = {
     if (hash) {
       this.tab = hash
     }
+    await this.getApiTokens()
   }
 }
