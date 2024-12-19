@@ -517,11 +517,10 @@
                   <div class="row q-mb-md">
                     <div class="col-sm-12 col-md-6">
                       <q-select
-                        v-if="apiTokens.data?.length"
                         v-model="selectedApiToken.id"
                         emit-value
                         map-options
-                        @update:model-value="handleApiTokenSelected()"
+                        @update:model-value="handleApiTokenSelected"
                         :options="apiTokens.data.map(t => ({label: t.name, value: t.id}))"
                         dense
                       >
@@ -587,16 +586,24 @@
                     </template>
                   </q-table>
                   <q-separator></q-separator>
-                  <div class="row q-mt-md">
-                    <div class="col-sm-12 col-md-6"></div>
+                  <div v-if="selectedApiToken.id" class="row q-mt-md">
                     <div class="col-sm-12 col-md-6">
                       <q-btn
                         @click="updateApiTokens()"
                         :label="$t('update')"
                         filled
                         color="primary"
-                        class="float-right"
                       ></q-btn>
+                    </div>
+                    <div class="col-sm-12 col-md-6">
+                      <q-btn
+                        @click="deleteApiToken()"
+                        :label="$t('delete')"
+                        icon="delete"
+                        color="negative"
+                        class="float-right"
+                      >
+                      </q-btn>
                     </div>
                   </div>
                 </q-card-section>
@@ -622,7 +629,7 @@
     <div class="row q-mt-md">
       <div class="col-12">
         <q-input
-          v-model="selectedApiToken.name"
+          v-model="apiTokens.newTokenName"
           dense
           filled
           label="Token Name"

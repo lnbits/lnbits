@@ -25,6 +25,7 @@ window.AccountPageLogic = {
       apiTokens: {
         showNewTokenDialog: false,
         data: [],
+        newTokenName: '',
         columns: [
           {
             name: 'Name',
@@ -198,20 +199,29 @@ window.AccountPageLogic = {
       }
     },
     newApiTokenDialog() {
-      this.selectedApiToken.name = null
+      console.log('### this.apiTokens.data', this.apiTokens.data)
+      this.apiTokens.newTokenName = null
       this.apiTokens.showNewTokenDialog = true
     },
-    handleApiTokenSelected() {
-      console.log('### handleApiTokenSelected', this.selectedApiToken)
-      this.selectedApiToken = this.apiTokens.data.find(
-        t => (t.id = this.selectedApiToken.id)
-      )
-      this.selectedApiToken.allRead = this.selectedApiToken.endpoints.every(
-        e => e.read
-      )
-      this.selectedApiToken.allWrite = this.selectedApiToken.endpoints.every(
-        e => e.write
-      )
+    handleApiTokenSelected(tokenId) {
+      console.log('### handleApiTokenSelected', tokenId)
+      this.selectedApiToken = {id: null, name: null, endpoints: []}
+      if (!tokenId) {
+        return
+      }
+      setTimeout(() => {
+        const selectedApiToken = this.apiTokens.data.find(t => t.id === tokenId)
+        if (!this.selectedApiToken) {
+          return
+        }
+        this.selectedApiToken = {...selectedApiToken}
+        this.selectedApiToken.allRead = this.selectedApiToken.endpoints.every(
+          e => e.read
+        )
+        this.selectedApiToken.allWrite = this.selectedApiToken.endpoints.every(
+          e => e.write
+        )
+      })
     },
     handleAllEndpointsReadAccess() {
       this.selectedApiToken.endpoints.forEach(
@@ -223,8 +233,9 @@ window.AccountPageLogic = {
         e => (e.write = this.selectedApiToken.allWrite)
       )
     },
-    addApiToken() {
-      const name = this.selectedApiToken.name
+    async addApiToken() {
+      console.log('### addApiToken')
+      const name = this.apiTokens.newTokenName
       if (!name) {
         return
       }
@@ -232,11 +243,25 @@ window.AccountPageLogic = {
         this.apiTokens.showNewTokenDialog = false
         return
       }
-      this.apiTokens.data.push({
-        name,
-        id: name
-      })
-      this.selectedApiToken.id = this.selectedApiToken.name
+      try {
+        const {data} = await LNbits.api.request(
+          'POST',
+          '/api/v1/auth/token',
+          null,
+          {
+            id: name,
+            name: name,
+            endpoints: []
+          }
+        )
+        console.log('### addApiToken', data)
+        this.apiTokens.data.push(data)
+
+        this.handleApiTokenSelected(data.id)
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
+
       this.apiTokens.showNewTokenDialog = false
     },
     async getApiTokens() {
@@ -264,11 +289,20 @@ window.AccountPageLogic = {
             api_tokens: this.apiTokens.data
           }
         )
-        this.apiTokens.data = data
+        this.apiTokens.data = data.api_tokens
         console.log('### data', data)
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
+    },
+    deleteApiToken() {
+      if (!this.selectedApiToken.id) {
+        return
+      }
+      this.apiTokens.data = this.apiTokens.data.filter(
+        t => t.id !== this.selectedApiToken.id
+      )
+      this.handleApiTokenSelected(this.apiTokens.data[0]?.id)
     }
   },
   async created() {

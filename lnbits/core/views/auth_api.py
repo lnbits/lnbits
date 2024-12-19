@@ -12,7 +12,7 @@ from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
 from lnbits.core.crud.users import get_user_tokens, update_user_tokens
-from lnbits.core.models.users import EndpointAccess
+from lnbits.core.models.users import ApiToken, EndpointAccess
 from lnbits.core.services import create_user_account
 from lnbits.decorators import access_token_payload, check_user_exists
 from lnbits.helpers import (
@@ -102,6 +102,21 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
     return _auth_success_response(account.username, account.id, account.email)
 
 
+@auth_router.post("/token", dependencies=[Depends(check_user_exists)])
+async def api_create_user_api_token(
+    request: Request,
+    api_token: ApiToken,
+) -> ApiToken:
+    api_token.endpoints = []
+    api_token.id = uuid4().hex
+
+    api_routes = get_api_routes(request.app.router.routes)
+    for path, name in api_routes.items():
+        api_token.endpoints.append(EndpointAccess(path=path, name=name))
+
+    return api_token
+
+
 @auth_router.get("/tokens")
 async def api_get_user_tokens(
     request: Request,
@@ -132,11 +147,14 @@ async def api_update_user_tokens(
     user: User = Depends(check_user_exists),
 ) -> UserTokens:
     assert user_tokens.id == user.id, "Wrong user id."
+    api_paths = get_api_routes(request.app.router.routes).keys()
     for token in user_tokens.api_tokens:
         if token.id == token.name:
             token.id = uuid4().hex
+        token.endpoints = [e for e in token.endpoints if e.path in api_paths]
         token.endpoints.sort(key=lambda e: e.name.lower())
 
+    user_tokens.api_tokens.sort(key=lambda t: t.name.lower())
     await update_user_tokens(user_tokens)
 
     return user_tokens
