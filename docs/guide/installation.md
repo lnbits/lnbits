@@ -54,13 +54,13 @@ poetry run lnbits
 ```
 
 #### LNbits-cli
+
 ```sh
 # A very useful terminal client for getting the supersuer ID, updating extensions, etc
 poetry run lnbits-cli --help
 ```
 
 #### Updating the server
-
 
 ```sh
 cd lnbits
