@@ -51,8 +51,8 @@ class AuditFilters(FilterModel):
 
 
 class AuditCountStat(BaseModel):
-    field: str
-    total: float
+    field: str = ""
+    total: float = 0
 
 
 class AuditStats(BaseModel):
