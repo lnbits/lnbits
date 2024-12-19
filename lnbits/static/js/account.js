@@ -58,7 +58,6 @@ window.AccountPageLogic = {
         pagination: {
           rowsPerPage: 100,
           page: 1,
-          rowsNumber: 100
         }
       },
       selectedApiToken: {
