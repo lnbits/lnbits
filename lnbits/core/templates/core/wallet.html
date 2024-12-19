@@ -25,68 +25,7 @@
     } : ''"
       >
         {% endif %}
-        <q-scroll-area
-          v-if="!mobileSimple"
-          style="
-            height: 115px;
-            width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
-          "
-        >
-          <div class="row no-wrap q-gutter-md q-pr-md">
-            <q-card
-              v-for="wallet in g.user.wallets"
-              :key="wallet.id"
-              class="wallet-list-card"
-              bordered
-              tag="a"
-              :href="wallet.url"
-              :style="
-          g.wallet && g.wallet.id === wallet.id
-            ? `border: 1px solid ${primaryColor}; width: 250px; text-decoration: none;`
-            : 'width: 250px; text-decoration: none;'
-        "
-              :class="{
-            'active-wallet-card': g.wallet && g.wallet.id === wallet.id
-          }"
-            >
-              <q-card-section>
-                <div class="row items-center">
-                  <q-avatar
-                    size="lg"
-                    :color="
-                g.wallet && g.wallet.id === wallet.id
-                  ? $q.dark.isActive
-                    ? 'primary'
-                    : 'primary'
-                  : 'grey-5'
-              "
-                  >
-                    <q-icon
-                      name="flash_on"
-                      :size="$q.dark.isActive ? '21px' : '20px'"
-                      :color="$q.dark.isActive ? 'black' : 'grey-3'"
-                    ></q-icon>
-                  </q-avatar>
-                  <div
-                    class="text-h6 q-pl-md"
-                    :class="{
-                'text-bold': g.wallet && g.wallet.id === wallet.id
-              }"
-                    v-text="wallet.name"
-                  ></div>
-                </div>
-                <div class="row items-center q-pt-sm">
-                  <h6 class="q-my-none text-no-wrap">
-                    <strong v-text="wallet.fsat"></strong>
-                    <small> {{LNBITS_DENOMINATION}}</small>
-                  </h6>
-                </div>
-              </q-card-section>
-            </q-card>
-          </div>
-        </q-scroll-area>
+        
         <q-card
           :style="$q.screen.lt.md ? {
             background: $q.screen.lt.md ? 'none !important': ''
@@ -117,7 +56,7 @@
               </div>
               <div class="col">
                 <q-btn
-                  @click="mobileSimple = !mobileSimple"
+                  @click="simpleMobile()"
                   color="primary"
                   class="float-right lt-md"
                   size="sm"
@@ -186,7 +125,7 @@
       <div class="col-12 col-md-4 q-gutter-y-md">
         {% else %}
         <div
-          v-if="!mobileSimple || $q.screen.gt.sm"
+          v-if="!mobileSimple"
           class="col-12 col-md-5 q-gutter-y-md"
         >
           <q-card>

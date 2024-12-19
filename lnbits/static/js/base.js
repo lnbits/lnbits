@@ -453,6 +453,8 @@ window.windowMixin = {
   data() {
     return {
       toggleSubs: true,
+      walletFlip: true,
+      mobileSimple: false,
       reactionChoice: 'confettiBothSides',
       borderChoice: '',
       gradientChoice:
@@ -472,6 +474,14 @@ window.windowMixin = {
   },
 
   methods: {
+    flipWallets() {
+      this.walletFlip = !this.walletFlip
+      this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
+    },
+    simpleMobile() {
+      this.mobileSimple = !this.mobileSimple
+      this.$q.localStorage.set('lnbits.mobileSimple', this.mobileSimple)
+    },
     changeColor(newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
@@ -700,6 +710,8 @@ window.windowMixin = {
     }
     await this.checkUsrInUrl()
     this.themeParams()
+    this.walletFlip = this.$q.localStorage.getItem('lnbits.walletFlip')
+    this.mobileSimple = this.$q.localStorage.getItem('lnbits.mobileSimple')
   }
 }
 
