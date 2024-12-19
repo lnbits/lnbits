@@ -570,25 +570,25 @@
   <div class="row items-center no-wrap">
     <div class="col">
       <q-input
-      v-if="!mobileSimple"
-              :label="$t('search_by_tag_memo_amount')"
-              dense
-              class="q-pr-xl"
-              v-model="paymentsTable.search"
-            >
-              <template v-slot:before>
-                <q-icon name="search"> </q-icon>
-              </template>
-              <template v-slot:append>
-                <q-icon
-                  v-if="paymentsTable.search !== ''"
-                  name="close"
-                  @click="paymentsTable.search = ''"
-                  class="cursor-pointer"
-                >
-                </q-icon>
-              </template>
-            </q-input>
+        v-if="!mobileSimple"
+        :label="$t('search_by_tag_memo_amount')"
+        dense
+        class="q-pr-xl"
+        v-model="paymentsTable.search"
+      >
+        <template v-slot:before>
+          <q-icon name="search"> </q-icon>
+        </template>
+        <template v-slot:append>
+          <q-icon
+            v-if="paymentsTable.search !== ''"
+            name="close"
+            @click="paymentsTable.search = ''"
+            class="cursor-pointer"
+          >
+          </q-icon>
+        </template>
+      </q-input>
     </div>
     <div class="gt-sm col-auto">
       <q-btn-dropdown
@@ -659,8 +659,7 @@
       </q-checkbox>
     </div>
   </div>
-  <div class="row q-my-md">
-  </div>
+  <div class="row q-my-md"></div>
   <q-table
     dense
     flat
