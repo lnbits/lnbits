@@ -716,7 +716,7 @@ window.app = Vue.createApp({
       this.fetchBalance()
     },
     'update.currency'(newValue) {
-      if (this.ignoreWatcher) return
+      if (this.ignoreWatcher || this.update.currency == '') return
       this.updateWallet({currency: newValue})
       this.updateFiatBalance(newValue)
     },
