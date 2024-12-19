@@ -146,6 +146,7 @@ async def api_update_user_tokens(
     user_tokens: UserTokens,
     user: User = Depends(check_user_exists),
 ) -> UserTokens:
+    # todo: re-authenticate user
     assert user_tokens.id == user.id, "Wrong user id."
     api_paths = get_api_routes(request.app.router.routes).keys()
     for token in user_tokens.api_tokens:
