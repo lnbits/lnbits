@@ -58,7 +58,8 @@ window.app = Vue.createApp({
       inkeyHidden: true,
       adminkeyHidden: true,
       hasNfc: false,
-      nfcReaderAbortController: null
+      nfcReaderAbortController: null,
+      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor')
     }
   },
   computed: {
@@ -672,6 +673,11 @@ window.app = Vue.createApp({
   watch: {
     updatePayments() {
       this.updateFiatBalance()
+    },
+    '$q.screen.gt.sm'(value) {
+      if (value == true) {
+        this.mobileSimple = false
+      }
     }
   },
   mounted() {
