@@ -684,22 +684,3 @@ async def m029_create_audit_table(db: Connection):
         );
         """
     )
-
-
-async def m030_add_currency_to_wallet(db: Connection):
-    """
-    Setting currency to default is heavy, so easier just to add a trigger.
-    """
-    await db.execute(
-        """
-        CREATE TRIGGER IF NOT EXISTS set_default_currency
-        AFTER INSERT ON wallets
-        FOR EACH ROW
-        WHEN NEW.currency IS NULL
-        BEGIN
-            UPDATE wallets
-            SET currency = 'USD'
-            WHERE id = NEW.id;
-        END;
-        """
-    )

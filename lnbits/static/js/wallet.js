@@ -679,6 +679,7 @@ window.app = Vue.createApp({
       if (this.fiatTracking === false) {
         this.update.currency = ''
         this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
+        this.isPrioritySwapped = false
         this.$q.localStorage.remove(`lnbits.exchangeRate`)
       }
     }
@@ -726,7 +727,7 @@ window.app = Vue.createApp({
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
     // check blanace priority
-    if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped')) {
+    if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped') && this.g.wallet.currenc) {
       this.isPrioritySwapped = this.$q.localStorage.getItem(
         'lnbits.isPrioritySwapped'
       )
