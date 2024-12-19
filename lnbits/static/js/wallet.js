@@ -59,7 +59,7 @@ window.app = Vue.createApp({
       adminkeyHidden: true,
       hasNfc: false,
       nfcReaderAbortController: null,
-      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
+      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor')
     }
   },
   computed: {
@@ -678,7 +678,7 @@ window.app = Vue.createApp({
       if (value == true) {
         this.mobileSimple = false
       }
-    },
+    }
   },
   mounted() {
     // show disclaimer
