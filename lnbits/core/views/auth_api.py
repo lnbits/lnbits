@@ -12,6 +12,7 @@ from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
 from lnbits.core.crud.users import get_user_tokens, update_user_tokens
+from lnbits.core.models.users import EndpointAccess
 from lnbits.core.services import create_user_account
 from lnbits.decorators import access_token_payload, check_user_exists
 from lnbits.helpers import (
@@ -105,13 +106,22 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
 async def api_get_user_tokens(
     request: Request,
     user: User = Depends(check_user_exists),
-) -> Optional[UserTokens]:
+) -> UserTokens:
     api_routes = get_api_routes(request.app.router.routes)
 
-    user_tokens = await get_user_tokens(user.id) or []
-    for api_token in user_tokens.api_tokens:
-        pass
+    user_tokens = await get_user_tokens(user.id)
+    api_tokens = user_tokens.api_tokens if user_tokens else []
 
+    for api_token in api_tokens:
+        token_api_routes = {**api_routes}
+        for route in api_routes.keys():
+            if api_token.get_endpoint(route):
+                token_api_routes.pop(route, None)
+
+        for path, name in token_api_routes.items():
+            api_token.endpoints.append(EndpointAccess(path=path, name=name))
+
+    return UserTokens(id=user.id, api_tokens=api_tokens)
 
 
 @auth_router.put("/tokens")

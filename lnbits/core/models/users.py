@@ -30,6 +30,7 @@ class UserExtra(BaseModel):
 
 class EndpointAccess(BaseModel):
     path: str
+    name: str
     read: bool = False
     write: bool = False
 
@@ -38,6 +39,12 @@ class ApiToken(BaseModel):
     id: str
     name: str
     endpoints: list[EndpointAccess] = []
+
+    def get_endpoint(self, path: str) -> Optional[EndpointAccess]:
+        for e in self.endpoints:
+            if e.path == path:
+                return e
+        return None
 
 
 class UserTokens(BaseModel):
