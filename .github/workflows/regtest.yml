@@ -36,7 +36,6 @@ jobs:
         run: |
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
-          git checkout cln-24-11
           chmod +x ./tests
           ./tests
           sudo chmod -R a+rwx .
