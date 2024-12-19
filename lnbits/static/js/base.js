@@ -475,7 +475,7 @@ window.windowMixin = {
   methods: {
     flipWallets(smallScreen) {
       this.walletFlip = !this.walletFlip
-      if(this.walletFlip && smallScreen){
+      if (this.walletFlip && smallScreen) {
         this.g.visibleDrawer = false
       }
       this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
