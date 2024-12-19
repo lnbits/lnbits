@@ -536,56 +536,83 @@
                       ></q-btn>
                     </div>
                   </div>
-                  <q-table
-                    v-if="selectedApiToken.id"
-                    row-key="path"
-                    :rows="selectedApiToken.endpoints"
-                    :columns="apiTokens.columns"
-                    v-model:pagination="apiTokens.pagination"
-                  >
-                    <template v-slot:header="props">
-                      <q-tr :props="props">
-                        <q-th
-                          v-for="col in props.cols"
-                          :key="col.name"
-                          :props="props"
-                        >
-                          <q-toggle
-                            v-if="col.name == 'read'"
-                            v-model="selectedApiToken.allRead"
-                            @update:model-value="handleAllEndpointsReadAccess()"
-                            :label="$t('read')"
-                            size="sm"
-                          ></q-toggle>
-                          <q-toggle
-                            v-else-if="col.name == 'write'"
-                            v-model="selectedApiToken.allWrite"
-                            @update:model-value="handleAllEndpointsWriteAccess()"
-                            :label="$t('write')"
-                            size="sm"
-                          ></q-toggle>
-                          <span v-else v-text="col.label"></span>
-                        </q-th>
-                      </q-tr>
-                    </template>
-                    <template v-slot:body="props">
-                      <q-tr :props="props">
-                        <q-td>
-                          <span v-text="props.row.name"></span>
-                        </q-td>
-                        <q-td>
-                          <span v-text="props.row.path"></span>
-                        </q-td>
-                        <q-td>
-                          <q-toggle size="sm" v-model="props.row.read" />
-                        </q-td>
-                        <q-td>
-                          <q-toggle size="sm" v-model="props.row.write" />
-                        </q-td>
-                      </q-tr>
-                    </template>
-                  </q-table>
-                  <q-separator></q-separator>
+                  <div v-if="selectedApiToken.id">
+                    <q-input
+                      v-model="selectedApiToken.id"
+                      :label="$t('token_id')"
+                      filled
+                      dense
+                      readonly
+                      :type="selectedApiToken.showId ? 'text': 'password'"
+                      class="q-mb-md"
+                    >
+                      <q-btn
+                        @click="selectedApiToken.showId = !selectedApiToken.showId"
+                        dense
+                        flat
+                        :icon="selectedApiToken.showId ? 'visibility_off' : 'visibility'"
+                        color="grey"
+                      ></q-btn>
+
+                      <q-btn
+                        @click="copyText(selectedApiToken.id)"
+                        icon="content_copy"
+                        color="grey"
+                        flat
+                        dense
+                      ></q-btn>
+                    </q-input>
+                    <q-table
+                      row-key="path"
+                      :rows="selectedApiToken.endpoints"
+                      :columns="apiTokens.columns"
+                      v-model:pagination="apiTokens.pagination"
+                    >
+                      <template v-slot:header="props">
+                        <q-tr :props="props">
+                          <q-th
+                            v-for="col in props.cols"
+                            :key="col.name"
+                            :props="props"
+                          >
+                            <q-toggle
+                              v-if="col.name == 'read'"
+                              v-model="selectedApiToken.allRead"
+                              @update:model-value="handleAllEndpointsReadAccess()"
+                              :label="$t('read')"
+                              size="sm"
+                            ></q-toggle>
+                            <q-toggle
+                              v-else-if="col.name == 'write'"
+                              v-model="selectedApiToken.allWrite"
+                              @update:model-value="handleAllEndpointsWriteAccess()"
+                              :label="$t('write')"
+                              size="sm"
+                            ></q-toggle>
+                            <span v-else v-text="col.label"></span>
+                          </q-th>
+                        </q-tr>
+                      </template>
+                      <template v-slot:body="props">
+                        <q-tr :props="props">
+                          <q-td>
+                            <span v-text="props.row.name"></span>
+                          </q-td>
+                          <q-td>
+                            <span v-text="props.row.path"></span>
+                          </q-td>
+                          <q-td>
+                            <q-toggle size="sm" v-model="props.row.read" />
+                          </q-td>
+                          <q-td>
+                            <q-toggle size="sm" v-model="props.row.write" />
+                          </q-td>
+                        </q-tr>
+                      </template>
+                    </q-table>
+                    <q-separator></q-separator>
+                  </div>
+
                   <div v-if="selectedApiToken.id" class="row q-mt-md">
                     <div class="col-sm-12 col-md-6">
                       <q-btn
