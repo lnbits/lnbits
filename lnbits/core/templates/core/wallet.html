@@ -26,7 +26,7 @@
       >
         {% endif %}
         <q-scroll-area 
-        style="height: 150px; width: 100%; overflow-x: auto; overflow-y: hidden;">
+         v-if="!mobileSimple" style="height: 115px; width: 100%; overflow-x: auto; overflow-y: hidden;">
         <div class="row no-wrap q-gutter-md q-pr-md">
           <q-card
           v-for="wallet in g.user.wallets"
@@ -36,12 +36,12 @@
           tag="a"
           :href="wallet.url"
           :style="
-            activeWallet && activeWallet.id === wallet.id
-              ? `border: 2px solid ${primaryColor};`
-              : ''
-          "
+          g.wallet && g.wallet.id === wallet.id
+            ? `border: 1px solid ${primaryColor}; width: 250px; text-decoration: none;`
+            : 'width: 250px; text-decoration: none;'
+        "
           :class="{
-            'active-wallet-card': activeWallet && activeWallet.id === wallet.id
+            'active-wallet-card': g.wallet && g.wallet.id === wallet.id
           }"
         >
         <q-card-section>
@@ -49,7 +49,7 @@
             <q-avatar
               size="lg"
               :color="
-                activeWallet && activeWallet.id === wallet.id
+                g.wallet && g.wallet.id === wallet.id
                   ? $q.dark.isActive
                     ? 'primary'
                     : 'primary'
@@ -65,32 +65,16 @@
             <div
               class="text-h6 q-pl-md"
               :class="{
-                'text-bold': activeWallet && activeWallet.id === wallet.id
+                'text-bold': g.wallet && g.wallet.id === wallet.id
               }"
               v-text="wallet.name"
             ></div>
           </div>
           <div class="row items-center q-pt-sm">
-            <div v-if="LNBITS_DENOMINATION != 'sats'">
-              <span
-                class="text-h4"
-                v-text="
-                  parseFloat(String(wallet.live_fsat).replaceAll(',', '')) /
-                  100
-                "
-              ></span
-              ><span
-                class="text-h6 q-pl-sm"
-                v-text="LNBITS_DENOMINATION"
-              ></span>
-            </div>
-            <div v-else>
-              <span class="text-h4" v-text="wallet.live_fsat"></span>
-              <span
-                class="text-h6 q-pl-sm"
-                v-text="LNBITS_DENOMINATION"
-              ></span>
-            </div>
+            <h6 class="q-my-none text-no-wrap">
+              <strong v-text="wallet.fsat"></strong>
+              <small> {{LNBITS_DENOMINATION}}</small>
+            </h3>
           </div>
         </q-card-section>
           </q-card>
