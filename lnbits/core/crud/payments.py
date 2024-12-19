@@ -123,15 +123,20 @@ async def get_payments_paginated(
         clause.append("wallet_id = :wallet_id")
 
     if complete and pending:
-        pass
+        clause.append(
+            f"(status = '{PaymentState.SUCCESS}' OR status = '{PaymentState.PENDING}')"
+        )
     elif complete:
         clause.append(
-            f"((amount > 0 AND status = '{PaymentState.SUCCESS}') OR amount < 0)"
+            f"""
+            (
+                status = '{PaymentState.SUCCESS}'
+                OR (amount < 0 AND status = '{PaymentState.PENDING}')
+            )
+            """
         )
     elif pending:
         clause.append(f"status = '{PaymentState.PENDING}'")
-    else:
-        pass
 
     if outgoing and incoming:
         pass
@@ -289,8 +294,14 @@ async def get_payments_history(
     values = {
         "wallet_id": wallet_id,
     }
+    # count outgoing payments if they are still pending
     where = [
-        f"wallet_id = :wallet_id AND (status = '{PaymentState.SUCCESS}' OR amount < 0)"
+        f"""
+        wallet_id = :wallet_id AND (
+            status = '{PaymentState.SUCCESS}'
+            OR (amount < 0 AND status = '{PaymentState.PENDING}')
+        )
+        """
     ]
     transactions: list[dict] = await db.fetchall(
         f"""

@@ -35,7 +35,7 @@ from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     allowed_currencies,
     fiat_amount_as_satoshis,
-    get_fiat_rate_satoshis,
+    get_fiat_rate_and_price_satoshis,
     satoshis_amount_as_fiat,
 )
 from lnbits.wallets import get_funding_source
@@ -235,7 +235,7 @@ async def api_exchange_rate_history() -> list[dict]:
 
 @api_router.get("/api/v1/rate/{currency}")
 async def api_check_fiat_rate(currency: str) -> dict[str, float]:
-    rate, price = await get_fiat_rate_satoshis(currency)
+    rate, price = await get_fiat_rate_and_price_satoshis(currency)
     return {"rate": rate, "price": price}
 
 

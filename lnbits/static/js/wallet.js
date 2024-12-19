@@ -64,7 +64,8 @@ window.app = Vue.createApp({
       formattedFiatAmount: 0,
       exchangeRate: 0,
       formattedExchange: null,
-      ignoreWatcher: true
+      ignoreWatcher: true,
+      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor')
     }
   },
   computed: {
@@ -718,7 +719,12 @@ window.app = Vue.createApp({
       if (this.ignoreWatcher) return
       this.updateWallet({currency: newValue})
       this.updateFiatBalance(newValue)
-    }
+    '$q.screen.gt.sm'(value) {
+      if (value == true) {
+        this.mobileSimple = false
+      }
+    },
+    
   },
   mounted() {
     // show disclaimer

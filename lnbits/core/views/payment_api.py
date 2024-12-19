@@ -108,8 +108,6 @@ async def api_payments_paginated(
     await update_pending_payments(key_info.wallet.id)
     page = await get_payments_paginated(
         wallet_id=key_info.wallet.id,
-        pending=True,
-        complete=True,
         filters=filters,
     )
     return page
