@@ -728,9 +728,7 @@ window.app = Vue.createApp({
     }
     // check blanace priority
     if (
-      this.$q.localStorage.getItem('lnbits.isPrioritySwapped') &&
-      this.g.wallet.currency
-    ) {
+      this.$q.localStorage.getItem('lnbits.isPrioritySwapped')) {
       this.isPrioritySwapped = this.$q.localStorage.getItem(
         'lnbits.isPrioritySwapped'
       )
