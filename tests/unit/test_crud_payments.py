@@ -6,14 +6,12 @@ from lnbits.core.services import create_user_account, update_wallet_balance
 
 
 async def update_payments(payments):
-    # make one of the payments fail
-    payment = payments[0]
-    payment.status = PaymentState.FAILED
-    await update_payment(payment)
-    # make one of the payments pending
-    payment = payments[1]
-    payment.status = PaymentState.PENDING
-    await update_payment(payment)
+    payments[0].status = PaymentState.FAILED
+    await update_payment(payments[0])
+    payments[1].status = PaymentState.PENDING
+    await update_payment(payments[1])
+    payments[2].status = PaymentState.PENDING
+    await update_payment(payments[2])
 
 
 @pytest.mark.anyio
@@ -22,35 +20,47 @@ async def test_crud_get_payments(app):
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
 
-    for _ in range(3):
+    for _ in range(11):
         await update_wallet_balance(wallet, 10)
         wallet.balance_msat += 10 * 1000
         await update_wallet_balance(wallet, -10)
         wallet.balance_msat += -10 * 1000
 
     payments = await get_payments(wallet_id=wallet.id)
-    assert len(payments) == 6, "should return 6 successful payments"
+    assert len(payments) == 22, "should return 22 successful payments"
 
     payments = await get_payments(wallet_id=wallet.id, incoming=True)
-    assert len(payments) == 3, "should return 3 successful incoming payments"
+    assert len(payments) == 11, "should return 11 successful incoming payments"
     await update_payments(payments)
 
     payments = await get_payments(wallet_id=wallet.id, outgoing=True)
-    assert len(payments) == 3, "should return 3 successful outgoing payments"
+    assert len(payments) == 11, "should return 11 successful outgoing payments"
     await update_payments(payments)
 
     payments = await get_payments(wallet_id=wallet.id, pending=True)
-    assert len(payments) == 2, "should return 2 pending payment"
+    assert len(payments) == 4, "should return 4 pending payments"
+
+    # function signature should have Optional[bool] for complete and pending to make
+    # this distinction possible
+    payments = await get_payments(wallet_id=wallet.id, pending=False)
+    assert len(payments) == 22, "should return all payments"
 
     payments = await get_payments(wallet_id=wallet.id, complete=True, pending=True)
-    assert len(payments) == 4, "should return 2 pending and 2 complete payment"
+    assert len(payments) == 20, "should return 4 pending and 16 complete payments"
+
+    payments = await get_payments(wallet_id=wallet.id, complete=True, outgoing=True)
+    assert (
+        len(payments) == 10
+    ), "should return 8 complete outgoing payments and 2 pending outgoing payments"
 
     payments = await get_payments(wallet_id=wallet.id)
-    assert len(payments) == 6, "should return all payments"
+    assert len(payments) == 22, "should return all payments"
 
     payments = await get_payments(wallet_id=wallet.id, complete=True)
-    assert len(payments) == 2, "should return 2 successful payment"
+    assert (
+        len(payments) == 18
+    ), "should return 14 successful payment and 4 pending payments"
 
-    # TODO: both false should return failed payments
+    # both false should return failed payments
     # payments = await get_payments(wallet_id=wallet.id, complete=False, pending=False)
     # assert len(payments) == 2, "should return 2 failed payment"

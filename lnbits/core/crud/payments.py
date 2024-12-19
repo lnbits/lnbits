@@ -127,24 +127,16 @@ async def get_payments_paginated(
             f"(status = '{PaymentState.SUCCESS}' OR status = '{PaymentState.PENDING}')"
         )
     elif complete:
-        # why do we check the amount here? my guess is,
-        # it is/was for balance calculation to account for pending outgoing payments
         clause.append(
             f"""
             (
-                (amount > 0 AND status = '{PaymentState.SUCCESS}')
-                OR
-                (amount < 0 AND status = '{PaymentState.PENDING}')
+                status = '{PaymentState.SUCCESS}'
+                OR (amount < 0 AND status = '{PaymentState.PENDING}')
             )
             """
         )
     elif pending:
         clause.append(f"status = '{PaymentState.PENDING}'")
-    else:
-        # pending and complete are both false as default values
-        # it could also mean if both are false, we want to return failed payments
-        # clause.append(f"status = '{PaymentState.FAILED}'")
-        pass
 
     if outgoing and incoming:
         pass
