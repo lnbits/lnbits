@@ -1,11 +1,9 @@
 <template id="lnbits-wallet-list">
-
   <q-list
     v-if="user && user.wallets.length"
     dense
     class="lnbits-drawer__q-list"
   >
-    
     <q-item
       v-for="wallet in wallets"
       :key="wallet.id"
