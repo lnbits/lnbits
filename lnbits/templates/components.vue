@@ -567,12 +567,28 @@
 </template>
 
 <template id="payment-list">
-  <div class="row items-center no-wrap q-mb-sm">
+  <div class="row items-center no-wrap">
     <div class="col">
-      <span
-        class="text-subtitle1 q-my-none col q-mr-sm"
-        v-text="$t('transactions')"
-      ></span>
+      <q-input
+      v-if="!mobileSimple"
+              :label="$t('search_by_tag_memo_amount')"
+              dense
+              class="q-pr-xl"
+              v-model="paymentsTable.search"
+            >
+              <template v-slot:before>
+                <q-icon name="search"> </q-icon>
+              </template>
+              <template v-slot:append>
+                <q-icon
+                  v-if="paymentsTable.search !== ''"
+                  name="close"
+                  @click="paymentsTable.search = ''"
+                  class="cursor-pointer"
+                >
+                </q-icon>
+              </template>
+            </q-input>
     </div>
     <div class="gt-sm col-auto">
       <q-btn-dropdown
@@ -644,22 +660,6 @@
     </div>
   </div>
   <div class="row q-my-md">
-    <q-input
-      :style="
-        $q.screen.lt.md
-          ? {
-              display: mobileSimple ? 'none !important' : ''
-            }
-          : ''
-      "
-      filled
-      dense
-      clearable
-      v-model="paymentsTable.search"
-      debounce="300"
-      :placeholder="$t('search_by_tag_memo_amount')"
-      class="col"
-    />
   </div>
   <q-table
     dense
