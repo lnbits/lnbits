@@ -247,7 +247,7 @@ async def btc_price(currency: str) -> float:
     return sum(rates_values) / len(rates_values)
 
 
-async def get_fiat_rate_satoshis(currency: str) -> tuple[float, float]:
+async def get_fiat_rate_and_price_satoshis(currency: str) -> tuple[float, float]:
     price = await cache.save_result(
         lambda: btc_price(currency),
         f"btc-price-{currency}",
@@ -256,11 +256,16 @@ async def get_fiat_rate_satoshis(currency: str) -> tuple[float, float]:
     return float(100_000_000 / price), price
 
 
+async def get_fiat_rate_satoshis(currency: str) -> float:
+    rate, _ = await get_fiat_rate_and_price_satoshis(currency)
+    return rate
+
+
 async def fiat_amount_as_satoshis(amount: float, currency: str) -> int:
-    rate, _ = await get_fiat_rate_satoshis(currency)
+    rate = await get_fiat_rate_satoshis(currency)
     return int(amount * (rate))
 
 
 async def satoshis_amount_as_fiat(amount: float, currency: str) -> float:
-    rate, _ = await get_fiat_rate_satoshis(currency)
+    rate = await get_fiat_rate_satoshis(currency)
     return float(amount / rate)
