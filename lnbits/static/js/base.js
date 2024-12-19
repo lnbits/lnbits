@@ -454,7 +454,6 @@ window.windowMixin = {
     return {
       toggleSubs: true,
       walletFlip: true,
-      mobileSimple: false,
       reactionChoice: 'confettiBothSides',
       borderChoice: '',
       gradientChoice:
@@ -474,8 +473,11 @@ window.windowMixin = {
   },
 
   methods: {
-    flipWallets() {
+    flipWallets(smallScreen) {
       this.walletFlip = !this.walletFlip
+      if(this.walletFlip && smallScreen){
+        this.g.visibleDrawer = false
+      }
       this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
     },
     simpleMobile() {

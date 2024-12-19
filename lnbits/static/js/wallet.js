@@ -7,6 +7,7 @@ window.app = Vue.createApp({
       origin: window.location.origin,
       wallet: LNbits.map.wallet(window.wallet),
       user: LNbits.map.user(window.user),
+      mobileSimple: false,
       exportUrl: `${window.location.origin}/wallet?usr=${window.user.id}&wal=${window.wallet.id}`,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
       receive: {

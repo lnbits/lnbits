@@ -163,7 +163,7 @@
         flat
         :icon=" walletFlip ? 'keyboard_arrow_right' : 'keyboard_arrow_down'"
         class="absolute-top-right"
-        @click="flipWallets()"
+        @click="flipWallets($q.screen.lt.md)"
       ></q-btn>
             <lnbits-wallet-list v-if="!walletFlip" :balance="balance"></lnbits-wallet-list>
 
@@ -182,7 +182,7 @@
             
 
             <q-scroll-area
-            v-if="walletFlip && !mobileSimple"
+            v-if="walletFlip"
    
           style="
             height: 130px;

@@ -125,7 +125,7 @@
       <div class="col-12 col-md-4 q-gutter-y-md">
         {% else %}
         <div
-          v-if="!mobileSimple"
+          v-if="!mobileSimple || $q.screen.gt.sm"
           class="col-12 col-md-5 q-gutter-y-md"
         >
           <q-card>
