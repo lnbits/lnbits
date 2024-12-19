@@ -134,6 +134,7 @@ async def api_update_user_tokens(
     for token in user_tokens.api_tokens:
         if token.id == token.name:
             token.id = uuid4().hex
+        token.endpoints.sort(key=lambda e: e.name.lower())
 
     await update_user_tokens(user_tokens)
 
