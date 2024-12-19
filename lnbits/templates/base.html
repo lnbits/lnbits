@@ -131,6 +131,21 @@
                     <q-item-label> </q-item-label>
                   </q-item-section>
                 </q-item>
+                <q-item tag="a" href="/account#theme" clickable v-close-popup
+                ><q-item-section>
+                  <q-icon
+                    :name="$q.dark.isActive ? 'dark_mode' : 'light_mode'"
+                  />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    <span v-text="$t('theme')"></span>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> </q-item-label>
+                </q-item-section>
+              </q-item>
                 <q-separator></q-separator>
                 <q-item clickable v-close-popup @click="logout"
                   ><q-item-section>
