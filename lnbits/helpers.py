@@ -273,7 +273,7 @@ def file_hash(filename):
     return h.hexdigest()
 
 
-def get_api_routes(routes: list) -> dict:
+def get_api_routes(routes: list) -> dict[str, str]:
     data = {}
     for route in routes:
         if not isinstance(route, APIRoute):

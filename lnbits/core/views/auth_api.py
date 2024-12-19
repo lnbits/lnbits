@@ -18,6 +18,7 @@ from lnbits.helpers import (
     create_access_token,
     decrypt_internal_message,
     encrypt_internal_message,
+    get_api_routes,
     is_valid_email_address,
     is_valid_username,
 )
@@ -102,13 +103,20 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
 
 @auth_router.get("/tokens")
 async def api_get_user_tokens(
+    request: Request,
     user: User = Depends(check_user_exists),
 ) -> Optional[UserTokens]:
-    return await get_user_tokens(user.id)
+    api_routes = get_api_routes(request.app.router.routes)
+
+    user_tokens = await get_user_tokens(user.id) or []
+    for api_token in user_tokens.api_tokens:
+        pass
+
 
 
 @auth_router.put("/tokens")
 async def api_update_user_tokens(
+    request: Request,
     user_tokens: UserTokens,
     user: User = Depends(check_user_exists),
 ) -> UserTokens:
