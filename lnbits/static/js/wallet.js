@@ -719,6 +719,7 @@ window.app = Vue.createApp({
       if (this.ignoreWatcher) return
       this.updateWallet({currency: newValue})
       this.updateFiatBalance(newValue)
+    },
     '$q.screen.gt.sm'(value) {
       if (value == true) {
         this.mobileSimple = false
