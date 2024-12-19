@@ -237,6 +237,5 @@ window.app.component('payment-list', {
   },
   created() {
     if (this.lazy === undefined) this.fetchPayments()
-
   }
 })
