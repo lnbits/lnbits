@@ -123,14 +123,27 @@ async def get_payments_paginated(
         clause.append("wallet_id = :wallet_id")
 
     if complete and pending:
-        pass
-    elif complete:
         clause.append(
-            f"((amount > 0 AND status = '{PaymentState.SUCCESS}') OR amount < 0)"
+            f"(status = '{PaymentState.SUCCESS}' OR status = '{PaymentState.PENDING}')"
+        )
+    elif complete:
+        # why do we check the amount here? my guess is,
+        # it is/was for balance calculation to account for pending outgoing payments
+        clause.append(
+            f"""
+            (
+                (amount > 0 AND status = '{PaymentState.SUCCESS}')
+                OR
+                (amount < 0 AND status = '{PaymentState.PENDING}')
+            )
+            """
         )
     elif pending:
         clause.append(f"status = '{PaymentState.PENDING}'")
     else:
+        # pending and complete are both false as default values
+        # it could also mean if both are false, we want to return failed payments
+        # clause.append(f"status = '{PaymentState.FAILED}'")
         pass
 
     if outgoing and incoming:
@@ -289,8 +302,14 @@ async def get_payments_history(
     values = {
         "wallet_id": wallet_id,
     }
+    # count outgoing payments if they are still pending
     where = [
-        f"wallet_id = :wallet_id AND (status = '{PaymentState.SUCCESS}' OR amount < 0)"
+        f"""
+        wallet_id = :wallet_id AND (
+            status = '{PaymentState.SUCCESS}'
+            OR (amount < 0 AND status = '{PaymentState.PENDING}')
+        )
+        """
     ]
     transactions: list[dict] = await db.fetchall(
         f"""
