@@ -49,7 +49,15 @@
                 v-text="$t('new_version') + ` (${updatableExtensions?.length})`"
               ></span>
             </q-badge>
-            <q-btn v-if="g.user.admin" flat round icon="settings" tag="a" href="/admin#extensions" ><q-tooltip v-text="$t('admin_settings')"></q-tooltip></q-btn>
+            <q-btn
+              v-if="g.user.admin"
+              flat
+              round
+              icon="settings"
+              tag="a"
+              href="/admin#extensions"
+              ><q-tooltip v-text="$t('admin_settings')"></q-tooltip
+            ></q-btn>
           </q-tabs>
         </div>
       </div>

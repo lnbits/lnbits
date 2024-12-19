@@ -286,7 +286,16 @@
                 </div>
               </q-tab-panel>
               <q-tab-panel name="theme">
-                <q-btn  v-if="g.user.admin" class="absolute-top-right" flat round icon="settings" tag="a" href="/admin#site_customisation"><q-tooltip v-text="$t('admin_settings')"></q-tooltip></q-btn>
+                <q-btn
+                  v-if="g.user.admin"
+                  class="absolute-top-right"
+                  flat
+                  round
+                  icon="settings"
+                  tag="a"
+                  href="/admin#site_customisation"
+                  ><q-tooltip v-text="$t('admin_settings')"></q-tooltip
+                ></q-btn>
                 <div class="row q-mb-md">
                   <div class="col-4"><span v-text="$t('language')"></span></div>
                   <div class="col-8">
