@@ -59,7 +59,10 @@ window.app = Vue.createApp({
       adminkeyHidden: true,
       hasNfc: false,
       nfcReaderAbortController: null,
-      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor')
+      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
+      transactions: [],
+      transactionChart: null,
+      paymentsRef: null,
     }
   },
   computed: {
@@ -97,6 +100,64 @@ window.app = Vue.createApp({
     }
   },
   methods: {
+    computeCumulativeBalance(transactions) {
+      let balance = 0;
+      return transactions.map(amount => (balance += amount));
+    },
+    initCharts() {
+      this.transactionChart = new Chart(
+        this.$refs.transactionChart.getContext('2d'),
+        {
+          type: 'line', 
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+              padding: 0,
+              margin: 0, // Remove padding around the chart
+            },
+            plugins: {
+              legend: {
+                display: false,
+              },
+              title: {
+                display: false,
+              },
+            },
+            elements: {
+              point: {
+                radius: 0,
+              },
+            },
+            scales: {
+              x: {
+                display: false 
+              },
+              y: {
+                display: false
+              },
+            },
+          },
+          data: {
+            labels: this.transactions.map((tx) =>
+              new Date(tx.date).toLocaleDateString()
+            ),
+            datasets: [
+              {
+                label: 'Cumulative Balance',
+                data: this.computeCumulativeBalance(this.transactions),
+                backgroundColor: LNbits.utils.hexAlpha(this.primaryColor, 0.05),
+                borderColor: this.primaryColor,
+                borderWidth: 1,
+                fill: true, 
+                tension: 0.2, 
+              },
+            ],
+          },
+        }
+      );
+    },
+    
     msatoshiFormat(value) {
       return LNbits.utils.formatSat(value / 1000)
     },
@@ -652,7 +713,25 @@ window.app = Vue.createApp({
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
         })
-    }
+    },
+    handleWallet(wallet) {
+      console.log('Wallet from child:', wallet);
+    },
+    fetchPayments() {
+      return LNbits.api
+        .getPayments(this.g.wallet, "sortby=time&direction=asc&status[ne]=failed")
+        .then(response => {
+          console.log(response.data.data)
+          for (let payment of response.data.data) {
+            this.transactions.push(payment.amount)
+          }
+          console.log(this.transactions)
+        })
+        .catch(err => {
+          this.paymentsTable.loading = false
+          LNbits.utils.notifyApiError(err)
+        })
+    },
   },
   created() {
     const urlParams = new URLSearchParams(window.location.search)
@@ -669,6 +748,9 @@ window.app = Vue.createApp({
     this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
     this.updateFiatBalance()
+    this.fetchPayments().then(() => {
+      this.initCharts()
+    })
   },
   watch: {
     updatePayments() {
