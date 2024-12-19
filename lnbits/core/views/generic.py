@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, List, Optional, Union
@@ -18,7 +17,7 @@ from lnbits.core.models.extensions import ExtensionMeta, InstallableExtension
 from lnbits.core.services import create_invoice, create_user_account
 from lnbits.core.services.extensions import get_valid_extensions
 from lnbits.decorators import check_admin, check_user_exists
-from lnbits.helpers import get_api_routes, template_renderer
+from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 

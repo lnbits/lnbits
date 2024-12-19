@@ -120,6 +120,7 @@ async def api_get_user_tokens(
 
         for path, name in token_api_routes.items():
             api_token.endpoints.append(EndpointAccess(path=path, name=name))
+        api_token.endpoints.sort(key=lambda e: e.name.lower())
 
     return UserTokens(id=user.id, api_tokens=api_tokens)
 
