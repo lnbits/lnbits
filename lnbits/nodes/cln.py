@@ -311,7 +311,11 @@ class CoreLightningNode(Node):
                     preimage=pay.get("preimage"),
                     payment_hash=pay["payment_hash"],
                     pending=pay["status"] != "complete",
-                    destination=await self.get_peer_info(pay["destination"]),
+                    destination=(
+                        await self.get_peer_info(pay.get("destination"))
+                        if pay.get("destination")
+                        else None
+                    ),
                 )
                 for pay in reversed(result["pays"])
                 if pay["status"] != "failed"
