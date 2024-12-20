@@ -22,10 +22,10 @@ window.AccountPageLogic = {
         username: null,
         pubkey: null
       },
-      apiTokens: {
-        showNewTokenDialog: false,
+      apiAcl: {
+        showNewAclDialog: false,
         data: [],
-        newTokenName: '',
+        newAclName: '',
         columns: [
           {
             name: 'Name',
@@ -61,7 +61,7 @@ window.AccountPageLogic = {
           page: 1
         }
       },
-      selectedApiToken: {
+      selectedApiAcl: {
         id: null,
         name: null,
         endpoints: [],
@@ -198,55 +198,55 @@ window.AccountPageLogic = {
         newPasswordRepeat: null
       }
     },
-    newApiTokenDialog() {
-      console.log('### this.apiTokens.data', this.apiTokens.data)
-      this.apiTokens.newTokenName = null
-      this.apiTokens.showNewTokenDialog = true
+    newApiAclDialog() {
+      console.log('### this.apiAcl.data', this.apiAcl.data)
+      this.apiAcl.newAclName = null
+      this.apiAcl.showNewAclDialog = true
     },
-    handleApiTokenSelected(tokenId) {
-      console.log('### handleApiTokenSelected', tokenId)
-      this.selectedApiToken = {id: null, name: null, endpoints: []}
-      if (!tokenId) {
+    handleApiACLSelected(aclId) {
+      console.log('### handleApiACLSelected', aclId)
+      this.selectedApiAcl = {id: null, name: null, endpoints: []}
+      if (!aclId) {
         return
       }
       setTimeout(() => {
-        const selectedApiToken = this.apiTokens.data.find(t => t.id === tokenId)
-        if (!this.selectedApiToken) {
+        const selectedApiAcl = this.apiAcl.data.find(t => t.id === aclId)
+        if (!this.selectedApiAcl) {
           return
         }
-        this.selectedApiToken = {...selectedApiToken}
-        this.selectedApiToken.allRead = this.selectedApiToken.endpoints.every(
+        this.selectedApiAcl = {...selectedApiAcl}
+        this.selectedApiAcl.allRead = this.selectedApiAcl.endpoints.every(
           e => e.read
         )
-        this.selectedApiToken.allWrite = this.selectedApiToken.endpoints.every(
+        this.selectedApiAcl.allWrite = this.selectedApiAcl.endpoints.every(
           e => e.write
         )
       })
     },
     handleAllEndpointsReadAccess() {
-      this.selectedApiToken.endpoints.forEach(
-        e => (e.read = this.selectedApiToken.allRead)
+      this.selectedApiAcl.endpoints.forEach(
+        e => (e.read = this.selectedApiAcl.allRead)
       )
     },
     handleAllEndpointsWriteAccess() {
-      this.selectedApiToken.endpoints.forEach(
-        e => (e.write = this.selectedApiToken.allWrite)
+      this.selectedApiAcl.endpoints.forEach(
+        e => (e.write = this.selectedApiAcl.allWrite)
       )
     },
-    async addApiToken() {
-      console.log('### addApiToken')
-      const name = this.apiTokens.newTokenName
+    async addApiACL() {
+      console.log('### addApiACL')
+      const name = this.apiAcl.newAclName
       if (!name) {
         return
       }
-      if (this.apiTokens.data.find(t => t.name === name)) {
-        this.apiTokens.showNewTokenDialog = false
+      if (this.apiAcl.data.find(t => t.name === name)) {
+        this.apiAcl.showNewAclDialog = false
         return
       }
       try {
         const {data} = await LNbits.api.request(
           'POST',
-          '/api/v1/auth/token',
+          '/api/v1/auth/acl',
           null,
           {
             id: name,
@@ -254,58 +254,58 @@ window.AccountPageLogic = {
             endpoints: []
           }
         )
-        console.log('### addApiToken', data)
-        this.apiTokens.data.push(data)
+        console.log('### addApiACL', data)
+        this.apiAcl.data.push(data)
 
-        this.handleApiTokenSelected(data.id)
+        this.handleApiACLSelected(data.id)
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
 
-      this.apiTokens.showNewTokenDialog = false
+      this.apiAcl.showNewAclDialog = false
     },
-    async getApiTokens() {
+    async getApiACLs() {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          '/api/v1/auth/tokens',
+          '/api/v1/auth/acl',
           null
         )
-        console.log('### getApiTokens', data)
-        this.apiTokens.data = data.api_tokens
+        console.log('### getApiACLs', data)
+        this.apiAcl.data = data.access_control_list
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
     },
-    async updateApiTokens() {
+    async updateApiACLs() {
       try {
-        console.log('### his.apiTokens.data', this.apiTokens.data)
+        console.log('### his.apiAcl.data', this.apiAcl.data)
         const {data} = await LNbits.api.request(
           'PUT',
-          '/api/v1/auth/tokens',
+          '/api/v1/auth/acl',
           null,
           {
             id: this.user.id,
-            api_tokens: this.apiTokens.data
+            access_control_list: this.apiAcl.data
           }
         )
-        this.apiTokens.data = data.api_tokens
+        this.apiAcl.data = data.access_control_list
         console.log('### data', data)
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
     },
-    deleteApiToken() {
-      if (!this.selectedApiToken.id) {
+    deleteApiACL() {
+      if (!this.selectedApiAcl.id) {
         return
       }
-      this.apiTokens.data = this.apiTokens.data.filter(
-        t => t.id !== this.selectedApiToken.id
+      this.apiAcl.data = this.apiAcl.data.filter(
+        t => t.id !== this.selectedApiAcl.id
       )
-      this.handleApiTokenSelected(this.apiTokens.data[0]?.id)
+      this.handleApiACLSelected(this.apiAcl.data[0]?.id)
     },
     async generateApiToken() {
-      if (!this.selectedApiToken.id) {
+      if (!this.selectedApiAcl.id) {
         return
       }
       try {
@@ -314,12 +314,12 @@ window.AccountPageLogic = {
           '/api/v1/auth/acl/token',
           null,
           {
-            acl_id: this.selectedApiToken.id,
+            acl_id: this.selectedApiAcl.id,
             password: 'xxx',
             expiration_time_minutes: 30
           }
         )
-        this.selectedApiToken.apiToken = data.api_token
+        this.selectedApiAcl.apiToken = data.api_token
         console.log('### data', data)
       } catch (e) {
         LNbits.utils.notifyApiError(e)
@@ -339,6 +339,6 @@ window.AccountPageLogic = {
     if (hash) {
       this.tab = hash
     }
-    await this.getApiTokens()
+    await this.getApiACLs()
   }
 }

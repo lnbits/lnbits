@@ -35,7 +35,7 @@ class EndpointAccess(BaseModel):
     write: bool = False
 
 
-class ApiToken(BaseModel):
+class ApiAccessControlList(BaseModel):
     id: str
     name: str
     endpoints: list[EndpointAccess] = []
@@ -47,9 +47,9 @@ class ApiToken(BaseModel):
         return None
 
 
-class UserTokens(BaseModel):
+class UserACLs(BaseModel):
     id: str
-    api_tokens: list[ApiToken] = []
+    access_control_list: list[ApiAccessControlList] = []
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

@@ -6,8 +6,8 @@ from uuid import uuid4
 from lnbits.core.crud.extensions import get_user_active_extensions_ids
 from lnbits.core.crud.wallets import get_wallets
 from lnbits.core.db import db
-from lnbits.core.models import UserTokens
-from lnbits.core.models.users import ApiToken
+from lnbits.core.models import UserACLs
+from lnbits.core.models.users import ApiAccessControlList
 from lnbits.db import Connection, Filters, Page
 
 from ..models import (
@@ -189,19 +189,19 @@ async def get_user_from_account(
     )
 
 
-async def update_user_tokens(user_tokens: UserTokens):
-    user_tokens.updated_at = datetime.now(timezone.utc)
-    await db.update("accounts", user_tokens)
+async def update_user_access_control_list(user_acls: UserACLs):
+    user_acls.updated_at = datetime.now(timezone.utc)
+    await db.update("accounts", user_acls)
 
 
-async def get_user_tokens(
+async def get_user_access_control_list(
     user_id: str, conn: Optional[Connection] = None
-) -> list[ApiToken]:
-    user_tokens = await (conn or db).fetchone(
-        "SELECT id, api_tokens FROM accounts WHERE id = :id",
+) -> list[ApiAccessControlList]:
+    user_acls = await (conn or db).fetchone(
+        "SELECT id, access_control_list FROM accounts WHERE id = :id",
         {"id": user_id},
-        UserTokens,
+        UserACLs,
     )
-    if not user_tokens:
+    if not user_acls:
         return []
-    return user_tokens.api_tokens
+    return user_acls.access_control_list

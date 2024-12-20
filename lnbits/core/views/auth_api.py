@@ -11,9 +11,12 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
-from lnbits.core.crud.users import get_user_tokens, update_user_tokens
+from lnbits.core.crud.users import (
+    get_user_access_control_list,
+    update_user_access_control_list,
+)
 from lnbits.core.models.users import (
-    ApiToken,
+    ApiAccessControlList,
     ApiTokenRequest,
     ApiTokenResponse,
     EndpointAccess,
@@ -52,8 +55,8 @@ from ..models import (
     UpdateUserPassword,
     UpdateUserPubkey,
     User,
+    UserACLs,
     UserExtra,
-    UserTokens,
 )
 
 auth_router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
@@ -124,63 +127,63 @@ async def api_create_user_api_token(
     return ApiTokenResponse(api_token=api_token)
 
 
-@auth_router.post("/token", dependencies=[Depends(check_user_exists)])
+@auth_router.post("/acl", dependencies=[Depends(check_user_exists)])
 async def api_create_user_acl(
     request: Request,
-    api_token: ApiToken,
-) -> ApiToken:
-    api_token.endpoints = []
-    api_token.id = uuid4().hex
+    acl: ApiAccessControlList,
+) -> ApiAccessControlList:
+    acl.endpoints = []
+    acl.id = uuid4().hex
 
     api_routes = get_api_routes(request.app.router.routes)
     for path, name in api_routes.items():
-        api_token.endpoints.append(EndpointAccess(path=path, name=name))
+        acl.endpoints.append(EndpointAccess(path=path, name=name))
 
-    return api_token
+    return acl
 
 
-@auth_router.get("/tokens")
-async def api_get_user_tokens(
+@auth_router.get("/acl")
+async def api_get_user_acls(
     request: Request,
     user: User = Depends(check_user_exists),
-) -> UserTokens:
+) -> UserACLs:
     api_routes = get_api_routes(request.app.router.routes)
 
-    api_tokens = await get_user_tokens(user.id)
+    acls = await get_user_access_control_list(user.id)
 
-    for api_token in api_tokens:
-        token_api_routes = {**api_routes}
+    for acl in acls:
+        acl_api_routes = {**api_routes}
         for route in api_routes.keys():
-            if api_token.get_endpoint(route):
-                token_api_routes.pop(route, None)
+            if acl.get_endpoint(route):
+                acl_api_routes.pop(route, None)
 
-        for path, name in token_api_routes.items():
-            api_token.endpoints.append(EndpointAccess(path=path, name=name))
-        api_token.endpoints.sort(key=lambda e: e.name.lower())
+        for path, name in acl_api_routes.items():
+            acl.endpoints.append(EndpointAccess(path=path, name=name))
+        acl.endpoints.sort(key=lambda e: e.name.lower())
 
-    return UserTokens(id=user.id, api_tokens=api_tokens)
+    return UserACLs(id=user.id, access_control_list=acls)
 
 
-@auth_router.put("/tokens")
+@auth_router.put("/acl")
 async def api_update_user_tokens(
     request: Request,
-    user_tokens: UserTokens,
+    user_acls: UserACLs,
     user: User = Depends(check_user_exists),
-) -> UserTokens:
+) -> UserACLs:
     # todo: re-authenticate user
     # todo: expire
-    assert user_tokens.id == user.id, "Wrong user id."
+    assert user_acls.id == user.id, "Wrong user id."
     api_paths = get_api_routes(request.app.router.routes).keys()
-    for token in user_tokens.api_tokens:
-        if token.id == token.name:
-            token.id = uuid4().hex
-        token.endpoints = [e for e in token.endpoints if e.path in api_paths]
-        token.endpoints.sort(key=lambda e: e.name.lower())
+    for acl in user_acls.access_control_list:
+        if acl.id == acl.name:
+            acl.id = uuid4().hex
+        acl.endpoints = [e for e in acl.endpoints if e.path in api_paths]
+        acl.endpoints.sort(key=lambda e: e.name.lower())
 
-    user_tokens.api_tokens.sort(key=lambda t: t.name.lower())
-    await update_user_tokens(user_tokens)
+    user_acls.access_control_list.sort(key=lambda t: t.name.lower())
+    await update_user_access_control_list(user_acls)
 
-    return user_tokens
+    return user_acls
 
 
 @auth_router.get("/{provider}", description="SSO Provider")

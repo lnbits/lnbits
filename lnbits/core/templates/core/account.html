@@ -22,8 +22,8 @@
                 @update="val => tab = val.name"
               ></q-tab>
               <q-tab
-                name="api_tokens"
-                :label="$t('api_tokens')"
+                name="api_acls"
+                :label="$t('access_control_list')"
                 @update="val => tab = val.name"
               ></q-tab>
             </q-tabs>
@@ -510,54 +510,54 @@
                   </div>
                 </div>
               </q-tab-panel>
-              <q-tab-panel name="api_tokens">
+              <q-tab-panel name="api_acls">
                 <div class="row q-mb-md"></div>
 
                 <q-card-section>
                   <div class="row q-mb-md">
                     <div class="col-sm-12 col-md-6">
                       <q-select
-                        v-model="selectedApiToken.id"
+                        v-model="selectedApiAcl.id"
                         emit-value
                         map-options
-                        @update:model-value="handleApiTokenSelected"
-                        :options="apiTokens.data.map(t => ({label: t.name, value: t.id}))"
+                        @update:model-value="handleApiACLSelected"
+                        :options="apiAcl.data.map(t => ({label: t.name, value: t.id}))"
                         dense
                       >
                       </q-select>
                     </div>
                     <div class="col-sm-12 col-md-6">
                       <q-btn
-                        @click="newApiTokenDialog()"
-                        :label="$t('new_api_token')"
+                        @click="newApiAclDialog()"
+                        :label="$t('new_api_acl')"
                         filled
                         color="primary"
                         class="float-right"
                       ></q-btn>
                     </div>
                   </div>
-                  <div v-if="selectedApiToken.id">
+                  <div v-if="selectedApiAcl.id">
                     <div class="row q-mb-md">
                       <div class="col-sm-12 col-md-6">
                         <q-input
-                          v-model="selectedApiToken.apiToken"
+                          v-model="selectedApiAcl.apiToken"
                           :label="$t('api_token_id')"
                           filled
                           dense
                           readonly
-                          :type="selectedApiToken.showId ? 'text': 'password'"
+                          :type="selectedApiAcl.showId ? 'text': 'password'"
                           class="q-mb-md"
                         >
                           <q-btn
-                            @click="selectedApiToken.showId = !selectedApiToken.showId"
+                            @click="selectedApiAcl.showId = !selectedApiAcl.showId"
                             dense
                             flat
-                            :icon="selectedApiToken.showId ? 'visibility_off' : 'visibility'"
+                            :icon="selectedApiAcl.showId ? 'visibility_off' : 'visibility'"
                             color="grey"
                           ></q-btn>
 
                           <q-btn
-                            @click="copyText(selectedApiToken.apiToken)"
+                            @click="copyText(selectedApiAcl.apiToken)"
                             icon="content_copy"
                             color="grey"
                             flat
@@ -578,9 +578,9 @@
 
                     <q-table
                       row-key="path"
-                      :rows="selectedApiToken.endpoints"
-                      :columns="apiTokens.columns"
-                      v-model:pagination="apiTokens.pagination"
+                      :rows="selectedApiAcl.endpoints"
+                      :columns="apiAcl.columns"
+                      v-model:pagination="apiAcl.pagination"
                     >
                       <template v-slot:header="props">
                         <q-tr :props="props">
@@ -591,14 +591,14 @@
                           >
                             <q-toggle
                               v-if="col.name == 'read'"
-                              v-model="selectedApiToken.allRead"
+                              v-model="selectedApiAcl.allRead"
                               @update:model-value="handleAllEndpointsReadAccess()"
                               :label="$t('read')"
                               size="sm"
                             ></q-toggle>
                             <q-toggle
                               v-else-if="col.name == 'write'"
-                              v-model="selectedApiToken.allWrite"
+                              v-model="selectedApiAcl.allWrite"
                               @update:model-value="handleAllEndpointsWriteAccess()"
                               :label="$t('write')"
                               size="sm"
@@ -627,10 +627,10 @@
                     <q-separator></q-separator>
                   </div>
 
-                  <div v-if="selectedApiToken.id" class="row q-mt-md">
+                  <div v-if="selectedApiAcl.id" class="row q-mt-md">
                     <div class="col-sm-12 col-md-6">
                       <q-btn
-                        @click="updateApiTokens()"
+                        @click="updateApiACLs()"
                         :label="$t('update')"
                         filled
                         color="primary"
@@ -638,7 +638,7 @@
                     </div>
                     <div class="col-sm-12 col-md-6">
                       <q-btn
-                        @click="deleteApiToken()"
+                        @click="deleteApiACL()"
                         :label="$t('delete')"
                         icon="delete"
                         color="negative"
@@ -664,22 +664,22 @@
   </div>
 </div>
 
-<q-dialog v-model="apiTokens.showNewTokenDialog" position="top">
+<q-dialog v-model="apiAcl.showNewAclDialog" position="top">
   <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-    <strong>New API token</strong>
+    <strong>New API Access Control List</strong>
     <div class="row q-mt-md">
       <div class="col-12">
         <q-input
-          v-model="apiTokens.newTokenName"
+          v-model="apiAcl.newAclName"
           dense
           filled
-          label="Token Name"
+          label="ACL Name"
         >
         </q-input>
       </div>
     </div>
     <div class="row q-mt-lg">
-      <q-btn @click="addApiToken()" label="Create" color="primary"></q-btn>
+      <q-btn @click="addApiACL()" label="Create" color="primary"></q-btn>
       <q-btn
         v-close-popup
         flat

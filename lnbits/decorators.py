@@ -18,7 +18,7 @@ from lnbits.core.crud import (
     get_user_from_account,
     get_wallet_for_key,
 )
-from lnbits.core.crud.users import get_user_tokens
+from lnbits.core.crud.users import get_user_access_control_list
 from lnbits.core.models import (
     AccessTokenPayload,
     Account,
@@ -270,21 +270,21 @@ async def _check_user_extension_access(user_id: str, current_path: str):
         )
 
 
-async def _check_account_api_access(user_id: str, api_token_id: str, current_path: str):
+async def _check_account_api_access(user_id: str, acl_id: str, current_path: str):
     print("### current_path", current_path)
     # todo: methods
     segments = current_path.split("/")
     if len(segments) < 3:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Access to path restricted.")
 
-    api_tokens = await get_user_tokens(user_id)
+    access_control_list = await get_user_access_control_list(user_id)
 
-    api_token = next((t for t in api_tokens if t.id == api_token_id), None)
-    if not api_token:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "Unknown API token.")
+    acl = next((t for t in access_control_list if t.id == acl_id), None)
+    if not acl:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Unknown Access Control List.")
 
     path = "/".join(segments[1:4])  # todo: upgrades
-    endpoint = api_token.get_endpoint(path)
+    endpoint = acl.get_endpoint(path)
     if not endpoint:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Token does not have permission to path."
@@ -327,8 +327,8 @@ async def _get_account_from_jwt_payload(
     if not account:
         return None
 
-    api_token_id = payload.get("acl_id", None)
-    if api_token_id:
-        await _check_account_api_access(account.id, api_token_id, current_path)
+    api_acl_id = payload.get("acl_id", None)
+    if api_acl_id:
+        await _check_account_api_access(account.id, api_acl_id, current_path)
 
     return account

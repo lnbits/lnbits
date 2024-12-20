@@ -36,8 +36,8 @@ from .users import (
     UpdateUserPassword,
     UpdateUserPubkey,
     User,
+    UserACLs,
     UserExtra,
-    UserTokens,
 )
 from .wallets import BaseWallet, CreateWallet, KeyType, Wallet, WalletTypeInfo
 from .webpush import CreateWebPushSubscription, WebPushSubscription
@@ -74,7 +74,7 @@ __all__ = [
     "Account",
     "AccountFilters",
     "AccountOverview",
-    "UserTokens",
+    "UserACLs",
     "CreateUser",
     "RegisterUser",
     "LoginUsernamePassword",
