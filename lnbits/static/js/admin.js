@@ -122,6 +122,10 @@ window.app = Vue.createApp({
     this.getSettings()
     this.getAudit()
     this.balance = +'{{ balance|safe }}'
+    const hash = window.location.hash.replace('#', '')
+    if (hash) {
+      this.tab = hash
+    }
   },
   computed: {
     lnbitsVersion() {
