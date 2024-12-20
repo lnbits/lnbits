@@ -12,7 +12,12 @@ from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
 from lnbits.core.crud.users import get_user_tokens, update_user_tokens
-from lnbits.core.models.users import ApiToken, EndpointAccess
+from lnbits.core.models.users import (
+    ApiToken,
+    ApiTokenRequest,
+    ApiTokenResponse,
+    EndpointAccess,
+)
 from lnbits.core.services import create_user_account
 from lnbits.decorators import access_token_payload, check_user_exists
 from lnbits.helpers import (
@@ -102,8 +107,25 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
     return _auth_success_response(account.username, account.id, account.email)
 
 
-@auth_router.post("/token", dependencies=[Depends(check_user_exists)])
+@auth_router.post("/acl/token")
 async def api_create_user_api_token(
+    data: ApiTokenRequest,
+    user: User = Depends(check_user_exists),
+) -> ApiTokenResponse:
+
+    account = await get_account(user.id)
+    if not account or not account.verify_password(data.password):
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
+
+    assert account.username, "Username must be configured for password validation."
+    api_token = _auth_api_token_response(
+        account.username, data.acl_id, data.expiration_time_minutes
+    )
+    return ApiTokenResponse(api_token=api_token)
+
+
+@auth_router.post("/token", dependencies=[Depends(check_user_exists)])
+async def api_create_user_acl(
     request: Request,
     api_token: ApiToken,
 ) -> ApiToken:
@@ -431,6 +453,13 @@ def _auth_success_response(
     response.delete_cookie("is_access_token_expired")
 
     return response
+
+
+def _auth_api_token_response(username: str, acl_id: str, token_expire_minutes: int):
+    payload = AccessTokenPayload(sub=username, acl_id=acl_id, auth_time=int(time()))
+    return create_access_token(
+        data=payload.dict(), token_expire_minutes=token_expire_minutes
+    )
 
 
 def _auth_redirect_response(path: str, email: str) -> RedirectResponse:

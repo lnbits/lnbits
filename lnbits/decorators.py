@@ -279,11 +279,11 @@ async def _check_account_api_access(user_id: str, api_token_id: str, current_pat
 
     api_tokens = await get_user_tokens(user_id)
 
-    api_token = next((t for t in api_tokens if t == api_token_id), None)
+    api_token = next((t for t in api_tokens if t.id == api_token_id), None)
     if not api_token:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Unknown API token.")
 
-    path = "/".join(segments[1:3])  # todo: upgrades
+    path = "/".join(segments[1:4])  # todo: upgrades
     endpoint = api_token.get_endpoint(path)
     if not endpoint:
         raise HTTPException(
@@ -327,7 +327,7 @@ async def _get_account_from_jwt_payload(
     if not account:
         return None
 
-    api_token_id = payload.get("api_token_id", None)
+    api_token_id = payload.get("acl_id", None)
     if api_token_id:
         await _check_account_api_access(account.id, api_token_id, current_path)
 

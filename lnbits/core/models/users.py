@@ -219,8 +219,19 @@ class AccessTokenPayload(BaseModel):
     usr: Optional[str] = None
     email: Optional[str] = None
     auth_time: Optional[int] = 0
+    acl_id: Optional[str] = None
 
 
 class UpdateBalance(BaseModel):
     id: str
     amount: int
+
+
+class ApiTokenRequest(BaseModel):
+    acl_id: str
+    password: str
+    expiration_time_minutes: int
+
+
+class ApiTokenResponse(BaseModel):
+    api_token: str

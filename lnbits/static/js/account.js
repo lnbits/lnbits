@@ -303,6 +303,27 @@ window.AccountPageLogic = {
         t => t.id !== this.selectedApiToken.id
       )
       this.handleApiTokenSelected(this.apiTokens.data[0]?.id)
+    },
+    async generateApiToken() {
+      if (!this.selectedApiToken.id) {
+        return
+      }
+      try {
+        const {data} = await LNbits.api.request(
+          'POST',
+          '/api/v1/auth/acl/token',
+          null,
+          {
+            acl_id: this.selectedApiToken.id,
+            password: 'xxx',
+            expiration_time_minutes: 30
+          }
+        )
+        this.selectedApiToken.apiToken = data.api_token
+        console.log('### data', data)
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
+      }
     }
   },
   async created() {

@@ -537,31 +537,45 @@
                     </div>
                   </div>
                   <div v-if="selectedApiToken.id">
-                    <q-input
-                      v-model="selectedApiToken.id"
-                      :label="$t('token_id')"
-                      filled
-                      dense
-                      readonly
-                      :type="selectedApiToken.showId ? 'text': 'password'"
-                      class="q-mb-md"
-                    >
-                      <q-btn
-                        @click="selectedApiToken.showId = !selectedApiToken.showId"
-                        dense
-                        flat
-                        :icon="selectedApiToken.showId ? 'visibility_off' : 'visibility'"
-                        color="grey"
-                      ></q-btn>
+                    <div class="row q-mb-md">
+                      <div class="col-sm-12 col-md-6">
+                        <q-input
+                          v-model="selectedApiToken.apiToken"
+                          :label="$t('api_token_id')"
+                          filled
+                          dense
+                          readonly
+                          :type="selectedApiToken.showId ? 'text': 'password'"
+                          class="q-mb-md"
+                        >
+                          <q-btn
+                            @click="selectedApiToken.showId = !selectedApiToken.showId"
+                            dense
+                            flat
+                            :icon="selectedApiToken.showId ? 'visibility_off' : 'visibility'"
+                            color="grey"
+                          ></q-btn>
 
-                      <q-btn
-                        @click="copyText(selectedApiToken.id)"
-                        icon="content_copy"
-                        color="grey"
-                        flat
-                        dense
-                      ></q-btn>
-                    </q-input>
+                          <q-btn
+                            @click="copyText(selectedApiToken.apiToken)"
+                            icon="content_copy"
+                            color="grey"
+                            flat
+                            dense
+                          ></q-btn>
+                        </q-input>
+                      </div>
+                      <div class="col-sm-12 col-md-6">
+                        <q-btn
+                          @click="generateApiToken()"
+                          :label="$t('generate_api_token')"
+                          filled
+                          color="grey"
+                          class="float-right"
+                        ></q-btn>
+                      </div>
+                    </div>
+
                     <q-table
                       row-key="path"
                       :rows="selectedApiToken.endpoints"
