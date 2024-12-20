@@ -724,8 +724,7 @@ window.app = Vue.createApp({
       if (value == true) {
         this.mobileSimple = false
       }
-    },
-    
+    }
   },
   mounted() {
     // show disclaimer
