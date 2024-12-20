@@ -214,5 +214,9 @@ window.app = Vue.createApp({
     if (this.$q.localStorage.getItem('lnbits.border')) {
       this.applyBorder()
     }
+    const hash = window.location.hash.replace('#', '')
+    if (hash) {
+      this.tab = hash
+    }
   }
 })
