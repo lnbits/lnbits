@@ -18,7 +18,7 @@ from lnbits.core.crud import (
     get_user_from_account,
     get_wallet_for_key,
 )
-from lnbits.core.crud.users import get_user_access_control_list
+from lnbits.core.crud.users import get_user_access_control_lists
 from lnbits.core.models import (
     AccessTokenPayload,
     Account,
@@ -277,9 +277,9 @@ async def _check_account_api_access(user_id: str, acl_id: str, current_path: str
     if len(segments) < 3:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Access to path restricted.")
 
-    access_control_list = await get_user_access_control_list(user_id)
+    acls = await get_user_access_control_lists(user_id)
 
-    acl = next((t for t in access_control_list if t.id == acl_id), None)
+    acl = next((t for t in acls.access_control_list if t.id == acl_id), None)
     if not acl:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Unknown Access Control List.")
 

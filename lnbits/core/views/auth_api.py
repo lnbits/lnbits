@@ -12,9 +12,10 @@ from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
 from lnbits.core.crud.users import (
-    get_user_access_control_list,
+    get_user_access_control_lists,
     update_user_access_control_list,
 )
+from lnbits.core.models.misc import SimpleItem
 from lnbits.core.models.users import (
     ApiAccessControlList,
     ApiTokenRequest,
@@ -121,10 +122,20 @@ async def api_create_user_api_token(
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
     assert account.username, "Username must be configured for password validation."
+
+    acls = await get_user_access_control_lists(user.id)
+    acl = acls.get_acl_by_id(data.acl_id)
+    if not acl:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid ACL id.")
+
+    api_token_id = uuid4().hex
     api_token = _auth_api_token_response(
-        account.username, data.acl_id, data.expiration_time_minutes
+        account.username, data.acl_id, api_token_id, data.expiration_time_minutes
     )
-    return ApiTokenResponse(api_token=api_token)
+
+    acl.token_id_list.append(SimpleItem(id=api_token_id, name=data.token_name))
+    await update_user_access_control_list(acls)
+    return ApiTokenResponse(id=api_token_id, api_token=api_token)
 
 
 @auth_router.post("/acl", dependencies=[Depends(check_user_exists)])
@@ -149,9 +160,9 @@ async def api_get_user_acls(
 ) -> UserACLs:
     api_routes = get_api_routes(request.app.router.routes)
 
-    acls = await get_user_access_control_list(user.id)
+    acls = await get_user_access_control_lists(user.id)
 
-    for acl in acls:
+    for acl in acls.access_control_list:
         acl_api_routes = {**api_routes}
         for route in api_routes.keys():
             if acl.get_endpoint(route):
@@ -161,7 +172,7 @@ async def api_get_user_acls(
             acl.endpoints.append(EndpointAccess(path=path, name=name))
         acl.endpoints.sort(key=lambda e: e.name.lower())
 
-    return UserACLs(id=user.id, access_control_list=acls)
+    return UserACLs(id=user.id, access_control_list=acls.access_control_list)
 
 
 @auth_router.put("/acl")
@@ -458,8 +469,12 @@ def _auth_success_response(
     return response
 
 
-def _auth_api_token_response(username: str, acl_id: str, token_expire_minutes: int):
-    payload = AccessTokenPayload(sub=username, acl_id=acl_id, auth_time=int(time()))
+def _auth_api_token_response(
+    username: str, acl_id: str, api_token_id: str, token_expire_minutes: int
+):
+    payload = AccessTokenPayload(
+        sub=username, acl_id=acl_id, api_token_id=api_token_id, auth_time=int(time())
+    )
     return create_access_token(
         data=payload.dict(), token_expire_minutes=token_expire_minutes
     )

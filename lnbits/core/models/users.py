@@ -8,6 +8,7 @@ from fastapi import Query
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field
 
+from lnbits.core.models.misc import SimpleItem
 from lnbits.db import FilterModel
 from lnbits.helpers import is_valid_email_address, is_valid_pubkey, is_valid_username
 from lnbits.settings import settings
@@ -39,6 +40,7 @@ class ApiAccessControlList(BaseModel):
     id: str
     name: str
     endpoints: list[EndpointAccess] = []
+    token_id_list: list[SimpleItem] = []
 
     def get_endpoint(self, path: str) -> Optional[EndpointAccess]:
         for e in self.endpoints:
@@ -51,6 +53,12 @@ class UserACLs(BaseModel):
     id: str
     access_control_list: list[ApiAccessControlList] = []
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def get_acl_by_id(self, acl_id: str) -> Optional[ApiAccessControlList]:
+        for acl in self.access_control_list:
+            if acl.id == acl_id:
+                return acl
+        return None
 
 
 class Account(BaseModel):
@@ -220,6 +228,7 @@ class AccessTokenPayload(BaseModel):
     email: Optional[str] = None
     auth_time: Optional[int] = 0
     acl_id: Optional[str] = None
+    api_token_id: Optional[str] = None
 
 
 class UpdateBalance(BaseModel):
@@ -229,9 +238,11 @@ class UpdateBalance(BaseModel):
 
 class ApiTokenRequest(BaseModel):
     acl_id: str
+    token_name: str
     password: str
     expiration_time_minutes: int
 
 
 class ApiTokenResponse(BaseModel):
+    id: str
     api_token: str
