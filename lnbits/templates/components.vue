@@ -504,7 +504,38 @@
 </template>
 
 <template id="lnbits-update-balance">
-  <q-btn v-if="admin" :label="$t('credit_debit')" color="secondary" size="sm">
+  <q-btn
+    v-if="admin && small_btn"
+    flat
+    round
+    color="primary"
+    size="sm"
+    icon="add"
+  >
+    <q-popup-edit class="bg-accent text-white" v-slot="scope" v-model="credit">
+      <q-input
+        filled
+        :label="$t('credit_label', {denomination: denomination})"
+        v-model="scope.value"
+        dense
+        autofocus
+        @keyup.enter="scope.set"
+      >
+        <template v-slot:append>
+          <q-icon name="edit" />
+        </template>
+      </q-input>
+    </q-popup-edit>
+    <q-tooltip v-text="$t('credit_hint')"></q-tooltip>
+  </q-btn>
+
+  <q-btn
+    v-if="admin && !small_btn"
+    color="primary"
+    :label="$t('credit_debit')"
+    class="float-right q-mt-sm"
+    size="sm"
+  >
     <q-popup-edit class="bg-accent text-white" v-slot="scope" v-model="credit">
       <q-input
         filled

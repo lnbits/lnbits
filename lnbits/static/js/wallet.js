@@ -59,6 +59,12 @@ window.app = Vue.createApp({
       adminkeyHidden: true,
       hasNfc: false,
       nfcReaderAbortController: null,
+      isPrioritySwapped: false,
+      fiatTracking: false,
+      formattedFiatAmount: 0,
+      exchangeRate: 0,
+      formattedExchange: null,
+      ignoreWatcher: true,
       primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
       transactions: [],
       transactionChart: null,
@@ -71,14 +77,6 @@ window.app = Vue.createApp({
         return this.balance / 100
       } else {
         return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
-      }
-    },
-    formattedFiatBalance() {
-      if (this.fiatBalance) {
-        return LNbits.utils.formatCurrency(
-          this.fiatBalance.toFixed(2),
-          this.g.wallet.currency
-        )
       }
     },
     canPay() {
@@ -100,6 +98,17 @@ window.app = Vue.createApp({
     }
   },
   methods: {
+    formatFiatAmount(amount, currency) {
+      this.update.currency = currency
+      this.formattedFiatAmount = LNbits.utils.formatCurrency(
+        amount.toFixed(2),
+        currency
+      )
+      this.formattedExchange = LNbits.utils.formatCurrency(
+        this.exchangeRate,
+        currency
+      )
+    },
     computeCumulativeBalance(transactions) {
       let balance = 0
       return transactions.map(transaction => {
@@ -596,7 +605,6 @@ window.app = Vue.createApp({
             type: 'positive',
             timeout: 3500
           })
-          window.location.reload()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -620,15 +628,23 @@ window.app = Vue.createApp({
             })
         })
     },
-    updateFiatBalance() {
-      if (!this.g.wallet.currency) return 0
+    updateFiatBalance(currency) {
+      // set rate from local storage to avoid clunky api calls
+      this.exchangeRate = this.$q.localStorage.getItem('lnbits.exchangeRate')
+      this.fiatBalance =
+        (this.exchangeRate / 100000000) * (this.balance || this.g.wallet.sat)
+      this.formatFiatAmount(this.fiatBalance, currency)
+      // make api call
       LNbits.api
-        .request('POST', `/api/v1/conversion`, null, {
-          amount: this.balance || this.g.wallet.sat,
-          to: this.g.wallet.currency
-        })
+        .request('GET', `/api/v1/rate/` + currency, null)
         .then(response => {
-          this.fiatBalance = response.data[this.g.wallet.currency]
+          this.fiatBalance =
+            (response.data.price / 100000000) *
+            (this.balance || this.g.wallet.sat)
+          this.exchangeRate = response.data.price.toFixed(2)
+          this.fiatTracking = true
+          this.formatFiatAmount(this.fiatBalance, currency)
+          this.$q.localStorage.set('lnbits.exchangeRate', this.exchangeRate)
         })
         .catch(e => console.error(e))
     },
@@ -760,6 +776,21 @@ window.app = Vue.createApp({
           this.paymentsTable.loading = false
           LNbits.utils.notifyApiError(err)
         })
+    },
+    swapBalancePriority() {
+      this.isPrioritySwapped = !this.isPrioritySwapped
+      this.$q.localStorage.setItem(
+        'lnbits.isPrioritySwapped',
+        this.isPrioritySwapped
+      )
+    },
+    handleFiatTracking() {
+      if (this.fiatTracking === false) {
+        this.update.currency = ''
+        this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
+        this.isPrioritySwapped = false
+        this.$q.localStorage.remove(`lnbits.exchangeRate`)
+      }
     }
   },
   created() {
@@ -773,29 +804,54 @@ window.app = Vue.createApp({
     if (this.$q.screen.lt.md) {
       this.mobileSimple = true
     }
+    setTimeout(() => {
+      this.ignoreWatcher = false
+    }, 3000)
+    if (this.g.wallet.currency) {
+      this.fiatTracking = true
+      this.updateFiatBalance(this.g.wallet.currency)
+    }
     this.update.name = this.g.wallet.name
-    this.update.currency = this.g.wallet.currency
     this.receive.units = ['sat', ...window.currencies]
-    this.updateFiatBalance()
     this.fetchPayments().then(() => {
       this.initCharts()
     })
   },
   watch: {
+    '$q.screen.gt.sm'(value) {
+      if (value == true) {
+        this.mobileSimple = false
+      }
+    },
     updatePayments() {
-      this.updateFiatBalance()
+      this.fetchBalance()
+    },
+    'update.currency'(newValue) {
+      if (this.ignoreWatcher || this.update.currency == '') return
+      this.updateWallet({currency: newValue})
+      this.updateFiatBalance(newValue)
     },
     '$q.screen.gt.sm'(value) {
       if (value == true) {
         this.mobileSimple = false
       }
-    }
+    },
+    
   },
   mounted() {
     // show disclaimer
     if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
+    }
+    // check blanace priority
+    if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped')) {
+      this.isPrioritySwapped = this.$q.localStorage.getItem(
+        'lnbits.isPrioritySwapped'
+      )
+    } else {
+      this.isPrioritySwapped = false
+      this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
     }
     // listen to incoming payments
     LNbits.events.onInvoicePaid(this.g.wallet, data => {
