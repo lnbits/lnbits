@@ -213,13 +213,12 @@
                   v-for="wallet in g.user.wallets"
                   :key="wallet.id"
                   class="wallet-list-card"
-                  bordered
                   tag="a"
                   :href="wallet.url"
                   :style="
           g.wallet && g.wallet.id === wallet.id
             ? `border: 1px solid ${primaryColor}; width: 250px; text-decoration: none;`
-            : 'width: 250px; text-decoration: none;'
+            : 'width: 250px; text-decoration: none; border: 0px'
         "
                   :class="{
             'active-wallet-card': g.wallet && g.wallet.id === wallet.id
