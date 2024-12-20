@@ -29,7 +29,46 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="openChannelDialog.show" position="top">
+  <q-dialog v-model="setFeeDialog.show">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <label class="text-h6">Set Channel Fee</label>
+      <p class="text-caption" v-text="setFeeDialog.channel_id"></p>
+      <q-separator></q-separator>
+      <q-form class="q-gutter-md">
+        <q-input
+          dense
+          type="number"
+          filled
+          v-model.number="setFeeDialog.data.fee_ppm"
+          label="Fee Rate PPM"
+        ></q-input>
+        <q-input
+          dense
+          type="number"
+          filled
+          v-model.number="setFeeDialog.data.fee_base_msat"
+          label="Fee Base msat"
+        ></q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            :label="$t('set')"
+            color="primary"
+            @click="setChannelFee(setFeeDialog.channel_id)"
+          ></q-btn>
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            :label="$t('cancel')"
+          ></q-btn>
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="openChannelDialog.show">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form class="q-gutter-md">
         <q-input
@@ -171,10 +210,41 @@
                 <q-tr :props="props">
                   <div class="q-pb-sm">
                     <div class="row items-center q-gutter-sm">
-                      <div
-                        class="text-subtitle1 col-grow"
-                        v-text="props.row.name"
-                      ></div>
+                      <div class="text-subtitle1" v-text="props.row.name"></div>
+                      <div class="text-caption" v-if="props.row.peer_id">
+                        <span>Peer ID</span>
+                        <q-btn
+                          size="xs"
+                          flat
+                          dense
+                          icon="content_paste"
+                          @click="copyText(props.row.peer_id)"
+                        ></q-btn>
+                      </div>
+                      <div class="text-caption col-grow">
+                        <span>Fees</span>
+                        <q-btn
+                          size="xs"
+                          flat
+                          dense
+                          icon="settings"
+                          @click="showSetFeeDialog(props.row.id)"
+                        ></q-btn>
+                        <span v-if="props.row.fee_ppm">
+                          <span v-text="props.row.fee_ppm"></span> ppm,
+                          <span v-text="props.row.fee_base_msat"></span> msat
+                        </span>
+                      </div>
+                      <div class="text-caption" v-if="props.row.id">
+                        <span>Channel ID</span>
+                        <q-btn
+                          size="xs"
+                          flat
+                          dense
+                          icon="content_paste"
+                          @click="copyText(props.row.id)"
+                        ></q-btn>
+                      </div>
                       <div class="text-caption" v-if="props.row.short_id">
                         <span v-text="props.row.short_id"></span>
                         <q-btn
@@ -201,6 +271,7 @@
                         color="pink"
                       ></q-btn>
                     </div>
+
                     <lnbits-channel-balance
                       :balance="props.row.balance"
                       :color="props.row.color"

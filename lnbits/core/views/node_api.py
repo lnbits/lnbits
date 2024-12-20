@@ -95,6 +95,14 @@ async def api_get_channels(
     return await node.get_channels()
 
 
+@node_router.get("/channels/{channel_id}")
+async def api_get_channel(
+    channel_id: str,
+    node: Node = Depends(require_node),
+) -> Optional[NodeChannel]:
+    return await node.get_channel(channel_id)
+
+
 @super_node_router.post("/channels", response_model=ChannelPoint)
 async def api_create_channel(
     node: Node = Depends(require_node),
@@ -125,7 +133,17 @@ async def api_delete_channel(
     )
 
 
-@node_router.get("/payments", response_model=Page[NodePayment])
+@super_node_router.put("/channels/{channel_id}")
+async def api_set_channel_fees(
+    channel_id: str,
+    node: Node = Depends(require_node),
+    fee_ppm: int = Body(None),
+    fee_base_msat: int = Body(None),
+):
+    await node.set_channel_fee(channel_id, fee_base_msat, fee_ppm)
+
+
+@node_router.get("/payments")
 async def api_get_payments(
     node: Node = Depends(require_node),
     filters: Filters = Depends(parse_filters(NodePaymentsFilters)),
@@ -138,7 +156,7 @@ async def api_get_payments(
     return await node.get_payments(filters)
 
 
-@node_router.get("/invoices", response_model=Page[NodeInvoice])
+@node_router.get("/invoices")
 async def api_get_invoices(
     node: Node = Depends(require_node),
     filters: Filters = Depends(parse_filters(NodeInvoiceFilters)),
@@ -151,7 +169,7 @@ async def api_get_invoices(
     return await node.get_invoices(filters)
 
 
-@node_router.get("/peers", response_model=List[NodePeerInfo])
+@node_router.get("/peers")
 async def api_get_peers(node: Node = Depends(require_node)) -> List[NodePeerInfo]:
     return await node.get_peers()
 
