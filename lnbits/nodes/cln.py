@@ -66,6 +66,28 @@ class CoreLightningNode(Node):
         fn = getattr(self.wallet.ln, method)
         return await loop.run_in_executor(None, lambda: fn(*args, **kwargs))
 
+    def _parse_state(self, state: str) -> ChannelState:
+        if state == "CHANNELD_NORMAL":
+            return ChannelState.ACTIVE
+        if state in (
+            # wait for force close
+            "AWAITING_UNILATERAL",
+            # waiting for close
+            "CHANNELD_SHUTTING_DOWN",
+            # waiting for open
+            "CHANNELD_AWAITING_LOCKIN",
+            "OPENINGD",
+        ):
+            return ChannelState.PENDING
+        if state in (
+            "CHANNELD_CLOSING",
+            "CLOSINGD_COMPLETE",
+            "CLOSINGD_SIGEXCHANGE",
+            "ONCHAIN",
+        ):
+            return ChannelState.CLOSED
+        return ChannelState.INACTIVE
+
     @catch_rpc_errors
     async def connect_peer(self, uri: str):
         # https://docs.corelightning.org/reference/lightning-connect
@@ -203,47 +225,44 @@ class CoreLightningNode(Node):
             return NodePeerInfo(id=node["nodeid"])
 
     @catch_rpc_errors
+    async def set_channel_fee(self, channel_id: str, base_msat: int, ppm: int):
+        await self.ln_rpc("setchannel", channel_id, feebase=base_msat, feeppm=ppm)
+
+    @catch_rpc_errors
+    async def get_channel(self, channel_id: str) -> Optional[NodeChannel]:
+        channels = await self.get_channels()
+        for channel in channels:
+            if channel.id == channel_id:
+                return channel
+        return None
+
+    @catch_rpc_errors
     async def get_channels(self) -> list[NodeChannel]:
-        funds = await self.ln_rpc("listfunds")
+        channels = await self.ln_rpc("listpeerchannels")
         nodes = await self.ln_rpc("listnodes")
         nodes_by_id = {n["nodeid"]: n for n in nodes["nodes"]}
 
         return [
             NodeChannel(
+                id=ch["channel_id"],
                 short_id=ch.get("short_channel_id"),
                 point=ChannelPoint(
                     funding_txid=ch["funding_txid"],
-                    output_index=ch["funding_output"],
+                    output_index=ch["funding_outnum"],
                 ),
                 peer_id=ch["peer_id"],
                 balance=ChannelBalance(
-                    local_msat=ch["our_amount_msat"],
-                    remote_msat=ch["amount_msat"] - ch["our_amount_msat"],
-                    total_msat=ch["amount_msat"],
+                    local_msat=ch["spendable_msat"],
+                    remote_msat=ch["receivable_msat"],
+                    total_msat=ch["total_msat"],
                 ),
+                fee_ppm=ch["fee_proportional_millionths"],
+                fee_base_msat=ch["fee_base_msat"],
                 name=nodes_by_id.get(ch["peer_id"], {}).get("alias"),
                 color=nodes_by_id.get(ch["peer_id"], {}).get("color"),
-                state=(
-                    ChannelState.ACTIVE
-                    if ch["state"] == "CHANNELD_NORMAL"
-                    else (
-                        ChannelState.PENDING
-                        if ch["state"] in ("CHANNELD_AWAITING_LOCKIN", "OPENINGD")
-                        else (
-                            ChannelState.CLOSED
-                            if ch["state"]
-                            in (
-                                "CHANNELD_CLOSING",
-                                "CLOSINGD_COMPLETE",
-                                "CLOSINGD_SIGEXCHANGE",
-                                "ONCHAIN",
-                            )
-                            else ChannelState.INACTIVE
-                        )
-                    )
-                ),
+                state=self._parse_state(ch["state"]),
             )
-            for ch in funds["channels"]
+            for ch in channels["channels"]
         ]
 
     @catch_rpc_errors

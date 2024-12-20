@@ -70,6 +70,7 @@
                   />
                 </template>
               </q-input>
+
               <q-select
                 v-else-if="['component', 'response_code','request_method'].includes(col.name)"
                 v-model="searchData[col.name]"
@@ -81,6 +82,11 @@
               ></q-select>
 
               <span v-else v-text="col.label"></span>
+            </q-th>
+            <q-th>
+              <q-btn flat round icon="settings" tag="a" href="/admin#audit"
+                ><q-tooltip v-text="$t('admin_settings')"></q-tooltip
+              ></q-btn>
             </q-th>
           </q-tr>
         </template>
