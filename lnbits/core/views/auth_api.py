@@ -124,8 +124,7 @@ async def api_get_user_tokens(
 ) -> UserTokens:
     api_routes = get_api_routes(request.app.router.routes)
 
-    user_tokens = await get_user_tokens(user.id)
-    api_tokens = user_tokens.api_tokens if user_tokens else []
+    api_tokens = await get_user_tokens(user.id)
 
     for api_token in api_tokens:
         token_api_routes = {**api_routes}

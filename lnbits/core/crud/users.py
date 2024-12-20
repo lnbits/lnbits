@@ -7,6 +7,7 @@ from lnbits.core.crud.extensions import get_user_active_extensions_ids
 from lnbits.core.crud.wallets import get_wallets
 from lnbits.core.db import db
 from lnbits.core.models import UserTokens
+from lnbits.core.models.users import ApiToken
 from lnbits.db import Connection, Filters, Page
 
 from ..models import (
@@ -195,9 +196,12 @@ async def update_user_tokens(user_tokens: UserTokens):
 
 async def get_user_tokens(
     user_id: str, conn: Optional[Connection] = None
-) -> Optional[UserTokens]:
-    return await (conn or db).fetchone(
+) -> list[ApiToken]:
+    user_tokens = await (conn or db).fetchone(
         "SELECT id, api_tokens FROM accounts WHERE id = :id",
         {"id": user_id},
         UserTokens,
     )
+    if not user_tokens:
+        return []
+    return user_tokens.api_tokens

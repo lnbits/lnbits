@@ -66,7 +66,6 @@ class Account(BaseModel):
 
     is_super_user: bool = Field(default=False, no_database=True)
     is_admin: bool = Field(default=False, no_database=True)
-    api_tokens: list[ApiToken] = Field(default=[], no_database=True)
 
     def __init__(self, **data):
         super().__init__(**data)

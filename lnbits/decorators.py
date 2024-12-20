@@ -141,7 +141,7 @@ async def check_user_exists(
     usr: Optional[UUID4] = None,
 ) -> User:
     if access_token:
-        account = await _get_account_from_token(access_token)
+        account = await _get_account_from_token(access_token, r["path"])
     elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
         account = await get_account(usr.hex)
     else:
@@ -158,18 +158,18 @@ async def check_user_exists(
     if not user:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
     await _check_user_extension_access(user.id, r["path"])
-    await _check_user_api_access(account, r["path"])
     return user
 
 
 async def optional_user_id(
+    r: Request,
     access_token: Annotated[Optional[str], Depends(check_access_token)],
     usr: Optional[UUID4] = None,
 ) -> Optional[str]:
     if usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
         return usr.hex
     if access_token:
-        account = await _get_account_from_token(access_token)
+        account = await _get_account_from_token(access_token, r["path"])
         return account.id if account else None
 
     return None
@@ -261,7 +261,7 @@ async def check_user_extension_access(
 
 async def _check_user_extension_access(user_id: str, current_path: str):
     path = current_path.split("/")
-    ext_id = path[3] if path[1] == "upgrades" else path[1]
+    ext_id = path[3] if path[1] == "upgrades" else path[1]  # todo: test this
     status = await check_user_extension_access(user_id, ext_id)
     if not status.success:
         raise HTTPException(
@@ -270,26 +270,38 @@ async def _check_user_extension_access(user_id: str, current_path: str):
         )
 
 
-async def _check_user_api_access(account: Account, current_path: str):
+async def _check_account_api_access(user_id: str, api_token_id: str, current_path: str):
     print("### current_path", current_path)
-    # path = current_path.split("/")
-    # ext_id = path[3] if path[1] == "upgrades" else path[1]
-    # status = await check_user_extension_access(user_id, ext_id)
-    # if not status.success:
-    #     raise HTTPException(
-    #         HTTPStatus.FORBIDDEN,
-    #         status.message,
-    #     )
+    # todo: methods
+    segments = current_path.split("/")
+    if len(segments) < 3:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Access to path restricted.")
+
+    api_tokens = await get_user_tokens(user_id)
+
+    api_token = next((t for t in api_tokens if t == api_token_id), None)
+    if not api_token:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Unknown API token.")
+
+    path = "/".join(segments[1:3])  # todo: upgrades
+    endpoint = api_token.get_endpoint(path)
+    if not endpoint:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Token does not have permission to path."
+        )
 
 
-async def _get_account_from_token(access_token) -> Optional[Account]:
+async def _get_account_from_token(
+    access_token: str, current_path: str
+) -> Optional[Account]:
     try:
         payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
-        account = await _get_account_from_jwt_payload(payload)
+        account = await _get_account_from_jwt_payload(payload, current_path)
         if not account:
             raise HTTPException(
                 HTTPStatus.UNAUTHORIZED, "Data missing for access token."
             )
+
         return account
 
     except jwt.ExpiredSignatureError as exc:
@@ -301,7 +313,9 @@ async def _get_account_from_token(access_token) -> Optional[Account]:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid access token.") from exc
 
 
-async def _get_account_from_jwt_payload(payload) -> Optional[Account]:
+async def _get_account_from_jwt_payload(
+    payload: dict, current_path: str
+) -> Optional[Account]:
     account = None
     if "sub" in payload and payload.get("sub"):
         account = await get_account_by_username(str(payload.get("sub")))
@@ -310,12 +324,11 @@ async def _get_account_from_jwt_payload(payload) -> Optional[Account]:
     if "email" in payload and payload.get("email"):
         account = await get_account_by_email(str(payload.get("email")))
 
+    if not account:
+        return None
+
     api_token_id = payload.get("api_token_id", None)
-    if account and api_token_id:
-        user_tokens = await get_user_tokens(account.id)
-        account.api_tokens = (
-            [t for t in user_tokens.api_tokens if t.id == api_token_id]
-            if user_tokens
-            else []
-        )
+    if api_token_id:
+        await _check_account_api_access(account.id, api_token_id, current_path)
+
     return account
