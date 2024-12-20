@@ -300,12 +300,12 @@ class CoreLightningNode(Node):
         self, filters: Filters[NodePaymentsFilters]
     ) -> Page[NodePayment]:
         async def get_payments():
-            result = await self.ln_rpc("listpays")
+            result = await self.ln_rpc("listpays", status="complete")
             return [
                 NodePayment(
                     bolt11=pay.get("bolt11"),
-                    amount=pay["amount_msat"],
-                    fee=int(pay["amount_msat"]) - int(pay["amount_sent_msat"]),
+                    amount=pay.get("amount_msat", 0),
+                    fee=int(pay.get("amount_msat", 0)) - int(pay["amount_sent_msat"]),
                     memo=pay.get("description"),
                     time=pay["created_at"],
                     preimage=pay.get("preimage"),
