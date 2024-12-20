@@ -27,101 +27,6 @@
         {% endif %}
         <div class="row">
           <div class="col-lg-9 col-12">
-            <q-card
-              :style="$q.screen.lt.md ? {
-              background: $q.screen.lt.md ? 'none !important': ''
-            , boxShadow: $q.screen.lt.md ? 'none !important': ''
-            , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
-            , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
-          } : ''"
-            >
-              <q-card-section>
-                <h3 class="q-my-none text-no-wrap">
-                  <strong v-text="formattedBalance"></strong>
-                  <small> {{LNBITS_DENOMINATION}}</small>
-                  <lnbits-update-balance
-                    :wallet_id="this.g.wallet.id"
-                    @credit-value="handleBalanceUpdate"
-                    class="q-ml-md"
-                  ></lnbits-update-balance>
-                </h3>
-
-                <div class="row">
-                  <div class="col">
-                    <div v-if="g.wallet.currency">
-                      <span
-                        class="text-h5 text-italic"
-                        v-text="formattedFiatBalance"
-                        style="opacity: 0.75"
-                      ></span>
-                    </div>
-                  </div>
-                  <div class="col">
-                    <q-btn
-                      @click="mobileSimple = !mobileSimple"
-                      color="primary"
-                      class="float-right lt-md"
-                      size="sm"
-                      flat
-                      :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
-                      :label="mobileSimple ? $t('more') : $t('less')"
-                    ></q-btn>
-                  </div>
-                </div>
-              </q-card-section>
-              <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
-                <div class="col">
-                  <q-btn
-                    unelevated
-                    color="primary"
-                    class="full-width"
-                    @click="showParseDialog"
-                    :label="$t('paste_request')"
-                  ></q-btn>
-                </div>
-                <div class="col">
-                  <q-btn
-                    unelevated
-                    color="primary"
-                    class="full-width"
-                    @click="showReceiveDialog"
-                    :label="$t('create_invoice')"
-                  ></q-btn>
-                </div>
-                <div class="col">
-                  <q-btn
-                    unelevated
-                    color="secondary"
-                    icon="photo_camera"
-                    @click="showCamera"
-                    :label="$t('scan')"
-                  >
-                    <q-tooltip
-                      ><span v-text="$t('camera_tooltip')"></span
-                    ></q-tooltip>
-                  </q-btn>
-                </div>
-              </div>
-            </q-card>
-          </div>
-          <div class="col-3" v-show="$q.screen.gt.md">
-            <q-card class="q-ml-md q-pa-none" style="height: 135px">
-              <q-card-section style="padding: 0">
-                <canvas
-                  ref="transactionChart"
-                  style="
-                    height: 135px;
-                    width: 100%;
-                    margin: 0;
-                    padding: 0;
-                    transform: translate(-2%, 4%);
-                  "
-                ></canvas>
-              </q-card-section>
-            </q-card>
-          </div>
-        </div>
-
         <q-card
           :style="$q.screen.lt.md ? {
             background: $q.screen.lt.md ? 'none !important': ''
@@ -275,7 +180,24 @@
             </div>
           </div>
         </q-card>
-
+      </div>
+      <div class="col-3" v-show="$q.screen.gt.md">
+        <q-card class="q-ml-md q-pa-none" style="height: 172px">
+          <q-card-section style="padding: 0">
+            <canvas
+              ref="transactionChart"
+              style="
+                height: 172px;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                transform: translate(-2%, 4%);
+              "
+            ></canvas>
+          </q-card-section>
+        </q-card>
+        </div>
+        </div>
         <q-card
           :style="
           $q.screen.lt.md
