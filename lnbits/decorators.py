@@ -18,6 +18,7 @@ from lnbits.core.crud import (
     get_user_from_account,
     get_wallet_for_key,
 )
+from lnbits.core.crud.users import get_user_tokens
 from lnbits.core.models import (
     AccessTokenPayload,
     Account,
@@ -157,6 +158,7 @@ async def check_user_exists(
     if not user:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
     await _check_user_extension_access(user.id, r["path"])
+    await _check_user_api_access(account, r["path"])
     return user
 
 
@@ -268,16 +270,27 @@ async def _check_user_extension_access(user_id: str, current_path: str):
         )
 
 
+async def _check_user_api_access(account: Account, current_path: str):
+    print("### current_path", current_path)
+    # path = current_path.split("/")
+    # ext_id = path[3] if path[1] == "upgrades" else path[1]
+    # status = await check_user_extension_access(user_id, ext_id)
+    # if not status.success:
+    #     raise HTTPException(
+    #         HTTPStatus.FORBIDDEN,
+    #         status.message,
+    #     )
+
+
 async def _get_account_from_token(access_token) -> Optional[Account]:
     try:
         payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
-        user = await _get_user_from_jwt_payload(payload)
-        if not user:
+        account = await _get_account_from_jwt_payload(payload)
+        if not account:
             raise HTTPException(
                 HTTPStatus.UNAUTHORIZED, "Data missing for access token."
             )
-
-        return user
+        return account
 
     except jwt.ExpiredSignatureError as exc:
         raise HTTPException(
@@ -288,11 +301,21 @@ async def _get_account_from_token(access_token) -> Optional[Account]:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid access token.") from exc
 
 
-async def _get_user_from_jwt_payload(payload) -> Optional[Account]:
+async def _get_account_from_jwt_payload(payload) -> Optional[Account]:
+    account = None
     if "sub" in payload and payload.get("sub"):
-        return await get_account_by_username(str(payload.get("sub")))
+        account = await get_account_by_username(str(payload.get("sub")))
     if "usr" in payload and payload.get("usr"):
-        return await get_account(str(payload.get("usr")))
+        account = await get_account(str(payload.get("usr")))
     if "email" in payload and payload.get("email"):
-        return await get_account_by_email(str(payload.get("email")))
-    return None
+        account = await get_account_by_email(str(payload.get("email")))
+
+    api_token_id = payload.get("api_token_id", None)
+    if account and api_token_id:
+        user_tokens = await get_user_tokens(account.id)
+        account.api_tokens = (
+            [t for t in user_tokens.api_tokens if t.id == api_token_id]
+            if user_tokens
+            else []
+        )
+    return account

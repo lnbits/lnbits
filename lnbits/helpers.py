@@ -199,12 +199,12 @@ def is_valid_pubkey(pubkey: str) -> bool:
         return False
 
 
-def create_access_token(data: dict):
+def create_access_token(data: dict) -> str:
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.auth_token_expire_minutes
     )
     to_encode = data.copy()
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire})  # todo:check expiration
     return jwt.encode(to_encode, settings.auth_secret_key, "HS256")
 
 
