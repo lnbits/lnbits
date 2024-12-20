@@ -4,7 +4,6 @@
     dense
     class="lnbits-drawer__q-list"
   >
-    <q-item-label header v-text="$t('wallets')"></q-item-label>
     <q-item
       v-for="wallet in wallets"
       :key="wallet.id"
@@ -53,7 +52,6 @@
         side
         v-show="activeWallet && activeWallet.id === wallet.id"
       >
-        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>
     <q-item clickable @click="showForm = !showForm">
