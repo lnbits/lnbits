@@ -456,6 +456,7 @@ window.windowMixin = {
       walletFlip: true,
       reactionChoice: 'confettiBothSides',
       borderChoice: '',
+      backgroundImage: '',
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
@@ -499,12 +500,54 @@ window.windowMixin = {
           gradientStyle,
           'important'
         )
-        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
+        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.55)} !important`
         const style = document.createElement('style')
-        style.innerHTML =
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
-          `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
+        style.innerHTML = `
+          body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark),
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header,
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer,
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-tab-panels {
+          ${gradientStyleCards}
+          }
+
+          body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark {
+          background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important;
+          }
+
+          [data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark {
+          background: ${String(darkBgColor)} !important;
+          }
+        `
+        document.head.appendChild(style)
+      }
+    },
+    applyBackgroundImage() {
+      if (this.backgroundImage) {
+        this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+      }
+      let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
+      if (bgImage) {
+        const style = document.createElement('style')
+        style.innerHTML = `
+  body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"]::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url(${bgImage});
+    background-size: cover;
+    filter: blur(8px);
+    z-index: -1;
+    background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  }
+
+  body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
+    backdrop-filter: none; /* Ensure the page content is not affected */
+  }`
         document.head.appendChild(style)
       }
     },
@@ -521,6 +564,9 @@ window.windowMixin = {
       let borderStyleCSS
       if (borderStyle == 'hard-border') {
         borderStyleCSS = `box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #ffffff47; border: none;`
+      }
+      if (borderStyle == 'neon-border') {
+        borderStyleCSS = `border: 2px solid ${this.$q.localStorage.getItem('lnbits.primaryColor')}; box-shadow: none;`
       }
       if (borderStyle == 'no-border') {
         borderStyleCSS = `box-shadow: none; border: none;`
@@ -698,6 +744,7 @@ window.windowMixin = {
 
     this.applyGradient()
     this.applyBorder()
+    this.applyBackgroundImage()
 
     if (window.user) {
       this.g.user = Object.freeze(window.LNbits.map.user(window.user))

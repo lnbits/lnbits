@@ -12,7 +12,12 @@ window.app = Vue.createApp({
         'confettiFireworks',
         'confettiStars'
       ],
-      borderOptions: ['retro-border', 'hard-border', 'no-border'],
+      borderOptions: [
+        'retro-border',
+        'hard-border',
+        'neon-border',
+        'no-border'
+      ],
       tab: 'user',
       credentialsData: {
         show: false,
@@ -40,28 +45,72 @@ window.app = Vue.createApp({
       }
     },
     applyGradient() {
-      darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
-      primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
-      if (this.gradientChoice) {
+      this.$q.localStorage.set('lnbits.gradientBg', this.gradientChoice)
+      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
         if (!this.$q.dark.isActive) {
           this.toggleDarkMode()
         }
+        this.setColors()
+        darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
+        primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
         document.body.style.setProperty(
           'background-image',
           gradientStyle,
           'important'
         )
-        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
+        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.55)} !important`
         const style = document.createElement('style')
-        style.innerHTML =
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
-          `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
+        style.innerHTML = `
+          body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark),
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header,
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer,
+          body.body${this.$q.dark.isActive ? '--dark' : ''} .q-tab-panels {
+          ${gradientStyleCards}
+          }
+
+          body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark {
+          background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important;
+          }
+
+          [data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark {
+          background: ${String(darkBgColor)} !important;
+          }
+        `
         document.head.appendChild(style)
-        this.$q.localStorage.set('lnbits.gradientBg', true)
-      } else {
-        this.$q.localStorage.set('lnbits.gradientBg', false)
+      }
+    },
+    applyBackgroundImage() {
+      if (this.backgroundImage) {
+        this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+        this.gradientChoice = true
+        this.applyGradient()
+      }
+      let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
+      if (bgImage) {
+        this.backgroundImage = bgImage
+        const style = document.createElement('style')
+        style.innerHTML = `
+  body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"]::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url(${bgImage});
+    background-size: cover;
+    filter: blur(8px);
+    z-index: -1;
+    background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  }
+
+  body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
+    backdrop-filter: none; /* Ensure the page content is not affected */
+  }`
+        document.head.appendChild(style)
       }
     },
     applyBorder() {
@@ -73,6 +122,9 @@ window.app = Vue.createApp({
       let borderStyleCSS
       if (borderStyle == 'hard-border') {
         borderStyleCSS = `box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #ffffff47; border: none;`
+      }
+      if (borderStyle == 'neon-border') {
+        borderStyleCSS = `border: 2px solid ${this.$q.localStorage.getItem('lnbits.primaryColor')}; box-shadow: none;`
       }
       if (borderStyle == 'no-border') {
         borderStyleCSS = `box-shadow: none; border: none;`
@@ -87,6 +139,8 @@ window.app = Vue.createApp({
     toggleGradient() {
       this.gradientChoice = !this.gradientChoice
       this.applyGradient()
+      this.$q.localStorage.set('lnbits.backgroundImage', '')
+      this.applyBorder()
       if (!this.gradientChoice) {
         window.location.reload()
       }
@@ -95,13 +149,17 @@ window.app = Vue.createApp({
     reactionChoiceFunc() {
       this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
     },
-    changeColor(newValue) {
+    backgroundImageFunc() {
+      this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+      this.applyBackgroundImage()
+    },
+    changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
       this.setColors()
-      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
-        this.applyGradient()
-      }
+      this.applyGradient()
+      this.applyBackgroundImage()
+      this.applyBorder()
     },
     async updateAccount() {
       try {
@@ -208,15 +266,12 @@ window.app = Vue.createApp({
     } catch (e) {
       LNbits.utils.notifyApiError(e)
     }
-    if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
-      this.applyGradient()
-    }
-    if (this.$q.localStorage.getItem('lnbits.border')) {
-      this.applyBorder()
-    }
     const hash = window.location.hash.replace('#', '')
     if (hash) {
       this.tab = hash
     }
+    this.applyGradient()
+    this.applyBackgroundImage()
+    this.applyBorder()
   }
 })
