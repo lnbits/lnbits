@@ -101,9 +101,13 @@ window.app = Vue.createApp({
   },
   methods: {
     computeCumulativeBalance(transactions) {
-      let balance = 0
-      return transactions.map(amount => (balance += amount))
+      let balance = 0;
+      return transactions.map(transaction => {
+        balance += transaction.amount; // Use the amount field for the balance
+        return balance;
+      });
     },
+    
     initCharts() {
       this.transactionChart = new Chart(
         this.$refs.transactionChart.getContext('2d'),
@@ -114,49 +118,66 @@ window.app = Vue.createApp({
             maintainAspectRatio: false,
             layout: {
               padding: 0,
-              margin: 0 // Remove padding around the chart
+              margin: 0,
             },
             plugins: {
               legend: {
-                display: false
+                display: false,
               },
               title: {
-                display: false
-              }
+                display: false,
+              },
+              tooltip: {
+                enabled: true, // Enable tooltips to show data on hover
+                callbacks: {
+                  // Custom tooltip callback to show amount and time
+                  label: (tooltipItem) => {
+                    const index = tooltipItem.dataIndex;
+                    const transaction = this.transactions[index]; // Match tooltip point with transaction
+                    const amount = transaction.amount;
+                    return [
+                      `Balance: ${tooltipItem.raw /1000}sats`, // Display cumulative balance
+                      `Amount: ${amount / 1000}sats`,
+                    ];
+                  },
+                },
+              },
             },
             elements: {
               point: {
-                radius: 0
-              }
+                radius: 4, // Points will now be visible
+                hoverRadius: 6, // Increase point size on hover
+              },
             },
             scales: {
               x: {
-                display: false
+                display: false,
               },
               y: {
-                display: false
-              }
-            }
+                display: false,
+              },
+            },
           },
           data: {
             labels: this.transactions.map(tx =>
-              new Date(tx.date).toLocaleDateString()
+              new Date(tx.time).toLocaleString()  // Use time for labels
             ),
             datasets: [
               {
                 label: 'Cumulative Balance',
                 data: this.computeCumulativeBalance(this.transactions),
-                backgroundColor: LNbits.utils.hexAlpha(this.primaryColor, 0.05),
+                backgroundColor: LNbits.utils.hexAlpha(this.primaryColor, 0.3),
                 borderColor: this.primaryColor,
-                borderWidth: 1,
+                borderWidth: 2,
                 fill: true,
-                tension: 0.2
-              }
-            ]
-          }
+                tension: 0.2,
+              },
+            ],
+          },
         }
-      )
+      );
     },
+    
 
     msatoshiFormat(value) {
       return LNbits.utils.formatSat(value / 1000)
@@ -726,7 +747,13 @@ window.app = Vue.createApp({
         .then(response => {
           console.log(response.data.data)
           for (let payment of response.data.data) {
-            this.transactions.push(payment.amount)
+            record = {
+              payment_hash: payment.payment_hash,
+              amount: payment.amount,
+              description: payment.description,
+              time: payment.time
+            }
+            this.transactions.push(record)
           }
           console.log(this.transactions)
         })
