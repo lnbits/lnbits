@@ -8,7 +8,7 @@ window.i18n = new VueI18n.createI18n({
 
 const websocketPrefix =
   window.location.protocol === 'http:' ? 'ws://' : 'wss://'
-const websocketUrl = `${websocketPrefix}${window.location.host}/api/v1/ws`
+const websocketUrl = `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`
 
 window.LNbits = {
   api: {
@@ -453,6 +453,7 @@ window.windowMixin = {
   data() {
     return {
       toggleSubs: true,
+      updateTrigger: 0,
       reactionChoice: 'confettiBothSides',
       borderChoice: '',
       gradientChoice:
@@ -467,11 +468,73 @@ window.windowMixin = {
         payments: [],
         allowedThemes: null,
         langs: []
-      }
+      },
+      receive: {
+        show: false,
+        status: 'pending',
+        paymentReq: null,
+        paymentHash: null,
+        amountMsat: null,
+        minMax: [0, 2100000000000000],
+        lnurl: null,
+        units: ['sat'],
+        unit: 'sat',
+        data: {
+          amount: null,
+          memo: ''
+        }
+      },
+      eventListeners: []
     }
   },
 
   methods: {
+    walletEvents() {
+      this.g.user.wallets.forEach(wallet => {
+        if (this.eventListeners.includes(wallet.id)) {
+          return
+        } else {
+          this.eventListeners.push(wallet.id)
+          LNbits.events.onInvoicePaid(wallet, data => {
+            const walletIndex = this.g.user.wallets.findIndex(
+              w => w.id === wallet.id
+            )
+            if (walletIndex !== -1) {
+              const updatedWallet = {
+                ...this.g.user.wallets[walletIndex],
+                sat: data.wallet_balance,
+                msat: data.wallet_balance * 1000,
+                fsat: data.wallet_balance.toLocaleString()
+              }
+              this.g.user.wallets.splice(walletIndex, 1, updatedWallet)
+              this.g.user.wallets = [...this.g.user.wallets]
+              this.updateTrigger++
+
+              if (this.g.wallet.id === wallet.id) {
+                this.g.wallet = updatedWallet
+              }
+            }
+            this.onPaymentReceived(data.payment.payment_hash)
+            if (this.g.wallet.id === wallet.id) {
+              eventReaction(data.payment.amount)
+            }
+          })
+        }
+      })
+    },
+    onPaymentReceived(paymentHash) {
+      this.updatePayments = !this.updatePayments
+      if (this.receive.paymentHash === paymentHash) {
+        this.receive.show = false
+        this.receive.paymentHash = null
+      }
+    },
+    selectWallet(wallet) {
+      this.g.wallet = {...JSON.parse(JSON.stringify(this.g.wallet)), ...wallet}
+      this.wallet = this.g.wallet
+      this.updatePayments = !this.updatePayments
+      this.balance = parseInt(wallet.balance_msat / 1000)
+    },
     changeColor(newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
@@ -700,6 +763,12 @@ window.windowMixin = {
     }
     await this.checkUsrInUrl()
     this.themeParams()
+  },
+  mounted() {
+    if (!this.walletEventsInitialized) {
+      this.walletEventsInitialized = true
+      this.walletEvents()
+    }
   }
 }
 

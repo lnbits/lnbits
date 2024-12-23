@@ -5,25 +5,9 @@ window.app = Vue.createApp({
     return {
       updatePayments: false,
       origin: window.location.origin,
-      wallet: LNbits.map.wallet(window.wallet),
       user: LNbits.map.user(window.user),
-      exportUrl: `${window.location.origin}/wallet?usr=${window.user.id}&wal=${window.wallet.id}`,
+      wallet: window.wallet,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
-      receive: {
-        show: false,
-        status: 'pending',
-        paymentReq: null,
-        paymentHash: null,
-        amountMsat: null,
-        minMax: [0, 2100000000000000],
-        lnurl: null,
-        units: ['sat'],
-        unit: 'sat',
-        data: {
-          amount: null,
-          memo: ''
-        }
-      },
       parse: {
         show: false,
         invoice: null,
@@ -48,7 +32,6 @@ window.app = Vue.createApp({
         show: false,
         location: window.location
       },
-      balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
       mobileSimple: false,
       update: {
@@ -65,9 +48,9 @@ window.app = Vue.createApp({
   computed: {
     formattedBalance() {
       if (LNBITS_DENOMINATION != 'sats') {
-        return this.balance / 100
+        return this.g.wallet.sat / 100
       } else {
-        return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
+        return LNbits.utils.formatSat(this.g.wallet.sat)
       }
     },
     formattedFiatBalance() {
@@ -80,7 +63,7 @@ window.app = Vue.createApp({
     },
     canPay() {
       if (!this.parse.invoice) return false
-      return this.parse.invoice.sat <= this.balance
+      return this.parse.invoice.sat <= this.g.wallet.sat
     },
     formattedAmount() {
       if (this.receive.unit != 'sat') {
@@ -144,15 +127,8 @@ window.app = Vue.createApp({
         clearInterval(this.parse.paymentChecker)
       }, 10000)
     },
-    onPaymentReceived(paymentHash) {
-      this.updatePayments = !this.updatePayments
-      if (this.receive.paymentHash === paymentHash) {
-        this.receive.show = false
-        this.receive.paymentHash = null
-      }
-    },
     handleBalanceUpdate(value) {
-      this.balance = this.balance + value
+      this.g.wallet.sat = this.g.wallet.sat + value
     },
     createInvoice() {
       this.receive.status = 'loading'
@@ -543,7 +519,7 @@ window.app = Vue.createApp({
       if (!this.g.wallet.currency) return 0
       LNbits.api
         .request('POST', `/api/v1/conversion`, null, {
-          amount: this.balance || this.g.wallet.sat,
+          amount: this.g.wallet.sat,
           to: this.g.wallet.currency
         })
         .then(response => {
@@ -652,6 +628,12 @@ window.app = Vue.createApp({
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
         })
+    },
+    createdTasks() {
+      this.update.name = this.g.wallet.name
+      this.update.currency = this.g.wallet.currency
+      this.receive.units = ['sat', ...window.currencies]
+      this.updateFiatBalance()
     }
   },
   created() {
@@ -665,10 +647,7 @@ window.app = Vue.createApp({
     if (this.$q.screen.lt.md) {
       this.mobileSimple = true
     }
-    this.update.name = this.g.wallet.name
-    this.update.currency = this.g.wallet.currency
-    this.receive.units = ['sat', ...window.currencies]
-    this.updateFiatBalance()
+    this.createdTasks()
   },
   watch: {
     updatePayments() {
@@ -678,6 +657,9 @@ window.app = Vue.createApp({
       if (value == true) {
         this.mobileSimple = false
       }
+    },
+    'g.wallet': function (newSat) {
+      this.createdTasks()
     }
   },
   mounted() {
@@ -686,15 +668,6 @@ window.app = Vue.createApp({
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
-    // listen to incoming payments
-    LNbits.events.onInvoicePaid(this.g.wallet, data => {
-      console.log('Payment received:', data.payment.payment_hash)
-      console.log('Wallet balance:', data.wallet_balance)
-      console.log('Wallet ID:', this.g.wallet)
-      this.onPaymentReceived(data.payment.payment_hash)
-      this.balance = data.wallet_balance
-      eventReaction(data.payment.amount)
-    })
   }
 })
 

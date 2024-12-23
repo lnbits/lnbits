@@ -173,7 +173,12 @@
           show-if-above
           :elevated="$q.screen.lt.md"
         >
-          <lnbits-wallet-list :balance="balance"></lnbits-wallet-list>
+          <lnbits-wallet-list
+            :g="g"
+            @wallet-selected="selectWallet"
+            :updateTrigger="updateTrigger"
+            :balance="balance"
+          ></lnbits-wallet-list>
 
           <lnbits-manage
             :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"

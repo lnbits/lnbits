@@ -3,10 +3,12 @@
 {% from "macros.jinja" import window_vars with context %}
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
+<script src="{{ static_url_for('static', 'js/base.js') }}"></script>
 <script src="{{ static_url_for('static', 'js/wallet.js') }}"></script>
 {% endblock %}
 <!---->
-{% block title %}{{ wallet_name }} - {{ SITE_TITLE }} {% endblock %}
+{% block title %}<em v-text="g.wallet.name"></em> - {{ SITE_TITLE }} {% endblock
+%}
 <!---->
 {% block page %}
 <div class="row q-col-gutter-md">
@@ -36,19 +38,18 @@
         >
           <div class="row no-wrap q-gutter-md q-pr-md">
             <q-card
-              v-for="wallet in g.user.wallets"
-              :key="wallet.id"
+              v-for="walletRec in g.user.wallets"
+              :key="walletRec.id + updateTrigger"
               class="wallet-list-card"
               bordered
-              tag="a"
-              :href="wallet.url"
+              @click="selectWallet(walletRec)"
               :style="
-          g.wallet && g.wallet.id === wallet.id
+          g.wallet && g.wallet.id === walletRec.id
             ? `border: 1px solid ${primaryColor}; width: 250px; text-decoration: none;`
             : 'width: 250px; text-decoration: none;'
         "
               :class="{
-            'active-wallet-card': g.wallet && g.wallet.id === wallet.id
+            'active-wallet-card': g.wallet && g.wallet.id === walletRec.id
           }"
             >
               <q-card-section>
@@ -56,7 +57,7 @@
                   <q-avatar
                     size="lg"
                     :color="
-                g.wallet && g.wallet.id === wallet.id
+                g.wallet && g.wallet.id === walletRec.id
                   ? $q.dark.isActive
                     ? 'primary'
                     : 'primary'
@@ -72,14 +73,14 @@
                   <div
                     class="text-h6 q-pl-md"
                     :class="{
-                'text-bold': g.wallet && g.wallet.id === wallet.id
+                'text-bold': g.wallet && g.wallet.id === walletRec.id
               }"
-                    v-text="wallet.name"
+                    v-text="walletRec.name"
                   ></div>
                 </div>
                 <div class="row items-center q-pt-sm">
                   <h6 class="q-my-none text-no-wrap">
-                    <strong v-text="wallet.fsat"></strong>
+                    <strong v-text="walletRec.fsat"></strong>
                     <small> {{LNBITS_DENOMINATION}}</small>
                   </h6>
                 </div>
@@ -101,7 +102,7 @@
               <small> {{LNBITS_DENOMINATION}}</small>
               <lnbits-update-balance
                 :wallet_id="this.g.wallet.id"
-                @credit-value="handleBalanceUpdate"
+                :updateTrigger="updateTrigger"
                 class="q-ml-md"
               ></lnbits-update-balance>
             </h3>
@@ -193,7 +194,7 @@
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
                 {{ SITE_TITLE }} Wallet:
-                <strong><em>{{wallet_name}}</em></strong>
+                <strong><em v-text="g.wallet.name"></em></strong>
               </h6>
             </q-card-section>
             <q-card-section class="q-pa-none">
@@ -228,7 +229,9 @@
                   <q-card>
                     <q-card-section class="text-center">
                       <p v-text="$t('export_to_phone_desc')"></p>
-                      <lnbits-qrcode :value="exportUrl"></lnbits-qrcode>
+                      <lnbits-qrcode
+                        :value="`${baseUrl}/wallet?usr=${user.id}&wal=${wallet.id}`"
+                      ></lnbits-qrcode>
                     </q-card-section>
                     <span v-text="exportWalletQR"></span>
                     <q-card-actions class="flex-center q-pb-md">
