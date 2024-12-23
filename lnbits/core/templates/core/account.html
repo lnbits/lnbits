@@ -480,7 +480,9 @@
                   </div>
                 </div>
                 <div class="row q-mb-md">
-                  <div class="col-4">Notifications</div>
+                  <div class="col-4">
+                    <span v-text="$t('notifications')"></span>
+                  </div>
                   <div class="col-8">
                     <lnbits-notifications-btn
                       v-if="g.user"
