@@ -192,7 +192,7 @@
           <q-card>
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
-                {{ SITE_TITLE }} Wallet:
+                {{ SITE_TITLE }} <span v-text="$t('wallet')"></span>
                 <strong><em>{{wallet_name}}</em></strong>
               </h6>
             </q-card-section>
@@ -463,9 +463,13 @@
                 color="positive"
                 text-color="white"
               ></q-avatar>
-              NFC supported
+              <span v-text="$t('nfc_supported')"></span>
             </q-chip>
-            <span v-else class="text-caption text-grey">NFC not supported</span>
+            <span
+              v-else
+              class="text-caption text-grey"
+              v-text="$t('nfc_not_supported')"
+            ></span>
           </div>
           <div class="row q-mt-lg">
             <q-btn
