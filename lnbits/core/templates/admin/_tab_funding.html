@@ -1,26 +1,31 @@
 <q-tab-panel name="funding">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none">Wallets Management</h6>
+    <h6 class="q-my-none">
+      <span v-text="$t('wallets_management')"></span>
+    </h6>
     <br />
     <div>
       <div class="row">
         <div class="col">
-          <p>Funding Source Info</p>
+          <p>
+            <span v-text="$t('funding_source_info')"></span>
+          </p>
           <ul>
             <li
-              v-text="'Funding Source: '+ settings.lnbits_backend_wallet_class"
+              v-text="$t('funding_source', {wallet_class: settings.lnbits_backend_wallet_class})"
             ></li>
             <li
-              v-text="'Node Balance: ' + (auditData.node_balance_msats /
-              1000).toLocaleString() + ' sats'"
+              v-text="$t('node_balance', {balance: (auditData.node_balance_msats / 1000).toLocaleString()})"
             ></li>
             <li
-              v-text="'LNbits Balance: ' + (auditData.lnbits_balance_msats /
-              1000).toLocaleString() + ' sats'"
+              v-text="$t('lnbits_balance', {balance: (auditData.lnbits_balance_msats / 1000).toLocaleString()})"
             ></li>
             <li
-              v-text="'Reserve Percent: ' + (auditData.node_balance_msats /
-              auditData.lnbits_balance_msats * 100).toFixed(2) + ' %'"
+              v-text="$t('funding_reserve_percent', { 
+                percent: auditData.lnbits_balance_msats > 0 
+                  ? (auditData.node_balance_msats / auditData.lnbits_balance_msats * 100).toFixed(2) 
+                  : 100 
+              })"
             ></li>
           </ul>
           <br />

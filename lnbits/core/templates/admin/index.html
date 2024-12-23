@@ -173,7 +173,9 @@
 
 <q-dialog v-model="exchangeData.showTickerConversion" position="top">
   <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-    <strong>Create Currecny Ticker Converter</strong>
+    <div class="q-mb-md">
+      <strong v-text="$t('create_ticker_converter')"></strong>
+    </div>
     <div class="row">
       <div class="col-12 q-mb-md">
         <q-select
