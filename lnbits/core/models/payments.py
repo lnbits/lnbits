@@ -272,3 +272,11 @@ class PaymentsStatusCount(BaseModel):
     outgoing: int = 0
     failed: int = 0
     pending: int = 0
+
+
+class SettleInvoice(BaseModel):
+    preimage: str
+
+
+class CancelInvoice(BaseModel):
+    payment_hash: str
