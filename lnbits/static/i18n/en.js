@@ -347,5 +347,28 @@ window.localisation.en = {
   invoice_expiry_label: 'Invoice expiry (seconds)',
   fee_reserve: 'Fee Reserve',
   fee_reserve_msats: 'Reserve fee in msats',
-  fee_reserve_percent: 'Reserve fee in percent'
+  fee_reserve_percent: 'Reserve fee in percent',
+  server_management: 'Server Management',
+  base_url: 'Base URL',
+  base_url_label: 'Static/Base url for the server',
+  authentication: 'Authentication',
+  auth_token_expiry_label: 'Token expire minutes',
+  auth_token_expiry_hint: 'Time in minutes until the token expires',
+  auth_allowed_methods_label: 'Allowed authorization methods',
+  auth_allowed_methods_hint: 'Select authorization methods',
+  auth_nostr_label: 'Nostr Request URL',
+  auth_nostr_hint: 'Absolute URL that the clients will use to login.',
+  auth_google_ci_label: 'Google Client ID',
+  auth_google_ci_hint:
+    'Make sure that the authorized redirect URIs contain https://{domain}/api/v1/auth/google/token',
+  auth_google_cs_label: 'Google Client Secret',
+  auth_gh_client_id_label: 'GitHub Client ID',
+  auth_gh_client_id_hint:
+    'Make sure that the authorization callback URL is set to https://{domain}/api/v1/auth/github/token',
+  auth_gh_client_secret_label: 'GitHub Client Secret',
+  auth_keycloak_label: 'Keycloak Discovery URL',
+  auth_keycloak_ci_label: 'Keycloak Client ID',
+  auth_keycloak_ci_hint:
+    'Make sure thant the authorization callback URL is set to https://{domain}/api/v1/auth/keycloak/token',
+  auth_keycloak_cs_label: 'Keycloak Client Secret'
 }
