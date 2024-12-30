@@ -336,5 +336,16 @@ window.localisation.en = {
   funding_source: 'Funding Source: {wallet_class}',
   node_balance: 'Node Balance: {balance} sats',
   lnbits_balance: 'LNbits Balance: {balance} sats',
-  funding_reserve_percent: 'Reserve Percent: {percent} %'
+  funding_reserve_percent: 'Reserve Percent: {percent} %',
+  node_managment: 'Node Management',
+  node_management_not_supported:
+    'Node Management not supported by active funding source',
+  toggle_node_ui: 'Node UI',
+  toggle_public_node_ui: 'Public Node UI',
+  toggle_transactions_node_ui: 'Transactions Tab (Disable on large CLN nodes)',
+  invoice_expiry: 'Invoice Expiry',
+  invoice_expiry_label: 'Invoice expiry (seconds)',
+  fee_reserve: 'Fee Reserve',
+  fee_reserve_msats: 'Reserve fee in msats',
+  fee_reserve_percent: 'Reserve fee in percent'
 }
