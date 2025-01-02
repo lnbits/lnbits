@@ -179,7 +179,7 @@
             :updateTrigger="updateTrigger"
             :balance="balance"
           ></lnbits-wallet-list>
-
+          <q-btn to="/wallet">test</q-btn>
           <lnbits-manage
             :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
             :show-users="'{{LNBITS_ADMIN_UI}}' == 'True'"
@@ -191,8 +191,9 @@
         </q-drawer>
         {% endblock %} {% block page_container %}
         <q-page-container>
+          
           <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
-            {% block page %}{% endblock %}
+            <router-view></router-view>{% block page %}{% endblock %}
           </q-page>
         </q-page-container>
         {% endblock %} {% block footer %}

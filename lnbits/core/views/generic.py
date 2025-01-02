@@ -183,22 +183,36 @@ async def wallet(
             request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
         )
 
-    resp = template_renderer().TemplateResponse(
-        request,
-        "core/wallet.html",
-        {
-            "user": user.json(),
-            "wallet": wallet.json(),
-            "wallet_name": wallet.name,
-            "currencies": allowed_currencies(),
-            "service_fee": settings.lnbits_service_fee,
-            "service_fee_max": settings.lnbits_service_fee_max,
-            "web_manifest": f"/manifest/{user.id}.webmanifest",
-        },
-    )
+    # Common context for both templates
+    context = {
+        "user": user.json(),
+        "wallet": wallet.json(),
+        "wallet_name": wallet.name,
+        "currencies": allowed_currencies(),
+        "service_fee": settings.lnbits_service_fee,
+        "service_fee_max": settings.lnbits_service_fee_max,
+        "web_manifest": f"/manifest/{user.id}.webmanifest",
+    }
+
+    # Check if it's an AJAX request
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
+    if is_ajax:
+        # Use the same template but with different blocks
+        resp = template_renderer().TemplateResponse(
+            request,
+            "core/wallet.html",  # Use the full template
+            {**context, "ajax": True}  # Add ajax flag to context
+        )
+    else:
+        resp = template_renderer().TemplateResponse(
+            request,
+            "core/wallet.html",
+            context
+        )
+    
     resp.set_cookie("lnbits_last_active_wallet", wallet.id)
     return resp
-
 
 @generic_router.get(
     "/account",
