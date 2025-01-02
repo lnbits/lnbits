@@ -17,11 +17,7 @@ window.router = VueRouter.createRouter({
                       })
                       const html = await response.text()
                       this.$refs.content.innerHTML = html
-                      this.$nextTick(() => {
-                          if (this.$forceUpdate) {
-                            this.$forceUpdate()
-                          }
-                      })
+                      this.$forceUpdate()
                   } catch (error) {
                       console.error('Error loading wallet:', error)
                   }
