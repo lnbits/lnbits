@@ -418,5 +418,14 @@ window.localisation.en = {
     'Ad url and image filepaths in CSV format, extensions can choose to honor',
   ad_slots_label: 'url;img_light_url;img_dark_url, url...',
   ads_enabled: 'Ads Enabled',
-  ads_disabled: 'Ads Disabled'
+  ads_disabled: 'Ads Disabled',
+  user_management: 'User Management',
+  admin_users: 'Admin Users',
+  admin_users_hint: 'Users with admin privileges',
+  admin_users_label: 'User ID',
+  allowed_users: 'Allowed Users',
+  allowed_users_hint: 'Only these users can use LNbits',
+  allowed_users_label: 'User ID',
+  allow_creation_user: 'Allow creation of new users',
+  allow_creation_user_desc: 'Allow creation of new users on the index page'
 }
