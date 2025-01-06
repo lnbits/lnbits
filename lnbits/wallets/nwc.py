@@ -437,7 +437,7 @@ class NWCConnection:
                     try:
                         await self._send(["CLOSE", subscription["sub_id"]])
                     except Exception as e:
-                        logger.error("Error closing subscription: " + str(e))                    
+                        logger.error("Error closing subscription: " + str(e))
         return subscription
 
     async def _wait_for_connection(self):
