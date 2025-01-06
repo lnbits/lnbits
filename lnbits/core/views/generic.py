@@ -195,12 +195,12 @@ async def wallet(
     }
 
     # Check if it's an AJAX request
-    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-    
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     return template_renderer().TemplateResponse(
         request,
         "core/wallet.html",  # Use the full template
-        {**context, "ajax": is_ajax}  # Add ajax flag to context
+        {**context, "ajax": is_ajax},  # Add ajax flag to context
     )
 
 
@@ -360,7 +360,7 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
 
     funding_source = get_funding_source()
     _, balance = await funding_source.status()
-    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     return template_renderer().TemplateResponse(
         request,
         "admin/index.html",
@@ -369,15 +369,16 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
             "settings": settings.dict(),
             "balance": balance,
             "currencies": list(currencies.keys()),
-            "ajax": is_ajax
+            "ajax": is_ajax,
         },
     )
+
 
 @generic_router.get("/users", response_class=HTMLResponse)
 async def users_index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     return template_renderer().TemplateResponse(
         "users/index.html",
         {
@@ -385,6 +386,7 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
             "user": user.json(),
             "settings": settings.dict(),
             "currencies": list(currencies.keys()),
+            "ajax": is_ajax,
         },
     )
 

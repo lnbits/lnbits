@@ -1,5 +1,4 @@
-window.app = Vue.createApp({
-  el: '#vue',
+window.UsersPageLogic = {
   mixins: [window.windowMixin],
   data() {
     return {
@@ -403,4 +402,4 @@ window.app = Vue.createApp({
       return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
     }
   }
-})
+}

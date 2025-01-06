@@ -188,8 +188,7 @@
         <q-page-container>
           <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
             <router-view></router-view>
-            {% block page %}{% endblock %}
-        </q-page>
+          </q-page>
         </q-page-container>
         {% endblock %} {% block footer %}
 
@@ -245,43 +244,43 @@
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
     <script type="text/javascript">
-      const SITE_DESCRIPTION = {{ SITE_DESCRIPTION | tojson}}
-      const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
-      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
-      const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
-      const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
-      if (themes && themes.length) {
-        window.allowedThemes = themes.map(str => str.trim())
-      }
-      window.langs = [
-        { value: 'en', label: 'English', display: '🇬🇧 EN' },
-        { value: 'de', label: 'Deutsch', display: '🇩🇪 DE' },
-        { value: 'es', label: 'Español', display: '🇪🇸 ES' },
-        { value: 'jp', label: '日本語', display: '🇯🇵 JP' },
-        { value: 'cn', label: '中文', display: '🇨🇳 CN' },
-        { value: 'fr', label: 'Français', display: '🇫🇷 FR' },
-        { value: 'it', label: 'Italiano', display: '🇮🇹 IT' },
-        { value: 'pi', label: 'Pirate', display: '🏴‍☠️ PI' },
-        { value: 'nl', label: 'Nederlands', display: '🇳🇱 NL' },
-        { value: 'we', label: 'Cymraeg', display: '🏴󠁧󠁢󠁷󠁬󠁳󠁿 CY' },
-        { value: 'pl', label: 'Polski', display: '🇵🇱 PL' },
-        { value: 'pt', label: 'Português', display: '🇵🇹 PT' },
-        { value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR' },
-        { value: 'cs', label: 'Česky', display: '🇨🇿 CS' },
-        { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' },
-        { value: 'kr', label: '한국어', display: '🇰🇷 KR' },
-        { value: 'fi', label: 'Suomi', display: '🇫🇮 FI' }
-      ]
-      window.LOCALE = 'en'
-window.dateFormat = 'YYYY-MM-DD HH:mm'
-window.i18n = new VueI18n.createI18n({
-  locale: window.LOCALE,
-  fallbackLocale: window.LOCALE,
-  messages: window.localisation
-})
-const websocketPrefix =
-  window.location.protocol === 'http:' ? 'ws://' : 'wss://'
-const websocketUrl = `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`
+            const SITE_DESCRIPTION = {{ SITE_DESCRIPTION | tojson}}
+            const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
+            const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
+            const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
+            const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
+            if (themes && themes.length) {
+              window.allowedThemes = themes.map(str => str.trim())
+            }
+            window.langs = [
+              { value: 'en', label: 'English', display: '🇬🇧 EN' },
+              { value: 'de', label: 'Deutsch', display: '🇩🇪 DE' },
+              { value: 'es', label: 'Español', display: '🇪🇸 ES' },
+              { value: 'jp', label: '日本語', display: '🇯🇵 JP' },
+              { value: 'cn', label: '中文', display: '🇨🇳 CN' },
+              { value: 'fr', label: 'Français', display: '🇫🇷 FR' },
+              { value: 'it', label: 'Italiano', display: '🇮🇹 IT' },
+              { value: 'pi', label: 'Pirate', display: '🏴‍☠️ PI' },
+              { value: 'nl', label: 'Nederlands', display: '🇳🇱 NL' },
+              { value: 'we', label: 'Cymraeg', display: '🏴󠁧󠁢󠁷󠁬󠁳󠁿 CY' },
+              { value: 'pl', label: 'Polski', display: '🇵🇱 PL' },
+              { value: 'pt', label: 'Português', display: '🇵🇹 PT' },
+              { value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR' },
+              { value: 'cs', label: 'Česky', display: '🇨🇿 CS' },
+              { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' },
+              { value: 'kr', label: '한국어', display: '🇰🇷 KR' },
+              { value: 'fi', label: 'Suomi', display: '🇫🇮 FI' }
+            ]
+            window.LOCALE = 'en'
+      window.dateFormat = 'YYYY-MM-DD HH:mm'
+      window.i18n = new VueI18n.createI18n({
+        locale: window.LOCALE,
+        fallbackLocale: window.LOCALE,
+        messages: window.localisation
+      })
+      const websocketPrefix =
+        window.location.protocol === 'http:' ? 'ws://' : 'wss://'
+      const websocketUrl = `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`
     </script>
     {% block scripts %}{% endblock %} {% for url in INCLUDED_COMPONENTS %}
     <script src="{{ static_url_for('static', url) }}"></script>

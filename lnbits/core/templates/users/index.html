@@ -1,5 +1,21 @@
-{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
-%} {% block page %}
+{% if not ajax %} {% extends "base.html" %} {% endif %}
+<!---->
+{% from "macros.jinja" import window_vars with context %}
+<!---->
+{% block scripts %} {{ window_vars(user) }}
+<script src="{{ static_url_for('static', 'js/base.js') }}"></script>
+<script>
+  window.app = Vue.createApp({
+    el: '#vue',
+    mixins: [window.windowMixin],
+    data() {
+      return {
+        updatePayments: false
+      }
+    }
+  })
+</script>
+{% endblock %} {% block page %}
 
 <div class="row q-col-gutter-md justify-center">
   <div class="col">
@@ -148,6 +164,4 @@
   </div>
 </div>
 
-{% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="{{ static_url_for('static', 'js/users.js') }}"></script>
 {% endblock %}

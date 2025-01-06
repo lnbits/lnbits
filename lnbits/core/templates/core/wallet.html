@@ -1,6 +1,4 @@
-{% if not ajax %}
-    {% extends "base.html" %}
-{% endif %}
+{% if not ajax %} {% extends "base.html" %} {% endif %}
 <!---->
 {% from "macros.jinja" import window_vars with context %}
 <!---->
@@ -8,15 +6,14 @@
 <script src="{{ static_url_for('static', 'js/base.js') }}"></script>
 <script>
   window.app = Vue.createApp({
-  el: '#vue',
-  mixins: [window.windowMixin],
-  data() {
-    return {
-      updatePayments: false,
+    el: '#vue',
+    mixins: [window.windowMixin],
+    data() {
+      return {
+        updatePayments: false
+      }
     }
-  },
-})
-
+  })
 </script>
 {% endblock %}
 <!---->
