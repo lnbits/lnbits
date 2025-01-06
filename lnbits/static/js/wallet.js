@@ -4,25 +4,9 @@ window.WalletPageLogic = {
     return {
       updatePayments: false,
       origin: window.location.origin,
-      wallet: LNbits.map.wallet(window.wallet),
       user: LNbits.map.user(window.user),
-      exportUrl: `${window.location.origin}/wallet?usr=${window.user.id}&wal=${window.wallet.id}`,
+      wallet: window.wallet,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
-      receive: {
-        show: false,
-        status: 'pending',
-        paymentReq: null,
-        paymentHash: null,
-        amountMsat: null,
-        minMax: [0, 2100000000000000],
-        lnurl: null,
-        units: ['sat'],
-        unit: 'sat',
-        data: {
-          amount: null,
-          memo: ''
-        }
-      },
       parse: {
         show: false,
         invoice: null,
@@ -47,7 +31,6 @@ window.WalletPageLogic = {
         show: false,
         location: window.location
       },
-      balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
       mobileSimple: false,
       update: {
@@ -64,9 +47,9 @@ window.WalletPageLogic = {
   computed: {
     formattedBalance() {
       if (LNBITS_DENOMINATION != 'sats') {
-        return this.balance / 100
+        return this.g.wallet.sat / 100
       } else {
-        return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
+        return LNbits.utils.formatSat(this.g.wallet.sat)
       }
     },
     formattedFiatBalance() {
@@ -79,7 +62,7 @@ window.WalletPageLogic = {
     },
     canPay() {
       if (!this.parse.invoice) return false
-      return this.parse.invoice.sat <= this.balance
+      return this.parse.invoice.sat <= this.g.wallet.sat
     },
     formattedAmount() {
       if (this.receive.unit != 'sat') {
@@ -143,15 +126,8 @@ window.WalletPageLogic = {
         clearInterval(this.parse.paymentChecker)
       }, 10000)
     },
-    onPaymentReceived(paymentHash) {
-      this.updatePayments = !this.updatePayments
-      if (this.receive.paymentHash === paymentHash) {
-        this.receive.show = false
-        this.receive.paymentHash = null
-      }
-    },
     handleBalanceUpdate(value) {
-      this.balance = this.balance + value
+      this.g.wallet.sat = this.g.wallet.sat + value
     },
     createInvoice() {
       this.receive.status = 'loading'
@@ -542,7 +518,7 @@ window.WalletPageLogic = {
       if (!this.g.wallet.currency) return 0
       LNbits.api
         .request('POST', `/api/v1/conversion`, null, {
-          amount: this.balance || this.g.wallet.sat,
+          amount: this.g.wallet.sat,
           to: this.g.wallet.currency
         })
         .then(response => {
@@ -651,6 +627,12 @@ window.WalletPageLogic = {
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
         })
+    },
+    createdTasks() {
+      this.update.name = this.g.wallet.name
+      this.update.currency = this.g.wallet.currency
+      this.receive.units = ['sat', ...window.currencies]
+      this.updateFiatBalance()
     }
   },
   created() {
@@ -664,10 +646,7 @@ window.WalletPageLogic = {
     if (this.$q.screen.lt.md) {
       this.mobileSimple = true
     }
-    this.update.name = this.g.wallet.name
-    this.update.currency = this.g.wallet.currency
-    this.receive.units = ['sat', ...window.currencies]
-    this.updateFiatBalance()
+    this.createdTasks()
   },
   watch: {
     updatePayments() {
@@ -677,6 +656,9 @@ window.WalletPageLogic = {
       if (value == true) {
         this.mobileSimple = false
       }
+    },
+    'g.wallet': function (newSat) {
+      this.createdTasks()
     }
   },
   mounted() {
@@ -685,15 +667,6 @@ window.WalletPageLogic = {
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
-    // listen to incoming payments
-    LNbits.events.onInvoicePaid(this.g.wallet, data => {
-      console.log('Payment received:', data.payment.payment_hash)
-      console.log('Wallet balance:', data.wallet_balance)
-      console.log('Wallet ID:', this.g.wallet)
-      this.onPaymentReceived(data.payment.payment_hash)
-      this.balance = data.wallet_balance
-      eventReaction(data.payment.amount)
-    })
   }
 }
 

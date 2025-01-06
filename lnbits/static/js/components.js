@@ -23,7 +23,7 @@ window.app.component('lnbits-fsat', {
 
 window.app.component('lnbits-wallet-list', {
   template: '#lnbits-wallet-list',
-  props: ['balance'],
+  props: ['balance', 'g'],
   data() {
     return {
       user: null,
@@ -47,6 +47,9 @@ window.app.component('lnbits-wallet-list', {
     }
   },
   methods: {
+    onSelectWallet(wallet) {
+      this.$emit('wallet-selected', wallet)
+    },
     createWallet() {
       LNbits.api.createWallet(this.user.wallets[0], this.walletName)
     }
@@ -484,7 +487,7 @@ window.app.component('lnbits-dynamic-chips', {
 window.app.component('lnbits-update-balance', {
   template: '#lnbits-update-balance',
   mixins: [window.windowMixin],
-  props: ['wallet_id', 'credit-value'],
+  props: ['wallet_id', 'updateTrigger'],
   computed: {
     denomination() {
       return LNBITS_DENOMINATION
@@ -498,20 +501,15 @@ window.app.component('lnbits-update-balance', {
       credit: 0
     }
   },
-  watch: {
-    credit(val) {
-      this.updateBalance(val)
-    }
-  },
   methods: {
-    updateBalance(credit) {
+    updateBalance(scope) {
       LNbits.api
-        .updateBalance(credit, this.wallet_id)
+        .updateBalance(scope.value, this.wallet_id)
         .then(res => {
           if (res.data.success !== true) {
             throw new Error(res.data)
           }
-          credit = parseInt(credit)
+          credit = parseInt(scope.value)
           Quasar.Notify.create({
             type: 'positive',
             message: this.$t('credit_ok', {
@@ -519,8 +517,10 @@ window.app.component('lnbits-update-balance', {
             }),
             icon: null
           })
-          this.$emit('credit-value', credit)
-          return credit
+          this.credit = 0
+          scope.value = 0
+          scope.set()
+          this.updateTrigger++
         })
         .catch(LNbits.utils.notifyApiError)
     }

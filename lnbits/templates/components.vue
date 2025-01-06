@@ -6,18 +6,17 @@
   >
     <q-item-label header v-text="$t('wallets')"></q-item-label>
     <q-item
-      v-for="wallet in wallets"
-      :key="wallet.id"
+      v-for="walletRec in g.user.wallets"
+      :key="walletRec.id + updateTrigger"
       clickable
-      :active="activeWallet && activeWallet.id === wallet.id"
-      tag="a"
-      :href="wallet.url"
+      :active="g.wallet && g.wallet.id === walletRec.id"
+      @click="onSelectWallet(walletRec)"
     >
       <q-item-section side>
         <q-avatar
           size="md"
           :color="
-            activeWallet && activeWallet.id === wallet.id
+            g.wallet && g.wallet.id === walletRec.id
               ? $q.dark.isActive
                 ? 'primary'
                 : 'primary'
@@ -33,26 +32,23 @@
       </q-item-section>
       <q-item-section>
         <q-item-label lines="1"
-          ><span v-text="wallet.name"></span
+          ><span v-text="walletRec.name"></span
         ></q-item-label>
         <q-item-label v-if="LNBITS_DENOMINATION != 'sats'" caption>
           <span
             v-text="
-              parseFloat(String(wallet.live_fsat).replaceAll(',', '')) / 100
+              parseFloat(String(walletRec.fsat).replaceAll(',', '')) / 100
             "
           ></span
           >&nbsp;
           <span v-text="LNBITS_DENOMINATION"></span>
         </q-item-label>
         <q-item-label v-else caption>
-          <span v-text="wallet.live_fsat"></span>&nbsp;
+          <span v-text="walletRec.fsat"></span>&nbsp;
           <span v-text="LNBITS_DENOMINATION"></span>
         </q-item-label>
       </q-item-section>
-      <q-item-section
-        side
-        v-show="activeWallet && activeWallet.id === wallet.id"
-      >
+      <q-item-section side v-show="g.wallet && g.wallet.id === walletRec.id">
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>
@@ -502,7 +498,7 @@
         v-model="scope.value"
         dense
         autofocus
-        @keyup.enter="scope.set"
+        @keyup.enter="updateBalance(scope)"
       >
         <template v-slot:append>
           <q-icon name="edit" />
