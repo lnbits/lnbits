@@ -1,5 +1,4 @@
-window.app = Vue.createApp({
-  el: '#vue',
+window.WalletPageLogic = {
   mixins: [window.windowMixin],
   data() {
     return {
@@ -696,7 +695,7 @@ window.app = Vue.createApp({
       eventReaction(data.payment.amount)
     })
   }
-})
+}
 
 if (navigator.serviceWorker != null) {
   navigator.serviceWorker.register('/service-worker.js').then(registration => {

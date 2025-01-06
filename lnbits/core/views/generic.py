@@ -183,21 +183,25 @@ async def wallet(
             request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
         )
 
-    resp = template_renderer().TemplateResponse(
+    # Common context for both templates
+    context = {
+        "user": user.json(),
+        "wallet": wallet.json(),
+        "wallet_name": wallet.name,
+        "currencies": allowed_currencies(),
+        "service_fee": settings.lnbits_service_fee,
+        "service_fee_max": settings.lnbits_service_fee_max,
+        "web_manifest": f"/manifest/{user.id}.webmanifest",
+    }
+
+    # Check if it's an AJAX request
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
+    return template_renderer().TemplateResponse(
         request,
-        "core/wallet.html",
-        {
-            "user": user.json(),
-            "wallet": wallet.json(),
-            "wallet_name": wallet.name,
-            "currencies": allowed_currencies(),
-            "service_fee": settings.lnbits_service_fee,
-            "service_fee_max": settings.lnbits_service_fee_max,
-            "web_manifest": f"/manifest/{user.id}.webmanifest",
-        },
+        "core/wallet.html",  # Use the full template
+        {**context, "ajax": is_ajax}  # Add ajax flag to context
     )
-    resp.set_cookie("lnbits_last_active_wallet", wallet.id)
-    return resp
 
 
 @generic_router.get(
@@ -356,7 +360,7 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
 
     funding_source = get_funding_source()
     _, balance = await funding_source.status()
-
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     return template_renderer().TemplateResponse(
         request,
         "admin/index.html",
@@ -365,9 +369,9 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
             "settings": settings.dict(),
             "balance": balance,
             "currencies": list(currencies.keys()),
+            "ajax": is_ajax
         },
     )
-
 
 @generic_router.get("/users", response_class=HTMLResponse)
 async def users_index(request: Request, user: User = Depends(check_admin)):

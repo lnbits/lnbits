@@ -1,15 +1,3 @@
-window.LOCALE = 'en'
-window.dateFormat = 'YYYY-MM-DD HH:mm'
-window.i18n = new VueI18n.createI18n({
-  locale: window.LOCALE,
-  fallbackLocale: window.LOCALE,
-  messages: window.localisation
-})
-
-const websocketPrefix =
-  window.location.protocol === 'http:' ? 'ws://' : 'wss://'
-const websocketUrl = `${websocketPrefix}${window.location.host}/api/v1/ws`
-
 window.LNbits = {
   api: {
     request(method, url, apiKey, data) {
