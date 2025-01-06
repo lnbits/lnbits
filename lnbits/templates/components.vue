@@ -143,10 +143,7 @@
     <div v-if="user.admin">
       <q-item
         v-if="showAdmin"
-        clickable
-        tag="a"
-        href="/admin"
-        :active="isActive('/admin')"
+        to="/admin"
       >
         <q-item-section side>
           <q-icon
