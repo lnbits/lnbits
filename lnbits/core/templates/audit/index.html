@@ -4,7 +4,7 @@
 <div class="row q-col-gutter-md justify-center q-mb-lg">
   <div class="col-lg-3 col-md-6 col-sm-12 text-center">
     <q-card class="q-pt-sm">
-      <strong>Components</strong>
+      <strong v-text="$t('components')"></strong>
       <div style="width: 250px" class="q-pa-sm">
         <canvas ref="componentUseChart"></canvas>
       </div>
@@ -12,7 +12,7 @@
   </div>
   <div class="col-lg-3 col-md-6 col-sm-12 text-center">
     <q-card class="q-pt-sm">
-      <strong>To 5 Long Running Endpoints</strong>
+      <strong v-text="$t('long_running_endpoints')"></strong>
       <div style="width: 250px; height: 250px" class="q-pa-sm">
         <canvas ref="longDurationChart"></canvas>
       </div>
@@ -20,7 +20,7 @@
   </div>
   <div class="col-lg-3 col-md-6 col-sm-12 text-center">
     <q-card class="q-pt-sm">
-      <strong>HTTP Request Methods</strong>
+      <strong v-text="$t('http_request_methods')"></strong>
       <div style="width: 250px; height: 250px" class="q-pa-sm">
         <canvas ref="requestMethodChart"></canvas>
       </div>
@@ -28,7 +28,7 @@
   </div>
   <div class="col-lg-3 col-md-6 col-sm-12 text-center">
     <q-card class="q-pt-sm">
-      <strong>HTTP Response Codes</strong>
+      <strong v-text="$t('http_response_codes')"></strong>
       <div style="width: 250px; height: 250px" class="q-pa-sm">
         <canvas ref="responseCodeChart"></canvas>
       </div>
@@ -102,7 +102,9 @@
                   class="cursor-pointer q-mr-xs"
                   @click="showDetailsDialog(props.row)"
                 >
-                  <q-tooltip>Request Details</q-tooltip>
+                  <q-tooltip
+                    ><span v-text="$t('request_details')"></span
+                  ></q-tooltip>
                 </q-btn>
 
                 <span v-text="formatDate(props.row.created_at)"></span>
@@ -146,7 +148,7 @@
 
 <q-dialog v-model="auditDetailsDialog.show" position="top">
   <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-    <strong>HTTP Request Details</strong>
+    <strong v-text="$t('http_request_details')"></strong>
     <q-input
       filled
       dense

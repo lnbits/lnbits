@@ -427,5 +427,11 @@ window.localisation.en = {
   allowed_users_hint: 'Only these users can use LNbits',
   allowed_users_label: 'User ID',
   allow_creation_user: 'Allow creation of new users',
-  allow_creation_user_desc: 'Allow creation of new users on the index page'
+  allow_creation_user_desc: 'Allow creation of new users on the index page',
+  components: 'Components',
+  long_running_endpoints: 'Top 5 Long Running Endpoints',
+  http_request_methods: 'HTTP Request Methods',
+  http_response_codes: 'HTTP Response Codes',
+  request_details: 'Request Details',
+  http_request_details: 'HTTP Request Details'
 }
