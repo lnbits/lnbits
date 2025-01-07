@@ -24,7 +24,7 @@
     <q-card class="q-pt-sm">
       <strong>Components</strong>
       <div style="width: 250px" class="q-pa-sm">
-        <canvas ref="componentUseChart"></canvas>
+        <canvas v-if="chartsReady" ref="componentUseChart"></canvas>
       </div>
     </q-card>
   </div>
@@ -32,7 +32,7 @@
     <q-card class="q-pt-sm">
       <strong>To 5 Long Running Endpoints</strong>
       <div style="width: 250px; height: 250px" class="q-pa-sm">
-        <canvas ref="longDurationChart"></canvas>
+        <canvas v-if="chartsReady" ref="longDurationChart"></canvas>
       </div>
     </q-card>
   </div>
@@ -40,7 +40,7 @@
     <q-card class="q-pt-sm">
       <strong>HTTP Request Methods</strong>
       <div style="width: 250px; height: 250px" class="q-pa-sm">
-        <canvas ref="requestMethodChart"></canvas>
+        <canvas v-if="chartsReady" ref="requestMethodChart"></canvas>
       </div>
     </q-card>
   </div>
@@ -48,7 +48,7 @@
     <q-card class="q-pt-sm">
       <strong>HTTP Response Codes</strong>
       <div style="width: 250px; height: 250px" class="q-pa-sm">
-        <canvas ref="responseCodeChart"></canvas>
+        <canvas v-if="chartsReady" ref="responseCodeChart"></canvas>
       </div>
     </q-card>
   </div>

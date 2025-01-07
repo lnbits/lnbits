@@ -2,6 +2,7 @@ window.AuditPageLogic = {
   mixins: [window.windowMixin],
   data() {
     return {
+      chartsReady: false,
       auditEntries: [],
       searchData: {
         user_id: '',
@@ -96,10 +97,13 @@ window.AuditPageLogic = {
   },
 
   async created() {
-    await this.fetchAudit()
+    
   },
-  mounted() {
-    this.initCharts()
+  async mounted() {
+    this.chartsReady = true; // Allow the DOM to render the canvas elements
+    await this.$nextTick(); // Wait for DOM updates before initializing charts
+    this.initCharts(); // Initialize charts after DOM is ready
+    await this.fetchAudit(); 
   },
 
   methods: {
@@ -207,7 +211,11 @@ window.AuditPageLogic = {
       }
       return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
     },
-    initCharts() {
+    async initCharts() {
+      if (!this.chartsReady) {
+        console.warn('Charts are not ready yet. Initialization delayed.');
+        return;
+      }
       this.responseCodeChart = new Chart(
         this.$refs.responseCodeChart.getContext('2d'),
         {
