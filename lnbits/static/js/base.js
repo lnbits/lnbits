@@ -584,6 +584,8 @@ window.windowMixin = {
         'lnbits.darkBgColor',
         LNbits.utils.getPaletteColor('dark')
       )
+      document.documentElement.style.setProperty('--q-primary',  LNbits.utils.getPaletteColor('primary'))
+      document.documentElement.style.setProperty('--q-secondary',  LNbits.utils.getPaletteColor('secondary'))
     },
     copyText(text, message, position) {
       Quasar.copyToClipboard(text).then(() => {
