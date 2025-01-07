@@ -54,6 +54,7 @@ const DynamicComponent = {
         }
 
         //load scripts defined in the route
+        await this.loadScript('/static/js/base.js')
         for (const script of this.scripts) {
           await this.loadScript(script)
         }
