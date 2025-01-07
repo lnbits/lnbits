@@ -92,6 +92,7 @@ const DynamicComponent = {
           ...componentLogic,
           template: html // Use the fetched HTML as the template
         })
+        delete window[logicKey] //dont need this anymore
         this.$forceUpdate()
       } catch (error) {
         console.error('Error loading dynamic content:', error)
