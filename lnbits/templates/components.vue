@@ -137,7 +137,7 @@
   <q-list v-if="user" dense class="lnbits-drawer__q-list">
     <q-item-label header v-text="$t('manage')"></q-item-label>
     <div v-if="user.admin">
-      <q-item v-if="showAdmin" to="/admin" :color="isActive('/admin') ? 'primary' : 'grey-5'">
+      <q-item v-if="showAdmin" to="/admin">
         <q-item-section side>
           <q-icon
             name="admin_panel_settings"
@@ -167,7 +167,7 @@
           <q-item-label lines="1" v-text="$t('node')"></q-item-label>
         </q-item-section>
       </q-item>
-      <q-item v-if="showUsers" to="/users" :color="isActive('/users') ? 'primary' : 'grey-5'">
+      <q-item v-if="showUsers" to="/users">
         <q-item-section side>
           <q-icon
             name="groups"
@@ -182,7 +182,6 @@
       <q-item
         v-if="showAudit"
         to="/audit"
-        :color="isActive('/audit') ? 'primary' : 'grey-5'"
       >
         <q-item-section side>
           <q-icon
@@ -199,7 +198,6 @@
     <q-item
       v-if="showExtensions"
       to="/extensions"
-      :color="isActive('/extensions') ? 'primary' : 'grey-5'"
     >
       <q-item-section side>
         <q-icon
