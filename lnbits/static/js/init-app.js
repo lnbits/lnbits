@@ -145,14 +145,17 @@ const routes = [
       scripts: ['/static/js/users.js']
     }
   },
-  // Catch-all other routes and ket Fastapi do its thing
   {
-    path: '/:pathMatch(.*)*',
-    name: 'NotFound',
-    beforeEnter: (to, from, next) => {
-      window.location.href = to.fullPath
+    path: '/audit',
+    name: 'Audit',
+    component: DynamicComponent,
+    props: {
+      fetchUrl: '/audit',
+      scripts: ['/static/js/audit.js']
     }
-  }
+  },
+  // Catch-all other routes and ket Fastapi do its thing
+
 ]
 
 window.router = VueRouter.createRouter({
@@ -160,17 +163,6 @@ window.router = VueRouter.createRouter({
   routes
 })
 
-DynamicComponent.watch = {
-  $route(to, from) {
-    const validRouteNames = routes.map(route => route.name)
-    if (validRouteNames.includes(to.name)) {
-      this.$router.currentRoute.value.meta.previousRouteName = from.name
-      this.loadDynamicContent()
-    } else {
-      console.log(`Skipping route "${to.name}".`)
-    }
-  }
-}
 
 window.app.use(VueQrcodeReader)
 window.app.use(Quasar)
