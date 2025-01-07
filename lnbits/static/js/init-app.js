@@ -92,8 +92,6 @@ const DynamicComponent = {
           ...componentLogic,
           template: html // Use the fetched HTML as the template
         })
-        console.log(componentLogic)
-        console.log(html)
         this.$forceUpdate()
       } catch (error) {
         console.error('Error loading dynamic content:', error)
@@ -154,8 +152,15 @@ const routes = [
       scripts: ['/static/js/audit.js']
     }
   },
-  // Catch-all other routes and ket Fastapi do its thing
-
+  {
+    path: '/extensions',
+    name: 'Extensions',
+    component: DynamicComponent,
+    props: {
+      fetchUrl: '/extensions',
+      scripts: ['/static/js/extensions.js']
+    }
+  }
 ]
 
 window.router = VueRouter.createRouter({
