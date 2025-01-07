@@ -1,5 +1,4 @@
-window.app = Vue.createApp({
-  el: '#vue',
+window.AuditPageLogic = {
   mixins: [window.windowMixin],
   data() {
     return {
@@ -383,4 +382,4 @@ window.app = Vue.createApp({
       )
     }
   }
-})
+}

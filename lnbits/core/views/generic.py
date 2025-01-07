@@ -395,12 +395,13 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
 async def audit_index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_audit_enabled:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Audit not enabled")
-
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     return template_renderer().TemplateResponse(
         "audit/index.html",
         {
             "request": request,
             "user": user.json(),
+            "ajax": is_ajax,
         },
     )
 

@@ -181,10 +181,7 @@
       </q-item>
       <q-item
         v-if="showAudit"
-        clickable
-        tag="a"
-        href="/audit"
-        :active="isActive('/audit')"
+        to="/audit"
       >
         <q-item-section side>
           <q-icon
