@@ -19,6 +19,7 @@ from .base import (
     PaymentStatus,
     PaymentSuccessStatus,
     StatusResponse,
+    UnsupportedError,
     Wallet,
 )
 
@@ -32,6 +33,19 @@ class UnknownError(Exception):
 
 
 class SparkWallet(Wallet):
+
+    async def create_hold_invoice(self, *_, **__) -> InvoiceResponse:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
+
+    async def settle_hold_invoice(self, *_, **__) -> PaymentResponse:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
+
+    async def cancel_hold_invoice(self, *_, **__) -> PaymentResponse:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
+
+    async def hold_invoices_stream(self, *_, **__) -> None:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
+
     def __init__(self):
         if not settings.spark_url:
             raise ValueError("cannot initialize SparkWallet: missing spark_url")

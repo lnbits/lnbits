@@ -14,10 +14,10 @@ import lnbits.wallets.lnd_grpc_files.invoices_pb2_grpc as invoicesrpc
 import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
 import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 import lnbits.wallets.lnd_grpc_files.router_pb2 as router
-import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
+from lnbits.wallets.lnd_grpc_files.router_pb2_grpc import RouterStub
 
 from .base import (
     InvoiceResponse,
@@ -101,7 +101,7 @@ class LndWallet(Wallet):
             f"{self.endpoint}:{self.port}", composite_creds
         )
         self.rpc = lnrpc.LightningStub(channel)
-        self.routerpc = routerrpc.RouterStub(channel)
+        self.routerpc = RouterStub(channel)
         self.invoicesrpc = invoicesrpc.InvoicesStub(channel)
 
     def metadata_callback(self, _, callback):
@@ -112,7 +112,7 @@ class LndWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())
+            resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())  # type: ignore
         except Exception as exc:
             return StatusResponse(f"Unable to connect, got: '{exc}'", 0)
 
@@ -148,7 +148,7 @@ class LndWallet(Wallet):
         data["r_hash"] = bytes.fromhex(payment_hash)
         data["r_preimage"] = bytes.fromhex(preimage)
         try:
-            req = ln.Invoice(**data)
+            req = ln.Invoice(**data)  # type: ignore
             resp = await self.rpc.AddInvoice(req)
             # response model
             # {
@@ -172,7 +172,7 @@ class LndWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
-        req = router.SendPaymentRequest(
+        req = router.SendPaymentRequest(  # type: ignore
             payment_request=bolt11,
             fee_limit_msat=fee_limit_msat,
             timeout_seconds=30,
@@ -275,7 +275,7 @@ class LndWallet(Wallet):
 
         try:
             resp = self.routerpc.TrackPaymentV2(
-                router.TrackPaymentRequest(payment_hash=r_hash)
+                router.TrackPaymentRequest(payment_hash=r_hash)  # type: ignore
             )
             async for payment in resp:
                 if len(payment.htlcs) and statuses[payment.status]:
@@ -292,7 +292,7 @@ class LndWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:
             try:
-                request = ln.InvoiceSubscription()
+                request = ln.InvoiceSubscription()  # type: ignore
                 async for i in self.rpc.SubscribeInvoices(request):
                     if not i.settled:
                         continue
@@ -309,7 +309,7 @@ class LndWallet(Wallet):
     async def create_hold_invoice(
         self,
         amount: int,
-        rhash: bytes,
+        rhash: str,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
@@ -332,7 +332,7 @@ class LndWallet(Wallet):
             ).digest()  # as bytes directly
 
         try:
-            req = invoices.AddHoldInvoiceRequest(**data)
+            req = invoices.AddHoldInvoiceRequest(**data)  # type: ignore
             resp = await self.invoicesrpc.AddHoldInvoice(req)
 
         except Exception as exc:
@@ -340,13 +340,13 @@ class LndWallet(Wallet):
             error_message = str(exc)
             return InvoiceResponse(False, None, None, error_message)
 
-        checking_id = bytes_to_hex(rhash)
+        checking_id = rhash
         payment_request = str(resp.payment_request)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def settle_hold_invoice(self, preimage: str) -> PaymentResponse:
         try:
-            req = invoices.SettleInvoiceMsg(preimage=preimage)
+            req = invoices.SettleInvoiceMsg(preimage=preimage)  # type: ignore
             await self.invoicesrpc.SettleInvoice(req)
 
         except Exception as exc:
@@ -370,9 +370,7 @@ class LndWallet(Wallet):
 
     async def hold_invoices_stream(self, payment_hash: str, webhook: str):
         rhash = base64.urlsafe_b64encode(bytes.fromhex(payment_hash))
-        request = invoicesrpc.SubscribeSingleInvoiceRequest(
-            r_hash=rhash
-        )
+        request = invoicesrpc.SubscribeSingleInvoiceRequest(r_hash=rhash)  # type: ignore
         async for response in self.invoicesrpc.SubscribeSingleInvoice(request):
             if response.state not in ["ACCEPTED", "CANCELED"]:
                 continue

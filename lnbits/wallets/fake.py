@@ -27,6 +27,7 @@ from .base import (
     PaymentStatus,
     PaymentSuccessStatus,
     StatusResponse,
+    UnsupportedError,
     Wallet,
 )
 
@@ -42,6 +43,18 @@ class FakeWallet(Wallet):
 
     async def cleanup(self):
         pass
+
+    async def create_hold_invoice(self, *_, **__) -> InvoiceResponse:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
+
+    async def settle_hold_invoice(self, *_, **__) -> PaymentResponse:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
+
+    async def cancel_hold_invoice(self, *_, **__) -> PaymentResponse:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
+
+    async def hold_invoices_stream(self, *_, **__) -> None:
+        raise UnsupportedError("Hold invoices are not supported by this wallet.")
 
     async def status(self) -> StatusResponse:
         logger.info(
