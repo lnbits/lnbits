@@ -3,10 +3,6 @@
 {% from "macros.jinja" import window_vars with context %}
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}{% endblock %}
-<!---->
-{% block title %}<em v-text="g.wallet.name"></em> - {{ SITE_TITLE }} {% endblock
-%}
-<!---->
 {% block page %}
 <div class="row q-col-gutter-md">
   {% if HIDE_API and AD_SPACE %}
