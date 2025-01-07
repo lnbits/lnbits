@@ -163,6 +163,14 @@ window.router = VueRouter.createRouter({
   routes
 })
 
+window.app.mixin({
+  computed: {
+    isVueRoute() {
+      const vueRoutes = window.router.options.routes.map(route => route.path);
+      return vueRoutes.includes(window.location.pathname);
+    }
+  }
+});
 
 window.app.use(VueQrcodeReader)
 window.app.use(Quasar)
