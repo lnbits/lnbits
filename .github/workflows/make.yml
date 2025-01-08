@@ -17,6 +17,7 @@ on:
         default: "3.10"
       poetry-version:
         description: "Poetry Version"
+        type: string
         default: "2.0.0"
 
 jobs:
