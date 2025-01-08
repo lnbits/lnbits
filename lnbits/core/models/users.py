@@ -60,6 +60,11 @@ class UserACLs(BaseModel):
                 return acl
         return None
 
+    def delete_acl_by_id(self, acl_id: str):
+        self.access_control_list = [
+            acl for acl in self.access_control_list if acl.id != acl_id
+        ]
+
 
 class Account(BaseModel):
     id: str
@@ -249,4 +254,9 @@ class ApiTokenResponse(BaseModel):
 
 
 class UpdateAccessControlList(AccessControlList):
+    password: str
+
+
+class DeleteAccessControlList(BaseModel):
+    id: str
     password: str

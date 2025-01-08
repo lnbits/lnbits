@@ -19,6 +19,7 @@ from lnbits.core.models.misc import SimpleItem
 from lnbits.core.models.users import (
     ApiTokenRequest,
     ApiTokenResponse,
+    DeleteAccessControlList,
     EndpointAccess,
     UpdateAccessControlList,
 )
@@ -164,6 +165,20 @@ async def api_create_user_acl(
     await update_user_access_control_list(user_acls)
 
     return user_acls
+
+
+@auth_router.delete("/acl")
+async def api_delete_user_acl(
+    data: DeleteAccessControlList,
+    user: User = Depends(check_user_exists),
+):
+    account = await get_account(user.id)
+    if not account or not account.verify_password(data.password):
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
+
+    user_acls = await get_user_access_control_lists(user.id)
+    user_acls.delete_acl_by_id(data.id)
+    await update_user_access_control_list(user_acls)
 
 
 @auth_router.post("/acl/token")

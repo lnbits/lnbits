@@ -319,9 +319,21 @@ window.AccountPageLogic = {
         LNbits.utils.notifyApiError(e)
       }
     },
-    deleteApiACL() {
+    async deleteApiACL() {
       if (!this.selectedApiAcl.id) {
         return
+      }
+      try {
+        await LNbits.api.request('DELETE', '/api/v1/auth/acl', null, {
+          id: this.selectedApiAcl.id,
+          password: this.apiAcl.password
+        })
+        this.$q.notify({
+          type: 'positive',
+          message: 'Access Control List deleted.'
+        })
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
       }
       this.apiAcl.data = this.apiAcl.data.filter(
         t => t.id !== this.selectedApiAcl.id
