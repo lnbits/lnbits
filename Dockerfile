@@ -11,7 +11,6 @@ WORKDIR /app
 
 # Only copy the files required to install the dependencies
 COPY pyproject.toml poetry.lock README.md ./
-COPY lnbits ./app/lnbits
 
 RUN mkdir data
 
@@ -20,7 +19,7 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_CREATE=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-RUN poetry install --only main
+RUN poetry install --only main --no-root
 
 FROM python:3.12-slim-bookworm
 
