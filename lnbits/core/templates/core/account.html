@@ -529,7 +529,7 @@
                     </div>
                     <div class="col-sm-12 col-md-6">
                       <q-btn
-                        @click="newApiAclDialog()"
+                        @click="askPasswordAndRunFunction('newApiAclDialog')"
                         filled
                         outline
                         icon="add"
@@ -554,7 +554,6 @@
                       </div>
 
                       <div class="col-sm-12 col-md-6 q-pl-sm">
-                        <!-- @click="newTokenAclDialog()" -->
                         <q-btn
                           v-if="apiAcl.selectedTokenId"
                           icon="delete"
@@ -563,7 +562,7 @@
                           class="float-left"
                         ></q-btn>
                         <q-btn
-                          @click="newTokenAclDialog()"
+                          @click="askPasswordAndRunFunction('newTokenAclDialog')"
                           outline
                           icon="add"
                           :label="$t('api_token')"
@@ -699,24 +698,45 @@
   </div>
 </div>
 
-<q-dialog v-model="apiAcl.showNewAclDialog" position="top">
+<q-dialog v-model="apiAcl.showPasswordDialog" position="top">
   <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
-    <strong>New API Access Control List</strong>
+    <strong>User Password</strong>
     <div class="row q-mt-md q-col-gutter-md">
       <div class="col-12">
-        <q-input v-model="apiAcl.newAclName" dense filled label="ACL Name">
-        </q-input>
-      </div>
-      <div class="col-12">
-        <q-separator class="q-mt-xl q-mb-lg"></q-separator>
         <q-input
           v-model="apiAcl.password"
           type="password"
           dense
           filled
           label="Password"
-          hint="User password is required in order to create or update ACLs."
+          hint="User password is required for this action."
         >
+        </q-input>
+      </div>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn
+        @click="runPasswordGuardedFunction()"
+        :label="$t('ok')"
+        color="primary"
+      ></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('cancel')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
+
+<q-dialog v-model="apiAcl.showNewAclDialog" position="top">
+  <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+    <strong>New API Access Control List</strong>
+    <div class="row q-mt-md q-col-gutter-md">
+      <div class="col-12">
+        <q-input v-model="apiAcl.newAclName" dense filled label="ACL Name">
         </q-input>
       </div>
     </div>
@@ -748,18 +768,6 @@
           filled
           label="Expiration"
           hit="Expiration time in minutes (default xxx)"
-        >
-        </q-input>
-      </div>
-      <div class="col-12">
-        <q-separator class="q-mt-xl q-mb-lg"></q-separator>
-        <q-input
-          v-model="apiAcl.password"
-          type="password"
-          dense
-          filled
-          label="Password"
-          hint="User password is required in order to create a new Access Token."
         >
         </q-input>
       </div>
