@@ -28,7 +28,7 @@ runs:
         cache: "pip"
 
     - name: Set up Poetry ${{ inputs.poetry-version }}
-      uses: abatilo/actions-poetry@v2
+      uses: abatilo/actions-poetry@v4
       with:
         poetry-version: ${{ inputs.poetry-version }}
 
