@@ -664,7 +664,7 @@
                   <div v-if="selectedApiAcl.id" class="row q-mt-md">
                     <div class="col-sm-12 col-md-6">
                       <q-btn
-                        @click="updateApiACLs()"
+                        @click="askPasswordAndRunFunction('updateApiACLs')"
                         :label="$t('update')"
                         filled
                         color="primary"

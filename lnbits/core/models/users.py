@@ -248,9 +248,5 @@ class ApiTokenResponse(BaseModel):
     api_token: str
 
 
-class UpdateUserACLs(UserACLs):
-    password: str
-
-
-class CreateAccessControlList(AccessControlList):
+class UpdateAccessControlList(AccessControlList):
     password: str

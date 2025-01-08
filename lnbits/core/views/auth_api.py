@@ -17,12 +17,10 @@ from lnbits.core.crud.users import (
 )
 from lnbits.core.models.misc import SimpleItem
 from lnbits.core.models.users import (
-    AccessControlList,
     ApiTokenRequest,
     ApiTokenResponse,
-    CreateAccessControlList,
     EndpointAccess,
-    UpdateUserACLs,
+    UpdateAccessControlList,
 )
 from lnbits.core.services import create_user_account
 from lnbits.decorators import access_token_payload, check_user_exists
@@ -135,51 +133,37 @@ async def api_get_user_acls(
     return UserACLs(id=user.id, access_control_list=acls.access_control_list)
 
 
-@auth_router.post("/acl")
+@auth_router.put("/acl")
 async def api_create_user_acl(
     request: Request,
-    data: CreateAccessControlList,
-    user: User = Depends(check_user_exists),
-) -> AccessControlList:
-    account = await get_account(user.id)
-    if not account or not account.verify_password(data.password):
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
-    data.endpoints = []
-    data.id = uuid4().hex
-
-    api_routes = get_api_routes(request.app.router.routes)
-    for path, name in api_routes.items():
-        data.endpoints.append(EndpointAccess(path=path, name=name))
-
-    acls = await get_user_access_control_lists(user.id)
-    acls.access_control_list.append(data)
-    await update_user_access_control_list(acls)
-
-    return AccessControlList(**dict(data))
-
-
-@auth_router.put("/acl")
-async def api_update_user_tokens(
-    request: Request,
-    data: UpdateUserACLs,
+    data: UpdateAccessControlList,
     user: User = Depends(check_user_exists),
 ) -> UserACLs:
-    # todo: expire
-    assert data.id == user.id, "Wrong user id."
     account = await get_account(user.id)
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
+
+    user_acls = await get_user_access_control_lists(user.id)
+    acl = user_acls.get_acl_by_id(data.id)
+    if acl:
+        user_acls.access_control_list.remove(acl)
+    else:
+        data.endpoints = []
+        data.id = uuid4().hex
+
+        api_routes = get_api_routes(request.app.router.routes)
+        for path, name in api_routes.items():
+            data.endpoints.append(EndpointAccess(path=path, name=name))
+
     api_paths = get_api_routes(request.app.router.routes).keys()
-    for acl in data.access_control_list:
-        if acl.id == acl.name:
-            acl.id = uuid4().hex
-        acl.endpoints = [e for e in acl.endpoints if e.path in api_paths]
-        acl.endpoints.sort(key=lambda e: e.name.lower())
+    data.endpoints = [e for e in data.endpoints if e.path in api_paths]
+    data.endpoints.sort(key=lambda e: e.name.lower())
 
-    data.access_control_list.sort(key=lambda t: t.name.lower())
-    await update_user_access_control_list(data)
+    user_acls.access_control_list.append(data)
+    user_acls.access_control_list.sort(key=lambda t: t.name.lower())
+    await update_user_access_control_list(user_acls)
 
-    return await get_user_access_control_lists(user.id)
+    return user_acls
 
 
 @auth_router.post("/acl/token")

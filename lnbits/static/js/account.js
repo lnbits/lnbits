@@ -70,6 +70,7 @@ window.AccountPageLogic = {
         id: null,
         name: null,
         endpoints: [],
+        token_id_list: [],
         allRead: false,
         allWrite: false
       }
@@ -213,7 +214,12 @@ window.AccountPageLogic = {
       this.apiAcl.showNewTokenDialog = true
     },
     handleApiACLSelected(aclId) {
-      this.selectedApiAcl = {id: null, name: null, endpoints: []}
+      this.selectedApiAcl = {
+        id: null,
+        name: null,
+        endpoints: [],
+        token_id_list: []
+      }
       if (!aclId) {
         return
       }
@@ -271,19 +277,21 @@ window.AccountPageLogic = {
 
       try {
         const {data} = await LNbits.api.request(
-          'POST',
+          'PUT',
           '/api/v1/auth/acl',
           null,
           {
             id: this.apiAcl.newAclName,
             name: this.apiAcl.newAclName,
-            endpoints: [],
             password: this.apiAcl.password
           }
         )
-        this.apiAcl.data.push(data)
+        this.apiAcl.data = data.access_control_list
+        const acl = this.apiAcl.data.find(
+          t => t.name === this.apiAcl.newAclName
+        )
 
-        this.handleApiACLSelected(data.id)
+        this.handleApiACLSelected(acl.id)
         this.apiAcl.showNewAclDialog = false
       } catch (e) {
         LNbits.utils.notifyApiError(e)
@@ -302,7 +310,8 @@ window.AccountPageLogic = {
           null,
           {
             id: this.user.id,
-            access_control_list: this.apiAcl.data
+            password: this.apiAcl.password,
+            ...this.selectedApiAcl
           }
         )
         this.apiAcl.data = data.access_control_list
