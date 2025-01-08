@@ -3,10 +3,10 @@ import hashlib
 from collections.abc import AsyncGenerator
 from typing import Optional
 
+import bolt11
 import httpx
 from loguru import logger
 
-from lnbits import bolt11
 from lnbits.settings import settings
 
 from .base import (

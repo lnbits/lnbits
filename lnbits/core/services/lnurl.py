@@ -6,6 +6,8 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 from fastapi import Depends
+from lnurl import LnurlErrorResponse
+from lnurl import decode as decode_lnurl
 from loguru import logger
 
 from lnbits.db import Connection
@@ -14,8 +16,6 @@ from lnbits.decorators import (
     require_admin_key,
 )
 from lnbits.helpers import url_for
-from lnbits.lnurl import LnurlErrorResponse
-from lnbits.lnurl import decode as decode_lnurl
 from lnbits.settings import settings
 
 from .payments import create_invoice

@@ -54,6 +54,7 @@ dependencies = [
     "environs>=9.5.0",
     # needed for scheduler extension
     "python-crontab>=3.2.0",
+    "greenlet>=3.1.1",
 ]
 
 [project.optional-dependencies]
