@@ -242,12 +242,18 @@ window.AccountPageLogic = {
       )
     },
     async addApiACL() {
-      const name = this.apiAcl.newAclName
-      if (!name) {
+      if (!this.apiAcl.newAclName) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Name is required.'
+        })
         return
       }
-      if (this.apiAcl.data.find(t => t.name === name)) {
-        this.apiAcl.showNewAclDialog = false
+      if (!this.apiAcl.password) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'User password is required.'
+        })
         return
       }
       try {
@@ -256,9 +262,10 @@ window.AccountPageLogic = {
           '/api/v1/auth/acl',
           null,
           {
-            id: name,
-            name: name,
-            endpoints: []
+            id: this.apiAcl.newAclName,
+            name: this.apiAcl.newAclName,
+            endpoints: [],
+            password: this.apiAcl.password,
           }
         )
         this.apiAcl.data.push(data)
@@ -266,6 +273,9 @@ window.AccountPageLogic = {
         this.handleApiACLSelected(data.id)
       } catch (e) {
         LNbits.utils.notifyApiError(e)
+      } finally {
+        this.apiAcl.password = null
+        this.apiAcl.name = ''
       }
 
       this.apiAcl.showNewAclDialog = false
@@ -273,7 +283,6 @@ window.AccountPageLogic = {
     async getApiACLs() {
       try {
         const {data} = await LNbits.api.request('GET', '/api/v1/auth/acl', null)
-        console.log('### getApiACLs', data)
         this.apiAcl.data = data.access_control_list
       } catch (e) {
         LNbits.utils.notifyApiError(e)

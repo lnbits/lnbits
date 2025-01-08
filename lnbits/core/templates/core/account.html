@@ -5,7 +5,7 @@
 {% block scripts %} {{ window_vars(user) }}{% endblock %} {% block page %}
 
 <div class="row q-col-gutter-md">
-  <div v-if="user" class="col-12 col-md-6 q-gutter-y-md">
+  <div v-if="user" class="col-md-12 col-lg-6 q-gutter-y-md">
     <q-card>
       <q-card-section>
         <div class="row">
@@ -514,7 +514,7 @@
                 <div class="row q-mb-md"></div>
 
                 <q-card-section>
-                  <div class="row q-mb-md">
+                  <div class="row q-mb-md q-gutter-y-md">
                     <div class="col-sm-12 col-md-6">
                       <q-select
                         v-model="selectedApiAcl.id"
@@ -528,12 +528,13 @@
                       </q-select>
                     </div>
                     <div class="col-sm-12 col-md-6">
-                      <!-- :label="$t('new_api_acl')" -->
                       <q-btn
                         @click="newApiAclDialog()"
                         filled
+                        outline
                         icon="add"
-                        color="primary"
+                        :label="$t('access_control_list')"
+                        color="grey"
                         class="float-right"
                       ></q-btn>
                     </div>
@@ -563,8 +564,9 @@
                         ></q-btn>
                         <q-btn
                           @click="newTokenAclDialog()"
-                          :label="$t('new_token')"
+                          outline
                           icon="add"
+                          :label="$t('api_token')"
                           filled
                           color="grey"
                           class="float-right"
@@ -700,9 +702,21 @@
 <q-dialog v-model="apiAcl.showNewAclDialog" position="top">
   <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
     <strong>New API Access Control List</strong>
-    <div class="row q-mt-md">
+    <div class="row q-mt-md q-col-gutter-md">
       <div class="col-12">
         <q-input v-model="apiAcl.newAclName" dense filled label="ACL Name">
+        </q-input>
+      </div>
+      <div class="col-12">
+        <q-separator class="q-mt-xl q-mb-lg"></q-separator>
+        <q-input
+          v-model="apiAcl.password"
+          type="password"
+          dense
+          filled
+          label="Password"
+          hint="User password is required in order to create or update ACLs."
+        >
         </q-input>
       </div>
     </div>
@@ -738,12 +752,14 @@
         </q-input>
       </div>
       <div class="col-12">
+        <q-separator class="q-mt-xl q-mb-lg"></q-separator>
         <q-input
           v-model="apiAcl.password"
           type="password"
           dense
           filled
           label="Password"
+          hint="User password is required in order to create a new Access Token."
         >
         </q-input>
       </div>

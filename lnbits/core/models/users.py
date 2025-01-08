@@ -36,7 +36,7 @@ class EndpointAccess(BaseModel):
     write: bool = False
 
 
-class ApiAccessControlList(BaseModel):
+class AccessControlList(BaseModel):
     id: str
     name: str
     endpoints: list[EndpointAccess] = []
@@ -51,10 +51,10 @@ class ApiAccessControlList(BaseModel):
 
 class UserACLs(BaseModel):
     id: str
-    access_control_list: list[ApiAccessControlList] = []
+    access_control_list: list[AccessControlList] = []
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    def get_acl_by_id(self, acl_id: str) -> Optional[ApiAccessControlList]:
+    def get_acl_by_id(self, acl_id: str) -> Optional[AccessControlList]:
         for acl in self.access_control_list:
             if acl.id == acl_id:
                 return acl
@@ -246,3 +246,11 @@ class ApiTokenRequest(BaseModel):
 class ApiTokenResponse(BaseModel):
     id: str
     api_token: str
+
+
+class UpdateUserACLs(UserACLs):
+    password: str
+
+
+class CreateAccessControlList(AccessControlList):
+    password: str
