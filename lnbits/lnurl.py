@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from http import HTTPStatus
-from typing import Callable
 
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import JSONResponse

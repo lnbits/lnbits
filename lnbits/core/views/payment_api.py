@@ -1,7 +1,7 @@
 import json
 from http import HTTPStatus
 from math import ceil
-from typing import List, Optional
+from typing import Optional
 from urllib.parse import urlparse
 
 import httpx
@@ -62,7 +62,7 @@ payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
     name="Payment List",
     summary="get list of payments",
     response_description="list of payments",
-    response_model=List[Payment],
+    response_model=list[Payment],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments(
@@ -81,7 +81,7 @@ async def api_payments(
 @payment_router.get(
     "/history",
     name="Get payments history",
-    response_model=List[PaymentHistoryPoint],
+    response_model=list[PaymentHistoryPoint],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_history(
