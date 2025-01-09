@@ -2,16 +2,13 @@
 <!---->
 {% from "macros.jinja" import window_vars with context %}
 <!---->
-{% block scripts %} {{ window_vars(user, wallet, extensions, extension_data) }}{% endblock %}
-<!---->
-{% block title %}Extensions - {{ SITE_TITLE }} {% endblock
-%}
-{% block page %}
+{% block scripts %} {{ window_vars(user, wallet, extensions, extension_data)
+}}{% endblock %} {% block page %}
 
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-12">
     <q-card>
-      <div class="q-pa-xs">
+      <div>
         <div class="q-gutter-y-md">
           <q-tabs
             :model-value="tab"
@@ -73,7 +70,7 @@
 </div>
 <div class="row q-col-gutter-md">
   <div
-    v-if="extension"
+    v-if="filteredExtensions"
     class="col-12 col-sm-6 col-md-6 col-lg-4"
     v-for="extension in filteredExtensions"
     :key="extension.id + extension.hash"

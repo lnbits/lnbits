@@ -10,7 +10,6 @@ const DynamicComponent = {
     }
   },
   async mounted() {
-    console.log('Component mounted.')
     await this.loadDynamicContent()
   },
   methods: {
@@ -30,9 +29,8 @@ const DynamicComponent = {
       })
     },
     async loadDynamicContent() {
+      this.$q.loading.show()
       try {
-        console.log('Fetching content from:', this.fetchUrl)
-
         //grab page content, need to be before loading scripts
         const response = await fetch(this.fetchUrl, {
           credentials: 'include',
@@ -49,7 +47,6 @@ const DynamicComponent = {
         const htmlDocument = parser.parseFromString(html, 'text/html')
         const inlineScript = htmlDocument.querySelector('#window-vars-script')
         if (inlineScript) {
-          console.log('Executing inline script:', inlineScript.innerHTML)
           new Function(inlineScript.innerHTML)() // Execute the script
         }
 
@@ -66,9 +63,6 @@ const DynamicComponent = {
           previousRouteName &&
           window.app._context.components[previousRouteName]
         ) {
-          console.log(
-            `Removing component for previous route: ${previousRouteName}`
-          )
           delete window.app._context.components[previousRouteName]
         }
 
@@ -97,6 +91,8 @@ const DynamicComponent = {
         this.$forceUpdate()
       } catch (error) {
         console.error('Error loading dynamic content:', error)
+      } finally {
+        this.$q.loading.hide()
       }
     }
   },
@@ -107,16 +103,17 @@ const DynamicComponent = {
         this.$router.currentRoute.value.meta.previousRouteName = from.name
         this.loadDynamicContent()
       } else {
-        console.warn(
+        console.log(
           `Route '${to.name}' is not valid. Leave this one to ol'Fastapi.`
         )
       }
     }
   },
-  template: '<component :is="$route.name"></component>'
+  template: `
+      <component :is="$route.name"></component>
+  `
 }
 
-//Routes, could be defined in a separate file and added to by extensions
 const routes = [
   {
     path: '/wallet',
@@ -173,11 +170,13 @@ window.router = VueRouter.createRouter({
 window.app.mixin({
   computed: {
     isVueRoute() {
-      const vueRoutes = window.router.options.routes.map(route => route.path);
-      return vueRoutes.includes(window.location.pathname);
+      const currentPath = window.location.pathname
+      const matchedRoute = window.router.resolve(currentPath)
+      const isVueRoute = matchedRoute?.matched?.length > 0
+      return isVueRoute
     }
   }
-});
+})
 
 window.app.use(VueQrcodeReader)
 window.app.use(Quasar)

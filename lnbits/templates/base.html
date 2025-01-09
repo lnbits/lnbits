@@ -196,9 +196,7 @@
             <router-view v-if="isVueRoute"></router-view>
 
             <!-- FastAPI Content -->
-            <div v-else>
-              {% block page %}{% endblock %}
-            </div>
+            <div v-else>{% block page %}{% endblock %}</div>
           </q-page>
         </q-page-container>
         {% endblock %} {% block footer %}

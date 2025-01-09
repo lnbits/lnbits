@@ -2,8 +2,8 @@
 <!---->
 {% from "macros.jinja" import window_vars with context %}
 <!---->
-{% block scripts %} {{ window_vars(user, wallet) }}{% endblock %}
-{% block page %}
+{% block scripts %} {{ window_vars(user, wallet) }}{% endblock %} {% block page
+%}
 <div class="row q-col-gutter-md">
   {% if HIDE_API and AD_SPACE %}
   <div class="col-12 col-md-8 q-gutter-y-md">

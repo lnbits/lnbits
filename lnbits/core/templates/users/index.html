@@ -14,13 +14,36 @@
       {%include "users/_createWalletDialog.html" %}
     </div>
     <div v-else>
-      <q-btn
-        @click="showAccountPage()"
-        :label="$t('create_account')"
-        color="primary"
-        class="q-mb-md"
-      >
-      </q-btn>
+      <div class="row q-col-gutter-md q-mb-md">
+        <div class="col-12">
+          <q-card>
+            <div class="q-pa-sm">
+              <div class="row items-center justify-between q-gutter-xs">
+                <div class="col">
+                  <q-btn
+                    @click="showAccountPage()"
+                    :label="$t('create_account')"
+                    color="primary"
+                  >
+                  </q-btn>
+                </div>
+                <div>
+                  <q-btn
+                    v-if="g.user.admin"
+                    flat
+                    round
+                    icon="settings"
+                    tag="a"
+                    href="/admin#audit"
+                  >
+                    <q-tooltip v-text="$t('admin_settings')"></q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
+            </div>
+          </q-card>
+        </div>
+      </div>
 
       <q-card class="q-pa-md">
         <q-table
