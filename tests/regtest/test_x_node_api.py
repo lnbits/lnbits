@@ -107,9 +107,8 @@ async def test_get_channel(node_client):
     assert response.status_code == 200
     print("!!!!!!!!")
     res = response.json()
-    print(res[0])
-    print(res[1])
-    print(res[2])
+    for ch in res:
+        print(ch)
     print("!!!!!!!!")
 
     channels = parse_obj_as(list[NodeChannel], response.json())
@@ -137,9 +136,8 @@ async def test_set_channel_fees(node_client):
     assert response.status_code == 200
     print("!!!!!!!!2")
     res = response.json()
-    print(res[0])
-    print(res[1])
-    print(res[2])
+    for ch in res:
+        print(ch)
     print("!!!!!!!!2")
     channels = parse_obj_as(list[NodeChannel], response.json())
 
