@@ -305,7 +305,8 @@ class CoreLightningNode(Node):
                 NodePayment(
                     bolt11=pay.get("bolt11"),
                     amount=pay.get("amount_msat", 0),
-                    fee=int(pay.get("amount_msat", 0)) - int(pay["amount_sent_msat"]),
+                    fee=int(pay.get("amount_msat", 0))
+                    - int(pay.get("amount_sent_msat", 0)),
                     memo=pay.get("description"),
                     time=pay["created_at"],
                     preimage=pay.get("preimage"),
