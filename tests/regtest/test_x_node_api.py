@@ -105,6 +105,9 @@ async def test_get_channel(node_client):
     await asyncio.sleep(3)
     response = await node_client.get("/node/api/v1/channels")
     assert response.status_code == 200
+    print("!!!!!!!!")
+    print(response.json())
+
     channels = parse_obj_as(list[NodeChannel], response.json())
 
     ch = random.choice(
