@@ -2,7 +2,7 @@
 <!---->
 {% from "macros.jinja" import window_vars with context %}
 <!---->
-{% block scripts %} {{ window_vars(user, extensions) }}{% endblock %}
+{% block scripts %} {{ window_vars(user, wallet, extensions) }}{% endblock %}
 <!---->
 {% block title %}Extensions - {{ SITE_TITLE }} {% endblock
 %}
@@ -73,6 +73,7 @@
 </div>
 <div class="row q-col-gutter-md">
   <div
+    v-if="extension"
     class="col-12 col-sm-6 col-md-6 col-lg-4"
     v-for="extension in filteredExtensions"
     :key="extension.id + extension.hash"
@@ -121,6 +122,7 @@
               ></q-tooltip>
             </q-badge>
             <div
+              v-if="extension.name"
               class="text-h5"
               style="cursor: pointer"
               @click="showExtensionDetails(extension.id, extension.details_link)"

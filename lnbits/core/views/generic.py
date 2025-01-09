@@ -146,13 +146,14 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
     # refresh user state. Eg: enabled extensions.
     # TODO: refactor
     # user = await get_user(user.id) or user
-
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     return template_renderer().TemplateResponse(
         request,
         "core/extensions.html",
         {
             "user": user.json(),
             "extensions": extensions,
+            "ajax": is_ajax,
         },
     )
 

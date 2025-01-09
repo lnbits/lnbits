@@ -6,6 +6,7 @@ window.ExtensionsPageLogic = {
         autoplay: true,
         searchTerm: '',
         tab: 'all',
+        extensions: window.extensions,
         manageExtensionTab: 'releases',
         filteredExtensions: null,
         updatableExtensions: [],
@@ -640,10 +641,9 @@ window.ExtensionsPageLogic = {
         }, 2000)
       }
     },
-
     created: function () {
-      this.extensions = JSON.parse('{{extensions | tojson | safe}}').map(e => ({
-        ...e,
+      this.extensions = this.extensions.map(e => ({
+        name: e,
         inProgress: false,
         selectedForUpdate: false
       }))

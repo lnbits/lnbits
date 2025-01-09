@@ -106,6 +106,9 @@ window.app.component('lnbits-extension-list', {
     }
   },
   async created() {
+    console.log('components.js loaded')
+    console.log(this.userExtensions)
+    console.log('components.js loaded')
     if (window.user) {
       this.user = LNbits.map.user(window.user)
     }

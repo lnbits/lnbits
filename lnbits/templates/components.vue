@@ -92,7 +92,7 @@
 
 <template id="lnbits-extension-list">
   <q-list
-    v-if="user && (userExtensions.length > 0 || !!searchTerm)"
+    v-if="user && userExtensions && userExtensions.length > 0 || !!searchTerm"
     dense
     class="lnbits-drawer__q-list"
   >
@@ -214,7 +214,7 @@
 </template>
 
 <template id="lnbits-payment-details">
-  <div class="q-py-md" style="text-align: left">
+  <div  v-if="payment" class="q-py-md" style="text-align: left">
     <div v-if="payment.tag" class="row justify-center q-mb-md">
       <q-badge v-if="hasTag" color="yellow" text-color="black">
         #<span v-text="payment.tag"></span>
