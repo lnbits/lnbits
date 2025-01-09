@@ -20,6 +20,7 @@ from lnbits.core.models.users import (
     ApiTokenRequest,
     ApiTokenResponse,
     DeleteAccessControlList,
+    DeleteTokenRequest,
     EndpointAccess,
     UpdateAccessControlList,
 )
@@ -191,7 +192,7 @@ async def api_create_user_api_token(
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
-    assert account.username, "Username must be configured for password validation."
+    assert account.username, "Username must be configured."
 
     acls = await get_user_access_control_lists(user.id)
     acl = acls.get_acl_by_id(data.acl_id)
@@ -206,6 +207,26 @@ async def api_create_user_api_token(
     acl.token_id_list.append(SimpleItem(id=api_token_id, name=data.token_name))
     await update_user_access_control_list(acls)
     return ApiTokenResponse(id=api_token_id, api_token=api_token)
+
+
+@auth_router.delete("/acl/token")
+async def api_delete_user_api_token(
+    data: DeleteTokenRequest,
+    user: User = Depends(check_user_exists),
+):
+
+    account = await get_account(user.id)
+    if not account or not account.verify_password(data.password):
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
+
+    assert account.username, "Username must be configured."
+
+    acls = await get_user_access_control_lists(user.id)
+    acl = acls.get_acl_by_id(data.acl_id)
+    if not acl:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid ACL id.")
+    acl.delete_token_by_id(data.id)
+    await update_user_access_control_list(acls)
 
 
 @auth_router.get("/{provider}", description="SSO Provider")

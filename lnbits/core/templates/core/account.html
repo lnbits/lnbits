@@ -556,6 +556,7 @@
                       <div class="col-sm-12 col-md-6 q-pl-sm">
                         <q-btn
                           v-if="apiAcl.selectedTokenId"
+                          @click="askPasswordAndRunFunction('deleteToken')"
                           icon="delete"
                           filled
                           color="negative"
