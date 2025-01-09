@@ -141,7 +141,7 @@ async def check_user_exists(
     usr: Optional[UUID4] = None,
 ) -> User:
     if access_token:
-        account = await _get_account_from_token(access_token, r["path"])
+        account = await _get_account_from_token(access_token, r["path"], r["method"])
     elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
         account = await get_account(usr.hex)
     else:
@@ -169,7 +169,7 @@ async def optional_user_id(
     if usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
         return usr.hex
     if access_token:
-        account = await _get_account_from_token(access_token, r["path"])
+        account = await _get_account_from_token(access_token, r["path"], r["method"])
         return account.id if account else None
 
     return None
@@ -259,9 +259,8 @@ async def check_user_extension_access(
     return SimpleStatus(success=True, message="OK")
 
 
-async def _check_user_extension_access(user_id: str, current_path: str):
-    path = current_path.split("/")
-    ext_id = path[3] if path[1] == "upgrades" else path[1]  # todo: test this
+async def _check_user_extension_access(user_id: str, path: str):
+    ext_id = _path_segments(path)[0]
     status = await check_user_extension_access(user_id, ext_id)
     if not status.success:
         raise HTTPException(
@@ -271,12 +270,12 @@ async def _check_user_extension_access(user_id: str, current_path: str):
 
 
 async def _get_account_from_token(
-    access_token: str, current_path: str
+    access_token: str, path: str, method: str
 ) -> Optional[Account]:
     try:
         payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
         account = await _get_account_from_jwt_payload(
-            AccessTokenPayload(**payload), current_path
+            AccessTokenPayload(**payload), path, method
         )
         if not account:
             raise HTTPException(
@@ -295,7 +294,7 @@ async def _get_account_from_token(
 
 
 async def _get_account_from_jwt_payload(
-    payload: AccessTokenPayload, current_path: str
+    payload: AccessTokenPayload, path: str, method: str
 ) -> Optional[Account]:
     account = None
     if payload.sub is not None:
@@ -309,23 +308,33 @@ async def _get_account_from_jwt_payload(
         return None
 
     if payload.api_token_id:
-        await _check_account_api_access(account.id, payload.api_token_id, current_path)
+        await _check_account_api_access(account.id, payload.api_token_id, path, method)
 
     return account
 
 
-async def _check_account_api_access(user_id: str, token_id: str, current_path: str):
-    # todo: methods
-    segments = current_path.split("/")
+async def _check_account_api_access(
+    user_id: str, token_id: str, path: str, method: str
+):
+    segments = path.split("/")
     if len(segments) < 3:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "Access to path restricted.")
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Not an API endpoint.")
 
     acls = await get_user_access_control_lists(user_id)
     acl = acls.get_acl_by_token_id(token_id)
     if not acl:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Invalid Access Token.")
 
-    path = "/".join(segments[1:4])  # todo: upgrades
+    path = "/".join(_path_segments(path)[:3])
     endpoint = acl.get_endpoint(path)
     if not endpoint:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "No permission.")
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Path not allowed.")
+    if not endpoint.supports_method(method):
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Method not allowed.")
+
+
+def _path_segments(path: str) -> list[str]:
+    segments = path.split("/")
+    if segments[1] == "upgrades":
+        return segments[3:]
+    return segments[1:]

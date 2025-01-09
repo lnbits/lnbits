@@ -35,6 +35,14 @@ class EndpointAccess(BaseModel):
     read: bool = False
     write: bool = False
 
+    def supports_method(self, method: str) -> bool:
+        # all http methods
+        if method in ["GET", "OPTIONS", "HEAD"]:
+            return self.read
+        if method in ["POST", "PUT", "PATCH", "DELETE"]:
+            return self.write
+        return False
+
 
 class AccessControlList(BaseModel):
     id: str
