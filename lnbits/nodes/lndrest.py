@@ -227,9 +227,7 @@ class LndRestNode(Node):
         # peer_b64 = _encode_bytes(peer_id)
         print("PEER ID b64")
         print(peer_b64)
-        print("PEER ID")
-        print(peer_id)
-        channels = await self.get(f"/v1/channels?peer={peer_id}")
+        channels = await self.get(f"/v1/channels?peer={peer_b64}")
         if "error" in channel_info and "error" in channels:
             logger.debug("LND get_channel", channels)
             return None
