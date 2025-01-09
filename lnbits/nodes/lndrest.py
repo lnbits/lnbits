@@ -226,6 +226,8 @@ class LndRestNode(Node):
         if "error" in channel_info and "error" in channels:
             logger.debug("LND get_channel", channels)
             return None
+        print("@@@@@@@@@CHANNEL INFO")
+        print(channels)
         for channel in channels["channels"]:
             print("CHANNELS")
             print(channels["channels"])
