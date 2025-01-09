@@ -658,7 +658,7 @@ window.WalletPageLogic = {
     },
     'g.wallet': function (newSat) {
       this.createdTasks()
-    }
+    },
   },
   mounted() {
     // show disclaimer

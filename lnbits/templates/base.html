@@ -216,15 +216,13 @@
               "
             >
               <div class="row no-wrap q-gutter-md q-pr-md">
-                <router-link
-                  v-for="wallet in g.user.wallets"
-                  :key="wallet.id"
-                  :to="wallet.url"
-                  class="wallet-router-link"
-                  style="text-decoration: none"
-                >
                   <q-card
-                    class="wallet-list-card"
+                  v-for="wallet in g.user.wallets"
+                  :key="wallet.id + updateTrigger"
+                  clickable
+                  @click="selectWallet(wallet)"
+                  class="wallet-list-card"
+                  style="text-decoration: none"
                     :style="
         g.wallet && g.wallet.id === wallet.id
           ? `border: 1px solid ${primaryColor}; width: 250px; text-decoration: none;`
@@ -268,7 +266,6 @@
                       </div>
                     </q-card-section>
                   </q-card>
-                </router-link>
               </div>
             </q-scroll-area>
 

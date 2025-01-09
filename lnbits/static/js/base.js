@@ -530,10 +530,17 @@ window.windowMixin = {
       }
     },
     selectWallet(wallet) {
-      this.g.wallet = {...JSON.parse(JSON.stringify(this.g.wallet)), ...wallet}
-      this.wallet = this.g.wallet
-      this.updatePayments = !this.updatePayments
-      this.balance = parseInt(wallet.balance_msat / 1000)
+      this.g.wallet = { ...JSON.parse(JSON.stringify(this.g.wallet)), ...wallet };
+      this.wallet = this.g.wallet;
+      this.updatePayments = !this.updatePayments;
+      this.balance = parseInt(wallet.balance_msat / 1000);
+      const currentPath = this.$route.path;
+      if (currentPath !== "/wallet") {
+        this.$router.push({
+          path: "/wallet",
+          query: { wal: this.wallet.id },
+        });
+      }
     },
     changeColor(newValue) {
       document.body.setAttribute('data-theme', newValue)
