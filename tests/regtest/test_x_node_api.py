@@ -106,14 +106,12 @@ async def test_get_channel(node_client):
     response = await node_client.get("/node/api/v1/channels")
     assert response.status_code == 200
     channels = parse_obj_as(list[NodeChannel], response.json())
-
     ch = random.choice(
         [channel for channel in channels if channel.state == ChannelState.ACTIVE]
     )
     assert ch, "No active channel found"
     assert ch.point, "No channel point found"
 
-    await asyncio.sleep(3)
     response = await node_client.get(f"/node/api/v1/channels/{ch.id}")
     assert response.status_code == 200
 
@@ -140,7 +138,6 @@ async def test_set_channel_fees(node_client):
     )
     assert response.status_code == 200
 
-    await asyncio.sleep(3)
     response = await node_client.get(f"/node/api/v1/channels/{ch.id}")
     assert response.status_code == 200
     channel = parse_obj_as(NodeChannel, response.json())
