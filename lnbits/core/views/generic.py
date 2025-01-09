@@ -107,7 +107,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
     inactive_extensions = [e.id for e in await get_installed_extensions(active=False)]
     db_versions = await get_db_versions()
 
-    extensions = [
+    extension_data = [
         {
             "id": ext.id,
             "name": ext.name,
@@ -152,7 +152,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
         "core/extensions.html",
         {
             "user": user.json(),
-            "extensions": extensions,
+            "extension_data": extension_data,
             "ajax": is_ajax,
         },
     )

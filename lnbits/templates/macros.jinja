@@ -1,6 +1,9 @@
-{% macro window_vars(user, wallet, extensions) -%}
+{% macro window_vars(user, wallet, extensions, extension_data) -%}
   <script id="window-vars-script">
     window.extensions = JSON.parse('{{ EXTENSIONS | tojson | safe }}');
+    {% if extension_data %}
+      window.extension_data = {{ extension_data | tojson | safe }};
+    {% endif %}
     {% if currencies %}
       window.currencies = {{ currencies | tojson | safe }};
     {% endif %}

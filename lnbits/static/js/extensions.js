@@ -6,7 +6,6 @@ window.ExtensionsPageLogic = {
         autoplay: true,
         searchTerm: '',
         tab: 'all',
-        extensions: window.extensions,
         manageExtensionTab: 'releases',
         filteredExtensions: null,
         updatableExtensions: [],
@@ -642,11 +641,13 @@ window.ExtensionsPageLogic = {
       }
     },
     created: function () {
+      console.log(this.extensions)
       this.extensions = this.extensions.map(e => ({
-        name: e,
+        ...e,
         inProgress: false,
         selectedForUpdate: false
       }))
+     // console.log( this.extensions)
       this.filteredExtensions = this.extensions.concat([])
       for (let i = 0; i < this.filteredExtensions.length; i++) {
         if (this.filteredExtensions[i].isInstalled != false) {
