@@ -136,7 +136,7 @@ async def api_get_user_acls(
 
 
 @auth_router.put("/acl")
-async def api_create_user_acl(
+async def api_update_user_acl(
     request: Request,
     data: UpdateAccessControlList,
     user: User = Depends(check_user_exists),
