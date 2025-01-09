@@ -308,25 +308,21 @@ async def _get_account_from_jwt_payload(
     if not account:
         return None
 
-    if payload.acl_id and payload.api_token_id:
-        await _check_account_api_access(
-            account.id, payload.acl_id, payload.api_token_id, current_path
-        )
+    if payload.api_token_id:
+        await _check_account_api_access(account.id, payload.api_token_id, current_path)
 
     return account
 
 
-async def _check_account_api_access(
-    user_id: str, acl_id: str, token_id: str, current_path: str
-):
+async def _check_account_api_access(user_id: str, token_id: str, current_path: str):
     # todo: methods
     segments = current_path.split("/")
     if len(segments) < 3:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Access to path restricted.")
 
     acls = await get_user_access_control_lists(user_id)
-    acl = acls.get_acl_by_id(acl_id)
-    if not acl or not not acl.get_token_by_id(token_id):
+    acl = acls.get_acl_by_token_id(token_id)
+    if not acl:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Invalid Access Token.")
 
     path = "/".join(segments[1:4])  # todo: upgrades

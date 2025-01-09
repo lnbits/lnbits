@@ -74,6 +74,12 @@ class UserACLs(BaseModel):
             acl for acl in self.access_control_list if acl.id != acl_id
         ]
 
+    def get_acl_by_token_id(self, token_id: str) -> Optional[AccessControlList]:
+        for acl in self.access_control_list:
+            if acl.get_token_by_id(token_id):
+                return acl
+        return None
+
 
 class Account(BaseModel):
     id: str
@@ -241,7 +247,6 @@ class AccessTokenPayload(BaseModel):
     usr: Optional[str] = None
     email: Optional[str] = None
     auth_time: Optional[int] = 0
-    acl_id: Optional[str] = None
     api_token_id: Optional[str] = None
 
 
