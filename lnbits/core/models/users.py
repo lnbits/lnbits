@@ -48,6 +48,12 @@ class AccessControlList(BaseModel):
                 return e
         return None
 
+    def get_token_by_id(self, token_id: str) -> Optional[SimpleItem]:
+        for t in self.token_id_list:
+            if t.id == token_id:
+                return t
+        return None
+
     def delete_token_by_id(self, token_id: str):
         self.token_id_list = [t for t in self.token_id_list if t.id != token_id]
 

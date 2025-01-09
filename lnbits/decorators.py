@@ -270,33 +270,14 @@ async def _check_user_extension_access(user_id: str, current_path: str):
         )
 
 
-async def _check_account_api_access(user_id: str, acl_id: str, current_path: str):
-    print("### current_path", current_path)
-    # todo: methods
-    segments = current_path.split("/")
-    if len(segments) < 3:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "Access to path restricted.")
-
-    acls = await get_user_access_control_lists(user_id)
-
-    acl = next((t for t in acls.access_control_list if t.id == acl_id), None)
-    if not acl:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "Unknown Access Control List.")
-
-    path = "/".join(segments[1:4])  # todo: upgrades
-    endpoint = acl.get_endpoint(path)
-    if not endpoint:
-        raise HTTPException(
-            HTTPStatus.FORBIDDEN, "Token does not have permission to path."
-        )
-
-
 async def _get_account_from_token(
     access_token: str, current_path: str
 ) -> Optional[Account]:
     try:
         payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
-        account = await _get_account_from_jwt_payload(payload, current_path)
+        account = await _get_account_from_jwt_payload(
+            AccessTokenPayload(**payload), current_path
+        )
         if not account:
             raise HTTPException(
                 HTTPStatus.UNAUTHORIZED, "Data missing for access token."
@@ -314,21 +295,41 @@ async def _get_account_from_token(
 
 
 async def _get_account_from_jwt_payload(
-    payload: dict, current_path: str
+    payload: AccessTokenPayload, current_path: str
 ) -> Optional[Account]:
     account = None
-    if "sub" in payload and payload.get("sub"):
-        account = await get_account_by_username(str(payload.get("sub")))
-    if "usr" in payload and payload.get("usr"):
-        account = await get_account(str(payload.get("usr")))
-    if "email" in payload and payload.get("email"):
-        account = await get_account_by_email(str(payload.get("email")))
+    if payload.sub is not None:
+        account = await get_account_by_username(payload.sub)
+    if payload.usr is not None:
+        account = await get_account(payload.usr)
+    if payload.email is not None:
+        account = await get_account_by_email(payload.email)
 
     if not account:
         return None
 
-    api_acl_id = payload.get("acl_id", None)
-    if api_acl_id:
-        await _check_account_api_access(account.id, api_acl_id, current_path)
+    if payload.acl_id and payload.api_token_id:
+        await _check_account_api_access(
+            account.id, payload.acl_id, payload.api_token_id, current_path
+        )
 
     return account
+
+
+async def _check_account_api_access(
+    user_id: str, acl_id: str, token_id: str, current_path: str
+):
+    # todo: methods
+    segments = current_path.split("/")
+    if len(segments) < 3:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Access to path restricted.")
+
+    acls = await get_user_access_control_lists(user_id)
+    acl = acls.get_acl_by_id(acl_id)
+    if not acl or not not acl.get_token_by_id(token_id):
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Invalid Access Token.")
+
+    path = "/".join(segments[1:4])  # todo: upgrades
+    endpoint = acl.get_endpoint(path)
+    if not endpoint:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "No permission.")
