@@ -5,7 +5,6 @@ window.WalletPageLogic = {
       updatePayments: false,
       origin: window.location.origin,
       user: LNbits.map.user(window.user),
-      wallet: window.wallet,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
       parse: {
         show: false,
@@ -75,7 +74,10 @@ window.WalletPageLogic = {
     },
     formattedSatAmount() {
       return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
-    }
+    },
+    wallet() {
+      return this.g.wallet;
+    },
   },
   methods: {
     msatoshiFormat(value) {
@@ -483,13 +485,17 @@ window.WalletPageLogic = {
     updateWallet(data) {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
-        .then(_ => {
+        .then(response => {
+          Object.keys(response.data).forEach(key => {
+            if (key !== 'id') {
+              this.g.wallet[key] = response.data[key];
+            }
+          })
           Quasar.Notify.create({
             message: `Wallet updated.`,
             type: 'positive',
             timeout: 3500
           })
-          window.location.reload()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -656,8 +662,12 @@ window.WalletPageLogic = {
         this.mobileSimple = false
       }
     },
-    'g.wallet': function (newSat) {
-      this.createdTasks()
+    'g.wallet': {
+      handler(newWallet) {
+        console.log('Wallet updated:', newWallet);
+        this.createdTasks()
+      },
+      deep: true,
     },
   },
   mounted() {

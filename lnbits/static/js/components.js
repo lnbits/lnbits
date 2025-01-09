@@ -22,8 +22,9 @@ window.app.component('lnbits-fsat', {
 })
 
 window.app.component('lnbits-wallet-list', {
+  mixins: [window.windowMixin],
   template: '#lnbits-wallet-list',
-  props: ['balance', 'g'],
+  props: ['balance'],
   data() {
     return {
       user: null,
@@ -66,6 +67,7 @@ window.app.component('lnbits-wallet-list', {
 })
 
 window.app.component('lnbits-extension-list', {
+  mixins: [window.windowMixin],
   template: '#lnbits-extension-list',
   data() {
     return {
@@ -130,6 +132,7 @@ window.app.component('lnbits-extension-list', {
 })
 
 window.app.component('lnbits-manage', {
+  mixins: [window.windowMixin],
   template: '#lnbits-manage',
   props: ['showAdmin', 'showNode', 'showExtensions', 'showUsers', 'showAudit'],
   methods: {
@@ -151,6 +154,7 @@ window.app.component('lnbits-manage', {
 })
 
 window.app.component('lnbits-payment-details', {
+  mixins: [window.windowMixin],
   template: '#lnbits-payment-details',
   props: ['payment'],
   mixins: [window.windowMixin],
@@ -202,6 +206,7 @@ window.app.component('lnbits-payment-details', {
 })
 
 window.app.component('lnbits-lnurlpay-success-action', {
+  mixins: [window.windowMixin],
   template: '#lnbits-lnurlpay-success-action',
   props: ['payment', 'success_action'],
   data() {
@@ -220,6 +225,7 @@ window.app.component('lnbits-lnurlpay-success-action', {
 })
 
 window.app.component('lnbits-qrcode', {
+  mixins: [window.windowMixin],
   template: '#lnbits-qrcode',
   mixins: [window.windowMixin],
   components: {

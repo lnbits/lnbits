@@ -436,11 +436,26 @@ window.LNbits = {
   }
 }
 
+if (!window.g) {
+  window.g = Vue.reactive({
+    offline: !navigator.onLine,
+    visibleDrawer: false,
+    extensions: [],
+    user: null,
+    wallet: null,
+    payments: [],
+    allowedThemes: null,
+    langs: [],
+  });
+}
+
 window.windowMixin = {
+  inject: ['g'],
   i18n: window.i18n,
   data() {
     return {
       toggleSubs: true,
+      mobileSimple: true,
       walletFlip: true,
       updateTrigger: 0,
       reactionChoice: 'confettiBothSides',
@@ -448,16 +463,6 @@ window.windowMixin = {
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
-      g: {
-        offline: !navigator.onLine,
-        visibleDrawer: false,
-        extensions: [],
-        user: null,
-        wallet: null,
-        payments: [],
-        allowedThemes: null,
-        langs: []
-      },
       receive: {
         show: false,
         status: 'pending',
@@ -511,7 +516,7 @@ window.windowMixin = {
               this.updateTrigger++
 
               if (this.g.wallet.id === wallet.id) {
-                this.g.wallet = updatedWallet
+                Object.assign(this.g.wallet, updatedWallet)
               }
             }
             this.onPaymentReceived(data.payment.payment_hash)
@@ -531,6 +536,7 @@ window.windowMixin = {
     },
     selectWallet(wallet) {
       this.g.wallet = { ...JSON.parse(JSON.stringify(this.g.wallet)), ...wallet };
+      this.$emit('update-wallet', this.g.wallet)
       this.wallet = this.g.wallet;
       this.updatePayments = !this.updatePayments;
       this.balance = parseInt(wallet.balance_msat / 1000);
@@ -540,7 +546,11 @@ window.windowMixin = {
           path: "/wallet",
           query: { wal: this.wallet.id },
         });
-      }
+    } else {
+      const url = new URL(window.location.href);
+      url.searchParams.set('wal', this.wallet.id);
+      window.history.replaceState({}, '', url.toString());
+    }
     },
     changeColor(newValue) {
       document.body.setAttribute('data-theme', newValue)
@@ -710,6 +720,12 @@ window.windowMixin = {
       }
 
       this.setColors()
+    },
+    refreshRoute() {
+      this.$router.replace({
+        path: this.$route.path,
+        query: this.$route.query,
+      });
     }
   },
   async created() {
@@ -786,6 +802,8 @@ window.windowMixin = {
       this.walletEventsInitialized = true
       this.walletEvents()
     }
+    console.log('Is g reactive?', Vue.isReactive(window.g)); // Should log true
+console.log('Is wallet reactive?', Vue.isReactive(window.g.wallet)); // S
   }
 }
 

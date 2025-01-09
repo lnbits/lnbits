@@ -181,6 +181,7 @@ window.app.mixin({
 window.app.use(VueQrcodeReader)
 window.app.use(Quasar)
 window.app.use(window.i18n)
+window.app.provide('g', g)
 window.app.use(window.router)
 window.app.component('DynamicComponent', DynamicComponent)
 window.app.mount('#vue')

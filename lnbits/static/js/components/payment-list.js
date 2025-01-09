@@ -1,7 +1,7 @@
 window.app.component('payment-list', {
   name: 'payment-list',
   template: '#payment-list',
-  props: ['update', 'wallet', 'mobileSimple', 'lazy'],
+  props: ['update', 'mobileSimple', 'lazy'],
   mixins: [window.windowMixin],
   data() {
     return {
@@ -32,7 +32,7 @@ window.app.component('payment-list', {
           descending: true,
           rowsNumber: 10
         },
-        search: null,
+        search: '',
         filter: {
           'status[ne]': 'failed'
         },
@@ -116,6 +116,9 @@ window.app.component('payment-list', {
     }
   },
   computed: {
+    wallet() {
+      return this.g.wallet;
+    },
     filteredPayments() {
       const q = this.paymentsTable.search
       if (!q || q === '') return this.payments
@@ -136,7 +139,7 @@ window.app.component('payment-list', {
     fetchPayments(props) {
       const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
       return LNbits.api
-        .getPayments(this.wallet, params)
+        .getPayments(this.g.wallet, params)
         .then(response => {
           this.paymentsTable.loading = false
           this.paymentsTable.pagination.rowsNumber = response.data.total
@@ -162,7 +165,7 @@ window.app.component('payment-list', {
         direction: pagination.descending ? 'desc' : 'asc'
       }
       const params = new URLSearchParams(query)
-      LNbits.api.getPayments(this.wallet, params).then(response => {
+      LNbits.api.getPayments(this.g.wallet, params).then(response => {
         let payments = response.data.data.map(LNbits.map.payment)
         let columns = this.paymentsCSV.columns
 
@@ -190,7 +193,7 @@ window.app.component('payment-list', {
         LNbits.utils.exportCSV(
           columns,
           payments,
-          this.wallet.name + '-payments'
+          this.g.wallet.name + '-payments'
         )
       })
     },
@@ -233,6 +236,13 @@ window.app.component('payment-list', {
     },
     update() {
       this.fetchPayments()
+    },
+    'g.wallet': {
+      handler(newWallet) {
+        console.log('Wallet updated:', newWallet);
+        this.fetchPayments(); // Update payments when wallet changes
+      },
+      deep: true,
     }
   },
   created() {
