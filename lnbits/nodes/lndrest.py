@@ -224,6 +224,7 @@ class LndRestNode(Node):
         print(channel_id)
         peer_id = channel_info["node2_pub"]
         peer_b64 = _encode_urlsafe_bytes(peer_id)
+        peer_b64 = _encode_bytes(peer_id)
         print("PEER ID b64")
         print(peer_b64)
         channels = await self.get(f"/v1/channels?peer={peer_b64}")
