@@ -106,7 +106,12 @@ async def test_get_channel(node_client):
     response = await node_client.get("/node/api/v1/channels")
     assert response.status_code == 200
     print("!!!!!!!!")
-    print(response.json())
+    res = response.json()
+    print(res[0])
+    print(res[1])
+    print(res[2])
+    print(res[3])
+    print("!!!!!!!!")
 
     channels = parse_obj_as(list[NodeChannel], response.json())
 
