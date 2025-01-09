@@ -201,7 +201,7 @@ async def api_create_user_api_token(
 
     api_token_id = uuid4().hex
     api_token = _auth_api_token_response(
-        account.username, data.acl_id, api_token_id, data.expiration_time_minutes
+        account.username, api_token_id, data.expiration_time_minutes
     )
 
     acl.token_id_list.append(SimpleItem(id=api_token_id, name=data.token_name))
@@ -502,10 +502,10 @@ def _auth_success_response(
 
 
 def _auth_api_token_response(
-    username: str, acl_id: str, api_token_id: str, token_expire_minutes: int
+    username: str, api_token_id: str, token_expire_minutes: int
 ):
     payload = AccessTokenPayload(
-        sub=username, acl_id=acl_id, api_token_id=api_token_id, auth_time=int(time())
+        sub=username, api_token_id=api_token_id, auth_time=int(time())
     )
     return create_access_token(
         data=payload.dict(), token_expire_minutes=token_expire_minutes
