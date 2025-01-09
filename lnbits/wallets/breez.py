@@ -22,9 +22,9 @@ else:
     from pathlib import Path
     from typing import Optional
 
+    import bolt11 as lnbits_bolt11
     from loguru import logger
 
-    from lnbits import bolt11 as lnbits_bolt11
     from lnbits.settings import settings
 
     from .base import (
