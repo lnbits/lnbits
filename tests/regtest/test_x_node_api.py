@@ -135,6 +135,8 @@ async def test_set_channel_fees(node_client):
     assert ch, "No active channel found"
     assert ch.point, "No channel point found"
 
+    await asyncio.sleep(3)
+
     response = await node_client.put(
         f"/node/api/v1/channels/{ch.id}", json={"fee_base_msat": 42, "fee_ppm": 69}
     )
