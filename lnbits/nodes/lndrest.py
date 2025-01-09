@@ -220,11 +220,18 @@ class LndRestNode(Node):
 
     async def get_channel(self, channel_id: str) -> Optional[NodeChannel]:
         channel_info = await self.get(f"/v1/graph/edge/{channel_id}")
+        print("CHANNEL ID")
+        print(channel_id)
         peer_id = channel_info["node2_pub"]
         peer_b64 = _encode_urlsafe_bytes(peer_id)
+        print("PEER ID b64")
+        print(peer_b64)
         channels = await self.get(f"/v1/channels?peer={peer_b64}")
         if "error" in channel_info and "error" in channels:
             logger.debug("LND get_channel", channels)
+            return None
+        if len(channels["channels"]) == 0:
+            logger.debug(f"LND get_channel no channels founds with id {peer_b64}")
             return None
         print("@@@@@@@@@CHANNEL INFO")
         print(channels)
