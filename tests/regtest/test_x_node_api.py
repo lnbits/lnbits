@@ -123,6 +123,9 @@ async def test_get_channel(node_client):
 
     response = await node_client.get(f"/node/api/v1/channels/{ch.id}")
     assert response.status_code == 200
+    print("1-2!!!!!!!!")
+    print(response.json())
+    print("1-2!!!!!!!!")
 
     channel = parse_obj_as(NodeChannel, response.json())
     assert channel.id == ch.id
@@ -157,6 +160,9 @@ async def test_set_channel_fees(node_client):
     await asyncio.sleep(5)
     response = await node_client.get(f"/node/api/v1/channels/{ch.id}")
     assert response.status_code == 200
+    print("2-2!!!!!!!!")
+    print(response.json())
+    print("2-2!!!!!!!!")
     channel = parse_obj_as(NodeChannel, response.json())
     assert channel.fee_ppm == 69
     assert channel.fee_base_msat == 42
