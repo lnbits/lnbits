@@ -102,7 +102,7 @@ async def test_node_payments(node_client, real_invoice, adminkey_headers_from):
 @pytest.mark.anyio
 async def test_get_channel(node_client):
     # lndrest is slow / async with channel commands
-    await asyncio.sleep(3)
+    await asyncio.sleep(5)
     response = await node_client.get("/node/api/v1/channels")
     assert response.status_code == 200
     print("!!!!!!!!")
