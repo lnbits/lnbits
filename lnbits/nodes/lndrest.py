@@ -221,10 +221,10 @@ class LndRestNode(Node):
     async def get_channel(self, channel_id: str) -> Optional[NodeChannel]:
         channel_info = await self.get(f"/v1/graph/edge/{channel_id}")
         info = await self.get("/v1/getinfo")
-        if info["identity_pubkey"] == channel_info["node1_pub"]:
-            peer_id = channel_info["node2_pub"]
-        else:
-            peer_id = channel_info["node1_pub"]
+        node_key = (
+            "node1" if info["identity_pubkey"] == channel_info["node1_pub"] else "node2"
+        )
+        peer_id = channel_info[f"{node_key}_pub"]
         peer_b64 = _encode_urlsafe_bytes(peer_id)
         channels = await self.get(f"/v1/channels?peer={peer_b64}")
         if "error" in channel_info and "error" in channels:
@@ -246,8 +246,8 @@ class LndRestNode(Node):
                         if channel["active"]
                         else ChannelState.INACTIVE
                     ),
-                    fee_ppm=channel_info["node1_policy"]["fee_rate_milli_msat"],
-                    fee_base_msat=channel_info["node1_policy"]["fee_base_msat"],
+                    fee_ppm=channel_info[f"{node_key}_policy"]["fee_rate_milli_msat"],
+                    fee_base_msat=channel_info[f"{node_key}_policy"]["fee_base_msat"],
                     point=_parse_channel_point(channel["channel_point"]),
                     balance=ChannelBalance(
                         local_msat=msat(channel["local_balance"]),
