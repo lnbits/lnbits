@@ -173,7 +173,20 @@
           show-if-above
           :elevated="$q.screen.lt.md"
         >
+          <q-item-label
+            :style="$q.dark.isActive ? 'color:rgba(255, 255, 255, 0.64)' : ''"
+            class="q-item__label q-item__label--header"
+            header
+            v-text="$t('wallets')"
+          ></q-item-label>
+          <q-btn
+            flat
+            :icon=" walletFlip ? 'keyboard_arrow_right' : 'keyboard_arrow_down'"
+            class="absolute-top-right"
+            @click="flipWallets($q.screen.lt.md)"
+          ></q-btn>
           <lnbits-wallet-list
+            v-if="!walletFlip"
             :g="g"
             @wallet-selected="selectWallet"
             :updateTrigger="updateTrigger"
@@ -193,6 +206,72 @@
         {% endblock %} {% block page_container %}
         <q-page-container>
           <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
+            <q-scroll-area
+              v-if="walletFlip"
+              style="
+                height: 130px;
+                width: 100%;
+                overflow-x: auto;
+                overflow-y: hidden;
+              "
+            >
+              <div class="row no-wrap q-gutter-md q-pr-md">
+                <router-link
+                  v-for="wallet in g.user.wallets"
+                  :key="wallet.id"
+                  :to="wallet.url"
+                  class="wallet-router-link"
+                  style="text-decoration: none"
+                >
+                  <q-card
+                    class="wallet-list-card"
+                    :style="
+        g.wallet && g.wallet.id === wallet.id
+          ? `border: 1px solid ${primaryColor}; width: 250px; text-decoration: none;`
+          : 'width: 250px; text-decoration: none; border: 0px'
+      "
+                    :class="{
+          'active-wallet-card': g.wallet && g.wallet.id === wallet.id
+        }"
+                  >
+                    <q-card-section>
+                      <div class="row items-center">
+                        <q-avatar
+                          size="lg"
+                          :color="
+              g.wallet && g.wallet.id === wallet.id
+                ? $q.dark.isActive
+                  ? 'primary'
+                  : 'primary'
+                : 'grey-5'
+            "
+                        >
+                          <q-icon
+                            name="flash_on"
+                            :size="$q.dark.isActive ? '21px' : '20px'"
+                            :color="$q.dark.isActive ? 'black' : 'grey-3'"
+                          ></q-icon>
+                        </q-avatar>
+                        <div
+                          class="text-h6 q-pl-md"
+                          :class="{
+              'text-bold': g.wallet && g.wallet.id === wallet.id
+            }"
+                          v-text="wallet.name"
+                        ></div>
+                      </div>
+                      <div class="row items-center q-pt-sm">
+                        <h6 class="q-my-none text-no-wrap">
+                          <strong v-text="wallet.fsat"></strong>
+                          <small> {{LNBITS_DENOMINATION}}</small>
+                        </h6>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </router-link>
+              </div>
+            </q-scroll-area>
+
             <router-view v-if="isVueRoute"></router-view>
 
             <!-- FastAPI Content -->

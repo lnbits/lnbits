@@ -441,6 +441,7 @@ window.windowMixin = {
   data() {
     return {
       toggleSubs: true,
+      walletFlip: true,
       updateTrigger: 0,
       reactionChoice: 'confettiBothSides',
       borderChoice: '',
@@ -477,6 +478,17 @@ window.windowMixin = {
   },
 
   methods: {
+    flipWallets(smallScreen) {
+      this.walletFlip = !this.walletFlip
+      if (this.walletFlip && smallScreen) {
+        this.g.visibleDrawer = false
+      }
+      this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
+    },
+    simpleMobile() {
+      this.mobileSimple = !this.mobileSimple
+      this.$q.localStorage.set('lnbits.mobileSimple', this.mobileSimple)
+    },
     walletEvents() {
       this.g.user.wallets.forEach(wallet => {
         if (this.eventListeners.includes(wallet.id)) {
@@ -759,6 +771,8 @@ window.windowMixin = {
     }
     await this.checkUsrInUrl()
     this.themeParams()
+    this.walletFlip = this.$q.localStorage.getItem('lnbits.walletFlip')
+    this.mobileSimple = this.$q.localStorage.getItem('lnbits.mobileSimple')
   },
   mounted() {
     if (!this.walletEventsInitialized) {

@@ -119,10 +119,10 @@ const routes = [
     path: '/wallet',
     name: 'Wallet',
     component: DynamicComponent,
-    props: {
-      fetchUrl: '/wallet',
+    props: route => ({
+      fetchUrl: `/wallet${route.query.wal ? `?wal=${route.query.wal}` : ''}`,
       scripts: ['/static/js/wallet.js']
-    }
+    })
   },
   {
     path: '/admin',

@@ -32,7 +32,6 @@ window.WalletPageLogic = {
         location: window.location
       },
       fiatBalance: 0,
-      mobileSimple: false,
       update: {
         name: null,
         currency: null
