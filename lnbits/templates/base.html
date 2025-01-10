@@ -187,8 +187,6 @@
           ></q-btn>
           <lnbits-wallet-list
             v-if="!walletFlip"
-            @wallet-selected="selectWallet"
-            :updateTrigger="updateTrigger"
             :balance="balance"
           ></lnbits-wallet-list>
           <lnbits-manage
