@@ -1,7 +1,7 @@
 window.app.component('payment-list', {
   name: 'payment-list',
   template: '#payment-list',
-  props: ['update', 'mobileSimple', 'lazy'],
+  props: ['update', 'lazy'],
   mixins: [window.windowMixin],
   data() {
     return {
@@ -240,7 +240,7 @@ window.app.component('payment-list', {
     'g.wallet': {
       handler(newWallet) {
         console.log('Wallet updated:', newWallet)
-        this.fetchPayments() // Update payments when wallet changes
+        this.fetchPayments()
       },
       deep: true
     }
