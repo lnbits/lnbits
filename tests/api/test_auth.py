@@ -1151,3 +1151,117 @@ async def test_api_update_user_acl_missing_password(
         response.status_code == 401
     ), "Missing password should result in unauthorized error."
     assert response.json().get("detail") == "Invalid credentials."
+
+
+@pytest.mark.anyio
+async def test_api_get_user_acls_success(http_client: AsyncClient):
+    # Register a new user to obtain the access token
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Get user ACLs
+    response = await http_client.get(
+        "/api/v1/auth/acl", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 200, "ACLs fetched successfully."
+    user_acls = UserACLs(**response.json())
+    assert user_acls.id is not None, "User ID should be set."
+    assert isinstance(user_acls.access_control_list, list), "ACL should be a list."
+
+
+@pytest.mark.anyio
+async def test_api_get_user_acls_no_auth(http_client: AsyncClient):
+    # Attempt to get user ACLs without authentication
+    response = await http_client.get("/api/v1/auth/acl")
+    assert response.status_code == 401, "Unauthorized access."
+
+
+@pytest.mark.anyio
+async def test_api_get_user_acls_invalid_token(http_client: AsyncClient):
+    # Attempt to get user ACLs with an invalid token
+    response = await http_client.get(
+        "/api/v1/auth/acl", headers={"Authorization": "Bearer invalid_token"}
+    )
+    assert response.status_code == 401, "Unauthorized access."
+
+
+@pytest.mark.anyio
+async def test_api_get_user_acls_empty_acl(
+    http_client: AsyncClient, settings: Settings
+):
+    # Register a new user to obtain the access token
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Get user ACLs
+    response = await http_client.get(
+        "/api/v1/auth/acl", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 200, "ACLs fetched successfully."
+    user_acls = UserACLs(**response.json())
+    assert user_acls.id is not None, "User ID should be set."
+    assert len(user_acls.access_control_list) == 0, "ACL should be empty."
+
+
+@pytest.mark.anyio
+async def test_api_get_user_acls_with_acl(http_client: AsyncClient, settings: Settings):
+    # Register a new user to obtain the access token
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create a new ACL for the user
+    acl_data = UpdateAccessControlList(
+        id="",
+        name="Test ACL",
+        endpoints=[],
+        password="secret1234",
+    )
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=acl_data.dict(),
+    )
+    assert response.status_code == 200, "ACL created successfully."
+
+    # Get user ACLs
+    response = await http_client.get(
+        "/api/v1/auth/acl", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 200, "ACLs fetched successfully."
+    user_acls = UserACLs(**response.json())
+    assert user_acls.id is not None, "User ID should be set."
+    assert len(user_acls.access_control_list) == 1, "ACL should contain one item."
+    assert user_acls.access_control_list[0].name == "Test ACL", "ACL name should match."
