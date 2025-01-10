@@ -319,7 +319,13 @@
       </q-item-section>
     </q-item>
 
-    <q-expansion-item expand-separator icon="info" label="Extras">
+    <q-expansion-item
+      expand-separator
+      icon="info"
+      header-class="text-grey"
+      label="Extras"
+      v-if="extras.length"
+    >
       <template v-for="entry in extras">
         <q-item v-if="!!entry.value" key="entry.key">
           <q-item-section>
@@ -330,94 +336,6 @@
       </template>
     </q-expansion-item>
   </q-list>
-  <!-- <div class="q-py-md" style="text-align: left">
-    <div v-if="payment.tag" class="row justify-center q-mb-md">
-      <q-badge v-if="hasTag" color="yellow" text-color="black">
-        #<span v-text="payment.tag"></span>
-      </q-badge>
-    </div>
-
-    <div class="row">
-      <b v-text="$t('created')"></b>:
-      <span v-text="payment.date"></span>
-      (<span v-text="payment.dateFrom"></span>)
-    </div>
-
-    <div class="row" v-if="hasExpiry">
-      <b v-text="$t('expiry')"></b>:
-      <span v-text="payment.expirydate"></span>
-      (<span v-text="payment.expirydateFrom"></span>)
-    </div>
-
-    <div class="row">
-      <b v-text="$t('amount')"></b>:
-      <span v-text="(payment.amount / 1000).toFixed(3)"></span>
-      <span v-text="LNBITS_DENOMINATION"></span>
-    </div>
-
-    <div class="row">
-      <b v-text="$t('fee')"></b>:
-      <span v-text="(payment.fee / 1000).toFixed(3)"></span>
-      <span v-text="LNBITS_DENOMINATION"></span>
-    </div>
-
-    <div class="text-wrap">
-      <b style="white-space: nowrap" v-text="$t('payment_hash')"></b>:&nbsp;
-      <span v-text="payment.payment_hash"></span>
-      <q-icon
-        name="content_copy"
-        @click="copyText(payment.payment_hash)"
-        size="1em"
-        color="grey"
-        class="q-mb-xs cursor-pointer"
-      />
-    </div>
-
-    <div class="text-wrap">
-      <b style="white-space: nowrap" v-text="$t('Invoice')"></b>:&nbsp;
-      <q-icon
-        name="content_copy"
-        @click="copyText(payment.bolt11)"
-        size="1em"
-        color="grey"
-        class="q-mb-xs cursor-pointer"
-      />
-    </div>
-
-    <div class="text-wrap">
-      <b style="white-space: nowrap" v-text="$t('memo')"></b>:&nbsp;
-      <span v-text="payment.memo"></span>
-    </div>
-
-    <div class="text-wrap" v-if="payment.webhook">
-      <b style="white-space: nowrap" v-text="$t('webhook')"></b>:&nbsp;
-      <span v-text="payment.webhook"></span>:&nbsp;<q-badge
-        :color="webhookStatusColor"
-        text-color="white"
-      >
-        <span v-text="webhookStatusText"></span>
-      </q-badge>
-    </div>
-
-    <div class="text-wrap" v-if="hasPreimage">
-      <b style="white-space: nowrap" v-text="$t('payment_proof')"></b>:&nbsp;
-      <span v-text="payment.preimage"></span>
-    </div>
-
-    <div class="row" v-for="entry in extras">
-      <q-badge v-if="hasTag" color="secondary" text-color="white">
-        extra
-      </q-badge>
-      <b v-text="entry.key"></b>: <span v-text="entry.value"></span>
-    </div>
-    <div class="row" v-if="hasSuccessAction">
-      <b>Success action</b>:
-      <lnbits-lnurlpay-success-action
-        :payment="payment"
-        :success_action="payment.extra.success_action"
-      ></lnbits-lnurlpay-success-action>
-    </div>
-  </div> -->
 </template>
 
 <template id="lnbits-dynamic-fields">
@@ -768,7 +686,7 @@
     @request="fetchPayments"
   >
     <template v-slot:header="props">
-      <q-tr :props="props">
+      <q-tr :props="props" class="text-grey-5">
         <q-th auto-width></q-th>
         <q-th
           v-for="col in props.cols"
@@ -821,7 +739,7 @@
           <br />
 
           <i>
-            <span v-text="props.row.dateFrom"></span>
+            <span class="text-grey-5" v-text="props.row.dateFrom"></span>
             <q-tooltip><span v-text="props.row.date"></span></q-tooltip>
           </i>
         </q-td>
