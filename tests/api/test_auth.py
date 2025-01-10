@@ -10,6 +10,7 @@ import shortuuid
 from httpx import AsyncClient
 
 from lnbits.core.models import AccessTokenPayload, User
+from lnbits.core.models.users import UpdateAccessControlList, UserACLs
 from lnbits.core.views.user_api import api_users_reset_password
 from lnbits.settings import AuthMethods, Settings
 from lnbits.utils.nostr import hex_to_npub, sign_event
@@ -1030,3 +1031,123 @@ async def test_reset_password_auth_threshold_expired(
         " in the first 1 seconds."
         " Please login again or ask a new reset key!"
     )
+
+
+################################ ACL ################################
+@pytest.mark.anyio
+async def test_api_update_user_acl_success(http_client: AsyncClient, user_alan: User):
+    # Login to get access token
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
+    assert response.status_code == 200, "Alan logs in OK"
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create a new ACL
+    data = UpdateAccessControlList(
+        id="", name="New ACL", password="secret1234", endpoints=[]
+    )
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        json=data.dict(),
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert response.status_code == 200, "ACL should be created successfully."
+    user_acls = UserACLs(**response.json())
+    assert any(
+        acl.name == "New ACL" for acl in user_acls.access_control_list
+    ), "ACL should be in the list."
+
+
+@pytest.mark.anyio
+async def test_api_update_user_acl_invalid_password(
+    http_client: AsyncClient, user_alan: User
+):
+    # Login to get access token
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
+    assert response.status_code == 200, "Alan logs in OK"
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Attempt to create a new ACL with an invalid password
+    data = UpdateAccessControlList(
+        id="", name="New ACL", password="wrong_password", endpoints=[]
+    )
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        json=data.dict(),
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert (
+        response.status_code == 401
+    ), "Invalid password should result in unauthorized error."
+    assert response.json().get("detail") == "Invalid credentials."
+
+
+@pytest.mark.anyio
+async def test_api_update_user_acl_update_existing(
+    http_client: AsyncClient, user_alan: User
+):
+    # Login to get access token
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
+    assert response.status_code == 200, "Alan logs in OK"
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create a new ACL
+    data = UpdateAccessControlList(
+        id="", name="New ACL", password="secret1234", endpoints=[]
+    )
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        json=data.dict(),
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert response.status_code == 200, "ACL should be created successfully."
+    user_acls = UserACLs(**response.json())
+    acl = next(acl for acl in user_acls.access_control_list if acl.name == "New ACL")
+
+    # Update the existing ACL
+    data = UpdateAccessControlList(
+        id=acl.id, name="Updated ACL", password="secret1234", endpoints=[]
+    )
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        json=data.dict(),
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert response.status_code == 200, "ACL should be updated successfully."
+    user_acls = UserACLs(**response.json())
+    assert any(
+        acl.name == "Updated ACL" for acl in user_acls.access_control_list
+    ), "ACL should be updated in the list."
+
+
+@pytest.mark.anyio
+async def test_api_update_user_acl_missing_password(
+    http_client: AsyncClient, user_alan: User
+):
+    # Login to get access token
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
+    assert response.status_code == 200, "Alan logs in OK"
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Attempt to create a new ACL with a missing password
+    data = UpdateAccessControlList(id="", name="New ACL", password="", endpoints=[])
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        json=data.dict(),
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert (
+        response.status_code == 401
+    ), "Missing password should result in unauthorized error."
+    assert response.json().get("detail") == "Invalid credentials."
