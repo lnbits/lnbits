@@ -49,7 +49,6 @@ window.app.component('lnbits-wallet-list', {
   },
   methods: {
     onSelectWallet(wallet) {
-      console.log(wallet)
       this.$emit('wallet-selected', wallet)
     },
     createWallet() {
@@ -73,62 +72,58 @@ window.app.component('lnbits-extension-list', {
   data() {
     return {
       extensions: [],
-      user: null,
-      userExtensions: [],
       searchTerm: ''
     }
   },
   watch: {
-    searchTerm(term) {
-      this.userExtensions = this.updateUserExtensions(term)
+    'g.user.extensions': {
+      handler(newExtensions) {
+        this.loadExtensions();
+      },
+      deep: true,
+    },
+  },
+  computed: {
+    user() {
+      return LNbits.map.user(this.g.user);
+    },
+    userExtensions() {
+      return this.updateUserExtensions(this.searchTerm);
     }
   },
   methods: {
+    async loadExtensions() {
+      try {
+        const { data } = await LNbits.api.request('GET', '/api/v1/extension');
+        this.extensions = data
+          .map(extension => LNbits.map.extension(extension))
+          .sort((a, b) => a.name.localeCompare(b.name));
+      } catch (error) {
+        LNbits.utils.notifyApiError(error);
+      }
+    },
     updateUserExtensions(filterBy) {
-      if (!this.user) return []
-
-      const path = window.location.pathname
-      const userExtensions = this.user.extensions
-
+      if (!this.user) return [];
+  
+      const path = window.location.pathname;
+      const userExtensions = this.user.extensions;
+  
       return this.extensions
+        .filter(o => userExtensions.includes(o.code))
         .filter(o => {
-          return userExtensions.indexOf(o.code) !== -1
-        })
-        .filter(o => {
-          if (!filterBy) return true
-          return (
-            `${o.code} ${o.name} ${o.short_description} ${o.url}`
-              .toLocaleLowerCase()
-              .indexOf(filterBy.toLocaleLowerCase()) !== -1
-          )
+          if (!filterBy) return true;
+          return `${o.code} ${o.name} ${o.short_description} ${o.url}`
+            .toLocaleLowerCase()
+            .includes(filterBy.toLocaleLowerCase());
         })
         .map(obj => {
-          obj.isActive = path.startsWith(obj.url)
-          return obj
-        })
+          obj.isActive = path.startsWith(obj.url);
+          return obj;
+        });
     }
   },
   async created() {
-    console.log('components.js loaded')
-    console.log(this.userExtensions)
-    console.log('components.js loaded')
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
-    }
-
-    try {
-      const {data} = await LNbits.api.request('GET', '/api/v1/extension')
-      this.extensions = data
-        .map(data => {
-          return LNbits.map.extension(data)
-        })
-        .sort((a, b) => {
-          return a.name.localeCompare(b.name)
-        })
-      this.userExtensions = this.updateUserExtensions()
-    } catch (error) {
-      LNbits.utils.notifyApiError(error)
-    }
+    await this.loadExtensions();
   }
 })
 

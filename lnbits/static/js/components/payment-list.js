@@ -239,7 +239,6 @@ window.app.component('payment-list', {
     },
     'g.wallet': {
       handler(newWallet) {
-        console.log('Wallet updated:', newWallet)
         this.fetchPayments()
       },
       deep: true

@@ -660,7 +660,6 @@ window.WalletPageLogic = {
     },
     'g.wallet': {
       handler(newWallet) {
-        console.log('Wallet updated:', newWallet)
         this.createdTasks()
       },
       deep: true

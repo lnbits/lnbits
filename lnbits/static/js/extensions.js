@@ -137,7 +137,6 @@ window.ExtensionsPageLogic = {
           extension.inProgress = false
         })
     },
-
     dropExtensionDb: async function () {
       const extension = this.selectedExtension
       this.showManageExtensionDialog = false
@@ -631,13 +630,11 @@ window.ExtensionsPageLogic = {
     }
   },
   created: function () {
-    console.log(window.extension_data)
     this.extensions = window.extension_data.map(e => ({
       ...e,
       inProgress: false,
       selectedForUpdate: false
     }))
-    // console.log( this.extensions)
     this.filteredExtensions = this.extensions.concat([])
     for (let i = 0; i < this.filteredExtensions.length; i++) {
       if (this.filteredExtensions[i].isInstalled != false) {
@@ -647,6 +644,7 @@ window.ExtensionsPageLogic = {
     }
     if (window.user) {
       this.user = LNbits.map.user(window.user)
+      Object.assign(this.g.user, this.user);
     }
     this.updatableExtensions = this.extensions.filter(ext =>
       this.hasNewVersion(ext)
