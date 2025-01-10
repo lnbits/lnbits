@@ -467,12 +467,16 @@ window.windowMixin = {
         wallet: null,
         payments: [],
         allowedThemes: null,
-        langs: []
+        langs: [],
+        walletName: ''
       }
     }
   },
 
   methods: {
+    createWallet() {
+      LNbits.api.createWallet(this.g.user.wallets[0], this.walletName)
+    },
     flipWallets(smallScreen) {
       this.walletFlip = !this.walletFlip
       if (this.walletFlip && smallScreen) {
