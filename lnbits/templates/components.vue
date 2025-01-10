@@ -202,7 +202,135 @@
 </template>
 
 <template id="lnbits-payment-details">
-  <div v-if="payment" class="q-py-md" style="text-align: left">
+  <q-list bordered separator>
+    <q-item v-if="payment.tag">
+      <q-item-section>
+        <q-item-label v-text="$t('created')"></q-item-label>
+        <q-item-label caption v-text="payment.date"></q-item-label>
+      </q-item-section>
+
+      <q-item-section side top>
+        <q-item-label caption v-text="payment.dateFrom"></q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-item v-if="payment.expirydate">
+      <q-item-section>
+        <q-item-label v-text="$t('expiry')"></q-item-label>
+        <q-item-label caption v-text="payment.expirydate"></q-item-label>
+      </q-item-section>
+
+      <q-item-section side top>
+        <q-item-label caption v-text="payment.expirydateFrom"></q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-item>
+      <q-item-section>
+        <q-item-label v-text="$t('amount')"></q-item-label>
+        <q-item-label caption>
+          <span v-text="(payment.amount / 1000).toFixed(3)"></span>
+          <span v-text="LNBITS_DENOMINATION"></span>
+        </q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-item>
+      <q-item-section>
+        <q-item-label v-text="$t('fee')"></q-item-label>
+        <q-item-label caption>
+          <span v-text="(payment.fee / 1000).toFixed(3)"></span>
+          <span v-text="LNBITS_DENOMINATION"></span>
+        </q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-item>
+      <q-item-section>
+        <q-item-label v-text="$t('payment_hash')"></q-item-label>
+        <q-item-label
+          caption
+          v-text="
+            `${payment.payment_hash.slice(0, 12)}...${payment.payment_hash.slice(-12)}`
+          "
+        ></q-item-label>
+      </q-item-section>
+      <q-item-section side>
+        <q-item-label>
+          <q-icon
+            name="content_copy"
+            @click="copyText(payment.payment_hash)"
+            size="1em"
+            color="grey"
+            class="cursor-pointer"
+          />
+        </q-item-label>
+        <q-tooltip>
+          <span v-text="payment.payment_hash"></span>
+        </q-tooltip>
+      </q-item-section>
+    </q-item>
+    <q-item>
+      <q-item-section>
+        <q-item-label v-text="$t('Invoice')"></q-item-label>
+        <q-item-label
+          caption
+          v-text="
+            `${payment.bolt11.slice(0, 12)}...${payment.bolt11.slice(-12)}`
+          "
+        ></q-item-label>
+      </q-item-section>
+      <q-item-section side>
+        <q-item-label>
+          <q-icon
+            name="content_copy"
+            @click="copyText(payment.bolt11)"
+            size="1em"
+            color="grey"
+            class="cursor-pointer"
+          />
+        </q-item-label>
+        <q-tooltip>
+          <span v-text="payment.bolt11"></span>
+        </q-tooltip>
+      </q-item-section>
+    </q-item>
+    <q-item>
+      <q-item-section>
+        <q-item-label v-text="$t('memo')"></q-item-label>
+        <q-item-label caption v-text="payment.memo"></q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-item v-if="payment.webhook">
+      <q-item-section>
+        <q-item-label v-text="$t('webhook')"></q-item-label>
+        <q-item-label caption v-text="payment.webhook"></q-item-label>
+      </q-item-section>
+      <q-item-section side top>
+        <q-item-label caption>
+          <q-badge
+            :color="webhookStatusColor"
+            text-color="white"
+            v-text="webhookStatusText"
+          ></q-badge>
+        </q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-item v-if="payment.preimage">
+      <q-item-section>
+        <q-item-label v-text="$t('payment_proof')"></q-item-label>
+        <q-item-label caption v-text="payment.preimage"></q-item-label>
+      </q-item-section>
+    </q-item>
+
+    <q-expansion-item expand-separator icon="info" label="Extras">
+      <template v-for="entry in extras">
+        <q-item v-if="!!entry.value" key="entry.key">
+          <q-item-section>
+            <q-item-label v-text="entry.key"></q-item-label>
+            <q-item-label caption v-text="entry.value"></q-item-label>
+          </q-item-section>
+        </q-item>
+      </template>
+    </q-expansion-item>
+  </q-list>
+  <!-- <div class="q-py-md" style="text-align: left">
     <div v-if="payment.tag" class="row justify-center q-mb-md">
       <q-badge v-if="hasTag" color="yellow" text-color="black">
         #<span v-text="payment.tag"></span>
@@ -289,7 +417,7 @@
         :success_action="payment.extra.success_action"
       ></lnbits-lnurlpay-success-action>
     </div>
-  </div>
+  </div> -->
 </template>
 
 <template id="lnbits-dynamic-fields">
@@ -689,7 +817,7 @@
               :href="['/', props.row.tag].join('')"
             ></a>
           </q-badge>
-          <span v-text="props.row.memo"></span>
+          <span class="q-ml-sm" v-text="props.row.memo"></span>
           <br />
 
           <i>
@@ -734,13 +862,33 @@
 
         <q-dialog v-model="props.expand" :props="props" position="top">
           <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-            <div class="text-center q-mb-lg">
+            <q-card-section class="">
               <div v-if="props.row.isIn && props.row.isPending">
-                <q-icon name="settings_ethernet" color="grey"></q-icon>
-                <span v-text="$t('invoice_waiting')"></span>
-                <lnbits-payment-details
-                  :payment="props.row"
-                ></lnbits-payment-details>
+                <q-expansion-item class="q-mb-lg">
+                  <template v-slot:header>
+                    <q-item-section avatar>
+                      <q-icon color="grey" name="settings_ethernet" />
+                    </q-item-section>
+
+                    <q-item-section>
+                      <q-item-label
+                        v-text="$t('invoice_waiting')"
+                      ></q-item-label>
+                      <!-- <q-item-label v-if="props.row.tag" caption>
+                        <q-badge
+                          v-if="props.row.extra && !!props.row.extra.tag"
+                          color="yellow"
+                          text-color="black"
+                        >
+                          #<span v-text="props.row.tag"></span>
+                        </q-badge>
+                      </q-item-label> -->
+                    </q-item-section>
+                  </template>
+                  <lnbits-payment-details
+                    :payment="props.row"
+                  ></lnbits-payment-details>
+                </q-expansion-item>
                 <div v-if="props.row.bolt11" class="text-center q-mb-lg">
                   <a :href="'lightning:' + props.row.bolt11">
                     <lnbits-qrcode
@@ -748,59 +896,112 @@
                     ></lnbits-qrcode>
                   </a>
                 </div>
-                <div class="row q-mt-lg">
-                  <q-btn
-                    outline
-                    color="grey"
-                    @click="copyText(props.row.bolt11)"
-                    :label="$t('copy_invoice')"
-                  ></q-btn>
-                  <q-btn
-                    v-close-popup
-                    flat
-                    color="grey"
-                    class="q-ml-auto"
-                    :label="$t('close')"
-                  ></q-btn>
-                </div>
               </div>
               <div v-else-if="props.row.isOut && props.row.isPending">
-                <q-icon name="settings_ethernet" color="grey"></q-icon>
-                <span v-text="$t('outgoing_payment_pending')"></span>
-                <lnbits-payment-details
-                  :payment="props.row"
-                ></lnbits-payment-details>
+                <!-- <q-icon name="settings_ethernet" color="grey"></q-icon>
+                <span v-text="$t('outgoing_payment_pending')"></span> -->
+                <q-expansion-item class="q-mb-lg" default-opened>
+                  <template v-slot:header>
+                    <q-item-section avatar>
+                      <q-icon color="grey" name="settings_ethernet" />
+                    </q-item-section>
+
+                    <q-item-section>
+                      <q-item-label
+                        v-text="$t('outgoing_payment_pending')"
+                      ></q-item-label>
+                    </q-item-section>
+                  </template>
+                  <lnbits-payment-details
+                    :payment="props.row"
+                  ></lnbits-payment-details>
+                </q-expansion-item>
               </div>
               <div v-else-if="props.row.isPaid && props.row.isIn">
-                <q-icon
+                <!-- <q-icon
                   size="18px"
                   :name="'call_received'"
                   :color="'green'"
                 ></q-icon>
-                <span v-text="$t('payment_received')"></span>
-                <lnbits-payment-details
-                  :payment="props.row"
-                ></lnbits-payment-details>
+                <span v-text="$t('payment_received')"></span> -->
+                <q-expansion-item class="q-mb-lg" default-opened>
+                  <template v-slot:header>
+                    <q-item-section avatar>
+                      <q-icon color="green" name="call_received" />
+                    </q-item-section>
+
+                    <q-item-section>
+                      <q-item-label
+                        v-text="$t('payment_received')"
+                      ></q-item-label>
+                    </q-item-section>
+                  </template>
+
+                  <lnbits-payment-details
+                    :payment="props.row"
+                  ></lnbits-payment-details>
+                </q-expansion-item>
               </div>
               <div v-else-if="props.row.isPaid && props.row.isOut">
-                <q-icon
+                <!-- <q-icon
                   size="18px"
                   :name="'call_made'"
                   :color="'pink'"
                 ></q-icon>
-                <span v-text="$t('payment_sent')"></span>
-                <lnbits-payment-details
-                  :payment="props.row"
-                ></lnbits-payment-details>
+                <span v-text="$t('payment_sent')"></span> -->
+                <q-expansion-item class="q-mb-lg" default-opened>
+                  <template v-slot:header>
+                    <q-item-section avatar>
+                      <q-icon color="pink" name="call_made" />
+                    </q-item-section>
+
+                    <q-item-section>
+                      <q-item-label v-text="$t('payment_sent')"></q-item-label>
+                    </q-item-section>
+                  </template>
+                  <lnbits-payment-details
+                    :payment="props.row"
+                  ></lnbits-payment-details>
+                </q-expansion-item>
               </div>
               <div v-else-if="props.row.isFailed">
-                <q-icon name="warning" color="yellow"></q-icon>
-                <span>Payment failed</span>
-                <lnbits-payment-details
-                  :payment="props.row"
-                ></lnbits-payment-details>
+                <!-- <q-icon name="warning" color="yellow"></q-icon>
+                <span>Payment failed</span> -->
+                <q-expansion-item class="q-mb-lg" default-opened>
+                  <template v-slot:header>
+                    <q-item-section avatar>
+                      <q-icon color="yellow" name="warning" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Payment failed</q-item-label>
+                    </q-item-section>
+                  </template>
+                  <lnbits-payment-details
+                    :payment="props.row"
+                  ></lnbits-payment-details>
+                </q-expansion-item>
               </div>
-            </div>
+            </q-card-section>
+            <q-card-section>
+              <div class="row q-mt-lg">
+                <q-btn
+                  v-if="
+                    props.row.isIn && props.row.isPending && props.row.bolt11
+                  "
+                  outline
+                  color="grey"
+                  @click="copyText(props.row.bolt11)"
+                  :label="$t('copy_invoice')"
+                ></q-btn>
+                <q-btn
+                  v-close-popup
+                  flat
+                  color="grey"
+                  class="q-ml-auto"
+                  :label="$t('close')"
+                ></q-btn>
+              </div>
+            </q-card-section>
           </q-card>
         </q-dialog>
       </q-tr>

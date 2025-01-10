@@ -212,11 +212,12 @@ video {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0 auto;
 }
 .qrcode__wrapper canvas {
   width: 100% !important; // important to override qrcode inline width
   height: 100% !important;
-  max-width: 350px; // default width of <lnbits-qrcode> component
+  max-width: 320px; // default width of <lnbits-qrcode> component
 }
 .qrcode__image {
   position: absolute;

@@ -535,12 +535,13 @@ video {
   display: flex;
   align-items: center;
   justify-content: center;
+    margin: 0 auto;
 }
 
 .qrcode__wrapper canvas {
   width: 100% !important;
   height: 100% !important;
-  max-width: 350px;
+  max-width: 320px;
 }
 
 .qrcode__image {
