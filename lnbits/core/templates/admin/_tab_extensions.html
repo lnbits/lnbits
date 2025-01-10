@@ -1,17 +1,22 @@
 <q-tab-panel name="extensions">
   <q-card-section class="q-pa-none">
     <div>
-      <h6 class="q-my-none">Extensions</h6>
+      <h6 class="q-my-none">
+        <span v-text="$t('extensions')"></span>
+      </h6>
       <div class="row q-col-gutter-md">
-        <div class="col-12">
-          <p>Extension Sources</p>
+        <div class="col-12 q-mb-md">
+          <p>
+            <span v-text="$t('extension_sources')"></span>
+          </p>
           <q-input
+            class="q-mb-md"
             filled
             v-model="formAddExtensionsManifest"
             @keydown.enter="addExtensionsManifest"
             type="text"
-            label="Source URL (only use the official LNbits extension source, and sources you can trust)"
-            hint="Repositories from where the extensions can be downloaded"
+            :label="$t('ext_sources_label')"
+            :hint="$t('ext_sources_hint')"
           >
             <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
           </q-input>
@@ -30,34 +35,44 @@
       </div>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
-          <p>Admin Extensions</p>
+          <p>
+            <span v-text="$t('admin_extensions')"></span>
+          </p>
           <q-select
             filled
             v-model="formData.lnbits_admin_extensions"
             multiple
-            hint="Extensions only user with admin privileges can use"
-            label="Admin extensions"
+            :label="$t('admin_extensions_label')"
+            :hint="$t('admin_extensions_hint')"
             :options="g.extensions"
           ></q-select>
         </div>
 
         <div class="col-12 col-md-6">
-          <p>User Default Extensions</p>
+          <p>
+            <span v-text="$t('user_default_extensions')"></span>
+          </p>
           <q-select
             filled
             v-model="formData.lnbits_user_default_extensions"
             multiple
-            hint="Extensions that will be enabled by default for the users."
-            label="User extensions"
+            :label="$t('user_default_extensions_label')"
+            :hint="$t('user_default_extensions_hint')"
             :options="g.extensions"
           ></q-select>
         </div>
         <div class="col-12 col-md-6">
-          <p>Miscellaneous</p>
+          <p>
+            <span v-text="$t('miscellaneous')"></span>
+          </p>
           <q-item tag="label" v-ripple>
             <q-item-section>
-              <q-item-label>Disable Extensions</q-item-label>
-              <q-item-label caption>Disables all extensions</q-item-label>
+              <q-item-label>
+                <span v-text="$t('misc_disable_extensions')"></span>
+              </q-item-label>
+              <q-item-label caption>
+                <span v-text="$t('misc_disable_extensions_label')"></span>
+              </q-item-label>
             </q-item-section>
             <q-item-section avatar>
               <q-toggle
@@ -71,10 +86,12 @@
           </q-item>
           <q-item tag="label" v-ripple>
             <q-item-section>
-              <q-item-label>Hide API</q-item-label>
-              <q-item-label caption
-                >Hides wallet api, extensions can choose to honor</q-item-label
-              >
+              <q-item-label>
+                <span v-text="$t('misc_hide_api')"></span>
+              </q-item-label>
+              <q-item-label caption>
+                <span v-text="$t('misc_hide_api_label')"></span>
+              </q-item-label>
             </q-item-section>
             <q-item-section avatar>
               <q-toggle
