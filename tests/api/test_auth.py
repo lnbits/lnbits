@@ -1197,9 +1197,7 @@ async def test_api_get_user_acls_invalid_token(http_client: AsyncClient):
 
 
 @pytest.mark.anyio
-async def test_api_get_user_acls_empty_acl(
-    http_client: AsyncClient, settings: Settings
-):
+async def test_api_get_user_acls_empty_acl(http_client: AsyncClient):
     # Register a new user to obtain the access token
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -1226,7 +1224,7 @@ async def test_api_get_user_acls_empty_acl(
 
 
 @pytest.mark.anyio
-async def test_api_get_user_acls_with_acl(http_client: AsyncClient, settings: Settings):
+async def test_api_get_user_acls_with_acl(http_client: AsyncClient):
     # Register a new user to obtain the access token
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -1265,3 +1263,50 @@ async def test_api_get_user_acls_with_acl(http_client: AsyncClient, settings: Se
     assert user_acls.id is not None, "User ID should be set."
     assert len(user_acls.access_control_list) == 1, "ACL should contain one item."
     assert user_acls.access_control_list[0].name == "Test ACL", "ACL name should match."
+
+
+@pytest.mark.anyio
+async def test_api_get_user_acls_sorted(http_client: AsyncClient):
+    # Register a new user to obtain the access token
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create some ACLs for the user
+    acl_names = ["zeta", "alpha", "gamma"]
+    for name in acl_names:
+        response = await http_client.put(
+            "/api/v1/auth/acl",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={"id": name, "name": name, "password": "secret1234"},
+        )
+        assert (
+            response.status_code == 200
+        ), f"ACL '{name}' should be created successfully."
+
+    # Get the user's ACLs
+    response = await http_client.get(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    assert response.status_code == 200, "ACLs retrieved."
+    user_acls = UserACLs(**response.json())
+
+    # Check that the ACLs are sorted alphabetically by name
+    acl_names_sorted = sorted(acl_names)
+    retrieved_acl_names = [acl.name for acl in user_acls.access_control_list]
+    assert (
+        retrieved_acl_names == acl_names_sorted
+    ), "ACLs are not sorted alphabetically by name."
