@@ -401,16 +401,17 @@ class NWCConnection:
         for subscription in self.subscriptions.values():
             if subscription["sub_id"] == sub_id:
                 sub_to_close = subscription
-                # send CLOSE event to the relay if the subscription
-                # is not already closed and sendEvent is True
-                if not subscription["closed"] and send_event:
-                    await self._send(["CLOSE", sub_id])
-                # mark as closed
-                subscription["closed"] = True
                 break
         # remove the subscription from the list
         if sub_to_close:
             self.subscriptions.pop(sub_to_close["event_id"], None)
+            if not sub_to_close["closed"]:
+                sub_to_close["closed"] = True
+                if send_event:
+                    try:
+                        await self._send(["CLOSE", sub_id])
+                    except Exception as e:
+                        logger.error("Error closing subscription: " + str(e))
         return sub_to_close
 
     async def _close_subscription_by_eventid(
@@ -430,12 +431,13 @@ class NWCConnection:
         # find and remove the subscription
         subscription = self.subscriptions.pop(event_id, None)
         if subscription:
-            # send CLOSE event to the relay if the subscription
-            # is not already closed and sendEvent is True
-            if not subscription["closed"] and send_event:
-                await self._send(["CLOSE", subscription["sub_id"]])
-            # mark as closed
-            subscription["closed"] = True
+            if not subscription["closed"]:
+                subscription["closed"] = True
+                if send_event:
+                    try:
+                        await self._send(["CLOSE", subscription["sub_id"]])
+                    except Exception as e:
+                        logger.error("Error closing subscription: " + str(e))
         return subscription
 
     async def _wait_for_connection(self):
