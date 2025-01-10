@@ -200,7 +200,6 @@ def is_valid_pubkey(pubkey: str) -> bool:
 
 
 def create_access_token(data: dict, token_expire_minutes: Optional[int] = None) -> str:
-    # todo: token expiry
     minutes = token_expire_minutes or settings.auth_token_expire_minutes
     expire = datetime.now(timezone.utc) + timedelta(minutes=minutes)
     to_encode = {k: v for k, v in data.items() if v is not None}

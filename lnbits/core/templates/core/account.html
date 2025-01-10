@@ -575,31 +575,72 @@
                     </div>
                     <div v-if="apiAcl.apiToken" class="row q-mb-md">
                       <div class="col-12">
-                        <q-input
-                          v-model="apiAcl.apiToken"
-                          :label="$t('api_token_id')"
-                          filled
-                          dense
-                          readonly
-                          :type="selectedApiAcl.showId ? 'text': 'password'"
-                          class="q-mb-md"
+                        <q-badge>
+                          <span>Use this token in the HTTP</span
+                          ><code>Authorization</code> &nbsp;
+                          <span> header.</span>
+                        </q-badge>
+                      </div>
+                      <div class="col-12">
+                        <table
+                          class="full-width lnbits__table-bordered"
+                          style="
+                            border-collapse: collapse;
+                            background-color: grey;
+                          "
                         >
-                          <q-btn
-                            @click="selectedApiAcl.showId = !selectedApiAcl.showId"
-                            dense
-                            flat
-                            :icon="selectedApiAcl.showId ? 'visibility_off' : 'visibility'"
-                            color="grey"
-                          ></q-btn>
+                          <thead>
+                            <tr>
+                              <th>
+                                <span class="float-left">Header Name</span>
+                              </th>
+                              <th>
+                                <span class="float-left">Header Value</span>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>
+                                <strong>Authorization</strong>
+                              </td>
+                              <td>
+                                <div class="row q-pt-sm">
+                                  <div class="col-2 q-mt-sm">
+                                    <strong>Bearer &nbsp;</strong>
+                                  </div>
+                                  <div class="col-10">
+                                    <q-input
+                                      v-model="apiAcl.apiToken"
+                                      :label="$t('api_token_id')"
+                                      filled
+                                      dense
+                                      readonly
+                                      :type="selectedApiAcl.showId ? 'text': 'password'"
+                                      class="q-mb-md"
+                                    >
+                                      <q-btn
+                                        @click="selectedApiAcl.showId = !selectedApiAcl.showId"
+                                        dense
+                                        flat
+                                        :icon="selectedApiAcl.showId ? 'visibility_off' : 'visibility'"
+                                        color="grey"
+                                      ></q-btn>
 
-                          <q-btn
-                            @click="copyText(apiAcl.apiToken)"
-                            icon="content_copy"
-                            color="grey"
-                            flat
-                            dense
-                          ></q-btn>
-                        </q-input>
+                                      <q-btn
+                                        @click="copyText(apiAcl.apiToken)"
+                                        icon="content_copy"
+                                        color="grey"
+                                        flat
+                                        dense
+                                      ></q-btn>
+                                    </q-input>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
                       <div class="col-12">
                         <q-badge>
@@ -819,4 +860,5 @@
     </div>
   </q-card>
 </q-dialog>
+
 {% endblock %}
