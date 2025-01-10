@@ -49,6 +49,7 @@ window.app.component('lnbits-wallet-list', {
   },
   methods: {
     onSelectWallet(wallet) {
+      console.log(wallet)
       this.$emit('wallet-selected', wallet)
     },
     createWallet() {

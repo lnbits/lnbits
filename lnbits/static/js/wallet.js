@@ -486,21 +486,18 @@ window.WalletPageLogic = {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
         .then(response => {
-          Object.keys(response.data).forEach(key => {
-            if (key !== 'id') {
-              this.g.wallet[key] = response.data[key];
-            }
-          })
+          this.refreshRoute()
           Quasar.Notify.create({
-            message: `Wallet updated.`,
+            message: 'Wallet and user updated.',
             type: 'positive',
-            timeout: 3500
-          })
+            timeout: 3500,
+          });
         })
         .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
-    },
+          LNbits.utils.notifyApiError(err);
+        });
+    }
+    ,
     deleteWallet() {
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this wallet?')

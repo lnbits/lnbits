@@ -9,7 +9,7 @@
       :key="walletRec.id + updateTrigger"
       clickable
       :active="g.wallet && g.wallet.id === walletRec.id"
-      @click="onSelectWallet(walletRec)"
+      @click="selectWallet(walletRec)"
     >
       <q-item-section side>
         <q-avatar

@@ -93,7 +93,7 @@ window.ExtensionsPageLogic = {
           this.filteredExtensions = this.extensions.concat([])
           this.handleTabChanged('installed')
           this.tab = 'installed'
-          window.location.reload()
+          this.refreshRoute()
         })
         .catch(err => {
           console.warn(err)
@@ -128,7 +128,7 @@ window.ExtensionsPageLogic = {
             this.showDropDb()
           } else {
             setTimeout(() => {
-              window.location.reload()
+              this.refreshRoute()
             }, 300)
           }
         })
@@ -159,7 +159,7 @@ window.ExtensionsPageLogic = {
             message: 'Extension DB deleted!'
           })
           setTimeout(() => {
-            window.location.reload()
+            this.refreshRoute()
           }, 300)
         })
         .catch(err => {
@@ -208,7 +208,7 @@ window.ExtensionsPageLogic = {
             message: 'Extension enabled!'
           })
           setTimeout(() => {
-            window.location.reload()
+            this.refreshRoute()
           }, 300)
         })
         .catch(err => {
@@ -229,7 +229,7 @@ window.ExtensionsPageLogic = {
             message: 'Extension disabled!'
           })
           setTimeout(() => {
-            window.location.reload()
+            this.refreshRoute()
           }, 300)
         })
         .catch(err => {
@@ -626,7 +626,7 @@ window.ExtensionsPageLogic = {
       })
       this.showUpdateAllDialog = false
       setTimeout(() => {
-        window.location.reload()
+        this.refreshRoute()
       }, 2000)
     }
   },

@@ -442,7 +442,8 @@ if (!window.g) {
     visibleDrawer: false,
     extensions: [],
     user: null,
-    wallet: null,
+    wallet: {},
+    wallets: [],
     payments: [],
     allowedThemes: null,
     langs: [],
@@ -486,7 +487,7 @@ window.windowMixin = {
     flipWallets(smallScreen) {
       this.walletFlip = !this.walletFlip
       if (this.walletFlip && smallScreen) {
-        this.g.visibleDrawer = false
+       this.g.visibleDrawer = false
       }
       this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
     },
@@ -496,36 +497,28 @@ window.windowMixin = {
     },
     walletEvents() {
       this.g.user.wallets.forEach(wallet => {
-        if (this.eventListeners.includes(wallet.id)) {
-          return
-        } else {
-          this.eventListeners.push(wallet.id)
+        if (!this.eventListeners.includes(wallet.id)) {
+          this.eventListeners.push(wallet.id);
           LNbits.events.onInvoicePaid(wallet, data => {
-            const walletIndex = this.g.user.wallets.findIndex(
-              w => w.id === wallet.id
-            )
+            const walletIndex = this.g.user.wallets.findIndex(w => w.id === wallet.id);
             if (walletIndex !== -1) {
-              const updatedWallet = {
-                ...this.g.user.wallets[walletIndex],
+              Object.assign(this.g.user.wallets[walletIndex], {
                 sat: data.wallet_balance,
                 msat: data.wallet_balance * 1000,
-                fsat: data.wallet_balance.toLocaleString()
-              }
-              this.g.user.wallets.splice(walletIndex, 1, updatedWallet)
-              this.g.user.wallets = [...this.g.user.wallets]
-              this.updateTrigger++
-
+                fsat: data.wallet_balance.toLocaleString(),
+              });
+              this.updateTrigger++;
               if (this.g.wallet.id === wallet.id) {
-                Object.assign(this.g.wallet, updatedWallet)
+                Object.assign(this.g.wallet, this.g.user.wallets[walletIndex]);
               }
             }
-            this.onPaymentReceived(data.payment.payment_hash)
+            this.onPaymentReceived(data.payment.payment_hash);
             if (this.g.wallet.id === wallet.id) {
-              eventReaction(data.payment.amount)
+              eventReaction(data.payment.amount);
             }
-          })
+          });
         }
-      })
+      });
     },
     onPaymentReceived(paymentHash) {
       this.updatePayments = !this.updatePayments
@@ -535,7 +528,7 @@ window.windowMixin = {
       }
     },
     selectWallet(wallet) {
-      this.g.wallet = { ...JSON.parse(JSON.stringify(this.g.wallet)), ...wallet };
+      Object.assign(this.g.wallet, wallet);
       this.$emit('update-wallet', this.g.wallet)
       this.wallet = this.g.wallet;
       this.updatePayments = !this.updatePayments;
@@ -722,9 +715,13 @@ window.windowMixin = {
       this.setColors()
     },
     refreshRoute() {
-      this.$router.replace({
-        path: this.$route.path,
-        query: this.$route.query,
+      actualPath = this.$route.path
+      actualQuery = this.$route.query
+      this.$router.push('/temp').then(() => {
+        this.$router.replace({
+          path: actualPath,
+          query: actualQuery,
+        });
       });
     }
   },
@@ -782,15 +779,13 @@ window.windowMixin = {
     this.applyBorder()
 
     if (window.user) {
-      this.g.user = Object.freeze(window.LNbits.map.user(window.user))
+      this.g.user = Vue.reactive(window.LNbits.map.user(window.user));
     }
     if (window.wallet) {
-      this.g.wallet = Object.freeze(window.LNbits.map.wallet(window.wallet))
+      this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))
     }
     if (window.extensions) {
-      const extensions = Object.freeze(window.extensions)
-
-      this.g.extensions = extensions
+      this.g.extensions = Vue.reactive(window.extensions);
     }
     await this.checkUsrInUrl()
     this.themeParams()
@@ -802,8 +797,6 @@ window.windowMixin = {
       this.walletEventsInitialized = true
       this.walletEvents()
     }
-    console.log('Is g reactive?', Vue.isReactive(window.g)); // Should log true
-console.log('Is wallet reactive?', Vue.isReactive(window.g.wallet)); // S
   }
 }
 
