@@ -187,7 +187,7 @@ async def api_create_user_api_token(
     data: ApiTokenRequest,
     user: User = Depends(check_user_exists),
 ) -> ApiTokenResponse:
-
+    assert data.expiration_time_minutes > 0, "Expiration time must be in the future."
     account = await get_account(user.id)
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
