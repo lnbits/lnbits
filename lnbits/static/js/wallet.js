@@ -76,8 +76,8 @@ window.WalletPageLogic = {
       return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
     },
     wallet() {
-      return this.g.wallet;
-    },
+      return this.g.wallet
+    }
   },
   methods: {
     msatoshiFormat(value) {
@@ -490,14 +490,13 @@ window.WalletPageLogic = {
           Quasar.Notify.create({
             message: 'Wallet and user updated.',
             type: 'positive',
-            timeout: 3500,
-          });
+            timeout: 3500
+          })
         })
         .catch(err => {
-          LNbits.utils.notifyApiError(err);
-        });
-    }
-    ,
+          LNbits.utils.notifyApiError(err)
+        })
+    },
     deleteWallet() {
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this wallet?')
@@ -661,11 +660,11 @@ window.WalletPageLogic = {
     },
     'g.wallet': {
       handler(newWallet) {
-        console.log('Wallet updated:', newWallet);
+        console.log('Wallet updated:', newWallet)
         this.createdTasks()
       },
-      deep: true,
-    },
+      deep: true
+    }
   },
   mounted() {
     // show disclaimer

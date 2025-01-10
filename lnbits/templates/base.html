@@ -118,7 +118,7 @@
                 </div>
               </template>
               <q-list>
-                <q-item tag="a" href="/account" clickable v-close-popup
+                <q-item to="/account" clickable v-close-popup
                   ><q-item-section>
                     <q-icon name="person" />
                   </q-item-section>
@@ -131,7 +131,7 @@
                     <q-item-label> </q-item-label>
                   </q-item-section>
                 </q-item>
-                <q-item tag="a" href="/account#theme" clickable v-close-popup
+                <q-item to="/account#theme" clickable v-close-popup
                   ><q-item-section>
                     <q-icon
                       :name="$q.dark.isActive ? 'dark_mode' : 'light_mode'"
@@ -191,8 +191,6 @@
             :updateTrigger="updateTrigger"
             :balance="balance"
           ></lnbits-wallet-list>
-
-          <q-btn to="/wallet">demo wal btn</q-btn>
           <lnbits-manage
             :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
             :show-users="'{{LNBITS_ADMIN_UI}}' == 'True'"
@@ -215,56 +213,56 @@
               "
             >
               <div class="row no-wrap q-gutter-md q-pr-md">
-                  <q-card
+                <q-card
                   v-for="wallet in g.user.wallets"
                   :key="wallet.id + updateTrigger"
                   clickable
                   @click="selectWallet(wallet)"
                   class="wallet-list-card"
                   style="text-decoration: none"
-                    :style="
+                  :style="
         g.wallet && g.wallet.id === wallet.id
           ? `border: 1px solid ${primaryColor}; width: 250px; text-decoration: none; cursor: pointer;`
           : 'width: 250px; text-decoration: none; border: 0px; cursor: pointer;'
       "
-                    :class="{
+                  :class="{
           'active-wallet-card': g.wallet && g.wallet.id === wallet.id
         }"
-                  >
-                    <q-card-section>
-                      <div class="row items-center">
-                        <q-avatar
-                          size="lg"
-                          :color="
+                >
+                  <q-card-section>
+                    <div class="row items-center">
+                      <q-avatar
+                        size="lg"
+                        :color="
               g.wallet && g.wallet.id === wallet.id
                 ? $q.dark.isActive
                   ? 'primary'
                   : 'primary'
                 : 'grey-5'
             "
-                        >
-                          <q-icon
-                            name="flash_on"
-                            :size="$q.dark.isActive ? '21px' : '20px'"
-                            :color="$q.dark.isActive ? 'black' : 'grey-3'"
-                          ></q-icon>
-                        </q-avatar>
-                        <div
-                          class="text-h6 q-pl-md"
-                          :class="{
+                      >
+                        <q-icon
+                          name="flash_on"
+                          :size="$q.dark.isActive ? '21px' : '20px'"
+                          :color="$q.dark.isActive ? 'black' : 'grey-3'"
+                        ></q-icon>
+                      </q-avatar>
+                      <div
+                        class="text-h6 q-pl-md"
+                        :class="{
               'text-bold': g.wallet && g.wallet.id === wallet.id
             }"
-                          v-text="wallet.name"
-                        ></div>
-                      </div>
-                      <div class="row items-center q-pt-sm">
-                        <h6 class="q-my-none text-no-wrap">
-                          <strong v-text="wallet.fsat"></strong>
-                          <small> {{LNBITS_DENOMINATION}}</small>
-                        </h6>
-                      </div>
-                    </q-card-section>
-                  </q-card>
+                        v-text="wallet.name"
+                      ></div>
+                    </div>
+                    <div class="row items-center q-pt-sm">
+                      <h6 class="q-my-none text-no-wrap">
+                        <strong v-text="wallet.fsat"></strong>
+                        <small> {{LNBITS_DENOMINATION}}</small>
+                      </h6>
+                    </div>
+                  </q-card-section>
+                </q-card>
               </div>
             </q-scroll-area>
 

@@ -3,6 +3,7 @@ window.AdminPageLogic = {
   data() {
     return {
       settings: {},
+      isReady: false,
       logs: [],
       serverlogEnabled: false,
       lnbits_theme_options: [
@@ -124,6 +125,9 @@ window.AdminPageLogic = {
     const hash = window.location.hash.replace('#', '')
     if (hash) {
       this.tab = hash
+      if (this.tab === 'exchange_providers') {
+        this.showExchangeProvidersTab(this.tab)
+      }
     }
   },
   computed: {
@@ -399,6 +403,11 @@ window.AdminPageLogic = {
         .request('GET', '/api/v1/rate/history', this.g.user.wallets[0].inkey)
         .then(response => {
           this.initExchangeChart(response.data)
+        })
+        .then(() => {
+          this.$nextTick(() => {
+            this.isReady = true
+          })
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)

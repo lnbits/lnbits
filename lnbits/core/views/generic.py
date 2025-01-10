@@ -183,8 +183,6 @@ async def wallet(
         return template_renderer().TemplateResponse(
             request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
         )
-
-    # Common context for both templates
     context = {
         "user": user.json(),
         "wallet": wallet.json(),
@@ -194,14 +192,11 @@ async def wallet(
         "service_fee_max": settings.lnbits_service_fee_max,
         "web_manifest": f"/manifest/{user.id}.webmanifest",
     }
-
-    # Check if it's an AJAX request
     is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
     return template_renderer().TemplateResponse(
         request,
-        "core/wallet.html",  # Use the full template
-        {**context, "ajax": is_ajax},  # Add ajax flag to context
+        "core/wallet.html",
+        {**context, "ajax": is_ajax},
     )
 
 
@@ -214,11 +209,13 @@ async def account(
     request: Request,
     user: User = Depends(check_user_exists),
 ):
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
         {
             "user": user.json(),
+            "ajax": is_ajax,
         },
     )
 

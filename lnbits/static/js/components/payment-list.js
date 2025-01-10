@@ -117,7 +117,7 @@ window.app.component('payment-list', {
   },
   computed: {
     wallet() {
-      return this.g.wallet;
+      return this.g.wallet
     },
     filteredPayments() {
       const q = this.paymentsTable.search
@@ -239,10 +239,10 @@ window.app.component('payment-list', {
     },
     'g.wallet': {
       handler(newWallet) {
-        console.log('Wallet updated:', newWallet);
-        this.fetchPayments(); // Update payments when wallet changes
+        console.log('Wallet updated:', newWallet)
+        this.fetchPayments() // Update payments when wallet changes
       },
-      deep: true,
+      deep: true
     }
   },
   created() {

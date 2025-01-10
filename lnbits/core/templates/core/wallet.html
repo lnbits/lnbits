@@ -229,6 +229,17 @@
                         :label="$t('update_currency')"
                         @click="updateWallet({ currency: update.currency || '' })"
                       ></q-btn>
+                      <q-btn
+                        v-if="g.user.admin"
+                        class="absolute-top-right"
+                        flat
+                        round
+                        icon="settings"
+                        to="/admin#exchange_providers"
+                        ><q-tooltip
+                          v-text="$t('exchange_providers')"
+                        ></q-tooltip
+                      ></q-btn>
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>

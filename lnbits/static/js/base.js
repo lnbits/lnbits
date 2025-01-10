@@ -446,8 +446,8 @@ if (!window.g) {
     wallets: [],
     payments: [],
     allowedThemes: null,
-    langs: [],
-  });
+    langs: []
+  })
 }
 
 window.windowMixin = {
@@ -487,7 +487,7 @@ window.windowMixin = {
     flipWallets(smallScreen) {
       this.walletFlip = !this.walletFlip
       if (this.walletFlip && smallScreen) {
-       this.g.visibleDrawer = false
+        this.g.visibleDrawer = false
       }
       this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
     },
@@ -498,27 +498,29 @@ window.windowMixin = {
     walletEvents() {
       this.g.user.wallets.forEach(wallet => {
         if (!this.eventListeners.includes(wallet.id)) {
-          this.eventListeners.push(wallet.id);
+          this.eventListeners.push(wallet.id)
           LNbits.events.onInvoicePaid(wallet, data => {
-            const walletIndex = this.g.user.wallets.findIndex(w => w.id === wallet.id);
+            const walletIndex = this.g.user.wallets.findIndex(
+              w => w.id === wallet.id
+            )
             if (walletIndex !== -1) {
               Object.assign(this.g.user.wallets[walletIndex], {
                 sat: data.wallet_balance,
                 msat: data.wallet_balance * 1000,
-                fsat: data.wallet_balance.toLocaleString(),
-              });
-              this.updateTrigger++;
+                fsat: data.wallet_balance.toLocaleString()
+              })
+              this.updateTrigger++
               if (this.g.wallet.id === wallet.id) {
-                Object.assign(this.g.wallet, this.g.user.wallets[walletIndex]);
+                Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
               }
             }
-            this.onPaymentReceived(data.payment.payment_hash);
+            this.onPaymentReceived(data.payment.payment_hash)
             if (this.g.wallet.id === wallet.id) {
-              eventReaction(data.payment.amount);
+              eventReaction(data.payment.amount)
             }
-          });
+          })
         }
-      });
+      })
     },
     onPaymentReceived(paymentHash) {
       this.updatePayments = !this.updatePayments
@@ -528,32 +530,32 @@ window.windowMixin = {
       }
     },
     selectWallet(wallet) {
-      Object.assign(this.g.wallet, wallet);
+      Object.assign(this.g.wallet, wallet)
       this.$emit('update-wallet', this.g.wallet)
-      this.wallet = this.g.wallet;
-      this.updatePayments = !this.updatePayments;
-      this.balance = parseInt(wallet.balance_msat / 1000);
-      const currentPath = this.$route.path;
-      if (currentPath !== "/wallet") {
+      this.wallet = this.g.wallet
+      this.updatePayments = !this.updatePayments
+      this.balance = parseInt(wallet.balance_msat / 1000)
+      const currentPath = this.$route.path
+      if (currentPath !== '/wallet') {
         this.$router.push({
-          path: "/wallet",
-          query: { wal: this.wallet.id },
-        });
-    } else {
-      const url = new URL(window.location.href);
-      url.searchParams.set('wal', this.wallet.id);
-      window.history.replaceState({}, '', url.toString());
-    }
+          path: '/wallet',
+          query: {wal: this.wallet.id}
+        })
+      } else {
+        const url = new URL(window.location.href)
+        url.searchParams.set('wal', this.wallet.id)
+        window.history.replaceState({}, '', url.toString())
+      }
     },
     changeColor(newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
     },
     applyGradient() {
-      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
-        this.setColors()
-        darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
-        primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
+      darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
+      primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
+      if (this.gradientChoice) {
+        this.$q.localStorage.set('lnbits.gradientBg', true)
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
         document.body.style.setProperty(
           'background-image',
@@ -567,6 +569,11 @@ window.windowMixin = {
           `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
           `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
+      } else {
+        this.$q.localStorage.set('lnbits.gradientBg', false)
+      }
+      if (!this.$q.dark.isActive) {
+        this.toggleDarkMode()
       }
     },
     applyBorder() {
@@ -575,7 +582,7 @@ window.windowMixin = {
       }
       let borderStyle = this.$q.localStorage.getItem('lnbits.border')
       if (!borderStyle) {
-        this.$q.localStorage.set('lnbits.border', 'retro-border')
+        this.$q.localStorage.set('lnbits.border', 'hard-border')
         borderStyle = 'hard-border'
       }
       this.borderChoice = borderStyle
@@ -715,14 +722,11 @@ window.windowMixin = {
       this.setColors()
     },
     refreshRoute() {
-      actualPath = this.$route.path
-      actualQuery = this.$route.query
+      const path = this.$route.path
+      const query = this.$route.query
       this.$router.push('/temp').then(() => {
-        this.$router.replace({
-          path: actualPath,
-          query: actualQuery,
-        });
-      });
+        this.$router.replace({path, query})
+      })
     }
   },
   async created() {
@@ -774,18 +778,16 @@ window.windowMixin = {
         this.$q.localStorage.getItem('lnbits.theme')
       )
     }
-
     this.applyGradient()
     this.applyBorder()
-
     if (window.user) {
-      this.g.user = Vue.reactive(window.LNbits.map.user(window.user));
+      this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
     }
     if (window.wallet) {
       this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))
     }
     if (window.extensions) {
-      this.g.extensions = Vue.reactive(window.extensions);
+      this.g.extensions = Vue.reactive(window.extensions)
     }
     await this.checkUsrInUrl()
     this.themeParams()

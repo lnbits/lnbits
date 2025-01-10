@@ -31,8 +31,9 @@ const DynamicComponent = {
     async loadDynamicContent() {
       this.$q.loading.show()
       try {
+        const cleanUrl = this.fetchUrl.split('#')[0]
         //grab page content, need to be before loading scripts
-        const response = await fetch(this.fetchUrl, {
+        const response = await fetch(cleanUrl, {
           credentials: 'include',
           headers: {
             Accept: 'text/html',
@@ -158,6 +159,15 @@ const routes = [
     props: {
       fetchUrl: '/extensions',
       scripts: ['/static/js/extensions.js']
+    }
+  },
+  {
+    path: '/account',
+    name: 'Account',
+    component: DynamicComponent,
+    props: {
+      fetchUrl: '/account',
+      scripts: ['/static/js/account.js']
     }
   }
 ]

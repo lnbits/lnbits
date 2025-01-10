@@ -1,5 +1,4 @@
-window.app = Vue.createApp({
-  el: '#vue',
+window.AccountPageLogic = {
   mixins: [window.windowMixin],
   data() {
     return {
@@ -39,58 +38,12 @@ window.app = Vue.createApp({
         this.toggleGradient()
       }
     },
-    applyGradient() {
-      darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
-      primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
-      if (this.gradientChoice) {
-        if (!this.$q.dark.isActive) {
-          this.toggleDarkMode()
-        }
-        const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
-        document.body.style.setProperty(
-          'background-image',
-          gradientStyle,
-          'important'
-        )
-        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
-        const style = document.createElement('style')
-        style.innerHTML =
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
-          `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
-        document.head.appendChild(style)
-        this.$q.localStorage.set('lnbits.gradientBg', true)
-      } else {
-        this.$q.localStorage.set('lnbits.gradientBg', false)
-      }
-    },
-    applyBorder() {
-      if (this.borderChoice) {
-        this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
-      }
-      let borderStyle = this.$q.localStorage.getItem('lnbits.border')
-      this.borderChoice = borderStyle
-      let borderStyleCSS
-      if (borderStyle == 'hard-border') {
-        borderStyleCSS = `box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #ffffff47; border: none;`
-      }
-      if (borderStyle == 'no-border') {
-        borderStyleCSS = `box-shadow: none; border: none;`
-      }
-      if (borderStyle == 'retro-border') {
-        borderStyleCSS = `border: none; border-color: rgba(255, 255, 255, 0.28); box-shadow: 0 1px 5px rgba(255, 255, 255, 0.2), 0 2px 2px rgba(255, 255, 255, 0.14), 0 3px 1px -2px rgba(255, 255, 255, 0.12);`
-      }
-      let style = document.createElement('style')
-      style.innerHTML = `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
-      document.head.appendChild(style)
-    },
     toggleGradient() {
       this.gradientChoice = !this.gradientChoice
       this.applyGradient()
       if (!this.gradientChoice) {
         window.location.reload()
       }
-      this.gradientChoice = this.$q.localStorage.getItem('lnbits.gradientBg')
     },
     reactionChoiceFunc() {
       this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
@@ -208,15 +161,9 @@ window.app = Vue.createApp({
     } catch (e) {
       LNbits.utils.notifyApiError(e)
     }
-    if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
-      this.applyGradient()
-    }
-    if (this.$q.localStorage.getItem('lnbits.border')) {
-      this.applyBorder()
-    }
     const hash = window.location.hash.replace('#', '')
     if (hash) {
       this.tab = hash
     }
   }
-})
+}
