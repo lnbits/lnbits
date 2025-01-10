@@ -492,8 +492,8 @@ window.windowMixin = {
       this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
     },
     simpleMobile() {
-      this.mobileSimple = !this.mobileSimple
-      this.$q.localStorage.set('lnbits.mobileSimple', this.mobileSimple)
+      this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
+      this.refreshRoute()
     },
     walletEvents() {
       this.g.user.wallets.forEach(wallet => {
@@ -722,10 +722,11 @@ window.windowMixin = {
       this.setColors()
     },
     refreshRoute() {
-      const path = this.$route.path
-      const query = this.$route.query
+      const path = window.location.pathname
+      console.log(path)
+
       this.$router.push('/temp').then(() => {
-        this.$router.replace({path, query})
+        this.$router.replace({path})
       })
     }
   },

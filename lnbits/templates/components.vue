@@ -538,9 +538,8 @@
 
 <template id="payment-list">
   <div class="row items-center no-wrap">
-    <div class="col">
+    <div class="col" v-if="!mobileSimple || $q.screen.gt.sm">
       <q-input
-        v-if="!mobileSimple"
         :label="$t('search_by_tag_memo_amount')"
         dense
         class="q-pr-xl"
