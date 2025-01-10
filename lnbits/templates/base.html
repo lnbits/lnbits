@@ -179,7 +179,8 @@
           <q-btn
             flat
             :icon=" walletFlip ? 'keyboard_arrow_right' : 'keyboard_arrow_down'"
-            class="absolute-top-right"
+            class="absolute-top-right q-mt-sm"
+            size="sm"
             @click="flipWallets($q.screen.lt.md)"
           ></q-btn>
           <lnbits-wallet-list
@@ -255,6 +256,41 @@
                         <strong v-text="wallet.fsat"></strong>
                         <small> {{LNBITS_DENOMINATION}}</small>
                       </h6>
+                    </div>
+                  </q-card-section>
+                </q-card>
+                <q-card class="wallet-list-card">
+                  <q-card-section>
+                    <div class="row items-center">
+                      <q-avatar size="lg" color="grey-5">
+                        <q-icon name="add" size="20px" color="black"></q-icon>
+                      </q-avatar>
+                      <div
+                        class="text-h6 q-pl-md"
+                        v-text="$t('add_wallet')"
+                      ></div>
+                    </div>
+                    <div class="row items-center">
+                      <q-form @submit="createWallet" class="q-mt-sm">
+                        <q-input
+                          filled
+                          dense
+                          v-model="walletName"
+                          label="Name wallet *"
+                        >
+                          <template v-slot:append>
+                            <q-btn
+                              round
+                              dense
+                              flat
+                              icon="send"
+                              size="sm"
+                              @click="createWallet"
+                              :disable="walletName === ''"
+                            ></q-btn>
+                          </template>
+                        </q-input>
+                      </q-form>
                     </div>
                   </q-card-section>
                 </q-card>
