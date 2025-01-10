@@ -203,7 +203,7 @@ window.LNbits = {
         email: data.email,
         extensions: data.extensions,
         wallets: data.wallets,
-        admin: data.admin
+        super_user: data.super_user
       }
       const mapWallet = this.wallet
       obj.wallets = obj.wallets

@@ -51,12 +51,10 @@
                 {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {%
                 else %}
                 <span><strong>LN</strong>bits</span> {% endif %} {%endif%} </q-btn
-              >{% endblock %} {% block toolbar_subtitle %}{%if user and
-              user.super_user%}
-              <q-badge align="middle">Super User</q-badge>
-              {% elif user and user.admin %}
-              <q-badge align="middle">Admin User</q-badge>
-              {%endif%}{% endblock %}
+              >{% endblock %} {% block toolbar_subtitle %}
+              <q-badge v-if="g.user && g.user.super_user">Super User</q-badge>
+              <q-badge v-else-if="g.user && g.user.admin">Admin User</q-badge>
+              {% endblock %}
             </q-toolbar-title>
             {% block beta %} {% if VOIDWALLET %}
             <q-badge
@@ -99,7 +97,6 @@
             <q-badge v-if="g.offline" color="red" class="q-mr-md">
               <span>OFFLINE</span>
             </q-badge>
-
             <q-btn-dropdown
               v-if="isUserAuthorized"
               dense
