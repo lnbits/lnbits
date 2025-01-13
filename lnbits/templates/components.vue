@@ -778,7 +778,7 @@
           </i>
         </q-td>
         <q-dialog v-model="props.expand" :props="props" position="top">
-          <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <q-card class="q-pa-sm q-pt-xl lnbits__dialog-card">
             <q-card-section class="">
               <q-list bordered separator>
                 <q-expansion-item
