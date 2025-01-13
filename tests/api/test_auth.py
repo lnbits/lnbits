@@ -1357,9 +1357,7 @@ async def test_api_delete_user_acl_success(http_client: AsyncClient):
 
 
 @pytest.mark.anyio
-async def test_api_delete_user_acl_invalid_password(
-    http_client: AsyncClient, settings: Settings
-):
+async def test_api_delete_user_acl_invalid_password(http_client: AsyncClient):
     # Register a new user to obtain the access token
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -1402,9 +1400,7 @@ async def test_api_delete_user_acl_invalid_password(
 
 
 @pytest.mark.anyio
-async def test_api_delete_user_acl_nonexistent_acl(
-    http_client: AsyncClient, settings: Settings
-):
+async def test_api_delete_user_acl_nonexistent_acl(http_client: AsyncClient):
     # Register a new user to obtain the access token
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -1434,9 +1430,7 @@ async def test_api_delete_user_acl_nonexistent_acl(
 
 
 @pytest.mark.anyio
-async def test_api_delete_user_acl_missing_password(
-    http_client: AsyncClient, settings: Settings
-):
+async def test_api_delete_user_acl_missing_password(http_client: AsyncClient):
     # Register a new user to obtain the access token
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -1475,3 +1469,6 @@ async def test_api_delete_user_acl_missing_password(
         },
     )
     assert response.status_code == 400, "Missing password."
+
+
+################################ TOKEN ################################
