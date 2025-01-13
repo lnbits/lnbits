@@ -440,11 +440,14 @@ class NWCConnection:
                         logger.error("Error closing subscription: " + str(e))
         return subscription
 
-    async def _wait_for_connection(self):
+    async def _wait_for_connection(self, timeout=60 * 2):
         """
         Waits until the connection is ready
         """
+        t = time.time()
         while not self.connected:
+            if time.time() - t > timeout:
+                raise Exception("Connection timeout, cannot connect to NWC service")
             if self._is_shutting_down():
                 raise Exception("Connection is closing")
             logger.debug("Waiting for connection...")
