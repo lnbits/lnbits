@@ -9,12 +9,22 @@ Make sure to:
 
 ### Create Comprehensive suite of unit tests
 
+*Sample 1*
 @workspace /tests Develop a comprehensive suite of unit tests for the selected code (only the function (only the function api_create_user_api_token in auth_api.py file) in auth_api.py file).
 Requirements:
 
 - use register endpoint to obtain the access token (see example in test_register_ok)
 - write multiple test functions that cover a wide range of scenarios, including the succes flow, edge cases, exception handling, and data validation
 - for the success case create a new ACL before creating the token
+
+*Sample 2*
+@workspace /tests Develop a comprehensive suite of unit tests for the selected code (only the function check_user_exists in decorators.py file) .
+Requirements:
+
+- write multiple test functions that cover a wide range of scenarios, including the succes flow, edge cases, security vulnerabilities, exception handling, and data validation
+- use the login endpoint to obtain a valid access token. Use the `user_alan: User` fixture for the login params. Check the `test_login_alan_username_password_ok` function in the `test_auth.py` file as an example for login.
+- do not use mocks. For the request parameter initialize the fastapi.Request class.
+- make sure to cover all if-then-else branches
 
 ### Create tests for a particular usecase
 
