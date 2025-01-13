@@ -9,8 +9,17 @@ import secp256k1
 import shortuuid
 from httpx import AsyncClient
 
+from lnbits.core.crud.users import (
+    get_user_access_control_lists,
+    update_user_access_control_list,
+)
 from lnbits.core.models import AccessTokenPayload, User
-from lnbits.core.models.users import ApiTokenRequest, UpdateAccessControlList, UserACLs
+from lnbits.core.models.users import (
+    ApiTokenRequest,
+    DeleteTokenRequest,
+    UpdateAccessControlList,
+    UserACLs,
+)
 from lnbits.core.views.user_api import api_users_reset_password
 from lnbits.settings import AuthMethods, Settings
 from lnbits.utils.nostr import hex_to_npub, sign_event
@@ -1637,3 +1646,200 @@ async def test_api_create_user_api_token_expiration_time_invalid(
         json=token_request.dict(),
     )
     assert response.status_code == 400, "Expiration time must be in the future."
+
+
+@pytest.mark.anyio
+async def test_api_delete_user_api_token_success(
+    http_client: AsyncClient, settings: Settings
+):
+    # Register a new user
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Decode the access token to get the user ID
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    user_id = payload["usr"]
+
+    # Create a new ACL
+    acl_data = UpdateAccessControlList(
+        id="", name="Test ACL", endpoints=[], password="secret1234"
+    )
+    user_acls = await get_user_access_control_lists(user_id)
+    user_acls.access_control_list.append(acl_data)
+    await update_user_access_control_list(user_acls)
+
+    # Create a new API token
+    api_token_request = ApiTokenRequest(
+        acl_id=acl_data.id,
+        token_name="Test Token",
+        expiration_time_minutes=60,
+        password="secret1234",
+    )
+    response = await http_client.post(
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=api_token_request.dict(),
+    )
+    assert response.status_code == 200, "API token created."
+    api_token_id = response.json().get("id")
+    assert api_token_id is not None
+
+    # Delete the API token
+    delete_token_request = DeleteTokenRequest(
+        acl_id=acl_data.id, id=api_token_id, password="secret1234"
+    )
+    response = await http_client.request(
+        "DELETE",
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=delete_token_request.dict(),
+    )
+    assert response.status_code == 200, "API token deleted."
+
+
+@pytest.mark.anyio
+async def test_api_delete_user_api_token_invalid_password(
+    http_client: AsyncClient, settings: Settings
+):
+    # Register a new user
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Decode the access token to get the user ID
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    user_id = payload["usr"]
+
+    # Create a new ACL
+    acl_data = UpdateAccessControlList(
+        id="", name="Test ACL", endpoints=[], password="secret1234"
+    )
+    user_acls = await get_user_access_control_lists(user_id)
+    user_acls.access_control_list.append(acl_data)
+    await update_user_access_control_list(user_acls)
+
+    # Create a new API token
+    api_token_request = ApiTokenRequest(
+        acl_id=acl_data.id,
+        token_name="Test Token",
+        expiration_time_minutes=60,
+        password="secret1234",
+    )
+    response = await http_client.post(
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=api_token_request.dict(),
+    )
+    assert response.status_code == 200, "API token created."
+    api_token_id = response.json().get("id")
+    assert api_token_id is not None
+
+    # Attempt to delete the API token with an invalid password
+    delete_token_request = DeleteTokenRequest(
+        acl_id=acl_data.id, id=api_token_id, password="wrong_password"
+    )
+    response = await http_client.request(
+        "DELETE",
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=delete_token_request.dict(),
+    )
+    assert response.status_code == 401, "Invalid credentials."
+
+
+@pytest.mark.anyio
+async def test_api_delete_user_api_token_invalid_acl_id(
+    http_client: AsyncClient, settings: Settings
+):
+    # Register a new user
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+
+    # Attempt to delete an API token with an invalid ACL ID
+    delete_token_request = DeleteTokenRequest(
+        acl_id="invalid_acl_id", id="invalid_token_id", password="secret1234"
+    )
+    response = await http_client.request(
+        "DELETE",
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=delete_token_request.dict(),
+    )
+    assert response.status_code == 401, "Invalid ACL id."
+
+
+@pytest.mark.anyio
+async def test_api_delete_user_api_token_missing_token_id(
+    http_client: AsyncClient, settings: Settings
+):
+    # Register a new user
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Decode the access token to get the user ID
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    user_id = payload["usr"]
+
+    # Create a new ACL
+    acl_data = UpdateAccessControlList(
+        id="", name="Test ACL", endpoints=[], password="secret1234"
+    )
+    user_acls = await get_user_access_control_lists(user_id)
+    user_acls.access_control_list.append(acl_data)
+    await update_user_access_control_list(user_acls)
+
+    # Attempt to delete an API token with a missing token ID
+    delete_token_request = DeleteTokenRequest(
+        acl_id=acl_data.id, id="", password="secret1234"
+    )
+    response = await http_client.request(
+        "DELETE",
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=delete_token_request.dict(),
+    )
+    assert response.status_code == 200, "Does noting if token not found."
