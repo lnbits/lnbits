@@ -1538,6 +1538,13 @@ async def test_api_create_user_api_token_success(
     # Decode the access token to get the user ID
     payload: dict = jwt.decode(api_token, settings.auth_secret_key, ["HS256"])
 
+    # Check the expiration time
+    expiration_time = payload.get("exp")
+    assert expiration_time is not None, "Expiration time should be set."
+    assert (
+        0 <= 3600 - (expiration_time - time.time()) <= 5
+    ), "Expiration time should be 60 minutes from now."
+
     token_id = payload["api_token_id"]
     assert any(
         token_id in [token.id for token in acl.token_id_list]
