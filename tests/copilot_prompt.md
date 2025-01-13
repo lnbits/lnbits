@@ -9,7 +9,7 @@ Make sure to:
 
 ### Create Comprehensive suite of unit tests
 
-*Sample 1*
+_Sample 1_
 @workspace /tests Develop a comprehensive suite of unit tests for the selected code (only the function (only the function api_create_user_api_token in auth_api.py file) in auth_api.py file).
 Requirements:
 
@@ -17,7 +17,7 @@ Requirements:
 - write multiple test functions that cover a wide range of scenarios, including the succes flow, edge cases, exception handling, and data validation
 - for the success case create a new ACL before creating the token
 
-*Sample 2*
+_Sample 2_
 @workspace /tests Develop a comprehensive suite of unit tests for the selected code (only the function check_user_exists in decorators.py file) .
 Requirements:
 
@@ -28,8 +28,16 @@ Requirements:
 
 ### Create tests for a particular usecase
 
+_Sample 1_
 @workspace /tests Develop a test for the selected code (only the function api_get_user_acls in auth_api.py file).
 Requirements:
 
 - use register endpoint to obtain the access token (see example in test_register_ok)
 - the test should only check that the ACLs are sorted alphabeticaly by name
+
+_Sample 1_
+@workspace /tests Develop a test for the selected code (only the function check_user_exists in decorators.py file).
+Requirements:
+
+- use register endpoint to obtain the access token (see example in the file test_auth.py the function test_register_ok())
+- the test should register a new user, optain the access token then delete the user. Then check that check_user_exists() fails as expected
