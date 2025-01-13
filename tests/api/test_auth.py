@@ -10,7 +10,7 @@ import shortuuid
 from httpx import AsyncClient
 
 from lnbits.core.models import AccessTokenPayload, User
-from lnbits.core.models.users import UpdateAccessControlList, UserACLs
+from lnbits.core.models.users import ApiTokenRequest, UpdateAccessControlList, UserACLs
 from lnbits.core.views.user_api import api_users_reset_password
 from lnbits.settings import AuthMethods, Settings
 from lnbits.utils.nostr import hex_to_npub, sign_event
@@ -1472,3 +1472,168 @@ async def test_api_delete_user_acl_missing_password(http_client: AsyncClient):
 
 
 ################################ TOKEN ################################
+@pytest.mark.anyio
+async def test_api_create_user_api_token_success(http_client: AsyncClient):
+    # Register a new user
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create a new ACL
+    acl_data = UpdateAccessControlList(
+        id="", password="secret1234", name="Test ACL", endpoints=[]
+    )
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=acl_data.dict(),
+    )
+    assert response.status_code == 200, "ACL created."
+    acl_id = response.json()["access_control_list"][0]["id"]
+
+    # Create API token
+    token_request = ApiTokenRequest(
+        acl_id=acl_id,
+        token_name="Test Token",
+        expiration_time_minutes=60,
+        password="secret1234",
+    )
+    response = await http_client.post(
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=token_request.dict(),
+    )
+    assert response.status_code == 200, "API token created."
+    assert response.json().get("api_token") is not None
+
+
+@pytest.mark.anyio
+async def test_api_create_user_api_token_invalid_password(http_client: AsyncClient):
+    # Register a new user
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create a new ACL
+    acl_data = UpdateAccessControlList(
+        password="secret1234", id="", name="Test ACL", endpoints=[]
+    )
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=acl_data.dict(),
+    )
+    assert response.status_code == 200, "ACL created."
+    acl_id = response.json()["access_control_list"][0]["id"]
+
+    # Create API token with invalid password
+    token_request = ApiTokenRequest(
+        acl_id=acl_id,
+        token_name="Test Token",
+        expiration_time_minutes=60,
+        password="wrongpassword",
+    )
+    response = await http_client.post(
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=token_request.dict(),
+    )
+    assert response.status_code == 401, "Invalid credentials."
+
+
+@pytest.mark.anyio
+async def test_api_create_user_api_token_invalid_acl_id(http_client: AsyncClient):
+    # Register a new user
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create API token with invalid ACL ID
+    token_request = ApiTokenRequest(
+        acl_id="invalid_acl_id",
+        token_name="Test Token",
+        expiration_time_minutes=60,
+        password="secret1234",
+    )
+    response = await http_client.post(
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=token_request.dict(),
+    )
+    assert response.status_code == 401, "Invalid ACL id."
+
+
+@pytest.mark.anyio
+async def test_api_create_user_api_token_expiration_time_invalid(
+    http_client: AsyncClient,
+):
+    # Register a new user
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create a new ACL
+    acl_data = UpdateAccessControlList(
+        id="", password="secret1234", name="Test ACL", endpoints=[]
+    )
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=acl_data.dict(),
+    )
+    assert response.status_code == 200, "ACL created."
+    acl_id = response.json()["access_control_list"][0]["id"]
+
+    # Create API token with invalid expiration time
+    token_request = ApiTokenRequest(
+        acl_id=acl_id,
+        token_name="Test Token",
+        expiration_time_minutes=-1,
+        password="secret1234",
+    )
+    response = await http_client.post(
+        "/api/v1/auth/acl/token",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json=token_request.dict(),
+    )
+    assert response.status_code == 400, "Expiration time must be in the future."
