@@ -31,6 +31,7 @@ async def test_check_user_exists_with_valid_access_token(
     user = await check_user_exists(request, access_token=access_token)
 
     assert user.id == user_alan.id
+    assert request.scope["user_id"] == user.id
 
 
 @pytest.mark.anyio
