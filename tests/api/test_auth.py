@@ -1482,7 +1482,9 @@ async def test_api_delete_user_acl_missing_password(http_client: AsyncClient):
 
 ################################ TOKEN ################################
 @pytest.mark.anyio
-async def test_api_create_user_api_token_success(http_client: AsyncClient):
+async def test_api_create_user_api_token_success(
+    http_client: AsyncClient, settings: Settings
+):
     # Register a new user
     tiny_id = shortuuid.uuid()[:8]
     response = await http_client.post(
@@ -1523,7 +1525,24 @@ async def test_api_create_user_api_token_success(http_client: AsyncClient):
         json=token_request.dict(),
     )
     assert response.status_code == 200, "API token created."
-    assert response.json().get("api_token") is not None
+    api_token = response.json().get("api_token")
+    assert api_token is not None
+
+    # Verify the token exists
+    response = await http_client.get(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert response.status_code == 200, "ACLs fetched successfully."
+    acls = UserACLs(**response.json())
+    # Decode the access token to get the user ID
+    payload: dict = jwt.decode(api_token, settings.auth_secret_key, ["HS256"])
+
+    token_id = payload["api_token_id"]
+    assert any(
+        token_id in [token.id for token in acl.token_id_list]
+        for acl in acls.access_control_list
+    ), "API token should be part of at least one ACL."
 
 
 @pytest.mark.anyio
