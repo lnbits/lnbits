@@ -1310,3 +1310,168 @@ async def test_api_get_user_acls_sorted(http_client: AsyncClient):
     assert (
         retrieved_acl_names == acl_names_sorted
     ), "ACLs are not sorted alphabetically by name."
+
+
+@pytest.mark.anyio
+async def test_api_delete_user_acl_success(http_client: AsyncClient):
+    # Register a new user to obtain the access token
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create an ACL for the user
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "id": "Test ACL",
+            "name": "Test ACL",
+            "password": "secret1234",
+        },
+    )
+
+    assert response.status_code == 200, "ACL created."
+    acl_id = response.json()["access_control_list"][0]["id"]
+
+    # Delete the ACL
+    response = await http_client.request(
+        "DELETE",
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "id": acl_id,
+            "password": "secret1234",
+        },
+    )
+    assert response.status_code == 200, "ACL deleted."
+
+
+@pytest.mark.anyio
+async def test_api_delete_user_acl_invalid_password(
+    http_client: AsyncClient, settings: Settings
+):
+    # Register a new user to obtain the access token
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create an ACL for the user
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "id": "Test ACL",
+            "name": "Test ACL",
+            "password": "secret1234",
+        },
+    )
+    assert response.status_code == 200, "ACL created."
+    acl_id = response.json()["access_control_list"][0]["id"]
+
+    # Attempt to delete the ACL with an invalid password
+    response = await http_client.request(
+        "DELETE",
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "id": acl_id,
+            "password": "wrongpassword",
+        },
+    )
+    assert response.status_code == 401, "Invalid credentials."
+
+
+@pytest.mark.anyio
+async def test_api_delete_user_acl_nonexistent_acl(
+    http_client: AsyncClient, settings: Settings
+):
+    # Register a new user to obtain the access token
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Attempt to delete a nonexistent ACL
+    response = await http_client.request(
+        "DELETE",
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "id": "nonexistent_acl_id",
+            "password": "secret1234",
+        },
+    )
+    assert response.status_code == 200, "ACL deleted."
+
+
+@pytest.mark.anyio
+async def test_api_delete_user_acl_missing_password(
+    http_client: AsyncClient, settings: Settings
+):
+    # Register a new user to obtain the access token
+    tiny_id = shortuuid.uuid()[:8]
+    response = await http_client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": f"u21.{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"u21.{tiny_id}@lnbits.com",
+        },
+    )
+    assert response.status_code == 200, "User created."
+    access_token = response.json().get("access_token")
+    assert access_token is not None
+
+    # Create an ACL for the user
+    response = await http_client.put(
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "id": "Test ACL",
+            "name": "Test ACL",
+            "password": "secret1234",
+        },
+    )
+    assert response.status_code == 200, "ACL created."
+    acl_id = response.json()["access_control_list"][0]["id"]
+
+    # Attempt to delete the ACL without providing a password
+    response = await http_client.request(
+        "DELETE",
+        "/api/v1/auth/acl",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "id": acl_id,
+        },
+    )
+    assert response.status_code == 400, "Missing password."
