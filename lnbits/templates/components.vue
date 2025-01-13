@@ -202,7 +202,7 @@
 </template>
 
 <template id="lnbits-payment-details">
-  <q-list bordered separator>
+  <q-list separator>
     <q-item v-if="payment.tag">
       <q-item-section>
         <q-item-label v-text="$t('created')"></q-item-label>
@@ -322,12 +322,12 @@
     <q-expansion-item
       expand-separator
       icon="info"
-      header-class="text-grey"
+      header-class="text-grey-4"
       label="Extras"
       v-if="extras.length"
     >
       <template v-for="entry in extras">
-        <q-item v-if="!!entry.value" key="entry.key">
+        <q-item v-if="!!entry.value" key="entry.key" class="text-grey-4">
           <q-item-section>
             <q-item-label v-text="entry.key"></q-item-label>
             <q-item-label caption v-text="entry.value"></q-item-label>
@@ -780,68 +780,71 @@
         <q-dialog v-model="props.expand" :props="props" position="top">
           <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
             <q-card-section class="">
-              <q-expansion-item
-                class="q-mb-lg"
-                :default-opened="!(props.row.isIn && props.row.isPending)"
-              >
-                <template v-slot:header>
-                  <q-item-section avatar>
-                    <q-icon
-                      :color="
-                        props.row.isPaid && props.row.isIn
-                          ? 'green'
-                          : props.row.isPaid && props.row.isOut
-                            ? 'pink'
-                            : props.row.isFailed
-                              ? 'yellow'
-                              : 'grey'
-                      "
-                      :name="
-                        props.row.isPaid && props.row.isIn
-                          ? 'call_received'
-                          : props.row.isPaid && props.row.isOut
-                            ? 'call_made'
-                            : props.row.isFailed
-                              ? 'warning'
-                              : 'settings_ethernet'
-                      "
-                    />
-                  </q-item-section>
+              <q-list bordered separator>
+                <q-expansion-item
+                  expand-separator
+                  :default-opened="!(props.row.isIn && props.row.isPending)"
+                >
+                  <template v-slot:header>
+                    <q-item-section avatar>
+                      <q-icon
+                        :color="
+                          props.row.isPaid && props.row.isIn
+                            ? 'green'
+                            : props.row.isPaid && props.row.isOut
+                              ? 'pink'
+                              : props.row.isFailed
+                                ? 'yellow'
+                                : 'grey'
+                        "
+                        :name="
+                          props.row.isPaid && props.row.isIn
+                            ? 'call_received'
+                            : props.row.isPaid && props.row.isOut
+                              ? 'call_made'
+                              : props.row.isFailed
+                                ? 'warning'
+                                : 'settings_ethernet'
+                        "
+                      />
+                    </q-item-section>
 
-                  <q-item-section>
-                    <q-item-label
-                      v-text="
-                        props.row.isIn && props.row.isPending
-                          ? $t('invoice_waiting')
-                          : props.row.isOut && props.row.isPending
-                            ? $t('outgoing_payment_pending')
-                            : props.row.isPaid && props.row.isIn
-                              ? $t('payment_received')
-                              : props.row.isPaid && props.row.isOut
-                                ? $t('payment_sent')
-                                : props.row.isFailed
-                                  ? $t('payment_failed')
-                                  : ''
-                      "
-                    ></q-item-label>
-                  </q-item-section>
-                  <q-item-section v-if="props.row.tag" side>
-                    <q-badge
-                      v-if="props.row.extra && !!props.row.extra.tag"
-                      color="yellow"
-                      text-color="black"
-                    >
-                      #<span v-text="props.row.tag"></span>
-                    </q-badge>
-                  </q-item-section>
-                </template>
-                <lnbits-payment-details
-                  :payment="props.row"
-                ></lnbits-payment-details>
-              </q-expansion-item>
+                    <q-item-section>
+                      <q-item-label
+                        v-text="
+                          props.row.isIn && props.row.isPending
+                            ? $t('invoice_waiting')
+                            : props.row.isOut && props.row.isPending
+                              ? $t('outgoing_payment_pending')
+                              : props.row.isPaid && props.row.isIn
+                                ? $t('payment_received')
+                                : props.row.isPaid && props.row.isOut
+                                  ? $t('payment_sent')
+                                  : props.row.isFailed
+                                    ? $t('payment_failed')
+                                    : ''
+                        "
+                      ></q-item-label>
+                    </q-item-section>
+                    <q-item-section v-if="props.row.tag" side>
+                      <q-badge
+                        v-if="props.row.extra && !!props.row.extra.tag"
+                        color="yellow"
+                        text-color="black"
+                      >
+                        #<span v-text="props.row.tag"></span>
+                      </q-badge>
+                    </q-item-section>
+                  </template>
+                  <q-separator></q-separator>
+                  <lnbits-payment-details
+                    :payment="props.row"
+                  ></lnbits-payment-details>
+                </q-expansion-item>
+              </q-list>
               <div
                 v-if="props.row.isIn && props.row.isPending && props.row.bolt11"
-                class="text-center q-mb-lg"
+                class="text-center q-my-lg"
               >
                 <a :href="'lightning:' + props.row.bolt11">
                   <lnbits-qrcode
@@ -851,7 +854,7 @@
               </div>
             </q-card-section>
             <q-card-section>
-              <div class="row q-mt-lg">
+              <div class="row">
                 <q-btn
                   v-if="
                     props.row.isIn && props.row.isPending && props.row.bolt11
