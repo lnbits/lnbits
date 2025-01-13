@@ -274,15 +274,9 @@ async def _get_account_from_token(
 ) -> Optional[Account]:
     try:
         payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
-        account = await _get_account_from_jwt_payload(
+        return await _get_account_from_jwt_payload(
             AccessTokenPayload(**payload), path, method
         )
-        if not account:
-            raise HTTPException(
-                HTTPStatus.UNAUTHORIZED, "Data missing for access token."
-            )
-
-        return account
 
     except jwt.ExpiredSignatureError as exc:
         raise HTTPException(

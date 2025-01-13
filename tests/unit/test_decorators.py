@@ -113,4 +113,4 @@ async def test_check_user_exists_after_user_deletion(http_client: AsyncClient):
     with pytest.raises(HTTPException) as exc_info:
         await check_user_exists(request, access_token=access_token)
     assert exc_info.value.status_code == 401
-    assert exc_info.value.detail == "Data missing for access token."
+    assert exc_info.value.detail == "User not found."
