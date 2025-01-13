@@ -202,4 +202,4 @@ async def get_user_access_control_lists(
         UserACLs,
     )
 
-    return user_acls if user_acls else UserACLs(id=user_id)
+    return user_acls or UserACLs(id=user_id)
