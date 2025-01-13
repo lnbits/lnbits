@@ -440,7 +440,7 @@ class NWCConnection:
                         logger.error("Error closing subscription: " + str(e))
         return subscription
 
-    async def _wait_for_connection(self, timeout=60 * 2):
+    async def _wait_for_connection(self, timeout: int = 60 * 2):
         """
         Waits until the connection is ready
         """
