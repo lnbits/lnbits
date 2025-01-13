@@ -12,7 +12,7 @@ from lnbits.core.crud.users import delete_account
 from lnbits.core.models import User
 from lnbits.core.models.users import AccessTokenPayload
 from lnbits.decorators import check_user_exists
-from lnbits.settings import settings
+from lnbits.settings import AuthMethods, Settings, settings
 
 
 @pytest.mark.anyio
@@ -114,3 +114,22 @@ async def test_check_user_exists_after_user_deletion(http_client: AsyncClient):
         await check_user_exists(request, access_token=access_token)
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "User not found."
+
+@pytest.mark.anyio
+async def test_check_user_exists_with_user_id_only_allowed(user_alan: User, settings: Settings):
+    settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
+    request = Request({"type": "http", "path": "/some/path", "method": "GET"})
+    user = await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
+
+    assert user.id == user_alan.id
+    assert request.scope["user_id"] == user.id
+
+
+@pytest.mark.anyio
+async def test_check_user_exists_with_user_id_only_not_allowed(user_alan: User):
+    settings.auth_allowed_methods = []
+    request = Request({"type": "http", "path": "/some/path", "method": "GET"})
+    with pytest.raises(HTTPException) as exc_info:
+        await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Missing user ID or access token."
