@@ -1770,7 +1770,7 @@ async def test_api_delete_user_api_token_invalid_password(
 
 @pytest.mark.anyio
 async def test_api_delete_user_api_token_invalid_acl_id(
-    http_client: AsyncClient, settings: Settings
+    http_client: AsyncClient,
 ):
     # Register a new user
     tiny_id = shortuuid.uuid()[:8]
@@ -1786,7 +1786,6 @@ async def test_api_delete_user_api_token_invalid_acl_id(
     assert response.status_code == 200, "User created."
     access_token = response.json().get("access_token")
     assert access_token is not None
-
 
     # Attempt to delete an API token with an invalid ACL ID
     delete_token_request = DeleteTokenRequest(
