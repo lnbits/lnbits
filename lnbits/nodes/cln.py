@@ -304,14 +304,19 @@ class CoreLightningNode(Node):
             return [
                 NodePayment(
                     bolt11=pay.get("bolt11"),
-                    amount=pay["amount_msat"],
-                    fee=int(pay["amount_msat"]) - int(pay["amount_sent_msat"]),
+                    amount=pay.get("amount_msat", 0),
+                    fee=int(pay.get("amount_msat", 0))
+                    - int(pay.get("amount_sent_msat", 0)),
                     memo=pay.get("description"),
                     time=pay["created_at"],
                     preimage=pay.get("preimage"),
                     payment_hash=pay["payment_hash"],
                     pending=pay["status"] != "complete",
-                    destination=await self.get_peer_info(pay["destination"]),
+                    destination=(
+                        await self.get_peer_info(pay.get("destination"))
+                        if pay.get("destination")
+                        else None
+                    ),
                 )
                 for pay in reversed(result["pays"])
                 if pay["status"] != "failed"
