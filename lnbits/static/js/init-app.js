@@ -169,6 +169,15 @@ const routes = [
       fetchUrl: '/account',
       scripts: ['/static/js/account.js']
     }
+  },
+  {
+    path: '/node',
+    name: 'Node',
+    component: DynamicComponent,
+    props: {
+      fetchUrl: '/node',
+      scripts: ['/static/js/node.js']
+    }
   }
 ]
 

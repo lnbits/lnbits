@@ -194,7 +194,6 @@ window.LNbits = {
         wallets: data.wallets,
         admin: data.admin
       }
-      console.log(data)
       const mapWallet = this.wallet
       obj.wallets = obj.wallets
         .map(obj => {

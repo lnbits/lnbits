@@ -320,7 +320,7 @@ async def node(request: Request, user: User = Depends(check_admin)):
 
     funding_source = get_funding_source()
     _, balance = await funding_source.status()
-
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     return template_renderer().TemplateResponse(
         request,
         "node/index.html",
@@ -329,6 +329,7 @@ async def node(request: Request, user: User = Depends(check_admin)):
             "settings": settings.dict(),
             "balance": balance,
             "wallets": user.wallets[0].json(),
+            "ajax": is_ajax,
         },
     )
 

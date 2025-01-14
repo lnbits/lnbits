@@ -134,7 +134,7 @@
 <template id="lnbits-manage">
   <q-list v-if="g.user" dense class="lnbits-drawer__q-list">
     <q-item-label header v-text="$t('manage')"></q-item-label>
-    <div v-if="user.admin">
+    <div v-if="g.user.admin">
       <q-item v-if="showAdmin" to="/admin">
         <q-item-section side>
           <q-icon
