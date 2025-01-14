@@ -115,8 +115,11 @@ async def test_check_user_exists_after_user_deletion(http_client: AsyncClient):
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "User not found."
 
+
 @pytest.mark.anyio
-async def test_check_user_exists_with_user_id_only_allowed(user_alan: User, settings: Settings):
+async def test_check_user_exists_with_user_id_only_allowed(
+    user_alan: User, settings: Settings
+):
     settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
     user = await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
