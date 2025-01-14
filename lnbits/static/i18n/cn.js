@@ -182,7 +182,6 @@ window.localisation.cn = {
   more: '更多',
   less: '少',
   releases: '版本',
-  killswitch: '杀手锏',
   watchdog: '监控程序',
   server_logs: '服务器日志',
   ip_blocker: 'IP 阻止器',
