@@ -161,7 +161,7 @@
                     <q-card-section class="text-center">
                       <p v-text="$t('export_to_phone_desc')"></p>
                       <lnbits-qrcode
-                        :value="`${baseUrl}/wallet?usr=${user.id}&wal=${wallet.id}`"
+                        :value="`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
                       ></lnbits-qrcode>
                     </q-card-section>
                     <span v-text="exportWalletQR"></span>
@@ -170,7 +170,7 @@
                         outline
                         color="grey"
                         :label="$t('copy_wallet_url')"
-                        @click="copyText(exportUrl)"
+                        @click="copyText(`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`)"
                       ></q-btn>
                     </q-card-actions>
                   </q-card>

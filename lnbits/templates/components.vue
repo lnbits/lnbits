@@ -1,6 +1,6 @@
 <template id="lnbits-wallet-list">
   <q-list
-    v-if="user && user.wallets.length"
+    v-if="g.user && g.user.wallets.length"
     dense
     class="lnbits-drawer__q-list"
   >
@@ -90,7 +90,7 @@
 
 <template id="lnbits-extension-list">
   <q-list
-    v-if="(user && userExtensions && userExtensions.length > 0) || !!searchTerm"
+    v-if="(g.user && userExtensions && userExtensions.length > 0) || !!searchTerm"
     dense
     class="lnbits-drawer__q-list"
   >
@@ -132,7 +132,7 @@
 </template>
 
 <template id="lnbits-manage">
-  <q-list v-if="user" dense class="lnbits-drawer__q-list">
+  <q-list v-if="g.user" dense class="lnbits-drawer__q-list">
     <q-item-label header v-text="$t('manage')"></q-item-label>
     <div v-if="user.admin">
       <q-item v-if="showAdmin" to="/admin">

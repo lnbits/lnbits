@@ -191,7 +191,7 @@
         <div class="col-10">
           <div v-if="!extension.inProgress">
             <q-btn
-              v-if="user.extensions.includes(extension.id) && extension.isActive && extension.isInstalled"
+              v-if="g.user.extensions.includes(extension.id) && extension.isActive && extension.isInstalled"
               flat
               color="primary"
               type="a"
@@ -199,20 +199,20 @@
               :label="$t('open')"
             ></q-btn>
             <q-btn
-              v-if="user.extensions.includes(extension.id) && extension.isActive && extension.isInstalled"
+              v-if="g.user.extensions.includes(extension.id) && extension.isActive && extension.isInstalled"
               flat
               color="grey-5"
               @click="disableExtension(extension)"
               :label="$t('disable')"
             ></q-btn>
             <q-badge
-              v-if="extension.isAdminOnly && !user.admin"
+              v-if="extension.isAdminOnly && !g.user.admin"
               v-text="$t('admin_only')"
             >
             </q-badge>
 
             <q-btn
-              v-else-if="extension.isInstalled && extension.isActive && !user.extensions.includes(extension.id)"
+              v-else-if="extension.isInstalled && extension.isActive && !g.user.extensions.includes(extension.id)"
               flat
               color="primary"
               @click="enableExtensionForUser(extension)"

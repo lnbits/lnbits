@@ -4,7 +4,6 @@ window.WalletPageLogic = {
     return {
       updatePayments: false,
       origin: window.location.origin,
-      user: LNbits.map.user(window.user),
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
       parse: {
         show: false,
@@ -148,7 +147,6 @@ window.WalletPageLogic = {
           this.receive.paymentReq = response.data.bolt11
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
-
           this.readNfcTag()
 
           // TODO: lnurl_callback and lnurl_response

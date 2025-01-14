@@ -27,7 +27,6 @@ window.app.component('lnbits-wallet-list', {
   props: ['balance'],
   data() {
     return {
-      user: null,
       activeWallet: null,
       balance: 0,
       showForm: false,
@@ -35,33 +34,12 @@ window.app.component('lnbits-wallet-list', {
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
     }
   },
-  computed: {
-    wallets() {
-      const bal = this.balance
-      return this.user.wallets.map(obj => {
-        obj.live_fsat =
-          bal.length && bal[0] === obj.id
-            ? LNbits.utils.formatSat(bal[1])
-            : obj.fsat
-        return obj
-      })
-    }
-  },
   methods: {
-    onSelectWallet(wallet) {
-      this.$emit('wallet-selected', wallet)
-    },
     createWallet() {
-      LNbits.api.createWallet(this.user.wallets[0], this.walletName)
+      LNbits.api.createWallet(this.g.user.wallets[0], this.walletName)
     }
   },
   created() {
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
-    }
-    if (window.wallet) {
-      this.activeWallet = LNbits.map.wallet(window.wallet)
-    }
     document.addEventListener('updateWalletBalance', this.updateWalletBalance)
   }
 })
@@ -84,9 +62,6 @@ window.app.component('lnbits-extension-list', {
     },
   },
   computed: {
-    user() {
-      return LNbits.map.user(this.g.user);
-    },
     userExtensions() {
       return this.updateUserExtensions(this.searchTerm);
     }
@@ -103,10 +78,9 @@ window.app.component('lnbits-extension-list', {
       }
     },
     updateUserExtensions(filterBy) {
-      if (!this.user) return [];
   
       const path = window.location.pathname;
-      const userExtensions = this.user.extensions;
+      const userExtensions = this.g.user.extensions;
   
       return this.extensions
         .filter(o => userExtensions.includes(o.code))
@@ -138,13 +112,7 @@ window.app.component('lnbits-manage', {
   },
   data() {
     return {
-      extensions: [],
-      user: null
-    }
-  },
-  created() {
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
+      extensions: []
     }
   }
 })

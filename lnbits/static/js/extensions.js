@@ -642,10 +642,6 @@ window.ExtensionsPageLogic = {
         this.tab = 'installed'
       }
     }
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
-      Object.assign(this.g.user, this.user);
-    }
     this.updatableExtensions = this.extensions.filter(ext =>
       this.hasNewVersion(ext)
     )

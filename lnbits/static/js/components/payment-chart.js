@@ -111,7 +111,7 @@ window.app.component('payment-chart', {
         .request(
           'GET',
           '/api/v1/payments/history?group=' + this.paymentsChart.group.value,
-          this.wallet.adminkey
+          this.g.wallet.adminkey
         )
         .then(response => {
           this.$nextTick(() => {

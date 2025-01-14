@@ -1,4 +1,5 @@
 window.LNbits = {
+  g: window.g,
   api: {
     request(method, url, apiKey, data) {
       return axios({
@@ -193,6 +194,7 @@ window.LNbits = {
         wallets: data.wallets,
         admin: data.admin
       }
+      console.log(data)
       const mapWallet = this.wallet
       obj.wallets = obj.wallets
         .map(obj => {
@@ -436,6 +438,7 @@ window.LNbits = {
   }
 }
 
+
 if (!window.g) {
   window.g = Vue.reactive({
     offline: !navigator.onLine,
@@ -523,27 +526,26 @@ window.windowMixin = {
       })
     },
     onPaymentReceived(paymentHash) {
-      this.updatePayments = !this.updatePayments
       if (this.receive.paymentHash === paymentHash) {
         this.receive.show = false
         this.receive.paymentHash = null
       }
+      this.updatePayments = !this.updatePayments
     },
     selectWallet(wallet) {
       Object.assign(this.g.wallet, wallet)
-      this.$emit('update-wallet', this.g.wallet)
-      this.wallet = this.g.wallet
+     // this.wallet = this.g.wallet
       this.updatePayments = !this.updatePayments
       this.balance = parseInt(wallet.balance_msat / 1000)
       const currentPath = this.$route.path
       if (currentPath !== '/wallet') {
         this.$router.push({
           path: '/wallet',
-          query: {wal: this.wallet.id}
+          query: {wal: this.g.wallet.id}
         })
       } else {
         const url = new URL(window.location.href)
-        url.searchParams.set('wal', this.wallet.id)
+        url.searchParams.set('wal', this.g.wallet.id)
         window.history.replaceState({}, '', url.toString())
       }
     },
@@ -826,3 +828,7 @@ window.decryptLnurlPayAES = (success_action, preimage) => {
       return decoder.decode(valueb)
     })
 }
+
+
+
+
