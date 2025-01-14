@@ -175,11 +175,7 @@ window.localisation.pi = {
   enable_notifications: 'Enable Notifications',
   enable_notifications_desc:
     "If ye be allowin' it, it'll be fetchin' the latest LNbits Status updates, like security incidents and updates.",
-  enable_killswitch: "Enabl' th' Killswitch",
-  enable_killswitch_desc:
     "If enabled it'll be changin' yer fundin' source to VoidWallet automatically if LNbits sends out a killswitch signal, ye will. Ye'll be needin' t' enable manually after an update, arr.",
-  killswitch_interval: 'Killswitch Interval',
-  killswitch_interval_desc:
     "How oft th' background task should be checkin' fer th' LNbits killswitch signal from th' status source (in minutes).",
   enable_watchdog: 'Enable Seadog',
   enable_watchdog_desc:
@@ -197,7 +193,6 @@ window.localisation.pi = {
   more: "Arr, 'tis more.",
   less: "Arr, 'tis more fewer.",
   releases: 'Releases',
-  killswitch: 'Killswitch',
   watchdog: 'Seadog',
   server_logs: 'Server Logs',
   ip_blocker: 'IP Blockar',

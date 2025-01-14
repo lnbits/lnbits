@@ -173,11 +173,7 @@ window.localisation.we = {
   enable_notifications: 'Galluogi Hysbysiadau',
   enable_notifications_desc:
     "Os bydd wedi'i alluogi bydd yn nôl y diweddariadau Statws LNbits diweddaraf, fel digwyddiadau diogelwch a diweddariadau.",
-  enable_killswitch: 'Galluogi Killswitch',
-  enable_killswitch_desc:
     'Os bydd yn galluogi, bydd yn newid eich ffynhonnell arian i VoidWallet yn awtomatig os bydd LNbits yn anfon arwydd killswitch. Bydd angen i chi alluogi â llaw ar ôl diweddariad.',
-  killswitch_interval: 'Amlder Cyllell Dorri',
-  killswitch_interval_desc:
     "Pa mor aml y dylai'r dasg gefndir wirio am signal killswitch LNbits o'r ffynhonnell statws (mewn munudau).",
   enable_watchdog: 'Galluogi Watchdog',
   enable_watchdog_desc:
@@ -195,7 +191,6 @@ window.localisation.we = {
   more: 'mwy',
   less: 'llai',
   releases: 'Rhyddhau',
-  killswitch: 'Killswitch',
   watchdog: 'Gwyliwr',
   server_logs: 'Logiau Gweinydd',
   ip_blocker: 'Rheolydd IP',
