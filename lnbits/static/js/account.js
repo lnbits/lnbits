@@ -296,10 +296,15 @@ window.AccountPageLogic = {
 
         this.handleApiACLSelected(acl.id)
         this.apiAcl.showNewAclDialog = false
+        this.$q.notify({
+          type: 'positive',
+          message: 'Access Control List created.'
+        })
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       } finally {
         this.apiAcl.name = ''
+        this.apiAcl.password = ''
       }
 
       this.apiAcl.showNewAclDialog = false
@@ -320,6 +325,8 @@ window.AccountPageLogic = {
         this.apiAcl.data = data.access_control_list
       } catch (e) {
         LNbits.utils.notifyApiError(e)
+      } finally {
+        this.apiAcl.password = ''
       }
     },
     async deleteApiACL() {
@@ -337,6 +344,8 @@ window.AccountPageLogic = {
         })
       } catch (e) {
         LNbits.utils.notifyApiError(e)
+      } finally {
+        this.apiAcl.password = ''
       }
       this.apiAcl.data = this.apiAcl.data.filter(
         t => t.id !== this.selectedApiAcl.id
@@ -376,6 +385,8 @@ window.AccountPageLogic = {
         this.apiAcl.showNewTokenDialog = false
       } catch (e) {
         LNbits.utils.notifyApiError(e)
+      } finally {
+        this.apiAcl.password = ''
       }
     },
     async deleteToken() {
@@ -400,6 +411,8 @@ window.AccountPageLogic = {
         this.apiAcl.selectedTokenId = null
       } catch (e) {
         LNbits.utils.notifyApiError(e)
+      } finally {
+        this.apiAcl.password = ''
       }
     }
   },
