@@ -23,36 +23,6 @@ from lnbits.utils.exchange_rates import btc_rates
 audit_queue: asyncio.Queue = asyncio.Queue()
 
 
-async def killswitch_task():
-    """
-    killswitch will check lnbits-status repository for a signal from
-    LNbits and will switch to VoidWallet if the killswitch is triggered.
-    """
-    while settings.lnbits_running:
-        funding_source = get_funding_source()
-        if (
-            settings.lnbits_killswitch
-            and funding_source.__class__.__name__ != "VoidWallet"
-        ):
-            with httpx.Client() as client:
-                try:
-                    r = client.get(settings.lnbits_status_manifest, timeout=4)
-                    r.raise_for_status()
-                    if r.status_code == 200:
-                        ks = r.json().get("killswitch")
-                        if ks and ks == 1:
-                            logger.error(
-                                "Switching to VoidWallet. Killswitch triggered."
-                            )
-                            await switch_to_voidwallet()
-                except (httpx.RequestError, httpx.HTTPStatusError):
-                    logger.error(
-                        "Cannot fetch lnbits status manifest."
-                        f" {settings.lnbits_status_manifest}"
-                    )
-        await asyncio.sleep(settings.lnbits_killswitch_interval * 60)
-
-
 async def watchdog_task():
     """
     Registers a watchdog which will check lnbits balance and nodebalance
