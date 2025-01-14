@@ -173,8 +173,6 @@ window.localisation.kr = {
   enable_notifications: '알림 활성화',
   enable_notifications_desc:
     '활성화 시, 가장 최신의 보안 사고나 소프트웨어 업데이트 등의 LNbits 상황 업데이트를 불러옵니다.',
-    '활성화 시, LNbits 메인 서버에서 비상 정지 신호를 보내면 자동으로 자금의 원천을 VoidWallet으로 변경합니다. 업데이트 이후 수동으로 활성화해 주어야 합니다.',
-    'LNbits 메인 서버에서 나오는 비상 정지 신호를 백그라운드 작업으로 얼마나 자주 확인할 것인지를 결정합니다. (분 단위)',
   enable_watchdog: '와치독 활성화',
   enable_watchdog_desc:
     '활성화 시, LNbits 잔금보다 당신의 잔금이 지정한 수준보다 더 낮아질 경우 자동으로 자금의 원천을 VoidWallet으로 변경합니다. 업데이트 이후 수동으로 활성화해 주어야 합니다.',
