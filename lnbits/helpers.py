@@ -281,8 +281,8 @@ def get_api_routes(routes: list) -> dict[str, str]:
         if len(segments) < 3:
             continue
         if "/".join(segments[1:3]) == "api/v1":
-            data["/".join(segments[1:4])] = segments[3].capitalize()
+            data["/".join(segments[0:4])] = segments[3].capitalize()
         elif "/".join(segments[2:4]) == "api/v1":
-            data["/".join(segments[1:4])] = segments[1].capitalize()
+            data["/".join(segments[0:4])] = segments[1].capitalize()
 
     return data

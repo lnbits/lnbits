@@ -319,7 +319,7 @@ async def _check_account_api_access(
     if not acl:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Invalid token id.")
 
-    path = "/".join(_path_segments(path)[:3])
+    path = "/" + "/".join(_path_segments(path)[:3])
     endpoint = acl.get_endpoint(path)
     if not endpoint:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Path not allowed.")

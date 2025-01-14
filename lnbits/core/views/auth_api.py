@@ -122,6 +122,7 @@ async def api_get_user_acls(
 
     acls = await get_user_access_control_lists(user.id)
 
+    # Add missing/new endpoints to the ACLs
     for acl in acls.access_control_list:
         acl_api_routes = {**api_routes}
         for route in api_routes.keys():
@@ -136,6 +137,7 @@ async def api_get_user_acls(
 
 
 @auth_router.put("/acl")
+@auth_router.patch("/acl")
 async def api_update_user_acl(
     request: Request,
     data: UpdateAccessControlList,
