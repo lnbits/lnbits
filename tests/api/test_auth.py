@@ -20,6 +20,7 @@ from lnbits.core.models.users import (
     AccessControlList,
     ApiTokenRequest,
     DeleteTokenRequest,
+    EndpointAccess,
     UpdateAccessControlList,
     UserACLs,
 )
@@ -1557,7 +1558,7 @@ async def test_api_create_user_api_token_success(
 
 
 @pytest.mark.anyio
-async def test_api_api_token_access(user_alan: User, http_client: AsyncClient):
+async def test_acl_api_token_access(user_alan: User, http_client: AsyncClient):
     user_acls = await get_user_access_control_lists(user_alan.id)
     acl = AccessControlList(id=uuid4().hex, name="Test ACL", endpoints=[])
     user_acls.access_control_list = [acl]
@@ -1573,11 +1574,63 @@ async def test_api_api_token_access(user_alan: User, http_client: AsyncClient):
     acl.token_id_list.append(SimpleItem(id=api_token_id, name="Test Token"))
     await update_user_access_control_list(user_acls)
 
-    response = await http_client.get(
-        "/api/v1/auth/acl", headers={"Authorization": f"Bearer {api_token}"}
-    )
+    headers = {"Authorization": f"Bearer {api_token}"}
+    response = await http_client.get("/api/v1/auth/acl", headers=headers)
     assert response.status_code == 403, "Path not allowed."
     assert response.json()["detail"] == "Path not allowed."
+
+    # Grant read access
+    endpoint = EndpointAccess(path="/api/v1/auth", name="Get User ACLs", read=True)
+    acl.endpoints.append(endpoint)
+    await update_user_access_control_list(user_acls)
+
+    response = await http_client.get("/api/v1/auth/acl", headers=headers)
+    assert response.status_code == 200, "Access granted."
+
+    response = await http_client.put("/api/v1/auth/acl", headers=headers)
+    assert response.status_code == 403, "Method not allowed."
+
+    response = await http_client.post(
+        "/api/v1/auth/acl/token", headers=headers, json={}
+    )
+    assert response.status_code == 403, "Method not allowed."
+
+    response = await http_client.patch("/api/v1/auth/acl", headers=headers)
+    assert response.status_code == 403, "Method not allowed."
+
+    response = await http_client.delete("/api/v1/auth/acl", headers=headers)
+    assert response.status_code == 403, "Method not allowed."
+
+    # Grant write access
+    endpoint.write = True
+    await update_user_access_control_list(user_acls)
+    response = await http_client.get("/api/v1/auth/acl", headers=headers)
+    assert response.status_code == 200, "Access granted."
+
+    response = await http_client.put("/api/v1/auth/acl", headers=headers)
+    assert response.status_code == 400, "Access granted, validation error expected."
+
+    response = await http_client.post(
+        "/api/v1/auth/acl/token", headers=headers, json={}
+    )
+    assert response.status_code == 400, "Access granted, validation error expected."
+
+    response = await http_client.patch("/api/v1/auth/acl", headers=headers)
+    assert response.status_code == 400, "Access granted, validation error expected."
+
+    response = await http_client.delete("/api/v1/auth/acl", headers=headers)
+    assert response.status_code == 400, "Access granted, validation error expected."
+
+    # Revoke read access
+    endpoint.read = False
+    await update_user_access_control_list(user_acls)
+    response = await http_client.get("/api/v1/auth/acl", headers=headers)
+    assert response.status_code == 403, "Method not allowed."
+
+    response = await http_client.put("/api/v1/auth/acl", headers=headers)
+    assert (
+        response.status_code == 400
+    ), "Access still granted, validation error expected."
 
 
 @pytest.mark.anyio
