@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import time
+from uuid import uuid4
 
 import jwt
 import pytest
@@ -14,13 +15,16 @@ from lnbits.core.crud.users import (
     update_user_access_control_list,
 )
 from lnbits.core.models import AccessTokenPayload, User
+from lnbits.core.models.misc import SimpleItem
 from lnbits.core.models.users import (
+    AccessControlList,
     ApiTokenRequest,
     DeleteTokenRequest,
     UpdateAccessControlList,
     UserACLs,
 )
 from lnbits.core.views.user_api import api_users_reset_password
+from lnbits.helpers import create_access_token
 from lnbits.settings import AuthMethods, Settings
 from lnbits.utils.nostr import hex_to_npub, sign_event
 
@@ -1550,6 +1554,30 @@ async def test_api_create_user_api_token_success(
         token_id in [token.id for token in acl.token_id_list]
         for acl in acls.access_control_list
     ), "API token should be part of at least one ACL."
+
+
+@pytest.mark.anyio
+async def test_api_api_token_access(user_alan: User, http_client: AsyncClient):
+    user_acls = await get_user_access_control_lists(user_alan.id)
+    acl = AccessControlList(id=uuid4().hex, name="Test ACL", endpoints=[])
+    user_acls.access_control_list = [acl]
+
+    api_token_id = uuid4().hex
+    payload = AccessTokenPayload(
+        sub=user_alan.username or user_alan.id,
+        api_token_id=api_token_id,
+        auth_time=int(time.time()),
+    )
+
+    api_token = create_access_token(data=payload.dict(), token_expire_minutes=10)
+    acl.token_id_list.append(SimpleItem(id=api_token_id, name="Test Token"))
+    await update_user_access_control_list(user_acls)
+
+    response = await http_client.get(
+        "/api/v1/auth/acl", headers={"Authorization": f"Bearer {api_token}"}
+    )
+    assert response.status_code == 403, "Path not allowed."
+    assert response.json()["detail"] == "Path not allowed."
 
 
 @pytest.mark.anyio

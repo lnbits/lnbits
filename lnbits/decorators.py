@@ -317,7 +317,7 @@ async def _check_account_api_access(
     acls = await get_user_access_control_lists(user_id)
     acl = acls.get_acl_by_token_id(token_id)
     if not acl:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "Invalid Access Token.")
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Invalid token id.")
 
     path = "/".join(_path_segments(path)[:3])
     endpoint = acl.get_endpoint(path)
