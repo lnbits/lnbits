@@ -377,23 +377,9 @@ window.AdminPageLogic = {
     formatDate(date) {
       return moment(date * 1000).fromNow()
     },
-    getNotifications() {
-      if (this.settings.lnbits_notifications) {
-        axios
-          .get(this.settings.lnbits_status_manifest)
-          .then(response => {
-            this.statusData = response.data
-          })
-          .catch(error => {
-            this.formData.lnbits_notifications = false
-            error.response.data = {}
-            error.response.data.message = 'Could not fetch status manifest.'
-            LNbits.utils.notifyApiError(error)
-          })
-      }
-    },
-    async getAudit() {
-      await LNbits.api
+
+    getAudit() {
+      LNbits.api
         .request('GET', '/admin/api/v1/audit', this.g.user.wallets[0].adminkey)
         .then(response => {
           this.auditData = response.data
@@ -421,7 +407,6 @@ window.AdminPageLogic = {
           this.isSuperUser = response.data.is_super_user || false
           this.settings = response.data
           this.formData = {...this.settings}
-          this.getNotifications()
         })
         .catch(LNbits.utils.notifyApiError)
     },
@@ -441,8 +426,7 @@ window.AdminPageLogic = {
         .then(response => {
           this.needsRestart =
             this.settings.lnbits_backend_wallet_class !==
-              this.formData.lnbits_backend_wallet_class ||
-            this.settings.lnbits_killswitch !== this.formData.lnbits_killswitch
+            this.formData.lnbits_backend_wallet_class
           this.settings = this.formData
           this.formData = _.clone(this.settings)
           Quasar.Notify.create({
