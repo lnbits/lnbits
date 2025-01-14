@@ -173,8 +173,6 @@ window.localisation.pl = {
   enable_notifications: 'Włącz powiadomienia',
   enable_notifications_desc:
     'Jeśli ta opcja zostanie włączona, będzie pobierać najnowsze informacje o statusie LNbits, takie jak incydenty bezpieczeństwa i aktualizacje.',
-    'Jeśli zostanie włączone, automatycznie zmieni źródło finansowania na VoidWallet, jeśli LNbits wyśle sygnał wyłączający. Po aktualizacji będziesz musiał włączyć to ręcznie.',
-    'Jak często zadanie w tle powinno sprawdzać sygnał wyłącznika awaryjnego LNbits ze źródła statusu (w minutach).',
   enable_watchdog: 'Włącz Watchdog',
   enable_watchdog_desc:
     'Jeśli zostanie włączone, automatycznie zmieni źródło finansowania na VoidWallet, jeśli saldo jest niższe niż saldo LNbits. Po aktualizacji trzeba będzie włączyć ręcznie.',

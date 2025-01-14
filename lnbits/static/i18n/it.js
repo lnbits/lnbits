@@ -176,8 +176,6 @@ window.localisation.it = {
   enable_notifications: 'Attiva le notifiche',
   enable_notifications_desc:
     'Se attivato, recupererà gli ultimi aggiornamenti sullo stato di LNbits, come incidenti di sicurezza e aggiornamenti.',
-    'Se attivato, cambierà automaticamente la tua fonte di finanziamento in VoidWallet se LNbits invia un segnale di killswitch. Dovrai attivare manualmente dopo un aggiornamento.',
-    'Quanto spesso il compito in background dovrebbe controllare il segnale di killswitch LNbits dalla fonte di stato (in minuti).',
   enable_watchdog: 'Attiva Watchdog',
   enable_watchdog_desc:
     'Se abilitato, cambierà automaticamente la tua fonte di finanziamento in VoidWallet se il tuo saldo è inferiore al saldo LNbits. Dovrai abilitarlo manualmente dopo un aggiornamento.',
