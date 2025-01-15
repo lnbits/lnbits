@@ -3,6 +3,7 @@
     <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('notifications_configure')"></span>
     </h6>
+    <q-separator class="q-mt-md q-mb-sm"></q-separator>
     <div class="row q-col-gutter-md">
       <div class="col-sm-12 col-md-6">
         <strong v-text="$t('notifications_nostr_config')"></strong>
@@ -150,6 +151,26 @@
       <div class="col-12">
         <q-item tag="label" v-ripple>
           <q-item-section>
+            <q-item-label v-text="$t('notification_top_up')"></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('notification_top_up_desc')"
+            ></q-item-label>
+          </q-item-section>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_notification_top_up"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-12">
+        <q-item tag="label" v-ripple>
+          <q-item-section>
             <q-item-label
               v-text="$t('notification_server_start_stop')"
             ></q-item-label>
@@ -183,27 +204,7 @@
           <q-item-section avatar>
             <q-toggle
               size="md"
-              v-model="formData.lnbits_notification_watchdog_limit"
-              checked-icon="check"
-              color="green"
-              unchecked-icon="clear"
-            />
-          </q-item-section>
-        </q-item>
-      </div>
-      <div class="col-12">
-        <q-item tag="label" v-ripple>
-          <q-item-section>
-            <q-item-label v-text="$t('notification_top_up')"></q-item-label>
-            <q-item-label
-              caption
-              v-text="$t('notification_top_up_desc')"
-            ></q-item-label>
-          </q-item-section>
-          <q-item-section avatar>
-            <q-toggle
-              size="md"
-              v-model="formData.lnbits_notification_top_up"
+              v-model="formData.lnbits_notification_watchdog_triggered"
               checked-icon="check"
               color="green"
               unchecked-icon="clear"
@@ -222,28 +223,14 @@
               v-text="$t('notification_server_status_desc')"
             ></q-item-label>
           </q-item-section>
-          <q-item-section>
-            <div class="row">
-              <div class="col-md-6 col-sm-12"></div>
-              <div class="col-md-6 col-sm-12">
-                <q-input
-                  class="flow-right"
-                  type="number"
-                  min="0"
-                  filled
-                  v-model="formData.lnbits_notification_server_status_hours"
-                  :hint="$t('notification_server_status_hours')"
-                />
-              </div>
-            </div>
-          </q-item-section>
+
           <q-item-section avatar>
-            <q-toggle
-              size="md"
-              v-model="formData.lnbits_notification_server_status"
-              checked-icon="check"
-              color="green"
-              unchecked-icon="clear"
+            <q-input
+              class="flow-right"
+              type="number"
+              min="0"
+              filled
+              v-model="formData.lnbits_notification_server_status_hours"
             />
           </q-item-section>
         </q-item>
@@ -259,28 +246,15 @@
               v-text="$t('notification_incoming_payment_desc')"
             ></q-item-label>
           </q-item-section>
-          <q-item-section>
-            <div class="row">
-              <div class="col-md-6 col-sm-12"></div>
-              <div class="col-md-6 col-sm-12">
-                <q-input
-                  class="flow-right"
-                  type="number"
-                  min="0"
-                  filled
-                  v-model="formData.lnbits_notification_incoming_payment_amount"
-                  :hint="$t('notification_incoming_payment_amount')"
-                />
-              </div>
-            </div>
-          </q-item-section>
+
           <q-item-section avatar>
-            <q-toggle
-              size="md"
-              v-model="formData.lnbits_notification_incoming_payment"
-              checked-icon="check"
-              color="green"
-              unchecked-icon="clear"
+            <q-input
+              class="flow-right"
+              type="number"
+              min="0"
+              filled
+              v-model="formData.lnbits_notification_incoming_payment_amount_sats"
+              :hint="$t('notification_incoming_payment_amount')"
             />
           </q-item-section>
         </q-item>
@@ -296,28 +270,15 @@
               v-text="$t('notification_outgoing_payment_desc')"
             ></q-item-label>
           </q-item-section>
-          <q-item-section>
-            <div class="row">
-              <div class="col-md-6 col-sm-12"></div>
-              <div class="col-md-6 col-sm-12">
-                <q-input
-                  class="flow-right"
-                  type="number"
-                  min="0"
-                  filled
-                  v-model="formData.lnbits_notification_outgoing_payment_amount"
-                  :hint="$t('notification_outgoing_payment_amount')"
-                />
-              </div>
-            </div>
-          </q-item-section>
+
           <q-item-section avatar>
-            <q-toggle
-              size="md"
-              v-model="formData.lnbits_notification_outgoing_payment"
-              checked-icon="check"
-              color="green"
-              unchecked-icon="clear"
+            <q-input
+              class="flow-right"
+              type="number"
+              min="0"
+              filled
+              v-model="formData.lnbits_notification_outgoing_payment_amount_sats"
+              :hint="$t('notification_outgoing_payment_amount')"
             />
           </q-item-section>
         </q-item>
