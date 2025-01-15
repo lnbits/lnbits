@@ -16,23 +16,53 @@ function eventReaction(amount) {
     console.log(e)
   }
 }
-function confettiBothSides() {
+function confettiTop() {
   document.getElementById('vue').disabled = true
-  var end = Date.now() + 2 * 1000
-  var colors = ['#FFD700', '#ffffff']
+  var end = Date.now() + 200
+  var colors = [
+    localStorage.getItem('lnbits.primaryColor') || '#FFD700',
+    localStorage.getItem('lnbits.secondaryColor') || 'E89400',
+    '#ffffff'
+  ]
   function frame() {
     confetti({
-      particleCount: 2,
+      particleCount: 3,
+      angle: 270,
+      spread: 1000,
+      origin: {y: 0},
+      colors: colors,
+      zIndex: 999999
+    })
+    if (Date.now() < end) {
+      requestAnimationFrame(frame)
+    } else {
+      document.getElementById('vue').disabled = false
+    }
+  }
+  frame()
+}
+
+function confettiBothSides() {
+  document.getElementById('vue').disabled = true
+  var end = Date.now() + 200
+  var colors = [
+    localStorage.getItem('lnbits.primaryColor') || '#FFD700',
+    localStorage.getItem('lnbits.secondaryColor') || 'E89400',
+    '#ffffff'
+  ]
+  function frame() {
+    confetti({
+      particleCount: 3,
       angle: 60,
-      spread: 55,
+      spread: 1000,
       origin: {x: 0},
       colors: colors,
       zIndex: 999999
     })
     confetti({
-      particleCount: 2,
+      particleCount: 3,
       angle: 120,
-      spread: 55,
+      spread: 1000,
       origin: {x: 1},
       colors: colors,
       zIndex: 999999
@@ -46,9 +76,19 @@ function confettiBothSides() {
   frame()
 }
 function confettiFireworks() {
-  var duration = 3 * 1000
+  var duration = 1000
   var animationEnd = Date.now() + duration
-  var defaults = {startVelocity: 30, spread: 360, ticks: 60, zIndex: 0}
+  var defaults = {
+    startVelocity: 30,
+    spread: 1000,
+    ticks: 60,
+    zIndex: 0,
+    colors: [
+      localStorage.getItem('lnbits.primaryColor') || 'FFE400',
+      localStorage.getItem('lnbits.secondaryColor') || 'E89400',
+      'FFFFFF'
+    ]
+  }
 
   function randomInRange(min, max) {
     return Math.random() * (max - min) + min
@@ -80,16 +120,20 @@ function confettiStars() {
   var defaults = {
     spread: 360,
     ticks: 50,
-    gravity: 0,
+    gravity: 4,
     decay: 0.94,
     startVelocity: 30,
-    colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8']
+    colors: [
+      localStorage.getItem('lnbits.primaryColor') || 'FFE400',
+      localStorage.getItem('lnbits.secondaryColor') || 'E89400',
+      'FFFFFF'
+    ]
   }
 
   function shoot() {
     confetti({
       ...defaults,
-      particleCount: 40,
+      particleCount: 20,
       scalar: 1.2,
       shapes: ['star']
     })

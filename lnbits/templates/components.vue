@@ -90,7 +90,9 @@
 
 <template id="lnbits-extension-list">
   <q-list
-    v-if="(g.user && userExtensions && userExtensions.length > 0) || !!searchTerm"
+    v-if="
+      (g.user && userExtensions && userExtensions.length > 0) || !!searchTerm
+    "
     dense
     class="lnbits-drawer__q-list"
   >

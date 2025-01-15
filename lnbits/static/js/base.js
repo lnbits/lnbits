@@ -437,7 +437,6 @@ window.LNbits = {
   }
 }
 
-
 if (!window.g) {
   window.g = Vue.reactive({
     offline: !navigator.onLine,
@@ -463,7 +462,7 @@ window.windowMixin = {
       mobileSimple: true,
       walletFlip: true,
       updateTrigger: 0,
-      reactionChoice: 'confettiBothSides',
+      reactionChoice: 'confettiTop',
       borderChoice: '',
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || false,
@@ -489,7 +488,6 @@ window.windowMixin = {
         if (!this.eventListeners.includes(wallet.id)) {
           this.eventListeners.push(wallet.id)
           LNbits.events.onInvoicePaid(wallet, data => {
-            console.log('onInvoicePaid', data)
             const walletIndex = this.g.user.wallets.findIndex(
               w => w.id === wallet.id
             )
@@ -502,15 +500,15 @@ window.windowMixin = {
               this.updateTrigger++
               if (this.g.wallet.id === wallet.id) {
                 Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
-                eventReaction(data.wallet_balance * 1000)
               }
             }
             this.updatePaymentsHash = data.payment.payment_hash
             this.updatePayments = !this.updatePayments
-            console.log(this.g.wallet.id)
-            console.log(data.payment.wallet_id)
-            if (this.g.wallet.id === data.payment.wallet_id) {
-              console.log("poo")
+            if (
+              this.g.wallet.id === data.payment.wallet_id &&
+              data.payment.amount > 0
+            ) {
+              eventReaction(data.wallet_balance * 1000)
             }
           })
         }
@@ -518,7 +516,7 @@ window.windowMixin = {
     },
     selectWallet(wallet) {
       Object.assign(this.g.wallet, wallet)
-     // this.wallet = this.g.wallet
+      // this.wallet = this.g.wallet
       this.updatePayments = !this.updatePayments
       this.balance = parseInt(wallet.balance_msat / 1000)
       const currentPath = this.$route.path
@@ -650,6 +648,7 @@ window.windowMixin = {
         )
         .onOk(async () => {
           try {
+            this.$q.localStorage.remove('lnbits.disclaimerShown')
             await LNbits.api.logout()
             window.location = '/'
           } catch (e) {
@@ -726,7 +725,7 @@ window.windowMixin = {
       this.$q.dark.set(true)
     }
     this.reactionChoice =
-      this.$q.localStorage.getItem('lnbits.reactions') || 'confettiBothSides'
+      this.$q.localStorage.getItem('lnbits.reactions') || 'confettiTop'
 
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
@@ -812,7 +811,3 @@ window.decryptLnurlPayAES = (success_action, preimage) => {
       return decoder.decode(valueb)
     })
 }
-
-
-
-

@@ -406,7 +406,7 @@ window.AdminPageLogic = {
         })
         .then(() => {
           this.$nextTick(() => {
-          //  this.isReady = true
+            //  this.isReady = true
           })
         })
         .catch(function (error) {

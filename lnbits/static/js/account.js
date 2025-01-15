@@ -9,7 +9,8 @@ window.AccountPageLogic = {
         'None',
         'confettiBothSides',
         'confettiFireworks',
-        'confettiStars'
+        'confettiStars',
+        'confettiTop'
       ],
       borderOptions: ['retro-border', 'hard-border', 'no-border'],
       tab: 'user',

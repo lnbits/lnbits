@@ -150,7 +150,7 @@ window.WalletPageLogic = {
       if (LNBITS_DENOMINATION != 'sats') {
         this.receive.data.amount = this.receive.data.amount * 100
       }
-      
+
       LNbits.api
         .createInvoice(
           this.g.wallet,
@@ -162,10 +162,6 @@ window.WalletPageLogic = {
         .then(response => {
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.bolt11
-          // Hack as rendering in dialog causes reactivity issues. Does speed up, as only rendering lnbits-qrcode once.
-          this.$nextTick(() => {  
-            this.invoiceQrCode = document.getElementById('hiddenQrCodeContainer').innerHTML
-          })
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
           this.readNfcTag()
@@ -195,6 +191,12 @@ window.WalletPageLogic = {
               })
             }
           }
+          // Hack as rendering in dialog causes reactivity issues. Does speed up, as only rendering lnbits-qrcode once.
+          this.$nextTick(() => {
+            this.invoiceQrCode = document.getElementById(
+              'hiddenQrCodeContainer'
+            ).innerHTML
+          })
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -690,6 +692,8 @@ window.WalletPageLogic = {
     if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
+      // Turn on payment reactions by default
+      this.$q.localStorage.set('lnbits.reactions', 'confettiTop')
     }
   }
 }

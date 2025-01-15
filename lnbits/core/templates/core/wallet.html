@@ -113,7 +113,7 @@
             />
           </q-card-section>
         </q-card>
-        <div id="hiddenQrCodeContainer" style="display: none;">
+        <div id="hiddenQrCodeContainer" style="display: none">
           <lnbits-qrcode
             :value="'lightning:' + this.receive.paymentReq"
           ></lnbits-qrcode>
@@ -388,7 +388,6 @@
               size="2.55em"
             ></q-spinner>
           </q-form>
-        
         </q-card>
         <q-card
           v-else-if="receive.paymentReq && receive.lnurl == null"

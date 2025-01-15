@@ -105,7 +105,7 @@ const DynamicComponent = {
         this.loadDynamicContent()
       } else {
         console.log(
-          `Route '${to.name}' is not valid. Leave this one to ol'Fastapi.`
+          `Route '${to.name}' is not valid. Leave this one to Fastapi.`
         )
       }
     }

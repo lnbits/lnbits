@@ -1,7 +1,5 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
-%} 
-{% endblock %} {% block scripts %} {{ window_vars(user) }}
-{% block page %}
+%} {% endblock %} {% block scripts %} {{ window_vars(user) }} {% block page %}
 
 <q-dialog v-model="nodeInfoDialog.show" position="top">
   <lnbits-node-qrcode :info="nodeInfoDialog.data"></lnbits-node-qrcode>
