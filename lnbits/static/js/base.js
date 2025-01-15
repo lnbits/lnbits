@@ -461,7 +461,6 @@ window.windowMixin = {
       updatePaymentsHash: '',
       mobileSimple: true,
       walletFlip: true,
-      updateTrigger: 0,
       reactionChoice: 'confettiTop',
       borderChoice: '',
       gradientChoice:
@@ -483,7 +482,7 @@ window.windowMixin = {
       this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
       this.refreshRoute()
     },
-    walletEvents() {
+    paymentEvents() {
       this.g.user.wallets.forEach(wallet => {
         if (!this.eventListeners.includes(wallet.id)) {
           this.eventListeners.push(wallet.id)
@@ -492,24 +491,31 @@ window.windowMixin = {
               w => w.id === wallet.id
             )
             if (walletIndex !== -1) {
+              //needed for balance being deducted
+              let satBalance = data.wallet_balance
+              if (data.payment.amount < 0) {
+                satBalance = data.wallet_balance += data.payment.amount / 1000
+              }
+              //update the wallet
               Object.assign(this.g.user.wallets[walletIndex], {
-                sat: data.wallet_balance,
+                sat: satBalance,
                 msat: data.wallet_balance * 1000,
                 fsat: data.wallet_balance.toLocaleString()
               })
-              this.updateTrigger++
-              if (this.g.wallet.id === wallet.id) {
+              //update the current wallet
+              if (this.g.wallet.id === data.payment.wallet_id) {
                 Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
+                this.updatePayments = !this.updatePayments
+                //if on the wallet page and payment is incoming trigger the eventReaction
+                if (
+                  data.payment.amount > 0 &&
+                  window.location.pathname === '/wallet'
+                ) {
+                  eventReaction(data.wallet_balance * 1000)
+                }
               }
             }
             this.updatePaymentsHash = data.payment.payment_hash
-            this.updatePayments = !this.updatePayments
-            if (
-              this.g.wallet.id === data.payment.wallet_id &&
-              data.payment.amount > 0
-            ) {
-              eventReaction(data.wallet_balance * 1000)
-            }
           })
         }
       })
@@ -781,10 +787,7 @@ window.windowMixin = {
     this.mobileSimple = this.$q.localStorage.getItem('lnbits.mobileSimple')
   },
   mounted() {
-    if (!this.walletEventsInitialized) {
-      this.walletEventsInitialized = true
-      this.walletEvents()
-    }
+    this.paymentEvents()
   }
 }
 

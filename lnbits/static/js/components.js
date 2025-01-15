@@ -458,7 +458,7 @@ window.app.component('lnbits-dynamic-chips', {
 window.app.component('lnbits-update-balance', {
   template: '#lnbits-update-balance',
   mixins: [window.windowMixin],
-  props: ['wallet_id', 'updateTrigger'],
+  props: ['wallet_id'],
   computed: {
     denomination() {
       return LNBITS_DENOMINATION
@@ -491,7 +491,6 @@ window.app.component('lnbits-update-balance', {
           this.credit = 0
           scope.value = 0
           scope.set()
-          this.updateTrigger++
         })
         .catch(LNbits.utils.notifyApiError)
     }

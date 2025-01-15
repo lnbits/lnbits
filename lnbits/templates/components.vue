@@ -6,7 +6,7 @@
   >
     <q-item
       v-for="walletRec in g.user.wallets"
-      :key="walletRec.id + updateTrigger"
+      :key="walletRec.id"
       clickable
       :active="g.wallet && g.wallet.id === walletRec.id"
       @click="selectWallet(walletRec)"
