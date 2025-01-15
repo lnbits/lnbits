@@ -3,7 +3,6 @@ window.AdminPageLogic = {
   data() {
     return {
       settings: {},
-      isReady: false,
       logs: [],
       serverlogEnabled: false,
       lnbits_theme_options: [
@@ -35,7 +34,10 @@ window.AdminPageLogic = {
           }
         ]
       },
-      formData: {},
+      formData: {
+        lnbits_exchange_rate_providers: []
+      },
+      chartReady: false,
       formAddAdmin: '',
       formAddUser: '',
       formAddExtensionsManifest: '',
@@ -118,16 +120,14 @@ window.AdminPageLogic = {
       }
     }
   },
-  created() {
-    this.getSettings()
-    this.getAudit()
+  async created() {
+    await this.getSettings()
+    await this.getAudit()
     this.balance = +'{{ balance|safe }}'
     const hash = window.location.hash.replace('#', '')
-    if (hash) {
+    if (hash === 'exchange_providers') {
+      this.showExchangeProvidersTab(hash)
       this.tab = hash
-      if (this.tab === 'exchange_providers') {
-        this.showExchangeProvidersTab(this.tab)
-      }
     }
   },
   computed: {
@@ -390,8 +390,8 @@ window.AdminPageLogic = {
           })
       }
     },
-    getAudit() {
-      LNbits.api
+    async getAudit() {
+      await LNbits.api
         .request('GET', '/admin/api/v1/audit', this.g.user.wallets[0].adminkey)
         .then(response => {
           this.auditData = response.data
@@ -404,17 +404,12 @@ window.AdminPageLogic = {
         .then(response => {
           this.initExchangeChart(response.data)
         })
-        .then(() => {
-          this.$nextTick(() => {
-            //  this.isReady = true
-          })
-        })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
     },
-    getSettings() {
-      LNbits.api
+    async getSettings() {
+      await LNbits.api
         .request(
           'GET',
           '/admin/api/v1/settings',
