@@ -97,27 +97,24 @@
           </q-item-section>
           <q-item-section>
             <q-input
-              type="pasword"
+              type="password"
               filled
-              v-model="formData.lnbits_telegram_notifications_identifiers"
+              v-model="formData.lnbits_telegram_notifications_access_token"
             />
           </q-item-section>
         </q-item>
         <q-item tag="label" v-ripple>
           <q-item-section>
-            <q-item-label
-              v-text="$t('notifications_channel_id')"
-            ></q-item-label>
+            <q-item-label v-text="$t('notifications_chat_id')"></q-item-label>
             <q-item-label
               caption
-              v-text="$t('notifications_channel_id_desc')"
+              v-text="$t('notifications_chat_id_desc')"
             ></q-item-label>
           </q-item-section>
           <q-item-section>
             <q-input
-              type="pasword"
               filled
-              v-model="formData.lnbits_telegram_notifications_identifiers"
+              v-model="formData.lnbits_telegram_notifications_chat_id"
             />
           </q-item-section>
         </q-item>
