@@ -380,6 +380,15 @@ class SecuritySettings(LNbitsSettings):
         )
 
 
+class NotificationsSettings(LNbitsSettings):
+    lnbits_nostr_notifications_enabled: bool = Field(default=False)
+    lnbits_nostr_notifications_private_key: str = Field(default="")
+    lnbits_nostr_notifications_identifiers: list[str] = Field(default=[])
+    lnbits_telegram_notifications_enabled: bool = Field(default=False)
+    lnbits_telegram_notifications_access_token: str = Field(default="")
+    lnbits_telegram_notifications_chat_id: str = Field(default="")
+
+
 class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")
 
@@ -698,6 +707,7 @@ class EditableSettings(
     FeeSettings,
     ExchangeProvidersSettings,
     SecuritySettings,
+    NotificationsSettings,
     FundingSourcesSettings,
     LightningSettings,
     WebPushSettings,

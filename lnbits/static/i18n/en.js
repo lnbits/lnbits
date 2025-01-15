@@ -184,8 +184,8 @@ window.localisation.en = {
   notifications_enable_telegram_desc: 'Send notfications over Telegram',
   notifications_telegram_access_token: 'Access Token',
   notifications_telegram_access_token_desc: 'Access token for the bot',
-  notifications_channel_id: 'Channel ID',
-  notifications_channel_id_desc: 'Channel ID to send the notifications to',
+  notifications_chat_id: 'Chat ID',
+  notifications_chat_id_desc: 'Chat ID to send the notifications to',
 
   enable_watchdog: 'Enable Watchdog',
   enable_watchdog_desc:
