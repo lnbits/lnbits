@@ -187,6 +187,30 @@ window.localisation.en = {
   notifications_chat_id: 'Chat ID',
   notifications_chat_id_desc: 'Chat ID to send the notifications to',
 
+  notification_settings_update: 'Settings updated',
+  notification_settings_update_desc:
+    'Notify when server settings have been updated',
+
+  notification_server_start_stop: 'Server Start/Stop',
+  notification_server_start_stop_desc:
+    'Notify when the server has been started/stopped',
+
+  notification_watchdog_limit: 'Watchdog Limit',
+  notification_watchdog_limit_desc:
+    'Notify when the watchdog limit has been reached (see Funding Source tab for details)',
+
+  notification_server_status: 'Server Status',
+  notification_server_status_desc:
+    'Send regular notifications about the server status (interval value in hours)',
+
+  notification_incoming_payment: 'Incoming Payments',
+  notification_incoming_payment_desc:
+    'Notify when a wallet has received a payment above the specified amount',
+
+  notification_outgoing_payment: 'Outgoing Payments',
+  notification_outgoing_payment_desc:
+    'Notify when a wallet has sent a payment above the specified amount',
+
   notification_credit_debit: 'Credit / Debit',
   notification_credit_debit_desc:
     'Notify when a wallet has been credited/debited by the superuser',
