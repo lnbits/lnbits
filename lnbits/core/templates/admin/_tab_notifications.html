@@ -1,19 +1,19 @@
 <q-tab-panel name="notifications">
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none q-mb-sm">
-      <span v-text="$t('configure_notifications')"></span>
+      <span v-text="$t('notifications_configure')"></span>
     </h6>
     <div class="row q-col-gutter-md">
       <div class="col-sm-12 col-md-6">
-        <strong v-text="$t('nostr_config')"></strong>
+        <strong v-text="$t('notifications_nostr_config')"></strong>
         <q-item tag="label" v-ripple>
           <q-item-section>
             <q-item-label
-              v-text="$t('enable_nostr_notifications')"
+              v-text="$t('notifications_enable_nostr')"
             ></q-item-label>
             <q-item-label
               caption
-              v-text="$t('enable_nostr_desc')"
+              v-text="$t('notifications_enable_nostr_desc')"
             ></q-item-label>
           </q-item-section>
           <q-item-section avatar>
@@ -28,27 +28,30 @@
         </q-item>
         <q-item tag="label" v-ripple>
           <q-item-section>
-            <q-item-label v-text="$t('nostr_notify_nsec')"></q-item-label>
+            <q-item-label
+              v-text="$t('notifications_nostr_private_key')"
+            ></q-item-label>
             <q-item-label
               caption
-              v-text="$t('nostr_notify_nsec_desc')"
+              v-text="$t('notifications_nostr_private_key_desc')"
             ></q-item-label>
           </q-item-section>
           <q-item-section>
             <q-input
+              type="password"
               filled
-              v-model="formData.lnbits_nostr_notifications_nsec"
+              v-model="formData.lnbits_nostr_notifications_private_key"
             />
           </q-item-section>
         </q-item>
         <q-item tag="label" v-ripple>
           <q-item-section>
             <q-item-label
-              v-text="$t('nostr_notify_identifiers')"
+              v-text="$t('notifications_nostr_identifiers')"
             ></q-item-label>
             <q-item-label
               caption
-              v-text="$t('nostr_notify_identifiers_desc')"
+              v-text="$t('notifications_nostr_identifiers_desc')"
             ></q-item-label>
           </q-item-section>
           <q-item-section>
@@ -61,15 +64,15 @@
       </div>
 
       <div class="col-sm-12 col-md-6">
-        <strong v-text="$t('telegram_config')"></strong>
+        <strong v-text="$t('notifications_telegram_config')"></strong>
         <q-item tag="label" v-ripple>
           <q-item-section>
             <q-item-label
-              v-text="$t('enable_telegram_notifications')"
+              v-text="$t('notifications_enable_telegram')"
             ></q-item-label>
             <q-item-label
               caption
-              v-text="$t('enable_telegram_desc')"
+              v-text="$t('notifications_enable_telegram_desc')"
             ></q-item-label>
           </q-item-section>
           <q-item-section avatar>
@@ -84,10 +87,12 @@
         </q-item>
         <q-item tag="label" v-ripple>
           <q-item-section>
-            <q-item-label v-text="$t('telegram_access_token')"></q-item-label>
+            <q-item-label
+              v-text="$t('notifications_telegram_access_token')"
+            ></q-item-label>
             <q-item-label
               caption
-              v-text="$t('telegram_access_token_desc')"
+              v-text="$t('notifications_telegram_access_token_desc')"
             ></q-item-label>
           </q-item-section>
           <q-item-section>
@@ -100,10 +105,12 @@
         </q-item>
         <q-item tag="label" v-ripple>
           <q-item-section>
-            <q-item-label v-text="$t('telegram_channel_id')"></q-item-label>
+            <q-item-label
+              v-text="$t('notifications_channel_id')"
+            ></q-item-label>
             <q-item-label
               caption
-              v-text="$t('telegram_channel_id_desc')"
+              v-text="$t('notifications_channel_id_desc')"
             ></q-item-label>
           </q-item-section>
           <q-item-section>
