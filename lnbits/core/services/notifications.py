@@ -1,24 +1,32 @@
 import asyncio
-from typing import Optional
+from typing import Optional, Tuple
 
 import httpx
 from loguru import logger
 
+from lnbits.core.models.notifications import (
+    NOTIFICATION_TEMPLATES,
+    NotificationMessage,
+    NotificationType,
+)
 from lnbits.settings import settings
 
 notifications_queue: asyncio.Queue = asyncio.Queue()
 
 
-def enqueue_notification(value: dict) -> None:
+def enqueue_notification(message_type: NotificationType, values: dict) -> None:
     try:
-        notifications_queue.put_nowait(value)
+        notifications_queue.put_nowait(
+            NotificationMessage(message_type=message_type, values=values)
+        )
     except Exception as e:
         logger.error(f"Error enqueuing notification: {e}")
 
 
 async def process_next_notification():
-    message = await notifications_queue.get()
-    await send_notification(**message)
+    notification_message: NotificationMessage = await notifications_queue.get()
+    message_type, text = _notification_message_to_text(notification_message)
+    await send_notification(text, message_type)
 
 
 async def send_notification(
@@ -60,3 +68,16 @@ async def send_telegram_message(token: str, chat_id: str, message: str) -> dict:
         response = await client.post(url, data=payload)
         response.raise_for_status()
         return response.json()
+
+
+def _notification_message_to_text(
+    notification_message: NotificationMessage,
+) -> Tuple[str, str]:
+    message_type = notification_message.message_type.value
+    meesage_value = NOTIFICATION_TEMPLATES.get(message_type, message_type)
+    try:
+        text = meesage_value.format(**notification_message.values)
+    except Exception as e:
+        logger.warning(f"Error formatting notification message: {e}")
+        text = meesage_value
+    return message_type, text
