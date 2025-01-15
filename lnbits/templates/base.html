@@ -213,7 +213,7 @@
               <div class="row no-wrap q-gutter-md q-pr-md">
                 <q-card
                   v-for="wallet in g.user.wallets"
-                  :key="wallet.id + updateTrigger"
+                  :key="wallet.id"
                   clickable
                   @click="selectWallet(wallet)"
                   class="wallet-list-card"
