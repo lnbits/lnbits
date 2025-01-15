@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 
 from lnbits.core.models import User
 from lnbits.core.services import (
+    enqueue_notification,
     get_balance_delta,
     update_cached_settings,
 )
@@ -60,6 +61,7 @@ async def api_get_settings(
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings(data: UpdateSettings, user: User = Depends(check_admin)):
+    _notify_settings_update(user, data.lnbits_notification_settings_update)
     await update_admin_settings(data)
     admin_settings = await get_admin_settings(user.super_user)
     assert admin_settings, "Updated admin settings not found."
@@ -78,12 +80,9 @@ async def api_reset_settings(field_name: str):
     return {"default_value": getattr(default_settings, field_name)}
 
 
-@admin_router.delete(
-    "/api/v1/settings",
-    status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_super_user)],
-)
-async def api_delete_settings() -> None:
+@admin_router.delete("/api/v1/settings", status_code=HTTPStatus.OK)
+async def api_delete_settings(user: User = Depends(check_admin)) -> None:
+    _notify_settings_update(user)
     await delete_admin_settings()
     server_restart.set()
 
@@ -136,3 +135,16 @@ async def api_download_backup() -> FileResponse:
     return FileResponse(
         path=f"{last_filename}.zip", filename=filename, media_type="application/zip"
     )
+
+
+def _notify_settings_update(user: User, new_flag_enabled: Optional[bool] = None):
+    if settings.lnbits_notification_settings_update or new_flag_enabled:
+        enqueue_notification(
+            {
+                "message": f"""
+                    *SETTINGS UPDATED*
+                    User: `{user.username}`.
+                """,
+                "message_type": "settings_update",
+            }
+        )
