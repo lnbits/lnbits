@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
 from lnbits.core.models import User
+from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services import (
     enqueue_notification,
     get_balance_delta,
@@ -140,11 +141,5 @@ async def api_download_backup() -> FileResponse:
 def _notify_settings_update(user: User, new_flag_enabled: Optional[bool] = None):
     if settings.lnbits_notification_settings_update or new_flag_enabled:
         enqueue_notification(
-            {
-                "message": f"""
-                    *SETTINGS UPDATED*
-                    User: `{user.username}`.
-                """,
-                "message_type": "settings_update",
-            }
+            NotificationType.settings_update, {"username": user.username}
         )
