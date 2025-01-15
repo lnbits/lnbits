@@ -149,13 +149,7 @@
           <q-item-label lines="1" v-text="$t('server')"></q-item-label>
         </q-item-section>
       </q-item>
-      <q-item
-        v-if="showNode"
-        clickable
-        tag="a"
-        href="/node"
-        :active="isActive('/node')"
-      >
+      <q-item v-if="showNode" to="/node">
         <q-item-section side>
           <q-icon
             name="developer_board"

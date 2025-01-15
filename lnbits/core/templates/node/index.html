@@ -1,5 +1,8 @@
-{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
-%} {% endblock %} {% block scripts %} {{ window_vars(user) }} {% block page %}
+{% if not ajax %} {% extends "base.html" %} {% endif %}
+<!---->
+{% from "macros.jinja" import window_vars with context %}
+<!---->
+{% block scripts %} {{ window_vars(user) }}{% endblock %} {% block page %}
 
 <q-dialog v-model="nodeInfoDialog.show" position="top">
   <lnbits-node-qrcode :info="nodeInfoDialog.data"></lnbits-node-qrcode>

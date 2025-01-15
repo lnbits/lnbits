@@ -58,14 +58,14 @@ const DynamicComponent = {
         }
 
         //housecleaning, remove old component
-        const previousRouteName =
-          this.$router.currentRoute.value.meta.previousRouteName
-        if (
-          previousRouteName &&
-          window.app._context.components[previousRouteName]
-        ) {
-          delete window.app._context.components[previousRouteName]
-        }
+        //const previousRouteName =
+        //  this.$router.currentRoute.value.meta.previousRouteName
+        //if (
+        //  previousRouteName &&
+        //  window.app._context.components[previousRouteName]
+        //) {
+        //  delete window.app._context.components[previousRouteName]
+        //}
 
         //load component logic
         const logicKey = `${this.$route.name}PageLogic`
