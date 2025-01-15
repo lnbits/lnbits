@@ -2,7 +2,6 @@ window.WalletPageLogic = {
   mixins: [window.windowMixin],
   data() {
     return {
-      updatePayments: false,
       origin: window.location.origin,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
       parse: {
@@ -25,6 +24,22 @@ window.WalletPageLogic = {
           camera: 'auto'
         }
       },
+      receive: {
+        show: false,
+        status: 'pending',
+        paymentReq: null,
+        paymentHash: null,
+        amountMsat: null,
+        minMax: [0, 2100000000000000],
+        lnurl: null,
+        units: ['sat'],
+        unit: 'sat',
+        data: {
+          amount: null,
+          memo: ''
+        }
+      },
+      invoiceQrCode: '',
       disclaimerDialog: {
         show: false,
         location: window.location
@@ -130,10 +145,12 @@ window.WalletPageLogic = {
       this.g.wallet.sat = this.g.wallet.sat + value
     },
     createInvoice() {
+      console.log('Creating invoice...')
       this.receive.status = 'loading'
       if (LNBITS_DENOMINATION != 'sats') {
         this.receive.data.amount = this.receive.data.amount * 100
       }
+      
       LNbits.api
         .createInvoice(
           this.g.wallet,
@@ -145,6 +162,10 @@ window.WalletPageLogic = {
         .then(response => {
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.bolt11
+          // Hack as rendering in dialog causes reactivity issues. Does speed up, as only rendering lnbits-qrcode once.
+          this.$nextTick(() => {  
+            this.invoiceQrCode = document.getElementById('hiddenQrCodeContainer').innerHTML
+          })
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
           this.readNfcTag()
@@ -174,9 +195,6 @@ window.WalletPageLogic = {
               })
             }
           }
-        })
-        .then(() => {
-          this.updatePayments = !this.updatePayments
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -649,6 +667,10 @@ window.WalletPageLogic = {
   },
   watch: {
     updatePayments() {
+      if (this.receive.paymentHash === this.updatePaymentsHash) {
+        this.receive.show = false
+        this.receive.paymentHash = null
+      }
       this.updateFiatBalance()
     },
     '$q.screen.gt.sm'(value) {

@@ -113,6 +113,11 @@
             />
           </q-card-section>
         </q-card>
+        <div id="hiddenQrCodeContainer" style="display: none;">
+          <lnbits-qrcode
+            :value="'lightning:' + this.receive.paymentReq"
+          ></lnbits-qrcode>
+        </div>
       </div>
       {% if HIDE_API %}
       <div class="col-12 col-md-4 q-gutter-y-md">
@@ -383,6 +388,7 @@
               size="2.55em"
             ></q-spinner>
           </q-form>
+        
         </q-card>
         <q-card
           v-else-if="receive.paymentReq && receive.lnurl == null"
@@ -390,9 +396,7 @@
         >
           <div class="text-center q-mb-lg">
             <a :href="'lightning:' + receive.paymentReq">
-              <lnbits-qrcode
-                :value="'lightning:' + receive.paymentReq.toUpperCase()"
-              ></lnbits-qrcode>
+              <div v-html="invoiceQrCode"></div>
             </a>
           </div>
           <div class="text-center">

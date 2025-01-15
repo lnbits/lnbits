@@ -458,6 +458,8 @@ window.windowMixin = {
   data() {
     return {
       toggleSubs: true,
+      updatePayments: false,
+      updatePaymentsHash: '',
       mobileSimple: true,
       walletFlip: true,
       updateTrigger: 0,
@@ -466,21 +468,6 @@ window.windowMixin = {
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
-      receive: {
-        show: false,
-        status: 'pending',
-        paymentReq: null,
-        paymentHash: null,
-        amountMsat: null,
-        minMax: [0, 2100000000000000],
-        lnurl: null,
-        units: ['sat'],
-        unit: 'sat',
-        data: {
-          amount: null,
-          memo: ''
-        }
-      },
       eventListeners: []
     }
   },
@@ -502,6 +489,7 @@ window.windowMixin = {
         if (!this.eventListeners.includes(wallet.id)) {
           this.eventListeners.push(wallet.id)
           LNbits.events.onInvoicePaid(wallet, data => {
+            console.log('onInvoicePaid', data)
             const walletIndex = this.g.user.wallets.findIndex(
               w => w.id === wallet.id
             )
@@ -514,22 +502,19 @@ window.windowMixin = {
               this.updateTrigger++
               if (this.g.wallet.id === wallet.id) {
                 Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
+                eventReaction(data.wallet_balance * 1000)
               }
             }
-            this.onPaymentReceived(data.payment.payment_hash)
-            if (this.g.wallet.id === wallet.id) {
-              eventReaction(data.payment.amount)
+            this.updatePaymentsHash = data.payment.payment_hash
+            this.updatePayments = !this.updatePayments
+            console.log(this.g.wallet.id)
+            console.log(data.payment.wallet_id)
+            if (this.g.wallet.id === data.payment.wallet_id) {
+              console.log("poo")
             }
           })
         }
       })
-    },
-    onPaymentReceived(paymentHash) {
-      if (this.receive.paymentHash === paymentHash) {
-        this.receive.show = false
-        this.receive.paymentHash = null
-      }
-      this.updatePayments = !this.updatePayments
     },
     selectWallet(wallet) {
       Object.assign(this.g.wallet, wallet)

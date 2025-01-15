@@ -4431,12 +4431,12 @@
     // options
     if (options) {
       this.deep = !!options.deep;
-      this.user = !!options.user;
+      this.g.user = !!options.user;
       this.lazy = !!options.lazy;
       this.sync = !!options.sync;
       this.before = options.before;
     } else {
-      this.deep = this.user = this.lazy = this.sync = false;
+      this.deep = this.g.user = this.lazy = this.sync = false;
     }
     this.cb = cb;
     this.id = ++uid$2; // uid for batching
@@ -4477,7 +4477,7 @@
     try {
       value = this.getter.call(vm, vm);
     } catch (e) {
-      if (this.user) {
+      if (this.g.user) {
         handleError(e, vm, ("getter for watcher \"" + (this.expression) + "\""));
       } else {
         throw e
@@ -4562,7 +4562,7 @@
         // set new value
         var oldValue = this.value;
         this.value = value;
-        if (this.user) {
+        if (this.g.user) {
           try {
             this.cb.call(this.vm, value, oldValue);
           } catch (e) {

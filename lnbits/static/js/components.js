@@ -191,7 +191,6 @@ window.app.component('lnbits-lnurlpay-success-action', {
 window.app.component('lnbits-qrcode', {
   mixins: [window.windowMixin],
   template: '#lnbits-qrcode',
-  mixins: [window.windowMixin],
   components: {
     QrcodeVue
   },
