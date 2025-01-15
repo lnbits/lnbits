@@ -1,9 +1,24 @@
+import asyncio
 from typing import Optional
 
 import httpx
 from loguru import logger
 
 from lnbits.settings import settings
+
+notifications_queue: asyncio.Queue = asyncio.Queue()
+
+
+def enqueue_notification(value: dict) -> None:
+    try:
+        notifications_queue.put_nowait(value)
+    except Exception as e:
+        logger.error(f"Error enqueuing notification: {e}")
+
+
+async def process_next_notification():
+    message = await notifications_queue.get()
+    await send_notification(**message)
 
 
 async def send_notification(

@@ -31,6 +31,7 @@ from lnbits.core.tasks import (  # watchdog_task
     purge_audit_data,
     wait_for_audit_data,
     wait_for_paid_invoices,
+    wait_notification_messages,
 )
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
@@ -443,6 +444,8 @@ async def check_and_register_extensions(app: FastAPI):
 def register_async_tasks():
 
     create_permanent_task(wait_for_audit_data)
+    create_permanent_task(wait_notification_messages)
+
     create_permanent_task(check_pending_payments)
     create_permanent_task(invoice_listener)
     create_permanent_task(internal_invoice_listener)

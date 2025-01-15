@@ -16,6 +16,7 @@ from lnbits.core.services import (
     send_payment_notification,
     switch_to_voidwallet,
 )
+from lnbits.core.services.notifications import process_next_notification
 from lnbits.settings import get_funding_source, settings
 from lnbits.tasks import send_push_notification
 from lnbits.utils.exchange_rates import btc_rates
@@ -125,6 +126,16 @@ async def wait_for_audit_data():
             await create_audit_entry(data)
         except Exception as ex:
             logger.warning(ex)
+            await asyncio.sleep(3)
+
+
+async def wait_notification_messages():
+
+    while settings.lnbits_running:
+        try:
+            await process_next_notification()
+        except Exception as ex:
+            logger.log("error", ex)
             await asyncio.sleep(3)
 
 
