@@ -168,7 +168,7 @@ window.localisation.en = {
   update_available: 'Update {version} available!',
   latest_update: 'You are on the latest version {version}.',
   notifications: 'Notifications',
-  notifications_configure: 'Consfigure Notifications',
+  notifications_configure: 'Configure Notifications',
   notifications_nostr_config: 'Nostr Configuration',
   notifications_enable_nostr: 'Enable Nostr',
   notifications_enable_nostr_desc: 'Send notfications over Nostr',
