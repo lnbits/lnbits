@@ -389,7 +389,7 @@ class NotificationsSettings(LNbitsSettings):
     lnbits_telegram_notifications_chat_id: str = Field(default="")
 
     lnbits_notification_settings_update: bool = Field(default=True)
-    lnbits_notification_top_up: bool = Field(default=True)
+    lnbits_notification_credit_debit: bool = Field(default=True)
     lnbits_notification_server_start_stop: bool = Field(default=True)
     lnbits_notification_watchdog_triggered: bool = Field(default=False)
     lnbits_notification_server_status_hours: int = Field(default=24)
