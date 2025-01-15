@@ -14,6 +14,12 @@ from lnbits.settings import settings
 notifications_queue: asyncio.Queue = asyncio.Queue()
 
 
+def enqueue_text_notification(text: str):
+    enqueue_notification(
+        message_type=NotificationType.text_message, values={"message": text}
+    )
+
+
 def enqueue_notification(message_type: NotificationType, values: dict) -> None:
     try:
         notifications_queue.put_nowait(
@@ -80,4 +86,5 @@ def _notification_message_to_text(
     except Exception as e:
         logger.warning(f"Error formatting notification message: {e}")
         text = meesage_value
+    text = f"""[{settings.lnbits_site_title}]\n{text}"""
     return message_type, text
