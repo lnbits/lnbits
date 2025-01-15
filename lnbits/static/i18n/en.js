@@ -168,11 +168,24 @@ window.localisation.en = {
   update_available: 'Update {version} available!',
   latest_update: 'You are on the latest version {version}.',
   notifications: 'Notifications',
-  no_notifications: 'No notifications',
-  notifications_disabled: 'LNbits status notifications are disabled.',
-  enable_notifications: 'Enable Notifications',
-  enable_notifications_desc:
-    'If enabled it will fetch the latest LNbits Status updates, like security incidents and updates.',
+  notifications_configure: 'Consfigure Notifications',
+  notifications_nostr_config: 'Nostr Configuration',
+  notifications_enable_nostr: 'Enable Nostr',
+  notifications_enable_nostr_desc: 'Send notfications over Nostr',
+  notifications_nostr_private_key: 'Nostr Private Key',
+  notifications_nostr_private_key_desc:
+    'Private key (hex or nsec) to sign the messages sent to Nostr',
+  notifications_nostr_identifiers: 'Nostr Identifiers',
+  notifications_nostr_identifiers_desc:
+    'List of identifiers to send notifications to',
+
+  notifications_telegram_config: 'Telegram Configuration',
+  notifications_enable_telegram: 'Enable Telegram',
+  notifications_enable_telegram_desc: 'Send notfications over Telegram',
+  notifications_telegram_access_token: 'Access Token',
+  notifications_telegram_access_token_desc: 'Access token for the bot',
+  notifications_channel_id: 'Channel ID',
+  notifications_channel_id_desc: 'Channel ID to send the notifications to',
 
   enable_watchdog: 'Enable Watchdog',
   enable_watchdog_desc:
