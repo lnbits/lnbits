@@ -483,6 +483,7 @@ window.windowMixin = {
       this.refreshRoute()
     },
     paymentEvents() {
+      if (!this.g.user) return
       this.g.user.wallets.forEach(wallet => {
         if (!this.eventListeners.includes(wallet.id)) {
           this.eventListeners.push(wallet.id)
