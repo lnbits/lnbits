@@ -103,14 +103,12 @@ async def startup(app: FastAPI):
     # initialize tasks
     register_async_tasks()
 
-    if settings.lnbits_notification_server_start_stop:
-        enqueue_text_notification("LNbits server started.")
+    enqueue_text_notification("LNbits server started.")
 
 
 async def shutdown():
     logger.warning("LNbits shutting down...")
-    if settings.lnbits_notification_server_start_stop:
-        enqueue_text_notification("LNbits server stopped.")
+    enqueue_text_notification("LNbits server stopped.")
     settings.lnbits_running = False
 
     # shutdown event
