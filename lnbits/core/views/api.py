@@ -15,7 +15,6 @@ from fastapi import (
 from fastapi.exceptions import HTTPException
 from fastapi.responses import StreamingResponse
 
-from lnbits.core.crud import get_user
 from lnbits.core.models import (
     BaseWallet,
     ConversionData,
@@ -55,15 +54,11 @@ async def health() -> dict:
 
 
 @api_router.get("/api/v1/status", status_code=HTTPStatus.OK)
-async def health_check(wallet: WalletTypeInfo = Depends(require_invoice_key)) -> dict:
+async def health_check(user: User = Depends(check_user_exists)) -> dict:
     stat: dict[str, Any] = {
         "server_time": int(time()),
         "up_time": int(time() - settings.server_startup_time),
     }
-
-    user = await get_user(wallet.wallet.user)
-    if not user:
-        return stat
 
     stat["version"] = settings.version
     if not user.admin:
@@ -227,7 +222,7 @@ async def api_perform_lnurlauth(
 
 @api_router.get(
     "/api/v1/rate/history",
-    dependencies=[Depends(require_invoice_key)],
+    dependencies=[Depends(check_user_exists)],
 )
 async def api_exchange_rate_history() -> list[dict]:
     return settings.lnbits_exchange_rate_history
