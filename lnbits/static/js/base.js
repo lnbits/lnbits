@@ -787,7 +787,9 @@ window.windowMixin = {
     this.mobileSimple = this.$q.localStorage.getItem('lnbits.mobileSimple')
   },
   mounted() {
-    this.paymentEvents()
+    if (this.g.user) {
+      this.paymentEvents()
+    }
   }
 }
 
