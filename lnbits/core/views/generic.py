@@ -146,14 +146,14 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
     # refresh user state. Eg: enabled extensions.
     # TODO: refactor
     # user = await get_user(user.id) or user
-    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     return template_renderer().TemplateResponse(
         request,
         "core/extensions.html",
         {
             "user": user.json(),
             "extension_data": extension_data,
-            "ajax": is_ajax,
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -192,11 +192,11 @@ async def wallet(
         "service_fee_max": settings.lnbits_service_fee_max,
         "web_manifest": f"/manifest/{user.id}.webmanifest",
     }
-    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     return template_renderer().TemplateResponse(
         request,
         "core/wallet.html",
-        {**context, "ajax": is_ajax},
+        {**context, "ajax": _is_ajax_request(request)},
     )
 
 
@@ -209,13 +209,13 @@ async def account(
     request: Request,
     user: User = Depends(check_user_exists),
 ):
-    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
         {
             "user": user.json(),
-            "ajax": is_ajax,
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -320,7 +320,7 @@ async def node(request: Request, user: User = Depends(check_admin)):
 
     funding_source = get_funding_source()
     _, balance = await funding_source.status()
-    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     return template_renderer().TemplateResponse(
         request,
         "node/index.html",
@@ -329,7 +329,7 @@ async def node(request: Request, user: User = Depends(check_admin)):
             "settings": settings.dict(),
             "balance": balance,
             "wallets": user.wallets[0].json(),
-            "ajax": is_ajax,
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -359,7 +359,7 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
 
     funding_source = get_funding_source()
     _, balance = await funding_source.status()
-    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     return template_renderer().TemplateResponse(
         request,
         "admin/index.html",
@@ -368,7 +368,7 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
             "settings": settings.dict(),
             "balance": balance,
             "currencies": list(currencies.keys()),
-            "ajax": is_ajax,
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -377,7 +377,7 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
 async def users_index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     return template_renderer().TemplateResponse(
         "users/index.html",
         {
@@ -385,7 +385,7 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
             "user": user.json(),
             "settings": settings.dict(),
             "currencies": list(currencies.keys()),
-            "ajax": is_ajax,
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -394,13 +394,13 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
 async def audit_index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_audit_enabled:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Audit not enabled")
-    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     return template_renderer().TemplateResponse(
         "audit/index.html",
         {
             "request": request,
             "user": user.json(),
-            "ajax": is_ajax,
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -464,3 +464,7 @@ async def lnurlwallet(request: Request):
     return RedirectResponse(
         f"/wallet?usr={account.id}&wal={wallet.id}",
     )
+
+
+def _is_ajax_request(request: Request):
+    return request.headers.get("X-Requested-With", None) == "XMLHttpRequest"
