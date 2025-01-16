@@ -218,6 +218,7 @@ async def adminkey_headers_from(from_wallet):
         "Content-type": "application/json",
     }
 
+
 @pytest.fixture(scope="session")
 async def user_headers_from(client: AsyncClient, from_user: User):
     response = await client.post("/api/v1/auth/usr", json={"usr": from_user.id})
