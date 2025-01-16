@@ -128,7 +128,7 @@ window.AdminPageLogic = {
     if (hash === 'exchange_providers') {
       this.showExchangeProvidersTab(hash)
     }
-    if(hash){
+    if (hash) {
       this.tab = hash
     }
   },
