@@ -787,7 +787,12 @@ window.windowMixin = {
     await this.checkUsrInUrl()
     this.themeParams()
     this.walletFlip = this.$q.localStorage.getItem('lnbits.walletFlip')
-    this.mobileSimple = this.$q.localStorage.getItem('lnbits.mobileSimple')
+    if (
+      this.$q.screen.gt.sm ||
+      this.$q.localStorage.getItem('lnbits.mobileSimple') == false
+    ) {
+      this.mobileSimple = false
+    }
   },
   mounted() {
     this.paymentEvents()

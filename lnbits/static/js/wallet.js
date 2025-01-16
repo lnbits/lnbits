@@ -701,11 +701,6 @@ window.WalletPageLogic = {
       this.decodeRequest()
       this.parse.show = true
     }
-    if (this.$q.screen.lt.md) {
-      this.mobileSimple = true
-    } else {
-      this.mobileSimple = false
-    }
     this.createdTasks()
   },
   watch: {
