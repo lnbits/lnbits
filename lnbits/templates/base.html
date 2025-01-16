@@ -357,7 +357,7 @@
       })
       const websocketPrefix =
         window.location.protocol === 'http:' ? 'ws://' : 'wss://'
-      const websocketUrl = `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`
+      const websocketUrl = `${websocketPrefix}${window.location.host}/api/v1/ws`
     </script>
     {% block scripts %}{% endblock %} {% for url in INCLUDED_COMPONENTS %}
     <script src="{{ static_url_for('static', url) }}"></script>
