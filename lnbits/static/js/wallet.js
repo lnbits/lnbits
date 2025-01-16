@@ -703,6 +703,8 @@ window.WalletPageLogic = {
     }
     if (this.$q.screen.lt.md) {
       this.mobileSimple = true
+    } else {
+      this.mobileSimple = false
     }
     this.createdTasks()
   },
