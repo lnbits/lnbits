@@ -545,15 +545,17 @@ window.WalletPageLogic = {
       LNbits.api
         .request('GET', `/api/v1/rate/` + currency, null)
         .then(response => {
-          this.g.fiatBalance =
-            (response.data.price / 100000000) * this.g.wallet.sat
-          this.g.exchangeRate = response.data.price.toFixed(2)
-          this.g.fiatTracking = true
-          this.formatFiatAmount(this.g.fiatBalance, currency)
-          this.$q.localStorage.set(
-            'lnbits.exchangeRate.' + currency,
-            this.g.exchangeRate
-          )
+          if (this.g.wallet.currency == currency) {
+            this.g.fiatBalance =
+              (response.data.price / 100000000) * this.g.wallet.sat
+            this.g.exchangeRate = response.data.price.toFixed(2)
+            this.g.fiatTracking = true
+            this.formatFiatAmount(this.g.fiatBalance, this.g.wallet.currency)
+            this.$q.localStorage.set(
+              'lnbits.exchangeRate.' + currency,
+              this.g.exchangeRate
+            )
+          }
         })
         .catch(e => console.error(e))
     },
@@ -671,10 +673,8 @@ window.WalletPageLogic = {
       if (!this.g.fiatTracking) {
         this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
         this.isPrioritySwapped = false
-        this.$q.localStorage.remove(
-          `lnbits.exchangeRate.` + this.update.currency
-        )
         this.update.currency = ''
+        this.updateWallet({currency: ''})
       } else {
         this.updateWallet({currency: this.update.currency})
         this.updateFiatBalance(this.update.currency)
@@ -686,12 +686,7 @@ window.WalletPageLogic = {
       if (this.$q.screen.lt.md) {
         this.mobileSimple = true
       }
-      if (
-        this.g.wallet.currency != '' &&
-        this.$q.localStorage.getItem(
-          'lnbits.exchangeRate.' + this.g.wallet.currency
-        )
-      ) {
+      if (this.g.wallet.currency != '') {
         this.g.fiatTracking = true
         this.updateFiatBalance(this.g.wallet.currency)
       } else {
