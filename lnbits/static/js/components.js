@@ -308,14 +308,9 @@ window.app.component('lnbits-notifications-btn', {
                   .subscribe(options)
                   .then(subscription => {
                     LNbits.api
-                      .request(
-                        'POST',
-                        '/api/v1/webpush',
-                        this.g.user.wallets[0].adminkey,
-                        {
-                          subscription: JSON.stringify(subscription)
-                        }
-                      )
+                      .request('POST', '/api/v1/webpush', null, {
+                        subscription: JSON.stringify(subscription)
+                      })
                       .then(response => {
                         this.saveUserSubscribed(response.data.user)
                         this.isSubscribed = true
@@ -337,7 +332,7 @@ window.app.component('lnbits-notifications-btn', {
                 .request(
                   'DELETE',
                   '/api/v1/webpush?endpoint=' + btoa(subscription.endpoint),
-                  this.g.user.wallets[0].adminkey
+                  null
                 )
                 .then(() => {
                   this.removeUserSubscribed(this.g.user.id)

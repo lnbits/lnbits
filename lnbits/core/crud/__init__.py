@@ -58,6 +58,7 @@ from .users import (
     get_account_by_username_or_email,
     get_accounts,
     get_user,
+    get_user_access_control_lists,
     get_user_from_account,
     update_account,
 )
@@ -145,6 +146,7 @@ __all__ = [
     "get_accounts",
     "get_user",
     "get_user_from_account",
+    "get_user_access_control_lists",
     "update_account",
     # wallets
     "create_wallet",

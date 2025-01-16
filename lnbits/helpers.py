@@ -9,6 +9,7 @@ from urllib import request
 import jinja2
 import jwt
 import shortuuid
+from fastapi.routing import APIRoute
 from packaging import version
 from pydantic.schema import field_schema
 
@@ -198,12 +199,11 @@ def is_valid_pubkey(pubkey: str) -> bool:
         return False
 
 
-def create_access_token(data: dict):
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.auth_token_expire_minutes
-    )
-    to_encode = data.copy()
-    to_encode.update({"exp": expire})
+def create_access_token(data: dict, token_expire_minutes: Optional[int] = None) -> str:
+    minutes = token_expire_minutes or settings.auth_token_expire_minutes
+    expire = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+    to_encode = {k: v for k, v in data.items() if v is not None}
+    to_encode.update({"exp": expire})  # todo:check expiration
     return jwt.encode(to_encode, settings.auth_secret_key, "HS256")
 
 
@@ -270,3 +270,19 @@ def file_hash(filename):
         while n := f.readinto(mv):
             h.update(mv[:n])
     return h.hexdigest()
+
+
+def get_api_routes(routes: list) -> dict[str, str]:
+    data = {}
+    for route in routes:
+        if not isinstance(route, APIRoute):
+            continue
+        segments = route.path.split("/")
+        if len(segments) < 3:
+            continue
+        if "/".join(segments[1:3]) == "api/v1":
+            data["/".join(segments[0:4])] = segments[3].capitalize()
+        elif "/".join(segments[2:4]) == "api/v1":
+            data["/".join(segments[0:4])] = segments[1].capitalize()
+
+    return data

@@ -482,6 +482,12 @@ body.body--dark .q-field--error .q-field__messages {
   width: 500px;
 }
 
+.lnbits__table-bordered td,
+.lnbits__table-bordered th {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
 .q-table--dense th:first-child,
 .q-table--dense td:first-child,
 .q-table--dense .q-table__bottom {

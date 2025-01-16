@@ -38,6 +38,11 @@ class SimpleStatus(BaseModel):
     message: str
 
 
+class SimpleItem(BaseModel):
+    id: str
+    name: str
+
+
 class DbVersion(BaseModel):
     db: str
     version: int

@@ -220,6 +220,18 @@ async def adminkey_headers_from(from_wallet):
 
 
 @pytest.fixture(scope="session")
+async def user_headers_from(client: AsyncClient, from_user: User):
+    response = await client.post("/api/v1/auth/usr", json={"usr": from_user.id})
+    client.cookies.clear()
+
+    access_token = response.json().get("access_token")
+    yield {
+        "Authorization": "Bearer " + access_token,
+        "Content-type": "application/json",
+    }
+
+
+@pytest.fixture(scope="session")
 async def inkey_headers_to(to_wallet):
     wallet = to_wallet
     yield {

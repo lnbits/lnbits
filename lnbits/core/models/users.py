@@ -8,6 +8,7 @@ from fastapi import Query
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field
 
+from lnbits.core.models.misc import SimpleItem
 from lnbits.db import FilterModel
 from lnbits.helpers import is_valid_email_address, is_valid_pubkey, is_valid_username
 from lnbits.settings import settings
@@ -28,6 +29,66 @@ class UserExtra(BaseModel):
     provider: Optional[str] = "lnbits"  # auth provider
 
 
+class EndpointAccess(BaseModel):
+    path: str
+    name: str
+    read: bool = False
+    write: bool = False
+
+    def supports_method(self, method: str) -> bool:
+        # all http methods
+        if method in ["GET", "OPTIONS", "HEAD"]:
+            return self.read
+        if method in ["POST", "PUT", "PATCH", "DELETE"]:
+            return self.write
+        return False
+
+
+class AccessControlList(BaseModel):
+    id: str
+    name: str
+    endpoints: list[EndpointAccess] = []
+    token_id_list: list[SimpleItem] = []
+
+    def get_endpoint(self, path: str) -> Optional[EndpointAccess]:
+        for e in self.endpoints:
+            if e.path == path:
+                return e
+        return None
+
+    def get_token_by_id(self, token_id: str) -> Optional[SimpleItem]:
+        for t in self.token_id_list:
+            if t.id == token_id:
+                return t
+        return None
+
+    def delete_token_by_id(self, token_id: str):
+        self.token_id_list = [t for t in self.token_id_list if t.id != token_id]
+
+
+class UserAcls(BaseModel):
+    id: str
+    access_control_list: list[AccessControlList] = []
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def get_acl_by_id(self, acl_id: str) -> Optional[AccessControlList]:
+        for acl in self.access_control_list:
+            if acl.id == acl_id:
+                return acl
+        return None
+
+    def delete_acl_by_id(self, acl_id: str):
+        self.access_control_list = [
+            acl for acl in self.access_control_list if acl.id != acl_id
+        ]
+
+    def get_acl_by_token_id(self, token_id: str) -> Optional[AccessControlList]:
+        for acl in self.access_control_list:
+            if acl.get_token_by_id(token_id):
+                return acl
+        return None
+
+
 class Account(BaseModel):
     id: str
     username: Optional[str] = None
@@ -35,6 +96,7 @@ class Account(BaseModel):
     pubkey: Optional[str] = None
     email: Optional[str] = None
     extra: UserExtra = UserExtra()
+
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -193,8 +255,36 @@ class AccessTokenPayload(BaseModel):
     usr: Optional[str] = None
     email: Optional[str] = None
     auth_time: Optional[int] = 0
+    api_token_id: Optional[str] = None
 
 
 class UpdateBalance(BaseModel):
     id: str
     amount: int
+
+
+class ApiTokenRequest(BaseModel):
+    acl_id: str
+    token_name: str
+    password: str
+    expiration_time_minutes: int
+
+
+class ApiTokenResponse(BaseModel):
+    id: str
+    api_token: str
+
+
+class UpdateAccessControlList(AccessControlList):
+    password: str
+
+
+class DeleteAccessControlList(BaseModel):
+    id: str
+    password: str
+
+
+class DeleteTokenRequest(BaseModel):
+    id: str
+    acl_id: str
+    password: str

@@ -152,6 +152,12 @@ body.body--dark .q-field--error {
   width: 500px;
 }
 
+.lnbits__table-bordered td,
+.lnbits__table-bordered th {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
 .q-table--dense {
   th:first-child,
   td:first-child,
