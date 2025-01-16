@@ -21,6 +21,8 @@ def enqueue_text_notification(text: str):
 
 
 def enqueue_notification(message_type: NotificationType, values: dict) -> None:
+    if not is_message_type_enabled(message_type):
+        return
     try:
         notifications_queue.put_nowait(
             NotificationMessage(message_type=message_type, values=values)
@@ -74,6 +76,15 @@ async def send_telegram_message(token: str, chat_id: str, message: str) -> dict:
         response = await client.post(url, data=payload)
         response.raise_for_status()
         return response.json()
+
+
+def is_message_type_enabled(message_type: NotificationType) -> bool:
+    if message_type == NotificationType.balance_update:
+        return settings.lnbits_notification_credit_debit
+    if message_type == NotificationType.settings_update:
+        return settings.lnbits_notification_settings_update
+
+    return False
 
 
 def _notification_message_to_text(
