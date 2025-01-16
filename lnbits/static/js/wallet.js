@@ -361,16 +361,22 @@ window.WalletPageLogic = {
 
       LNbits.api
         .payInvoice(this.g.wallet, this.parse.data.request)
-        .then(_ => {
+        .then(response => {
           clearInterval(this.parse.paymentChecker)
           setTimeout(() => {
             clearInterval(this.parse.paymentChecker)
           }, 40000)
           this.parse.paymentChecker = setInterval(() => {
-            if (!this.parse.show) {
-              dismissPaymentMsg()
-              clearInterval(this.parse.paymentChecker)
-            }
+            LNbits.api
+              .getPayment(this.g.wallet, response.data.payment_hash)
+              .then(res => {
+                if (res.data.paid) {
+                  dismissPaymentMsg()
+                  clearInterval(this.parse.paymentChecker)
+                  this.updatePayments = !this.updatePayments
+                  this.parse.show = false
+                }
+              })
           }, 2000)
         })
         .catch(err => {
