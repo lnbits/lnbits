@@ -195,9 +195,9 @@ window.localisation.en = {
   notification_server_start_stop_desc:
     'Notify when the server has been started/stopped',
 
-  notification_watchdog_limit: 'Watchdog Limit',
+  notification_watchdog_limit: 'Watchdog Limit Notification',
   notification_watchdog_limit_desc:
-    'Notify when the watchdog limit has been reached (see Funding Source tab for details)',
+    'Notify when the watchdog limit has been reached (does not affect the funding source)',
 
   notification_server_status: 'Server Status',
   notification_server_status_desc:

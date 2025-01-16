@@ -101,7 +101,7 @@
         <p v-text="$t('watchdog')"></p>
       </h6>
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-6">
           <q-item tag="label" v-ripple>
             <q-item-section>
               <q-item-label v-text="$t('enable_watchdog')"></q-item-label>
@@ -121,7 +121,29 @@
             </q-item-section>
           </q-item>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-6">
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label
+                v-text="$t('notification_watchdog_limit')"
+              ></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('notification_watchdog_limit_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_notification_watchdog_triggered"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+        </div>
+        <div class="col-12 col-md-6">
           <q-item tag="label" v-ripple>
             <q-item-section>
               <q-item-label v-text="$t('watchdog_interval')"></q-item-label>
@@ -139,7 +161,7 @@
             </q-item-section>
           </q-item>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-6">
           <q-item tag="label" v-ripple>
             <q-item-section>
               <q-item-label v-text="$t('watchdog_delta')"></q-item-label>
