@@ -1,17 +1,19 @@
 <q-tab-panel name="users">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none q-mb-sm">User Management</h6>
+    <h6 class="q-my-none q-mb-sm">
+      <span v-text="$t('user_management')"></span>
+    </h6>
 
     <div class="row">
       <div class="col-12 col-md-6 q-pr-sm">
-        <p>Admin Users</p>
+        <p><span v-text="$t('admin_users')"></span></p>
         <q-input
           filled
           v-model="formAddAdmin"
           @keydown.enter="addAdminUser"
           type="text"
-          label="User ID"
-          hint="Users with admin privileges"
+          :label="$t('admin_users_label')"
+          :hint="$t('admin_users_hint')"
         >
           <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
         </q-input>
@@ -31,14 +33,14 @@
         <br />
       </div>
       <div class="col-12 col-md-6">
-        <p>Allowed Users</p>
+        <p><span v-text="$t('allowed_users')"></span></p>
         <q-input
           filled
           v-model="formAddUser"
           @keydown.enter="addAllowedUser"
           type="text"
-          label="User ID"
-          hint="Only these users can use LNbits"
+          :label="$t('allowed_users_label')"
+          :hint="$t('allowed_users_hint')"
         >
           <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
         </q-input>
@@ -58,10 +60,11 @@
         <br />
         <q-item tag="label" v-ripple>
           <q-item-section>
-            <q-item-label>Allow creation of new users</q-item-label>
-            <q-item-label caption
-              >Allow creation of new users on the index page</q-item-label
-            >
+            <q-item-label v-text="$t('allow_creation_users')"></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('allow_creation_users_desc')"
+            ></q-item-label>
           </q-item-section>
           <q-item-section avatar>
             <q-toggle

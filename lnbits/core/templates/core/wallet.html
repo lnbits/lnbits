@@ -410,9 +410,13 @@
                 color="positive"
                 text-color="white"
               ></q-avatar>
-              NFC supported
+              <span v-text="$t('nfc_supported')"></span>
             </q-chip>
-            <span v-else class="text-caption text-grey">NFC not supported</span>
+            <span
+              v-else
+              class="text-caption text-grey"
+              v-text="$t('nfc_not_supported')"
+            ></span>
           </div>
           <div class="row q-mt-lg">
             <q-btn
@@ -450,10 +454,10 @@
               <strong v-text="$t('memo') + ': '"></strong>
               <span v-text="parse.invoice.description"></span>
               <br />
-              <strong>Expire date: </strong>
+              <strong v-text="$t('expire_date')"></strong>
               <span v-text="parse.invoice.expireDate"></span>
               <br />
-              <strong>Hash: </strong>
+              <strong v-text="$t('hash')"></strong>
               <span v-text="parse.invoice.hash"></span>
             </p>
             <div v-if="canPay" class="row q-mt-lg">
