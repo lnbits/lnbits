@@ -538,7 +538,7 @@ window.WalletPageLogic = {
       // set rate from local storage to avoid clunky api calls
       this.exchangeRate = this.$q.localStorage.getItem('lnbits.exchangeRate')
       this.fiatBalance =
-        (this.exchangeRate / 100000000) * (this.balance || this.g.wallet.sat)
+        (this.exchangeRate / 100000000) * (this.g.wallet.sat)
       this.formatFiatAmount(this.fiatBalance, currency)
       // make api call
       LNbits.api
@@ -546,7 +546,7 @@ window.WalletPageLogic = {
         .then(response => {
           this.fiatBalance =
             (response.data.price / 100000000) *
-            (this.balance || this.g.wallet.sat)
+            (this.g.wallet.sat)
           this.exchangeRate = response.data.price.toFixed(2)
           this.fiatTracking = true
           this.formatFiatAmount(this.fiatBalance, currency)
@@ -704,6 +704,12 @@ window.WalletPageLogic = {
         this.receive.paymentHash = null
       }
       this.fetchBalance()
+      if (this.g.wallet.currency && this.$q.localStorage.getItem('lnbits.exchangeRate')) {
+        this.exchangeRate = this.$q.localStorage.getItem('lnbits.exchangeRate')
+        this.fiatBalance =
+          (this.exchangeRate / 100000000) * (this.g.wallet.sat)
+        this.formatFiatAmount(this.fiatBalance, currency)
+      }
     },
     'update.currency'(newValue) {
       if (this.ignoreWatcher || this.update.currency == '') return
