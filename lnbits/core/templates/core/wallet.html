@@ -300,6 +300,7 @@
                               dense
                               v-model="update.currency"
                               type="text"
+                              :disable="g.fiatTracking"
                               :options="receive.units.filter((u) => u !== 'sat')"
                             ></q-select>
                           </div>

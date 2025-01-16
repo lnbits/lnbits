@@ -55,7 +55,6 @@ window.WalletPageLogic = {
       isPrioritySwapped: false,
       formattedFiatAmount: 0,
       formattedExchange: null,
-      ignoreWatcher: true,
       primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor')
     }
   },
@@ -545,6 +544,7 @@ window.WalletPageLogic = {
       LNbits.api
         .request('GET', `/api/v1/rate/` + currency, null)
         .then(response => {
+          //wrap in if to avoid race condition switching between wallets
           if (this.g.wallet.currency == currency) {
             this.g.fiatBalance =
               (response.data.price / 100000000) * this.g.wallet.sat
