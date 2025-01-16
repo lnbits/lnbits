@@ -66,7 +66,7 @@ class AccessControlList(BaseModel):
         self.token_id_list = [t for t in self.token_id_list if t.id != token_id]
 
 
-class UserACLs(BaseModel):
+class UserAcls(BaseModel):
     id: str
     access_control_list: list[AccessControlList] = []
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

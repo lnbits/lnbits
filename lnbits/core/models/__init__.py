@@ -36,7 +36,7 @@ from .users import (
     UpdateUserPassword,
     UpdateUserPubkey,
     User,
-    UserACLs,
+    UserAcls,
     UserExtra,
 )
 from .wallets import BaseWallet, CreateWallet, KeyType, Wallet, WalletTypeInfo
@@ -74,7 +74,7 @@ __all__ = [
     "Account",
     "AccountFilters",
     "AccountOverview",
-    "UserACLs",
+    "UserAcls",
     "CreateUser",
     "RegisterUser",
     "LoginUsernamePassword",

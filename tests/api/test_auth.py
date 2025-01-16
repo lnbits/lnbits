@@ -22,7 +22,7 @@ from lnbits.core.models.users import (
     DeleteTokenRequest,
     EndpointAccess,
     UpdateAccessControlList,
-    UserACLs,
+    UserAcls,
 )
 from lnbits.core.views.user_api import api_users_reset_password
 from lnbits.helpers import create_access_token
@@ -1068,7 +1068,7 @@ async def test_api_update_user_acl_success(http_client: AsyncClient, user_alan: 
         headers={"Authorization": f"Bearer {access_token}"},
     )
     assert response.status_code == 200, "ACL should be created successfully."
-    user_acls = UserACLs(**response.json())
+    user_acls = UserAcls(**response.json())
     assert any(
         acl.name == "New ACL" for acl in user_acls.access_control_list
     ), "ACL should be in the list."
@@ -1123,7 +1123,7 @@ async def test_api_update_user_acl_update_existing(
         headers={"Authorization": f"Bearer {access_token}"},
     )
     assert response.status_code == 200, "ACL should be created successfully."
-    user_acls = UserACLs(**response.json())
+    user_acls = UserAcls(**response.json())
     acl = next(acl for acl in user_acls.access_control_list if acl.name == "New ACL")
 
     # Update the existing ACL
@@ -1136,7 +1136,7 @@ async def test_api_update_user_acl_update_existing(
         headers={"Authorization": f"Bearer {access_token}"},
     )
     assert response.status_code == 200, "ACL should be updated successfully."
-    user_acls = UserACLs(**response.json())
+    user_acls = UserAcls(**response.json())
     assert any(
         acl.name == "Updated ACL" for acl in user_acls.access_control_list
     ), "ACL should be updated in the list."
@@ -1189,7 +1189,7 @@ async def test_api_get_user_acls_success(http_client: AsyncClient):
         "/api/v1/auth/acl", headers={"Authorization": f"Bearer {access_token}"}
     )
     assert response.status_code == 200, "ACLs fetched successfully."
-    user_acls = UserACLs(**response.json())
+    user_acls = UserAcls(**response.json())
     assert user_acls.id is not None, "User ID should be set."
     assert isinstance(user_acls.access_control_list, list), "ACL should be a list."
 
@@ -1232,7 +1232,7 @@ async def test_api_get_user_acls_empty_acl(http_client: AsyncClient):
         "/api/v1/auth/acl", headers={"Authorization": f"Bearer {access_token}"}
     )
     assert response.status_code == 200, "ACLs fetched successfully."
-    user_acls = UserACLs(**response.json())
+    user_acls = UserAcls(**response.json())
     assert user_acls.id is not None, "User ID should be set."
     assert len(user_acls.access_control_list) == 0, "ACL should be empty."
 
@@ -1273,7 +1273,7 @@ async def test_api_get_user_acls_with_acl(http_client: AsyncClient):
         "/api/v1/auth/acl", headers={"Authorization": f"Bearer {access_token}"}
     )
     assert response.status_code == 200, "ACLs fetched successfully."
-    user_acls = UserACLs(**response.json())
+    user_acls = UserAcls(**response.json())
     assert user_acls.id is not None, "User ID should be set."
     assert len(user_acls.access_control_list) == 1, "ACL should contain one item."
     assert user_acls.access_control_list[0].name == "Test ACL", "ACL name should match."
@@ -1316,7 +1316,7 @@ async def test_api_get_user_acls_sorted(http_client: AsyncClient):
     )
 
     assert response.status_code == 200, "ACLs retrieved."
-    user_acls = UserACLs(**response.json())
+    user_acls = UserAcls(**response.json())
 
     # Check that the ACLs are sorted alphabetically by name
     acl_names_sorted = sorted(acl_names)
@@ -1539,7 +1539,7 @@ async def test_api_create_user_api_token_success(
         headers={"Authorization": f"Bearer {access_token}"},
     )
     assert response.status_code == 200, "ACLs fetched successfully."
-    acls = UserACLs(**response.json())
+    acls = UserAcls(**response.json())
     # Decode the access token to get the user ID
     payload: dict = jwt.decode(api_token, settings.auth_secret_key, ["HS256"])
 

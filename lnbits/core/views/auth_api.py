@@ -58,7 +58,7 @@ from ..models import (
     UpdateUserPassword,
     UpdateUserPubkey,
     User,
-    UserACLs,
+    UserAcls,
     UserExtra,
 )
 
@@ -117,7 +117,7 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
 async def api_get_user_acls(
     request: Request,
     user: User = Depends(check_user_exists),
-) -> UserACLs:
+) -> UserAcls:
     api_routes = get_api_routes(request.app.router.routes)
 
     acls = await get_user_access_control_lists(user.id)
@@ -133,7 +133,7 @@ async def api_get_user_acls(
             acl.endpoints.append(EndpointAccess(path=path, name=name))
         acl.endpoints.sort(key=lambda e: e.name.lower())
 
-    return UserACLs(id=user.id, access_control_list=acls.access_control_list)
+    return UserAcls(id=user.id, access_control_list=acls.access_control_list)
 
 
 @auth_router.put("/acl")
@@ -142,7 +142,7 @@ async def api_update_user_acl(
     request: Request,
     data: UpdateAccessControlList,
     user: User = Depends(check_user_exists),
-) -> UserACLs:
+) -> UserAcls:
     account = await get_account(user.id)
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")

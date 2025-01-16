@@ -261,6 +261,8 @@ window.localisation.en = {
   api_token: 'API Token',
   api_tokens: 'API Tokens',
   access_control_list: 'Access Control List',
+  access_control_list_admin_warning:
+    'This is an admin account. The generated tokens will have admin privileges.',
   new_api_acl: 'New Access Control List',
   api_token_id: 'Token Id',
   toggle_gradient: 'Toggle Gradient',

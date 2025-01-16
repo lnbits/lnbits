@@ -511,7 +511,13 @@
                 </div>
               </q-tab-panel>
               <q-tab-panel name="api_acls">
-                <div class="row q-mb-md"></div>
+                <div class="row q-mb-md">
+                  <q-badge v-if="user.admin">
+                    <span
+                      v-text="$t('access_control_list_admin_warning')"
+                    ></span>
+                  </q-badge>
+                </div>
 
                 <q-card-section>
                   <div class="row q-mb-md q-gutter-y-md">

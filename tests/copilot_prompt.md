@@ -40,7 +40,7 @@ _Sample 1_
 Requirements:
 
 - use register endpoint to obtain the access token (see example in the file test_auth.py the function test_register_ok())
-- the test should register a new user, optain the access token then delete the user. Then check that check_user_exists() fails as expected
+- the test should register a new user, obtain the access token then delete the user. Then check that check_user_exists() fails as expected
 
 @workspace /tests Develop a test for the selected code (only the function check_user_exists in decorators.py file).
 Requirements:
