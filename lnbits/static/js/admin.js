@@ -1,5 +1,4 @@
-window.app = Vue.createApp({
-  el: '#vue',
+window.AdminPageLogic = {
   mixins: [windowMixin],
   data() {
     return {
@@ -35,7 +34,10 @@ window.app = Vue.createApp({
           }
         ]
       },
-      formData: {},
+      formData: {
+        lnbits_exchange_rate_providers: []
+      },
+      chartReady: false,
       formAddAdmin: '',
       formAddUser: '',
       formAddExtensionsManifest: '',
@@ -118,11 +120,14 @@ window.app = Vue.createApp({
       }
     }
   },
-  created() {
-    this.getSettings()
-    this.getAudit()
+  async created() {
+    await this.getSettings()
+    await this.getAudit()
     this.balance = +'{{ balance|safe }}'
     const hash = window.location.hash.replace('#', '')
+    if (hash === 'exchange_providers') {
+      this.showExchangeProvidersTab(hash)
+    }
     if (hash) {
       this.tab = hash
     }
@@ -387,8 +392,8 @@ window.app = Vue.createApp({
           })
       }
     },
-    getAudit() {
-      LNbits.api
+    async getAudit() {
+      await LNbits.api
         .request('GET', '/admin/api/v1/audit', this.g.user.wallets[0].adminkey)
         .then(response => {
           this.auditData = response.data
@@ -405,8 +410,8 @@ window.app = Vue.createApp({
           LNbits.utils.notifyApiError(error)
         })
     },
-    getSettings() {
-      LNbits.api
+    async getSettings() {
+      await LNbits.api
         .request(
           'GET',
           '/admin/api/v1/settings',
@@ -513,4 +518,4 @@ window.app = Vue.createApp({
       )
     }
   }
-})
+}

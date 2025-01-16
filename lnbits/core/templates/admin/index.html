@@ -1,60 +1,75 @@
-{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
-%} {% block page %}
-<div class="row q-col-gutter-md justify-center">
-  <div class="col q-mb-md">
-    <q-btn
-      :label="$t('save')"
-      color="primary"
-      @click="updateSettings"
-      :disabled="!checkChanges"
-    >
-      <q-tooltip v-if="checkChanges">
-        <span v-text="$t('save_tooltip')"></span>
-      </q-tooltip>
+{% if not ajax %} {% extends "base.html" %} {% endif %} {% from "macros.jinja"
+import window_vars with context %} {% block scripts %} {{ window_vars(user) }}
+{% endblock %} {% block page %}
 
-      <q-badge
-        v-if="checkChanges"
-        color="red"
-        rounded
-        floating
-        style="padding: 6px; border-radius: 6px"
-      />
-    </q-btn>
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-12">
+    <q-card>
+      <div class="q-pa-sm">
+        <div class="row items-center justify-between q-gutter-xs">
+          <div class="col">
+            <q-btn
+              :label="$t('save')"
+              color="primary"
+              @click="updateSettings"
+              :disabled="!checkChanges"
+            >
+              <q-tooltip v-if="checkChanges">
+                <span v-text="$t('save_tooltip')"></span>
+              </q-tooltip>
 
-    <q-btn
-      v-if="isSuperUser"
-      :label="$t('restart')"
-      color="primary"
-      @click="restartServer"
-      class="q-ml-md"
-    >
-      <q-tooltip v-if="needsRestart">
-        <span v-text="$t('restart_tooltip')"></span>
-      </q-tooltip>
+              <q-badge
+                v-if="checkChanges"
+                color="red"
+                rounded
+                floating
+                style="padding: 6px; border-radius: 6px"
+              />
+            </q-btn>
 
-      <q-badge
-        v-if="needsRestart"
-        color="red"
-        rounded
-        floating
-        style="padding: 6px; border-radius: 6px"
-      />
-    </q-btn>
+            <q-btn
+              v-if="isSuperUser"
+              :label="$t('restart')"
+              color="primary"
+              @click="restartServer"
+              class="q-ml-md"
+            >
+              <q-tooltip v-if="needsRestart">
+                <span v-text="$t('restart_tooltip')"></span>
+              </q-tooltip>
 
-    <q-btn :label="$t('download_backup')" flat @click="downloadBackup"></q-btn>
+              <q-badge
+                v-if="needsRestart"
+                color="red"
+                rounded
+                floating
+                style="padding: 6px; border-radius: 6px"
+              />
+            </q-btn>
 
-    <q-btn
-      flat
-      v-if="isSuperUser"
-      :label="$t('reset_defaults')"
-      color="primary"
-      @click="deleteSettings"
-      class="float-right"
-    >
-      <q-tooltip>
-        <span v-text="$t('reset_defaults_tooltip')"></span>
-      </q-tooltip>
-    </q-btn>
+            <q-btn
+              :label="$t('download_backup')"
+              flat
+              @click="downloadBackup"
+            ></q-btn>
+
+            <q-btn
+              flat
+              v-if="isSuperUser"
+              :label="$t('reset_defaults')"
+              color="primary"
+              @click="deleteSettings"
+              class="float-right"
+            >
+              <q-tooltip>
+                <span v-text="$t('reset_defaults_tooltip')"></span>
+              </q-tooltip>
+            </q-btn>
+          </div>
+          <div></div>
+        </div>
+      </div>
+    </q-card>
   </div>
 </div>
 
@@ -213,7 +228,4 @@
     </div>
   </q-card>
 </q-dialog>
-
-{% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="{{ static_url_for('static', 'js/admin.js') }}"></script>
 {% endblock %}

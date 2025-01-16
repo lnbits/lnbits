@@ -1,29 +1,9 @@
-window.app = Vue.createApp({
-  el: '#vue',
+window.WalletPageLogic = {
   mixins: [window.windowMixin],
   data() {
     return {
-      updatePayments: false,
       origin: window.location.origin,
-      wallet: LNbits.map.wallet(window.wallet),
-      user: LNbits.map.user(window.user),
-      exportUrl: `${window.location.origin}/wallet?usr=${window.user.id}&wal=${window.wallet.id}`,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
-      receive: {
-        show: false,
-        status: 'pending',
-        paymentReq: null,
-        paymentHash: null,
-        amountMsat: null,
-        minMax: [0, 2100000000000000],
-        lnurl: null,
-        units: ['sat'],
-        unit: 'sat',
-        data: {
-          amount: null,
-          memo: ''
-        }
-      },
       parse: {
         show: false,
         invoice: null,
@@ -44,13 +24,27 @@ window.app = Vue.createApp({
           camera: 'auto'
         }
       },
+      receive: {
+        show: false,
+        status: 'pending',
+        paymentReq: null,
+        paymentHash: null,
+        amountMsat: null,
+        minMax: [0, 2100000000000000],
+        lnurl: null,
+        units: ['sat'],
+        unit: 'sat',
+        data: {
+          amount: null,
+          memo: ''
+        }
+      },
+      invoiceQrCode: '',
       disclaimerDialog: {
         show: false,
         location: window.location
       },
-      balance: parseInt(wallet.balance_msat / 1000),
       fiatBalance: 0,
-      mobileSimple: false,
       update: {
         name: null,
         currency: null
@@ -65,9 +59,9 @@ window.app = Vue.createApp({
   computed: {
     formattedBalance() {
       if (LNBITS_DENOMINATION != 'sats') {
-        return this.balance / 100
+        return this.g.wallet.sat / 100
       } else {
-        return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
+        return LNbits.utils.formatSat(this.g.wallet.sat)
       }
     },
     formattedFiatBalance() {
@@ -80,7 +74,7 @@ window.app = Vue.createApp({
     },
     canPay() {
       if (!this.parse.invoice) return false
-      return this.parse.invoice.sat <= this.balance
+      return this.parse.invoice.sat <= this.g.wallet.sat
     },
     formattedAmount() {
       if (this.receive.unit != 'sat') {
@@ -94,6 +88,9 @@ window.app = Vue.createApp({
     },
     formattedSatAmount() {
       return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
+    },
+    wallet() {
+      return this.g.wallet
     }
   },
   methods: {
@@ -144,21 +141,16 @@ window.app = Vue.createApp({
         clearInterval(this.parse.paymentChecker)
       }, 10000)
     },
-    onPaymentReceived(paymentHash) {
-      this.updatePayments = !this.updatePayments
-      if (this.receive.paymentHash === paymentHash) {
-        this.receive.show = false
-        this.receive.paymentHash = null
-      }
-    },
     handleBalanceUpdate(value) {
-      this.balance = this.balance + value
+      this.g.wallet.sat = this.g.wallet.sat + value
     },
     createInvoice() {
+      console.log('Creating invoice...')
       this.receive.status = 'loading'
       if (LNBITS_DENOMINATION != 'sats') {
         this.receive.data.amount = this.receive.data.amount * 100
       }
+
       LNbits.api
         .createInvoice(
           this.g.wallet,
@@ -172,7 +164,6 @@ window.app = Vue.createApp({
           this.receive.paymentReq = response.data.bolt11
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
-
           this.readNfcTag()
 
           // TODO: lnurl_callback and lnurl_response
@@ -200,9 +191,12 @@ window.app = Vue.createApp({
               })
             }
           }
-        })
-        .then(() => {
-          this.updatePayments = !this.updatePayments
+          // Hack as rendering in dialog causes reactivity issues. Does speed up, as only rendering lnbits-qrcode once.
+          this.$nextTick(() => {
+            this.invoiceQrCode = document.getElementById(
+              'hiddenQrCodeContainer'
+            ).innerHTML
+          })
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -367,22 +361,16 @@ window.app = Vue.createApp({
 
       LNbits.api
         .payInvoice(this.g.wallet, this.parse.data.request)
-        .then(response => {
+        .then(_ => {
           clearInterval(this.parse.paymentChecker)
           setTimeout(() => {
             clearInterval(this.parse.paymentChecker)
           }, 40000)
           this.parse.paymentChecker = setInterval(() => {
-            LNbits.api
-              .getPayment(this.g.wallet, response.data.payment_hash)
-              .then(res => {
-                if (res.data.paid) {
-                  dismissPaymentMsg()
-                  clearInterval(this.parse.paymentChecker)
-                  this.updatePayments = !this.updatePayments
-                  this.parse.show = false
-                }
-              })
+            if (!this.parse.show) {
+              dismissPaymentMsg()
+              clearInterval(this.parse.paymentChecker)
+            }
           }, 2000)
         })
         .catch(err => {
@@ -397,7 +385,6 @@ window.app = Vue.createApp({
         timeout: 0,
         message: 'Processing payment...'
       })
-
       LNbits.api
         .payLnurl(
           this.g.wallet,
@@ -509,13 +496,13 @@ window.app = Vue.createApp({
     updateWallet(data) {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
-        .then(_ => {
+        .then(response => {
+          this.refreshRoute()
           Quasar.Notify.create({
-            message: `Wallet updated.`,
+            message: 'Wallet and user updated.',
             type: 'positive',
             timeout: 3500
           })
-          window.location.reload()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -543,7 +530,7 @@ window.app = Vue.createApp({
       if (!this.g.wallet.currency) return 0
       LNbits.api
         .request('POST', `/api/v1/conversion`, null, {
-          amount: this.balance || this.g.wallet.sat,
+          amount: this.g.wallet.sat,
           to: this.g.wallet.currency
         })
         .then(response => {
@@ -652,6 +639,12 @@ window.app = Vue.createApp({
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
         })
+    },
+    createdTasks() {
+      this.update.name = this.g.wallet.name
+      this.update.currency = this.g.wallet.currency
+      this.receive.units = ['sat', ...window.currencies]
+      this.updateFiatBalance()
     }
   },
   created() {
@@ -665,19 +658,27 @@ window.app = Vue.createApp({
     if (this.$q.screen.lt.md) {
       this.mobileSimple = true
     }
-    this.update.name = this.g.wallet.name
-    this.update.currency = this.g.wallet.currency
-    this.receive.units = ['sat', ...window.currencies]
-    this.updateFiatBalance()
+    this.createdTasks()
   },
   watch: {
     updatePayments() {
+      this.parse.show = false
+      if (this.receive.paymentHash === this.updatePaymentsHash) {
+        this.receive.show = false
+        this.receive.paymentHash = null
+      }
       this.updateFiatBalance()
     },
     '$q.screen.gt.sm'(value) {
       if (value == true) {
         this.mobileSimple = false
       }
+    },
+    'g.wallet': {
+      handler(newWallet) {
+        this.createdTasks()
+      },
+      deep: true
     }
   },
   mounted() {
@@ -685,18 +686,11 @@ window.app = Vue.createApp({
     if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
+      // Turn on payment reactions by default
+      this.$q.localStorage.set('lnbits.reactions', 'confettiTop')
     }
-    // listen to incoming payments
-    LNbits.events.onInvoicePaid(this.g.wallet, data => {
-      console.log('Payment received:', data.payment.payment_hash)
-      console.log('Wallet balance:', data.wallet_balance)
-      console.log('Wallet ID:', this.g.wallet)
-      this.onPaymentReceived(data.payment.payment_hash)
-      this.balance = data.wallet_balance
-      eventReaction(data.payment.amount)
-    })
   }
-})
+}
 
 if (navigator.serviceWorker != null) {
   navigator.serviceWorker.register('/service-worker.js').then(registration => {

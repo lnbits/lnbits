@@ -1,16 +1,5 @@
-window.LOCALE = 'en'
-window.dateFormat = 'YYYY-MM-DD HH:mm'
-window.i18n = new VueI18n.createI18n({
-  locale: window.LOCALE,
-  fallbackLocale: window.LOCALE,
-  messages: window.localisation
-})
-
-const websocketPrefix =
-  window.location.protocol === 'http:' ? 'ws://' : 'wss://'
-const websocketUrl = `${websocketPrefix}${window.location.host}/api/v1/ws`
-
 window.LNbits = {
+  g: window.g,
   api: {
     request(method, url, apiKey, data) {
       return axios({
@@ -448,39 +437,115 @@ window.LNbits = {
   }
 }
 
+if (!window.g) {
+  window.g = Vue.reactive({
+    offline: !navigator.onLine,
+    visibleDrawer: false,
+    extensions: [],
+    user: null,
+    wallet: {},
+    wallets: [],
+    payments: [],
+    allowedThemes: null,
+    langs: []
+  })
+}
+
 window.windowMixin = {
+  inject: ['g'],
   i18n: window.i18n,
   data() {
     return {
       toggleSubs: true,
-      reactionChoice: 'confettiBothSides',
+      updatePayments: false,
+      updatePaymentsHash: '',
+      mobileSimple: true,
+      walletFlip: true,
+      reactionChoice: 'confettiTop',
       borderChoice: '',
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
-      g: {
-        offline: !navigator.onLine,
-        visibleDrawer: false,
-        extensions: [],
-        user: null,
-        wallet: null,
-        payments: [],
-        allowedThemes: null,
-        langs: []
-      }
+      eventListeners: []
     }
   },
 
   methods: {
+    flipWallets(smallScreen) {
+      this.walletFlip = !this.walletFlip
+      if (this.walletFlip && smallScreen) {
+        this.g.visibleDrawer = false
+      }
+      this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
+    },
+    simpleMobile() {
+      this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
+      this.refreshRoute()
+    },
+    paymentEvents() {
+      this.g.user.wallets.forEach(wallet => {
+        if (!this.eventListeners.includes(wallet.id)) {
+          this.eventListeners.push(wallet.id)
+          LNbits.events.onInvoicePaid(wallet, data => {
+            const walletIndex = this.g.user.wallets.findIndex(
+              w => w.id === wallet.id
+            )
+            if (walletIndex !== -1) {
+              //needed for balance being deducted
+              let satBalance = data.wallet_balance
+              if (data.payment.amount < 0) {
+                satBalance = data.wallet_balance += data.payment.amount / 1000
+              }
+              //update the wallet
+              Object.assign(this.g.user.wallets[walletIndex], {
+                sat: satBalance,
+                msat: data.wallet_balance * 1000,
+                fsat: data.wallet_balance.toLocaleString()
+              })
+              //update the current wallet
+              if (this.g.wallet.id === data.payment.wallet_id) {
+                Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
+                this.updatePayments = !this.updatePayments
+                //if on the wallet page and payment is incoming trigger the eventReaction
+                if (
+                  data.payment.amount > 0 &&
+                  window.location.pathname === '/wallet'
+                ) {
+                  eventReaction(data.wallet_balance * 1000)
+                }
+              }
+            }
+            this.updatePaymentsHash = data.payment.payment_hash
+          })
+        }
+      })
+    },
+    selectWallet(wallet) {
+      Object.assign(this.g.wallet, wallet)
+      // this.wallet = this.g.wallet
+      this.updatePayments = !this.updatePayments
+      this.balance = parseInt(wallet.balance_msat / 1000)
+      const currentPath = this.$route.path
+      if (currentPath !== '/wallet') {
+        this.$router.push({
+          path: '/wallet',
+          query: {wal: this.g.wallet.id}
+        })
+      } else {
+        const url = new URL(window.location.href)
+        url.searchParams.set('wal', this.g.wallet.id)
+        window.history.replaceState({}, '', url.toString())
+      }
+    },
     changeColor(newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
     },
     applyGradient() {
-      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
-        this.setColors()
-        darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
-        primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
+      darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
+      primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
+      if (this.gradientChoice) {
+        this.$q.localStorage.set('lnbits.gradientBg', true)
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
         document.body.style.setProperty(
           'background-image',
@@ -494,6 +559,11 @@ window.windowMixin = {
           `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
           `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
+      } else {
+        this.$q.localStorage.set('lnbits.gradientBg', false)
+      }
+      if (!this.$q.dark.isActive) {
+        this.toggleDarkMode()
       }
     },
     applyBorder() {
@@ -502,7 +572,7 @@ window.windowMixin = {
       }
       let borderStyle = this.$q.localStorage.getItem('lnbits.border')
       if (!borderStyle) {
-        this.$q.localStorage.set('lnbits.border', 'retro-border')
+        this.$q.localStorage.set('lnbits.border', 'hard-border')
         borderStyle = 'hard-border'
       }
       this.borderChoice = borderStyle
@@ -532,6 +602,14 @@ window.windowMixin = {
       this.$q.localStorage.set(
         'lnbits.darkBgColor',
         LNbits.utils.getPaletteColor('dark')
+      )
+      document.documentElement.style.setProperty(
+        '--q-primary',
+        LNbits.utils.getPaletteColor('primary')
+      )
+      document.documentElement.style.setProperty(
+        '--q-secondary',
+        LNbits.utils.getPaletteColor('secondary')
       )
     },
     copyText(text, message, position) {
@@ -576,6 +654,7 @@ window.windowMixin = {
         )
         .onOk(async () => {
           try {
+            this.$q.localStorage.remove('lnbits.disclaimerShown')
             await LNbits.api.logout()
             window.location = '/'
           } catch (e) {
@@ -632,6 +711,14 @@ window.windowMixin = {
       }
 
       this.setColors()
+    },
+    refreshRoute() {
+      const path = window.location.pathname
+      console.log(path)
+
+      this.$router.push('/temp').then(() => {
+        this.$router.replace({path})
+      })
     }
   },
   async created() {
@@ -644,7 +731,7 @@ window.windowMixin = {
       this.$q.dark.set(true)
     }
     this.reactionChoice =
-      this.$q.localStorage.getItem('lnbits.reactions') || 'confettiBothSides'
+      this.$q.localStorage.getItem('lnbits.reactions') || 'confettiTop'
 
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
@@ -683,23 +770,24 @@ window.windowMixin = {
         this.$q.localStorage.getItem('lnbits.theme')
       )
     }
-
     this.applyGradient()
     this.applyBorder()
-
     if (window.user) {
-      this.g.user = Object.freeze(window.LNbits.map.user(window.user))
+      this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
     }
     if (window.wallet) {
-      this.g.wallet = Object.freeze(window.LNbits.map.wallet(window.wallet))
+      this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))
     }
     if (window.extensions) {
-      const extensions = Object.freeze(window.extensions)
-
-      this.g.extensions = extensions
+      this.g.extensions = Vue.reactive(window.extensions)
     }
     await this.checkUsrInUrl()
     this.themeParams()
+    this.walletFlip = this.$q.localStorage.getItem('lnbits.walletFlip')
+    this.mobileSimple = this.$q.localStorage.getItem('lnbits.mobileSimple')
+  },
+  mounted() {
+    this.paymentEvents()
   }
 }
 

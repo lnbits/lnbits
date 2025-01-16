@@ -115,7 +115,7 @@
                 </div>
               </template>
               <q-list>
-                <q-item tag="a" href="/account" clickable v-close-popup
+                <q-item to="/account" clickable v-close-popup
                   ><q-item-section>
                     <q-icon name="person" />
                   </q-item-section>
@@ -128,7 +128,7 @@
                     <q-item-label> </q-item-label>
                   </q-item-section>
                 </q-item>
-                <q-item tag="a" href="/account#theme" clickable v-close-popup
+                <q-item to="/account#theme" clickable v-close-popup
                   ><q-item-section>
                     <q-icon
                       :name="$q.dark.isActive ? 'dark_mode' : 'light_mode'"
@@ -170,8 +170,22 @@
           show-if-above
           :elevated="$q.screen.lt.md"
         >
-          <lnbits-wallet-list :balance="balance"></lnbits-wallet-list>
-
+          <q-item-label
+            :style="$q.dark.isActive ? 'color:rgba(255, 255, 255, 0.64)' : ''"
+            class="q-item__label q-item__label--header"
+            header
+            v-text="$t('wallets')"
+          ></q-item-label>
+          <q-btn
+            flat
+            :icon=" walletFlip ? 'keyboard_arrow_right' : 'keyboard_arrow_down'"
+            class="absolute-top-right"
+            @click="flipWallets($q.screen.lt.md)"
+          ></q-btn>
+          <lnbits-wallet-list
+            v-if="!walletFlip"
+            :balance="balance"
+          ></lnbits-wallet-list>
           <lnbits-manage
             :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
             :show-users="'{{LNBITS_ADMIN_UI}}' == 'True'"
@@ -184,7 +198,73 @@
         {% endblock %} {% block page_container %}
         <q-page-container>
           <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
-            {% block page %}{% endblock %}
+            <q-scroll-area
+              v-if="walletFlip"
+              style="
+                height: 130px;
+                width: 100%;
+                overflow-x: auto;
+                overflow-y: hidden;
+              "
+            >
+              <div class="row no-wrap q-gutter-md q-pr-md">
+                <q-card
+                  v-for="wallet in g.user.wallets"
+                  :key="wallet.id"
+                  clickable
+                  @click="selectWallet(wallet)"
+                  class="wallet-list-card"
+                  style="text-decoration: none"
+                  :style="
+        g.wallet && g.wallet.id === wallet.id
+          ? `border: 1px solid ${primaryColor}; width: 250px; text-decoration: none; cursor: pointer;`
+          : 'width: 250px; text-decoration: none; border: 0px; cursor: pointer;'
+      "
+                  :class="{
+          'active-wallet-card': g.wallet && g.wallet.id === wallet.id
+        }"
+                >
+                  <q-card-section>
+                    <div class="row items-center">
+                      <q-avatar
+                        size="lg"
+                        :color="
+              g.wallet && g.wallet.id === wallet.id
+                ? $q.dark.isActive
+                  ? 'primary'
+                  : 'primary'
+                : 'grey-5'
+            "
+                      >
+                        <q-icon
+                          name="flash_on"
+                          :size="$q.dark.isActive ? '21px' : '20px'"
+                          :color="$q.dark.isActive ? 'black' : 'grey-3'"
+                        ></q-icon>
+                      </q-avatar>
+                      <div
+                        class="text-h6 q-pl-md"
+                        :class="{
+              'text-bold': g.wallet && g.wallet.id === wallet.id
+            }"
+                        v-text="wallet.name"
+                      ></div>
+                    </div>
+                    <div class="row items-center q-pt-sm">
+                      <h6 class="q-my-none text-no-wrap">
+                        <strong v-text="wallet.fsat"></strong>
+                        <small> {{LNBITS_DENOMINATION}}</small>
+                      </h6>
+                    </div>
+                  </q-card-section>
+                </q-card>
+              </div>
+            </q-scroll-area>
+
+            <router-view v-if="isVueRoute"></router-view>
+
+            <!-- FastAPI Content -->
+            <div v-else>{% block page %}{% endblock %}</div>
           </q-page>
         </q-page-container>
         {% endblock %} {% block footer %}
@@ -241,33 +321,43 @@
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
     <script type="text/javascript">
-      const SITE_DESCRIPTION = {{ SITE_DESCRIPTION | tojson}}
-      const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
-      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
-      const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
-      const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
-      if (themes && themes.length) {
-        window.allowedThemes = themes.map(str => str.trim())
-      }
-      window.langs = [
-        { value: 'en', label: 'English', display: '🇬🇧 EN' },
-        { value: 'de', label: 'Deutsch', display: '🇩🇪 DE' },
-        { value: 'es', label: 'Español', display: '🇪🇸 ES' },
-        { value: 'jp', label: '日本語', display: '🇯🇵 JP' },
-        { value: 'cn', label: '中文', display: '🇨🇳 CN' },
-        { value: 'fr', label: 'Français', display: '🇫🇷 FR' },
-        { value: 'it', label: 'Italiano', display: '🇮🇹 IT' },
-        { value: 'pi', label: 'Pirate', display: '🏴‍☠️ PI' },
-        { value: 'nl', label: 'Nederlands', display: '🇳🇱 NL' },
-        { value: 'we', label: 'Cymraeg', display: '🏴󠁧󠁢󠁷󠁬󠁳󠁿 CY' },
-        { value: 'pl', label: 'Polski', display: '🇵🇱 PL' },
-        { value: 'pt', label: 'Português', display: '🇵🇹 PT' },
-        { value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR' },
-        { value: 'cs', label: 'Česky', display: '🇨🇿 CS' },
-        { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' },
-        { value: 'kr', label: '한국어', display: '🇰🇷 KR' },
-        { value: 'fi', label: 'Suomi', display: '🇫🇮 FI' }
-      ]
+            const SITE_DESCRIPTION = {{ SITE_DESCRIPTION | tojson}}
+            const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
+            const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
+            const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
+            const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
+            if (themes && themes.length) {
+              window.allowedThemes = themes.map(str => str.trim())
+            }
+            window.langs = [
+              { value: 'en', label: 'English', display: '🇬🇧 EN' },
+              { value: 'de', label: 'Deutsch', display: '🇩🇪 DE' },
+              { value: 'es', label: 'Español', display: '🇪🇸 ES' },
+              { value: 'jp', label: '日本語', display: '🇯🇵 JP' },
+              { value: 'cn', label: '中文', display: '🇨🇳 CN' },
+              { value: 'fr', label: 'Français', display: '🇫🇷 FR' },
+              { value: 'it', label: 'Italiano', display: '🇮🇹 IT' },
+              { value: 'pi', label: 'Pirate', display: '🏴‍☠️ PI' },
+              { value: 'nl', label: 'Nederlands', display: '🇳🇱 NL' },
+              { value: 'we', label: 'Cymraeg', display: '🏴󠁧󠁢󠁷󠁬󠁳󠁿 CY' },
+              { value: 'pl', label: 'Polski', display: '🇵🇱 PL' },
+              { value: 'pt', label: 'Português', display: '🇵🇹 PT' },
+              { value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR' },
+              { value: 'cs', label: 'Česky', display: '🇨🇿 CS' },
+              { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' },
+              { value: 'kr', label: '한국어', display: '🇰🇷 KR' },
+              { value: 'fi', label: 'Suomi', display: '🇫🇮 FI' }
+            ]
+            window.LOCALE = 'en'
+      window.dateFormat = 'YYYY-MM-DD HH:mm'
+      window.i18n = new VueI18n.createI18n({
+        locale: window.LOCALE,
+        fallbackLocale: window.LOCALE,
+        messages: window.localisation
+      })
+      const websocketPrefix =
+        window.location.protocol === 'http:' ? 'ws://' : 'wss://'
+      const websocketUrl = `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`
     </script>
     {% block scripts %}{% endblock %} {% for url in INCLUDED_COMPONENTS %}
     <script src="{{ static_url_for('static', url) }}"></script>

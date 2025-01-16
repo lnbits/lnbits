@@ -1,23 +1,21 @@
 <template id="lnbits-wallet-list">
   <q-list
-    v-if="user && user.wallets.length"
+    v-if="g.user && g.user.wallets.length"
     dense
     class="lnbits-drawer__q-list"
   >
-    <q-item-label header v-text="$t('wallets')"></q-item-label>
     <q-item
-      v-for="wallet in wallets"
-      :key="wallet.id"
+      v-for="walletRec in g.user.wallets"
+      :key="walletRec.id"
       clickable
-      :active="activeWallet && activeWallet.id === wallet.id"
-      tag="a"
-      :href="wallet.url"
+      :active="g.wallet && g.wallet.id === walletRec.id"
+      @click="selectWallet(walletRec)"
     >
       <q-item-section side>
         <q-avatar
           size="md"
           :color="
-            activeWallet && activeWallet.id === wallet.id
+            g.wallet && g.wallet.id === walletRec.id
               ? $q.dark.isActive
                 ? 'primary'
                 : 'primary'
@@ -33,27 +31,23 @@
       </q-item-section>
       <q-item-section>
         <q-item-label lines="1"
-          ><span v-text="wallet.name"></span
+          ><span v-text="walletRec.name"></span
         ></q-item-label>
         <q-item-label v-if="LNBITS_DENOMINATION != 'sats'" caption>
           <span
             v-text="
-              parseFloat(String(wallet.live_fsat).replaceAll(',', '')) / 100
+              parseFloat(String(walletRec.fsat).replaceAll(',', '')) / 100
             "
           ></span
           >&nbsp;
           <span v-text="LNBITS_DENOMINATION"></span>
         </q-item-label>
         <q-item-label v-else caption>
-          <span v-text="wallet.live_fsat"></span>&nbsp;
+          <span v-text="walletRec.fsat"></span>&nbsp;
           <span v-text="LNBITS_DENOMINATION"></span>
         </q-item-label>
       </q-item-section>
-      <q-item-section
-        side
-        v-show="activeWallet && activeWallet.id === wallet.id"
-      >
-        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      <q-item-section side v-show="g.wallet && g.wallet.id === walletRec.id">
       </q-item-section>
     </q-item>
     <q-item clickable @click="showForm = !showForm">
@@ -96,7 +90,9 @@
 
 <template id="lnbits-extension-list">
   <q-list
-    v-if="user && (userExtensions.length > 0 || !!searchTerm)"
+    v-if="
+      (g.user && userExtensions && userExtensions.length > 0) || !!searchTerm
+    "
     dense
     class="lnbits-drawer__q-list"
   >
@@ -138,16 +134,10 @@
 </template>
 
 <template id="lnbits-manage">
-  <q-list v-if="user" dense class="lnbits-drawer__q-list">
+  <q-list v-if="g.user" dense class="lnbits-drawer__q-list">
     <q-item-label header v-text="$t('manage')"></q-item-label>
-    <div v-if="user.admin">
-      <q-item
-        v-if="showAdmin"
-        clickable
-        tag="a"
-        href="/admin"
-        :active="isActive('/admin')"
-      >
+    <div v-if="g.user.admin">
+      <q-item v-if="showAdmin" to="/admin">
         <q-item-section side>
           <q-icon
             name="admin_panel_settings"
@@ -159,13 +149,7 @@
           <q-item-label lines="1" v-text="$t('server')"></q-item-label>
         </q-item-section>
       </q-item>
-      <q-item
-        v-if="showNode"
-        clickable
-        tag="a"
-        href="/node"
-        :active="isActive('/node')"
-      >
+      <q-item v-if="showNode" to="/node">
         <q-item-section side>
           <q-icon
             name="developer_board"
@@ -177,13 +161,7 @@
           <q-item-label lines="1" v-text="$t('node')"></q-item-label>
         </q-item-section>
       </q-item>
-      <q-item
-        v-if="showUsers"
-        clickable
-        tag="a"
-        href="/users"
-        :active="isActive('/users')"
-      >
+      <q-item v-if="showUsers" to="/users">
         <q-item-section side>
           <q-icon
             name="groups"
@@ -195,13 +173,7 @@
           <q-item-label lines="1" v-text="$t('users')"></q-item-label>
         </q-item-section>
       </q-item>
-      <q-item
-        v-if="showAudit"
-        clickable
-        tag="a"
-        href="/audit"
-        :active="isActive('/audit')"
-      >
+      <q-item v-if="showAudit" to="/audit">
         <q-item-section side>
           <q-icon
             name="playlist_add_check_circle"
@@ -214,13 +186,7 @@
         </q-item-section>
       </q-item>
     </div>
-    <q-item
-      v-if="showExtensions"
-      clickable
-      tag="a"
-      href="/extensions"
-      :active="isActive('/extensions')"
-    >
+    <q-item v-if="showExtensions" to="/extensions">
       <q-item-section side>
         <q-icon
           name="extension"
@@ -236,7 +202,7 @@
 </template>
 
 <template id="lnbits-payment-details">
-  <div class="q-py-md" style="text-align: left">
+  <div v-if="payment" class="q-py-md" style="text-align: left">
     <div v-if="payment.tag" class="row justify-center q-mb-md">
       <q-badge v-if="hasTag" color="yellow" text-color="black">
         #<span v-text="payment.tag"></span>
@@ -514,7 +480,7 @@
         v-model="scope.value"
         dense
         autofocus
-        @keyup.enter="scope.set"
+        @keyup.enter="updateBalance(scope)"
       >
         <template v-slot:append>
           <q-icon name="edit" />
@@ -568,9 +534,8 @@
 
 <template id="payment-list">
   <div class="row items-center no-wrap">
-    <div class="col">
+    <div class="col" v-if="!mobileSimple || $q.screen.gt.sm">
       <q-input
-        v-if="!mobileSimple"
         :label="$t('search_by_tag_memo_amount')"
         dense
         class="q-pr-xl"

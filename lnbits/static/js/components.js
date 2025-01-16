@@ -22,11 +22,11 @@ window.app.component('lnbits-fsat', {
 })
 
 window.app.component('lnbits-wallet-list', {
+  mixins: [window.windowMixin],
   template: '#lnbits-wallet-list',
   props: ['balance'],
   data() {
     return {
-      user: null,
       activeWallet: null,
       balance: 0,
       showForm: false,
@@ -34,67 +34,60 @@ window.app.component('lnbits-wallet-list', {
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
     }
   },
-  computed: {
-    wallets() {
-      const bal = this.balance
-      return this.user.wallets.map(obj => {
-        obj.live_fsat =
-          bal.length && bal[0] === obj.id
-            ? LNbits.utils.formatSat(bal[1])
-            : obj.fsat
-        return obj
-      })
-    }
-  },
   methods: {
     createWallet() {
-      LNbits.api.createWallet(this.user.wallets[0], this.walletName)
+      LNbits.api.createWallet(this.g.user.wallets[0], this.walletName)
     }
   },
   created() {
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
-    }
-    if (window.wallet) {
-      this.activeWallet = LNbits.map.wallet(window.wallet)
-    }
     document.addEventListener('updateWalletBalance', this.updateWalletBalance)
   }
 })
 
 window.app.component('lnbits-extension-list', {
+  mixins: [window.windowMixin],
   template: '#lnbits-extension-list',
   data() {
     return {
       extensions: [],
-      user: null,
-      userExtensions: [],
       searchTerm: ''
     }
   },
   watch: {
-    searchTerm(term) {
-      this.userExtensions = this.updateUserExtensions(term)
+    'g.user.extensions': {
+      handler(newExtensions) {
+        this.loadExtensions()
+      },
+      deep: true
+    }
+  },
+  computed: {
+    userExtensions() {
+      return this.updateUserExtensions(this.searchTerm)
     }
   },
   methods: {
+    async loadExtensions() {
+      try {
+        const {data} = await LNbits.api.request('GET', '/api/v1/extension')
+        this.extensions = data
+          .map(extension => LNbits.map.extension(extension))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
+    },
     updateUserExtensions(filterBy) {
-      if (!this.user) return []
-
       const path = window.location.pathname
-      const userExtensions = this.user.extensions
+      const userExtensions = this.g.user.extensions
 
       return this.extensions
-        .filter(o => {
-          return userExtensions.indexOf(o.code) !== -1
-        })
+        .filter(o => userExtensions.includes(o.code))
         .filter(o => {
           if (!filterBy) return true
-          return (
-            `${o.code} ${o.name} ${o.short_description} ${o.url}`
-              .toLocaleLowerCase()
-              .indexOf(filterBy.toLocaleLowerCase()) !== -1
-          )
+          return `${o.code} ${o.name} ${o.short_description} ${o.url}`
+            .toLocaleLowerCase()
+            .includes(filterBy.toLocaleLowerCase())
         })
         .map(obj => {
           obj.isActive = path.startsWith(obj.url)
@@ -103,27 +96,12 @@ window.app.component('lnbits-extension-list', {
     }
   },
   async created() {
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
-    }
-
-    try {
-      const {data} = await LNbits.api.request('GET', '/api/v1/extension')
-      this.extensions = data
-        .map(data => {
-          return LNbits.map.extension(data)
-        })
-        .sort((a, b) => {
-          return a.name.localeCompare(b.name)
-        })
-      this.userExtensions = this.updateUserExtensions()
-    } catch (error) {
-      LNbits.utils.notifyApiError(error)
-    }
+    await this.loadExtensions()
   }
 })
 
 window.app.component('lnbits-manage', {
+  mixins: [window.windowMixin],
   template: '#lnbits-manage',
   props: ['showAdmin', 'showNode', 'showExtensions', 'showUsers', 'showAudit'],
   methods: {
@@ -133,18 +111,13 @@ window.app.component('lnbits-manage', {
   },
   data() {
     return {
-      extensions: [],
-      user: null
-    }
-  },
-  created() {
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
+      extensions: []
     }
   }
 })
 
 window.app.component('lnbits-payment-details', {
+  mixins: [window.windowMixin],
   template: '#lnbits-payment-details',
   props: ['payment'],
   mixins: [window.windowMixin],
@@ -196,6 +169,7 @@ window.app.component('lnbits-payment-details', {
 })
 
 window.app.component('lnbits-lnurlpay-success-action', {
+  mixins: [window.windowMixin],
   template: '#lnbits-lnurlpay-success-action',
   props: ['payment', 'success_action'],
   data() {
@@ -214,8 +188,8 @@ window.app.component('lnbits-lnurlpay-success-action', {
 })
 
 window.app.component('lnbits-qrcode', {
-  template: '#lnbits-qrcode',
   mixins: [window.windowMixin],
+  template: '#lnbits-qrcode',
   components: {
     QrcodeVue
   },
@@ -484,7 +458,7 @@ window.app.component('lnbits-dynamic-chips', {
 window.app.component('lnbits-update-balance', {
   template: '#lnbits-update-balance',
   mixins: [window.windowMixin],
-  props: ['wallet_id', 'credit-value'],
+  props: ['wallet_id'],
   computed: {
     denomination() {
       return LNBITS_DENOMINATION
@@ -498,20 +472,15 @@ window.app.component('lnbits-update-balance', {
       credit: 0
     }
   },
-  watch: {
-    credit(val) {
-      this.updateBalance(val)
-    }
-  },
   methods: {
-    updateBalance(credit) {
+    updateBalance(scope) {
       LNbits.api
-        .updateBalance(credit, this.wallet_id)
+        .updateBalance(scope.value, this.wallet_id)
         .then(res => {
           if (res.data.success !== true) {
             throw new Error(res.data)
           }
-          credit = parseInt(credit)
+          credit = parseInt(scope.value)
           Quasar.Notify.create({
             type: 'positive',
             message: this.$t('credit_ok', {
@@ -519,8 +488,9 @@ window.app.component('lnbits-update-balance', {
             }),
             icon: null
           })
-          this.$emit('credit-value', credit)
-          return credit
+          this.credit = 0
+          scope.value = 0
+          scope.set()
         })
         .catch(LNbits.utils.notifyApiError)
     }

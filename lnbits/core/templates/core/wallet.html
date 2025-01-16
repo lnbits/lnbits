@@ -1,14 +1,9 @@
-{% extends "base.html" %}
+{% if not ajax %} {% extends "base.html" %} {% endif %}
 <!---->
 {% from "macros.jinja" import window_vars with context %}
 <!---->
-{% block scripts %} {{ window_vars(user, wallet) }}
-<script src="{{ static_url_for('static', 'js/wallet.js') }}"></script>
-{% endblock %}
-<!---->
-{% block title %}{{ wallet_name }} - {{ SITE_TITLE }} {% endblock %}
-<!---->
-{% block page %}
+{% block scripts %} {{ window_vars(user, wallet) }}{% endblock %} {% block page
+%}
 <div class="row q-col-gutter-md">
   {% if HIDE_API and AD_SPACE %}
   <div class="col-12 col-md-8 q-gutter-y-md">
@@ -25,68 +20,6 @@
     } : ''"
       >
         {% endif %}
-        <q-scroll-area
-          v-if="!mobileSimple"
-          style="
-            height: 115px;
-            width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
-          "
-        >
-          <div class="row no-wrap q-gutter-md q-pr-md">
-            <q-card
-              v-for="wallet in g.user.wallets"
-              :key="wallet.id"
-              class="wallet-list-card"
-              bordered
-              tag="a"
-              :href="wallet.url"
-              :style="
-          g.wallet && g.wallet.id === wallet.id
-            ? `border: 1px solid ${primaryColor}; width: 250px; text-decoration: none;`
-            : 'width: 250px; text-decoration: none;'
-        "
-              :class="{
-            'active-wallet-card': g.wallet && g.wallet.id === wallet.id
-          }"
-            >
-              <q-card-section>
-                <div class="row items-center">
-                  <q-avatar
-                    size="lg"
-                    :color="
-                g.wallet && g.wallet.id === wallet.id
-                  ? $q.dark.isActive
-                    ? 'primary'
-                    : 'primary'
-                  : 'grey-5'
-              "
-                  >
-                    <q-icon
-                      name="flash_on"
-                      :size="$q.dark.isActive ? '21px' : '20px'"
-                      :color="$q.dark.isActive ? 'black' : 'grey-3'"
-                    ></q-icon>
-                  </q-avatar>
-                  <div
-                    class="text-h6 q-pl-md"
-                    :class="{
-                'text-bold': g.wallet && g.wallet.id === wallet.id
-              }"
-                    v-text="wallet.name"
-                  ></div>
-                </div>
-                <div class="row items-center q-pt-sm">
-                  <h6 class="q-my-none text-no-wrap">
-                    <strong v-text="wallet.fsat"></strong>
-                    <small> {{LNBITS_DENOMINATION}}</small>
-                  </h6>
-                </div>
-              </q-card-section>
-            </q-card>
-          </div>
-        </q-scroll-area>
         <q-card
           :style="$q.screen.lt.md ? {
             background: $q.screen.lt.md ? 'none !important': ''
@@ -101,7 +34,6 @@
               <small> {{LNBITS_DENOMINATION}}</small>
               <lnbits-update-balance
                 :wallet_id="this.g.wallet.id"
-                @credit-value="handleBalanceUpdate"
                 class="q-ml-md"
               ></lnbits-update-balance>
             </h3>
@@ -117,7 +49,7 @@
               </div>
               <div class="col">
                 <q-btn
-                  @click="mobileSimple = !mobileSimple"
+                  @click="simpleMobile()"
                   color="primary"
                   class="float-right lt-md"
                   size="sm"
@@ -176,11 +108,15 @@
           <q-card-section>
             <payment-list
               :update="updatePayments"
-              :wallet="this.g.wallet"
               :mobile-simple="mobileSimple"
             />
           </q-card-section>
         </q-card>
+        <div id="hiddenQrCodeContainer" style="display: none">
+          <lnbits-qrcode
+            :value="'lightning:' + this.receive.paymentReq"
+          ></lnbits-qrcode>
+        </div>
       </div>
       {% if HIDE_API %}
       <div class="col-12 col-md-4 q-gutter-y-md">
@@ -192,8 +128,8 @@
           <q-card>
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
-                {{ SITE_TITLE }} <span v-text="$t('wallet')"></span>
-                <strong><em>{{wallet_name}}</em></strong>
+                {{ SITE_TITLE }} Wallet:
+                <strong><em v-text="g.wallet.name"></em></strong>
               </h6>
             </q-card-section>
             <q-card-section class="q-pa-none">
@@ -228,7 +164,9 @@
                   <q-card>
                     <q-card-section class="text-center">
                       <p v-text="$t('export_to_phone_desc')"></p>
-                      <lnbits-qrcode :value="exportUrl"></lnbits-qrcode>
+                      <lnbits-qrcode
+                        :value="`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
+                      ></lnbits-qrcode>
                     </q-card-section>
                     <span v-text="exportWalletQR"></span>
                     <q-card-actions class="flex-center q-pb-md">
@@ -236,7 +174,7 @@
                         outline
                         color="grey"
                         :label="$t('copy_wallet_url')"
-                        @click="copyText(exportUrl)"
+                        @click="copyText(`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`)"
                       ></q-btn>
                     </q-card-actions>
                   </q-card>
@@ -294,6 +232,17 @@
                         color="primary"
                         :label="$t('update_currency')"
                         @click="updateWallet({ currency: update.currency || '' })"
+                      ></q-btn>
+                      <q-btn
+                        v-if="g.user.admin"
+                        class="absolute-top-right"
+                        flat
+                        round
+                        icon="settings"
+                        to="/admin#exchange_providers"
+                        ><q-tooltip
+                          v-text="$t('exchange_providers')"
+                        ></q-tooltip
                       ></q-btn>
                     </q-card-section>
                   </q-card>
@@ -445,9 +394,7 @@
         >
           <div class="text-center q-mb-lg">
             <a :href="'lightning:' + receive.paymentReq">
-              <lnbits-qrcode
-                :value="'lightning:' + receive.paymentReq.toUpperCase()"
-              ></lnbits-qrcode>
+              <div v-html="invoiceQrCode"></div>
             </a>
           </div>
           <div class="text-center">

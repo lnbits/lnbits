@@ -107,7 +107,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
     inactive_extensions = [e.id for e in await get_installed_extensions(active=False)]
     db_versions = await get_db_versions()
 
-    extensions = [
+    extension_data = [
         {
             "id": ext.id,
             "name": ext.name,
@@ -152,7 +152,8 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
         "core/extensions.html",
         {
             "user": user.json(),
-            "extensions": extensions,
+            "extension_data": extension_data,
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -182,22 +183,21 @@ async def wallet(
         return template_renderer().TemplateResponse(
             request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
         )
+    context = {
+        "user": user.json(),
+        "wallet": wallet.json(),
+        "wallet_name": wallet.name,
+        "currencies": allowed_currencies(),
+        "service_fee": settings.lnbits_service_fee,
+        "service_fee_max": settings.lnbits_service_fee_max,
+        "web_manifest": f"/manifest/{user.id}.webmanifest",
+    }
 
-    resp = template_renderer().TemplateResponse(
+    return template_renderer().TemplateResponse(
         request,
         "core/wallet.html",
-        {
-            "user": user.json(),
-            "wallet": wallet.json(),
-            "wallet_name": wallet.name,
-            "currencies": allowed_currencies(),
-            "service_fee": settings.lnbits_service_fee,
-            "service_fee_max": settings.lnbits_service_fee_max,
-            "web_manifest": f"/manifest/{user.id}.webmanifest",
-        },
+        {**context, "ajax": _is_ajax_request(request)},
     )
-    resp.set_cookie("lnbits_last_active_wallet", wallet.id)
-    return resp
 
 
 @generic_router.get(
@@ -209,11 +209,13 @@ async def account(
     request: Request,
     user: User = Depends(check_user_exists),
 ):
+
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
         {
             "user": user.json(),
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -327,6 +329,7 @@ async def node(request: Request, user: User = Depends(check_admin)):
             "settings": settings.dict(),
             "balance": balance,
             "wallets": user.wallets[0].json(),
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -365,6 +368,7 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
             "settings": settings.dict(),
             "balance": balance,
             "currencies": list(currencies.keys()),
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -381,6 +385,7 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
             "user": user.json(),
             "settings": settings.dict(),
             "currencies": list(currencies.keys()),
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -395,6 +400,7 @@ async def audit_index(request: Request, user: User = Depends(check_admin)):
         {
             "request": request,
             "user": user.json(),
+            "ajax": _is_ajax_request(request),
         },
     )
 
@@ -458,3 +464,7 @@ async def lnurlwallet(request: Request):
     return RedirectResponse(
         f"/wallet?usr={account.id}&wal={wallet.id}",
     )
+
+
+def _is_ajax_request(request: Request):
+    return request.headers.get("X-Requested-With", None) == "XMLHttpRequest"
