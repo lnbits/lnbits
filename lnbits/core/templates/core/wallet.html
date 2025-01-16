@@ -31,7 +31,7 @@
             <div class="row">
               <div class="col-1" style="max-width: 30px">
                 <q-btn
-                  v-if="update.currency"
+                  v-if="g.fiatTracking"
                   @click="swapBalancePriority"
                   style="height: 50px"
                   class="q-mt-lg"
@@ -44,8 +44,8 @@
                 <div
                   class="column"
                   :class="{
-                        'q-pt-sm': update.currency,
-                        'q-pt-lg': !update.currency
+                        'q-pt-sm': g.fiatTracking,
+                        'q-pt-lg': !g.fiatTracking
                       }"
                   v-if="!isPrioritySwapped"
                   style="height: 90px"
@@ -69,7 +69,7 @@
                     </div>
                   </div>
                   <div class="col-2">
-                    <div v-if="update.currency">
+                    <div v-if="g.fiatTracking">
                       <span
                         class="text-h5 text-italic"
                         v-text="formattedFiatAmount"
@@ -83,8 +83,8 @@
                   class="column"
                   v-if="isPrioritySwapped"
                   :class="{
-                        'q-pt-sm': update.currency,
-                        'q-pt-lg': !update.currency
+                        'q-pt-sm': g.fiatTracking,
+                        'q-pt-lg': !g.fiatTracking
                       }"
                   style="height: 100px"
                 >
@@ -92,7 +92,7 @@
                     <div class="row">
                       <div class="col-auto">
                         <div
-                          v-if="update.currency"
+                          v-if="g.fiatTracking"
                           class="text-h3 q-my-none text-no-wrap"
                         >
                           <strong v-text="formattedFiatAmount"></strong>
@@ -120,7 +120,7 @@
 
                 <div
                   class="absolute-right q-pa-md"
-                  v-if="$q.screen.gt.md && update.currency"
+                  v-if="$q.screen.gt.md && g.fiatTracking"
                 >
                   <div class="text-bold text-italic">BTC Price</div>
                   <span
@@ -294,23 +294,22 @@
                     <q-card-section>
                       <div style="max-width: 360px">
                         <div class="row">
-                          <div class="col-auto">
-                            <q-toggle
-                              v-model="fiatTracking"
-                              color="primary"
-                              @update:model-value="handleFiatTracking"
-                            ></q-toggle>
-                          </div>
                           <div class="col">
                             <q-select
                               filled
                               dense
                               v-model="update.currency"
                               type="text"
-                              :label="!fiatTracking ? 'Disabled' : $t('currency')"
                               :options="receive.units.filter((u) => u !== 'sat')"
-                              :disable="!fiatTracking"
                             ></q-select>
+                          </div>
+                          <div class="col-auto">
+                            <q-btn
+                              color="primary"
+                              @click="handleFiatTracking()"
+                              :disable="update.currency == ''"
+                              :label="g.fiatTracking ? 'Remove' : 'Add'"
+                            ></q-btn>
                           </div>
                         </div>
                       </div>

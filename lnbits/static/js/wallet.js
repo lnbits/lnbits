@@ -44,7 +44,6 @@ window.WalletPageLogic = {
         show: false,
         location: window.location
       },
-      fiatBalance: 0,
       update: {
         name: null,
         currency: null
@@ -54,9 +53,7 @@ window.WalletPageLogic = {
       hasNfc: false,
       nfcReaderAbortController: null,
       isPrioritySwapped: false,
-      fiatTracking: false,
       formattedFiatAmount: 0,
-      exchangeRate: 0,
       formattedExchange: null,
       ignoreWatcher: true,
       primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor')
@@ -99,7 +96,7 @@ window.WalletPageLogic = {
         currency
       )
       this.formattedExchange = LNbits.utils.formatCurrency(
-        this.exchangeRate,
+        this.g.exchangeRate,
         currency
       )
     },
@@ -536,19 +533,27 @@ window.WalletPageLogic = {
     },
     updateFiatBalance(currency) {
       // set rate from local storage to avoid clunky api calls
-      this.exchangeRate = this.$q.localStorage.getItem('lnbits.exchangeRate')
-      this.fiatBalance = (this.exchangeRate / 100000000) * this.g.wallet.sat
-      this.formatFiatAmount(this.fiatBalance, currency)
+      if (this.$q.localStorage.getItem('lnbits.exchangeRate.' + currency)) {
+        this.g.exchangeRate = this.$q.localStorage.getItem(
+          'lnbits.exchangeRate.' + currency
+        )
+        this.g.fiatBalance =
+          (this.g.exchangeRate / 100000000) * this.g.wallet.sat
+        this.formatFiatAmount(this.g.fiatBalance, currency)
+      }
       // make api call
       LNbits.api
         .request('GET', `/api/v1/rate/` + currency, null)
         .then(response => {
-          this.fiatBalance =
+          this.g.fiatBalance =
             (response.data.price / 100000000) * this.g.wallet.sat
-          this.exchangeRate = response.data.price.toFixed(2)
-          this.fiatTracking = true
-          this.formatFiatAmount(this.fiatBalance, currency)
-          this.$q.localStorage.set('lnbits.exchangeRate', this.exchangeRate)
+          this.g.exchangeRate = response.data.price.toFixed(2)
+          this.g.fiatTracking = true
+          this.formatFiatAmount(this.g.fiatBalance, currency)
+          this.$q.localStorage.set(
+            'lnbits.exchangeRate.' + currency,
+            this.g.exchangeRate
+          )
         })
         .catch(e => console.error(e))
     },
@@ -662,35 +667,47 @@ window.WalletPageLogic = {
       )
     },
     handleFiatTracking() {
-      if (this.fiatTracking === false) {
-        this.update.currency = ''
+      this.g.fiatTracking = !this.g.fiatTracking
+      if (!this.g.fiatTracking) {
         this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
         this.isPrioritySwapped = false
-        this.$q.localStorage.remove(`lnbits.exchangeRate`)
+        this.$q.localStorage.remove(
+          `lnbits.exchangeRate.` + this.update.currency
+        )
+        this.update.currency = ''
+      } else {
+        this.updateWallet({currency: this.update.currency})
+        this.updateFiatBalance(this.update.currency)
       }
     },
     createdTasks() {
       this.update.name = this.g.wallet.name
       this.receive.units = ['sat', ...window.currencies]
+      if (this.$q.screen.lt.md) {
+        this.mobileSimple = true
+      }
+      if (
+        this.g.wallet.currency != '' &&
+        this.$q.localStorage.getItem(
+          'lnbits.exchangeRate.' + this.g.wallet.currency
+        )
+      ) {
+        this.g.fiatTracking = true
+        this.updateFiatBalance(this.g.wallet.currency)
+      } else {
+        this.update.currency = ''
+        this.g.fiatTracking = false
+      }
     }
   },
   created() {
+    console.log(this.g.wallet.currency)
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
       this.parse.data.request =
         urlParams.get('lightning') || urlParams.get('lnurl')
       this.decodeRequest()
       this.parse.show = true
-    }
-    if (this.$q.screen.lt.md) {
-      this.mobileSimple = true
-    }
-    setTimeout(() => {
-      this.ignoreWatcher = false
-    }, 3000)
-    if (this.g.wallet.currency) {
-      this.fiatTracking = true
-      this.updateFiatBalance(this.g.wallet.currency)
     }
     this.createdTasks()
   },
@@ -703,17 +720,17 @@ window.WalletPageLogic = {
       }
       if (
         this.g.wallet.currency &&
-        this.$q.localStorage.getItem('lnbits.exchangeRate')
+        this.$q.localStorage.getItem(
+          'lnbits.exchangeRate.' + this.g.wallet.currency
+        )
       ) {
-        this.exchangeRate = this.$q.localStorage.getItem('lnbits.exchangeRate')
-        this.fiatBalance = (this.exchangeRate / 100000000) * this.g.wallet.sat
-        this.formatFiatAmount(this.fiatBalance, this.g.wallet.currency)
+        this.g.exchangeRate = this.$q.localStorage.getItem(
+          'lnbits.exchangeRate.' + this.g.wallet.currency
+        )
+        this.g.fiatBalance =
+          (this.g.exchangeRate / 100000000) * this.g.wallet.sat
+        this.formatFiatAmount(this.g.fiatBalance, this.g.wallet.currency)
       }
-    },
-    'update.currency'(newValue) {
-      if (this.ignoreWatcher || this.update.currency == '') return
-      this.updateWallet({currency: newValue})
-      this.updateFiatBalance(newValue)
     },
     '$q.screen.gt.sm'(value) {
       if (value == true) {
