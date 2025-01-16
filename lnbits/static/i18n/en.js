@@ -94,6 +94,7 @@ window.localisation.en = {
   invoice_waiting: 'Invoice waiting to be paid',
   payment_received: 'Payment Received',
   payment_sent: 'Payment Sent',
+  payment_failed: 'Payment Failed',
   receive: 'receive',
   send: 'send',
   outgoing_payment_pending: 'Outgoing payment pending',
