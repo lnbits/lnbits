@@ -1,3 +1,7 @@
+from loguru import logger
+
+from lnbits.core.models.notifications import NotificationType
+from lnbits.core.services.notifications import enqueue_notification
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source, set_funding_source
 
@@ -21,3 +25,41 @@ async def get_balance_delta() -> BalanceDelta:
         lnbits_balance_msats=lnbits_balance,
         node_balance_msats=status.balance_msat,
     )
+
+
+async def check_server_balance_against_node():
+    """
+    Watchdog will check lnbits balance and nodebalance
+    and will switch to VoidWallet if the watchdog delta is reached.
+    """
+    if (
+        not settings.lnbits_watchdog_switch_to_voidwallet
+        and not settings.lnbits_notification_watchdog
+    ):
+        return
+
+    funding_source = get_funding_source()
+    if funding_source.__class__.__name__ == "VoidWallet":
+        return
+
+    status = await get_balance_delta()
+    if status.delta_sats < settings.lnbits_watchdog_delta:
+        return
+
+    use_voidwallet = settings.lnbits_watchdog_switch_to_voidwallet
+    logger.warning(
+        f"Balance delta reached: {status.delta_sats} sats."
+        f" Switch to void wallet: {use_voidwallet}."
+    )
+    enqueue_notification(
+        NotificationType.balance_delta,
+        {
+            "delta_sats": status.delta_sats,
+            "lnbits_balance_sats": status.lnbits_balance_msats // 1000,
+            "node_balance_sats": status.node_balance_msats // 1000,
+            "switch_to_void_wallet": use_voidwallet,
+        },
+    )
+    if use_voidwallet:
+        logger.error(f"Switching to VoidWallet. Delta: {status.delta_sats} sats.")
+        await switch_to_voidwallet()
