@@ -8,6 +8,8 @@ class NotificationType(Enum):
     balance_update = "balance_update"
     balance_delta = "balance_delta"
     server_start_stop = "server_start_stop"
+    incoming_invoice = "incoming_invoice"
+    outgoing_invoice = "outgoing_invoice"
     text_message = "text_message"
 
 
@@ -35,5 +37,12 @@ NOTIFICATION_TEMPLATES = {
         *LNbits balance*: `{lnbits_balance_sats}` sats.
         *Node balance*: `{node_balance_sats}` sats.
         *Switching to Void Wallet*: `{switch_to_void_wallet}`.
+        """,
+    "outgoing_invoice": """*OUTGOING INVOICE*
+        *Wallet*: `{wallet_name}` ({wallet_id}).
+        *Amount*: `{amount_sats}` sats.""",
+    "incoming_invoice": """*INCOMING INVOICE*
+        *Wallet*: `{wallet_name}` ({wallet_id}).
+        *Amount*: `{amount_sats}` sats.
         """,
 }

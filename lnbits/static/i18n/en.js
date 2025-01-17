@@ -205,11 +205,11 @@ window.localisation.en = {
 
   notification_incoming_payment: 'Incoming Payments',
   notification_incoming_payment_desc:
-    'Notify when a wallet has received a payment above the specified amount',
+    'Notify when a wallet has received a payment above the specified amount (sats)',
 
   notification_outgoing_payment: 'Outgoing Payments',
   notification_outgoing_payment_desc:
-    'Notify when a wallet has sent a payment above the specified amount',
+    'Notify when a wallet has sent a payment above the specified amount (sats)',
 
   notification_credit_debit: 'Credit / Debit',
   notification_credit_debit_desc:
