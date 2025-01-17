@@ -29,5 +29,6 @@ NOTIFICATION_TEMPLATES = {
         *Delta*: `{delta_sats}` sats.
         *LNbits balance*: `{lnbits_balance_sats}` sats.
         *Node balance*: `{node_balance_sats}` sats.
+        *Switching to Void Wallet*: `{switch_to_void_wallet}`.
         """,
 }

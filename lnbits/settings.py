@@ -368,7 +368,7 @@ class SecuritySettings(LNbitsSettings):
     lnbits_wallet_limit_max_balance: int = Field(default=0)
     lnbits_wallet_limit_daily_max_withdraw: int = Field(default=0)
     lnbits_wallet_limit_secs_between_trans: int = Field(default=0)
-    lnbits_watchdog: bool = Field(default=False)
+    lnbits_watchdog_switch_to_voidwallet: bool = Field(default=False)
     lnbits_watchdog_interval_minutes: int = Field(default=60)
     lnbits_watchdog_delta: int = Field(default=1_000_000)
 
