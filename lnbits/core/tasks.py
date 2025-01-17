@@ -35,7 +35,10 @@ async def watchdog_task():
     """
     while settings.lnbits_running:
         sleep_time = settings.lnbits_watchdog_interval_minutes * 60
-        if not settings.lnbits_watchdog and not settings.lnbits_notification_watchdog:
+        if (
+            not settings.lnbits_watchdog_switch_to_voidwallet
+            and not settings.lnbits_notification_watchdog
+        ):
             await asyncio.sleep(60)
             continue
 
@@ -49,16 +52,22 @@ async def watchdog_task():
             if status.delta_sats < settings.lnbits_watchdog_delta:
                 await asyncio.sleep(sleep_time)
                 continue
-            logger.warning(f"Watchdog delta reached: {status.delta_sats} sats.")
+
+            use_voidwallet = settings.lnbits_watchdog_switch_to_voidwallet
+            logger.warning(
+                f"Watchdog delta reached: {status.delta_sats} sats."
+                f" Use void wallet: {use_voidwallet}."
+            )
             enqueue_notification(
                 NotificationType.balance_delta,
                 {
                     "delta_sats": status.delta_sats,
                     "lnbits_balance_sats": status.lnbits_balance_msats // 1000,
                     "node_balance_sats": status.node_balance_msats // 1000,
+                    "switch_to_void_wallet": use_voidwallet,
                 },
             )
-            if settings.lnbits_watchdog:
+            if use_voidwallet:
                 logger.error(
                     f"Switching to VoidWallet. Delta: {status.delta_sats} sats."
                 )
