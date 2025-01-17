@@ -6,6 +6,7 @@ import shutil
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
+from time import time
 from typing import Callable, Optional
 
 from fastapi import FastAPI
@@ -24,8 +25,9 @@ from lnbits.core.crud import (
 )
 from lnbits.core.crud.extensions import create_installed_extension
 from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
-from lnbits.core.services.notifications import enqueue_text_notification
+from lnbits.core.services.notifications import enqueue_notification
 from lnbits.core.tasks import (  # watchdog_task
     audit_queue,
     collect_exchange_rates_data,
@@ -104,12 +106,24 @@ async def startup(app: FastAPI):
     # initialize tasks
     register_async_tasks()
 
-    enqueue_text_notification("LNbits server started.")
+    enqueue_notification(
+        NotificationType.server_start_stop,
+        {
+            "message": "LNbits server started.",
+            "up_time": int(time() - settings.server_startup_time),
+        },
+    )
 
 
 async def shutdown():
     logger.warning("LNbits shutting down...")
-    enqueue_text_notification("LNbits server stopped.")
+    enqueue_notification(
+        NotificationType.server_start_stop,
+        {
+            "message": "LNbits server shutting down...",
+            "up_time": int(time() - settings.server_startup_time),
+        },
+    )
     settings.lnbits_running = False
 
     # shutdown event

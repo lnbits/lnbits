@@ -7,6 +7,7 @@ class NotificationType(Enum):
     settings_update = "settings_update"
     balance_update = "balance_update"
     balance_delta = "balance_delta"
+    server_start_stop = "server_start_stop"
     text_message = "text_message"
 
 
@@ -17,6 +18,10 @@ class NotificationMessage(BaseModel):
 
 NOTIFICATION_TEMPLATES = {
     "text_message": "{message}",
+    "server_start_stop": """*SERVER*
+        {message}
+        *Time*: `{up_time}` seconds.
+    """,
     "settings_update": """*SETTINGS UPDATED*
         User: `{username}`.
     """,
