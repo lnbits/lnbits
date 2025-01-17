@@ -82,7 +82,7 @@ async def api_reset_settings(field_name: str):
 
 
 @admin_router.delete("/api/v1/settings", status_code=HTTPStatus.OK)
-async def api_delete_settings(user: User = Depends(check_admin)) -> None:
+async def api_delete_settings(user: User = Depends(check_super_user)) -> None:
     enqueue_notification(NotificationType.settings_update, {"username": user.username})
     await delete_admin_settings()
     server_restart.set()
