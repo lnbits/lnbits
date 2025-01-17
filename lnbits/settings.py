@@ -369,7 +369,7 @@ class SecuritySettings(LNbitsSettings):
     lnbits_wallet_limit_daily_max_withdraw: int = Field(default=0)
     lnbits_wallet_limit_secs_between_trans: int = Field(default=0)
     lnbits_watchdog: bool = Field(default=False)
-    lnbits_watchdog_interval: int = Field(default=60)
+    lnbits_watchdog_interval_minutes: int = Field(default=60)
     lnbits_watchdog_delta: int = Field(default=1_000_000)
 
     def is_wallet_max_balance_exceeded(self, amount):
@@ -391,7 +391,7 @@ class NotificationsSettings(LNbitsSettings):
     lnbits_notification_settings_update: bool = Field(default=True)
     lnbits_notification_credit_debit: bool = Field(default=True)
     lnbits_notification_server_start_stop: bool = Field(default=True)
-    lnbits_notification_watchdog_triggered: bool = Field(default=False)
+    lnbits_notification_watchdog: bool = Field(default=False)
     lnbits_notification_server_status_hours: int = Field(default=24)
     lnbits_notification_incoming_payment_amount_sats: int = Field(default=1_000_000)
     lnbits_notification_outgoing_payment_amount_sats: int = Field(default=1_000_000)

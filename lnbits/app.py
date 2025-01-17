@@ -33,6 +33,7 @@ from lnbits.core.tasks import (  # watchdog_task
     wait_for_audit_data,
     wait_for_paid_invoices,
     wait_notification_messages,
+    watchdog_task,
 )
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
@@ -460,8 +461,7 @@ def register_async_tasks():
     register_invoice_listener(invoice_queue, "core")
     create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
 
-    # TODO: implement watchdog properly
-    # create_permanent_task(watchdog_task)
+    create_permanent_task(watchdog_task)
     create_permanent_task(purge_audit_data)
     create_permanent_task(collect_exchange_rates_data)
 

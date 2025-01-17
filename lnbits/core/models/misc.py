@@ -29,8 +29,8 @@ class BalanceDelta(BaseModel):
     node_balance_msats: int
 
     @property
-    def delta_msats(self):
-        return self.node_balance_msats - self.lnbits_balance_msats
+    def delta_sats(self) -> int:
+        return (self.lnbits_balance_msats - self.node_balance_msats) // 1000
 
 
 class SimpleStatus(BaseModel):

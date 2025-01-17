@@ -11,15 +11,19 @@ from lnbits.core.crud import (
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.models import AuditEntry, Payment
+from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services import (
-    get_balance_delta,
     send_payment_notification,
-    switch_to_voidwallet,
 )
-from lnbits.core.services.notifications import process_next_notification
-from lnbits.settings import get_funding_source, settings
+from lnbits.core.services.funding_source import get_balance_delta, switch_to_voidwallet
+from lnbits.core.services.notifications import (
+    enqueue_notification,
+    process_next_notification,
+)
+from lnbits.settings import settings
 from lnbits.tasks import send_push_notification
 from lnbits.utils.exchange_rates import btc_rates
+from lnbits.wallets import get_funding_source
 
 audit_queue: asyncio.Queue = asyncio.Queue()
 
@@ -30,21 +34,39 @@ async def watchdog_task():
     and will switch to VoidWallet if the watchdog delta is reached.
     """
     while settings.lnbits_running:
-        funding_source = get_funding_source()
-        if (
-            settings.lnbits_watchdog
-            and funding_source.__class__.__name__ != "VoidWallet"
-        ):
-            try:
-                balance = await get_balance_delta()
-                delta = balance.delta_msats
-                logger.debug(f"Running watchdog task. current delta: {delta}")
-                if delta + settings.lnbits_watchdog_delta <= 0:
-                    logger.error(f"Switching to VoidWallet. current delta: {delta}")
-                    await switch_to_voidwallet()
-            except Exception as e:
-                logger.error("Error in watchdog task", e)
-        await asyncio.sleep(settings.lnbits_watchdog_interval * 60)
+        sleep_time = settings.lnbits_watchdog_interval_minutes * 60
+        if not settings.lnbits_watchdog and not settings.lnbits_notification_watchdog:
+            await asyncio.sleep(60)
+            continue
+
+        try:
+            funding_source = get_funding_source()
+            if funding_source.__class__.__name__ == "VoidWallet":
+                await asyncio.sleep(60)
+                continue
+
+            status = await get_balance_delta()
+            if status.delta_sats < settings.lnbits_watchdog_delta:
+                await asyncio.sleep(sleep_time)
+                continue
+            logger.warning(f"Watchdog delta reached: {status.delta_sats} sats.")
+            enqueue_notification(
+                NotificationType.balance_delta,
+                {
+                    "delta_sats": status.delta_sats,
+                    "lnbits_balance_sats": status.lnbits_balance_msats // 1000,
+                    "node_balance_sats": status.node_balance_msats // 1000,
+                },
+            )
+            if settings.lnbits_watchdog:
+                logger.error(
+                    f"Switching to VoidWallet. Delta: {status.delta_sats} sats."
+                )
+                await switch_to_voidwallet()
+
+        except Exception as e:
+            logger.error("Error in watchdog task", e)
+        await asyncio.sleep(sleep_time)
 
 
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
