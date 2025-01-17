@@ -49,7 +49,7 @@ api_router = APIRouter(tags=["Core"])
 async def health() -> dict:
     return {
         "server_time": int(time()),
-        "up_time": int(time() - settings.server_startup_time),
+        "up_time": settings.lnbits_server_up_time,
     }
 
 
@@ -57,7 +57,8 @@ async def health() -> dict:
 async def health_check(user: User = Depends(check_user_exists)) -> dict:
     stat: dict[str, Any] = {
         "server_time": int(time()),
-        "up_time": int(time() - settings.server_startup_time),
+        "up_time": settings.lnbits_server_up_time,
+        "up_time_seconds": int(time() - settings.server_startup_time),
     }
 
     stat["version"] = settings.version

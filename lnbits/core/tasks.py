@@ -12,7 +12,11 @@ from lnbits.core.crud import (
     mark_webhook_sent,
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
+from lnbits.core.crud.payments import get_payments_paginated
+from lnbits.core.crud.users import get_accounts
+from lnbits.core.crud.wallets import get_wallets_count
 from lnbits.core.models import AuditEntry, Payment
+from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services import (
     send_payment_notification,
 )
@@ -20,8 +24,10 @@ from lnbits.core.services.funding_source import (
     check_server_balance_against_node,
 )
 from lnbits.core.services.notifications import (
+    enqueue_notification,
     process_next_notification,
 )
+from lnbits.db import Filters
 from lnbits.settings import settings
 from lnbits.tasks import create_unique_task, send_push_notification
 from lnbits.utils.exchange_rates import btc_rates
@@ -34,7 +40,39 @@ async def run_by_the_minute_tasks():
     while settings.lnbits_running:
         try:
             if minute_counter % settings.lnbits_watchdog_interval_minutes == 0:
-                await check_server_balance_against_node()
+                await check_server_balance_against_node() # todo: change since last time
+            status_minutes = settings.lnbits_notification_server_status_hours * 60
+
+            if minute_counter % status_minutes == 0:
+                all_records = Filters(limit=0)
+                accounts = await get_accounts(filters=all_records)
+
+                wallets_count = await get_wallets_count()
+                in_payments = await get_payments_paginated(
+                    incoming=True, filters=all_records
+                )
+                out_payments = await get_payments_paginated(
+                    outgoing=True, filters=all_records
+                )
+                pending_payments = await get_payments_paginated(
+                    pending=True, filters=all_records
+                )
+                failed_payments = await get_payments_paginated(
+                    failed=True, filters=all_records
+                )
+                # TODO: lnbits balance, node balance
+                values = {
+                    "up_time": settings.lnbits_server_up_time,
+                    "accounts_count": accounts.total,
+                    "wallets_count": wallets_count,
+                    "in_payments_count": in_payments.total,
+                    "out_payments_count": out_payments.total,
+                    "pending_payments_count": pending_payments.total,
+                    "failed_payments_count": failed_payments.total,
+                }
+                enqueue_notification(NotificationType.server_status, values)
+
+                print("#### values", values)
         except Exception as ex:
             logger.error(ex)
 
