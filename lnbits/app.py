@@ -28,14 +28,14 @@ from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
 from lnbits.core.services.notifications import enqueue_notification
-from lnbits.core.tasks import (  # watchdog_task
+from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
     purge_audit_data,
+    run_by_the_minute_tasks,
     wait_for_audit_data,
     wait_for_paid_invoices,
     wait_notification_messages,
-    watchdog_task,
 )
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
@@ -475,7 +475,7 @@ def register_async_tasks():
     register_invoice_listener(invoice_queue, "core")
     create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
 
-    create_permanent_task(watchdog_task)
+    create_permanent_task(run_by_the_minute_tasks)
     create_permanent_task(purge_audit_data)
     create_permanent_task(collect_exchange_rates_data)
 
