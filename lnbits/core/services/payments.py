@@ -8,6 +8,8 @@ from bolt11 import encode as bolt11_encode
 from loguru import logger
 
 from lnbits.core.db import db
+from lnbits.core.models.notifications import NotificationType
+from lnbits.core.services.notifications import enqueue_notification
 from lnbits.db import Connection
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
@@ -262,6 +264,18 @@ async def update_wallet_balance(
 
 
 async def send_payment_notification(wallet: Wallet, payment: Payment):
+    try:
+        await send_ws_payment_notification(wallet, payment)
+    except Exception as e:
+        logger.error("Error sending websocket payment notification", e)
+
+    try:
+        send_chat_payment_notification(wallet, payment)
+    except Exception as e:
+        logger.error("Error sending chat payment notification", e)
+
+
+async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
     # TODO: websocket message should be a clean payment model
     # await websocket_manager.send_data(payment.json(), wallet.inkey)
     # TODO: figure out why we send the balance with the payment here.
@@ -280,6 +294,21 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
     await websocket_manager.send_data(
         json.dumps({"pending": payment.pending}), payment.payment_hash
     )
+
+
+def send_chat_payment_notification(wallet: Wallet, payment: Payment):
+    amount_sats = abs(payment.sat)
+    values: dict = {
+        "wallet_id": wallet.id,
+        "wallet_name": wallet.name,
+        "amount_sats": amount_sats,
+    }
+    if payment.is_out:
+        if amount_sats >= settings.lnbits_notification_outgoing_payment_amount_sats:
+            enqueue_notification(NotificationType.outgoing_invoice, values)
+    else:
+        if amount_sats >= settings.lnbits_notification_incoming_payment_amount_sats:
+            enqueue_notification(NotificationType.incoming_invoice, values)
 
 
 async def check_wallet_limits(
