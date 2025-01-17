@@ -99,6 +99,7 @@ async def get_payments_paginated(
     wallet_id: Optional[str] = None,
     complete: bool = False,
     pending: bool = False,
+    failed: bool = False,
     outgoing: bool = False,
     incoming: bool = False,
     since: Optional[int] = None,
@@ -107,7 +108,8 @@ async def get_payments_paginated(
     conn: Optional[Connection] = None,
 ) -> Page[Payment]:
     """
-    Filters payments to be returned by complete | pending | outgoing | incoming.
+    Filters payments to be returned by:
+      - complete | pending | failed | outgoing | incoming.
     """
 
     values: dict = {
@@ -137,6 +139,8 @@ async def get_payments_paginated(
         )
     elif pending:
         clause.append(f"status = '{PaymentState.PENDING}'")
+    elif failed:
+        clause.append(f"status = '{PaymentState.FAILED}'")
 
     if outgoing and incoming:
         pass

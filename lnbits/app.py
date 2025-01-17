@@ -6,7 +6,6 @@ import shutil
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
-from time import time
 from typing import Callable, Optional
 
 from fastapi import FastAPI
@@ -110,7 +109,7 @@ async def startup(app: FastAPI):
         NotificationType.server_start_stop,
         {
             "message": "LNbits server started.",
-            "up_time": int(time() - settings.server_startup_time),
+            "up_time": settings.lnbits_server_up_time,
         },
     )
 
@@ -121,7 +120,7 @@ async def shutdown():
         NotificationType.server_start_stop,
         {
             "message": "LNbits server shutting down...",
-            "up_time": int(time() - settings.server_startup_time),
+            "up_time": settings.lnbits_server_up_time,
         },
     )
     settings.lnbits_running = False

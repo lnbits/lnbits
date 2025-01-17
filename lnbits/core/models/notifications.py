@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 
 class NotificationType(Enum):
+    server_status = "server_status"
     settings_update = "settings_update"
     balance_update = "balance_update"
     balance_delta = "balance_delta"
@@ -17,9 +18,24 @@ class NotificationMessage(BaseModel):
     message_type: NotificationType
     values: dict
 
+    # *Up time*: `{up_time}` seconds.
+    # *Account count*: `{accounts_count}`.
+    # *Wallets count*: `{wallets_count}`.
+    # *Incoming payments*: `{in_payments_count}`.
+    # *Outgoing payments*: `{out_payments_count}`.
+    # *Pending payments*: `{pending_payments_count}`.
+
 
 NOTIFICATION_TEMPLATES = {
     "text_message": "{message}",
+    "server_status": """*SERVER STATUS*
+        *Up time*: `{up_time}`.
+        *Accounts*: `{accounts_count}`.
+        *Wallets*: `{wallets_count}`.
+        *Incoming payments*: `{in_payments_count}`.
+        *Outgoing payments*: `{out_payments_count}`.
+        *Pending payments*: `{pending_payments_count}`.
+        *Failed payments*: `{failed_payments_count}`.""",
     "server_start_stop": """*SERVER*
         {message}
         *Time*: `{up_time}` seconds.

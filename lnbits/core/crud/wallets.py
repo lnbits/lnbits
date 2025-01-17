@@ -134,6 +134,12 @@ async def get_wallets(
     )
 
 
+async def get_wallets_count():
+    result = await db.execute("SELECT COUNT(*) as count FROM wallets")
+    row = result.mappings().first()
+    return row.get("count", 0)
+
+
 async def get_wallet_for_key(
     key: str,
     conn: Optional[Connection] = None,

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from hashlib import sha256
 from os import path
-from time import time
+from time import gmtime, strftime, time
 from typing import Any, Optional
 
 import httpx
@@ -781,6 +781,11 @@ class EnvSettings(LNbitsSettings):
     @property
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
+
+    @property
+    def lnbits_server_up_time(self) -> str:
+        up_time = int(time() - self.server_startup_time)
+        return strftime("%H:%M:%S", gmtime(up_time))
 
 
 class SaaSSettings(LNbitsSettings):
