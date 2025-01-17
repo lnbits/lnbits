@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class NotificationType(Enum):
     settings_update = "settings_update"
     balance_update = "balance_update"
+    balance_delta = "balance_delta"
     text_message = "text_message"
 
 
@@ -23,5 +24,10 @@ NOTIFICATION_TEMPLATES = {
         Wallet `{wallet_name}` balance updated with `{amount}` sats.
         *Current balance*: `{balance}` sats.
         *Wallet ID*: `{wallet_id}`
+        """,
+    "balance_delta": """*BALANCE DELTA*
+        *Delta*: `{delta_sats}` sats.
+        *LNbits balance*: `{lnbits_balance_sats}` sats.
+        *Node balance*: `{node_balance_sats}` sats.
         """,
 }

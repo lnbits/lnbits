@@ -153,6 +153,6 @@ async def get_wallet_for_key(
 
 
 async def get_total_balance(conn: Optional[Connection] = None):
-    result = await (conn or db).execute("SELECT SUM(balance) FROM balances")
+    result = await (conn or db).execute("SELECT SUM(balance) as balance FROM balances")
     row = result.mappings().first()
     return row.get("balance", 0)
