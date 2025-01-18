@@ -16,6 +16,24 @@ window.AdminPageLogic = {
         'monochrome',
         'salvador'
       ],
+      reactionOptions: [
+        'none',
+        'confettiBothSides',
+        'confettiFireworks',
+        'confettiStars',
+        'confettiTop'
+      ],
+      globalBorderOptions: [
+        'retro-border',
+        'hard-border',
+        'neon-border',
+        'no-border'
+      ],
+      globalBorderChoice: 'hard-border',
+      globalBgImageChoice: '',
+      globalGradientChoice: false,
+      globalThemeChoice: 'classic',
+      globalReactionChoice: 'confettiBothSides',
       auditData: {},
       statusData: {},
       statusDataTable: {
