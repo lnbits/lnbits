@@ -12,7 +12,12 @@ window.AccountPageLogic = {
         'confettiStars',
         'confettiTop'
       ],
-      borderOptions: ['retro-border', 'hard-border', 'no-border'],
+      borderOptions: [
+        'retro-border',
+        'hard-border',
+        'neon-border',
+        'no-border'
+      ],
       tab: 'user',
       credentialsData: {
         show: false,
