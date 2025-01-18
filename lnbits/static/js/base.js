@@ -466,7 +466,8 @@ window.windowMixin = {
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
-      eventListeners: []
+      eventListeners: [],
+      backgroundImage: ''
     }
   },
 
@@ -566,6 +567,39 @@ window.windowMixin = {
         this.toggleDarkMode()
       }
     },
+    applyBackgroundImage() {
+      if (this.backgroundImage) {
+        this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+        this.gradientChoice = true
+        this.applyGradient()
+      }
+      let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
+      if (bgImage) {
+        this.backgroundImage = bgImage
+        const style = document.createElement('style')
+        style.innerHTML = `
+        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"]::before {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: url(${bgImage});
+          background-size: cover;
+          filter: blur(8px);
+          z-index: -1;
+          background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        }
+        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
+          backdrop-filter: none; /* Ensure the page content is not affected */
+        }`
+
+        document.head.appendChild(style)
+      }
+    },
     applyBorder() {
       if (this.borderChoice) {
         this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
@@ -579,6 +613,9 @@ window.windowMixin = {
       let borderStyleCSS
       if (borderStyle == 'hard-border') {
         borderStyleCSS = `box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #ffffff47; border: none;`
+      }
+      if (borderStyle == 'neon-border') {
+        borderStyleCSS = `border: 2px solid ${this.$q.localStorage.getItem('lnbits.primaryColor')}; box-shadow: none;`
       }
       if (borderStyle == 'no-border') {
         borderStyleCSS = `box-shadow: none; border: none;`
@@ -771,6 +808,7 @@ window.windowMixin = {
       )
     }
     this.applyGradient()
+    this.applyBackgroundImage()
     this.applyBorder()
     if (window.user) {
       this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
