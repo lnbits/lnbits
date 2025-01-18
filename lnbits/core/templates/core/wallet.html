@@ -47,7 +47,7 @@
                         'q-pt-sm': g.fiatTracking,
                         'q-pt-lg': !g.fiatTracking
                       }"
-                  v-if="!isPrioritySwapped"
+                  v-if="!isPrioritySwapped || !g.fiatTracking"
                   style="height: 90px"
                 >
                   <div class="col-7">
@@ -81,7 +81,7 @@
 
                 <div
                   class="column"
-                  v-if="isPrioritySwapped"
+                  v-if="isPrioritySwapped  && g.fiatTracking"
                   :class="{
                         'q-pt-sm': g.fiatTracking,
                         'q-pt-lg': !g.fiatTracking

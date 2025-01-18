@@ -502,6 +502,18 @@ window.WalletPageLogic = {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
         .then(response => {
+          console.log(response.data)
+          this.g.wallet = {...this.g.wallet, ...response.data}
+          const walletIndex = this.g.user.wallets.findIndex(
+            wallet => wallet.id === response.data.id
+          )
+          if (walletIndex !== -1) {
+            this.g.user.wallets[walletIndex] = {
+              ...this.g.user.wallets[walletIndex],
+              ...response.data
+            }
+            console.log(this.g.user.wallets[walletIndex])
+          }
           Quasar.Notify.create({
             message: 'Wallet and user updated.',
             type: 'positive',
@@ -674,8 +686,10 @@ window.WalletPageLogic = {
         this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
         this.isPrioritySwapped = false
         this.update.currency = ''
+        this.g.wallet.currency = ''
         this.updateWallet({currency: ''})
       } else {
+        this.g.wallet.currency = this.update.currency
         this.updateWallet({currency: this.update.currency})
         this.updateFiatBalance(this.update.currency)
       }
