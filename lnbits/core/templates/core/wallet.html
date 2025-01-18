@@ -27,7 +27,7 @@
             , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
           } : ''"
         >
-          <q-card-section>
+          <q-card-section style="height:130px">
             <div class="row">
               <div class="col-1" style="max-width: 30px">
                 <q-btn
@@ -48,7 +48,7 @@
                         'q-pt-lg': !g.fiatTracking
                       }"
                   v-if="!isPrioritySwapped || !g.fiatTracking"
-                  style="height: 90px"
+                  style="height: 100px"
                 >
                   <div class="col-7">
                     <div class="row">
