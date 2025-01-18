@@ -101,6 +101,8 @@ window.AccountPageLogic = {
     toggleGradient() {
       this.gradientChoice = !this.gradientChoice
       this.applyGradient()
+      this.$q.localStorage.set('lnbits.backgroundImage', '')
+      this.applyBorder()
       if (!this.gradientChoice) {
         window.location.reload()
       }
@@ -108,12 +110,20 @@ window.AccountPageLogic = {
     reactionChoiceFunc() {
       this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
     },
+    backgroundImageFunc() {
+      this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+      this.applyBackgroundImage()
+    },
     changeColor(newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
       this.setColors()
+      this.applyBorder()
       if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
         this.applyGradient()
+      }
+      if (this.$q.localStorage.getItem('lnbits.backgroundImage')) {
+        this.applyBackgroundImage()
       }
     },
     async updateAccount() {

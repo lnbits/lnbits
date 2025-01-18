@@ -576,6 +576,7 @@ window.windowMixin = {
       let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
       if (bgImage) {
         this.backgroundImage = bgImage
+        const style = document.createElement('style')
         style.innerHTML = `
         body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"]::before {
           content: '';
@@ -595,6 +596,7 @@ window.windowMixin = {
         body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
           backdrop-filter: none; /* Ensure the page content is not affected */
         }`
+
         document.head.appendChild(style)
       }
     },
