@@ -6,6 +6,7 @@ from uuid import uuid4
 from lnbits.core.crud.extensions import get_user_active_extensions_ids
 from lnbits.core.crud.wallets import get_wallets
 from lnbits.core.db import db
+from lnbits.core.models import UserAcls
 from lnbits.db import Connection, Filters, Page
 
 from ..models import (
@@ -185,3 +186,20 @@ async def get_user_from_account(
         super_user=account.is_super_user,
         has_password=account.password_hash is not None,
     )
+
+
+async def update_user_access_control_list(user_acls: UserAcls):
+    user_acls.updated_at = datetime.now(timezone.utc)
+    await db.update("accounts", user_acls)
+
+
+async def get_user_access_control_lists(
+    user_id: str, conn: Optional[Connection] = None
+) -> UserAcls:
+    user_acls = await (conn or db).fetchone(
+        "SELECT id, access_control_list FROM accounts WHERE id = :id",
+        {"id": user_id},
+        UserAcls,
+    )
+
+    return user_acls or UserAcls(id=user_id)

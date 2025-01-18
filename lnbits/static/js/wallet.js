@@ -202,6 +202,7 @@ window.WalletPageLogic = {
               'hiddenQrCodeContainer'
             ).innerHTML
           })
+          this.updatePayments = !this.updatePayments
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)

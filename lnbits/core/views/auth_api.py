@@ -11,12 +11,26 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
+from lnbits.core.crud.users import (
+    get_user_access_control_lists,
+    update_user_access_control_list,
+)
+from lnbits.core.models.misc import SimpleItem
+from lnbits.core.models.users import (
+    ApiTokenRequest,
+    ApiTokenResponse,
+    DeleteAccessControlList,
+    DeleteTokenRequest,
+    EndpointAccess,
+    UpdateAccessControlList,
+)
 from lnbits.core.services import create_user_account
 from lnbits.decorators import access_token_payload, check_user_exists
 from lnbits.helpers import (
     create_access_token,
     decrypt_internal_message,
     encrypt_internal_message,
+    get_api_routes,
     is_valid_email_address,
     is_valid_username,
 )
@@ -44,6 +58,7 @@ from ..models import (
     UpdateUserPassword,
     UpdateUserPubkey,
     User,
+    UserAcls,
     UserExtra,
 )
 
@@ -96,6 +111,124 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
     if not account:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User ID does not exist.")
     return _auth_success_response(account.username, account.id, account.email)
+
+
+@auth_router.get("/acl")
+async def api_get_user_acls(
+    request: Request,
+    user: User = Depends(check_user_exists),
+) -> UserAcls:
+    api_routes = get_api_routes(request.app.router.routes)
+
+    acls = await get_user_access_control_lists(user.id)
+
+    # Add missing/new endpoints to the ACLs
+    for acl in acls.access_control_list:
+        acl_api_routes = {**api_routes}
+        for route in api_routes.keys():
+            if acl.get_endpoint(route):
+                acl_api_routes.pop(route, None)
+
+        for path, name in acl_api_routes.items():
+            acl.endpoints.append(EndpointAccess(path=path, name=name))
+        acl.endpoints.sort(key=lambda e: e.name.lower())
+
+    return UserAcls(id=user.id, access_control_list=acls.access_control_list)
+
+
+@auth_router.put("/acl")
+@auth_router.patch("/acl")
+async def api_update_user_acl(
+    request: Request,
+    data: UpdateAccessControlList,
+    user: User = Depends(check_user_exists),
+) -> UserAcls:
+    account = await get_account(user.id)
+    if not account or not account.verify_password(data.password):
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
+
+    user_acls = await get_user_access_control_lists(user.id)
+    acl = user_acls.get_acl_by_id(data.id)
+    if acl:
+        user_acls.access_control_list.remove(acl)
+    else:
+        data.endpoints = []
+        data.id = uuid4().hex
+
+        api_routes = get_api_routes(request.app.router.routes)
+        for path, name in api_routes.items():
+            data.endpoints.append(EndpointAccess(path=path, name=name))
+
+    api_paths = get_api_routes(request.app.router.routes).keys()
+    data.endpoints = [e for e in data.endpoints if e.path in api_paths]
+    data.endpoints.sort(key=lambda e: e.name.lower())
+
+    user_acls.access_control_list.append(data)
+    user_acls.access_control_list.sort(key=lambda t: t.name.lower())
+    await update_user_access_control_list(user_acls)
+
+    return user_acls
+
+
+@auth_router.delete("/acl")
+async def api_delete_user_acl(
+    data: DeleteAccessControlList,
+    user: User = Depends(check_user_exists),
+):
+    account = await get_account(user.id)
+    if not account or not account.verify_password(data.password):
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
+
+    user_acls = await get_user_access_control_lists(user.id)
+    user_acls.delete_acl_by_id(data.id)
+    await update_user_access_control_list(user_acls)
+
+
+@auth_router.post("/acl/token")
+async def api_create_user_api_token(
+    data: ApiTokenRequest,
+    user: User = Depends(check_user_exists),
+) -> ApiTokenResponse:
+    assert data.expiration_time_minutes > 0, "Expiration time must be in the future."
+    account = await get_account(user.id)
+    if not account or not account.verify_password(data.password):
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
+
+    assert account.username, "Username must be configured."
+
+    acls = await get_user_access_control_lists(user.id)
+    acl = acls.get_acl_by_id(data.acl_id)
+    if not acl:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid ACL id.")
+
+    api_token_id = uuid4().hex
+    api_token = _auth_api_token_response(
+        account.username, api_token_id, data.expiration_time_minutes
+    )
+
+    acl.token_id_list.append(SimpleItem(id=api_token_id, name=data.token_name))
+    await update_user_access_control_list(acls)
+    return ApiTokenResponse(id=api_token_id, api_token=api_token)
+
+
+@auth_router.delete("/acl/token")
+async def api_delete_user_api_token(
+    data: DeleteTokenRequest,
+    user: User = Depends(check_user_exists),
+):
+
+    account = await get_account(user.id)
+    if not account or not account.verify_password(data.password):
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
+
+    assert account.username, "Username must be configured."
+
+    acls = await get_user_access_control_lists(user.id)
+    acl = acls.get_acl_by_id(data.acl_id)
+    if not acl:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid ACL id.")
+    acl.delete_token_by_id(data.id)
+    await update_user_access_control_list(acls)
 
 
 @auth_router.get("/{provider}", description="SSO Provider")
@@ -368,6 +501,17 @@ def _auth_success_response(
     response.delete_cookie("is_access_token_expired")
 
     return response
+
+
+def _auth_api_token_response(
+    username: str, api_token_id: str, token_expire_minutes: int
+):
+    payload = AccessTokenPayload(
+        sub=username, api_token_id=api_token_id, auth_time=int(time())
+    )
+    return create_access_token(
+        data=payload.dict(), token_expire_minutes=token_expire_minutes
+    )
 
 
 def _auth_redirect_response(path: str, email: str) -> RedirectResponse:

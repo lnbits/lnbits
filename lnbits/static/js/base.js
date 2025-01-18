@@ -795,7 +795,9 @@ window.windowMixin = {
     }
   },
   mounted() {
-    this.paymentEvents()
+    if (this.g.user) {
+      this.paymentEvents()
+    }
   }
 }
 
