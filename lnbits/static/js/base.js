@@ -468,7 +468,7 @@ window.windowMixin = {
       reactionChoice: 'confettiTop',
       borderChoice: '',
       gradientChoice:
-        this.$q.localStorage.getItem('lnbits.gradientBg') || false,
+        this.$q.localStorage.getItem('lnbits.gradientBg') || USE_DEFAULT_GRADIENT,
       isUserAuthorized: false,
       walletEventListeners: [],
       backgroundImage: ''
@@ -550,7 +550,7 @@ window.windowMixin = {
     applyGradient() {
       darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
       primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
-      if (this.gradientChoice) {
+      if (this.gradientChoice || USE_DEFAULT_GRADIENT) {
         this.$q.localStorage.set('lnbits.gradientBg', true)
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
         document.body.style.setProperty(
@@ -573,8 +573,8 @@ window.windowMixin = {
       }
     },
     applyBackgroundImage() {
-      if (this.backgroundImage) {
-        this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+      if (this.backgroundImage || USE_DEFAULT_BGIMAGE != 'none') {
+        this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage || USE_DEFAULT_BGIMAGE)
         this.gradientChoice = true
         this.applyGradient()
       }
@@ -764,6 +764,7 @@ window.windowMixin = {
     }
   },
   async created() {
+    console.log(USE_DEFAULT_BGIMAGE)
     if (
       this.$q.localStorage.getItem('lnbits.darkMode') == true ||
       this.$q.localStorage.getItem('lnbits.darkMode') == false
@@ -773,7 +774,7 @@ window.windowMixin = {
       this.$q.dark.set(true)
     }
     this.reactionChoice =
-      this.$q.localStorage.getItem('lnbits.reactions') || 'confettiTop'
+      this.$q.localStorage.getItem('lnbits.reactions') || USE_DEFAULT_REACTION
 
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
@@ -795,7 +796,7 @@ window.windowMixin = {
 
     // failsafe if admin changes themes halfway
     if (!this.$q.localStorage.getItem('lnbits.theme')) {
-      this.changeColor(this.g.allowedThemes[0])
+      this.changeColor(this.g.allowedThemes[0] || USE_DEFAULT_THEME)
     }
     if (
       this.$q.localStorage.getItem('lnbits.theme') &&
@@ -806,10 +807,10 @@ window.windowMixin = {
       this.changeColor(this.g.allowedThemes[0])
     }
 
-    if (this.$q.localStorage.getItem('lnbits.theme')) {
+    if (this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME) {
       document.body.setAttribute(
         'data-theme',
-        this.$q.localStorage.getItem('lnbits.theme')
+        this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME
       )
     }
     this.applyGradient()

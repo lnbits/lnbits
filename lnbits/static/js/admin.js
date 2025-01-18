@@ -29,11 +29,6 @@ window.AdminPageLogic = {
         'neon-border',
         'no-border'
       ],
-      globalBorderChoice: 'hard-border',
-      globalBgImageChoice: '',
-      globalGradientChoice: false,
-      globalThemeChoice: 'classic',
-      globalReactionChoice: 'confettiBothSides',
       auditData: {},
       statusData: {},
       statusDataTable: {

@@ -157,7 +157,7 @@
       <div class="row q-col-gutter-md">
         <div class="col">
           <q-select
-          v-model="globalBorderChoice"
+          v-model="formData.lnbits_default_border"
           :options="globalBorderOptions"
           label="Border"
           @update:model-value="applyGlobalBorder"
@@ -166,7 +166,7 @@
         </div>
         <div class="col">
           <q-select
-          v-model="globalThemeChoice"
+          v-model="formData.lnbits_default_theme"
           :options="lnbits_theme_options"
           label="Theme"
           @update:model-value="applyGlobalTHeme"
@@ -175,7 +175,7 @@
         </div>
         <div class="col">
           <q-select
-          v-model="globalReactionChoice"
+          v-model="formData.lnbits_default_reaction"
           :options="reactionOptions"
           label="Payment reaction"
           @update:model-value="applyGlobalReaction"
@@ -184,7 +184,7 @@
         </div>
         <div class="col">
           <q-input
-          v-model="globalBgImageChoice"
+          v-model="formData.lnbits_default_bgimage"
           label="Background Image"
           @update:model-value="applyGlobalBorder"
         >
@@ -192,7 +192,7 @@
         </div>
         <div class="col">
           <q-toggle
-          v-model="globalGradientChoice"
+          v-model="formData.lnbits_default_gradient"
           color="primary"
           label="Gradient Background"
         >

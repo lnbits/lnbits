@@ -326,6 +326,11 @@
             const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
             const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
             const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
+            const USE_DEFAULT_REACTION = {{ USE_DEFAULT_REACTION | tojson }}
+            const USE_DEFAULT_THEME = {{ USE_DEFAULT_THEME | tojson }}
+            const USE_DEFAULT_BORDER = {{ USE_DEFAULT_BORDER | tojson }}
+            const USE_DEFAULT_GRADIENT = {{ USE_DEFAULT_GRADIENT or False | tojson }}
+            const USE_DEFAULT_BGIMAGE = {{ USE_DEFAULT_BGIMAGE | tojson }}
             if (themes && themes.length) {
               window.allowedThemes = themes.map(str => str.trim())
             }
