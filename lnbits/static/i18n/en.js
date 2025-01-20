@@ -215,7 +215,7 @@ window.localisation.en = {
   notification_credit_debit_desc:
     'Notify when a wallet has been credited/debited by the superuser',
 
-  enable_watchdog: 'Enable Watchdog',
+  enable_watchdog: 'Enable Watchdog Switch',
   enable_watchdog_desc:
     'If enabled it will change your funding source to VoidWallet automatically if your balance is lower than the LNbits balance. You will need to enable manually after an update.',
   watchdog_interval: 'Watchdog Interval',

@@ -36,7 +36,7 @@ NOTIFICATION_TEMPLATES = {
     "settings_update": """*SETTINGS UPDATED*
         User: `{username}`.
     """,
-    "balance_update": """*BALANCE UPDATED*
+    "balance_update": """*WALLET CREDIT/DEBIT*
         Wallet `{wallet_name}` balance updated with `{amount}` sats.
         *Current balance*: `{balance}` sats.
         *Wallet ID*: `{wallet_id}`
