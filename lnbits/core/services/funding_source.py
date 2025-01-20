@@ -23,7 +23,7 @@ async def get_balance_delta() -> BalanceDelta:
     lnbits_balance = await get_total_balance()
     return BalanceDelta(
         lnbits_balance_sats=lnbits_balance // 1000,
-        node_balance_sats=status.balance_msat // 100,
+        node_balance_sats=status.balance_msat // 1000,
     )
 
 

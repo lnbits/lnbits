@@ -94,7 +94,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
 
         await asyncio.sleep(1)
         balance = await get_node_balance_sats()
-        assert balance - prev_balance == create_invoice.amount // 1000
+        assert balance - prev_balance == create_invoice.amount
 
         # exit out of infinite loop
         raise FakeError()
