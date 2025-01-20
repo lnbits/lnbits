@@ -22,6 +22,7 @@ from lnbits.core.services import (
 )
 from lnbits.core.services.funding_source import (
     check_server_balance_against_node,
+    get_balance_delta,
 )
 from lnbits.core.services.notifications import (
     enqueue_notification,
@@ -60,7 +61,8 @@ async def run_by_the_minute_tasks():
                 failed_payments = await get_payments_paginated(
                     failed=True, filters=all_records
                 )
-                # TODO: lnbits balance, node balance
+
+                status = await get_balance_delta()
                 values = {
                     "up_time": settings.lnbits_server_up_time,
                     "accounts_count": accounts.total,
@@ -69,6 +71,9 @@ async def run_by_the_minute_tasks():
                     "out_payments_count": out_payments.total,
                     "pending_payments_count": pending_payments.total,
                     "failed_payments_count": failed_payments.total,
+                    "delta_sats": status.delta_sats,
+                    "lnbits_balance_sats": status.lnbits_balance_sats,
+                    "node_balance_sats": status.node_balance_sats,
                 }
                 enqueue_notification(NotificationType.server_status, values)
 

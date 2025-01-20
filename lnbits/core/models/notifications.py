@@ -18,13 +18,6 @@ class NotificationMessage(BaseModel):
     message_type: NotificationType
     values: dict
 
-    # *Up time*: `{up_time}` seconds.
-    # *Account count*: `{accounts_count}`.
-    # *Wallets count*: `{wallets_count}`.
-    # *Incoming payments*: `{in_payments_count}`.
-    # *Outgoing payments*: `{out_payments_count}`.
-    # *Pending payments*: `{pending_payments_count}`.
-
 
 NOTIFICATION_TEMPLATES = {
     "text_message": "{message}",
@@ -32,10 +25,10 @@ NOTIFICATION_TEMPLATES = {
         *Up time*: `{up_time}`.
         *Accounts*: `{accounts_count}`.
         *Wallets*: `{wallets_count}`.
-        *Incoming payments*: `{in_payments_count}`.
-        *Outgoing payments*: `{out_payments_count}`.
+        *In/Out payments*: `{in_payments_count}`/`{out_payments_count}`.
         *Pending payments*: `{pending_payments_count}`.
-        *Failed payments*: `{failed_payments_count}`.""",
+        *Failed payments*: `{failed_payments_count}`.
+        *LNbits balance*: `{lnbits_balance_sats}` sats.""",
     "server_start_stop": """*SERVER*
         {message}
         *Time*: `{up_time}` seconds.
