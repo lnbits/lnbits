@@ -21,7 +21,7 @@ from .helpers import (
 
 async def get_node_balance_sats():
     balance = await get_balance_delta()
-    return balance.node_balance_msats / 1000
+    return balance.node_balance_sats
 
 
 @pytest.mark.anyio
