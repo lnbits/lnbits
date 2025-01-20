@@ -4,6 +4,7 @@ from typing import Literal, Optional
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
+from lnbits.core.models.payments import PaymentsStatusCount
 from lnbits.db import DB_TYPE, SQLITE, Connection, Filters, Page
 
 from ..models import (
@@ -202,6 +203,21 @@ async def get_payments(
     )
 
     return page.data
+
+
+async def get_payments_status_count() -> PaymentsStatusCount:
+    empty_page = Filters(limit=0)
+    in_payments = await get_payments_paginated(incoming=True, filters=empty_page)
+    out_payments = await get_payments_paginated(outgoing=True, filters=empty_page)
+    pending_payments = await get_payments_paginated(pending=True, filters=empty_page)
+    failed_payments = await get_payments_paginated(failed=True, filters=empty_page)
+
+    return PaymentsStatusCount(
+        incoming=in_payments.total,
+        outgoing=out_payments.total,
+        pending=pending_payments.total,
+        failed=failed_payments.total,
+    )
 
 
 async def delete_expired_invoices(
