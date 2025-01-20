@@ -108,6 +108,10 @@ class PhoenixdWallet(Wallet):
                     data["descriptionHash"] = hashlib.sha256(desc.encode()).hexdigest()
                 else:
                     data["description"] = desc
+                    
+            # lnbits uses data["expiry"] but phoenixd uses data["expirySeconds"]
+            # if expiry is not set, it defaults to 3600 seconds (1 hour)
+            data["expirySeconds"] = data.get("expiry", 3600)
 
             r = await self.client.post(
                 "/createinvoice",
