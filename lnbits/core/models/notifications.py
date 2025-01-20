@@ -7,6 +7,7 @@ class NotificationType(Enum):
     server_status = "server_status"
     settings_update = "settings_update"
     balance_update = "balance_update"
+    watchdog_check = "watchdog_check"
     balance_delta = "balance_delta"
     server_start_stop = "server_start_stop"
     incoming_payment = "incoming_payment"
@@ -41,11 +42,17 @@ NOTIFICATION_TEMPLATES = {
         *Current balance*: `{balance}` sats.
         *Wallet ID*: `{wallet_id}`
         """,
-    "balance_delta": """*BALANCE DELTA*
+    "watchdog_check": """*WATCHDOG BALANCE CHECK*
         *Delta*: `{delta_sats}` sats.
         *LNbits balance*: `{lnbits_balance_sats}` sats.
         *Node balance*: `{node_balance_sats}` sats.
         *Switching to Void Wallet*: `{switch_to_void_wallet}`.
+        """,
+    "balance_delta": """*BALANCE DELTA*
+        *New delta*: `{delta_sats}` sats.
+        *Old delta*: `{old_delta_sats}` sats.
+        *LNbits balance*: `{lnbits_balance_sats}` sats.
+        *Node balance*: `{node_balance_sats}` sats.
         """,
     "outgoing_payment": """*PAYMENT SENT*
         *Amount*: {fiat_value_fmt}`{amount_sats}`*sats*.

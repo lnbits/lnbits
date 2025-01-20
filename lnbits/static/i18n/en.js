@@ -215,6 +215,10 @@ window.localisation.en = {
   notification_credit_debit_desc:
     'Notify when a wallet has been credited/debited by the superuser',
 
+  notification_balance_delta_changed: 'Balance Delta Changed',
+  notification_balance_delta_changed_desc:
+    'Notify when the diference between the node balance and the LNbits balance has changed even by 1 sat. This runs every minute.',
+
   enable_watchdog: 'Enable Watchdog Switch',
   enable_watchdog_desc:
     'If enabled it will change your funding source to VoidWallet automatically if your balance is lower than the LNbits balance. You will need to enable manually after an update.',

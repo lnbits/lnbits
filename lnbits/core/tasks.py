@@ -21,6 +21,7 @@ from lnbits.core.services import (
     send_payment_notification,
 )
 from lnbits.core.services.funding_source import (
+    check_balance_delta_changed,
     check_server_balance_against_node,
     get_balance_delta,
 )
@@ -40,18 +41,25 @@ async def run_by_the_minute_tasks():
     minute_counter = 0
     while settings.lnbits_running:
         status_minutes = settings.lnbits_notification_server_status_hours * 60
-        try:
-            if minute_counter % settings.lnbits_watchdog_interval_minutes == 0:
+
+        if settings.notification_balance_delta_changed:
+            try:
+                # runs by default every minute, the delta should not change that often
+                await check_balance_delta_changed()
+            except Exception as ex:
+                logger.error(ex)
+
+        if minute_counter % settings.lnbits_watchdog_interval_minutes == 0:
+            try:
                 await check_server_balance_against_node()
+            except Exception as ex:
+                logger.error(ex)
 
-        except Exception as ex:
-            logger.error(ex)
-
-        try:
-            if minute_counter % status_minutes == 0:
+        if minute_counter % status_minutes == 0:
+            try:
                 await _notify_server_status()
-        except Exception as ex:
-            logger.error(ex)
+            except Exception as ex:
+                logger.error(ex)
 
         minute_counter += 1
         await asyncio.sleep(60)
