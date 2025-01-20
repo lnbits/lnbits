@@ -14,12 +14,6 @@ from lnbits.settings import settings
 notifications_queue: asyncio.Queue = asyncio.Queue()
 
 
-def enqueue_text_notification(text: str):
-    enqueue_notification(
-        message_type=NotificationType.text_message, values={"message": text}
-    )
-
-
 def enqueue_notification(message_type: NotificationType, values: dict) -> None:
     if not is_message_type_enabled(message_type):
         return
