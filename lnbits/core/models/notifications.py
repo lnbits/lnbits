@@ -48,7 +48,7 @@ NOTIFICATION_TEMPLATES = {
         *Node balance*: `{node_balance_sats}` sats.
         *Switching to Void Wallet*: `{switch_to_void_wallet}`.
         """,
-    "balance_delta": """*BALANCE DELTA*
+    "balance_delta": """*BALANCE DELTA CHANGED*
         *New delta*: `{delta_sats}` sats.
         *Old delta*: `{old_delta_sats}` sats.
         *LNbits balance*: `{lnbits_balance_sats}` sats.
