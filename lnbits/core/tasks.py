@@ -12,7 +12,7 @@ from lnbits.core.crud import (
     mark_webhook_sent,
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
-from lnbits.core.crud.payments import get_payments_paginated
+from lnbits.core.crud.payments import get_payments_status_count
 from lnbits.core.crud.users import get_accounts
 from lnbits.core.crud.wallets import get_wallets_count
 from lnbits.core.models import AuditEntry, Payment
@@ -39,49 +39,43 @@ audit_queue: asyncio.Queue = asyncio.Queue()
 async def run_by_the_minute_tasks():
     minute_counter = 0
     while settings.lnbits_running:
+        status_minutes = settings.lnbits_notification_server_status_hours * 60
         try:
             if minute_counter % settings.lnbits_watchdog_interval_minutes == 0:
                 await check_server_balance_against_node()
-            status_minutes = settings.lnbits_notification_server_status_hours * 60
 
+        except Exception as ex:
+            logger.error(ex)
+
+        try:
             if minute_counter % status_minutes == 0:
-                all_records = Filters(limit=0)
-                accounts = await get_accounts(filters=all_records)
-
-                wallets_count = await get_wallets_count()
-                in_payments = await get_payments_paginated(
-                    incoming=True, filters=all_records
-                )
-                out_payments = await get_payments_paginated(
-                    outgoing=True, filters=all_records
-                )
-                pending_payments = await get_payments_paginated(
-                    pending=True, filters=all_records
-                )
-                failed_payments = await get_payments_paginated(
-                    failed=True, filters=all_records
-                )
-
-                status = await get_balance_delta()
-                values = {
-                    "up_time": settings.lnbits_server_up_time,
-                    "accounts_count": accounts.total,
-                    "wallets_count": wallets_count,
-                    "in_payments_count": in_payments.total,
-                    "out_payments_count": out_payments.total,
-                    "pending_payments_count": pending_payments.total,
-                    "failed_payments_count": failed_payments.total,
-                    "delta_sats": status.delta_sats,
-                    "lnbits_balance_sats": status.lnbits_balance_sats,
-                    "node_balance_sats": status.node_balance_sats,
-                }
-                enqueue_notification(NotificationType.server_status, values)
-
+                await _notify_server_status()
         except Exception as ex:
             logger.error(ex)
 
         minute_counter += 1
         await asyncio.sleep(60)
+
+
+async def _notify_server_status():
+    accounts = await get_accounts(filters=Filters(limit=0))
+    wallets_count = await get_wallets_count()
+    payments = await get_payments_status_count()
+
+    status = await get_balance_delta()
+    values = {
+        "up_time": settings.lnbits_server_up_time,
+        "accounts_count": accounts.total,
+        "wallets_count": wallets_count,
+        "in_payments_count": payments.incoming,
+        "out_payments_count": payments.outgoing,
+        "pending_payments_count": payments.pending,
+        "failed_payments_count": payments.failed,
+        "delta_sats": status.delta_sats,
+        "lnbits_balance_sats": status.lnbits_balance_sats,
+        "node_balance_sats": status.node_balance_sats,
+    }
+    enqueue_notification(NotificationType.server_status, values)
 
 
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
