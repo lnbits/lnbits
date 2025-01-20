@@ -302,13 +302,19 @@ def send_chat_payment_notification(wallet: Wallet, payment: Payment):
         "wallet_id": wallet.id,
         "wallet_name": wallet.name,
         "amount_sats": amount_sats,
+        "fiat_value_fmt": "",
     }
+    if payment.extra.get("wallet_fiat_currency", None):
+        amount_fiat = payment.extra.get("wallet_fiat_amount", None)
+        currency = payment.extra.get("wallet_fiat_currency", None)
+        values["fiat_value_fmt"] = f"`{amount_fiat}`*{currency}* / "
+
     if payment.is_out:
         if amount_sats >= settings.lnbits_notification_outgoing_payment_amount_sats:
-            enqueue_notification(NotificationType.outgoing_invoice, values)
+            enqueue_notification(NotificationType.outgoing_payment, values)
     else:
         if amount_sats >= settings.lnbits_notification_incoming_payment_amount_sats:
-            enqueue_notification(NotificationType.incoming_invoice, values)
+            enqueue_notification(NotificationType.incoming_payment, values)
 
 
 async def check_wallet_limits(
@@ -383,6 +389,7 @@ async def calculate_fiat_amounts(
             fiat_amounts["fiat_currency"] = currency
             fiat_amounts["fiat_amount"] = round(amount, ndigits=3)
             fiat_amounts["fiat_rate"] = amount_sat / amount
+            fiat_amounts["btc_rate"] = (amount / amount_sat) * 100_000_000
     else:
         amount_sat = int(amount)
 
@@ -394,6 +401,7 @@ async def calculate_fiat_amounts(
         fiat_amounts["wallet_fiat_currency"] = wallet_currency
         fiat_amounts["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
         fiat_amounts["wallet_fiat_rate"] = amount_sat / fiat_amount
+        fiat_amounts["wallet_btc_rate"] = (fiat_amount / amount_sat) * 100_000_000
 
     logger.debug(
         f"Calculated fiat amounts {wallet.id=} {amount=} {currency=}: {fiat_amounts=}"

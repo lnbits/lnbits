@@ -89,9 +89,9 @@ def is_message_type_enabled(message_type: NotificationType) -> bool:
         return settings.lnbits_notification_server_start_stop
     if message_type == NotificationType.server_status:
         return settings.lnbits_notification_server_status_hours > 0
-    if message_type == NotificationType.incoming_invoice:
+    if message_type == NotificationType.incoming_payment:
         return settings.lnbits_notification_incoming_payment_amount_sats > 0
-    if message_type == NotificationType.outgoing_invoice:
+    if message_type == NotificationType.outgoing_payment:
         return settings.lnbits_notification_outgoing_payment_amount_sats > 0
 
     return False
