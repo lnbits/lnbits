@@ -40,7 +40,7 @@ async def run_by_the_minute_tasks():
     while settings.lnbits_running:
         try:
             if minute_counter % settings.lnbits_watchdog_interval_minutes == 0:
-                await check_server_balance_against_node() # todo: change since last time
+                await check_server_balance_against_node()
             status_minutes = settings.lnbits_notification_server_status_hours * 60
 
             if minute_counter % status_minutes == 0:
@@ -72,7 +72,6 @@ async def run_by_the_minute_tasks():
                 }
                 enqueue_notification(NotificationType.server_status, values)
 
-                print("#### values", values)
         except Exception as ex:
             logger.error(ex)
 

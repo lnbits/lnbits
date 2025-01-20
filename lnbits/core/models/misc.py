@@ -25,12 +25,12 @@ class Callback(BaseModel):
 
 
 class BalanceDelta(BaseModel):
-    lnbits_balance_msats: int
-    node_balance_msats: int
+    lnbits_balance_sats: int
+    node_balance_sats: int
 
     @property
     def delta_sats(self) -> int:
-        return (self.lnbits_balance_msats - self.node_balance_msats) // 1000
+        return int(self.lnbits_balance_sats - self.node_balance_sats)
 
 
 class SimpleStatus(BaseModel):

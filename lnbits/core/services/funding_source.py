@@ -22,8 +22,8 @@ async def get_balance_delta() -> BalanceDelta:
     status = await funding_source.status()
     lnbits_balance = await get_total_balance()
     return BalanceDelta(
-        lnbits_balance_msats=lnbits_balance,
-        node_balance_msats=status.balance_msat,
+        lnbits_balance_sats=lnbits_balance,
+        node_balance_sats=status.balance_msat,
     )
 
 
@@ -55,8 +55,8 @@ async def check_server_balance_against_node():
         NotificationType.balance_delta,
         {
             "delta_sats": status.delta_sats,
-            "lnbits_balance_sats": status.lnbits_balance_msats // 1000,
-            "node_balance_sats": status.node_balance_msats // 1000,
+            "lnbits_balance_sats": status.lnbits_balance_sats,
+            "node_balance_sats": status.node_balance_sats,
             "switch_to_void_wallet": use_voidwallet,
         },
     )

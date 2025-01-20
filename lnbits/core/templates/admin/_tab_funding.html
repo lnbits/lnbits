@@ -15,15 +15,15 @@
               v-text="$t('funding_source', {wallet_class: settings.lnbits_backend_wallet_class})"
             ></li>
             <li
-              v-text="$t('node_balance', {balance: (auditData.node_balance_msats / 1000).toLocaleString()})"
+              v-text="$t('node_balance', {balance: auditData.node_balance_sats.toLocaleString()})"
             ></li>
             <li
-              v-text="$t('lnbits_balance', {balance: (auditData.lnbits_balance_msats / 1000).toLocaleString()})"
+              v-text="$t('lnbits_balance', {balance: auditData.lnbits_balance_sats.toLocaleString()})"
             ></li>
             <li
               v-text="$t('funding_reserve_percent', {
-                percent: auditData.lnbits_balance_msats > 0
-                  ? (auditData.node_balance_msats / auditData.lnbits_balance_msats * 100).toFixed(2)
+                percent: auditData.lnbits_balance_sats > 0
+                  ? (auditData.node_balance_sats / auditData.lnbits_balance_sats * 100).toFixed(2)
                   : 100
               })"
             ></li>
