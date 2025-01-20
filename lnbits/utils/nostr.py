@@ -1,13 +1,24 @@
 import base64
 import hashlib
 import json
-from typing import Dict, Union
+import re
+from dataclasses import dataclass
+from typing import Dict, Tuple, Union
+from urllib.parse import urlparse
 
 import secp256k1
 from bech32 import bech32_decode, bech32_encode, convertbits
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
+from nostr.event import Event, EventKind
+from nostr.key import PrivateKey
+
+
+def generate_keypair() -> Tuple[str, str]:
+    private_key = PrivateKey()
+    public_key = private_key.public_key
+    return private_key.hex(), public_key.hex()
 
 
 def encrypt_content(
@@ -188,3 +199,80 @@ def hex_to_npub(hex_pubkey: str) -> str:
     bits = convertbits(pubkey_bytes, 8, 5, True)
     assert bits
     return bech32_encode("npub", bits)
+
+
+def normalize_identifier(identifier: str):
+    identifier = identifier.lower().split("@")[0]
+    validate_identifier(identifier)
+    return identifier
+
+
+def validate_pub_key(pubkey: str) -> str:
+    if pubkey.startswith("npub"):
+        _, data = bech32_decode(pubkey)
+        if data:
+            decoded_data = convertbits(data, 5, 8, False)
+            if decoded_data:
+                pubkey = bytes(decoded_data).hex()
+    try:
+        _hex = bytes.fromhex(pubkey)
+    except Exception as exc:
+        raise ValueError("Pubkey must be in npub or hex format.") from exc
+
+    if len(_hex) != 32:
+        raise ValueError("Pubkey length incorrect.")
+
+    return pubkey
+
+
+def validate_identifier(local_part: str):
+    regex = re.compile(r"^[a-z0-9_.]+$")
+    if not re.fullmatch(regex, local_part.lower()):
+        raise ValueError(
+            f"Identifier '{local_part}' not allowed! "
+            "Only a-z, 0-9 and .-_ are allowed characters, case insensitive."
+        )
+
+
+def is_ws_url(url):
+    try:
+        result = urlparse(url)
+        if not all([result.scheme, result.netloc]):
+            return False
+        return result.scheme in ["ws", "wss"]
+    except ValueError:
+        return False
+
+
+@dataclass
+class EncryptedDirectMessage(Event):
+    recipient_pubkey: str = None
+    cleartext_content: str = None
+    reference_event_id: str = None
+
+    def __post_init__(self):
+        if self.content is not None:
+            self.cleartext_content = self.content
+            self.content = None
+
+        if self.recipient_pubkey is None:
+            raise Exception("Must specify a recipient_pubkey.")
+
+        self.kind = EventKind.ENCRYPTED_DIRECT_MESSAGE
+        super().__post_init__()
+
+        # Must specify the DM recipient's pubkey in a 'p' tag
+        self.add_pubkey_ref(self.recipient_pubkey)
+
+        # Optionally specify a reference event (DM) this is a reply to
+        if self.reference_event_id is not None:
+            self.add_event_ref(self.reference_event_id)
+
+    @property
+    def id(self) -> str:
+        if self.content is None:
+            raise Exception(
+                "EncryptedDirectMessage `id` is undefined until its message"
+                " is encrypted and stored in the `content` field"
+            )
+        return super().id
