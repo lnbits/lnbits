@@ -52,7 +52,7 @@ async def check_server_balance_against_node():
         f" Switch to void wallet: {use_voidwallet}."
     )
     enqueue_notification(
-        NotificationType.balance_delta,
+        NotificationType.watchdog_check,
         {
             "delta_sats": status.delta_sats,
             "lnbits_balance_sats": status.lnbits_balance_sats,
@@ -63,3 +63,21 @@ async def check_server_balance_against_node():
     if use_voidwallet:
         logger.error(f"Switching to VoidWallet. Delta: {status.delta_sats} sats.")
         await switch_to_voidwallet()
+
+
+async def check_balance_delta_changed():
+    status = await get_balance_delta()
+    if settings.latest_balance_delta_sats is None:
+        settings.latest_balance_delta_sats = status.delta_sats
+        return
+    if status.delta_sats != settings.latest_balance_delta_sats:
+        enqueue_notification(
+            NotificationType.balance_delta,
+            {
+                "delta_sats": status.delta_sats,
+                "old_delta_sats": settings.latest_balance_delta_sats,
+                "lnbits_balance_sats": status.lnbits_balance_sats,
+                "node_balance_sats": status.node_balance_sats,
+            },
+        )
+    settings.latest_balance_delta_sats = status.delta_sats

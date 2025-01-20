@@ -196,6 +196,28 @@
         <q-item tag="label" v-ripple>
           <q-item-section>
             <q-item-label
+              v-text="$t('notification_balance_delta_changed')"
+            ></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('notification_balance_delta_changed_desc')"
+            ></q-item-label>
+          </q-item-section>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.notification_balance_delta_changed"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-12">
+        <q-item tag="label" v-ripple>
+          <q-item-section>
+            <q-item-label
               v-text="$t('notification_watchdog_limit')"
             ></q-item-label>
             <q-item-label
