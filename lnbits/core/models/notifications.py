@@ -9,8 +9,8 @@ class NotificationType(Enum):
     balance_update = "balance_update"
     balance_delta = "balance_delta"
     server_start_stop = "server_start_stop"
-    incoming_invoice = "incoming_invoice"
-    outgoing_invoice = "outgoing_invoice"
+    incoming_payment = "incoming_payment"
+    outgoing_payment = "outgoing_payment"
     text_message = "text_message"
 
 
@@ -47,11 +47,11 @@ NOTIFICATION_TEMPLATES = {
         *Node balance*: `{node_balance_sats}` sats.
         *Switching to Void Wallet*: `{switch_to_void_wallet}`.
         """,
-    "outgoing_invoice": """*OUTGOING INVOICE*
+    "outgoing_payment": """*PAYMENT SENT*
+        *Amount*: {fiat_value_fmt}`{amount_sats}`*sats*.
+        *Wallet*: `{wallet_name}` ({wallet_id}).""",
+    "incoming_payment": """*PAYMENT RECEIVED*
+        *Amount*: {fiat_value_fmt}`{amount_sats}`*sats*.
         *Wallet*: `{wallet_name}` ({wallet_id}).
-        *Amount*: `{amount_sats}` sats.""",
-    "incoming_invoice": """*INCOMING INVOICE*
-        *Wallet*: `{wallet_name}` ({wallet_id}).
-        *Amount*: `{amount_sats}` sats.
         """,
 }
