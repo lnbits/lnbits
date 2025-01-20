@@ -524,6 +524,7 @@
         filled
         :label="$t('credit_label', {denomination: denomination})"
         v-model="scope.value"
+        type="number"
         dense
         autofocus
         @keyup.enter="updateBalance(scope)"

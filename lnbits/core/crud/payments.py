@@ -206,7 +206,7 @@ async def get_payments(
 
 
 async def get_payments_status_count() -> PaymentsStatusCount:
-    empty_page = Filters(limit=0)
+    empty_page: Filters = Filters(limit=0)
     in_payments = await get_payments_paginated(incoming=True, filters=empty_page)
     out_payments = await get_payments_paginated(outgoing=True, filters=empty_page)
     pending_payments = await get_payments_paginated(pending=True, filters=empty_page)
