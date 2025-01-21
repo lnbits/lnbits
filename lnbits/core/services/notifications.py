@@ -11,7 +11,7 @@ from lnbits.core.models.notifications import (
 )
 from lnbits.core.services.nostr import fetch_nip5_details, send_nostr_dm
 from lnbits.settings import settings
-from lnbits.utils.nostr import normalize_public_key
+from lnbits.utils.nostr import normalize_private_key
 
 notifications_queue: asyncio.Queue = asyncio.Queue()
 
@@ -56,15 +56,15 @@ async def send_nostr_notification(message: str) -> dict:
     for i in settings.lnbits_nostr_notifications_identifiers:
         try:
             identifier = await fetch_nip5_details(i)
-            pubkey = identifier[0]
+            user_pubkey = identifier[0]
             relays = identifier[1]
-            server_private_key = normalize_public_key(
+            server_private_key = normalize_private_key(
                 settings.lnbits_nostr_notifications_private_key
             )
             await send_nostr_dm(
                 server_private_key,
-                pubkey,
-                "message",
+                user_pubkey,
+                message,
                 relays,
             )
         except Exception as e:

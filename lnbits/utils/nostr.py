@@ -164,22 +164,30 @@ def json_dumps(data: Union[Dict, list]) -> str:
     return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
 
 
-def normalize_public_key(pubkey: str) -> str:
-    if pubkey.startswith("npub1") or pubkey.startswith("nsec1"):
-        _, decoded_data = bech32_decode(pubkey)
-        assert decoded_data, "Public Key is not valid npub."
+def normalize_public_key(key: str) -> str:
+    return normalize_bech32_key("npub1", key)
+
+
+def normalize_private_key(key: str) -> str:
+    return normalize_bech32_key("nsec1", key)
+
+
+def normalize_bech32_key(hrp: str, key: str) -> str:
+    if key.startswith(hrp):
+        _, decoded_data = bech32_decode(key)
+        assert decoded_data, f"Key is not valid {hrp}."
 
         decoded_data_bits = convertbits(decoded_data, 5, 8, False)
-        assert decoded_data_bits, "Public Key is not valid npub."
+        assert decoded_data_bits, f"Key is not valid {hrp}."
 
         return bytes(decoded_data_bits).hex()
 
-    assert len(pubkey) == 64, "Public key has wrong length."
+    assert len(key) == 64, "Key has wrong length."
     try:
-        int(pubkey, 16)
+        int(key, 16)
     except Exception as exc:
-        raise AssertionError("Public Key is not valid hex.") from exc
-    return pubkey
+        raise AssertionError("Key is not valid hex.") from exc
+    return key
 
 
 def hex_to_npub(hex_pubkey: str) -> str:

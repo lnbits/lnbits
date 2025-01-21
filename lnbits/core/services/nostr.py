@@ -1,9 +1,9 @@
+import asyncio
 from typing import Tuple
 
 import httpx
 from loguru import logger
 from pynostr.encrypted_dm import EncryptedDirectMessage
-from pynostr.key import PrivateKey
 from websocket import create_connection
 
 from lnbits.core.helpers import is_valid_url
@@ -14,32 +14,27 @@ from lnbits.utils.nostr import (
 
 
 async def send_nostr_dm(
-    from_privkey: str,
-    to_pubkey: str,
+    from_private_key_hex: str,
+    to_pubkey_hex: str,
     message: str,
     relays: list[str],
 ) -> dict:
-    print("### private_key", from_privkey)
-    # private_key_hex = PrivateKey(bytes.fromhex(from_privkey))
-
     dm = EncryptedDirectMessage()
     dm.encrypt(
-        private_key_hex=from_privkey,
-        recipient_pubkey=to_pubkey,
+        private_key_hex=from_private_key_hex,
+        recipient_pubkey=to_pubkey_hex,
         cleartext_content=message,
     )
 
     dm_event = dm.to_event()
-    dm_event.sign(private_key_hex=from_privkey)
-    message = dm_event.to_message()
+    dm_event.sign(private_key_hex=from_private_key_hex)
+    notification = dm_event.to_message()
 
     for relay in relays:
         try:
             ws = create_connection(relay, timeout=2)
-            # TODO: test with clients
-            # Does not work as expected at the moment
-            ws.send(message)
-            print("### message", message)
+            ws.send(notification)
+            await asyncio.sleep(1)
             ws.close()
         except Exception as e:
             logger.warning(f"Error sending notification to relay {relay}: {e}")
