@@ -19,17 +19,18 @@ async def send_nostr_dm(
     message: str,
     relays: list[str],
 ) -> dict:
-    private_key = PrivateKey(bytes.fromhex(from_privkey))
+    print("### private_key", from_privkey)
+    # private_key_hex = PrivateKey(bytes.fromhex(from_privkey))
 
     dm = EncryptedDirectMessage()
     dm.encrypt(
-        private_key.hex(),
+        private_key_hex=from_privkey,
         recipient_pubkey=to_pubkey,
         cleartext_content=message,
     )
 
     dm_event = dm.to_event()
-    dm_event.sign(private_key.hex())
+    dm_event.sign(private_key_hex=from_privkey)
     message = dm_event.to_message()
 
     for relay in relays:
@@ -38,6 +39,7 @@ async def send_nostr_dm(
             # TODO: test with clients
             # Does not work as expected at the moment
             ws.send(message)
+            print("### message", message)
             ws.close()
         except Exception as e:
             logger.warning(f"Error sending notification to relay {relay}: {e}")
