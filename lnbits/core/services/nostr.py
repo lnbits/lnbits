@@ -35,6 +35,8 @@ async def send_nostr_dm(
     for relay in relays:
         try:
             ws = create_connection(relay, timeout=2)
+            # TODO: test with clients
+            # Does not work as expected at the moment
             ws.send(message)
             ws.close()
         except Exception as e:
