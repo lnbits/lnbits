@@ -150,7 +150,6 @@ window.WalletPageLogic = {
       this.g.wallet.sat = this.g.wallet.sat + value
     },
     createInvoice() {
-      console.log('Creating invoice...')
       this.receive.status = 'loading'
       if (LNBITS_DENOMINATION != 'sats') {
         this.receive.data.amount = this.receive.data.amount * 100
@@ -503,7 +502,6 @@ window.WalletPageLogic = {
       LNbits.api
         .request('PATCH', '/api/v1/wallet', this.g.wallet.adminkey, data)
         .then(response => {
-          console.log(response.data)
           this.g.wallet = {...this.g.wallet, ...response.data}
           const walletIndex = this.g.user.wallets.findIndex(
             wallet => wallet.id === response.data.id
@@ -513,7 +511,6 @@ window.WalletPageLogic = {
               ...this.g.user.wallets[walletIndex],
               ...response.data
             }
-            console.log(this.g.user.wallets[walletIndex])
           }
           Quasar.Notify.create({
             message: 'Wallet and user updated.',
@@ -553,11 +550,9 @@ window.WalletPageLogic = {
           (this.g.exchangeRate / 100000000) * this.g.wallet.sat
         this.formatFiatAmount(this.g.fiatBalance, currency)
       }
-      // make api call
       LNbits.api
         .request('GET', `/api/v1/rate/` + currency, null)
         .then(response => {
-          //wrap in if to avoid race condition switching between wallets
           if (this.g.wallet.currency == currency) {
             this.g.fiatBalance =
               (response.data.price / 100000000) * this.g.wallet.sat
@@ -573,7 +568,7 @@ window.WalletPageLogic = {
         .catch(e => console.error(e))
     },
     pasteToTextArea() {
-      this.$refs.textArea.focus() // Set cursor to textarea
+      this.$refs.textArea.focus()
       navigator.clipboard.readText().then(text => {
         this.parse.data.request = text.trim()
       })
@@ -708,7 +703,6 @@ window.WalletPageLogic = {
     }
   },
   created() {
-    console.log(this.g.wallet.currency)
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
       this.parse.data.request =
@@ -752,11 +746,9 @@ window.WalletPageLogic = {
     }
   },
   mounted() {
-    // show disclaimer
     if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
-      // Turn on payment reactions by default
       this.$q.localStorage.set('lnbits.reactions', 'confettiTop')
     }
     if (this.$q.localStorage.getItem('lnbits.isPrioritySwapped')) {
