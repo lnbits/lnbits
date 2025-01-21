@@ -9,7 +9,9 @@ from lnbits.core.models.notifications import (
     NotificationMessage,
     NotificationType,
 )
+from lnbits.core.services.nostr import fetch_nip5_details, send_nostr_dm
 from lnbits.settings import settings
+from lnbits.utils.nostr import normalize_private_key
 
 notifications_queue: asyncio.Queue = asyncio.Queue()
 
@@ -51,7 +53,23 @@ async def send_notification(
 
 
 async def send_nostr_notification(message: str) -> dict:
-    print("### todo nostr message", message)
+    for i in settings.lnbits_nostr_notifications_identifiers:
+        try:
+            identifier = await fetch_nip5_details(i)
+            user_pubkey = identifier[0]
+            relays = identifier[1]
+            server_private_key = normalize_private_key(
+                settings.lnbits_nostr_notifications_private_key
+            )
+            await send_nostr_dm(
+                server_private_key,
+                user_pubkey,
+                message,
+                relays,
+            )
+        except Exception as e:
+            logger.warning(f"Error notifying identifier {i}: {e}")
+
     return {"status": "ok"}
 
 

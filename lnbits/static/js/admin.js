@@ -41,6 +41,7 @@ window.AdminPageLogic = {
       formAddAdmin: '',
       formAddUser: '',
       formAddExtensionsManifest: '',
+      nostrNotificationIdentifier: '',
       formAllowedIPs: '',
       formBlockedIPs: '',
       nostrAcceptedUrl: '',
@@ -236,6 +237,23 @@ window.AdminPageLogic = {
       const manifests = this.formData.lnbits_extensions_manifests
       this.formData.lnbits_extensions_manifests = manifests.filter(
         m => m !== manifest
+      )
+    },
+    addNostrNotificationIdentifier() {
+      const identifer = this.nostrNotificationIdentifier.trim()
+      const identifiers = this.formData.lnbits_nostr_notifications_identifiers
+      if (identifer && identifer.length && !identifiers.includes(identifer)) {
+        this.formData.lnbits_nostr_notifications_identifiers = [
+          ...identifiers,
+          identifer
+        ]
+        this.nostrNotificationIdentifier = ''
+      }
+    },
+    removeNostrNotificationIdentifier(identifer) {
+      const identifiers = this.formData.lnbits_nostr_notifications_identifiers
+      this.formData.lnbits_nostr_notifications_identifiers = identifiers.filter(
+        m => m !== identifer
       )
     },
     async toggleServerLog() {
