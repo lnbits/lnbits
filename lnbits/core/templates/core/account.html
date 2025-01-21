@@ -426,6 +426,22 @@
                 </div>
                 <div class="row q-mb-md">
                   <div class="col-4">
+                    <span v-text="$t('background_image')"></span>
+                  </div>
+                  <div class="col-8">
+                    <q-input
+                      v-model="backgroundImage"
+                      :label="$t('background_image')"
+                      @update:model-value="backgroundImageFunc"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('background_image')"></span
+                      ></q-tooltip>
+                    </q-input>
+                  </div>
+                </div>
+                <div class="row q-mb-md">
+                  <div class="col-4">
                     <span v-text="$t('gradient_background')"></span>
                   </div>
                   <div class="col-8">
