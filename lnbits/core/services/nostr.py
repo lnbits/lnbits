@@ -1,13 +1,13 @@
-import time
 from typing import Tuple
 
 import httpx
-from nostr.key import PrivateKey
-from nostr.relay_manager import RelayManager
+from loguru import logger
+from pynostr.encrypted_dm import EncryptedDirectMessage
+from pynostr.key import PrivateKey
+from websocket import create_connection
 
 from lnbits.core.helpers import is_valid_url
 from lnbits.utils.nostr import (
-    EncryptedDirectMessage,
     validate_identifier,
     validate_pub_key,
 )
@@ -18,20 +18,29 @@ async def send_nostr_dm(
     to_pubkey: str,
     message: str,
     relays: list[str],
-    wait_for_ws_connection_seconds: int = 1,
 ) -> dict:
-    relay_manager = RelayManager()
-    for relay in relays:
-        relay_manager.add_relay(relay)
-    relay_manager.open_connections()
-    time.sleep(wait_for_ws_connection_seconds)
-
     private_key = PrivateKey(bytes.fromhex(from_privkey))
 
-    dm = EncryptedDirectMessage(recipient_pubkey=to_pubkey, cleartext_content=message)
-    private_key.sign_event(dm)
-    relay_manager.publish_event(dm)
-    relay_manager.close_connections()
+    dm = EncryptedDirectMessage()
+    dm.encrypt(
+        private_key.hex(),
+        recipient_pubkey=to_pubkey,
+        cleartext_content=message,
+    )
+
+    dm_event = dm.to_event()
+    dm_event.sign(private_key.hex())
+    message = dm_event.to_message()
+
+    for relay in relays:
+        try:
+            ws = create_connection(relay, timeout=2)
+            ws.send(message)
+            ws.close()
+        except Exception as e:
+            logger.warning(f"Error sending notification to relay {relay}: {e}")
+
+    return dm_event.to_dict()
 
 
 async def fetch_nip5_details(identifier: str) -> Tuple[str, list[str]]:
@@ -39,7 +48,7 @@ async def fetch_nip5_details(identifier: str) -> Tuple[str, list[str]]:
     if not identifier or not domain:
         raise ValueError("Invalid NIP5 identifier")
 
-    if not is_valid_url(domain):
+    if not is_valid_url(f"https://{domain}"):
         raise ValueError("Invalid NIP5 domain")
 
     validate_identifier(identifier)

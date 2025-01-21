@@ -58,8 +58,27 @@
           <q-item-section>
             <q-input
               filled
-              v-model="formData.lnbits_nostr_notifications_identifiers"
-            />
+              v-model="nostrNotificationIdentifier"
+              @keydown.enter="addNostrNotificationIdentifier"
+            >
+              <q-btn
+                @click="addNostrNotificationIdentifier()"
+                dense
+                flat
+                icon="add"
+              ></q-btn>
+            </q-input>
+            <div>
+              <q-chip
+                v-for="identifier in formData.lnbits_nostr_notifications_identifiers"
+                :key="identifier"
+                removable
+                @remove="removeNostrNotificationIdentifier(identifier)"
+                color="primary"
+                text-color="white"
+                ><span class="ellipsis" v-text="identifier"></span
+              ></q-chip>
+            </div>
           </q-item-section>
         </q-item>
       </div>
