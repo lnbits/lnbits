@@ -324,7 +324,6 @@
                 borderless
                 class="editable-price"
                 v-model.number="receive.data.amount"
-                :hint="$t('amount')+' ({{LNBITS_DENOMINATION}}) *'"
                 mask="#.##"
                 fill-mask="0"
                 reverse-fill-mask
@@ -353,7 +352,6 @@
                   :pattern="receive.unit === 'sat' ? '\\d*' : '\\d*\\.?\\d*'"
                   inputmode="numeric"
                   v-model.number="receive.data.amount"
-                  :hint="$t('amount') + ' (' + receive.unit + ') *'"
                   :min="receive.minMax[0]"
                   :max="receive.minMax[1]"
                   :readonly="receive.lnurl && receive.lnurl.fixed"
