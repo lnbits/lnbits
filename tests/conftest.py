@@ -12,14 +12,14 @@ from lnbits.app import create_app
 from lnbits.core.crud import (
     create_wallet,
     delete_account,
-    get_account,
     get_account_by_username,
     get_payment,
-    get_user_from_account,
     update_payment,
 )
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
+from lnbits.core.models.users import UpdateSuperuserPassword
 from lnbits.core.services import create_user_account, update_wallet_balance
+from lnbits.core.views.auth_api import first_install
 from lnbits.core.views.payment_api import _api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import AuthMethods, Settings
@@ -62,7 +62,15 @@ def run_before_and_after_tests(settings: Settings):
 async def app(settings: Settings):
     app = create_app()
     async with LifespanManager(app) as manager:
-        settings.first_install = False
+        settings.first_install = True
+        await first_install(
+            UpdateSuperuserPassword(
+                username="superadmin",
+                password="secret1234",
+                password_repeat="secret1234",
+            )
+        )
+
         yield manager.app
 
 
@@ -159,11 +167,13 @@ def from_super_user(from_user: User, settings: Settings):
 
 
 @pytest.fixture(scope="session")
-async def superuser(settings: Settings):
-    account = await get_account(settings.super_user)
-    assert account, "Superuser not found"
-    user = await get_user_from_account(account)
-    yield user
+async def superuser_token(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/auth", json={"username": "superadmin", "password": "secret1234"}
+    )
+    client.cookies.clear()
+
+    yield response.json().get("access_token")
 
 
 @pytest.fixture(scope="session")
@@ -307,3 +317,4 @@ def _settings_cleanup(settings: Settings):
     settings.lnbits_service_fee = 0
     settings.lnbits_wallet_limit_daily_max_withdraw = 0
     settings.lnbits_admin_extensions = []
+    settings.lnbits_admin_users = []

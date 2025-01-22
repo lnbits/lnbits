@@ -154,11 +154,6 @@ async def check_user_exists(
     if not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not allowed.")
 
-    if account.is_admin and not account.has_credentials():
-        raise HTTPException(
-            HTTPStatus.UNAUTHORIZED, "Admin users must have credentials configured."
-        )
-
     user = await get_user_from_account(account)
     if not user:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
@@ -195,6 +190,10 @@ async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "User not authorized. No admin privileges."
         )
+    if not user.has_password:
+        raise HTTPException(
+            HTTPStatus.UNAUTHORIZED, "Admin users must have credentials configured."
+        )
 
     return user
 
@@ -203,6 +202,10 @@ async def check_super_user(user: Annotated[User, Depends(check_user_exists)]) ->
     if user.id != settings.super_user:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "User not authorized. No super user privileges."
+        )
+    if not user.has_password:
+        raise HTTPException(
+            HTTPStatus.UNAUTHORIZED, "Super user must have credentials configured."
         )
     return user
 
