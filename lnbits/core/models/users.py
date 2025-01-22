@@ -132,6 +132,9 @@ class Account(BaseModel):
         if user_uuid4.hex != self.id:
             raise ValueError("User ID is not valid UUID4 hex string.")
 
+    def has_credentials(self):
+        return self.username and self.password_hash
+
 
 class AccountOverview(Account):
     transaction_count: Optional[int] = 0

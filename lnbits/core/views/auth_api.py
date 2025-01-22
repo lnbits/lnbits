@@ -110,6 +110,10 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
     account = await get_account(data.usr)
     if not account:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User ID does not exist.")
+    if account.is_admin and not account.has_credentials():
+        raise HTTPException(
+            HTTPStatus.UNAUTHORIZED, "Admin users must have credentials configured."
+        )
     return _auth_success_response(account.username, account.id, account.email)
 
 

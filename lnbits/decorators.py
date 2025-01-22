@@ -154,6 +154,11 @@ async def check_user_exists(
     if not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not allowed.")
 
+    if account.is_admin and not account.has_credentials():
+        raise HTTPException(
+            HTTPStatus.UNAUTHORIZED, "Admin users must have credentials configured."
+        )
+
     user = await get_user_from_account(account)
     if not user:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
