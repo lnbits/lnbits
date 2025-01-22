@@ -500,6 +500,7 @@ class BreezSdkFundingSource(LNbitsSettings):
     breez_greenlight_invite_code: Optional[str] = Field(default=None)
     breez_greenlight_device_key: Optional[str] = Field(default=None)
     breez_greenlight_device_cert: Optional[str] = Field(default=None)
+    breez_use_trampoline: bool = Field(default=False)
 
 
 class BoltzFundingSource(LNbitsSettings):
