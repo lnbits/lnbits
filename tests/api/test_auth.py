@@ -90,6 +90,7 @@ async def test_login_usr_not_allowed_for_admin_without_credentials(
     # Login with user ID
     login_data = LoginUsr(usr=account.id)
     response = await http_client.post("/api/v1/auth/usr", json=login_data.dict())
+    http_client.cookies.clear()
     assert response.status_code == 200, "User logs in OK."
     access_token = response.json().get("access_token")
     assert access_token is not None, "Expected access token after login."
@@ -107,9 +108,19 @@ async def test_login_usr_not_allowed_for_admin_without_credentials(
     )
 
     response = await http_client.get("/admin/api/v1/settings", headers=headers)
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert (
         response.json().get("detail") == "Admin users must have credentials configured."
+    )
+
+    # User only access should not be allowed
+    response = await http_client.get(
+        f"/admin/api/v1/settings?usr={settings.super_user}"
+    )
+    print("### response", response.text)
+    assert response.status_code == 403
+    assert (
+        response.json().get("detail") == "User id only access for admins is forbidden."
     )
 
     response = await http_client.get("/api/v1/status", headers=headers)
