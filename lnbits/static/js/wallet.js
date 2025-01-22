@@ -97,6 +97,17 @@ window.WalletPageLogic = {
         .formatCurrency(0, this.receive.unit)
         .replace(/[\d.\s]/g, '')
         .trim()
+    },
+    isValid() {
+      if (!this.receive.data.amount) return true
+      return (
+        this.receive.data.amount >= this.receive.minMax[0] &&
+        this.receive.data.amount <= this.receive.minMax[1] &&
+        !isNaN(this.receive.data.amount) &&
+        this.receive.data.amount > 0 &&
+        !isNaN(parseFloat(this.receive.data.amount)) &&
+        /^\d*\.?\d*$/.test(this.receive.data.amount)
+      )
     }
   },
   methods: {

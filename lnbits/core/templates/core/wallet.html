@@ -330,6 +330,7 @@
                 :min="receive.minMax[0]"
                 :max="receive.minMax[1]"
                 :readonly="receive.lnurl && receive.lnurl.fixed"
+                inputmode="numeric"
               ></q-input>
             </q-card-section>
             <q-separator></q-separator>
@@ -355,6 +356,8 @@
                   :min="receive.minMax[0]"
                   :max="receive.minMax[1]"
                   :readonly="receive.lnurl && receive.lnurl.fixed"
+                  error-message="Not a valid amount"
+                  :error="!isValid"
                 >
                 </q-input>
                 <div class="col-2 self-end">
