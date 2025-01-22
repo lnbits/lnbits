@@ -3,10 +3,12 @@ import random
 from http import HTTPStatus
 
 import pytest
+from httpx import AsyncClient
 from pydantic import parse_obj_as
 
 from lnbits import bolt11
 from lnbits.nodes.base import ChannelPoint, ChannelState, NodeChannel
+from lnbits.settings import Settings
 
 from ..helpers import (
     funding_source,
@@ -24,14 +26,14 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.fixture()
-async def node_client(client, from_super_user, settings):
+async def node_client(client: AsyncClient, settings: Settings, superuser_token: str):
     settings.lnbits_node_ui = True
     settings.lnbits_public_node_ui = False
     settings.lnbits_node_ui_transactions = True
-    params = client.params
-    client.params = {"usr": from_super_user.id}
+    headers = client.headers
+    client.headers = {"Authorization": f"Bearer {superuser_token}"}
     yield client
-    client.params = params
+    client.headers = headers
     settings.lnbits_node_ui = False
 
 
@@ -43,9 +45,13 @@ async def public_node_client(node_client, settings):
 
 
 @pytest.mark.anyio
-async def test_node_info_not_found(client, from_super_user, settings):
+async def test_node_info_not_found(
+    client: AsyncClient, settings: Settings, superuser_token: str
+):
     settings.lnbits_node_ui = False
-    response = await client.get("/node/api/v1/info", params={"usr": from_super_user.id})
+    response = await client.get(
+        "/node/api/v1/info", headers={"Authorization": f"Bearer {superuser_token}"}
+    )
     assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
 
 

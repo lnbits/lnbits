@@ -158,14 +158,6 @@ async def to_user():
     yield user
 
 
-@pytest.fixture()
-def from_super_user(from_user: User, settings: Settings):
-    prev = settings.super_user
-    settings.super_user = from_user.id
-    yield from_user
-    settings.super_user = prev
-
-
 @pytest.fixture(scope="session")
 async def superuser_token(client: AsyncClient):
     response = await client.post(
