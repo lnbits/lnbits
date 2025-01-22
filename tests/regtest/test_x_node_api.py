@@ -3,7 +3,7 @@ import random
 from http import HTTPStatus
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Headers
 from pydantic import parse_obj_as
 
 from lnbits import bolt11
@@ -31,7 +31,7 @@ async def node_client(client: AsyncClient, settings: Settings, superuser_token: 
     settings.lnbits_public_node_ui = False
     settings.lnbits_node_ui_transactions = True
     headers = client.headers
-    client.headers = {"Authorization": f"Bearer {superuser_token}"}
+    client.headers = Headers({"Authorization": f"Bearer {superuser_token}"})
     yield client
     client.headers = headers
     settings.lnbits_node_ui = False
