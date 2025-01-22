@@ -23,6 +23,7 @@ async def create_wallet(
         user=user_id,
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
+        currency=settings.lnbits_default_accounting_currency or "USD",
     )
     await (conn or db).insert("wallets", wallet)
     return wallet
