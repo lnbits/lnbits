@@ -144,7 +144,7 @@ async def check_user_exists(
         account = await _get_account_from_token(access_token, r["path"], r["method"])
     elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
         account = await get_account(usr.hex)
-        if account.is_admin:
+        if account and account.is_admin:
             raise HTTPException(
                 HTTPStatus.FORBIDDEN, "User id only access for admins is forbidden."
             )
