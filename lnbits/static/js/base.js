@@ -561,9 +561,9 @@ window.windowMixin = {
         const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
         const style = document.createElement('style')
         style.innerHTML =
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
-          `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
+          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
+          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
+          `[data-theme="${this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
       } else {
         this.$q.localStorage.set('lnbits.gradientBg', false)
@@ -572,18 +572,34 @@ window.windowMixin = {
         this.toggleDarkMode()
       }
     },
+    toggleDarkMode() {
+      this.$q.dark.toggle()
+      this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
+      if (!this.$q.dark.isActive && this.gradientChoice) {
+        this.toggleGradient()
+      }
+    },
     applyBackgroundImage() {
-      if (this.backgroundImage || USE_DEFAULT_BGIMAGE != 'none') {
-        this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage || USE_DEFAULT_BGIMAGE)
+      let bgImage = ''
+      if(this.backgroundImage || this.$q.localStorage.getItem('lnbits.backgroundImage')){
+        if(this.backgroundImage){
+          this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+        }
+        bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
+        console.log("poo")
         this.gradientChoice = true
         this.applyGradient()
       }
-      let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
+      else if (USE_DEFAULT_BGIMAGE != 'none' && bgImage == '') {
+        bgImage = USE_DEFAULT_BGIMAGE
+        this.gradientChoice = true
+        this.applyGradient()
+      }
+      this.gradientChoice = bgImage
       if (bgImage) {
-        this.backgroundImage = bgImage
         const style = document.createElement('style')
         style.innerHTML = `
-        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"]::before {
+        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME}"]::before {
           content: '';
           position: fixed;
           top: 0;
@@ -610,9 +626,8 @@ window.windowMixin = {
         this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
       }
       let borderStyle = this.$q.localStorage.getItem('lnbits.border')
-      if (!borderStyle) {
-        this.$q.localStorage.set('lnbits.border', 'hard-border')
-        borderStyle = 'hard-border'
+      if (!borderStyle || borderStyle == 'none') {
+        borderStyle = USE_DEFAULT_BORDER
       }
       this.borderChoice = borderStyle
       let borderStyleCSS
@@ -764,7 +779,6 @@ window.windowMixin = {
     }
   },
   async created() {
-    console.log(USE_DEFAULT_BGIMAGE)
     if (
       this.$q.localStorage.getItem('lnbits.darkMode') == true ||
       this.$q.localStorage.getItem('lnbits.darkMode') == false
@@ -795,26 +809,24 @@ window.windowMixin = {
     })
 
     // failsafe if admin changes themes halfway
-    if (!this.$q.localStorage.getItem('lnbits.theme')) {
-      this.changeColor(this.g.allowedThemes[0] || USE_DEFAULT_THEME)
-    }
-    if (
-      this.$q.localStorage.getItem('lnbits.theme') &&
-      !this.g.allowedThemes.includes(
-        this.$q.localStorage.getItem('lnbits.theme')
-      )
-    ) {
-      this.changeColor(this.g.allowedThemes[0])
-    }
-
-    if (this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME) {
+    if(this.$q.localStorage.getItem('lnbits.theme')){
+      this.changeColor(this.$q.localStorage.getItem('lnbits.theme'))
       document.body.setAttribute(
         'data-theme',
-        this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME
+        this.$q.localStorage.getItem('lnbits.theme')
       )
     }
+    else {
+      document.body.setAttribute(
+        'data-theme',
+        USE_DEFAULT_THEME
+      )
+    }
+
     this.applyGradient()
-    this.applyBackgroundImage()
+    if(!USE_DEFAULT_GRADIENT){
+      this.applyBackgroundImage()
+    }
     this.applyBorder()
     if (window.user) {
       this.g.user = Vue.reactive(window.LNbits.map.user(window.user))

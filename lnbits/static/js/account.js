@@ -91,13 +91,6 @@ window.AccountPageLogic = {
       window.i18n.global.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)
     },
-    toggleDarkMode() {
-      this.$q.dark.toggle()
-      this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
-      if (!this.$q.dark.isActive && this.gradientChoice) {
-        this.toggleGradient()
-      }
-    },
     toggleGradient() {
       this.gradientChoice = !this.gradientChoice
       this.applyGradient()
