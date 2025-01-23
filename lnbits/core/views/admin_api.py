@@ -10,7 +10,9 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
 from lnbits.core.models import User
+from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services import (
+    enqueue_notification,
     get_balance_delta,
     update_cached_settings,
 )
@@ -60,6 +62,7 @@ async def api_get_settings(
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings(data: UpdateSettings, user: User = Depends(check_admin)):
+    enqueue_notification(NotificationType.settings_update, {"username": user.username})
     await update_admin_settings(data)
     admin_settings = await get_admin_settings(user.super_user)
     assert admin_settings, "Updated admin settings not found."
@@ -78,12 +81,9 @@ async def api_reset_settings(field_name: str):
     return {"default_value": getattr(default_settings, field_name)}
 
 
-@admin_router.delete(
-    "/api/v1/settings",
-    status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_super_user)],
-)
-async def api_delete_settings() -> None:
+@admin_router.delete("/api/v1/settings", status_code=HTTPStatus.OK)
+async def api_delete_settings(user: User = Depends(check_super_user)) -> None:
+    enqueue_notification(NotificationType.settings_update, {"username": user.username})
     await delete_admin_settings()
     server_restart.set()
 

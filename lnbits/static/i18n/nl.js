@@ -177,12 +177,6 @@ window.localisation.nl = {
   enable_notifications: 'Schakel meldingen in',
   enable_notifications_desc:
     'Indien ingeschakeld zal het de laatste LNbits Status updates ophalen, zoals veiligheidsincidenten en updates.',
-  enable_killswitch: 'Activeer Killswitch',
-  enable_killswitch_desc:
-    'Indien ingeschakeld, zal het uw financieringsbron automatisch wijzigen naar VoidWallet als LNbits een killswitch-signaal verzendt. U zult het na een update handmatig moeten inschakelen.',
-  killswitch_interval: 'Uitschakelschakelaar-interval',
-  killswitch_interval_desc:
-    'Hoe vaak de achtergrondtaak moet controleren op het LNbits killswitch signaal van de statusbron (in minuten).',
   enable_watchdog: 'Inschakelen Watchdog',
   enable_watchdog_desc:
     'Indien ingeschakeld, wordt uw betaalbron automatisch gewijzigd naar VoidWallet als uw saldo lager is dan het saldo van LNbits. U zult dit na een update handmatig moeten inschakelen.',
@@ -199,7 +193,6 @@ window.localisation.nl = {
   more: 'meer',
   less: 'minder',
   releases: 'Uitgaven',
-  killswitch: 'Killswitch',
   watchdog: 'Waakhond',
   server_logs: 'Serverlogboeken',
   ip_blocker: 'IP-blokkering',

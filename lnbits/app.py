@@ -24,14 +24,17 @@ from lnbits.core.crud import (
 )
 from lnbits.core.crud.extensions import create_installed_extension
 from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
-from lnbits.core.tasks import (  # watchdog_task
+from lnbits.core.services.notifications import enqueue_notification
+from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
-    killswitch_task,
     purge_audit_data,
+    run_by_the_minute_tasks,
     wait_for_audit_data,
     wait_for_paid_invoices,
+    wait_notification_messages,
 )
 from lnbits.exceptions import register_exception_handlers
 from lnbits.helpers import version_parse
@@ -102,9 +105,24 @@ async def startup(app: FastAPI):
     # initialize tasks
     register_async_tasks()
 
+    enqueue_notification(
+        NotificationType.server_start_stop,
+        {
+            "message": "LNbits server started.",
+            "up_time": settings.lnbits_server_up_time,
+        },
+    )
+
 
 async def shutdown():
     logger.warning("LNbits shutting down...")
+    enqueue_notification(
+        NotificationType.server_start_stop,
+        {
+            "message": "LNbits server shutting down...",
+            "up_time": settings.lnbits_server_up_time,
+        },
+    )
     settings.lnbits_running = False
 
     # shutdown event
@@ -444,6 +462,8 @@ async def check_and_register_extensions(app: FastAPI):
 def register_async_tasks():
 
     create_permanent_task(wait_for_audit_data)
+    create_permanent_task(wait_notification_messages)
+
     create_permanent_task(check_pending_payments)
     create_permanent_task(invoice_listener)
     create_permanent_task(internal_invoice_listener)
@@ -454,9 +474,7 @@ def register_async_tasks():
     register_invoice_listener(invoice_queue, "core")
     create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue))
 
-    # TODO: implement watchdog properly
-    # create_permanent_task(watchdog_task)
-    create_permanent_task(killswitch_task)
+    create_permanent_task(run_by_the_minute_tasks)
     create_permanent_task(purge_audit_data)
     create_permanent_task(collect_exchange_rates_data)
 

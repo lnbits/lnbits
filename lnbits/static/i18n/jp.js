@@ -171,12 +171,6 @@ window.localisation.jp = {
   enable_notifications: '通知を有効にする',
   enable_notifications_desc:
     '有効にすると、セキュリティインシデントやアップデートのような最新のLNbitsステータス更新を取得します。',
-  enable_killswitch: 'キルスイッチを有効にする',
-  enable_killswitch_desc:
-    '有効にすると、LNbitsからキルスイッチ信号が送信された場合に自動的に資金源をVoidWalletに切り替えます。更新後には手動で有効にする必要があります。',
-  killswitch_interval: 'キルスイッチ間隔',
-  killswitch_interval_desc:
-    'バックグラウンドタスクがステータスソースからLNbitsキルスイッチ信号を確認する頻度（分単位）。',
   enable_watchdog: 'ウォッチドッグを有効にする',
   enable_watchdog_desc:
     '有効にすると、残高がLNbitsの残高より少ない場合に、資金源を自動的にVoidWalletに変更します。アップデート後は手動で有効にする必要があります。',
@@ -193,7 +187,6 @@ window.localisation.jp = {
   more: 'より多くの',
   less: '少ない',
   releases: 'リリース',
-  killswitch: 'キルスイッチ',
   watchdog: 'ウォッチドッグ',
   server_logs: 'サーバーログ',
   ip_blocker: 'IPブロッカー',

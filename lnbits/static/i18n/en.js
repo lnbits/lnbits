@@ -168,18 +168,58 @@ window.localisation.en = {
   update_available: 'Update {version} available!',
   latest_update: 'You are on the latest version {version}.',
   notifications: 'Notifications',
-  no_notifications: 'No notifications',
-  notifications_disabled: 'LNbits status notifications are disabled.',
-  enable_notifications: 'Enable Notifications',
-  enable_notifications_desc:
-    'If enabled it will fetch the latest LNbits Status updates, like security incidents and updates.',
-  enable_killswitch: 'Enable Killswitch',
-  enable_killswitch_desc:
-    'If enabled it will change your funding source to VoidWallet automatically if LNbits sends out a killswitch signal. You will need to enable manually after an update.',
-  killswitch_interval: 'Killswitch Interval',
-  killswitch_interval_desc:
-    'How often the background task should check for the LNbits killswitch signal from the status source (in minutes).',
-  enable_watchdog: 'Enable Watchdog',
+  notifications_configure: 'Configure Notifications',
+  notifications_nostr_config: 'Nostr Configuration',
+  notifications_enable_nostr: 'Enable Nostr',
+  notifications_enable_nostr_desc: 'Send notfications over Nostr',
+  notifications_nostr_private_key: 'Nostr Private Key',
+  notifications_nostr_private_key_desc:
+    'Private key (hex or nsec) to sign the messages sent to Nostr',
+  notifications_nostr_identifiers: 'Nostr Identifiers',
+  notifications_nostr_identifiers_desc:
+    'List of identifiers to send notifications to',
+
+  notifications_telegram_config: 'Telegram Configuration',
+  notifications_enable_telegram: 'Enable Telegram',
+  notifications_enable_telegram_desc: 'Send notfications over Telegram',
+  notifications_telegram_access_token: 'Access Token',
+  notifications_telegram_access_token_desc: 'Access token for the bot',
+  notifications_chat_id: 'Chat ID',
+  notifications_chat_id_desc: 'Chat ID to send the notifications to',
+
+  notification_settings_update: 'Settings updated',
+  notification_settings_update_desc:
+    'Notify when server settings have been updated',
+
+  notification_server_start_stop: 'Server Start/Stop',
+  notification_server_start_stop_desc:
+    'Notify when the server has been started/stopped',
+
+  notification_watchdog_limit: 'Watchdog Limit Notification',
+  notification_watchdog_limit_desc:
+    'Notify when the watchdog limit has been reached (does not affect the funding source)',
+
+  notification_server_status: 'Server Status',
+  notification_server_status_desc:
+    'Send regular notifications about the server status (interval value in hours)',
+
+  notification_incoming_payment: 'Incoming Payments',
+  notification_incoming_payment_desc:
+    'Notify when a wallet has received a payment above the specified amount (sats)',
+
+  notification_outgoing_payment: 'Outgoing Payments',
+  notification_outgoing_payment_desc:
+    'Notify when a wallet has sent a payment above the specified amount (sats)',
+
+  notification_credit_debit: 'Credit / Debit',
+  notification_credit_debit_desc:
+    'Notify when a wallet has been credited/debited by the superuser',
+
+  notification_balance_delta_changed: 'Balance Delta Changed',
+  notification_balance_delta_changed_desc:
+    'Notify when the diference between the node balance and the LNbits balance has changed even by 1 sat. This runs every minute.',
+
+  enable_watchdog: 'Enable Watchdog Switch',
   enable_watchdog_desc:
     'If enabled it will change your funding source to VoidWallet automatically if your balance is lower than the LNbits balance. You will need to enable manually after an update.',
   watchdog_interval: 'Watchdog Interval',
@@ -195,7 +235,6 @@ window.localisation.en = {
   more: 'more',
   less: 'less',
   releases: 'Releases',
-  killswitch: 'Killswitch',
   watchdog: 'Watchdog',
   server_logs: 'Server Logs',
   ip_blocker: 'IP Blocker',

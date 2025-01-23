@@ -174,15 +174,6 @@ window.localisation.cs = {
   enable_notifications: 'Povolit notifikace',
   enable_notifications_desc:
     'Pokud je povoleno, bude stahovat nejnovější aktualizace stavu LNbits, jako jsou bezpečnostní incidenty a aktualizace.',
-  enable_killswitch: 'Povolit Killswitch',
-  enable_killswitch_desc:
-    'Pokud je povoleno, automaticky změní zdroj financování na VoidWallet pokud LNbits odešle signál killswitch. Po aktualizaci budete muset povolit ručně.',
-  killswitch_interval: 'Interval Killswitch',
-  killswitch_interval_desc:
-    'Jak často by měl úkol na pozadí kontrolovat signál killswitch od LNbits ze zdroje stavu (v minutách).',
-  enable_watchdog: 'Povolit Watchdog',
-  enable_watchdog_desc:
-    'Pokud je povoleno, automaticky změní zdroj financování na VoidWallet pokud je váš zůstatek nižší než zůstatek LNbits. Po aktualizaci budete muset povolit ručně.',
   watchdog_interval: 'Interval Watchdog',
   watchdog_interval_desc:
     'Jak často by měl úkol na pozadí kontrolovat signál killswitch v watchdog delta [node_balance - lnbits_balance] (v minutách).',
@@ -196,7 +187,6 @@ window.localisation.cs = {
   more: 'více',
   less: 'méně',
   releases: 'Vydání',
-  killswitch: 'Killswitch',
   watchdog: 'Watchdog',
   server_logs: 'Logy serveru',
   ip_blocker: 'Blokování IP',
