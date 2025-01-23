@@ -4,7 +4,7 @@ from typing import Tuple
 import httpx
 from loguru import logger
 from pynostr.encrypted_dm import EncryptedDirectMessage
-from websocket import create_connection
+from websocket import WebSocket, create_connection
 
 from lnbits.core.helpers import is_valid_url
 from lnbits.utils.nostr import (
@@ -30,14 +30,20 @@ async def send_nostr_dm(
     dm_event.sign(private_key_hex=from_private_key_hex)
     notification = dm_event.to_message()
 
+    ws_connections: list[WebSocket] = []
     for relay in relays:
         try:
             ws = create_connection(relay, timeout=2)
             ws.send(notification)
-            await asyncio.sleep(1)
-            ws.close()
+            ws_connections.append(ws)
         except Exception as e:
             logger.warning(f"Error sending notification to relay {relay}: {e}")
+    await asyncio.sleep(1)
+    for ws in ws_connections:
+        try:
+            ws.close()
+        except Exception as e:
+            logger.debug(f"Failed to close websocket connection: {e}")
 
     return dm_event.to_dict()
 
