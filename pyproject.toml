@@ -12,7 +12,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.12 | ^3.11 | ^3.10 | ^3.9"
+python = "^3.13 | ^3.12 | ^3.11 | ^3.10 | ^3.9"
 bech32 = "1.2.0"
 click = "8.1.7"
 ecdsa = "0.19.0"
@@ -28,11 +28,11 @@ typing-extensions = "4.12.2"
 uvicorn = "0.30.6"
 sqlalchemy = "1.4.54"
 aiosqlite = "0.20.0"
-asyncpg = "0.29.0"
-uvloop = "0.19.0"
+asyncpg = "0.30.0"
+uvloop = "0.21.0"
 websockets = "11.0.3"
 loguru = "0.7.2"
-grpcio = "1.66.1"
+grpcio = "1.69.0"
 protobuf = "5.28.0"
 pyln-client = "24.11"
 pywebpush = "1.14.1"
@@ -85,7 +85,7 @@ pytest-httpserver = "^1.1.0"
 pytest-mock = "^3.14.0"
 types-mock = "^5.1.0.20240425"
 mock = "^5.1.0"
-grpcio-tools = "^1.66.1"
+grpcio-tools = "^1.69.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
