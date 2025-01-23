@@ -92,10 +92,10 @@ window.AccountPageLogic = {
       this.$q.localStorage.set('lnbits.lang', newValue)
     },
     toggleGradient() {
-      this.gradientChoice = !this.gradientSelection
+      this.gradientChoice = !this.gradientChoice
+      this.$q.localStorage.set('lnbits.backgroundImage', 'none')
       this.applyGradient()
-      this.$q.localStorage.remove('lnbits.backgroundImage')
-      if (!this.gradientChoice) {
+      if(!this.gradientChoice){
         window.location.reload()
       }
     },
@@ -111,13 +111,13 @@ window.AccountPageLogic = {
     themeChoiceFunc(newValue) {
       this.changeTheme(newValue)
       this.setColors()
-      this.applyBorder()
       if (this.gradientChoice) {
         this.applyGradient()
       }
       if (this.bgimageChoice) {
         this.applyBackgroundImage()
       }
+      this.applyBorder()
     },
     async updateAccount() {
       try {

@@ -430,7 +430,7 @@
                   </div>
                   <div class="col-8">
                     <q-input
-                      v-model="backgroundImage"
+                      v-model="bgimageSelection"
                       :label="$t('background_image')"
                       @update:model-value="bgimageChoiceFunc"
                     >
@@ -452,7 +452,7 @@
                       @click="toggleGradient"
                       icon="gradient"
                       size="sm"
-                      v-model="gradientSelection"
+                      v-model="gradientChoice"
                     >
                       <q-tooltip
                         ><span v-text="$t('toggle_gradient')"></span
