@@ -18,12 +18,15 @@ from lnbits.core.models import AccessTokenPayload, User
 from lnbits.core.models.misc import SimpleItem
 from lnbits.core.models.users import (
     AccessControlList,
+    Account,
     ApiTokenRequest,
     DeleteTokenRequest,
     EndpointAccess,
+    LoginUsr,
     UpdateAccessControlList,
     UserAcls,
 )
+from lnbits.core.services.users import create_user_account
 from lnbits.core.views.user_api import api_users_reset_password
 from lnbits.helpers import create_access_token
 from lnbits.settings import AuthMethods, Settings
@@ -74,6 +77,54 @@ async def test_login_alan_usr(user_alan: User, http_client: AsyncClient):
     assert alan["id"] == user_alan.id
     assert alan["username"] == user_alan.username
     assert alan["email"] == user_alan.email
+
+
+@pytest.mark.anyio
+async def test_login_usr_not_allowed_for_admin_without_credentials(
+    http_client: AsyncClient, settings: Settings
+):
+    # Register a new user
+    account = Account(id=uuid4().hex)
+    await create_user_account(account)
+
+    # Login with user ID
+    login_data = LoginUsr(usr=account.id)
+    response = await http_client.post("/api/v1/auth/usr", json=login_data.dict())
+    http_client.cookies.clear()
+    assert response.status_code == 200, "User logs in OK."
+    access_token = response.json().get("access_token")
+    assert access_token is not None, "Expected access token after login."
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # Simulate the user being an admin without credentials
+    settings.lnbits_admin_users = [account.id]
+
+    # Attempt to login with user ID for admin
+    response = await http_client.post("/api/v1/auth/usr", json=login_data.dict())
+
+    assert response.status_code == 401
+    assert (
+        response.json().get("detail") == "Admin users cannot login with user id only."
+    )
+
+    response = await http_client.get("/admin/api/v1/settings", headers=headers)
+    assert response.status_code == 403
+    assert (
+        response.json().get("detail") == "Admin users must have credentials configured."
+    )
+
+    # User only access should not be allowed
+    response = await http_client.get(
+        f"/admin/api/v1/settings?usr={settings.super_user}"
+    )
+    print("### response", response.text)
+    assert response.status_code == 403
+    assert (
+        response.json().get("detail") == "User id only access for admins is forbidden."
+    )
+
+    response = await http_client.get("/api/v1/status", headers=headers)
+    assert response.status_code == 200, "Admin user can access regular endpoints."
 
 
 @pytest.mark.anyio

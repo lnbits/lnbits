@@ -144,6 +144,10 @@ async def check_user_exists(
         account = await _get_account_from_token(access_token, r["path"], r["method"])
     elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
         account = await get_account(usr.hex)
+        if account and account.is_admin:
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN, "User id only access for admins is forbidden."
+            )
     else:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing user ID or access token.")
 
@@ -190,6 +194,10 @@ async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "User not authorized. No admin privileges."
         )
+    if not user.has_password:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Admin users must have credentials configured."
+        )
 
     return user
 
@@ -198,6 +206,10 @@ async def check_super_user(user: Annotated[User, Depends(check_user_exists)]) ->
     if user.id != settings.super_user:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "User not authorized. No super user privileges."
+        )
+    if not user.has_password:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Super user must have credentials configured."
         )
     return user
 
