@@ -1,4 +1,6 @@
 import asyncio
+import traceback
+from typing import Callable, Coroutine
 
 import httpx
 from loguru import logger
@@ -10,70 +12,78 @@ from lnbits.core.crud import (
     mark_webhook_sent,
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
+from lnbits.core.crud.payments import get_payments_status_count
+from lnbits.core.crud.users import get_accounts
+from lnbits.core.crud.wallets import get_wallets_count
 from lnbits.core.models import AuditEntry, Payment
+from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services import (
-    get_balance_delta,
     send_payment_notification,
-    switch_to_voidwallet,
 )
-from lnbits.settings import get_funding_source, settings
-from lnbits.tasks import send_push_notification
+from lnbits.core.services.funding_source import (
+    check_balance_delta_changed,
+    check_server_balance_against_node,
+    get_balance_delta,
+)
+from lnbits.core.services.notifications import (
+    enqueue_notification,
+    process_next_notification,
+)
+from lnbits.db import Filters
+from lnbits.settings import settings
+from lnbits.tasks import create_unique_task, send_push_notification
 from lnbits.utils.exchange_rates import btc_rates
 
 audit_queue: asyncio.Queue = asyncio.Queue()
 
 
-async def killswitch_task():
-    """
-    killswitch will check lnbits-status repository for a signal from
-    LNbits and will switch to VoidWallet if the killswitch is triggered.
-    """
+async def run_by_the_minute_tasks():
+    minute_counter = 0
     while settings.lnbits_running:
-        funding_source = get_funding_source()
-        if (
-            settings.lnbits_killswitch
-            and funding_source.__class__.__name__ != "VoidWallet"
-        ):
-            with httpx.Client() as client:
-                try:
-                    r = client.get(settings.lnbits_status_manifest, timeout=4)
-                    r.raise_for_status()
-                    if r.status_code == 200:
-                        ks = r.json().get("killswitch")
-                        if ks and ks == 1:
-                            logger.error(
-                                "Switching to VoidWallet. Killswitch triggered."
-                            )
-                            await switch_to_voidwallet()
-                except (httpx.RequestError, httpx.HTTPStatusError):
-                    logger.error(
-                        "Cannot fetch lnbits status manifest."
-                        f" {settings.lnbits_status_manifest}"
-                    )
-        await asyncio.sleep(settings.lnbits_killswitch_interval * 60)
+        status_minutes = settings.lnbits_notification_server_status_hours * 60
 
-
-async def watchdog_task():
-    """
-    Registers a watchdog which will check lnbits balance and nodebalance
-    and will switch to VoidWallet if the watchdog delta is reached.
-    """
-    while settings.lnbits_running:
-        funding_source = get_funding_source()
-        if (
-            settings.lnbits_watchdog
-            and funding_source.__class__.__name__ != "VoidWallet"
-        ):
+        if settings.notification_balance_delta_changed:
             try:
-                balance = await get_balance_delta()
-                delta = balance.delta_msats
-                logger.debug(f"Running watchdog task. current delta: {delta}")
-                if delta + settings.lnbits_watchdog_delta <= 0:
-                    logger.error(f"Switching to VoidWallet. current delta: {delta}")
-                    await switch_to_voidwallet()
-            except Exception as e:
-                logger.error("Error in watchdog task", e)
-        await asyncio.sleep(settings.lnbits_watchdog_interval * 60)
+                # runs by default every minute, the delta should not change that often
+                await check_balance_delta_changed()
+            except Exception as ex:
+                logger.error(ex)
+
+        if minute_counter % settings.lnbits_watchdog_interval_minutes == 0:
+            try:
+                await check_server_balance_against_node()
+            except Exception as ex:
+                logger.error(ex)
+
+        if minute_counter % status_minutes == 0:
+            try:
+                await _notify_server_status()
+            except Exception as ex:
+                logger.error(ex)
+
+        minute_counter += 1
+        await asyncio.sleep(60)
+
+
+async def _notify_server_status():
+    accounts = await get_accounts(filters=Filters(limit=0))
+    wallets_count = await get_wallets_count()
+    payments = await get_payments_status_count()
+
+    status = await get_balance_delta()
+    values = {
+        "up_time": settings.lnbits_server_up_time,
+        "accounts_count": accounts.total,
+        "wallets_count": wallets_count,
+        "in_payments_count": payments.incoming,
+        "out_payments_count": payments.outgoing,
+        "pending_payments_count": payments.pending,
+        "failed_payments_count": payments.failed,
+        "delta_sats": status.delta_sats,
+        "lnbits_balance_sats": status.lnbits_balance_sats,
+        "node_balance_sats": status.node_balance_sats,
+    }
+    enqueue_notification(NotificationType.server_status, values)
 
 
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
@@ -158,6 +168,16 @@ async def wait_for_audit_data():
             await asyncio.sleep(3)
 
 
+async def wait_notification_messages():
+
+    while settings.lnbits_running:
+        try:
+            await process_next_notification()
+        except Exception as ex:
+            logger.log("error", ex)
+            await asyncio.sleep(3)
+
+
 async def purge_audit_data():
     """
     Remove audit entries which have passed their retention period.
@@ -194,3 +214,14 @@ async def collect_exchange_rates_data():
         else:
             sleep_time = 60
         await asyncio.sleep(sleep_time)
+
+
+def _create_unique_task(name: str, func: Callable):
+    async def _to_coro(func: Callable[[], Coroutine]) -> Coroutine:
+        return await func()
+
+    try:
+        create_unique_task(name, _to_coro(func))
+    except Exception as e:
+        logger.error(f"Error in {name} task", e)
+        logger.error(traceback.format_exc())

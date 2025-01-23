@@ -176,12 +176,6 @@ window.localisation.pt = {
   enable_notifications: 'Ativar Notificações',
   enable_notifications_desc:
     'Se ativado, ele buscará as últimas atualizações de status do LNbits, como incidentes de segurança e atualizações.',
-  enable_killswitch: 'Ativar Killswitch',
-  enable_killswitch_desc:
-    'Se ativado, ele mudará sua fonte de financiamento para VoidWallet automaticamente se o LNbits enviar um sinal de desativação. Você precisará ativar manualmente após uma atualização.',
-  killswitch_interval: 'Intervalo do Killswitch',
-  killswitch_interval_desc:
-    'Com que frequência a tarefa de fundo deve verificar o sinal de desativação do LNbits proveniente da fonte de status (em minutos).',
   enable_watchdog: 'Ativar Watchdog',
   enable_watchdog_desc:
     'Se ativado, mudará automaticamente a sua fonte de financiamento para VoidWallet caso o seu saldo seja inferior ao saldo LNbits. Você precisará ativar manualmente após uma atualização.',
@@ -198,7 +192,6 @@ window.localisation.pt = {
   more: 'mais',
   less: 'menos',
   releases: 'Lançamentos',
-  killswitch: 'Interruptor de desativação',
   watchdog: 'Cão de guarda',
   server_logs: 'Registros do Servidor',
   ip_blocker: 'Bloqueador de IP',

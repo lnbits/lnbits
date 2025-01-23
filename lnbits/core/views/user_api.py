@@ -31,9 +31,11 @@ from lnbits.core.models import (
     UserExtra,
     Wallet,
 )
+from lnbits.core.models.notifications import NotificationType
 from lnbits.core.models.users import Account
 from lnbits.core.services import (
     create_user_account_no_ckeck,
+    enqueue_notification,
     update_user_account,
     update_user_extensions,
     update_wallet_balance,
@@ -277,4 +279,14 @@ async def api_update_balance(data: UpdateBalance) -> SimpleStatus:
     if not wallet:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet not found.")
     await update_wallet_balance(wallet=wallet, amount=int(data.amount))
+    enqueue_notification(
+        NotificationType.balance_update,
+        {
+            "amount": int(data.amount),
+            "wallet_id": wallet.id,
+            "wallet_name": wallet.name,
+            "balance": wallet.balance,
+        },
+    )
+
     return SimpleStatus(success=True, message="Balance updated.")

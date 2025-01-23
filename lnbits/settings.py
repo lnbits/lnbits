@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from hashlib import sha256
 from os import path
-from time import time
+from time import gmtime, strftime, time
 from typing import Any, Optional
 
 import httpx
@@ -364,20 +364,13 @@ class SecuritySettings(LNbitsSettings):
     lnbits_rate_limit_unit: str = Field(default="minute")
     lnbits_allowed_ips: list[str] = Field(default=[])
     lnbits_blocked_ips: list[str] = Field(default=[])
-    lnbits_notifications: bool = Field(default=False)
-    lnbits_killswitch: bool = Field(default=False)
-    lnbits_killswitch_interval: int = Field(default=60)
+
     lnbits_wallet_limit_max_balance: int = Field(default=0)
     lnbits_wallet_limit_daily_max_withdraw: int = Field(default=0)
     lnbits_wallet_limit_secs_between_trans: int = Field(default=0)
-    lnbits_watchdog: bool = Field(default=False)
-    lnbits_watchdog_interval: int = Field(default=60)
+    lnbits_watchdog_switch_to_voidwallet: bool = Field(default=False)
+    lnbits_watchdog_interval_minutes: int = Field(default=60)
     lnbits_watchdog_delta: int = Field(default=1_000_000)
-    lnbits_status_manifest: str = Field(
-        default=(
-            "https://raw.githubusercontent.com/lnbits/lnbits-status/main/manifest.json"
-        )
-    )
 
     def is_wallet_max_balance_exceeded(self, amount):
         return (
@@ -385,6 +378,24 @@ class SecuritySettings(LNbitsSettings):
             and self.lnbits_wallet_limit_max_balance > 0
             and amount > self.lnbits_wallet_limit_max_balance
         )
+
+
+class NotificationsSettings(LNbitsSettings):
+    lnbits_nostr_notifications_enabled: bool = Field(default=False)
+    lnbits_nostr_notifications_private_key: str = Field(default="")
+    lnbits_nostr_notifications_identifiers: list[str] = Field(default=[])
+    lnbits_telegram_notifications_enabled: bool = Field(default=False)
+    lnbits_telegram_notifications_access_token: str = Field(default="")
+    lnbits_telegram_notifications_chat_id: str = Field(default="")
+
+    lnbits_notification_settings_update: bool = Field(default=True)
+    lnbits_notification_credit_debit: bool = Field(default=True)
+    notification_balance_delta_changed: bool = Field(default=True)
+    lnbits_notification_server_start_stop: bool = Field(default=True)
+    lnbits_notification_watchdog: bool = Field(default=False)
+    lnbits_notification_server_status_hours: int = Field(default=24)
+    lnbits_notification_incoming_payment_amount_sats: int = Field(default=1_000_000)
+    lnbits_notification_outgoing_payment_amount_sats: int = Field(default=1_000_000)
 
 
 class FakeWalletFundingSource(LNbitsSettings):
@@ -706,6 +717,7 @@ class EditableSettings(
     FeeSettings,
     ExchangeProvidersSettings,
     SecuritySettings,
+    NotificationsSettings,
     FundingSourcesSettings,
     LightningSettings,
     WebPushSettings,
@@ -772,6 +784,11 @@ class EnvSettings(LNbitsSettings):
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
 
+    @property
+    def lnbits_server_up_time(self) -> str:
+        up_time = int(time() - self.server_startup_time)
+        return strftime("%H:%M:%S", gmtime(up_time))
+
 
 class SaaSSettings(LNbitsSettings):
     lnbits_saas_callback: Optional[str] = Field(default=None)
@@ -822,6 +839,9 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     # If false no new tasks, threads, etc should be started.
     # Long running while loops should use this flag instead of `while True:`
     lnbits_running: bool = Field(default=True)
+
+    # Remember the latest balance delta in order to compare with the current one
+    latest_balance_delta_sats: int = Field(default=None)
 
     @classmethod
     def readonly_fields(cls):

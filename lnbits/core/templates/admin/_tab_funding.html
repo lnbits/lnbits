@@ -15,16 +15,16 @@
               v-text="$t('funding_source', {wallet_class: settings.lnbits_backend_wallet_class})"
             ></li>
             <li
-              v-text="$t('node_balance', {balance: (auditData.node_balance_msats / 1000).toLocaleString()})"
+              v-text="$t('node_balance', {balance: (auditData.node_balance_sats || 0).toLocaleString()})"
             ></li>
             <li
-              v-text="$t('lnbits_balance', {balance: (auditData.lnbits_balance_msats / 1000).toLocaleString()})"
+              v-text="$t('lnbits_balance', {balance: (auditData.lnbits_balance_sats || 0).toLocaleString()})"
             ></li>
             <li
-              v-text="$t('funding_reserve_percent', { 
-                percent: auditData.lnbits_balance_msats > 0 
-                  ? (auditData.node_balance_msats / auditData.lnbits_balance_msats * 100).toFixed(2) 
-                  : 100 
+              v-text="$t('funding_reserve_percent', {
+                percent: auditData.lnbits_balance_sats > 0
+                  ? (auditData.node_balance_sats / auditData.lnbits_balance_sats * 100).toFixed(2)
+                  : 100
               })"
             ></li>
           </ul>
@@ -95,6 +95,90 @@
           :form-data="formData"
           :allowed-funding-sources="settings.lnbits_allowed_funding_sources"
         />
+      </div>
+      <q-separator></q-separator>
+      <h6 class="q-mt-lg q-mb-sm">
+        <p v-text="$t('watchdog')"></p>
+      </h6>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('enable_watchdog')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('enable_watchdog_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_watchdog_switch_to_voidwallet"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+        </div>
+        <div class="col-12 col-md-6">
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label
+                v-text="$t('notification_watchdog_limit')"
+              ></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('notification_watchdog_limit_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_notification_watchdog"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+        </div>
+        <div class="col-12 col-md-6">
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('watchdog_interval')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('watchdog_interval_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section>
+              <q-input
+                filled
+                v-model="formData.lnbits_watchdog_interval_minutes"
+                type="number"
+              />
+            </q-item-section>
+          </q-item>
+        </div>
+        <div class="col-12 col-md-6">
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label v-text="$t('watchdog_delta')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('watchdog_delta_desc')"
+              ></q-item-label>
+            </q-item-section>
+            <q-item-section>
+              <q-input
+                filled
+                v-model="formData.lnbits_watchdog_delta"
+                type="number"
+              />
+            </q-item-section>
+          </q-item>
+        </div>
       </div>
     </div>
   </q-card-section>

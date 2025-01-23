@@ -176,12 +176,7 @@ window.localisation.fi = {
   enable_notifications: 'Ota tiedotteet käyttöön',
   enable_notifications_desc:
     'Tämän ollessa valittuna, noudetaan LNbits-tilatiedotteet. Niitä ovat esimerkiksi turvallisuuteen liittyvät tapahtumatiedotteet ja tiedot tämän ohjelmiston päivityksistä.',
-  enable_killswitch: 'Ota Killswitch käyttöön',
-  enable_killswitch_desc:
-    'Jos LNbits antaa killswitch-komennon, niin rahoituslähteeksi valitaan automaattisesti heti VoidWallet. Päivityksen jälkeen tämä asetus pitää tarkastaa uudelleen.',
-  killswitch_interval: 'Killswitch-aikaväli',
-  killswitch_interval_desc:
-    'Tällä määritetään kuinka usein taustatoiminto tarkistaa killswitch-signaalin tilatiedotteiden lähteestä. Hakujen väli ilmoitetaan minuutteina.',
+
   enable_watchdog: 'Ota Watchdog käyttöön',
   enable_watchdog_desc:
     'Tämän ollessa käytössä, ja solmun varojen laskiessa alle LNbits-varojen määrän, otetaan automaattisesti käyttöön VoidWallet. Päivityksen jälkeen tämä asetus pitää tarkastaa uudelleen.',
@@ -198,7 +193,7 @@ window.localisation.fi = {
   more: 'enemmän',
   less: 'vähemmän',
   releases: 'Julkaisut',
-  killswitch: 'Killswitch',
+
   watchdog: 'Watchdog',
   server_logs: 'Palvelimen lokit',
   ip_blocker: 'IP-suodatin',
