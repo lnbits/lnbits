@@ -465,10 +465,22 @@ window.windowMixin = {
       updatePaymentsHash: '',
       mobileSimple: true,
       walletFlip: true,
-      reactionChoice: 'confettiTop',
-      borderChoice: '',
+      borderSelection: null,
+      gradientSelection: null,
+      themeSelection: null,
+      reactionSelection: null,
+      bgimageSelection: null,
+      gradientSelection: null,
+      borderChoice: 
+        this.$q.localStorage.getItem('lnbits.border') || USE_DEFAULT_BORDER,
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || USE_DEFAULT_GRADIENT,
+      themeChoice: 
+        this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME,
+      reactionChoice: 
+        this.$q.localStorage.getItem('lnbits.reactions') || USE_DEFAULT_REACTION,
+      bgimageChoice: 
+        this.$q.localStorage.getItem('lnbits.backgroundImage') || USE_DEFAULT_BGIMAGE,
       isUserAuthorized: false,
       walletEventListeners: [],
       backgroundImage: ''
@@ -528,7 +540,6 @@ window.windowMixin = {
     },
     selectWallet(wallet) {
       Object.assign(this.g.wallet, wallet)
-      // this.wallet = this.g.wallet
       this.updatePayments = !this.updatePayments
       this.balance = parseInt(wallet.balance_msat / 1000)
       const currentPath = this.$route.path
@@ -543,14 +554,14 @@ window.windowMixin = {
         window.history.replaceState({}, '', url.toString())
       }
     },
-    changeColor(newValue) {
+    changeTheme(newValue) {
       document.body.setAttribute('data-theme', newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
     },
     applyGradient() {
       darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
       primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
-      if (this.gradientChoice || USE_DEFAULT_GRADIENT) {
+      if (this.gradientChoice) {
         this.$q.localStorage.set('lnbits.gradientBg', true)
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
         document.body.style.setProperty(
@@ -561,9 +572,9 @@ window.windowMixin = {
         const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
         const style = document.createElement('style')
         style.innerHTML =
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
-          `[data-theme="${this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
+          `body[data-theme="${this.themeChoice}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
+          `body[data-theme="${this.themeChoice}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
+          `[data-theme="${this.themeChoice}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
       } else {
         this.$q.localStorage.set('lnbits.gradientBg', false)
@@ -580,26 +591,16 @@ window.windowMixin = {
       }
     },
     applyBackgroundImage() {
-      let bgImage = ''
-      if(this.backgroundImage || this.$q.localStorage.getItem('lnbits.backgroundImage')){
-        if(this.backgroundImage){
-          this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
-        }
-        bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
-        console.log("poo")
+      if(this.bgimageSelection){
+        this.$q.localStorage.set('lnbits.backgroundImage', this.bgimageSelection)
+        this.bgimageChoice = this.bgimageSelection
+      }
+      if(this.bgimageChoice){
         this.gradientChoice = true
         this.applyGradient()
-      }
-      else if (USE_DEFAULT_BGIMAGE != 'none' && bgImage == '') {
-        bgImage = USE_DEFAULT_BGIMAGE
-        this.gradientChoice = true
-        this.applyGradient()
-      }
-      this.gradientChoice = bgImage
-      if (bgImage) {
         const style = document.createElement('style')
         style.innerHTML = `
-        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme') || USE_DEFAULT_THEME}"]::before {
+        body[data-theme="${this.themeChoice}"]::before {
           content: '';
           position: fixed;
           top: 0;
@@ -614,22 +615,17 @@ window.windowMixin = {
         background-repeat: no-repeat;
         background-size: cover;
         }
-        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
+        body[data-theme="${this.themeChoice}"] .q-page-container {
           backdrop-filter: none; /* Ensure the page content is not affected */
         }`
-
         document.head.appendChild(style)
       }
     },
     applyBorder() {
-      if (this.borderChoice) {
-        this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
+      if (this.borderSelection) {
+        this.$q.localStorage.setItem('lnbits.border', this.borderSelection)
+        this.borderChoice = this.$q.localStorage.getItem('lnbits.border')
       }
-      let borderStyle = this.$q.localStorage.getItem('lnbits.border')
-      if (!borderStyle || borderStyle == 'none') {
-        borderStyle = USE_DEFAULT_BORDER
-      }
-      this.borderChoice = borderStyle
       let borderStyleCSS
       if (borderStyle == 'hard-border') {
         borderStyleCSS = `box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #ffffff47; border: none;`
@@ -644,7 +640,7 @@ window.windowMixin = {
         borderStyleCSS = `border: none; border-color: rgba(255, 255, 255, 0.28); box-shadow: 0 1px 5px rgba(255, 255, 255, 0.2), 0 2px 2px rgba(255, 255, 255, 0.14), 0 3px 1px -2px rgba(255, 255, 255, 0.12);`
       }
       let style = document.createElement('style')
-      style.innerHTML = `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
+      style.innerHTML = `body[data-theme="${this.themeChoice}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
       document.head.appendChild(style)
     },
     setColors() {
@@ -787,8 +783,6 @@ window.windowMixin = {
     } else {
       this.$q.dark.set(true)
     }
-    this.reactionChoice =
-      this.$q.localStorage.getItem('lnbits.reactions') || USE_DEFAULT_REACTION
 
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
@@ -808,23 +802,14 @@ window.windowMixin = {
       this.g.offline = false
     })
 
-    // failsafe if admin changes themes halfway
-    if(this.$q.localStorage.getItem('lnbits.theme')){
-      this.changeColor(this.$q.localStorage.getItem('lnbits.theme'))
-      document.body.setAttribute(
-        'data-theme',
-        this.$q.localStorage.getItem('lnbits.theme')
+    this.changeTheme(this.themeChoice)
+    document.body.setAttribute(
+      'data-theme',
+      this.themeChoice
       )
-    }
-    else {
-      document.body.setAttribute(
-        'data-theme',
-        USE_DEFAULT_THEME
-      )
-    }
 
     this.applyGradient()
-    if(!USE_DEFAULT_GRADIENT){
+    if(!this.gradientChoice){
       this.applyBackgroundImage()
     }
     this.applyBorder()

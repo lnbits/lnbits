@@ -92,30 +92,30 @@ window.AccountPageLogic = {
       this.$q.localStorage.set('lnbits.lang', newValue)
     },
     toggleGradient() {
-      this.gradientChoice = !this.gradientChoice
+      this.gradientChoice = !this.gradientSelection
       this.applyGradient()
-      this.$q.localStorage.set('lnbits.backgroundImage', '')
-      this.applyBorder()
+      this.$q.localStorage.remove('lnbits.backgroundImage')
       if (!this.gradientChoice) {
         window.location.reload()
       }
     },
     reactionChoiceFunc() {
-      this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
+      this.$q.localStorage.set('lnbits.reactions', this.reactionSelection)
+      this.reactionChoice = this.reactionSelection
     },
-    backgroundImageFunc() {
-      this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+    bgimageChoiceFunc() {
+      this.$q.localStorage.set('lnbits.backgroundImage', this.bgimageSelection)
+      this.bgimageChoice = this.bgimageSelection
       this.applyBackgroundImage()
     },
-    changeColor(newValue) {
-      document.body.setAttribute('data-theme', newValue)
-      this.$q.localStorage.set('lnbits.theme', newValue)
+    themeChoiceFunc(newValue) {
+      this.changeTheme(newValue)
       this.setColors()
       this.applyBorder()
-      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
+      if (this.gradientChoice) {
         this.applyGradient()
       }
-      if (this.$q.localStorage.getItem('lnbits.backgroundImage')) {
+      if (this.bgimageChoice) {
         this.applyBackgroundImage()
       }
     },

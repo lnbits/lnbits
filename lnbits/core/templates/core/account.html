@@ -337,7 +337,7 @@
                       v-if="g.allowedThemes.includes('classic')"
                       dense
                       flat
-                      @click="changeColor('classic')"
+                      @click="themeChoiceFunc('classic')"
                       icon="circle"
                       color="deep-purple"
                       size="md"
@@ -347,7 +347,7 @@
                       v-if="g.allowedThemes.includes('bitcoin')"
                       dense
                       flat
-                      @click="changeColor('bitcoin')"
+                      @click="themeChoiceFunc('bitcoin')"
                       icon="circle"
                       color="orange"
                       size="md"
@@ -357,7 +357,7 @@
                       v-if="g.allowedThemes.includes('mint')"
                       dense
                       flat
-                      @click="changeColor('mint')"
+                      @click="themeChoiceFunc('mint')"
                       icon="circle"
                       color="green"
                       size="md"
@@ -366,7 +366,7 @@
                       v-if="g.allowedThemes.includes('autumn')"
                       dense
                       flat
-                      @click="changeColor('autumn')"
+                      @click="themeChoiceFunc('autumn')"
                       icon="circle"
                       color="brown"
                       size="md"
@@ -376,7 +376,7 @@
                       v-if="g.allowedThemes.includes('monochrome')"
                       dense
                       flat
-                      @click="changeColor('monochrome')"
+                      @click="themeChoiceFunc('monochrome')"
                       icon="circle"
                       color="grey"
                       size="md"
@@ -386,7 +386,7 @@
                       v-if="g.allowedThemes.includes('salvador')"
                       dense
                       flat
-                      @click="changeColor('salvador')"
+                      @click="themeChoiceFunc('salvador')"
                       icon="circle"
                       color="blue-10"
                       size="md"
@@ -396,7 +396,7 @@
                       v-if="g.allowedThemes.includes('freedom')"
                       dense
                       flat
-                      @click="changeColor('freedom')"
+                      @click="themeChoiceFunc('freedom')"
                       icon="circle"
                       color="pink-13"
                       size="md"
@@ -406,7 +406,7 @@
                       v-if="g.allowedThemes.includes('cyber')"
                       dense
                       flat
-                      @click="changeColor('cyber')"
+                      @click="themeChoiceFunc('cyber')"
                       icon="circle"
                       color="light-green-9"
                       size="md"
@@ -416,7 +416,7 @@
                       v-if="g.allowedThemes.includes('flamingo')"
                       dense
                       flat
-                      @click="changeColor('flamingo')"
+                      @click="themeChoiceFunc('flamingo')"
                       icon="circle"
                       color="pink-3"
                       size="md"
@@ -432,7 +432,7 @@
                     <q-input
                       v-model="backgroundImage"
                       :label="$t('background_image')"
-                      @update:model-value="backgroundImageFunc"
+                      @update:model-value="bgimageChoiceFunc"
                     >
                       <q-tooltip
                         ><span v-text="$t('background_image')"></span
@@ -452,7 +452,7 @@
                       @click="toggleGradient"
                       icon="gradient"
                       size="sm"
-                      v-model="gradientChoice"
+                      v-model="gradientSelection"
                     >
                       <q-tooltip
                         ><span v-text="$t('toggle_gradient')"></span
@@ -486,7 +486,7 @@
                   </div>
                   <div class="col-8">
                     <q-select
-                      v-model="borderChoice"
+                      v-model="borderSelection"
                       :options="borderOptions"
                       label="Reactions"
                       @update:model-value="applyBorder"
@@ -514,7 +514,7 @@
                   </div>
                   <div class="col-8">
                     <q-select
-                      v-model="reactionChoice"
+                      v-model="reactionSelection"
                       :options="reactionOptions"
                       label="Reactions"
                       @update:model-value="reactionChoiceFunc"
