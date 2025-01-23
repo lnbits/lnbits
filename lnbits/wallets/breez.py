@@ -199,8 +199,7 @@ else:
 
             try:
                 send_payment_request = breez_sdk.SendPaymentRequest(
-                    bolt11=bolt11, 
-                    use_trampoline=settings.breez_use_trampoline
+                    bolt11=bolt11, use_trampoline=settings.breez_use_trampoline
                 )
                 send_payment_response: breez_sdk.SendPaymentResponse = (
                     self.sdk_services.send_payment(send_payment_request)
