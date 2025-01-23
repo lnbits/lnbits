@@ -450,15 +450,16 @@ if (!window.g) {
     wallets: [],
     payments: [],
     allowedThemes: null,
-    langs: []
+    langs: [],
+    walletEventListeners: []
   })
 }
 
 window.windowMixin = {
-  inject: ['g'],
   i18n: window.i18n,
   data() {
     return {
+      g: window.g,
       toggleSubs: true,
       updatePayments: false,
       updatePaymentsHash: '',
@@ -469,7 +470,7 @@ window.windowMixin = {
       gradientChoice:
         this.$q.localStorage.getItem('lnbits.gradientBg') || false,
       isUserAuthorized: false,
-      eventListeners: [],
+      walletEventListeners: [],
       backgroundImage: ''
     }
   },
@@ -487,9 +488,10 @@ window.windowMixin = {
       this.refreshRoute()
     },
     paymentEvents() {
+      this.g.walletEventListeners = this.g.walletEventListeners || []
       this.g.user.wallets.forEach(wallet => {
-        if (!this.eventListeners.includes(wallet.id)) {
-          this.eventListeners.push(wallet.id)
+        if (!this.g.walletEventListeners.includes(wallet.id)) {
+          this.g.walletEventListeners.push(wallet.id)
           LNbits.events.onInvoicePaid(wallet, data => {
             const walletIndex = this.g.user.wallets.findIndex(
               w => w.id === wallet.id
