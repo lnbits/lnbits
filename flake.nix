@@ -34,6 +34,16 @@
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
             wallycore = prev.wallycore.override { preferWheel = true; };
+            tlv8 = prev.tlv8.overrideAttrs (old: {
+              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+                prev.setuptools
+              ];
+            });
+            pynostr = prev.pynostr.overrideAttrs (old: {
+              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+                prev.setuptools-scm
+              ];
+            });
           });
         };
       });
