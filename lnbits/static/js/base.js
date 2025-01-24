@@ -527,7 +527,6 @@ window.windowMixin = {
               })
               //update the current wallet
               if (this.g.wallet.id === data.payment.wallet_id) {
-                console.log('poo')
                 Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
 
                 //if on the wallet page and payment is incoming trigger the eventReaction
