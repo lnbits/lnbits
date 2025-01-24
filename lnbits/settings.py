@@ -262,7 +262,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_default_theme: str = Field(default="classic")
     lnbits_default_border: str = Field(default="hard-border")
     lnbits_default_gradient: bool = Field(default=False)
-    lnbits_default_bgimage: str = Field(default="none")
+    lnbits_default_bgimage: str = Field(default=None)
 
 
 class OpsSettings(LNbitsSettings):
