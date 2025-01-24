@@ -453,7 +453,7 @@ if (!window.g) {
     langs: [],
     walletEventListeners: [],
     updatePayments: false,
-    updatePaymentsHash: '',
+    updatePaymentsHash: ''
   })
 }
 
@@ -514,7 +514,6 @@ window.windowMixin = {
               w => w.id === wallet.id
             )
             if (walletIndex !== -1) {
-
               //needed for balance being deducted
               let satBalance = data.wallet_balance
               if (data.payment.amount < 0) {
@@ -528,7 +527,7 @@ window.windowMixin = {
               })
               //update the current wallet
               if (this.g.wallet.id === data.payment.wallet_id) {
-                console.log("poo")
+                console.log('poo')
                 Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
 
                 //if on the wallet page and payment is incoming trigger the eventReaction

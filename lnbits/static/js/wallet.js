@@ -714,7 +714,7 @@ window.WalletPageLogic = {
   },
   watch: {
     'g.updatePayments'(newVal, oldVal) {
-      console.log('updatePayments changed:', { newVal, oldVal });
+      console.log('updatePayments changed:', {newVal, oldVal})
       this.parse.show = false
       if (this.receive.paymentHash === this.g.updatePaymentsHash) {
         this.receive.show = false
