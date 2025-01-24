@@ -459,9 +459,9 @@ if (!window.g) {
 
 window.windowMixin = {
   i18n: window.i18n,
-  inject: ['g'],
   data() {
     return {
+      g: window.g,
       toggleSubs: true,
       mobileSimple: true,
       walletFlip: true,
