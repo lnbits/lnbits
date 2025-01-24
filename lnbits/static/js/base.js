@@ -451,18 +451,18 @@ if (!window.g) {
     payments: [],
     allowedThemes: null,
     langs: [],
-    walletEventListeners: []
+    walletEventListeners: [],
+    updatePayments: false,
+    updatePaymentsHash: '',
   })
 }
 
 window.windowMixin = {
   i18n: window.i18n,
+  inject: ['g'],
   data() {
     return {
-      g: window.g,
       toggleSubs: true,
-      updatePayments: false,
-      updatePaymentsHash: '',
       mobileSimple: true,
       walletFlip: true,
       borderSelection: null,
@@ -514,6 +514,7 @@ window.windowMixin = {
               w => w.id === wallet.id
             )
             if (walletIndex !== -1) {
+
               //needed for balance being deducted
               let satBalance = data.wallet_balance
               if (data.payment.amount < 0) {
@@ -527,8 +528,9 @@ window.windowMixin = {
               })
               //update the current wallet
               if (this.g.wallet.id === data.payment.wallet_id) {
+                console.log("poo")
                 Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
-                this.updatePayments = !this.updatePayments
+
                 //if on the wallet page and payment is incoming trigger the eventReaction
                 if (
                   data.payment.amount > 0 &&
@@ -538,14 +540,16 @@ window.windowMixin = {
                 }
               }
             }
-            this.updatePaymentsHash = data.payment.payment_hash
+            this.g.updatePaymentsHash = data.payment.payment_hash
+            this.g.updatePayments = !this.g.updatePayments
           })
         }
       })
     },
     selectWallet(wallet) {
       Object.assign(this.g.wallet, wallet)
-      this.updatePayments = !this.updatePayments
+      // this.wallet = this.g.wallet
+      this.g.updatePayments = !this.g.updatePayments
       this.balance = parseInt(wallet.balance_msat / 1000)
       const currentPath = this.$route.path
       if (currentPath !== '/wallet') {
@@ -663,9 +667,9 @@ window.windowMixin = {
       }
       let style = document.createElement('style')
       style.innerHTML = `
-        body[data-theme="${this.themeChoice}"] .q-card, 
-        body[data-theme="${this.themeChoice}"] .q-card.q-card--dark, 
-        body[data-theme="${this.themeChoice}"] .q-date, 
+        body[data-theme="${this.themeChoice}"] .q-card,
+        body[data-theme="${this.themeChoice}"] .q-card.q-card--dark,
+        body[data-theme="${this.themeChoice}"] .q-date,
         body[data-theme="${this.themeChoice}"] .q-date--dark {
           ${borderStyleCSS}
         }
