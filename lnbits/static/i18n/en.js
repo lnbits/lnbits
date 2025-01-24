@@ -250,6 +250,9 @@ window.localisation.en = {
   wallet_max_ballance: 'Wallet max balance in sats (0 to disable)',
   wallet_limit_secs_between_trans:
     'Min secs between transactions per wallet (0 to disable)',
+  incoming_disabled: 'Incoming disabled',
+  incoming_enabled: 'Incoming enabled',
+  only_allow_incoming_payments: 'Only allow incoming payments',
   number_of_requests: 'Number of requests',
   time_unit: 'Time unit',
   minute: 'minute',
