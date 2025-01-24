@@ -255,6 +255,7 @@ window.localisation.en = {
   number_of_requests: 'Number of requests',
   time_unit: 'Time unit',
   minute: 'minute',
+  settings: 'Settings',
   second: 'second',
   hour: 'hour',
   disable_server_log: 'Disable Server Log',
