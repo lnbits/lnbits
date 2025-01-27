@@ -103,6 +103,7 @@ class PhoenixdWallet(Wallet):
             data: Dict = {
                 "amountSat": f"{msats_amount}",
                 "externalId": "",
+                "expirySeconds": 3600,
             }
 
             # Either 'description' (string) or 'descriptionHash' must be supplied
