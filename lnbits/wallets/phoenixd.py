@@ -3,7 +3,7 @@ import base64
 import hashlib
 import json
 import urllib.parse
-from typing import AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
@@ -100,10 +100,9 @@ class PhoenixdWallet(Wallet):
 
         try:
             msats_amount = amount
-            data: Dict = {
+            data: Dict[str, Any] = {
                 "amountSat": f"{msats_amount}",
                 "externalId": "",
-                "expirySeconds": 3600,
             }
 
             # Either 'description' (string) or 'descriptionHash' must be supplied
@@ -120,9 +119,8 @@ class PhoenixdWallet(Wallet):
                 else:
                     data["description"] = desc
 
-            # lnbits uses data["expiry"] but phoenixd uses data["expirySeconds"]
             # if expiry is not set, it defaults to 3600 seconds (1 hour)
-            data["expirySeconds"] = int(data.get("expiry", 3600))
+            data["expirySeconds"] = int(kwargs.get("expiry", 3600))
 
             r = await self.client.post(
                 "/createinvoice",
