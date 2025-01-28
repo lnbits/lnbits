@@ -142,24 +142,23 @@ else:
             invoice_data = lnbits_bolt11.decode(bolt11)
 
             try:
-                req: breez_sdk.PrepareSendResponse = (
-                    self.sdk_services.prepare_send_payment(
-                        breez_sdk.PrepareSendRequest(
-                            bolt11,
-                            int(
-                                invoice_data.amount_msat / 1000
-                                if invoice_data.amount_msat
-                                else 0
-                            ),
-                        )
-                    )
+                amount_sat = (
+                    invoice_data.amount_msat / 1000 if invoice_data.amount_msat else 0
                 )
-
-                if req.fees_sat > int(fee_limit_msat / 1000):
+                receiver_amount = breez_sdk.PayAmount.RECEIVER(int(amount_sat))
+                prepare_req = breez_sdk.PrepareSendRequest(
+                    destination=bolt11,
+                    amount=receiver_amount,
+                )
+                req = self.sdk_services.prepare_send_payment(prepare_req)
+                # TODO figure out the fee madness for breez liquid and phoenixd
+                fee_limit_sat = 50 + int(fee_limit_msat / 1000)
+                if req.fees_sat > fee_limit_sat:
                     return PaymentResponse(
                         ok=False,
-                        error_message=f"fee of {req.fees_sat*1000} msat \
-                            exceeds limit of {fee_limit_msat} msat",
+                        error_message=f"""
+                        fee of {req.fees_sat} sat exceeds limit of {fee_limit_sat} sat
+                        """,
                     )
 
                 send_response = self.sdk_services.send_payment(

@@ -305,7 +305,8 @@ class FeeSettings(LNbitsSettings):
             return 0
         reserve_min = self.lnbits_reserve_fee_min
         reserve_percent = self.lnbits_reserve_fee_percent
-        return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+        _max =  max(int(reserve_min), int(abs(amount_msat) * reserve_percent / 100.0))
+        return _max
 
 
 class ExchangeProvidersSettings(LNbitsSettings):
