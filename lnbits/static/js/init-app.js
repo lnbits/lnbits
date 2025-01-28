@@ -9,6 +9,11 @@ const DynamicComponent = {
       default: () => []
     }
   },
+  data() {
+    return {
+      keys: []
+    }
+  },
   async mounted() {
     await this.loadDynamicContent()
   },
@@ -89,7 +94,13 @@ const DynamicComponent = {
           template: html // Use the fetched HTML as the template
         })
         delete window[logicKey] //dont need this anymore
-        this.$forceUpdate()
+        console.log(
+          `Component '${this.$route.name}' loaded. Keys: ${this.keys}`
+        )
+        if (!this.keys.includes(this.$route.name)) {
+          this.keys.push(this.$route.name)
+          this.$forceUpdate()
+        }
       } catch (error) {
         console.error('Error loading dynamic content:', error)
       } finally {
