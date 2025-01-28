@@ -140,13 +140,13 @@
       <q-item v-if="showAdmin" to="/admin">
         <q-item-section side>
           <q-icon
-            name="admin_panel_settings"
+            name="settings"
             :color="isActive('/admin') ? 'primary' : 'grey-5'"
             size="md"
           ></q-icon>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1" v-text="$t('server')"></q-item-label>
+          <q-item-label lines="1" v-text="$t('settings')"></q-item-label>
         </q-item-section>
       </q-item>
       <q-item v-if="showNode" to="/node">
@@ -176,13 +176,13 @@
       <q-item v-if="showAudit" to="/audit">
         <q-item-section side>
           <q-icon
-            name="playlist_add_check_circle"
+            name="query_stats"
             :color="isActive('/audit') ? 'primary' : 'grey-5'"
             size="md"
           ></q-icon>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1" v-text="$t('audit')"></q-item-label>
+          <q-item-label lines="1" v-text="$t('server')"></q-item-label>
         </q-item-section>
       </q-item>
     </div>
