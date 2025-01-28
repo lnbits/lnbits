@@ -31,7 +31,7 @@
           filled
           v-model="formData.auth_allowed_methods"
           multiple
-          :hint="t$('auth_allowed_methods_hint')"
+          :hint="$t('auth_allowed_methods_hint')"
           :label="$t('auth_allowed_methods_label')"
           :options="formData.auth_all_methods"
         ></q-select>
@@ -312,7 +312,7 @@
             <div class="col-3">
               <q-toggle
                 v-model="formData.lnbits_only_allow_incoming_payments"
-                :label="formData.lnbits_only_allow_incoming_payments ? $t('outgoing_disabled') : $t('outgoing_enabled')"
+                :label="$t('only_incoming_payments_allowed')"
                 ><q-tooltip v-text="$t('disable_outgoing_payments')"></q-tooltip
               ></q-toggle>
             </div>
