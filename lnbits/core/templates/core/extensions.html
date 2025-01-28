@@ -235,7 +235,7 @@
             </q-btn>
           </div>
           <div v-else>
-            <q-spinner color="primary" size="2.55em"></q-spinner>
+            <q-spinner-bars color="primary" size="2.55em"></q-spinner-bars>
           </div>
         </div>
 
@@ -337,7 +337,7 @@
         </a>
       </div>
       <div v-else>
-        <q-spinner color="primary" size="2.55em"></q-spinner>
+        <q-spinner-bars color="primary" size="2.55em"></q-spinner-bars>
       </div>
     </q-card-section>
 
@@ -436,7 +436,10 @@
                 :header-class="getReleaseIconColor(release)"
               >
                 <div v-if="release.inProgress">
-                  <q-spinner color="primary" size="2.55em"></q-spinner>
+                  <q-spinner-bars
+                    color="primary"
+                    size="2.55em"
+                  ></q-spinner-bars>
                 </div>
                 <div v-else-if="release.error">
                   <q-icon
@@ -622,7 +625,7 @@
         ></q-btn>
       </div>
     </div>
-    <q-spinner v-else color="primary" size="2.55em"></q-spinner>
+    <q-spinner-bars v-else color="primary" size="2.55em"></q-spinner-bars>
     <div
       v-if="selectedExtension"
       v-show="manageExtensionTab === 'sell'"
@@ -708,7 +711,7 @@
           </a>
         </div>
         <div v-else class="col">
-          <q-spinner color="primary" size="2.55em"></q-spinner>
+          <q-spinner-bars color="primary" size="2.55em"></q-spinner-bars>
         </div>
       </div>
       <div class="row q-mt-lg">
@@ -956,12 +959,12 @@
               value="false"
               :label="item.name + ` (v${item.latestRelease?.version})`"
             >
-              <q-spinner
+              <q-spinner-bars
                 v-if="item.inProgress"
                 color="primary"
                 size="1.5em"
                 class="q-ml-md"
-              ></q-spinner>
+              ></q-spinner-bars>
             </q-checkbox>
           </div>
         </div>
