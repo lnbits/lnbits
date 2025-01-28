@@ -201,7 +201,7 @@ window.WalletPageLogic = {
               'hiddenQrCodeContainer'
             ).innerHTML
           })
-          this.updatePayments = !this.updatePayments
+          this.g.updatePayments = !this.g.updatePayments
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -381,7 +381,7 @@ window.WalletPageLogic = {
         .catch(err => {
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
-          this.updatePayments = !this.updatePayments
+          this.g.updatePayments = !this.g.updatePayments
           this.parse.show = false
         })
     },
@@ -713,9 +713,10 @@ window.WalletPageLogic = {
     this.createdTasks()
   },
   watch: {
-    updatePayments() {
+    'g.updatePayments'(newVal, oldVal) {
+      console.log('updatePayments changed:', {newVal, oldVal})
       this.parse.show = false
-      if (this.receive.paymentHash === this.updatePaymentsHash) {
+      if (this.receive.paymentHash === this.g.updatePaymentsHash) {
         this.receive.show = false
         this.receive.paymentHash = null
       }
