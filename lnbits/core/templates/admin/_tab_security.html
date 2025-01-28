@@ -31,7 +31,7 @@
           filled
           v-model="formData.auth_allowed_methods"
           multiple
-          :hint="t$('auth_allowed_methods_hint')"
+          :hint="$t('auth_allowed_methods_hint')"
           :label="$t('auth_allowed_methods_label')"
           :options="formData.auth_all_methods"
         ></q-select>
@@ -285,7 +285,7 @@
         <div class="col-12 col-md-12">
           <p v-text="$t('wallet_limiter')"></p>
           <div class="row q-col-gutter-md">
-            <div class="col-4">
+            <div class="col-3">
               <q-input
                 filled
                 type="number"
@@ -293,7 +293,7 @@
                 :label="$t('wallet_max_ballance')"
               ></q-input>
             </div>
-            <div class="col-4">
+            <div class="col-3">
               <q-input
                 filled
                 type="number"
@@ -301,13 +301,20 @@
                 :label="$t('wallet_limit_max_withdraw_per_day')"
               ></q-input>
             </div>
-            <div class="col-4">
+            <div class="col-3">
               <q-input
                 filled
                 type="number"
                 v-model.number="formData.lnbits_wallet_limit_secs_between_trans"
                 :label="$t('wallet_limit_secs_between_trans')"
               ></q-input>
+            </div>
+            <div class="col-3">
+              <q-toggle
+                v-model="formData.lnbits_only_allow_incoming_payments"
+                :label="$t('only_incoming_payments_allowed')"
+                ><q-tooltip v-text="$t('disable_outgoing_payments')"></q-tooltip
+              ></q-toggle>
             </div>
           </div>
         </div>
