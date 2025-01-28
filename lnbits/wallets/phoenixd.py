@@ -3,7 +3,7 @@ import base64
 import hashlib
 import json
 import urllib.parse
-from typing import AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
@@ -100,7 +100,7 @@ class PhoenixdWallet(Wallet):
 
         try:
             msats_amount = amount
-            data: Dict = {
+            data: Dict[str, Any] = {
                 "amountSat": f"{msats_amount}",
                 "externalId": "",
             }
@@ -118,6 +118,9 @@ class PhoenixdWallet(Wallet):
                     data["descriptionHash"] = hashlib.sha256(desc.encode()).hexdigest()
                 else:
                     data["description"] = desc
+
+            # if expiry is not set, it defaults to 3600 seconds (1 hour)
+            data["expirySeconds"] = int(kwargs.get("expiry", 3600))
 
             r = await self.client.post(
                 "/createinvoice",
