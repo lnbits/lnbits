@@ -311,8 +311,8 @@
             </div>
             <div class="col-3">
               <q-toggle
-                v-model="formData.only_allow_incoming"
-                :label="formData.only_allow_incoming ? $t('outgoing_disabled') : $t('outgoing_enabled')"
+                v-model="formData.lnbits_only_allow_incoming_payments"
+                :label="formData.lnbits_only_allow_incoming_payments ? $t('outgoing_disabled') : $t('outgoing_enabled')"
                 ><q-tooltip v-text="$t('disable_outgoing_payments')"></q-tooltip
               ></q-toggle>
             </div>

@@ -53,7 +53,7 @@ async def pay_invoice(
     tag: str = "",
     conn: Optional[Connection] = None,
 ) -> Payment:
-    if settings.only_allow_incoming:
+    if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
     invoice = _validate_payment_request(payment_request, max_sat)
     assert invoice.amount_msat
