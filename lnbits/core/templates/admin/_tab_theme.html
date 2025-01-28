@@ -153,6 +153,54 @@
           <br />
         </div>
       </div>
+      <p><span v-text="$t('ui_default_theme')"></span></p>
+      <div class="row q-col-gutter-md">
+        <div class="col">
+          <q-select
+            v-model="formData.lnbits_default_border"
+            :options="globalBorderOptions"
+            label="Border"
+            @update:model-value="applyGlobalBorder"
+          >
+          </q-select>
+        </div>
+        <div class="col">
+          <q-select
+            v-model="formData.lnbits_default_theme"
+            :options="lnbits_theme_options"
+            label="Theme"
+            @update:model-value="applyGlobalTheme"
+          >
+          </q-select>
+        </div>
+        <div class="col">
+          <q-select
+            v-model="formData.lnbits_default_reaction"
+            :options="reactionOptions"
+            label="Payment reaction"
+            @update:model-value="applyGlobalReaction"
+          >
+          </q-select>
+        </div>
+        <div class="col">
+          <q-input
+            type="text"
+            v-model="formData.lnbits_default_bgimage"
+            label="Background Image"
+            @update:model-value="applyGlobalBgimage"
+          >
+          </q-input>
+        </div>
+        <div class="col">
+          <q-toggle
+            type="bool"
+            v-model="formData.lnbits_default_gradient"
+            color="primary"
+            label="Gradient Background"
+          >
+          </q-toggle>
+        </div>
+      </div>
     </div>
   </q-card-section>
 </q-tab-panel>

@@ -101,6 +101,21 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
 
+    if settings.lnbits_default_reaction:
+        t.env.globals["USE_DEFAULT_REACTION"] = settings.lnbits_default_reaction
+
+    if settings.lnbits_default_theme:
+        t.env.globals["USE_DEFAULT_THEME"] = settings.lnbits_default_theme
+
+    if settings.lnbits_default_border:
+        t.env.globals["USE_DEFAULT_BORDER"] = settings.lnbits_default_border
+
+    if settings.lnbits_default_gradient:
+        t.env.globals["USE_DEFAULT_GRADIENT"] = settings.lnbits_default_gradient
+
+    if settings.lnbits_default_bgimage:
+        t.env.globals["USE_DEFAULT_BGIMAGE"] = settings.lnbits_default_bgimage
+
     if settings.bundle_assets:
         t.env.globals["INCLUDED_JS"] = ["bundle.min.js"]
         t.env.globals["INCLUDED_CSS"] = ["bundle.min.css"]

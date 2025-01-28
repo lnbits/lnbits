@@ -465,10 +465,27 @@ window.windowMixin = {
       updatePaymentsHash: '',
       mobileSimple: true,
       walletFlip: true,
-      reactionChoice: 'confettiTop',
-      borderChoice: '',
-      gradientChoice:
-        this.$q.localStorage.getItem('lnbits.gradientBg') || false,
+      borderSelection: null,
+      gradientSelection: null,
+      themeSelection: null,
+      reactionSelection: null,
+      bgimageSelection: null,
+      gradientSelection: false,
+      borderChoice: this.$q.localStorage.has('lnbits.border')
+        ? this.$q.localStorage.getItem('lnbits.border')
+        : USE_DEFAULT_BORDER,
+      gradientChoice: this.$q.localStorage.has('lnbits.gradientBg')
+        ? this.$q.localStorage.getItem('lnbits.gradientBg')
+        : USE_DEFAULT_GRADIENT,
+      themeChoice: this.$q.localStorage.has('lnbits.theme')
+        ? this.$q.localStorage.getItem('lnbits.theme')
+        : USE_DEFAULT_THEME,
+      reactionChoice: this.$q.localStorage.has('lnbits.reactions')
+        ? this.$q.localStorage.getItem('lnbits.reactions')
+        : USE_DEFAULT_REACTION,
+      bgimageChoice: this.$q.localStorage.has('lnbits.backgroundImage')
+        ? this.$q.localStorage.getItem('lnbits.backgroundImage')
+        : USE_DEFAULT_BGIMAGE,
       isUserAuthorized: false,
       walletEventListeners: [],
       backgroundImage: ''
@@ -528,7 +545,6 @@ window.windowMixin = {
     },
     selectWallet(wallet) {
       Object.assign(this.g.wallet, wallet)
-      // this.wallet = this.g.wallet
       this.updatePayments = !this.updatePayments
       this.balance = parseInt(wallet.balance_msat / 1000)
       const currentPath = this.$route.path
@@ -543,15 +559,24 @@ window.windowMixin = {
         window.history.replaceState({}, '', url.toString())
       }
     },
-    changeColor(newValue) {
+    changeTheme(newValue) {
       document.body.setAttribute('data-theme', newValue)
-      this.$q.localStorage.set('lnbits.theme', newValue)
+      if (this.themeSelection) {
+        this.$q.localStorage.set('lnbits.theme', newValue)
+      }
+      this.setColors()
     },
     applyGradient() {
       darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
       primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
       if (this.gradientChoice) {
-        this.$q.localStorage.set('lnbits.gradientBg', true)
+        if (!this.$q.dark.isActive) {
+          this.$q.dark.toggle()
+          this.$q.localStorage.set('lnbits.darkMode', true)
+        }
+        if (this.gradientSelection) {
+          this.$q.localStorage.set('lnbits.gradientBg', true)
+        }
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
         document.body.style.setProperty(
           'background-image',
@@ -561,36 +586,50 @@ window.windowMixin = {
         const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
         const style = document.createElement('style')
         style.innerHTML =
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
-          `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
-          `[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
+          `body[data-theme="${this.themeChoice}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
+          `body[data-theme="${this.themeChoice}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
+          `[data-theme="${this.themeChoice}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
       } else {
-        this.$q.localStorage.set('lnbits.gradientBg', false)
+        if (this.gradientSelection) {
+          this.$q.localStorage.set('lnbits.gradientBg', false)
+        }
       }
-      if (!this.$q.dark.isActive) {
-        this.toggleDarkMode()
+    },
+    toggleDarkMode() {
+      this.$q.dark.toggle()
+      this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
+      if (this.gradientChoice && !this.$q.dark.isActive) {
+        window.location.reload()
       }
     },
     applyBackgroundImage() {
-      if (this.backgroundImage) {
-        this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
-        this.gradientChoice = true
-        this.applyGradient()
+      if (this.bgimageSelection) {
+        this.$q.localStorage.set(
+          'lnbits.backgroundImage',
+          this.bgimageSelection
+        )
+        this.bgimageChoice = this.bgimageSelection
       }
-      let bgImage = this.$q.localStorage.getItem('lnbits.backgroundImage')
-      if (bgImage) {
-        this.backgroundImage = bgImage
+      if (
+        this.bgimageChoice &&
+        this.bgimageChoice !== 'null' &&
+        this.bgimageChoice !== ''
+      ) {
+        if (!this.gradientChoice) {
+          this.gradientChoice = true
+          this.applyGradient()
+        }
         const style = document.createElement('style')
         style.innerHTML = `
-        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"]::before {
+        body[data-theme="${this.themeChoice}"]::before {
           content: '';
           position: fixed;
           top: 0;
           left: 0;
           width: 100%;
           height: 100%;
-          background: url(${bgImage});
+          background: url(${this.bgimageChoice});
           background-size: cover;
           filter: blur(8px);
           z-index: -1;
@@ -598,38 +637,39 @@ window.windowMixin = {
         background-repeat: no-repeat;
         background-size: cover;
         }
-        body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-page-container {
+        body[data-theme="${this.themeChoice}"] .q-page-container {
           backdrop-filter: none; /* Ensure the page content is not affected */
         }`
-
         document.head.appendChild(style)
       }
     },
     applyBorder() {
-      if (this.borderChoice) {
-        this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
+      if (this.borderSelection) {
+        this.$q.localStorage.setItem('lnbits.border', this.borderSelection)
+        this.borderChoice = this.$q.localStorage.getItem('lnbits.border')
       }
-      let borderStyle = this.$q.localStorage.getItem('lnbits.border')
-      if (!borderStyle) {
-        this.$q.localStorage.set('lnbits.border', 'hard-border')
-        borderStyle = 'hard-border'
-      }
-      this.borderChoice = borderStyle
       let borderStyleCSS
-      if (borderStyle == 'hard-border') {
+      if (this.borderChoice == 'hard-border') {
         borderStyleCSS = `box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #ffffff47; border: none;`
       }
-      if (borderStyle == 'neon-border') {
+      if (this.borderChoice == 'neon-border') {
         borderStyleCSS = `border: 2px solid ${this.$q.localStorage.getItem('lnbits.primaryColor')}; box-shadow: none;`
       }
-      if (borderStyle == 'no-border') {
+      if (this.borderChoice == 'no-border') {
         borderStyleCSS = `box-shadow: none; border: none;`
       }
-      if (borderStyle == 'retro-border') {
+      if (this.borderChoice == 'retro-border') {
         borderStyleCSS = `border: none; border-color: rgba(255, 255, 255, 0.28); box-shadow: 0 1px 5px rgba(255, 255, 255, 0.2), 0 2px 2px rgba(255, 255, 255, 0.14), 0 3px 1px -2px rgba(255, 255, 255, 0.12);`
       }
       let style = document.createElement('style')
-      style.innerHTML = `body[data-theme="${this.$q.localStorage.getItem('lnbits.theme')}"] .q-card.q-card--dark, .q-date--dark { ${borderStyleCSS} }`
+      style.innerHTML = `
+        body[data-theme="${this.themeChoice}"] .q-card, 
+        body[data-theme="${this.themeChoice}"] .q-card.q-card--dark, 
+        body[data-theme="${this.themeChoice}"] .q-date, 
+        body[data-theme="${this.themeChoice}"] .q-date--dark {
+          ${borderStyleCSS}
+        }
+      `
       document.head.appendChild(style)
     },
     setColors() {
@@ -764,18 +804,18 @@ window.windowMixin = {
     }
   },
   async created() {
-    if (
-      this.$q.localStorage.getItem('lnbits.darkMode') == true ||
-      this.$q.localStorage.getItem('lnbits.darkMode') == false
-    ) {
-      this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
-    } else {
-      this.$q.dark.set(true)
-    }
-    this.reactionChoice =
-      this.$q.localStorage.getItem('lnbits.reactions') || 'confettiTop'
-
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
+    this.$q.dark.set(
+      this.$q.localStorage.has('lnbits.darkMode')
+        ? this.$q.localStorage.getItem('lnbits.darkMode')
+        : true
+    )
+    this.changeTheme(this.themeChoice)
+    this.applyBorder()
+    if (this.$q.dark.isActive) {
+      this.applyGradient()
+    }
+    this.applyBackgroundImage()
 
     let locale = this.$q.localStorage.getItem('lnbits.lang')
     if (locale) {
@@ -793,28 +833,6 @@ window.windowMixin = {
       this.g.offline = false
     })
 
-    // failsafe if admin changes themes halfway
-    if (!this.$q.localStorage.getItem('lnbits.theme')) {
-      this.changeColor(this.g.allowedThemes[0])
-    }
-    if (
-      this.$q.localStorage.getItem('lnbits.theme') &&
-      !this.g.allowedThemes.includes(
-        this.$q.localStorage.getItem('lnbits.theme')
-      )
-    ) {
-      this.changeColor(this.g.allowedThemes[0])
-    }
-
-    if (this.$q.localStorage.getItem('lnbits.theme')) {
-      document.body.setAttribute(
-        'data-theme',
-        this.$q.localStorage.getItem('lnbits.theme')
-      )
-    }
-    this.applyGradient()
-    this.applyBackgroundImage()
-    this.applyBorder()
     if (window.user) {
       this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
     }

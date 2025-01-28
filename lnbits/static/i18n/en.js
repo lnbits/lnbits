@@ -450,6 +450,7 @@ window.localisation.en = {
   ui_site_description: 'Site Description',
   ui_site_description_hint: 'Use plain text, Markdown, or raw HTML',
   ui_default_wallet_name: 'Default Wallet Name',
+  ui_default_theme: 'Default Theme',
   lnbits_wallet: 'LNbits wallet',
   denomination: 'Denomination',
   denomination_hint: 'The name for the FakeWallet token',

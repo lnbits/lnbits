@@ -91,40 +91,34 @@ window.AccountPageLogic = {
       window.i18n.global.locale = newValue
       this.$q.localStorage.set('lnbits.lang', newValue)
     },
-    toggleDarkMode() {
-      this.$q.dark.toggle()
-      this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
-      if (!this.$q.dark.isActive && this.gradientChoice) {
-        this.toggleGradient()
-      }
-    },
     toggleGradient() {
-      this.gradientChoice = !this.gradientChoice
+      this.gradientSelection = !this.gradientChoice
+      this.gradientChoice = this.gradientSelection
+      this.$q.localStorage.set('lnbits.backgroundImage', 'none')
       this.applyGradient()
-      this.$q.localStorage.set('lnbits.backgroundImage', '')
-      this.applyBorder()
       if (!this.gradientChoice) {
         window.location.reload()
       }
     },
     reactionChoiceFunc() {
-      this.$q.localStorage.set('lnbits.reactions', this.reactionChoice)
+      this.$q.localStorage.set('lnbits.reactions', this.reactionSelection)
+      this.reactionChoice = this.reactionSelection
     },
-    backgroundImageFunc() {
-      this.$q.localStorage.set('lnbits.backgroundImage', this.backgroundImage)
+    bgimageChoiceFunc() {
+      this.$q.localStorage.set('lnbits.backgroundImage', this.bgimageSelection)
+      this.bgimageChoice = this.bgimageSelection
       this.applyBackgroundImage()
     },
-    changeColor(newValue) {
-      document.body.setAttribute('data-theme', newValue)
-      this.$q.localStorage.set('lnbits.theme', newValue)
+    themeChoiceFunc(newValue) {
+      this.changeTheme(newValue)
       this.setColors()
-      this.applyBorder()
-      if (this.$q.localStorage.getItem('lnbits.gradientBg')) {
+      if (this.gradientChoice) {
         this.applyGradient()
       }
-      if (this.$q.localStorage.getItem('lnbits.backgroundImage')) {
+      if (this.bgimageChoice) {
         this.applyBackgroundImage()
       }
+      this.applyBorder()
     },
     async updateAccount() {
       try {
@@ -432,6 +426,10 @@ window.AccountPageLogic = {
     }
   },
   async created() {
+    this.borderSelection = this.borderChoice
+    this.reactionSelection = this.reactionChoice
+    this.bgimageSelection = this.bgimageChoice
+    this.themeSelection = this.themeChoice
     try {
       const {data} = await LNbits.api.getAuthenticatedUser()
       this.user = data

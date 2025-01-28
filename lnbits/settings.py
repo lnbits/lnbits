@@ -258,6 +258,11 @@ class ThemesSettings(LNbitsSettings):
     lnbits_allowed_currencies: list[str] = Field(default=[])
     lnbits_default_accounting_currency: Optional[str] = Field(default=None)
     lnbits_qr_logo: str = Field(default="/static/images/logos/lnbits.png")
+    lnbits_default_reaction: str = Field(default="confettiBothSides")
+    lnbits_default_theme: str = Field(default="classic")
+    lnbits_default_border: str = Field(default="hard-border")
+    lnbits_default_gradient: bool = Field(default=False)
+    lnbits_default_bgimage: str = Field(default=None)
 
 
 class OpsSettings(LNbitsSettings):
