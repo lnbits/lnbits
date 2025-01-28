@@ -51,7 +51,15 @@ else:
                     "cannot initialize BreezLiquidSdkWallet: missing breez_liquid_seed"
                 )
 
-            self.config = breez_sdk.default_config(breez_sdk.LiquidNetwork.MAINNET)
+            if not settings.breez_liquid_api_key:
+                raise ValueError(
+                    "cannot initialize BreezLiquidSdkWallet: missing breez_liquid_api_key"
+                )
+
+            self.config = breez_sdk.default_config(
+                breez_sdk.LiquidNetwork.MAINNET,
+                breez_api_key=settings.breez_liquid_api_key,
+            )
 
             breez_sdk_working_dir = Path(
                 settings.lnbits_data_folder, "breez-liquid-sdk"
@@ -78,7 +86,7 @@ else:
                 info: breez_sdk.GetInfoResponse = self.sdk_services.get_info()
             except Exception as exc:
                 return StatusResponse(f"Failed to connect to breez, got: '{exc}...'", 0)
-            return StatusResponse(None, int(info.balance_sat * 1000))
+            return StatusResponse(None, int(info.wallet_info.balance_sat * 1000))
 
         async def create_invoice(
             self,
@@ -93,7 +101,7 @@ else:
                 req: breez_sdk.PrepareReceiveResponse = (
                     self.sdk_services.prepare_receive_payment(
                         breez_sdk.PrepareReceiveRequest(
-                            int(amount), breez_sdk.PaymentMethod.LIGHTNING
+                            breez_sdk.PaymentMethod.LIGHTNING, int(amount)
                         )
                     )
                 )
@@ -218,7 +226,9 @@ else:
                 if payment.status == breez_sdk.PaymentState.FAILED:
                     return PaymentFailedStatus()
                 if payment.status == breez_sdk.PaymentState.COMPLETE:
-                    return PaymentSuccessStatus()
+                    return PaymentSuccessStatus(
+                        paid=True, fee_msat=int(payment.fees_sat * 1000)
+                    )
                 return PaymentPendingStatus()
             except Exception as exc:
                 logger.warning(exc)

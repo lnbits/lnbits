@@ -224,6 +224,7 @@ window.app.component('lnbits-funding-sources', {
           'BreezLiquidSdkWallet',
           'Breez Liquid SDK',
           {
+            breez_liquid_api_key: 'Breez API Key',
             breez_liquid_seed: 'Liquid seed phrase'
           }
         ]
