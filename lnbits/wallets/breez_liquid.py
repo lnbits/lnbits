@@ -53,7 +53,8 @@ else:
 
             if not settings.breez_liquid_api_key:
                 raise ValueError(
-                    "cannot initialize BreezLiquidSdkWallet: missing breez_liquid_api_key"
+                    "cannot initialize BreezLiquidSdkWallet: "
+                    "missing breez_liquid_api_key"
                 )
 
             self.config = breez_sdk.default_config(
