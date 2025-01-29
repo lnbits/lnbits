@@ -18,7 +18,9 @@ window.app = Vue.createApp({
       password: '',
       passwordRepeat: '',
       walletName: '',
-      signup: false
+      signup: false,
+      slide: 1,
+      autoplay: true
     }
   },
   computed: {
@@ -170,12 +172,6 @@ window.app = Vue.createApp({
         message: 'Processing...',
         icon: null
       })
-    },
-    validateUsername(val) {
-      const usernameRegex = new RegExp(
-        '^(?=[a-zA-Z0-9._]{2,20}$)(?!.*[_.]{2})[^_.].*[^_.]$'
-      )
-      return usernameRegex.test(val)
     }
   },
   created() {

@@ -1054,3 +1054,296 @@
     </q-dialog>
   </span>
 </template>
+
+<template id="user-id-only">
+  <q-card-section>
+    <div class="q-mb-md">
+      <span
+        v-text="$t('instant_access_question')"
+        class="text-h6 text-grey"
+      ></span>
+      <div class="text-body2 q-mt-md">
+        <q-badge
+          @click="showLogin('user-id-only')"
+          color="primary"
+          class="cursor-pointer"
+          rounded
+        >
+          <strong>
+            <q-icon name="account_circle" size="xs"></q-icon>
+            <span v-text="$t('login_with_user_id')"></span> </strong
+        ></q-badge>
+        <div v-if="allowed_new_users" class="inline-block">
+          <span v-text="$t('or')" class="q-mx-sm"></span>
+          <q-badge
+            @click="showRegister('user-id-only')"
+            color="primary"
+            class="cursor-pointer"
+            rounded
+          >
+            <strong>
+              <q-icon name="add" size="xs"></q-icon>
+              <span v-text="$t('create_new_wallet')"></span>
+            </strong>
+          </q-badge>
+        </div>
+      </div>
+    </div>
+  </q-card-section>
+  <q-separator></q-separator>
+  <q-card-section
+    v-if="authAction === 'login' && authMethod === 'user-id-only'"
+  >
+    <b> <span v-text="$t('login_with_user_id')"></span> </b><br /><br />
+    <q-form @submit="loginUsr" class="q-gutter-md">
+      <q-input filled v-model="user" label="usr" type="password"></q-input>
+      <q-card-actions vertical align="center">
+        <q-btn
+          color="primary"
+          :disable="user == ''"
+          type="submit"
+          :label="$t('login')"
+          class="full-width q-mb-sm"
+        ></q-btn>
+        <q-btn
+          @click="showLogin('username-password')"
+          outline
+          color="grey"
+          :label="$t('back')"
+          class="full-width"
+        ></q-btn>
+      </q-card-actions>
+    </q-form>
+  </q-card-section>
+  <q-card-section
+    v-if="authAction === 'register' && authMethod === 'user-id-only'"
+  >
+    <div>
+      <q-form @submit="createWallet" class="q-gutter-md">
+        <q-input
+          filled
+          v-model="walletName"
+          :label="$t('name_your_wallet', {name: '{{ SITE_TITLE }} *'})"
+        ></q-input>
+        <q-card-actions vertical align="center">
+          <q-btn
+            color="primary"
+            :disable="walletName == ''"
+            type="submit"
+            :label="$t('add_wallet')"
+            class="full-width q-mb-sm"
+          ></q-btn>
+          <q-btn
+            @click="showLogin('username-password')"
+            outline
+            color="grey"
+            :label="$t('back')"
+            class="full-width"
+          ></q-btn>
+        </q-card-actions>
+      </q-form>
+    </div>
+  </q-card-section>
+</template>
+
+<template id="username-password">
+  <q-card-section>
+    <div class="text-center text-h6">
+      <span
+        v-if="authAction === 'login'"
+        v-text="$t('login_to_account')"
+      ></span>
+      <span
+        v-if="authAction === 'register'"
+        v-text="$t('create_account')"
+      ></span>
+      <span v-if="authAction === 'reset'" v-text="$t('reset_password')"></span>
+    </div>
+  </q-card-section>
+  <!-- LOGIN -->
+  <q-card-section v-if="authAction === 'login'">
+    <q-form @submit="login" class="q-gutter-md">
+      <q-input
+        filled
+        v-model="username"
+        name="username"
+        :label="$t('username_or_email') + ' *'"
+      ></q-input>
+      <q-input
+        filled
+        v-model="password"
+        name="password"
+        :label="$t('password') + ' *'"
+        type="password"
+      ></q-input>
+      <div class="row justify-end">
+        <q-btn
+          :disable="!username || !password"
+          color="primary"
+          type="submit"
+          :label="$t('login')"
+          class="full-width"
+        ></q-btn>
+      </div>
+    </q-form>
+  </q-card-section>
+  <!-- REGISTER -->
+  <q-card-section v-if="authAction === 'register'">
+    <q-form @submit="register" class="q-gutter-md">
+      <q-input
+        filled
+        required
+        v-model="username"
+        :label="$t('username') + ' *'"
+        :rules="[val => validateUsername(val) || $t('invalid_username')]"
+      ></q-input>
+      <q-input
+        filled
+        v-model="password"
+        :label="$t('password') + ' *'"
+        type="password"
+        :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+      ></q-input>
+      <q-input
+        filled
+        v-model="passwordRepeat"
+        :label="$t('password_repeat') + ' *'"
+        type="password"
+        :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+      ></q-input>
+      <div class="row justify-end">
+        <q-btn
+          unelevated
+          color="primary"
+          :disable="
+            !password ||
+            !passwordRepeat ||
+            !username ||
+            password !== passwordRepeat
+          "
+          type="submit"
+          class="full-width"
+          :label="$t('create_account')"
+        ></q-btn>
+      </div>
+    </q-form>
+  </q-card-section>
+  <!-- RESET -->
+  <q-card-section v-if="authAction === 'reset'">
+    <q-form @submit="reset" class="q-gutter-md">
+      <q-input
+        filled
+        required
+        :disable="true"
+        v-model="reset_key"
+        :label="$t('reset_key') + ' *'"
+      ></q-input>
+      <q-input
+        filled
+        v-model="password"
+        :label="$t('password') + ' *'"
+        type="password"
+        :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+      ></q-input>
+      <q-input
+        filled
+        v-model="passwordRepeat"
+        :label="$t('password_repeat') + ' *'"
+        type="password"
+        :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+      ></q-input>
+      <div class="row justify-end">
+        <q-btn
+          unelevated
+          color="primary"
+          :disable="
+            !password ||
+            !passwordRepeat ||
+            !reset_key ||
+            password !== passwordRepeat
+          "
+          type="submit"
+          class="full-width"
+          :label="$t('reset_password')"
+        ></q-btn>
+      </div>
+    </q-form>
+  </q-card-section>
+  <!-- OAUTH -->
+  <q-card-section v-if="showOauth">
+    <q-separator inset></q-separator>
+    <div class="text-grey text-h6 text-center q-my-md">
+      <span v-text="$t('signin_with_oauth')"></span>
+    </div>
+    <div class="flex flex-center justify-center q-mt-md" style="gap: 1rem">
+      <q-btn
+        v-if="authMethods.includes('nostr-auth-nip98')"
+        @click="signInWithNostr"
+        outline
+        no-caps
+        color="grey"
+        class="btn-fixed-width"
+      >
+        <q-avatar size="32px" class="q-mr-md">
+          <q-img
+            class="bg-primary"
+            :src="`{{ static_url_for('static', 'images/logos/nostr.svg') }}`"
+          ></q-img>
+        </q-avatar>
+        <div>
+          <span v-text="$t('signin_with_nostr')"></span>
+        </div>
+      </q-btn>
+      <q-btn
+        v-if="authMethods.includes('github-auth')"
+        href="/api/v1/auth/github"
+        type="a"
+        outline
+        no-caps
+        color="grey"
+        class="btn-fixed-width"
+      >
+        <q-avatar size="32px" class="q-mr-md">
+          <q-img
+            :src="`{{ static_url_for('static', 'images/github-logo.png') }}`"
+          ></q-img>
+        </q-avatar>
+        <div><span v-text="$t('signin_with_github')"></span></div>
+      </q-btn>
+      <q-btn
+        v-if="authMethods.includes('google-auth')"
+        href="/api/v1/auth/google"
+        type="a"
+        outline
+        no-caps
+        color="grey"
+        class="btn-fixed-width"
+      >
+        <q-avatar size="32px" class="q-mr-md">
+          <q-img
+            :src="`{{ static_url_for('static', 'images/google-logo.png') }}`"
+          ></q-img>
+        </q-avatar>
+        <div>
+          <span v-text="$t('signin_with_google')"></span>
+        </div>
+      </q-btn>
+      <q-btn
+        v-if="authMethods.includes('keycloak-auth')"
+        href="/api/v1/auth/keycloak"
+        type="a"
+        outline
+        no-caps
+        color="grey"
+        class="btn-fixed-width"
+      >
+        <q-avatar size="32px" class="q-mr-md">
+          <q-img
+            :src="`{{ static_url_for('static', 'images/keycloak-logo.png') }}`"
+          ></q-img>
+        </q-avatar>
+        <div><span v-text="$t('signin_with_keycloak')"></span></div>
+      </q-btn>
+    </div>
+  </q-card-section>
+</template>
