@@ -31,10 +31,10 @@ window.PaymentsPageLogic = {
             sortable: true
           },
           {
-            name: 'amountFormatted',
+            name: 'amount',
             align: 'right',
             label: 'Amount',
-            field: 'amountFormatted',
+            field: 'amount',
             sortable: true
           },
           {
@@ -42,7 +42,7 @@ window.PaymentsPageLogic = {
             align: 'right',
             label: 'Fiat',
             field: 'amountFiat',
-            sortable: true
+            sortable: false
           },
           {
             name: 'fee',
@@ -125,7 +125,7 @@ window.PaymentsPageLogic = {
           }
           p.timeFrom = moment(p.created_at).fromNow()
 
-          p.amountFormatted =
+          p.amount =
             new Intl.NumberFormat(window.LOCALE).format(p.amount / 1000) +
             ' sats'
           if (p.extra?.wallet_fiat_amount) {
