@@ -22,6 +22,13 @@ POSTGRES = "POSTGRES"
 COCKROACH = "COCKROACH"
 SQLITE = "SQLITE"
 
+DateTrunc = Literal["hour", "day", "month"]
+sqlite_formats = {
+    "hour": "%Y-%m-%d %H:00:00",
+    "day": "%Y-%m-%d 00:00:00",
+    "month": "%Y-%m-01 00:00:00",
+}
+
 if settings.lnbits_database_url:
     database_uri = settings.lnbits_database_url
     if database_uri.startswith("cockroachdb://"):
@@ -74,6 +81,13 @@ class Compat:
         elif self.type == SQLITE:
             return time.mktime(date.timetuple())
         return "<nothing>"
+
+    def datetime_grouping(self, group: DateTrunc):
+        if self.type in {POSTGRES, COCKROACH}:
+            return f"date_trunc('{group}', time)"
+        elif self.type == SQLITE:
+            return f"strftime('{sqlite_formats[group]}', time, 'unixepoch')"
+        return "<bad grouping>"
 
     @property
     def timestamp_now(self) -> str:
