@@ -1,11 +1,11 @@
 from time import time
-from typing import Literal, Optional
+from typing import Optional
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
 from lnbits.core.models.payments import PaymentsStatusCount
-from lnbits.db import DB_TYPE, SQLITE, Connection, Filters, Page
+from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
     CreatePayment,
@@ -13,13 +13,6 @@ from ..models import (
     PaymentFilters,
     PaymentHistoryPoint,
 )
-
-DateTrunc = Literal["hour", "day", "month"]
-sqlite_formats = {
-    "hour": "%Y-%m-%d %H:00:00",
-    "day": "%Y-%m-%d 00:00:00",
-    "month": "%Y-%m-01 00:00:00",
-}
 
 
 def update_payment_extra():
@@ -304,12 +297,7 @@ async def get_payments_history(
     if not filters:
         filters = Filters()
 
-    if DB_TYPE == SQLITE and group in sqlite_formats:
-        date_trunc = f"strftime('{sqlite_formats[group]}', time, 'unixepoch')"
-    elif group in ("day", "hour", "month"):
-        date_trunc = f"date_trunc('{group}', time)"
-    else:
-        raise ValueError(f"Invalid group value: {group}")
+    date_trunc = db.datetime_grouping(group)
 
     values = {
         "wallet_id": wallet_id,
