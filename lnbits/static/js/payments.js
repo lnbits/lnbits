@@ -197,12 +197,14 @@ window.PaymentsPageLogic = {
           'GET',
           `/api/v1/payments/stats/count?${params}&count_by=status`
         )
-        this.searchOptions.status = data.map(s => s.field)
-
+        data.sort((a, b) => a.field - b.field)
+        this.searchOptions.status = data
+          .map(s => s.field)
+          .sort()
+          .reverse()
         this.paymentsStatusChart.data.datasets[0].data = data.map(s => s.total)
-        this.paymentsStatusChart.data.labels = data.map(
-          s => s.field || 'unknown'
-        )
+        this.paymentsStatusChart.data.labels = [...this.searchOptions.status]
+
         this.paymentsStatusChart.update()
       } catch (error) {
         console.warn(error)
@@ -234,6 +236,7 @@ window.PaymentsPageLogic = {
               }
             ],
             label: w.wallet_name,
+            wallet_id: w.wallet_id,
             backgroundColor: colors[i % 100],
             hoverOffset: 4
           }
@@ -291,9 +294,9 @@ window.PaymentsPageLogic = {
                 label: '',
                 data: [],
                 backgroundColor: [
-                  'rgb(255, 99, 132)',
+                  'rgb(0, 205, 86)',
                   'rgb(54, 162, 235)',
-                  'rgb(255, 205, 86)',
+                  'rgb(255, 99, 132)',
                   'rgb(255, 5, 86)',
                   'rgb(25, 205, 86)',
                   'rgb(255, 205, 250)'
@@ -323,7 +326,10 @@ window.PaymentsPageLogic = {
             onClick: (_, elements, chart) => {
               if (elements[0]) {
                 const i = elements[0].datasetIndex
-                this.searchPaymentsBy('wallet_id', chart.data.datasets[i].label)
+                this.searchPaymentsBy(
+                  'wallet_id',
+                  chart.data.datasets[i].wallet_id
+                )
               }
             }
           },
@@ -357,6 +363,12 @@ window.PaymentsPageLogic = {
                   display: false,
                   text: 'Tags'
                 }
+              }
+            },
+            onClick: (_, elements, chart) => {
+              if (elements[0]) {
+                const i = elements[0].index
+                this.searchPaymentsBy('tag', chart.data.labels[i])
               }
             }
           },
