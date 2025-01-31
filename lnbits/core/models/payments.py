@@ -125,24 +125,20 @@ class Payment(BaseModel):
 
 
 class PaymentFilters(FilterModel):
-    __search_fields__ = ["memo", "amount", "wallet_id"]
+    __search_fields__ = ["memo", "amount", "wallet_id", "tag"]
 
-    __sort_fields__ = ["created_at", "amount", "fee", "memo", "time"]
+    __sort_fields__ = ["created_at", "amount", "fee", "memo", "time", "tag"]
 
-    status: str
-    checking_id: str
+    status: Optional[str]
+    tag: Optional[str]
+    checking_id: Optional[str]
     amount: int
     fee: int
     memo: Optional[str]
     time: datetime
-    bolt11: str
-    preimage: str
-    payment_hash: str
-    expiry: Optional[datetime]
-    extra: dict = {}
-    wallet_id: str
-    webhook: Optional[str]
-    webhook_status: Optional[int]
+    preimage: Optional[str]
+    payment_hash: Optional[str]
+    wallet_id: Optional[str]
 
 
 class PaymentDataPoint(BaseModel):

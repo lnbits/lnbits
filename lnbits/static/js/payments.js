@@ -55,7 +55,7 @@ window.PaymentsPageLogic = {
           {
             name: 'tag',
             align: 'left',
-            label: 'Ext. Tag',
+            label: 'Tag',
             field: 'tag',
             sortable: false
           },
@@ -108,6 +108,14 @@ window.PaymentsPageLogic = {
   computed: {},
   methods: {
     async fetchPayments(props) {
+      if (props) {
+        props.filter =
+          props.filter ||
+          Object.entries(this.searchData).reduce(
+            (a, [k, v]) => (v ? ((a[k] = v), a) : a),
+            {}
+          )
+      }
       try {
         const params = LNbits.utils.prepareFilterQuery(
           this.paymentsTable,
@@ -137,12 +145,6 @@ window.PaymentsPageLogic = {
 
           return p
         })
-        this.searchOptions.status = Array.from(
-          new Set(data.data.map(p => p.status))
-        )
-        this.searchOptions.tag = Array.from(
-          new Set(data.data.map(p => p.extra && p.extra.tag))
-        )
       } catch (error) {
         console.error(error)
         LNbits.utils.notifyApiError(error)
@@ -160,7 +162,6 @@ window.PaymentsPageLogic = {
         (a, [k, v]) => (v ? ((a[k] = v), a) : a),
         {}
       )
-
       await this.fetchPayments()
     },
     showDetailsToggle(payment) {
@@ -196,12 +197,11 @@ window.PaymentsPageLogic = {
           'GET',
           `/api/v1/payments/stats/count?${params}&count_by=status`
         )
+        this.searchOptions.status = data.map(s => s.field)
 
-        this.paymentsStatusChart.data.datasets[0].data = data.map(
-          rm => rm.total
-        )
+        this.paymentsStatusChart.data.datasets[0].data = data.map(s => s.total)
         this.paymentsStatusChart.data.labels = data.map(
-          rm => rm.field || 'unknown'
+          s => s.field || 'unknown'
         )
         this.paymentsStatusChart.update()
       } catch (error) {
@@ -250,7 +250,9 @@ window.PaymentsPageLogic = {
           'GET',
           `/api/v1/payments/stats/count?${params}&count_by=tag`
         )
-
+        this.searchOptions.tag = data.map(s => s.field)
+        this.searchOptions.status.sort()
+        console.log('### this.searchOptions.status', this.searchOptions.status)
         this.paymentsTagsChart.data.datasets[0].data = data.map(rm => rm.total)
         this.paymentsTagsChart.data.labels = data.map(rm => rm.field || 'core')
         this.paymentsTagsChart.update()

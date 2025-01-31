@@ -106,6 +106,15 @@
                   clearable
                   style="width: 100px"
                 ></q-select>
+                <q-select
+                  v-else-if="['tag'].includes(col.name)"
+                  v-model="searchData[col.name]"
+                  :options="searchOptions[col.name]"
+                  @update:model-value="searchPaymentsBy()"
+                  :label="col.label"
+                  clearable
+                  style="width: 100px"
+                ></q-select>
                 <span v-else v-text="col.label"></span>
               </q-th>
             </q-tr>
