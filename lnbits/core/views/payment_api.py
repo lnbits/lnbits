@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from lnbits import bolt11
+from lnbits.core.crud.payments import get_payment_count_stats
 from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
@@ -23,10 +24,12 @@ from lnbits.core.models import (
     KeyType,
     PayLnurlWData,
     Payment,
+    PaymentCountField,
     PaymentFilters,
     PaymentHistoryPoint,
     Wallet,
 )
+from lnbits.core.models.payments import PaymentCountStat
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -90,8 +93,23 @@ async def api_payments_history(
     group: DateTrunc = Query("day"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(key_info.wallet.id)
+    await update_pending_payments(key_info.wallet.id)  # todo: remove?
     return await get_payments_history(key_info.wallet.id, group, filters)
+
+
+@payment_router.get(
+    "/stats/count",
+    name="Get payments history for all users",
+    response_model=List[PaymentCountStat],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+)
+async def api_payments_stats(
+    # user: User = Depends(check_admin),
+    count_by: PaymentCountField = Query("tag"),
+    filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
+):
+
+    return await get_payment_count_stats(count_by, filters)
 
 
 @payment_router.get(

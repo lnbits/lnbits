@@ -148,7 +148,7 @@ window.PaymentsPageLogic = {
         LNbits.utils.notifyApiError(error)
       } finally {
         this.paymentsTable.loading = false
-        this.updateCharts()
+        this.updateCharts(props)
       }
     },
     async searchPaymentsBy(fieldName, fieldValue) {
@@ -185,32 +185,29 @@ window.PaymentsPageLogic = {
       }
       return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
     },
-    updateCharts() {
+    async updateCharts(props) {
       if (this.payments.length === 0) {
         return
       }
+      const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
 
-      const paymentsStatus = this.payments.reduce((acc, p) => {
-        acc[p.status] = (acc[p.status] || 0) + 1
-        return acc
-      }, {})
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/payments/stats/count?${params}&count_by=status`
+        )
 
-      this.paymentsStatusChart.data.datasets = [
-        {
-          label: 'Status',
-          data: Object.values(paymentsStatus)
-        }
-      ]
-      this.paymentsStatusChart.data.labels = Object.keys(paymentsStatus)
-      this.paymentsStatusChart.update()
-
-      const dates = this.payments.reduce((acc, p) => {
-        const date = Quasar.date.formatDate(new Date(p.created_at), 'MM/YYYY')
-        if (!acc.includes(date)) {
-          acc.push(date)
-        }
-        return acc
-      }, [])
+        this.paymentsStatusChart.data.datasets[0].data = data.map(
+          rm => rm.total
+        )
+        this.paymentsStatusChart.data.labels = data.map(
+          rm => rm.field || 'unknown'
+        )
+        this.paymentsStatusChart.update()
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      }
 
       const wallets = this.payments.reduce((acc, p) => {
         if (!acc[p.wallet_id]) {
@@ -252,19 +249,27 @@ window.PaymentsPageLogic = {
 
       this.paymentsWalletsChart.update()
 
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/payments/stats/count?${params}&count_by=tag`
+        )
+
+        this.paymentsTagsChart.data.datasets[0].data = data.map(rm => rm.total)
+        this.paymentsTagsChart.data.labels = data.map(rm => rm.field || 'core')
+        this.paymentsTagsChart.update()
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      }
+
       const tags = this.payments.reduce((acc, p) => {
         const tag = p.extra && p.extra.tag ? p.extra.tag : 'wallet'
         acc[tag] = (acc[tag] || 0) + 1
         return acc
       }, {})
-      this.paymentsTagsChart.data.datasets = [
-        {
-          label: 'Tags',
-          data: Object.values(tags)
-        }
-      ]
-      this.paymentsTagsChart.data.labels = Object.keys(tags)
-      this.paymentsTagsChart.update()
+
+      console.log('#tags', tags)
     },
     async initCharts() {
       if (!this.chartsReady) {
@@ -338,14 +343,7 @@ window.PaymentsPageLogic = {
               {
                 label: '',
                 data: [],
-                backgroundColor: [
-                  'rgb(255, 99, 132)',
-                  'rgb(54, 162, 235)',
-                  'rgb(255, 205, 86)',
-                  'rgb(255, 5, 86)',
-                  'rgb(25, 205, 86)',
-                  'rgb(255, 205, 250)'
-                ],
+                backgroundColor: this.randomColors(20),
                 hoverOffset: 4
               }
             ]
@@ -355,7 +353,7 @@ window.PaymentsPageLogic = {
       this.paymentsTagsChart = new Chart(
         this.$refs.paymentsTagsChart.getContext('2d'),
         {
-          type: 'doughnut',
+          type: 'pie',
 
           options: {
             responsive: true,
@@ -363,6 +361,13 @@ window.PaymentsPageLogic = {
             plugins: {
               title: {
                 display: false
+              },
+              legend: {
+                display: false,
+                title: {
+                  display: false,
+                  text: 'Tags'
+                }
               }
             }
           },
@@ -371,20 +376,24 @@ window.PaymentsPageLogic = {
               {
                 label: '',
                 data: [],
-                backgroundColor: [
-                  'rgb(255, 99, 132)',
-                  'rgb(54, 162, 235)',
-                  'rgb(255, 205, 86)',
-                  'rgb(255, 5, 86)',
-                  'rgb(25, 205, 86)',
-                  'rgb(255, 205, 250)'
-                ],
+                backgroundColor: this.randomColors(10),
                 hoverOffset: 4
               }
             ]
           }
         }
       )
+    },
+    randomColors(seed = 1) {
+      const colors = []
+      for (let i = 1; i <= 10; i++) {
+        for (let j = 1; j <= 10; j++) {
+          colors.push(
+            `rgb(${(j * seed * 33) % 200}, ${(71 * (i + j + seed)) % 255}, ${(i + seed * 30) % 255})`
+          )
+        }
+      }
+      return colors
     }
   }
 }

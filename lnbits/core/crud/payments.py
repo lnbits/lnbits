@@ -4,12 +4,13 @@ from typing import Optional
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
-from lnbits.core.models.payments import PaymentsStatusCount
+from lnbits.core.models.payments import PaymentCountStat, PaymentsStatusCount
 from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
     CreatePayment,
     Payment,
+    PaymentCountField,
     PaymentFilters,
     PaymentHistoryPoint,
 )
@@ -347,6 +348,30 @@ async def get_payments_history(
         )
         balance -= row.get("income", 0) - row.get("spending", 0)
     return results
+
+
+async def get_payment_count_stats(
+    field: PaymentCountField,
+    filters: Optional[Filters[PaymentFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> list[PaymentCountStat]:
+
+    if not filters:
+        filters = Filters()
+    clause = filters.where()
+    data = await (conn or db).fetchall(
+        query=f"""
+            SELECT {field} as field, count(*) as total
+            FROM apipayments
+            {clause}
+            GROUP BY {field}
+            ORDER BY {field}
+        """,
+        values=filters.values(),
+        model=PaymentCountStat,
+    )
+
+    return data
 
 
 async def delete_wallet_payment(

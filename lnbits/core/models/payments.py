@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import Query
 from pydantic import BaseModel, Field, validator
@@ -127,7 +127,7 @@ class Payment(BaseModel):
 class PaymentFilters(FilterModel):
     __search_fields__ = ["memo", "amount"]
 
-    __sort_fields__ = ["created_at", "amount", "fee", "memo"]
+    __sort_fields__ = ["created_at", "amount", "fee", "memo", "time"]
 
     status: str
     checking_id: str
@@ -143,6 +143,27 @@ class PaymentFilters(FilterModel):
     wallet_id: str
     webhook: Optional[str]
     webhook_status: Optional[int]
+
+
+class PaymentDataPoint(BaseModel):
+    date: datetime
+    count: int
+    max_amount: int
+    min_amount: int
+    average_amount: int
+    total_amount: int
+    max_fee: int
+    min_fee: int
+    average_fee: int
+    total_fee: int
+
+
+PaymentCountField = Literal["status", "tag", "extension", "wallet_id"]
+
+
+class PaymentCountStat(BaseModel):
+    field: str = ""
+    total: float = 0
 
 
 class PaymentHistoryPoint(BaseModel):
