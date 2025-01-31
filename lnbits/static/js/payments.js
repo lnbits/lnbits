@@ -252,7 +252,6 @@ window.PaymentsPageLogic = {
         )
         this.searchOptions.tag = data.map(s => s.field)
         this.searchOptions.status.sort()
-        console.log('### this.searchOptions.status', this.searchOptions.status)
         this.paymentsTagsChart.data.datasets[0].data = data.map(rm => rm.total)
         this.paymentsTagsChart.data.labels = data.map(rm => rm.field || 'core')
         this.paymentsTagsChart.update()
