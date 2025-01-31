@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from lnbits import bolt11
-from lnbits.core.crud.payments import get_payment_count_stats
+from lnbits.core.crud.payments import get_payment_count_stats, get_wallets_stats
 from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
@@ -29,7 +29,7 @@ from lnbits.core.models import (
     PaymentHistoryPoint,
     Wallet,
 )
-from lnbits.core.models.payments import PaymentCountStat
+from lnbits.core.models.payments import PaymentCountStat, PaymentWalletStats
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -103,13 +103,27 @@ async def api_payments_history(
     response_model=List[PaymentCountStat],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
-async def api_payments_stats(
+async def api_payments_counting_stats(
     # user: User = Depends(check_admin),
     count_by: PaymentCountField = Query("tag"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
 
     return await get_payment_count_stats(count_by, filters)
+
+
+@payment_router.get(
+    "/stats/wallets",
+    name="Get payments history for all users",
+    response_model=List[PaymentWalletStats],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+)
+async def api_payments_wallets_stats(
+    # user: User = Depends(check_admin),
+    filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
+):
+
+    return await get_wallets_stats(filters)
 
 
 @payment_router.get(
@@ -121,7 +135,9 @@ async def api_payments_stats(
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_paginated(
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
+    key_info: WalletTypeInfo = Depends(
+        require_invoice_key
+    ),  # todo: admin search does not work
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
     await update_pending_payments(key_info.wallet.id)

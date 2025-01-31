@@ -4,7 +4,11 @@ from typing import Optional
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
-from lnbits.core.models.payments import PaymentCountStat, PaymentsStatusCount
+from lnbits.core.models.payments import (
+    PaymentCountStat,
+    PaymentsStatusCount,
+    PaymentWalletStats,
+)
 from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
@@ -369,6 +373,41 @@ async def get_payment_count_stats(
         """,
         values=filters.values(),
         model=PaymentCountStat,
+    )
+
+    return data
+
+
+async def get_wallets_stats(
+    filters: Optional[Filters[PaymentFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> list[PaymentWalletStats]:
+
+    if not filters:
+        filters = Filters()
+    # clause = filters.where()  # todo: add it in select
+    data = await (conn or db).fetchall(
+        query="""
+            SELECT apipayments.wallet_id,
+                    MAX(wallets.name) AS wallet_name,
+                    MAX(wallets.user) AS user_id,
+                    COUNT(*) as payments_count,
+                    SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+            FROM wallets
+            LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
+            WHERE (wallets.deleted = false OR wallets.deleted is NULL)
+            AND (
+                (apipayments.status = 'success' AND apipayments.amount > 0)
+                OR (
+                    apipayments.status IN ('success', 'pending')
+                    AND apipayments.amount < 0
+                   )
+            )
+            GROUP BY apipayments.wallet_id
+            ORDER BY payments_count
+        """,
+        values=filters.values(),
+        model=PaymentWalletStats,
     )
 
     return data

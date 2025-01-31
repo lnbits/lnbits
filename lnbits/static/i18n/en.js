@@ -494,7 +494,7 @@ window.localisation.en = {
   payment_show_internal: 'Show Internal Payments',
   payment_chart_flow: 'Monthly Payment Flow',
   payment_chart_status: 'Payment Status',
-  payment_chart_tx_per_wallet: 'Transactions per Wallet',
+  payment_chart_tx_per_wallet: 'Transactions per Wallet (sats, payment count)',
   payment_details_back: 'Back to Payments',
   payment_chart_tags: 'Payments by Tags'
 }

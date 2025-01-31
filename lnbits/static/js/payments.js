@@ -208,46 +208,42 @@ window.PaymentsPageLogic = {
         console.warn(error)
         LNbits.utils.notifyApiError(error)
       }
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/payments/stats/wallets`
+        )
 
-      const wallets = this.payments.reduce((acc, p) => {
-        if (!acc[p.wallet_id]) {
-          acc[p.wallet_id] = {count: 0, balance: 0}
+        const counts = data.map(w => w.balance / w.payments_count)
+
+        const min = Math.min(...counts)
+        const max = Math.max(...counts)
+
+        const scale = val => {
+          return Math.floor(3 + ((val - min) * (25 - 3)) / (max - min))
         }
-        acc[p.wallet_id].count += 1
-        acc[p.wallet_id].balance += p.amount
-        return acc
-      }, {})
 
-      const counts = Object.values(wallets).map(w => w.count)
-
-      const min = Math.min(...counts)
-      const max = Math.max(...counts)
-
-      const scale = val => {
-        return Math.floor(3 + ((val - min) * (25 - 3)) / (max - min))
-      }
-
-      const walletsData = Object.entries(wallets).map(
-        ([_, {count, balance}]) => {
+        const colors = this.randomColors(20)
+        const walletsData = data.map((w, i) => {
           return {
-            x: count,
-            y: balance,
-            r: scale(count)
+            data: [
+              {
+                x: w.payments_count,
+                y: w.balance,
+                r: scale(Math.max(w.balance / w.payments_count, 5))
+              }
+            ],
+            label: w.wallet_name,
+            backgroundColor: colors[i % 100],
+            hoverOffset: 4
           }
-        }
-      )
-
-      this.paymentsWalletsChart.data.datasets = walletsData.map((w, i) => {
-        return {
-          label: Object.keys(wallets)[i],
-          data: [w]
-          // backgroundColor: walletsData.map(
-          //   () => `hsl(${Math.random() * 360}, 100%, 50%)`
-          // )
-        }
-      })
-
-      this.paymentsWalletsChart.update()
+        })
+        this.paymentsWalletsChart.data.datasets = walletsData
+        this.paymentsWalletsChart.update()
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      }
 
       try {
         const {data} = await LNbits.api.request(
@@ -268,8 +264,6 @@ window.PaymentsPageLogic = {
         acc[tag] = (acc[tag] || 0) + 1
         return acc
       }, {})
-
-      console.log('#tags', tags)
     },
     async initCharts() {
       if (!this.chartsReady) {

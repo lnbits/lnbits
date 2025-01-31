@@ -125,7 +125,7 @@ class Payment(BaseModel):
 
 
 class PaymentFilters(FilterModel):
-    __search_fields__ = ["memo", "amount"]
+    __search_fields__ = ["memo", "amount", "wallet_id"]
 
     __sort_fields__ = ["created_at", "amount", "fee", "memo", "time"]
 
@@ -164,6 +164,14 @@ PaymentCountField = Literal["status", "tag", "extension", "wallet_id"]
 class PaymentCountStat(BaseModel):
     field: str = ""
     total: float = 0
+
+
+class PaymentWalletStats(BaseModel):
+    wallet_id: str = ""
+    wallet_name: str = ""
+    user_id: str = ""
+    payments_count: int
+    balance: float = 0
 
 
 class PaymentHistoryPoint(BaseModel):

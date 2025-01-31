@@ -67,6 +67,7 @@ __all__ = [
     "Payment",
     "PaymentCountField",
     "PaymentCountStat",
+    "PaymentWalletStats",
     "PaymentExtra",
     "PaymentFilters",
     "PaymentHistoryPoint",
