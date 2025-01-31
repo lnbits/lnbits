@@ -259,12 +259,6 @@ window.PaymentsPageLogic = {
         console.warn(error)
         LNbits.utils.notifyApiError(error)
       }
-
-      const tags = this.payments.reduce((acc, p) => {
-        const tag = p.extra && p.extra.tag ? p.extra.tag : 'wallet'
-        acc[tag] = (acc[tag] || 0) + 1
-        return acc
-      }, {})
     },
     async initCharts() {
       if (!this.chartsReady) {
