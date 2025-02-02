@@ -21,7 +21,7 @@ chmod +x LNbits-latest.AppImage
 
 LNbits will create a folder for db and extension files in the folder the .AppImage runs from.
 
-### .dmg (Linux)
+### .dmg (MacOS)
 Go to <a href="/releases">/releases</a> and pull latest .dmg. LNbits will create a folder for db and extension files in `/Library/Application Support/LNbits`
 
 
