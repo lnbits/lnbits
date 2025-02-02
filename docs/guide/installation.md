@@ -14,7 +14,7 @@ Note that by default LNbits uses SQLite as its database, which is simple and eff
 
 ### AppImage (Linux)
 
-Go to [releases](https://api.github.com/repos/arcbtc/lnbits/releases) and pull latest AppImage, or: 
+Go to [releases](https://github.com/lnbits/lnbits/releases) and pull latest AppImage, or:
 
 ```sh
 wget $(curl -s https://api.github.com/repos/lnbits/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
@@ -26,11 +26,11 @@ LNbits will create a folder for db and extension files in the folder the AppImag
 
 ### dmg (MacOS)
 
-Go to [releases](https://api.github.com/repos/arcbtc/lnbits/releases) and pull latest dmg. 
+Go to [releases](https://github.com/lnbits/lnbits/releases) and pull latest dmg.
 
 LNbits will create a folder for db and extension files in `/Library/Application Support/LNbits`
 
-## Option 2: Poetry (recommended for developers) 
+## Option 2: Poetry (recommended for developers)
 
 It is recommended to use the latest version of Poetry. Make sure you have Python version `3.12` installed.
 
