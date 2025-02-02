@@ -6,26 +6,29 @@ nav_order: 2
 
 # Basic installation
 
-The following sections explain how to install LNbits using varions package managers: `poetry`, `nix`, `Docker` and `Fly.io`.
-
 Note that by default LNbits uses SQLite as its database, which is simple and effective but you can configure it to use PostgreSQL instead which is also described in a section below.
 
-## Option 1: .AppImage/.dmg
-### .AppImage (Linux)
+## Option 1: AppImage/dmg
+
+### AppImage (Linux)
+
+Go to [releases](https://github.com/lnbits/lnbits/releases) and pull latest AppImage, or:
 
 ```sh
-wget $(curl -s https://api.github.com/repos/arcbtc/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
+wget $(curl -s https://api.github.com/repos/lnbits/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
 chmod +x LNbits-latest.AppImage
 ./LNbits-latest.AppImage
 ```
 
-LNbits will create a folder for db and extension files in the folder the .AppImage runs from.
+LNbits will create a folder for db and extension files in the folder the AppImage runs from.
 
-### .dmg (Linux)
-Go to <a href="/releases">/releases</a> and pull latest .dmg. LNbits will create a folder for db and extension files in `/Library/Application Support/LNbits`
+### dmg (MacOS)
 
+Go to [releases](https://github.com/lnbits/lnbits/releases) and pull latest dmg.
 
-## Option 2: Poetry
+LNbits will create a folder for db and extension files in `/Library/Application Support/LNbits`
+
+## Option 2: Poetry (recommended for developers)
 
 It is recommended to use the latest version of Poetry. Make sure you have Python version `3.12` installed.
 
