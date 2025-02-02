@@ -122,7 +122,7 @@ jobs:
           echo "DMG_NAME=$DMG_NAME" >> $GITHUB_ENV
         shell: bash
 
-      # Step 6: Upload macOS Release Asset
+      # Step 4: Upload macOS Release Asset
       - name: Upload macOS Release Asset
         uses: actions/upload-release-asset@v1
         with:
