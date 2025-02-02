@@ -10,7 +10,22 @@ The following sections explain how to install LNbits using varions package manag
 
 Note that by default LNbits uses SQLite as its database, which is simple and effective but you can configure it to use PostgreSQL instead which is also described in a section below.
 
-## Option 1 (recommended): Poetry
+## Option 1: .AppImage/.dmg
+### .AppImage (Linux)
+
+```sh
+wget $(curl -s https://api.github.com/repos/arcbtc/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
+chmod +x LNbits-latest.AppImage
+./LNbits-latest.AppImage
+```
+
+LNbits will create a folder for db and extension files in the folder the .AppImage runs from.
+
+### .dmg (Linux)
+Go to <a href="/releases">/releases</a> and pull latest .dmg. LNbits will create a folder for db and extension files in `/Library/Application Support/LNbits`
+
+
+## Option 2: Poetry
 
 It is recommended to use the latest version of Poetry. Make sure you have Python version `3.12` installed.
 
@@ -70,18 +85,6 @@ git pull
 poetry install --only main
 # Start LNbits with `poetry run lnbits`
 ```
-
-## Option 2: Install script (on Debian/Ubuntu)
-
-```sh
-wget https://raw.githubusercontent.com/lnbits/lnbits/main/lnbits.sh &&
-chmod +x lnbits.sh &&
-./lnbits.sh
-```
-
-Now visit `0.0.0.0:5000` to make a super-user account.
-
-`export PATH="/home/$USER/.local/bin:$PATH"` then `./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `poetry run lnbits` (see previous option).
 
 ## Option 3: Nix
 
