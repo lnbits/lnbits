@@ -26,7 +26,7 @@ jobs:
         run: |
           mv .github/packaging packaging
           mkdir -p packaging/linux/AppDir/usr
-          git clone https://github.com/arcbtc/lnbits.git packaging/linux/AppDir/usr/lnbits
+          git clone https://github.com/lnbits/lnbits.git packaging/linux/AppDir/usr/lnbits
         shell: bash
 
       # Step 4: Install LNbits and Build PyInstaller Binary
@@ -102,7 +102,7 @@ jobs:
         run: |
           mv .github/packaging packaging
           mkdir -p packaging/macos/LNbits.app/Contents/MacOS/lnbits
-          git clone https://github.com/arcbtc/lnbits.git packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          git clone https://github.com/lnbits/lnbits.git packaging/macos/LNbits.app/Contents/MacOS/lnbits
           cd packaging/macos/LNbits.app/Contents/MacOS/lnbits
           poetry install
           poetry run pip install pyinstaller
