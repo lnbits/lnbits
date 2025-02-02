@@ -11,6 +11,7 @@ The following sections explain how to install LNbits using varions package manag
 Note that by default LNbits uses SQLite as its database, which is simple and effective but you can configure it to use PostgreSQL instead which is also described in a section below.
 
 ## Option 1: .AppImage/.dmg
+
 ### .AppImage (Linux)
 
 ```sh
@@ -22,8 +23,8 @@ chmod +x LNbits-latest.AppImage
 LNbits will create a folder for db and extension files in the folder the .AppImage runs from.
 
 ### .dmg (MacOS)
-Go to <a href="/releases">/releases</a> and pull latest .dmg. LNbits will create a folder for db and extension files in `/Library/Application Support/LNbits`
 
+Go to <a href="/releases">/releases</a> and pull latest .dmg. LNbits will create a folder for db and extension files in `/Library/Application Support/LNbits`
 
 ## Option 2: Poetry
 
