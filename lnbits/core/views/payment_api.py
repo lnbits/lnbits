@@ -147,7 +147,7 @@ async def api_payments_daily_stats(
 ):
 
     data_in, data_out = await get_daily_stats(filters)
-    balance_total = 0
+    balance_total: float = 0
 
     if len(data_in) == 0 or len(data_out) == 0:
         return data_in + data_out
