@@ -45,6 +45,11 @@ jobs:
           chmod +x packaging/linux/AppDir/lnbits.desktop
           chmod +x packaging/linux/AppDir/usr/lnbits/dist/lnbits
 
+          find packaging/linux/AppDir/usr/lnbits -mindepth 1 -maxdepth 1 \
+              ! -name 'dist' \
+              ! -name 'lnbits' \
+              -exec rm -rf {} +
+
           wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
           TAG_NAME=${{ github.event.release.tag_name }}
@@ -104,6 +109,12 @@ jobs:
           cd ../../../../../
           chmod +x "macos/LNbits.app/Contents/MacOS/launch.sh"
           chmod +x "macos/LNbits.app/Contents/MacOS/lnbits/dist/lnbits"
+
+          find macos/LNbits.app/Contents/MacOS/lnbits -mindepth 1 -maxdepth 1 \
+              ! -name 'dist' \
+              ! -name 'lnbits' \
+              -exec rm -rf {} +
+          
           TAG_NAME=${{ github.event.release.tag_name }}
           DMG_NAME="LNbits-${TAG_NAME}.dmg"
           hdiutil create -volname "LNbits Installer" -srcfolder macos/LNbits.app -ov -format UDZO "macos/$DMG_NAME"
