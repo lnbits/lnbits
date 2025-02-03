@@ -14,14 +14,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Step 2: Install Poetry Package Manager
+      # Step 2: Install Dependencies
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
+          sudo apt-get update
+          sudo apt-get install -y libfuse2
         shell: bash
 
-      # Step 3: Clone LNbits Repository into packaging/linux/AppDir/usr/lnbits
+      # Step 3: Clone LNbits Repository
       - name: Clone LNbits
         run: |
           mv .github/packaging packaging
@@ -29,8 +31,8 @@ jobs:
           git clone https://github.com/lnbits/lnbits.git packaging/linux/AppDir/usr/lnbits
         shell: bash
 
-      # Step 4: Install LNbits and Build PyInstaller Binary
-      - name: Build LNbits Binary
+      # Step 4: Make the AppImage Asset
+      - name: Make Asset
         run: |
           cd packaging/linux/AppDir/usr/lnbits
           poetry install
@@ -42,26 +44,9 @@ jobs:
           chmod +x packaging/linux/AppDir/AppRun
           chmod +x packaging/linux/AppDir/lnbits.desktop
           chmod +x packaging/linux/AppDir/usr/lnbits/dist/lnbits
-        shell: bash
 
-      # Step 5: Debug packaging/linux/AppDir Before Creating AppImage
-      - name: Debug packaging/linux/AppDir Before Creating AppImage
-        run: |
-          ls -R packaging/linux/AppDir/
-        shell: bash
-
-      - name: Install FUSE for AppImage
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfuse2
-        shell: bash
-  
-      # Step 6: Install and Run AppImageTool
-      - name: Install AppImageTool and Create AppImage
-        run: |
           wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
-          # Get the release tag name from GitHub Actions
           TAG_NAME=${{ github.event.release.tag_name }}
           APPIMAGE_NAME="LNbits-${TAG_NAME}.AppImage"
           ./appimagetool-x86_64.AppImage --updateinformation "gh-releases-zsync|lnbits|lnbits|latest|*.AppImage.zsync" packaging/linux/AppDir "$APPIMAGE_NAME"
@@ -69,7 +54,7 @@ jobs:
           echo "APPIMAGE_NAME=$APPIMAGE_NAME" >> $GITHUB_ENV
         shell: bash
 
-      # Step 7: Upload Linux Release Asset
+      # Step 5: Upload Linux Release Asset
       - name: Upload Linux Release Asset
         uses: actions/upload-release-asset@v1
         with:
@@ -92,17 +77,21 @@ jobs:
       # Step 2: Install Dependencies
       - name: Install Dependencies
         run: |
-          npm install -g create-dmg@4.2.0
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
         shell: bash
 
-      # Step 3: Clone LNbits into a separate directory
+      # Step 3: Clone LNbits Repository
       - name: Clone LNbits
         run: |
           mv .github/packaging packaging
           mkdir -p packaging/macos/LNbits.app/Contents/MacOS/lnbits
           git clone https://github.com/lnbits/lnbits.git packaging/macos/LNbits.app/Contents/MacOS/lnbits
+        shell: bash
+
+      # Step 4: Make the dmg Asset
+      - name: Make Asset
+        run: |
           cd packaging/macos/LNbits.app/Contents/MacOS/lnbits
           poetry install
           poetry run pip install pyinstaller
@@ -115,14 +104,13 @@ jobs:
           cd ../../../../../
           chmod +x "macos/LNbits.app/Contents/MacOS/launch.sh"
           chmod +x "macos/LNbits.app/Contents/MacOS/lnbits/dist/lnbits"
-          # Get the release tag name from GitHub Actions
           TAG_NAME=${{ github.event.release.tag_name }}
           DMG_NAME="LNbits-${TAG_NAME}.dmg"
           hdiutil create -volname "LNbits Installer" -srcfolder macos/LNbits.app -ov -format UDZO "macos/$DMG_NAME"
           echo "DMG_NAME=$DMG_NAME" >> $GITHUB_ENV
         shell: bash
 
-      # Step 4: Upload macOS Release Asset
+      # Step 5: Upload macOS Release Asset
       - name: Upload macOS Release Asset
         uses: actions/upload-release-asset@v1
         with:
