@@ -385,9 +385,23 @@ async def get_wallets_stats(
 
     if not filters:
         filters = Filters()
-    # clause = filters.where()  # todo: add it in select
+
+    where_stmts = [
+        "(wallets.deleted = false OR wallets.deleted is NULL)",
+        """
+        (
+            (apipayments.status = 'success' AND apipayments.amount > 0)
+            OR (
+                apipayments.status IN ('success', 'pending')
+                AND apipayments.amount < 0
+                )
+        )
+        """,
+    ]
+    clauses = filters.where(where_stmts)
+
     data = await (conn or db).fetchall(
-        query="""
+        query=f"""
             SELECT apipayments.wallet_id,
                     MAX(wallets.name) AS wallet_name,
                     MAX(wallets.user) AS user_id,
@@ -395,14 +409,7 @@ async def get_wallets_stats(
                     SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
             FROM wallets
             LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
-            WHERE (wallets.deleted = false OR wallets.deleted is NULL)
-            AND (
-                (apipayments.status = 'success' AND apipayments.amount > 0)
-                OR (
-                    apipayments.status IN ('success', 'pending')
-                    AND apipayments.amount < 0
-                   )
-            )
+            {clauses}
             GROUP BY apipayments.wallet_id
             ORDER BY payments_count
         """,

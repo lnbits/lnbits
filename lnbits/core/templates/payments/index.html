@@ -67,14 +67,6 @@
           :loading="paymentsTable.loading"
           @request="fetchPayments"
         >
-          <!-- MAYBE LATER
-        <template v-slot:top>
-          <q-toggle
-            :label="$t('payment_show_internal')"
-            v-model="showInternal"
-          ></q-toggle>
-          <q-space />
-        </template> -->
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
@@ -121,9 +113,6 @@
           </template>
           <template v-slot:body="props">
             <q-tr auto-width :props="props">
-              <!-- <q-td auto-width>
-
-              </q-td> -->
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 <div v-if="col.name == 'status'">
                   <q-tooltip
@@ -161,7 +150,7 @@
                   </div>
                 </div>
                 <div
-                  v-else-if="['wallet_id', 'payment_hash'].includes(col.name)"
+                  v-else-if="['wallet_id', 'payment_hash', 'memo'].includes(col.name)"
                 >
                   <q-btn
                     v-if="props.row[col.name]"
@@ -173,7 +162,8 @@
                   >
                     <q-tooltip anchor="top middle">Copy</q-tooltip>
                   </q-btn>
-                  <span v-text="shortify(props.row[col.name])"> </span>
+                  <span v-text="shortify(props.row[col.name], col.max_length)">
+                  </span>
                   <q-tooltip>
                     <span v-text="props.row[col.name]"></span>
                   </q-tooltip>

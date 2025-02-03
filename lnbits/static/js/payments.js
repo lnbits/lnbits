@@ -64,7 +64,8 @@ window.PaymentsPageLogic = {
             align: 'left',
             label: 'Memo',
             field: 'memo',
-            sortable: false
+            sortable: false,
+            max_length: 20
           },
           {
             name: 'wallet_id',
@@ -179,9 +180,9 @@ window.PaymentsPageLogic = {
         return `${amount} ???`
       }
     },
-    shortify(value) {
+    shortify(value, max_length = 10) {
       valueLength = (value || '').length
-      if (valueLength <= 10) {
+      if (valueLength <= max_length) {
         return value
       }
       return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
@@ -213,7 +214,7 @@ window.PaymentsPageLogic = {
       try {
         const {data} = await LNbits.api.request(
           'GET',
-          `/api/v1/payments/stats/wallets`
+          `/api/v1/payments/stats/wallets?${params}`
         )
 
         const counts = data.map(w => w.balance / w.payments_count)
