@@ -1,11 +1,12 @@
 from time import time
-from typing import Optional
+from typing import Optional, Tuple
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
 from lnbits.core.models.payments import (
     PaymentCountStat,
+    PaymentDailyStats,
     PaymentsStatusCount,
     PaymentWalletStats,
 )
@@ -376,6 +377,45 @@ async def get_payment_count_stats(
     )
 
     return data
+
+
+async def get_daily_stats(
+    filters: Optional[Filters[PaymentFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> Tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
+
+    if not filters:
+        filters = Filters()
+
+    in_clause = filters.where(
+        ["(apipayments.status = 'success' AND apipayments.amount > 0)"]
+    )
+    out_clause = filters.where(
+        ["(apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)"]
+    )
+    query = """
+        SELECT date_trunc('day', time) date,
+            SUM(apipayments.amount - ABS(apipayments.fee)) AS balance,
+            ABS(SUM(apipayments.fee)) as fee,
+            COUNT(*) as payments_count
+        FROM apipayments
+        {clause}
+        GROUP BY date
+        ORDER BY date ASC
+    """
+
+    data_in = await (conn or db).fetchall(
+        query=query.format(clause=in_clause),
+        values=filters.values(),
+        model=PaymentDailyStats,
+    )
+    data_out = await (conn or db).fetchall(
+        query=query.format(clause=out_clause),
+        values=filters.values(),
+        model=PaymentDailyStats,
+    )
+
+    return data_in, data_out
 
 
 async def get_wallets_stats(

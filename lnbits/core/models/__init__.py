@@ -16,10 +16,12 @@ from .payments import (
     Payment,
     PaymentCountField,
     PaymentCountStat,
+    PaymentDailyStats,
     PaymentExtra,
     PaymentFilters,
     PaymentHistoryPoint,
     PaymentState,
+    PaymentWalletStats,
 )
 from .tinyurl import TinyURL
 from .users import (
@@ -67,6 +69,7 @@ __all__ = [
     "Payment",
     "PaymentCountField",
     "PaymentCountStat",
+    "PaymentDailyStats",
     "PaymentWalletStats",
     "PaymentExtra",
     "PaymentFilters",

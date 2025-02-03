@@ -170,6 +170,17 @@ class PaymentWalletStats(BaseModel):
     balance: float = 0
 
 
+class PaymentDailyStats(BaseModel):
+    date: datetime
+    balance: float = 0
+    balance_in: Optional[float] = 0
+    balance_out: Optional[float] = 0
+    payments_count: int = 0
+    count_in: Optional[int] = 0
+    count_out: Optional[int] = 0
+    fee: float = 0
+
+
 class PaymentHistoryPoint(BaseModel):
     date: datetime
     income: int

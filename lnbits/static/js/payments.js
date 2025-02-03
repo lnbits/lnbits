@@ -263,6 +263,40 @@ window.PaymentsPageLogic = {
         console.warn(error)
         LNbits.utils.notifyApiError(error)
       }
+
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/payments/stats/daily?${params}`
+        )
+
+        this.paymentsDailyChart.data.datasets = [
+          {
+            label: 'Balance',
+            data: data.map(s => s.balance),
+            pointStyle: false,
+            borderWidth: 2,
+            tension: 0.7,
+            fill: 1
+          },
+          {
+            label: 'Fees',
+            data: data.map(s => s.fee),
+            pointStyle: false,
+            borderWidth: 1,
+            tension: 0.4,
+            fill: 1
+          }
+        ]
+        this.paymentsDailyChart.data.labels = data.map(s =>
+          s.date.substring(0, 10)
+        )
+
+        this.paymentsDailyChart.update()
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      }
     },
     async initCharts() {
       if (!this.chartsReady) {
@@ -360,6 +394,45 @@ window.PaymentsPageLogic = {
               },
               legend: {
                 display: false,
+                title: {
+                  display: false,
+                  text: 'Tags'
+                }
+              }
+            },
+            onClick: (_, elements, chart) => {
+              if (elements[0]) {
+                const i = elements[0].index
+                this.searchPaymentsBy('tag', chart.data.labels[i])
+              }
+            }
+          },
+          data: {
+            datasets: [
+              {
+                label: '',
+                data: [],
+                backgroundColor: this.randomColors(10),
+                hoverOffset: 4
+              }
+            ]
+          }
+        }
+      )
+      this.paymentsDailyChart = new Chart(
+        this.$refs.paymentsDailyChart.getContext('2d'),
+        {
+          type: 'line',
+
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: false
+              },
+              legend: {
+                display: true,
                 title: {
                   display: false,
                   text: 'Tags'

@@ -53,6 +53,22 @@
         </div>
       </q-card>
     </div>
+    <div class="col-lg-6 col-md-12 col-sm-12 text-center">
+      <q-card class="q-pt-sm">
+        <strong v-text="$t('payment_daily_chart')"></strong>
+        <div style="height: 300px" class="q-pa-sm">
+          <canvas v-if="chartsReady" ref="paymentsDailyChart"></canvas>
+        </div>
+      </q-card>
+    </div>
+    <div class="col-lg-6 col-md-12 col-sm-12 text-center">
+      <q-card class="q-pt-sm">
+        <!-- <strong v-text="$t('payment_daily_chart')"></strong>
+        <div style="height: 300px" class="q-pa-sm">
+          <canvas v-if="chartsReady" ref="paymentsDailyChart"></canvas>
+        </div> -->
+      </q-card>
+    </div>
   </div>
 
   <div class="row q-col-gutter-md justify-center">

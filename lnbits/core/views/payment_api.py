@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from http import HTTPStatus
 from math import ceil
 from typing import List, Optional
@@ -16,7 +17,11 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from lnbits import bolt11
-from lnbits.core.crud.payments import get_payment_count_stats, get_wallets_stats
+from lnbits.core.crud.payments import (
+    get_daily_stats,
+    get_payment_count_stats,
+    get_wallets_stats,
+)
 from lnbits.core.models import (
     CreateInvoice,
     CreateLnurl,
@@ -29,7 +34,11 @@ from lnbits.core.models import (
     PaymentHistoryPoint,
     Wallet,
 )
-from lnbits.core.models.payments import PaymentCountStat, PaymentWalletStats
+from lnbits.core.models.payments import (
+    PaymentCountStat,
+    PaymentDailyStats,
+    PaymentWalletStats,
+)
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -124,6 +133,52 @@ async def api_payments_wallets_stats(
 ):
 
     return await get_wallets_stats(filters)
+
+
+@payment_router.get(
+    "/stats/daily",
+    name="Get payments history per day",
+    response_model=List[PaymentDailyStats],
+    openapi_extra=generate_filter_params_openapi(PaymentFilters),
+)
+async def api_payments_daily_stats(
+    # user: User = Depends(check_admin),
+    filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
+):
+
+    data_in, data_out = await get_daily_stats(filters)
+    balance_total = 0
+
+    if len(data_in) == 0 or len(data_out) == 0:
+        return data_in + data_out
+
+    data: list[PaymentDailyStats] = []
+
+    start_date = max(data_in[0].date, data_out[0].date)
+    delta = timedelta(days=1)
+    while start_date <= datetime.now():
+        _none = PaymentDailyStats(date=start_date)
+        data_in_point = next((x for x in data_in if x.date == start_date), _none)
+        data_out_point = next((x for x in data_out if x.date == start_date), _none)
+
+        balance_total += data_in_point.balance + data_out_point.balance
+        data.append(
+            PaymentDailyStats(
+                date=start_date,
+                balance=balance_total // 1000,
+                balance_in=data_in_point.balance // 1000,
+                balance_out=data_out_point.balance // 1000,
+                payments_count=data_in_point.payments_count
+                + data_out_point.payments_count,
+                count_in=data_in_point.payments_count,
+                count_out=data_out_point.payments_count,
+                fee=(data_in_point.fee + data_out_point.fee) // 1000,
+            )
+        )
+
+        start_date += delta
+
+    return data
 
 
 @payment_router.get(
