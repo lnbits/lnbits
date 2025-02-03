@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0
 
       # Step 2: Install Dependencies
-      - name: Install Poetry
+      - name: Install Dependencies
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
