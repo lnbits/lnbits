@@ -1,6 +1,6 @@
 {% extends "public.html" %} {% block scripts %}
 <script src="{{ static_url_for('static', 'js/index.js') }}"></script>
-{% endblock %} {% block page %}
+{% endblock %} {% block page_container %}
 <div class="row q-col-gutter-md justify-center">
   <div
     v-if="isUserAuthorized"
