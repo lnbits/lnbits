@@ -91,18 +91,18 @@ jobs:
       - name: build Asse
         run: |
           mv .github/packaging packaging
-          cd packaging/macos/LNbits.app/Contents/MacOS/
+          mkdir packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          git clone https://github.com/lnbits/lnbits.git packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          cd packaging/macos/LNbits.app/Contents/MacOS/lnbits
           python3 -m venv lnbits_env
-          git clone https://github.com/lnbits/lnbits.git
-          git checkout main
           source lnbits_env/bin/activate
-          poetry install --main
-          chmod +x launch.sh
-          
+          poetry install
+          deactivate
           TAG_NAME=${{ github.event.release.tag_name }}
           DMG_NAME="LNbits-${TAG_NAME}_arm.dmg"
-          cd ../../../../
-          find macos/LNbits.app/Contents/MacOS/ -mindepth 1 -maxdepth 1 \
+          cd ../../../../../
+          chmod +x macos/LNbits.app/Contents/MacOS/launch.sh
+          find macos/LNbits.app/Contents/MacOS/lnbits -mindepth 1 -maxdepth 1 \
               ! -name 'lnbits_env' \
               ! -name 'lnbits' \
               -exec rm -rf {} +
@@ -143,18 +143,18 @@ jobs:
       - name: build Asse
         run: |
           mv .github/packaging packaging
-          cd packaging/macos/LNbits.app/Contents/MacOS/
+          mkdir packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          git clone https://github.com/lnbits/lnbits.git packaging/macos/LNbits.app/Contents/MacOS/lnbits
+          cd packaging/macos/LNbits.app/Contents/MacOS/lnbits
           python3 -m venv lnbits_env
-          git clone https://github.com/lnbits/lnbits.git
-          git checkout main
           source lnbits_env/bin/activate
-          poetry install --main
-          chmod +x launch.sh
-          
+          poetry install
+          deactivate
           TAG_NAME=${{ github.event.release.tag_name }}
           DMG_NAME="LNbits-${TAG_NAME}_x86.dmg"
-          cd ../../../../
-          find macos/LNbits.app/Contents/MacOS/ -mindepth 1 -maxdepth 1 \
+          cd ../../../../../
+          chmod +x macos/LNbits.app/Contents/MacOS/launch.sh
+          find macos/LNbits.app/Contents/MacOS/lnbits -mindepth 1 -maxdepth 1 \
               ! -name 'lnbits_env' \
               ! -name 'lnbits' \
               -exec rm -rf {} +

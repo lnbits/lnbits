@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Get the script's directory
-cd "$(dirname "$0")" || exit 1
+cd "$(dirname "$0")"/lnbits || exit 1
 
 # Activate the virtual environment
 if [ -f "lnbits_env/bin/activate" ]; then
