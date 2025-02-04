@@ -60,577 +60,593 @@
   }
 </style>
 <script src="{{ static_url_for('static', 'js/index.js') }}"></script>
-{% endblock %} {% block page %}
-<div
-  class="row justify-center items-center"
-  style="min-height: calc(100vh / 1.618)"
->
-  <div
-    class="full-width q-mt-lg"
-    :style="`max-width: ${'{{ LNBITS_CUSTOM_IMAGE }}' ? '850' : '600'}px`"
-  >
-    <div class="row q-mb-md">
-      <div class="col-12">
-        <div>
-          <h5
-            class="q-my-none"
-            v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
-          >
-            {{SITE_TITLE}}
-          </h5>
-          <h6
-            class="q-my-sm"
-            v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
-          >
-            {{SITE_TAGLINE}}
-          </h6>
-          <!-- <div
+{% endblock %} {% block page_container %}
+<q-page-container>
+  <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
+    {% block page %}
+    <div
+      class="row justify-center items-center"
+      style="min-height: calc(100vh / 1.618)"
+    >
+      <div
+        class="full-width q-mt-md"
+        :style="`max-width: ${'{{ LNBITS_CUSTOM_IMAGE }}' ? '850' : '600'}px`"
+      >
+        <div class="row q-mb-md">
+          <div class="col-12">
+            <div>
+              <h5
+                class="q-my-none"
+                v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
+              >
+                {{SITE_TITLE}}
+              </h5>
+              <h6
+                class="q-my-sm"
+                v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
+              >
+                {{SITE_TAGLINE}}
+              </h6>
+              <!-- <div
             class="gt-sm"
             v-html="formatDescription"
             v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
           ></div> -->
-        </div>
-      </div>
-    </div>
-    {% if lnurl and LNBITS_NEW_ACCOUNTS_ALLOWED and ("user-id-only" in
-    LNBITS_AUTH_METHODS)%}
-    <div class="row">
-      <div class="full-width q-mb-md">
-        <q-card>
-          <q-card-section>
-            <q-btn
-              unelevated
-              color="primary"
-              @click="processing"
-              type="a"
-              href="/lnurlwallet?lightning={{ lnurl }}"
-              v-text="$t('press_to_claim')"
-              class="full-width"
-            ></q-btn>
-          </q-card-section>
-        </q-card>
-      </div>
-    </div>
-    {%else%} {% endif %}
-    <div class="row">
-      <q-badge
-        v-if="isAccessTokenExpired"
-        class="q-mx-auto q-mb-md"
-        color="primary"
-        rounded
-      >
-        <div class="text-h6">
-          <span v-text="$t('session_has_expired')"></span>
-        </div>
-      </q-badge>
-      <q-card bordered class="full-width q-pt-md">
-        <div class="row">
-          <div
-            class="col-12"
-            :class="{'col-sm-7' : '{{ LNBITS_CUSTOM_IMAGE }}', 'col-lg-6' : '{{ LNBITS_CUSTOM_IMAGE }}'}"
-          >
-            {% if "user-id-only" in LNBITS_AUTH_METHODS %}
-            <user-id-only
-              :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
-              v-model:usr="usr"
-              v-model:wallet="walletName"
-              :auth-action="authAction"
-              :auth-method="authMethod"
-              @show-login="showLogin"
-              @show-register="showRegister"
-              @login-usr="loginUsr"
-              @create-wallet="createWallet"
-            >
-            </user-id-only>
-            {%endif%} {% if "username-password" in LNBITS_AUTH_METHODS %}
-            <username-password
-              v-if="authMethod != 'user-id-only'"
-              :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
-              :auth-methods="{{ LNBITS_AUTH_METHODS }}"
-              :auth-action="authAction"
-              v-model:user-name="username"
-              v-model:password_1="password"
-              v-model:password_2="passwordRepeat"
-              v-model:reset-key="reset_key"
-              @login="login"
-              @register="register"
-              @reset="reset"
-            ></username-password>
-            {%endif%}
-            <q-card-section class="text-center q-pa-none q-mt-xl">
-              <div class="absolute-bottom-left q-ml-md">
-                <p v-if="authAction === 'login'" class="text-grey-6">
-                  Not registered? Created an
-                  <span
-                    class="text-secondary cursor-pointer"
-                    @click="showRegister('username-password')"
-                    >Account</span
-                  >
-                </p>
-                <p v-else class="text-grey-6">
-                  Aready have an account?
-                  <span
-                    class="text-secondary cursor-pointer"
-                    @click="showLogin('username-password')"
-                    >Login</span
-                  >
-                </p>
-              </div>
-            </q-card-section>
-          </div>
-          <div
-            class="col-sm-5 col-lg-6 gt-xs"
-            v-if="'{{ LNBITS_CUSTOM_IMAGE }}'"
-          >
-            <div class="full-height flex flex-center q-pa-lg">
-              <q-img
-                :src="'{{ LNBITS_CUSTOM_IMAGE }}'"
-                :ratio="1"
-                width="250px"
-              ></q-img>
             </div>
           </div>
         </div>
-      </q-card>
-    </div>
-  </div>
-  <div class="full-width q-my-xl">
-    <div class="wrapper">
-      <div class="marquee q-py-md">
-        <div class="marquee__group">
-          <div>
-            <a
-              href="https://github.com/ElementsProject/lightning"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/cln.png') }}' : '{{ static_url_for('static', 'images/clnl.png') }}'"
-              ></q-img>
-            </a>
+        {% if lnurl and LNBITS_NEW_ACCOUNTS_ALLOWED and ("user-id-only" in
+        LNBITS_AUTH_METHODS)%}
+        <div class="row">
+          <div class="full-width q-mb-md">
+            <q-card>
+              <q-card-section>
+                <q-btn
+                  unelevated
+                  color="primary"
+                  @click="processing"
+                  type="a"
+                  href="/lnurlwallet?lightning={{ lnurl }}"
+                  v-text="$t('press_to_claim')"
+                  class="full-width"
+                ></q-btn>
+              </q-card-section>
+            </q-card>
           </div>
-          <div>
-            <a
-              href="https://github.com/lightningnetwork/lnd"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnd.png') }}' : '{{ static_url_for('static', 'images/lnd.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://opennode.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/opennode.png') }}' : '{{ static_url_for('static', 'images/opennodel.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://lnpay.co/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnpay.png') }}' : '{{ static_url_for('static', 'images/lnpayl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://github.com/rootzoll/raspiblitz"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/blitz.png') }}' : '{{ static_url_for('static', 'images/blitzl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://start9.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/start9.png') }}' : '{{ static_url_for('static', 'images/start9l.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://getumbrel.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/umbrel.png') }}' : '{{ static_url_for('static', 'images/umbrell.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://mynodebtc.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/mynode.png') }}' : '{{ static_url_for('static', 'images/mynodel.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://github.com/shesek/spark-wallet"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/spark.png') }}' : '{{ static_url_for('static', 'images/sparkl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://voltage.cloud"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/voltage.png') }}' : '{{ static_url_for('static', 'images/voltagel.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://breez.technology/sdk/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/breez.png') }}' : '{{ static_url_for('static', 'images/breezl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://blockstream.com/lightning/greenlight/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/greenlight.png') }}' : '{{ static_url_for('static', 'images/greenlightl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://getalby.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/alby.png') }}' : '{{ static_url_for('static', 'images/albyl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a href="https://zbd.gg" target="_blank" rel="noopener noreferrer">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/zbd.png') }}' : '{{ static_url_for('static', 'images/zbdl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://phoenix.acinq.co/server"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/phoenixd.png') }}' : '{{ static_url_for('static', 'images/phoenixdl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://boltz.exchange/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/boltz.svg') }}' : '{{ static_url_for('static', 'images/boltz.svg') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <!-- # -->
         </div>
-        <div class="marquee__group">
-          <div>
-            <a
-              href="https://github.com/ElementsProject/lightning"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/cln.png') }}' : '{{ static_url_for('static', 'images/clnl.png') }}'"
-              ></q-img>
-            </a>
+        {%else%} {% endif %}
+        <div class="row">
+          <q-badge
+            v-if="isAccessTokenExpired"
+            class="q-mx-auto q-mb-md"
+            color="primary"
+            rounded
+          >
+            <div class="text-h6">
+              <span v-text="$t('session_has_expired')"></span>
+            </div>
+          </q-badge>
+          <q-card bordered class="full-width q-pt-md">
+            <div class="row">
+              <div
+                class="col-12"
+                :class="{'col-sm-7' : '{{ LNBITS_CUSTOM_IMAGE }}', 'col-lg-6' : '{{ LNBITS_CUSTOM_IMAGE }}'}"
+              >
+                {% if "user-id-only" in LNBITS_AUTH_METHODS %}
+                <user-id-only
+                  :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
+                  v-model:usr="usr"
+                  v-model:wallet="walletName"
+                  :auth-action="authAction"
+                  :auth-method="authMethod"
+                  @show-login="showLogin"
+                  @show-register="showRegister"
+                  @login-usr="loginUsr"
+                  @create-wallet="createWallet"
+                >
+                </user-id-only>
+                {%endif%} {% if "username-password" in LNBITS_AUTH_METHODS %}
+                <username-password
+                  v-if="authMethod != 'user-id-only'"
+                  :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
+                  :auth-methods="{{ LNBITS_AUTH_METHODS }}"
+                  :auth-action="authAction"
+                  v-model:user-name="username"
+                  v-model:password_1="password"
+                  v-model:password_2="passwordRepeat"
+                  v-model:reset-key="reset_key"
+                  @login="login"
+                  @register="register"
+                  @reset="reset"
+                ></username-password>
+                {%endif%}
+                <q-card-section class="text-center q-pa-none q-mt-xl">
+                  <div class="absolute-bottom-left q-ml-md">
+                    <p v-if="authAction === 'login'" class="text-grey-6">
+                      Not registered? Created an
+                      <span
+                        class="text-secondary cursor-pointer"
+                        @click="showRegister('username-password')"
+                        >Account</span
+                      >
+                    </p>
+                    <p v-else class="text-grey-6">
+                      Aready have an account?
+                      <span
+                        class="text-secondary cursor-pointer"
+                        @click="showLogin('username-password')"
+                        >Login</span
+                      >
+                    </p>
+                  </div>
+                </q-card-section>
+              </div>
+              <div
+                class="col-sm-5 col-lg-6 gt-xs"
+                v-if="'{{ LNBITS_CUSTOM_IMAGE }}'"
+              >
+                <div class="full-height flex flex-center q-pa-lg">
+                  <q-img
+                    :src="'{{ LNBITS_CUSTOM_IMAGE }}'"
+                    :ratio="1"
+                    width="250px"
+                  ></q-img>
+                </div>
+              </div>
+            </div>
+          </q-card>
+        </div>
+      </div>
+      <div class="full-width q-mt-md">
+        <div class="flex flex-center q-gutter-md q-py-md">
+          <q-btn
+            outline
+            color="grey"
+            type="a"
+            href="https://github.com/lnbits/lnbits"
+            target="_blank"
+            rel="noopener noreferrer"
+            :label="$t('view_github')"
+            class=""
+          ></q-btn>
+          <q-btn
+            outline
+            color="grey"
+            type="a"
+            href="https://demo.lnbits.com/lnurlp/link/fH59GD"
+            target="_blank"
+            rel="noopener noreferrer"
+            :label="$t('donate')"
+            class=""
+          ></q-btn>
+        </div>
+      </div>
+      <div class="full-width">
+        <div class="wrapper">
+          <div class="marquee">
+            <div class="marquee__group">
+              <div>
+                <a
+                  href="https://github.com/ElementsProject/lightning"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/cln.png') }}' : '{{ static_url_for('static', 'images/clnl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://github.com/lightningnetwork/lnd"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnd.png') }}' : '{{ static_url_for('static', 'images/lnd.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://opennode.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/opennode.png') }}' : '{{ static_url_for('static', 'images/opennodel.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://lnpay.co/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnpay.png') }}' : '{{ static_url_for('static', 'images/lnpayl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://github.com/rootzoll/raspiblitz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/blitz.png') }}' : '{{ static_url_for('static', 'images/blitzl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://start9.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/start9.png') }}' : '{{ static_url_for('static', 'images/start9l.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://getumbrel.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/umbrel.png') }}' : '{{ static_url_for('static', 'images/umbrell.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://mynodebtc.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/mynode.png') }}' : '{{ static_url_for('static', 'images/mynodel.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://github.com/shesek/spark-wallet"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/spark.png') }}' : '{{ static_url_for('static', 'images/sparkl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://voltage.cloud"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/voltage.png') }}' : '{{ static_url_for('static', 'images/voltagel.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://breez.technology/sdk/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/breez.png') }}' : '{{ static_url_for('static', 'images/breezl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://blockstream.com/lightning/greenlight/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/greenlight.png') }}' : '{{ static_url_for('static', 'images/greenlightl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://getalby.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/alby.png') }}' : '{{ static_url_for('static', 'images/albyl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://zbd.gg"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/zbd.png') }}' : '{{ static_url_for('static', 'images/zbdl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://phoenix.acinq.co/server"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/phoenixd.png') }}' : '{{ static_url_for('static', 'images/phoenixdl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://boltz.exchange/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/boltz.svg') }}' : '{{ static_url_for('static', 'images/boltz.svg') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <!-- # -->
+            </div>
+            <div class="marquee__group">
+              <div>
+                <a
+                  href="https://github.com/ElementsProject/lightning"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/cln.png') }}' : '{{ static_url_for('static', 'images/clnl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://github.com/lightningnetwork/lnd"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnd.png') }}' : '{{ static_url_for('static', 'images/lnd.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://opennode.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/opennode.png') }}' : '{{ static_url_for('static', 'images/opennodel.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://lnpay.co/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnpay.png') }}' : '{{ static_url_for('static', 'images/lnpayl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://github.com/rootzoll/raspiblitz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/blitz.png') }}' : '{{ static_url_for('static', 'images/blitzl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://start9.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/start9.png') }}' : '{{ static_url_for('static', 'images/start9l.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://getumbrel.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/umbrel.png') }}' : '{{ static_url_for('static', 'images/umbrell.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://mynodebtc.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/mynode.png') }}' : '{{ static_url_for('static', 'images/mynodel.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://github.com/shesek/spark-wallet"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/spark.png') }}' : '{{ static_url_for('static', 'images/sparkl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://voltage.cloud"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/voltage.png') }}' : '{{ static_url_for('static', 'images/voltagel.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://breez.technology/sdk/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/breez.png') }}' : '{{ static_url_for('static', 'images/breezl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://blockstream.com/lightning/greenlight/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/greenlight.png') }}' : '{{ static_url_for('static', 'images/greenlightl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://getalby.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/alby.png') }}' : '{{ static_url_for('static', 'images/albyl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://zbd.gg"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/zbd.png') }}' : '{{ static_url_for('static', 'images/zbdl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://phoenix.acinq.co/server"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/phoenixd.png') }}' : '{{ static_url_for('static', 'images/phoenixdl.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://boltz.exchange/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/boltz.svg') }}' : '{{ static_url_for('static', 'images/boltz.svg') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <!-- # -->
+            </div>
           </div>
-          <div>
-            <a
-              href="https://github.com/lightningnetwork/lnd"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnd.png') }}' : '{{ static_url_for('static', 'images/lnd.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://opennode.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/opennode.png') }}' : '{{ static_url_for('static', 'images/opennodel.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://lnpay.co/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/lnpay.png') }}' : '{{ static_url_for('static', 'images/lnpayl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://github.com/rootzoll/raspiblitz"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/blitz.png') }}' : '{{ static_url_for('static', 'images/blitzl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://start9.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/start9.png') }}' : '{{ static_url_for('static', 'images/start9l.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://getumbrel.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/umbrel.png') }}' : '{{ static_url_for('static', 'images/umbrell.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://mynodebtc.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/mynode.png') }}' : '{{ static_url_for('static', 'images/mynodel.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://github.com/shesek/spark-wallet"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/spark.png') }}' : '{{ static_url_for('static', 'images/sparkl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://voltage.cloud"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/voltage.png') }}' : '{{ static_url_for('static', 'images/voltagel.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://breez.technology/sdk/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/breez.png') }}' : '{{ static_url_for('static', 'images/breezl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://blockstream.com/lightning/greenlight/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/greenlight.png') }}' : '{{ static_url_for('static', 'images/greenlightl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://getalby.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/alby.png') }}' : '{{ static_url_for('static', 'images/albyl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a href="https://zbd.gg" target="_blank" rel="noopener noreferrer">
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/zbd.png') }}' : '{{ static_url_for('static', 'images/zbdl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://phoenix.acinq.co/server"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/phoenixd.png') }}' : '{{ static_url_for('static', 'images/phoenixdl.png') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <div>
-            <a
-              href="https://boltz.exchange/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <q-img
-                contain
-                :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/boltz.svg') }}' : '{{ static_url_for('static', 'images/boltz.svg') }}'"
-              ></q-img>
-            </a>
-          </div>
-          <!-- # -->
         </div>
       </div>
     </div>
-  </div>
-  <div class="flex flex-center q-gutter-md">
-    <q-btn
-      outline
-      color="grey"
-      type="a"
-      href="https://github.com/lnbits/lnbits"
-      target="_blank"
-      rel="noopener noreferrer"
-      :label="$t('view_github')"
-      class=""
-    ></q-btn>
-    <q-btn
-      outline
-      color="grey"
-      type="a"
-      href="https://demo.lnbits.com/lnurlp/link/fH59GD"
-      target="_blank"
-      rel="noopener noreferrer"
-      :label="$t('donate')"
-      class=""
-    ></q-btn>
-  </div>
-</div>
-{% if AD_SPACE %}
-<div class="row justify-center q-mt-xl">
-  <div class="full-width q-mb-md text-center">
-    <span class="text-uppercase text-grey">{{ AD_SPACE_TITLE }}</span>
-  </div>
-  <div class="flex flex-center columm">
-    {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
+    {% if AD_SPACE %}
+    <div class="row justify-center q-mt-xl">
+      <div class="full-width q-mb-md text-center">
+        <span class="text-uppercase text-grey">{{ AD_SPACE_TITLE }}</span>
+      </div>
+      <div class="flex flex-center columm">
+        {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
 
-    <div class="flex flex-center column">
-      <a href="{{ AD[0] }}">
-        <img
-          v-if="($q.dark.isActive)"
-          src="{{ AD[1] }}"
-          style="max-width: 420px"
-          class="full-width"
-        />
-        <img
-          v-else
-          src="{{ AD[2] }}"
-          style="max-width: 420px"
-          class="full-width"
-        />
-      </a>
+        <div class="flex flex-center column">
+          <a href="{{ AD[0] }}">
+            <img
+              v-if="($q.dark.isActive)"
+              src="{{ AD[1] }}"
+              style="max-width: 420px"
+              class="full-width"
+            />
+            <img
+              v-else
+              src="{{ AD[2] }}"
+              style="max-width: 420px"
+              class="full-width"
+            />
+          </a>
+        </div>
+
+        {% endfor %}
+      </div>
     </div>
-
-    {% endfor %}
-  </div>
-</div>
-{% endif %} {% endblock %}
+    {% endif %} {% endblock %}
+  </q-page>
+</q-page-container>
+{% endblock %}
