@@ -7,8 +7,9 @@ window.PaymentsPageLogic = {
         wallet_id: null,
         payment_hash: null,
         status: null,
-        memo: null
-        //tag: null // not used, payments don't have tag, only the extra
+        memo: null,
+        timeFrom: null,
+        timeTo: null
       },
       searchOptions: {
         status: []
@@ -104,24 +105,33 @@ window.PaymentsPageLogic = {
     this.chartsReady = true
     await this.$nextTick()
     this.initCharts()
+    this.searchData.timeFrom = moment()
+      .subtract(1, 'month')
+      .format('YYYY-MM-DD')
+    this.searchData.timeTo = moment().format('YYYY-MM-DD')
     await this.fetchPayments()
   },
   computed: {},
   methods: {
-    async fetchPayments(props) {
-      if (props) {
-        props.filter =
-          props.filter ||
-          Object.entries(this.searchData).reduce(
-            (a, [k, v]) => (v ? ((a[k] = v), a) : a),
-            {}
-          )
+    async fetchPayments() {
+      const paymentsTable = JSON.parse(JSON.stringify(this.paymentsTable))
+      const props = {
+        filter: Object.entries({...this.searchData}).reduce(
+          (a, [k, v]) => (v ? ((a[k] = v), a) : a),
+          {}
+        ),
+        pagination: paymentsTable.pagination
       }
+
+      if (props.filter.timeFrom) {
+        props.filter['time[ge]'] = props.filter.timeFrom + 'T00:00:00'
+      }
+      if (props.filter.timeTo) {
+        props.filter['time[le]'] = props.filter.timeTo + 'T00:00:00'
+      }
+
       try {
-        const params = LNbits.utils.prepareFilterQuery(
-          this.paymentsTable,
-          props
-        )
+        const params = LNbits.utils.prepareFilterQuery(paymentsTable, props)
         const {data} = await LNbits.api.request(
           'GET',
           `/api/v1/payments/all/paginated?${params}`
@@ -158,11 +168,15 @@ window.PaymentsPageLogic = {
       if (fieldName) {
         this.searchData[fieldName] = fieldValue
       }
-      // remove empty fields
-      this.paymentsTable.filter = Object.entries(this.searchData).reduce(
-        (a, [k, v]) => (v ? ((a[k] = v), a) : a),
-        {}
-      )
+      await this.fetchPayments()
+    },
+
+    async removeCreatedFrom() {
+      this.searchData.timeFrom = null
+      await this.fetchPayments()
+    },
+    async removeCreatedTo() {
+      this.searchData.timeTo = null
       await this.fetchPayments()
     },
     showDetailsToggle(payment) {
@@ -191,7 +205,9 @@ window.PaymentsPageLogic = {
       if (this.payments.length === 0) {
         return
       }
-      const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
+      const paymentsTable = JSON.parse(JSON.stringify(this.paymentsTable))
+      const noTimeParam = LNbits.utils.prepareFilterQuery(paymentsTable)
+      const params = LNbits.utils.prepareFilterQuery(paymentsTable, props)
 
       try {
         const {data} = await LNbits.api.request(
@@ -265,10 +281,25 @@ window.PaymentsPageLogic = {
       }
 
       try {
-        const {data} = await LNbits.api.request(
+        let {data} = await LNbits.api.request(
           'GET',
-          `/api/v1/payments/stats/daily?${params}`
+          `/api/v1/payments/stats/daily?${noTimeParam}`
         )
+
+        const timeFrom = this.searchData.timeFrom + 'T00:00:00'
+        const timeTo = this.searchData.timeTo + 'T00:00:00'
+        data = data.filter(p => {
+          if (this.searchData.timeFrom && this.searchData.timeTo) {
+            return p.date >= timeFrom && p.date <= timeTo
+          }
+          if (this.searchData.timeFrom) {
+            return p.date >= timeFrom
+          }
+          if (this.searchData.timeTo) {
+            return p.date <= timeTo
+          }
+          return true
+        })
 
         this.paymentsDailyChart.data.datasets = [
           {
@@ -291,8 +322,37 @@ window.PaymentsPageLogic = {
         this.paymentsDailyChart.data.labels = data.map(s =>
           s.date.substring(0, 10)
         )
-
         this.paymentsDailyChart.update()
+
+        this.paymentsBalanceInOutChart.data.datasets = [
+          {
+            label: 'Incoming Payments Balance',
+            data: data.map(s => s.balance_in)
+          },
+          {
+            label: 'Outgoing Payments Balance',
+            data: data.map(s => s.balance_out)
+          }
+        ]
+        this.paymentsBalanceInOutChart.data.labels = data.map(s =>
+          s.date.substring(0, 10)
+        )
+        this.paymentsBalanceInOutChart.update()
+
+        this.paymentsCountInOutChart.data.datasets = [
+          {
+            label: 'Incoming Payments Count',
+            data: data.map(s => s.count_in)
+          },
+          {
+            label: 'Outgoing Payments Count',
+            data: data.map(s => -s.count_out)
+          }
+        ]
+        this.paymentsCountInOutChart.data.labels = data.map(s =>
+          s.date.substring(0, 10)
+        )
+        this.paymentsCountInOutChart.update()
       } catch (error) {
         console.warn(error)
         LNbits.utils.notifyApiError(error)
@@ -438,12 +498,6 @@ window.PaymentsPageLogic = {
                   text: 'Tags'
                 }
               }
-            },
-            onClick: (_, elements, chart) => {
-              if (elements[0]) {
-                const i = elements[0].index
-                this.searchPaymentsBy('tag', chart.data.labels[i])
-              }
             }
           },
           data: {
@@ -452,6 +506,89 @@ window.PaymentsPageLogic = {
                 label: '',
                 data: [],
                 backgroundColor: this.randomColors(10),
+                hoverOffset: 4
+              }
+            ]
+          }
+        }
+      )
+      this.paymentsBalanceInOutChart = new Chart(
+        this.$refs.paymentsBalanceInOutChart.getContext('2d'),
+        {
+          type: 'bar',
+
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: false
+              },
+              legend: {
+                display: true,
+                title: {
+                  display: false,
+                  text: 'Tags'
+                }
+              }
+            },
+            scales: {
+              x: {
+                stacked: true
+              },
+              y: {
+                stacked: true
+              }
+            }
+          },
+          data: {
+            datasets: [
+              {
+                label: '',
+                data: [],
+                backgroundColor: this.randomColors(50),
+                hoverOffset: 4
+              }
+            ]
+          }
+        }
+      )
+
+      this.paymentsCountInOutChart = new Chart(
+        this.$refs.paymentsCountInOutChart.getContext('2d'),
+        {
+          type: 'bar',
+
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: false
+              },
+              legend: {
+                display: true,
+                title: {
+                  display: false,
+                  text: ''
+                }
+              }
+            },
+            scales: {
+              x: {
+                stacked: true
+              },
+              y: {
+                stacked: true
+              }
+            }
+          },
+          data: {
+            datasets: [
+              {
+                label: '',
+                data: [],
+                backgroundColor: this.randomColors(80),
                 hoverOffset: 4
               }
             ]

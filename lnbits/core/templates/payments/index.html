@@ -11,6 +11,50 @@
           <div class="col">
             <!-- Optional: Add content here if needed -->
           </div>
+          <div class="float-right">
+            <q-chip
+              v-if="searchData.timeFrom"
+              removable
+              @remove="removeCreatedFrom()"
+              :label="searchData.timeFrom"
+              class="ellipsis"
+            >
+            </q-chip>
+
+            <q-icon name="event" class="cursor-pointer">
+              <q-popup-proxy
+                cover
+                transition-show="scale"
+                transition-hide="scale"
+              >
+                <q-date v-model="searchData.timeFrom" mask="YYYY-MM-DD">
+                  <div class="row">
+                    <q-btn
+                      label="Search"
+                      color="primary"
+                      flat
+                      @click="fetchPayments()"
+                      class="float-left"
+                      v-close-popup
+                    />
+                  </div>
+                </q-date>
+                <q-date v-model="searchData.timeTo" mask="YYYY-MM-DD">
+                  <div class="row items-center justify-end">
+                    <q-btn v-close-popup label="Close" color="primary" flat />
+                  </div>
+                </q-date>
+              </q-popup-proxy>
+            </q-icon>
+            <q-chip
+              removable
+              v-if="searchData.timeTo"
+              @remove="removeCreatedTo()"
+              :label="searchData.timeTo"
+              class="ellipsis"
+            >
+            </q-chip>
+          </div>
           <div>
             <q-btn
               v-if="g.user.admin"
@@ -55,7 +99,7 @@
     </div>
     <div class="col-lg-6 col-md-12 col-sm-12 text-center">
       <q-card class="q-pt-sm">
-        <strong v-text="$t('payment_daily_chart')"></strong>
+        <strong v-text="$t('payment_daily')"></strong>
         <div style="height: 300px" class="q-pa-sm">
           <canvas v-if="chartsReady" ref="paymentsDailyChart"></canvas>
         </div>
@@ -63,10 +107,18 @@
     </div>
     <div class="col-lg-6 col-md-12 col-sm-12 text-center">
       <q-card class="q-pt-sm">
-        <!-- <strong v-text="$t('payment_daily_chart')"></strong>
+        <strong v-text="$t('payment_balnce_in_out')"></strong>
         <div style="height: 300px" class="q-pa-sm">
-          <canvas v-if="chartsReady" ref="paymentsDailyChart"></canvas>
-        </div> -->
+          <canvas v-if="chartsReady" ref="paymentsBalanceInOutChart"></canvas>
+        </div>
+      </q-card>
+    </div>
+    <div class="col-lg-6 col-md-12 col-sm-12 text-center">
+      <q-card class="q-pt-sm">
+        <strong v-text="$t('payment_count_in_out')"></strong>
+        <div style="height: 300px" class="q-pa-sm">
+          <canvas v-if="chartsReady" ref="paymentsCountInOutChart"></canvas>
+        </div>
       </q-card>
     </div>
   </div>
