@@ -1,13 +1,20 @@
 #!/bin/sh
 
-# Get the script directory
+# Get the script's directory
 cd "$(dirname "$0")" || exit 1
-LAUNCH_DIR="$(pwd)"
+
+# Activate the virtual environment
+if [ -f "lnbits_env/bin/activate" ]; then
+    source lnbits_env/bin/activate
+else
+    echo "Error: Virtual environment not found!"
+    exit 1
+fi
 
 # Define persistent storage for LNbits
 PERSISTENT_DIR="$HOME/Library/Application Support/LNbits"
 
-# Ensure persistent directories exist
+# Ensure the persistent directory exists
 mkdir -p "$PERSISTENT_DIR/database"
 mkdir -p "$PERSISTENT_DIR/extensions"
 
@@ -16,22 +23,11 @@ export LNBITS_DATA_FOLDER="$PERSISTENT_DIR/database"
 export LNBITS_EXTENSIONS_PATH="$PERSISTENT_DIR/extensions"
 export LNBITS_ADMIN_UI=true
 
-# Define the LNbits binary path
-LNBITS_BIN="$LAUNCH_DIR/lnbits/dist/lnbits"
-
-# Ensure the binary exists and is executable
-if [ ! -f "$LNBITS_BIN" ]; then
-    echo "Error: LNbits binary not found at $LNBITS_BIN"
-    exit 1
-fi
-
-chmod +x "$LNBITS_BIN"
-
 # Default host and port
 DEFAULT_HOST="0.0.0.0"
 DEFAULT_PORT="5000"
 
-# Check if --host or --port are provided in arguments
+# Check if --host or --port are provided in the arguments
 HOST_SET=false
 PORT_SET=false
 
@@ -55,25 +51,33 @@ if [ "$PORT_SET" = false ]; then
     EXTRA_ARGS="$EXTRA_ARGS --port $DEFAULT_PORT"
 fi
 
-# Start LNbits in the background
-set -- "$LNBITS_BIN" $EXTRA_ARGS "$@"
-"$@" &
+# Start LNbits using the virtual environment
+python -c "from lnbits.server import main; main()" $EXTRA_ARGS "$@" &
 LNBITS_PID=$!
 
 # Wait for LNbits to start
 sleep 3
 
-# Show GUI message in the background to avoid blocking execution
-osascript -e 'display dialog "LNbits is running.\n\n http://0.0.0.0:5000" buttons {"Close Server"} default button "Close Server"' &
+# Check if running in GUI mode and `osascript` is available
+if [ -n "$DISPLAY" ] || [[ "$(uname -s)" == "Darwin" ]]; then
+    if command -v osascript >/dev/null 2>&1; then
+        osascript -e 'display dialog "LNbits is running.\n\n http://0.0.0.0:5000" buttons {"Close Server"} default button "Close Server"'
+    fi
+fi
 
 # Function to stop LNbits gracefully
 kill_lnbits() {
-    echo "Stopping LNbits..."
-    if [ -n "$LNBITS_PID" ] && ps -p "$LNBITS_PID" >/dev/null 2>&1; then
-        kill -2 "$LNBITS_PID"
+    LN_PIDS=$(lsof -t -i:5000 2>/dev/null)
+    if [ -n "$LN_PIDS" ]; then
+        echo "Stopping LNbits (PIDs: $LN_PIDS)..."
+        kill -2 $LN_PIDS  # Send SIGINT
     fi
-    pkill -f "lnbits" || killall lnbits || true
 }
 
 # Stop LNbits when the dialog is closed
-wait $LNBITS_PID 2>/dev/null || kill_lnbits
+kill_lnbits
+
+# Ensure LNbits fully stops
+if ps -p $LNBITS_PID >/dev/null 2>&1; then
+    wait $LNBITS_PID 2>/dev/null || true
+fi
