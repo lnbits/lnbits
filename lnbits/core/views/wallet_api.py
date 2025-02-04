@@ -59,6 +59,8 @@ async def api_update_wallet_name(
 @wallet_router.patch("")
 async def api_update_wallet(
     name: Optional[str] = Body(None),
+    icon: Optional[str] = Body(None),
+    color: Optional[str] = Body(None),
     currency: Optional[str] = Body(None),
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
@@ -66,6 +68,8 @@ async def api_update_wallet(
     if not wallet:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
     wallet.name = name or wallet.name
+    wallet.extra.icon = icon or wallet.extra.icon
+    wallet.extra.color = color or wallet.extra.color
     wallet.currency = currency if currency is not None else wallet.currency
     await update_wallet(wallet)
     return wallet

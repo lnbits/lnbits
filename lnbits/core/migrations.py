@@ -692,3 +692,10 @@ async def m030_add_user_api_tokens_column(db: Connection):
         ALTER TABLE accounts ADD COLUMN access_control_list TEXT
         """
     )
+
+
+async def m031_add_color_and_icon_to_wallets(db: Connection):
+    """
+    Adds icon and color columns to wallets.
+    """
+    await db.execute("ALTER TABLE wallets ADD COLUMN extra TEXT")
