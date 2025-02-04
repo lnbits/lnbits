@@ -52,7 +52,7 @@ if [ "$PORT_SET" = false ]; then
 fi
 
 # Start LNbits using the virtual environment
-python -c "from lnbits.server import main; main()" $EXTRA_ARGS "$@" &
+./lnbits_env/bin/python -c "from lnbits.server import main; main()" $EXTRA_ARGS "$@" &
 LNBITS_PID=$!
 
 # Wait for LNbits to start

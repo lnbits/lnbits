@@ -36,7 +36,8 @@ jobs:
       - name: Make Asset
         run: |
           cd packaging/linux/AppDir/usr/lnbits
-          poetry install
+          git checkout main
+          poetry install --main
           poetry run pip install pyinstaller
 
           # Build the LNbits binary
@@ -94,10 +95,12 @@ jobs:
           mkdir packaging/macos/LNbits.app/Contents/MacOS/lnbits
           git clone https://github.com/lnbits/lnbits.git packaging/macos/LNbits.app/Contents/MacOS/lnbits
           cd packaging/macos/LNbits.app/Contents/MacOS/lnbits
-          python3 -m venv lnbits_env
+          git checkout main
+          python3 -m venv --copies lnbits_env
           source lnbits_env/bin/activate
-          poetry install
+          poetry install --main
           deactivate
+          LC_ALL=C find lnbits_env/bin -type f -exec sed -i '' '/^#!/ s|^#!.*python.*$|#!/bin/bash\nexec "$(dirname "$0")/python" "$@"|' {} +
           TAG_NAME=${{ github.event.release.tag_name }}
           DMG_NAME="LNbits-${TAG_NAME}_arm.dmg"
           cd ../../../../../
@@ -146,10 +149,12 @@ jobs:
           mkdir packaging/macos/LNbits.app/Contents/MacOS/lnbits
           git clone https://github.com/lnbits/lnbits.git packaging/macos/LNbits.app/Contents/MacOS/lnbits
           cd packaging/macos/LNbits.app/Contents/MacOS/lnbits
-          python3 -m venv lnbits_env
+          git checkout main
+          python3 -m venv --copies lnbits_env
           source lnbits_env/bin/activate
-          poetry install
+          poetry install --main
           deactivate
+          LC_ALL=C find lnbits_env/bin -type f -exec sed -i '' '/^#!/ s|^#!.*python.*$|#!/bin/bash\nexec "$(dirname "$0")/python" "$@"|' {} +
           TAG_NAME=${{ github.event.release.tag_name }}
           DMG_NAME="LNbits-${TAG_NAME}_x86.dmg"
           cd ../../../../../
