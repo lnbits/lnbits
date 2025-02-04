@@ -18,13 +18,13 @@
           :class="g.wallet && g.wallet.id === walletRec.id ? '' : 'disabled'"
           :color="
             g.wallet && g.wallet.id === walletRec.id
-              ? walletRec.color
-              : walletRec.color
+              ? walletRec.extra.color
+              : walletRec.extra.color
           "
           :icon="
             g.wallet && g.wallet.id === walletRec.id
-              ? walletRec.icon
-              : walletRec.icon
+              ? walletRec.extra.icon
+              : walletRec.extra.icon
           "
         >
         </q-avatar>

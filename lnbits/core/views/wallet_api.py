@@ -68,8 +68,8 @@ async def api_update_wallet(
     if not wallet:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
     wallet.name = name or wallet.name
-    wallet.icon = icon or wallet.icon
-    wallet.color = color or wallet.color
+    wallet.extra.icon = icon or wallet.extra.icon
+    wallet.extra.color = color or wallet.extra.color
     wallet.currency = currency if currency is not None else wallet.currency
     await update_wallet(wallet)
     return wallet
