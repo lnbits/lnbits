@@ -11,6 +11,14 @@ window.PaymentsPageLogic = {
         timeFrom: null,
         timeTo: null
       },
+      chartData: {
+        showPaymentStatus: true,
+        showPaymentTags: true,
+        showBalance: true,
+        showWalletsSize: false,
+        showBalanceInOut: false,
+        showPaymentCountInOut: false
+      },
       searchOptions: {
         status: []
         // tag: [] // not used, payments don't have tag, only the extra
@@ -359,6 +367,10 @@ window.PaymentsPageLogic = {
       }
     },
     async initCharts() {
+      const chartData =
+        this.$q.localStorage.getItem('lnbits.payments.chartData') || {}
+
+      this.chartData = {...this.chartData, ...chartData}
       if (!this.chartsReady) {
         console.warn('Charts are not ready yet. Initialization delayed.')
         return
@@ -595,6 +607,9 @@ window.PaymentsPageLogic = {
           }
         }
       )
+    },
+    saveChartsPreferences() {
+      this.$q.localStorage.set('lnbits.payments.chartData', this.chartData)
     },
     randomColors(seed = 1) {
       const colors = []

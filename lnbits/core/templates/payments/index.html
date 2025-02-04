@@ -9,52 +9,113 @@
       <div class="q-pa-sm q-pl-lg">
         <div class="row items-center justify-between q-gutter-xs">
           <div class="col">
-            <!-- Optional: Add content here if needed -->
-          </div>
-          <div class="float-right">
-            <q-chip
-              v-if="searchData.timeFrom"
-              removable
-              @remove="removeCreatedFrom()"
-              :label="searchData.timeFrom"
-              class="ellipsis"
-            >
-            </q-chip>
-
-            <q-icon name="event" class="cursor-pointer">
-              <q-popup-proxy
-                cover
-                transition-show="scale"
-                transition-hide="scale"
+            <div class="float-left">
+              <q-chip
+                v-if="searchData.timeFrom"
+                removable
+                @remove="removeCreatedFrom()"
+                :label="searchData.timeFrom"
+                class="ellipsis"
               >
-                <q-date v-model="searchData.timeFrom" mask="YYYY-MM-DD">
-                  <div class="row">
-                    <q-btn
-                      label="Search"
-                      color="primary"
-                      flat
-                      @click="fetchPayments()"
-                      class="float-left"
-                      v-close-popup
-                    />
-                  </div>
-                </q-date>
-                <q-date v-model="searchData.timeTo" mask="YYYY-MM-DD">
-                  <div class="row items-center justify-end">
-                    <q-btn v-close-popup label="Close" color="primary" flat />
-                  </div>
-                </q-date>
-              </q-popup-proxy>
-            </q-icon>
-            <q-chip
-              removable
-              v-if="searchData.timeTo"
-              @remove="removeCreatedTo()"
-              :label="searchData.timeTo"
-              class="ellipsis"
-            >
-            </q-chip>
+              </q-chip>
+
+              <q-icon name="event" class="cursor-pointer">
+                <q-popup-proxy
+                  cover
+                  transition-show="scale"
+                  transition-hide="scale"
+                >
+                  <q-date v-model="searchData.timeFrom" mask="YYYY-MM-DD">
+                    <div class="row">
+                      <q-btn
+                        label="Search"
+                        color="primary"
+                        flat
+                        @click="fetchPayments()"
+                        class="float-left"
+                        v-close-popup
+                      />
+                    </div>
+                  </q-date>
+                  <q-date v-model="searchData.timeTo" mask="YYYY-MM-DD">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Close" color="primary" flat />
+                    </div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-icon>
+              <q-chip
+                removable
+                v-if="searchData.timeTo"
+                @remove="removeCreatedTo()"
+                :label="searchData.timeTo"
+                class="ellipsis"
+              >
+              </q-chip>
+            </div>
           </div>
+          <div class="float-left">
+            <q-checkbox
+              dense
+              @click="saveChartsPreferences"
+              v-model="chartData.showPaymentStatus"
+              label="Status Chart"
+            >
+            </q-checkbox>
+          </div>
+          <q-separator vertical class="q-ma-sm"></q-separator>
+          <div class="float-left">
+            <q-checkbox
+              dense
+              @click="saveChartsPreferences"
+              v-model="chartData.showPaymentTags"
+              label="Tags Chart"
+            >
+            </q-checkbox>
+          </div>
+          <q-separator vertical class="q-ma-sm"></q-separator>
+          <div class="float-left">
+            <q-checkbox
+              dense
+              @click="saveChartsPreferences"
+              v-model="chartData.showBalance"
+              label="Balance Chart"
+            >
+            </q-checkbox>
+          </div>
+          <q-separator vertical class="q-ma-sm"></q-separator>
+          <div class="float-left">
+            <q-checkbox
+              dense
+              @click="saveChartsPreferences"
+              v-model="chartData.showWalletsSize"
+              label="Wallets Chart"
+            >
+            </q-checkbox>
+          </div>
+
+          <q-separator vertical class="q-ma-sm"></q-separator>
+          <div class="float-left">
+            <q-checkbox
+              dense
+              @click="saveChartsPreferences"
+              v-model="chartData.showBalanceInOut"
+              label="Balance In/Out Chart"
+            >
+            </q-checkbox>
+          </div>
+          <q-separator vertical class="q-ma-sm"></q-separator>
+          <div class="float-left">
+            <q-checkbox
+              dense
+              @click="saveChartsPreferences"
+              v-model="chartData.showPaymentCountInOut"
+              label="Count In/Out Chart"
+            >
+            </q-checkbox>
+          </div>
+          <q-separator vertical class="q-ma-sm"></q-separator>
+
           <div>
             <q-btn
               v-if="g.user.admin"
@@ -73,7 +134,10 @@
 </div>
 <div v-show="!showDetails">
   <div class="row q-col-gutter-md justify-center q-mb-md">
-    <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+    <div
+      v-show="chartData.showPaymentStatus"
+      class="col-lg-3 col-md-6 col-sm-12 text-center"
+    >
       <q-card class="q-pt-sm">
         <strong v-text="$t('payment_chart_status')"></strong>
         <div style="height: 300px" class="q-pa-sm">
@@ -81,7 +145,10 @@
         </div>
       </q-card>
     </div>
-    <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+    <div
+      v-show="chartData.showPaymentStatus"
+      class="col-lg-3 col-md-6 col-sm-12 text-center"
+    >
       <q-card class="q-pt-sm">
         <strong v-text="$t('payment_chart_tags')"></strong>
         <div style="height: 300px" class="q-pa-sm">
@@ -89,15 +156,10 @@
         </div>
       </q-card>
     </div>
-    <div class="col-lg-6 col-md-12 col-sm-12 text-center">
-      <q-card class="q-pt-sm">
-        <strong v-text="$t('payment_chart_tx_per_wallet')"></strong>
-        <div style="height: 300px" class="q-pa-sm">
-          <canvas v-if="chartsReady" ref="paymentsWalletsChart"></canvas>
-        </div>
-      </q-card>
-    </div>
-    <div class="col-lg-6 col-md-12 col-sm-12 text-center">
+    <div
+      v-show="chartData.showBalance"
+      class="col-lg-6 col-md-12 col-sm-12 text-center"
+    >
       <q-card class="q-pt-sm">
         <strong v-text="$t('payment_daily')"></strong>
         <div style="height: 300px" class="q-pa-sm">
@@ -105,7 +167,22 @@
         </div>
       </q-card>
     </div>
-    <div class="col-lg-6 col-md-12 col-sm-12 text-center">
+    <div
+      v-show="chartData.showWalletsSize"
+      class="col-lg-6 col-md-12 col-sm-12 text-center"
+    >
+      <q-card class="q-pt-sm">
+        <strong v-text="$t('payment_chart_tx_per_wallet')"></strong>
+        <div style="height: 300px" class="q-pa-sm">
+          <canvas v-if="chartsReady" ref="paymentsWalletsChart"></canvas>
+        </div>
+      </q-card>
+    </div>
+
+    <div
+      v-show="chartData.showBalanceInOut"
+      class="col-lg-6 col-md-12 col-sm-12 text-center"
+    >
       <q-card class="q-pt-sm">
         <strong v-text="$t('payment_balnce_in_out')"></strong>
         <div style="height: 300px" class="q-pa-sm">
@@ -113,7 +190,10 @@
         </div>
       </q-card>
     </div>
-    <div class="col-lg-6 col-md-12 col-sm-12 text-center">
+    <div
+      v-show="chartData.showPaymentCountInOut"
+      class="col-lg-6 col-md-12 col-sm-12 text-center"
+    >
       <q-card class="q-pt-sm">
         <strong v-text="$t('payment_count_in_out')"></strong>
         <div style="height: 300px" class="q-pa-sm">
