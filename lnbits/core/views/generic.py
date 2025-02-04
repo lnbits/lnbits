@@ -435,13 +435,12 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     claim their satoshis and get an instant LNbits wallet! lnbits/withdraw docs
     """
 
-    lightning_param = lightning
-    if not lightning_param:
+    if not lightning:
         return {"status": "ERROR", "reason": "lightning parameter not provided."}
     if not settings.lnbits_allow_new_accounts:
         return {"status": "ERROR", "reason": "New accounts are not allowed."}
 
-    lnurl = lnurl_decode(lightning_param)
+    lnurl = lnurl_decode(lightning)
 
     async with httpx.AsyncClient() as client:
         res1 = await client.get(lnurl, timeout=2)
@@ -458,7 +457,7 @@ async def lnurlwallet(request: Request, lightning: str = ""):
                 detail="Invalid lnurl. Expected maxWithdrawable",
             )
         account = await create_user_account()
-        wallet = await create_wallet(user_id=account.id)
+        wallet = account.wallets[0]
         payment = await create_invoice(
             wallet_id=wallet.id,
             amount=data1.get("maxWithdrawable") / 1000,
@@ -467,7 +466,8 @@ async def lnurlwallet(request: Request, lightning: str = ""):
         url = data1.get("callback")
         params = {"k1": data1.get("k1"), "pr": payment.bolt11}
         callback = url + ("&" if urlparse(url).query else "?") + urlencode(params)
-        res2 = await client.get(callback, timeout=2)
+
+        res2 = await client.get(callback, timeout=5)
         res2.raise_for_status()
 
     return RedirectResponse(
