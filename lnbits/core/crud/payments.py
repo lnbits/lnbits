@@ -393,8 +393,9 @@ async def get_daily_stats(
     out_clause = filters.where(
         ["(apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)"]
     )
+    date_trunc = db.datetime_grouping("day")
     query = """
-        SELECT date_trunc('day', time) date,
+        SELECT {date_trunc} date,
             SUM(apipayments.amount - ABS(apipayments.fee)) AS balance,
             ABS(SUM(apipayments.fee)) as fee,
             COUNT(*) as payments_count
@@ -405,12 +406,12 @@ async def get_daily_stats(
     """
 
     data_in = await (conn or db).fetchall(
-        query=query.format(clause=in_clause),
+        query=query.format(date_trunc=date_trunc, clause=in_clause),
         values=filters.values(),
         model=PaymentDailyStats,
     )
     data_out = await (conn or db).fetchall(
-        query=query.format(clause=out_clause),
+        query=query.format(date_trunc=date_trunc, clause=out_clause),
         values=filters.values(),
         model=PaymentDailyStats,
     )
