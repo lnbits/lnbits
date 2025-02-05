@@ -11,10 +11,10 @@
           <div class="col">
             <div class="float-left">
               <q-chip
-                v-if="searchData.timeFrom"
+                v-if="searchDate.timeFrom"
                 removable
                 @remove="removeCreatedFrom()"
-                :label="searchData.timeFrom"
+                :label="searchDate.timeFrom"
                 class="ellipsis"
               >
               </q-chip>
@@ -25,7 +25,7 @@
                   transition-show="scale"
                   transition-hide="scale"
                 >
-                  <q-date v-model="searchData.timeFrom" mask="YYYY-MM-DD">
+                  <q-date v-model="searchDate.timeFrom" mask="YYYY-MM-DD">
                     <div class="row">
                       <q-btn
                         label="Search"
@@ -37,7 +37,7 @@
                       />
                     </div>
                   </q-date>
-                  <q-date v-model="searchData.timeTo" mask="YYYY-MM-DD">
+                  <q-date v-model="searchDate.timeTo" mask="YYYY-MM-DD">
                     <div class="row items-center justify-end">
                       <q-btn v-close-popup label="Close" color="primary" flat />
                     </div>
@@ -46,9 +46,9 @@
               </q-icon>
               <q-chip
                 removable
-                v-if="searchData.timeTo"
+                v-if="searchDate.timeTo"
                 @remove="removeCreatedTo()"
-                :label="searchData.timeTo"
+                :label="searchDate.timeTo"
                 class="ellipsis"
               >
               </q-chip>

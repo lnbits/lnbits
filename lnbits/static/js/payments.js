@@ -3,13 +3,16 @@ window.PaymentsPageLogic = {
   data() {
     return {
       payments: [],
+      dailyChartData: [],
+      searchDate: {
+        timeFrom: null,
+        timeTo: null
+      },
       searchData: {
         wallet_id: null,
         payment_hash: null,
         status: null,
-        memo: null,
-        timeFrom: null,
-        timeTo: null
+        memo: null
       },
       chartData: {
         showPaymentStatus: true,
@@ -113,33 +116,34 @@ window.PaymentsPageLogic = {
     this.chartsReady = true
     await this.$nextTick()
     this.initCharts()
-    this.searchData.timeFrom = moment()
+    this.searchDate.timeFrom = moment()
       .subtract(1, 'month')
       .format('YYYY-MM-DD')
-    this.searchData.timeTo = moment().format('YYYY-MM-DD')
+    this.searchDate.timeTo = moment().format('YYYY-MM-DD')
     await this.fetchPayments()
   },
   computed: {},
   methods: {
-    async fetchPayments() {
-      const paymentsTable = JSON.parse(JSON.stringify(this.paymentsTable))
-      const props = {
-        filter: Object.entries({...this.searchData}).reduce(
-          (a, [k, v]) => (v ? ((a[k] = v), a) : a),
-          {}
-        ),
-        pagination: paymentsTable.pagination
-      }
+    async fetchPayments(props) {
+      this.paymentsTable.filter = Object.entries(this.searchData).reduce(
+        (a, [k, v]) => (v ? ((a[k] = v), a) : a),
+        {}
+      )
 
-      if (props.filter.timeFrom) {
-        props.filter['time[ge]'] = props.filter.timeFrom + 'T00:00:00'
+      if (this.searchDate.timeFrom) {
+        this.paymentsTable.filter['time[ge]'] =
+          this.searchDate.timeFrom + 'T00:00:00'
       }
-      if (props.filter.timeTo) {
-        props.filter['time[le]'] = props.filter.timeTo + 'T23:59:59'
+      if (this.searchDate.timeTo) {
+        this.paymentsTable.filter['time[le]'] =
+          this.searchDate.timeTo + 'T23:59:59'
       }
 
       try {
-        const params = LNbits.utils.prepareFilterQuery(paymentsTable, props)
+        const params = LNbits.utils.prepareFilterQuery(
+          this.paymentsTable,
+          props
+        )
         const {data} = await LNbits.api.request(
           'GET',
           `/api/v1/payments/all/paginated?${params}`
@@ -180,11 +184,11 @@ window.PaymentsPageLogic = {
     },
 
     async removeCreatedFrom() {
-      this.searchData.timeFrom = null
+      this.searchDate.timeFrom = null
       await this.fetchPayments()
     },
     async removeCreatedTo() {
-      this.searchData.timeTo = null
+      this.searchDate.timeTo = null
       await this.fetchPayments()
     },
     showDetailsToggle(payment) {
@@ -210,9 +214,7 @@ window.PaymentsPageLogic = {
       return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
     },
     async updateCharts(props) {
-      const paymentsTable = JSON.parse(JSON.stringify(this.paymentsTable))
-      const noTimeParam = LNbits.utils.prepareFilterQuery(paymentsTable)
-      const params = LNbits.utils.prepareFilterQuery(paymentsTable, props)
+      const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
 
       try {
         const {data} = await LNbits.api.request(
@@ -286,22 +288,27 @@ window.PaymentsPageLogic = {
       }
 
       try {
-        let {data} = await LNbits.api.request(
-          'GET',
-          `/api/v1/payments/stats/daily?${noTimeParam}`
-        )
+        let data = []
+        if (!this.dailyChartData?.length) {
+          const response = await LNbits.api.request(
+            'GET',
+            `/api/v1/payments/stats/daily`
+          )
+          this.dailyChartData = response.data
+        }
+        data = this.dailyChartData
 
-        const timeFrom = this.searchData.timeFrom + 'T00:00:00'
-        const timeTo = this.searchData.timeTo + 'T00:00:00'
+        const timeFrom = this.searchDate.timeFrom + 'T00:00:00'
+        const timeTo = this.searchDate.timeTo + 'T00:00:00'
         this.lnbitsBalance = data[data.length - 1].balance
         data = data.filter(p => {
-          if (this.searchData.timeFrom && this.searchData.timeTo) {
+          if (this.searchDate.timeFrom && this.searchDate.timeTo) {
             return p.date >= timeFrom && p.date <= timeTo
           }
-          if (this.searchData.timeFrom) {
+          if (this.searchDate.timeFrom) {
             return p.date >= timeFrom
           }
-          if (this.searchData.timeTo) {
+          if (this.searchDate.timeTo) {
             return p.date <= timeTo
           }
           return true
