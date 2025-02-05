@@ -110,7 +110,7 @@ async def internal_invoice_listener():
     while settings.lnbits_running:
         checking_id = await internal_invoice_queue.get()
         logger.info("> got internal payment notification", checking_id)
-        create_task(invoice_callback_dispatcher(checking_id))
+        create_task(invoice_callback_dispatcher(checking_id,True))
 
 
 async def invoice_listener():
@@ -123,7 +123,7 @@ async def invoice_listener():
     funding_source = get_funding_source()
     async for checking_id in funding_source.paid_invoices_stream():
         logger.info("> got a payment notification", checking_id)
-        create_task(invoice_callback_dispatcher(checking_id))
+        create_task(invoice_callback_dispatcher(checking_id,False))
 
 
 async def check_pending_payments():
@@ -174,7 +174,7 @@ async def check_pending_payments():
         await asyncio.sleep(60 * 30)  # every 30 minutes
 
 
-async def invoice_callback_dispatcher(checking_id: str):
+async def invoice_callback_dispatcher(checking_id: str,internal:bool):
     """
     Takes incoming payments, sets pending=False, and dispatches them to
     invoice_listeners from core and extensions.
@@ -186,9 +186,9 @@ async def invoice_callback_dispatcher(checking_id: str):
         )
         await payment.set_pending(False)
         # credit service fee wallet
-        service_fee_msat = service_fee(payment.amount, internal=False)
+        service_fee_msat = service_fee(payment.amount, internal=internal)
         print('>config',settings.lnbits_service_fee_wallet,service_fee_msat)
-        if settings.lnbits_service_fee_wallet and service_fee_msat and service_fee_msat>=1000:
+        if settings.lnbits_service_fee_wallet and service_fee_msat and service_fee_msat>=1000 and payment.wallet_id!=settings.lnbits_service_fee_wallet:
             print('service-fee-msat',service_fee_msat)
             _, payment_request = await create_invoice(
                     wallet_id=settings.lnbits_service_fee_wallet,

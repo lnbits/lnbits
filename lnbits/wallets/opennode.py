@@ -78,7 +78,7 @@ class OpenNodeWallet(Wallet):
             json={
                 "amount": amount,
                 "description": memo or "",
-                "callback_url": settings.lnbits_baseurl+url_for(endpoint="api/v1/opennode-webhook")
+                "callback_url": settings.lnbits_baseurl+"/api/v1/opennode-webhook"
                 # "callback_url":'https://bb48-103-157-238-89.ngrok-free.app/api/v1/opennode-webhook'
             },
             timeout=40,
@@ -142,7 +142,7 @@ class OpenNodeWallet(Wallet):
         while settings.lnbits_running:
             try:
                 async with connect(
-                    settings.lnbits_baseurl.replace('http','ws').replace('https','ws')+url_for('api/v1/ws/opennode_ws'),
+                    settings.lnbits_baseurl.replace('http','ws').replace('https','ws')+'/api/v1/ws/opennode_ws',
                     # extra_headers=[("Authorization", self.headers["Authorization"])],
                 ) as ws:
                     logger.info("connected to opennode invoices stream")
