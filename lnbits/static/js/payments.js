@@ -105,8 +105,8 @@ window.PaymentsPageLogic = {
       },
       chartsReady: false,
       showDetails: false,
-      paymentDetails: null
-      // showInternal: false
+      paymentDetails: null,
+      lnbitsBalance: 0
     }
   },
   async mounted() {
@@ -296,6 +296,7 @@ window.PaymentsPageLogic = {
 
         const timeFrom = this.searchData.timeFrom + 'T00:00:00'
         const timeTo = this.searchData.timeTo + 'T00:00:00'
+        this.lnbitsBalance = data[data.length - 1].balance
         data = data.filter(p => {
           if (this.searchData.timeFrom && this.searchData.timeTo) {
             return p.date >= timeFrom && p.date <= timeTo

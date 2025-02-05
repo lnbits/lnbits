@@ -436,15 +436,19 @@ async def get_payments_daily_stats(
     data_in, data_out = await get_daily_stats(filters)
     balance_total: float = 0
 
-    if len(data_in) == 0 or len(data_out) == 0:
-        return data_in + data_out
+    _none = PaymentDailyStats(date=datetime.now())
+    if len(data_in) == 0:
+        data_in = [_none]
+    if len(data_out) == 0:
+        data_out = [_none]
 
     data: list[PaymentDailyStats] = []
 
-    start_date = max(data_in[0].date, data_out[0].date)
+    start_date = min(data_in[0].date, data_out[0].date)
+    end_date = max(data_in[-1].date, data_out[-1].date)
     delta = timedelta(days=1)
-    while start_date <= datetime.now():
-        _none = PaymentDailyStats(date=start_date)
+    while start_date <= end_date:
+
         data_in_point = next((x for x in data_in if x.date == start_date), _none)
         data_out_point = next((x for x in data_out if x.date == start_date), _none)
 
