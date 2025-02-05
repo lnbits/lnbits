@@ -135,7 +135,7 @@ window.PaymentsPageLogic = {
         props.filter['time[ge]'] = props.filter.timeFrom + 'T00:00:00'
       }
       if (props.filter.timeTo) {
-        props.filter['time[le]'] = props.filter.timeTo + 'T00:00:00'
+        props.filter['time[le]'] = props.filter.timeTo + 'T23:59:59'
       }
 
       try {
