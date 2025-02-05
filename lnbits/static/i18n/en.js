@@ -494,7 +494,15 @@ window.localisation.en = {
   payment_show_internal: 'Show Internal Payments',
   payment_chart_flow: 'Monthly Payment Flow',
   payment_chart_status: 'Payment Status',
-  payment_chart_tx_per_wallet: 'Transactions per Wallet (sats, payment count)',
+  payment_chart_tx_per_wallet: 'Transactions per Wallet (balance/count)',
   payment_details_back: 'Back to Payments',
-  payment_chart_tags: 'Payments by Tags'
+  payment_chart_tags: 'Payments by Tags',
+  payments_balance_in_out: 'Balance In/Out',
+  payments_count_in_out: 'Count In/Out',
+  payments_status_chart: 'Status Chart',
+  payments_tag_chart: 'Tag Chart',
+  payments_balance_chart: 'Balance Chart',
+  payments_wallets_chart: 'Wallets Chart',
+  payments_balance_in_out_chart: 'Balance In/Out Chart',
+  payments_count_in_out_chart: 'Count In/Out Chart'
 }

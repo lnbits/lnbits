@@ -59,7 +59,7 @@
               dense
               @click="saveChartsPreferences"
               v-model="chartData.showPaymentStatus"
-              label="Status Chart"
+              :label="$t('payments_status_chart')"
             >
             </q-checkbox>
           </div>
@@ -69,7 +69,7 @@
               dense
               @click="saveChartsPreferences"
               v-model="chartData.showPaymentTags"
-              label="Tags Chart"
+              :label="$t('payments_tag_chart')"
             >
             </q-checkbox>
           </div>
@@ -79,7 +79,7 @@
               dense
               @click="saveChartsPreferences"
               v-model="chartData.showBalance"
-              label="Balance Chart"
+              :label="$t('payments_balance_chart')"
             >
             </q-checkbox>
           </div>
@@ -89,7 +89,7 @@
               dense
               @click="saveChartsPreferences"
               v-model="chartData.showWalletsSize"
-              label="Wallets Chart"
+              :label="$t('payments_wallets_chart')"
             >
             </q-checkbox>
           </div>
@@ -100,7 +100,7 @@
               dense
               @click="saveChartsPreferences"
               v-model="chartData.showBalanceInOut"
-              label="Balance In/Out Chart"
+              :label="$t('payments_balance_in_out_chart')"
             >
             </q-checkbox>
           </div>
@@ -110,7 +110,7 @@
               dense
               @click="saveChartsPreferences"
               v-model="chartData.showPaymentCountInOut"
-              label="Count In/Out Chart"
+              :label="$t('payments_count_in_out_chart')"
             >
             </q-checkbox>
           </div>
@@ -161,7 +161,9 @@
       class="col-lg-6 col-md-12 col-sm-12 text-center"
     >
       <q-card class="q-pt-sm">
-        <strong  v-text="$t('lnbits_balance', {balance: (lnbitsBalance || 0).toLocaleString()})"></strong>
+        <strong
+          v-text="$t('lnbits_balance', {balance: (lnbitsBalance || 0).toLocaleString()})"
+        ></strong>
         <div style="height: 300px" class="q-pa-sm">
           <canvas v-if="chartsReady" ref="paymentsDailyChart"></canvas>
         </div>
@@ -184,7 +186,7 @@
       class="col-lg-6 col-md-12 col-sm-12 text-center"
     >
       <q-card class="q-pt-sm">
-        <strong v-text="$t('payment_balnce_in_out')"></strong>
+        <strong v-text="$t('payments_balance_in_out')"></strong>
         <div style="height: 300px" class="q-pa-sm">
           <canvas v-if="chartsReady" ref="paymentsBalanceInOutChart"></canvas>
         </div>
@@ -195,7 +197,7 @@
       class="col-lg-6 col-md-12 col-sm-12 text-center"
     >
       <q-card class="q-pt-sm">
-        <strong v-text="$t('payment_count_in_out')"></strong>
+        <strong v-text="$t('payments_count_in_out')"></strong>
         <div style="height: 300px" class="q-pa-sm">
           <canvas v-if="chartsReady" ref="paymentsCountInOutChart"></canvas>
         </div>

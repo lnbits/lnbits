@@ -421,7 +421,6 @@ async def get_daily_stats(
     return data_in, data_out
 
 
-
 async def get_wallets_stats(
     filters: Optional[Filters[PaymentFilters]] = None,
     conn: Optional[Connection] = None,
