@@ -156,9 +156,7 @@ async def api_payments_daily_stats(
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_paginated(
-    key_info: WalletTypeInfo = Depends(
-        require_invoice_key
-    ),  # todo: admin search does not work
+    key_info: WalletTypeInfo = Depends(require_invoice_key),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
     await update_pending_payments(key_info.wallet.id)
