@@ -35,12 +35,14 @@ async def test_create_account(client, settings: Settings):
     assert "user" in result
 
 
-# check POST and DELETE /api/v1/wallet with adminkey:
+# check POST and DELETE /api/v1/wallet with adminkey and user token:
 # create additional wallet and delete it
 @pytest.mark.anyio
-async def test_create_wallet_and_delete(client, adminkey_headers_to):
+async def test_create_wallet_and_delete(
+    client, adminkey_headers_from, user_headers_from
+):
     response = await client.post(
-        "/api/v1/wallet", json={"name": "test"}, headers=adminkey_headers_to
+        "/api/v1/wallet", json={"name": "test"}, headers=adminkey_headers_from
     )
     assert response.status_code == 200
     result = response.json()
@@ -51,20 +53,17 @@ async def test_create_wallet_and_delete(client, adminkey_headers_to):
     assert "adminkey" in result
 
     invalid_response = await client.delete(
-        "/api/v1/wallet",
+        f"/api/v1/wallet/{result['id']}",
         headers={
-            "X-Api-Key": result["inkey"],
+            "X-Api-Key": result["adminkey"],
             "Content-type": "application/json",
         },
     )
     assert invalid_response.status_code == 401
 
     response = await client.delete(
-        "/api/v1/wallet",
-        headers={
-            "X-Api-Key": result["adminkey"],
-            "Content-type": "application/json",
-        },
+        f"/api/v1/wallet/{result['id']}",
+        headers=user_headers_from,
     )
     assert response.status_code == 200
 
