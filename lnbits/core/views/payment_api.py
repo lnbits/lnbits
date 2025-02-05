@@ -109,11 +109,11 @@ async def api_payments_history(
 @payment_router.get(
     "/stats/count",
     name="Get payments history for all users",
+    dependencies=[Depends(check_admin)],
     response_model=List[PaymentCountStat],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_counting_stats(
-    # user: User = Depends(check_admin),
     count_by: PaymentCountField = Query("tag"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
@@ -124,11 +124,11 @@ async def api_payments_counting_stats(
 @payment_router.get(
     "/stats/wallets",
     name="Get payments history for all users",
+    dependencies=[Depends(check_admin)],
     response_model=List[PaymentWalletStats],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_wallets_stats(
-    # user: User = Depends(check_admin),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
 
@@ -138,11 +138,11 @@ async def api_payments_wallets_stats(
 @payment_router.get(
     "/stats/daily",
     name="Get payments history per day",
+    dependencies=[Depends(check_admin)],
     response_model=List[PaymentDailyStats],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_daily_stats(
-    # user: User = Depends(check_admin),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
 
