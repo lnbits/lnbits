@@ -487,5 +487,8 @@ window.localisation.en = {
   http_request_methods: 'HTTP Request Methods',
   http_response_codes: 'HTTP Response Codes',
   request_details: 'Request Details',
-  http_request_details: 'HTTP Request Details'
+  http_request_details: 'HTTP Request Details',
+  reset_wallet_keys: 'Reset Keys',
+  reset_wallet_keys_desc:
+    'Reset the API keys for this wallet. This will invalidate the current keys and generate new ones.'
 }
