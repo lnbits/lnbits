@@ -210,9 +210,6 @@ window.PaymentsPageLogic = {
       return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
     },
     async updateCharts(props) {
-      if (this.payments.length === 0) {
-        return
-      }
       const paymentsTable = JSON.parse(JSON.stringify(this.paymentsTable))
       const noTimeParam = LNbits.utils.prepareFilterQuery(paymentsTable)
       const params = LNbits.utils.prepareFilterQuery(paymentsTable, props)
