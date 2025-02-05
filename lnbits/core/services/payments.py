@@ -1,5 +1,6 @@
 import json
 import time
+from datetime import datetime, timedelta
 from typing import Optional
 
 from bolt11 import Bolt11, MilliSatoshi, Tags
@@ -7,10 +8,12 @@ from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
 from loguru import logger
 
+from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
 from lnbits.core.models.notifications import NotificationType
+from lnbits.core.models.payments import PaymentDailyStats, PaymentFilters
 from lnbits.core.services.notifications import enqueue_notification
-from lnbits.db import Connection
+from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import settings
@@ -425,6 +428,44 @@ async def check_transaction_status(
         return PaymentSuccessStatus(fee_msat=payment.fee)
 
     return await payment.check_status()
+
+
+async def get_payments_daily_stats(
+    filters: Filters[PaymentFilters],
+) -> list[PaymentDailyStats]:
+    data_in, data_out = await get_daily_stats(filters)
+    balance_total: float = 0
+
+    if len(data_in) == 0 or len(data_out) == 0:
+        return data_in + data_out
+
+    data: list[PaymentDailyStats] = []
+
+    start_date = max(data_in[0].date, data_out[0].date)
+    delta = timedelta(days=1)
+    while start_date <= datetime.now():
+        _none = PaymentDailyStats(date=start_date)
+        data_in_point = next((x for x in data_in if x.date == start_date), _none)
+        data_out_point = next((x for x in data_out if x.date == start_date), _none)
+
+        balance_total += data_in_point.balance + data_out_point.balance
+        data.append(
+            PaymentDailyStats(
+                date=start_date,
+                balance=balance_total // 1000,
+                balance_in=data_in_point.balance // 1000,
+                balance_out=data_out_point.balance // 1000,
+                payments_count=data_in_point.payments_count
+                + data_out_point.payments_count,
+                count_in=data_in_point.payments_count,
+                count_out=data_out_point.payments_count,
+                fee=(data_in_point.fee + data_out_point.fee) // 1000,
+            )
+        )
+
+        start_date += delta
+
+    return data
 
 
 async def _pay_invoice(wallet, create_payment_model, conn):
