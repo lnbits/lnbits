@@ -6,6 +6,7 @@ window.localisation.en = {
   funding: 'Funding',
   users: 'Users',
   audit: 'Audit',
+  api_watch: 'Api Watch',
   apps: 'Apps',
   channels: 'Channels',
   transactions: 'Transactions',

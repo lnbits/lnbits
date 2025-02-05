@@ -176,25 +176,13 @@
       <q-item v-if="showAudit" to="/audit">
         <q-item-section side>
           <q-icon
-            name="query_stats"
+            name="playlist_add_check_circle"
             :color="isActive('/audit') ? 'primary' : 'grey-5'"
             size="md"
           ></q-icon>
         </q-item-section>
         <q-item-section>
-          <q-item-label lines="1" v-text="$t('server')"></q-item-label>
-        </q-item-section>
-      </q-item>
-      <q-item v-if="showPayments" to="/payments">
-        <q-item-section side>
-          <q-icon
-            name="query_stats"
-            :color="isActive('/payments') ? 'primary' : 'grey-5'"
-            size="md"
-          ></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" v-text="$t('payments')"></q-item-label>
+          <q-item-label lines="1" v-text="$t('api_watch')"></q-item-label>
         </q-item-section>
       </q-item>
       <q-item v-if="showPayments" to="/payments">

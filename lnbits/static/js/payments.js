@@ -125,19 +125,20 @@ window.PaymentsPageLogic = {
   computed: {},
   methods: {
     async fetchPayments(props) {
-      this.paymentsTable.filter = Object.entries(this.searchData).reduce(
+      const filter = Object.entries(this.searchData).reduce(
         (a, [k, v]) => (v ? ((a[k] = v), a) : a),
         {}
       )
 
+      delete filter['time[ge]']
+      delete filter['time[le]']
       if (this.searchDate.timeFrom) {
-        this.paymentsTable.filter['time[ge]'] =
-          this.searchDate.timeFrom + 'T00:00:00'
+        filter['time[ge]'] = this.searchDate.timeFrom + 'T00:00:00'
       }
       if (this.searchDate.timeTo) {
-        this.paymentsTable.filter['time[le]'] =
-          this.searchDate.timeTo + 'T23:59:59'
+        filter['time[le]'] = this.searchDate.timeTo + 'T23:59:59'
       }
+      this.paymentsTable.filter = filter
 
       try {
         const params = LNbits.utils.prepareFilterQuery(
@@ -214,7 +215,7 @@ window.PaymentsPageLogic = {
       return `${value.substring(0, 5)}...${value.substring(valueLength - 5, valueLength)}`
     },
     async updateCharts(props) {
-      const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
+      let params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
 
       try {
         const {data} = await LNbits.api.request(
@@ -288,15 +289,19 @@ window.PaymentsPageLogic = {
       }
 
       try {
-        let data = []
-        if (!this.dailyChartData?.length) {
-          const response = await LNbits.api.request(
-            'GET',
-            `/api/v1/payments/stats/daily`
-          )
-          this.dailyChartData = response.data
-        }
-        data = this.dailyChartData
+        const filter = Object.entries(this.searchData).reduce(
+          (a, [k, v]) => (v ? ((a[k] = v), a) : a),
+          {}
+        )
+        const paymentsTable = {...this.paymentsTable, filter: filter}
+        const noTimeParams = LNbits.utils.prepareFilterQuery(
+          paymentsTable,
+          props
+        )
+        let {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/payments/stats/daily?${noTimeParams}`
+        )
 
         const timeFrom = this.searchDate.timeFrom + 'T00:00:00'
         const timeTo = this.searchDate.timeTo + 'T00:00:00'
