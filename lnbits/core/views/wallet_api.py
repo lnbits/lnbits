@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from typing import Optional
+from uuid import uuid4
 
 from fastapi import (
     APIRouter,
@@ -51,6 +52,20 @@ async def api_update_wallet_name(
         "name": wallet.name,
         "balance": wallet.balance_msat,
     }
+
+
+@wallet_router.put("/reset/{wallet_id}")
+async def api_reset_wallet_keys(
+    wallet_id: str, user: User = Depends(check_user_exists)
+) -> Wallet:
+    wallet = await get_wallet(wallet_id)
+    if not wallet:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
+
+    wallet.adminkey = uuid4().hex
+    wallet.inkey = uuid4().hex
+    await update_wallet(wallet)
+    return wallet
 
 
 @wallet_router.patch("")

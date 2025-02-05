@@ -233,4 +233,14 @@
       </q-card-section>
     </q-card>
   </q-expansion-item>
+  <q-separator></q-separator>
+  <q-card-section>
+    <p v-text="$t('reset_wallet_keys_desc')"></p>
+    <q-btn
+      unelevated
+      color="red-10"
+      @click="resetKeys()"
+      :label="$t('reset_wallet_keys')"
+    ></q-btn>
+  </q-card-section>
 </q-expansion-item>
