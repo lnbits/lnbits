@@ -444,7 +444,7 @@ async def _pay_internal_invoice(
     returns None if the payment is not internal.
     """
     # check_internal() returns the payment of the invoice we're waiting for
-    # (pending only)
+
     internal_payment = await check_internal(
         create_payment_model.payment_hash, conn=conn
     )
