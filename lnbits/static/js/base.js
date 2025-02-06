@@ -132,14 +132,19 @@ window.LNbits = {
         name: name
       })
     },
-    deleteWallet(wallet) {
-      return this.request('delete', '/api/v1/wallet', wallet.adminkey).then(
-        _ => {
-          let url = new URL(window.location.href)
-          url.searchParams.delete('wal')
-          window.location = url
+    resetWalletKeys(wallet) {
+      return this.request('put', `/api/v1/wallet/reset/${wallet.id}`).then(
+        res => {
+          return res.data
         }
       )
+    },
+    deleteWallet(wallet) {
+      return this.request('delete', `/api/v1/wallet/${wallet.id}`).then(_ => {
+        let url = new URL(window.location.href)
+        url.searchParams.delete('wal')
+        window.location = url
+      })
     },
     getPayments(wallet, params) {
       return this.request(

@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from typing import Optional
+from uuid import uuid4
 
 from fastapi import (
     APIRouter,
@@ -8,13 +9,10 @@ from fastapi import (
     HTTPException,
 )
 
-from lnbits.core.models import (
-    CreateWallet,
-    KeyType,
-    Wallet,
-)
+from lnbits.core.models import CreateWallet, KeyType, User, Wallet
 from lnbits.decorators import (
     WalletTypeInfo,
+    check_user_exists,
     require_admin_key,
     require_invoice_key,
 )
@@ -56,6 +54,20 @@ async def api_update_wallet_name(
     }
 
 
+@wallet_router.put("/reset/{wallet_id}")
+async def api_reset_wallet_keys(
+    wallet_id: str, user: User = Depends(check_user_exists)
+) -> Wallet:
+    wallet = await get_wallet(wallet_id)
+    if not wallet or wallet.user != user.id:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
+
+    wallet.adminkey = uuid4().hex
+    wallet.inkey = uuid4().hex
+    await update_wallet(wallet)
+    return wallet
+
+
 @wallet_router.patch("")
 async def api_update_wallet(
     name: Optional[str] = Body(None),
@@ -75,13 +87,17 @@ async def api_update_wallet(
     return wallet
 
 
-@wallet_router.delete("")
+@wallet_router.delete("/{wallet_id}")
 async def api_delete_wallet(
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet_id: str, user: User = Depends(check_user_exists)
 ) -> None:
+    wallet = await get_wallet(wallet_id)
+    if not wallet or wallet.user != user.id:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
+
     await delete_wallet(
-        user_id=wallet.wallet.user,
-        wallet_id=wallet.wallet.id,
+        user_id=wallet.user,
+        wallet_id=wallet.id,
     )
 
 
