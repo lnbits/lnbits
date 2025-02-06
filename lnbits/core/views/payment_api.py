@@ -101,7 +101,7 @@ async def api_payments_history(
     group: DateTrunc = Query("day"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(key_info.wallet.id)  # todo: remove?
+    await update_pending_payments(key_info.wallet.id)
     return await get_payments_history(key_info.wallet.id, group, filters)
 
 
