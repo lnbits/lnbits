@@ -587,13 +587,25 @@ window.app.component('username-password', {
   },
   computed: {
     showOauth() {
-      return (
-        this.authAction === 'login' &&
-        this.oauth.some(m => this.authMethods.includes(m))
-      )
+      return this.oauth.some(m => this.authMethods.includes(m))
     }
   },
   created() {
     console.log('username-password created', this.passwordRepeat)
+  }
+})
+
+window.app.component('separator-text', {
+  template: '#separator-text',
+  props: {
+    text: String,
+    uppercase: {
+      type: Boolean,
+      default: false
+    },
+    color: {
+      type: String,
+      default: 'grey'
+    }
   }
 })

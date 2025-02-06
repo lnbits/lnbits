@@ -62,14 +62,17 @@
 <script src="{{ static_url_for('static', 'js/index.js') }}"></script>
 {% endblock %} {% block page_container %}
 <q-page-container>
-  <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
+  <q-page
+    class="q-px-md q-py-lg content-center"
+    :class="{'q-px-lg': $q.screen.gt.xs}"
+  >
     {% block page %}
     <div
       class="row justify-center items-center"
       style="min-height: calc(100vh / 1.618)"
     >
       <div
-        class="full-width q-mt-md"
+        class="full-width"
         :style="`max-width: ${'{{ LNBITS_CUSTOM_IMAGE }}' ? '850' : '600'}px`"
       >
         <div class="row q-mb-md">
@@ -132,35 +135,7 @@
                 class="col-12"
                 :class="{'col-sm-7' : '{{ LNBITS_CUSTOM_IMAGE }}', 'col-lg-6' : '{{ LNBITS_CUSTOM_IMAGE }}'}"
               >
-                {% if "user-id-only" in LNBITS_AUTH_METHODS %}
-                <user-id-only
-                  :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
-                  v-model:usr="usr"
-                  v-model:wallet="walletName"
-                  :auth-action="authAction"
-                  :auth-method="authMethod"
-                  @show-login="showLogin"
-                  @show-register="showRegister"
-                  @login-usr="loginUsr"
-                  @create-wallet="createWallet"
-                >
-                </user-id-only>
-                {%endif%} {% if "username-password" in LNBITS_AUTH_METHODS %}
-                <username-password
-                  v-if="authMethod != 'user-id-only'"
-                  :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
-                  :auth-methods="{{ LNBITS_AUTH_METHODS }}"
-                  :auth-action="authAction"
-                  v-model:user-name="username"
-                  v-model:password_1="password"
-                  v-model:password_2="passwordRepeat"
-                  v-model:reset-key="reset_key"
-                  @login="login"
-                  @register="register"
-                  @reset="reset"
-                ></username-password>
-                {%endif%}
-                <q-card-section class="text-center q-pa-none q-mt-xl">
+                <!-- <q-card-section class="text-center q-pa-none q-mt-xl">
                   <div class="absolute-bottom-left q-ml-md">
                     <p v-if="authAction === 'login'" class="text-grey-6">
                       Not registered? Create an
@@ -179,7 +154,57 @@
                       >
                     </p>
                   </div>
-                </q-card-section>
+                </q-card-section> -->
+                {% if "username-password" in LNBITS_AUTH_METHODS %}
+                <username-password
+                  v-if="authMethod != 'user-id-only'"
+                  :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
+                  :auth-methods="{{ LNBITS_AUTH_METHODS }}"
+                  :auth-action="authAction"
+                  v-model:user-name="username"
+                  v-model:password_1="password"
+                  v-model:password_2="passwordRepeat"
+                  v-model:reset-key="reset_key"
+                  @login="login"
+                  @register="register"
+                  @reset="reset"
+                >
+                  <div
+                    class="text-center text-grey-6"
+                    v-if="authAction !== 'reset'"
+                  >
+                    <p v-if="authAction === 'login'" class="q-mb-none">
+                      Not registered? Create an
+                      <span
+                        class="text-secondary cursor-pointer"
+                        @click="showRegister('username-password')"
+                        >Account</span
+                      >
+                    </p>
+                    <p v-else class="q-mb-none">
+                      Aready have an account?
+                      <span
+                        class="text-secondary cursor-pointer"
+                        @click="showLogin('username-password')"
+                        >Login</span
+                      >
+                    </p>
+                  </div>
+                </username-password>
+                {%endif%} {% if "user-id-only" in LNBITS_AUTH_METHODS %}
+                <user-id-only
+                  :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
+                  v-model:usr="usr"
+                  v-model:wallet="walletName"
+                  :auth-action="authAction"
+                  :auth-method="authMethod"
+                  @show-login="showLogin"
+                  @show-register="showRegister"
+                  @login-usr="loginUsr"
+                  @create-wallet="createWallet"
+                >
+                </user-id-only>
+                {%endif%}
               </div>
               <div
                 class="col-sm-5 col-lg-6 gt-xs"
@@ -197,7 +222,7 @@
           </q-card>
         </div>
       </div>
-      <div class="full-width q-mt-md q-mb-xl">
+      <div class="full-width q-my-md">
         <div class="flex flex-center q-gutter-md q-py-md">
           <q-btn
             outline
