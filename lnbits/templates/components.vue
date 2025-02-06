@@ -1328,6 +1328,7 @@
           <q-avatar size="32px">
             <q-img
               :src="`{{ static_url_for('static', 'images/github-logo.png') }}`"
+              :style="$q.dark.isActive ? 'filter: grayscale(1) invert(1)' : ''"
             ></q-img>
           </q-avatar>
         </div>
