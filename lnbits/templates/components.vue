@@ -1056,8 +1056,75 @@
 </template>
 
 <template id="user-id-only">
-  <q-card-section>
-    <div class="q-mb-md">
+  <div v-if="authAction === 'login' && authMethod === 'user-id-only'">
+    <q-card-section>
+      <div class="text-center text-h6">
+        <span v-text="$t('login_with_user_id')"></span>
+      </div>
+    </q-card-section>
+    <q-card-section>
+      <q-form @submit="loginUsr" class="q-gutter-md">
+        <q-input
+          dense
+          filled
+          v-model="user"
+          label="usr"
+          type="password"
+        ></q-input>
+        <q-card-actions vertical align="center" class="q-pa-none">
+          <q-btn
+            color="primary"
+            :disable="user == ''"
+            type="submit"
+            :label="$t('login')"
+            class="full-width q-mb-sm"
+          ></q-btn>
+          <q-btn
+            @click="showLogin('username-password')"
+            outline
+            color="grey"
+            :label="$t('back')"
+            class="full-width"
+          ></q-btn>
+        </q-card-actions>
+      </q-form>
+    </q-card-section>
+  </div>
+  <div v-if="authAction === 'register' && authMethod === 'user-id-only'">
+    <q-card-section>
+      <div class="text-center text-h6">
+        <span v-text="$t('create_new_wallet')"></span>
+      </div>
+    </q-card-section>
+    <q-card-section>
+      <q-form @submit="createWallet" class="q-gutter-md">
+        <q-input
+          dense
+          filled
+          v-model="walletName"
+          :label="$t('name_your_wallet', {name: '{{ SITE_TITLE }} *'})"
+        ></q-input>
+        <q-card-actions vertical align="center" class="q-pa-none">
+          <q-btn
+            color="primary"
+            :disable="walletName == ''"
+            type="submit"
+            :label="$t('add_wallet')"
+            class="full-width q-mb-sm"
+          ></q-btn>
+          <q-btn
+            @click="showLogin('username-password')"
+            outline
+            color="grey"
+            :label="$t('back')"
+            class="full-width"
+          ></q-btn>
+        </q-card-actions>
+      </q-form>
+    </q-card-section>
+  </div>
+  <q-card-section v-show="showInstantLogin">
+    <div>
       <span
         v-text="$t('instant_access_question')"
         class="text-body1 text-grey"
@@ -1088,66 +1155,6 @@
           </q-badge>
         </div>
       </div>
-    </div>
-  </q-card-section>
-  <q-card-section
-    v-if="authAction === 'login' && authMethod === 'user-id-only'"
-  >
-    <b> <span v-text="$t('login_with_user_id')"></span> </b><br /><br />
-    <q-form @submit="loginUsr" class="q-gutter-md">
-      <q-input
-        dense
-        filled
-        v-model="user"
-        label="usr"
-        type="password"
-      ></q-input>
-      <q-card-actions vertical align="center" class="q-pa-none">
-        <q-btn
-          color="primary"
-          :disable="user == ''"
-          type="submit"
-          :label="$t('login')"
-          class="full-width q-mb-sm"
-        ></q-btn>
-        <q-btn
-          @click="showLogin('username-password')"
-          outline
-          color="grey"
-          :label="$t('back')"
-          class="full-width"
-        ></q-btn>
-      </q-card-actions>
-    </q-form>
-  </q-card-section>
-  <q-card-section
-    v-if="authAction === 'register' && authMethod === 'user-id-only'"
-  >
-    <div>
-      <q-form @submit="createWallet" class="q-gutter-md">
-        <q-input
-          dense
-          filled
-          v-model="walletName"
-          :label="$t('name_your_wallet', {name: '{{ SITE_TITLE }} *'})"
-        ></q-input>
-        <q-card-actions vertical align="center" class="q-pa-none">
-          <q-btn
-            color="primary"
-            :disable="walletName == ''"
-            type="submit"
-            :label="$t('add_wallet')"
-            class="full-width q-mb-sm"
-          ></q-btn>
-          <q-btn
-            @click="showLogin('username-password')"
-            outline
-            color="grey"
-            :label="$t('back')"
-            class="full-width"
-          ></q-btn>
-        </q-card-actions>
-      </q-form>
     </div>
   </q-card-section>
 </template>
@@ -1242,7 +1249,7 @@
   <slot></slot>
   <!-- RESET -->
   <q-card-section v-if="authAction === 'reset'">
-    <q-form @submit="reset" class="q-gutter-md">
+    <q-form @submit="reset" class="q-gutter-sm">
       <q-input
         dense
         filled

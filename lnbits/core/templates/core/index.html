@@ -135,26 +135,6 @@
                 class="col-12"
                 :class="{'col-sm-7' : '{{ LNBITS_CUSTOM_IMAGE }}', 'col-lg-6' : '{{ LNBITS_CUSTOM_IMAGE }}'}"
               >
-                <!-- <q-card-section class="text-center q-pa-none q-mt-xl">
-                  <div class="absolute-bottom-left q-ml-md">
-                    <p v-if="authAction === 'login'" class="text-grey-6">
-                      Not registered? Create an
-                      <span
-                        class="text-secondary cursor-pointer"
-                        @click="showRegister('username-password')"
-                        >Account</span
-                      >
-                    </p>
-                    <p v-else class="text-grey-6">
-                      Aready have an account?
-                      <span
-                        class="text-secondary cursor-pointer"
-                        @click="showLogin('username-password')"
-                        >Login</span
-                      >
-                    </p>
-                  </div>
-                </q-card-section> -->
                 {% if "username-password" in LNBITS_AUTH_METHODS %}
                 <username-password
                   v-if="authMethod != 'user-id-only'"

@@ -531,6 +531,15 @@ window.app.component('user-id-only', {
       this.$emit('create-wallet')
     }
   },
+  computed: {
+    showInstantLogin() {
+      // do not show if authmethod is 'username-password' and authAction is 'register'
+      return (
+        this.authMethod !== 'username-password' ||
+        this.authAction !== 'register'
+      )
+    }
+  },
   created() {}
 })
 
