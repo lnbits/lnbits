@@ -28,14 +28,12 @@ from lnbits.core.models import (
     PayLnurlWData,
     Payment,
     PaymentCountField,
-    PaymentFilters,
-    PaymentHistoryPoint,
-    Wallet,
-)
-from lnbits.core.models.payments import (
     PaymentCountStat,
     PaymentDailyStats,
+    PaymentFilters,
+    PaymentHistoryPoint,
     PaymentWalletStats,
+    Wallet,
 )
 from lnbits.core.services.payments import get_payments_daily_stats
 from lnbits.db import Filters, Page

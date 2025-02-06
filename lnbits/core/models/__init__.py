@@ -20,6 +20,7 @@ from .payments import (
     PaymentExtra,
     PaymentFilters,
     PaymentHistoryPoint,
+    PaymentsStatusCount,
     PaymentState,
     PaymentWalletStats,
 )
@@ -70,6 +71,7 @@ __all__ = [
     "PaymentCountField",
     "PaymentCountStat",
     "PaymentDailyStats",
+    "PaymentsStatusCount",
     "PaymentWalletStats",
     "PaymentExtra",
     "PaymentFilters",

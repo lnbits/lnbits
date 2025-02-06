@@ -10,8 +10,8 @@ from loguru import logger
 
 from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
+from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.models.payments import PaymentDailyStats, PaymentFilters
 from lnbits.core.services.notifications import enqueue_notification
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access

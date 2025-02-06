@@ -4,20 +4,18 @@ from typing import Optional, Tuple
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
-from lnbits.core.models.payments import (
-    PaymentCountStat,
-    PaymentDailyStats,
-    PaymentsStatusCount,
-    PaymentWalletStats,
-)
 from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
     CreatePayment,
     Payment,
     PaymentCountField,
+    PaymentCountStat,
+    PaymentDailyStats,
     PaymentFilters,
     PaymentHistoryPoint,
+    PaymentsStatusCount,
+    PaymentWalletStats,
 )
 
 
