@@ -337,10 +337,10 @@ async def test_get_payments(client, inkey_fresh_headers_to, fake_payments):
     payments = await get_payments({"sortby": "amount", "direction": "asc"})
     assert payments[-1].amount > payments[0].amount
 
-    payments = await get_payments({"search": "aaa"})
+    payments = await get_payments({"search": "xxx"})
     assert len(payments) == 1
 
-    payments = await get_payments({"search": "aa"})
+    payments = await get_payments({"search": "xx"})
     assert len(payments) == 2
 
     # amount is in msat
