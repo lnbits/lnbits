@@ -1057,7 +1057,7 @@
 
 <template id="user-id-only">
   <div v-if="authAction === 'login' && authMethod === 'user-id-only'">
-    <q-card-section>
+    <q-card-section class="q-pb-none">
       <div class="text-center text-h6">
         <span v-text="$t('login_with_user_id')"></span>
       </div>
@@ -1091,7 +1091,7 @@
     </q-card-section>
   </div>
   <div v-if="authAction === 'register' && authMethod === 'user-id-only'">
-    <q-card-section>
+    <q-card-section class="q-pb-none">
       <div class="text-center text-h6">
         <span v-text="$t('create_new_wallet')"></span>
       </div>
@@ -1160,8 +1160,8 @@
 </template>
 
 <template id="username-password">
-  <q-card-section>
-    <div class="text-center text-h6">
+  <q-card-section class="q-pb-none">
+    <div class="text-center text-h6 q-mb-sm">
       <span
         v-if="authAction === 'login'"
         v-text="$t('login_to_account')"
