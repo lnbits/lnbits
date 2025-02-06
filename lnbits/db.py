@@ -440,7 +440,6 @@ class Operator(Enum):
 
 class FilterModel(BaseModel):
     __search_fields__: list[str] = []
-    __search_like_filed___: Optional[str] = None
     __sort_fields__: Optional[list[str]] = None
 
 
