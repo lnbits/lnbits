@@ -1,7 +1,7 @@
 window.app.component('payment-list', {
   name: 'payment-list',
   template: '#payment-list',
-  props: ['update', 'lazy'],
+  props: ['update', 'lazy', 'wallet'],
   mixins: [window.windowMixin],
   data() {
     return {
@@ -116,8 +116,8 @@ window.app.component('payment-list', {
     }
   },
   computed: {
-    wallet() {
-      return this.g.wallet
+    currentWallet() {
+      return this.wallet || this.g.wallet
     },
     filteredPayments() {
       const q = this.paymentsTable.search
@@ -139,7 +139,7 @@ window.app.component('payment-list', {
     fetchPayments(props) {
       const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
       return LNbits.api
-        .getPayments(this.g.wallet, params)
+        .getPayments(this.currentWallet, params)
         .then(response => {
           this.paymentsTable.loading = false
           this.paymentsTable.pagination.rowsNumber = response.data.total

@@ -276,9 +276,9 @@ async def fake_payments(client, inkey_fresh_headers_to):
         await asyncio.sleep(1)
 
     fake_data = [
-        CreateInvoice(amount=10, memo="aaaa", out=False),
-        CreateInvoice(amount=100, memo="bbbb", out=False),
-        CreateInvoice(amount=1000, memo="aabb", out=False),
+        CreateInvoice(amount=10, memo="xxxx", out=False),
+        CreateInvoice(amount=100, memo="yyyy", out=False),
+        CreateInvoice(amount=1000, memo="xxyy", out=False),
     ]
 
     for invoice in fake_data:

@@ -22,6 +22,13 @@ POSTGRES = "POSTGRES"
 COCKROACH = "COCKROACH"
 SQLITE = "SQLITE"
 
+DateTrunc = Literal["hour", "day", "month"]
+sqlite_formats = {
+    "hour": "%Y-%m-%d %H:00:00",
+    "day": "%Y-%m-%d 00:00:00",
+    "month": "%Y-%m-01 00:00:00",
+}
+
 if settings.lnbits_database_url:
     database_uri = settings.lnbits_database_url
     if database_uri.startswith("cockroachdb://"):
@@ -74,6 +81,13 @@ class Compat:
         elif self.type == SQLITE:
             return time.mktime(date.timetuple())
         return "<nothing>"
+
+    def datetime_grouping(self, group: DateTrunc):
+        if self.type in {POSTGRES, COCKROACH}:
+            return f"date_trunc('{group}', time)"
+        elif self.type == SQLITE:
+            return f"unixepoch(strftime('{sqlite_formats[group]}', time, 'unixepoch'))"
+        return "<bad grouping>"
 
     @property
     def timestamp_now(self) -> str:
@@ -534,12 +548,11 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if self.filters:
             for page_filter in self.filters:
                 where_stmts.append(page_filter.statement)
-        if self.search and self.model:
-            fields = self.model.__search_fields__
-            if DB_TYPE == POSTGRES:
-                where_stmts.append(f"lower(concat({', '.join(fields)})) LIKE :search")
-            elif DB_TYPE == SQLITE:
-                where_stmts.append(f"lower({'||'.join(fields)}) LIKE :search")
+        if self.search and self.model and self.model.__search_fields__:
+            where_stmts.append(
+                f"lower(concat({', '.join(self.model.__search_fields__)})) LIKE :search"
+            )
+
         if where_stmts:
             return "WHERE " + " AND ".join(where_stmts)
         return ""

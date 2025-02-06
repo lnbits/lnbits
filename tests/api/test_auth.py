@@ -117,7 +117,6 @@ async def test_login_usr_not_allowed_for_admin_without_credentials(
     response = await http_client.get(
         f"/admin/api/v1/settings?usr={settings.super_user}"
     )
-    print("### response", response.text)
     assert response.status_code == 403
     assert (
         response.json().get("detail") == "User id only access for admins is forbidden."

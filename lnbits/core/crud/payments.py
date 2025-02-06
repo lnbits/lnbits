@@ -1,25 +1,22 @@
 from time import time
-from typing import Literal, Optional
+from typing import Optional, Tuple
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
-from lnbits.core.models.payments import PaymentsStatusCount
-from lnbits.db import DB_TYPE, SQLITE, Connection, Filters, Page
+from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
     CreatePayment,
     Payment,
+    PaymentCountField,
+    PaymentCountStat,
+    PaymentDailyStats,
     PaymentFilters,
     PaymentHistoryPoint,
+    PaymentsStatusCount,
+    PaymentWalletStats,
 )
-
-DateTrunc = Literal["hour", "day", "month"]
-sqlite_formats = {
-    "hour": "%Y-%m-%d %H:00:00",
-    "day": "%Y-%m-%d 00:00:00",
-    "month": "%Y-%m-01 00:00:00",
-}
 
 
 def update_payment_extra():
@@ -304,12 +301,7 @@ async def get_payments_history(
     if not filters:
         filters = Filters()
 
-    if DB_TYPE == SQLITE and group in sqlite_formats:
-        date_trunc = f"strftime('{sqlite_formats[group]}', time, 'unixepoch')"
-    elif group in ("day", "hour", "month"):
-        date_trunc = f"date_trunc('{group}', time)"
-    else:
-        raise ValueError(f"Invalid group value: {group}")
+    date_trunc = db.datetime_grouping(group)
 
     values = {
         "wallet_id": wallet_id,
@@ -359,6 +351,114 @@ async def get_payments_history(
         )
         balance -= row.get("income", 0) - row.get("spending", 0)
     return results
+
+
+async def get_payment_count_stats(
+    field: PaymentCountField,
+    filters: Optional[Filters[PaymentFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> list[PaymentCountStat]:
+
+    if not filters:
+        filters = Filters()
+    clause = filters.where()
+    data = await (conn or db).fetchall(
+        query=f"""
+            SELECT {field} as field, count(*) as total
+            FROM apipayments
+            {clause}
+            GROUP BY {field}
+            ORDER BY {field}
+        """,
+        values=filters.values(),
+        model=PaymentCountStat,
+    )
+
+    return data
+
+
+async def get_daily_stats(
+    filters: Optional[Filters[PaymentFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> Tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
+
+    if not filters:
+        filters = Filters()
+
+    in_clause = filters.where(
+        ["(apipayments.status = 'success' AND apipayments.amount > 0)"]
+    )
+    out_clause = filters.where(
+        ["(apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)"]
+    )
+    date_trunc = db.datetime_grouping("day")
+    query = """
+        SELECT {date_trunc} date,
+            SUM(apipayments.amount - ABS(apipayments.fee)) AS balance,
+            ABS(SUM(apipayments.fee)) as fee,
+            COUNT(*) as payments_count
+        FROM apipayments
+        RIGHT JOIN wallets ON apipayments.wallet_id = wallets.id
+        {clause}
+        AND (wallets.deleted = false OR wallets.deleted is NULL)
+        GROUP BY date
+        ORDER BY date ASC
+    """
+
+    data_in = await (conn or db).fetchall(
+        query=query.format(date_trunc=date_trunc, clause=in_clause),
+        values=filters.values(),
+        model=PaymentDailyStats,
+    )
+    data_out = await (conn or db).fetchall(
+        query=query.format(date_trunc=date_trunc, clause=out_clause),
+        values=filters.values(),
+        model=PaymentDailyStats,
+    )
+
+    return data_in, data_out
+
+
+async def get_wallets_stats(
+    filters: Optional[Filters[PaymentFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> list[PaymentWalletStats]:
+
+    if not filters:
+        filters = Filters()
+
+    where_stmts = [
+        "(wallets.deleted = false OR wallets.deleted is NULL)",
+        """
+        (
+            (apipayments.status = 'success' AND apipayments.amount > 0)
+            OR (
+                apipayments.status IN ('success', 'pending')
+                AND apipayments.amount < 0
+                )
+        )
+        """,
+    ]
+    clauses = filters.where(where_stmts)
+
+    data = await (conn or db).fetchall(
+        query=f"""
+            SELECT apipayments.wallet_id,
+                    MAX(wallets.name) AS wallet_name,
+                    MAX(wallets.user) AS user_id,
+                    COUNT(*) as payments_count,
+                    SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+            FROM wallets
+            LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
+            {clauses}
+            GROUP BY apipayments.wallet_id
+            ORDER BY payments_count
+        """,
+        values=filters.values(),
+        model=PaymentWalletStats,
+    )
+
+    return data
 
 
 async def delete_wallet_payment(

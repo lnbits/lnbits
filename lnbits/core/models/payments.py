@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import Query
 from pydantic import BaseModel, Field, validator
@@ -125,22 +125,60 @@ class Payment(BaseModel):
 
 
 class PaymentFilters(FilterModel):
-    __search_fields__ = ["memo", "amount"]
+    __search_fields__ = ["memo", "amount", "wallet_id", "tag"]
 
-    status: str
-    checking_id: str
+    __sort_fields__ = ["created_at", "amount", "fee", "memo", "time", "tag"]
+
+    status: Optional[str]
+    tag: Optional[str]
+    checking_id: Optional[str]
     amount: int
     fee: int
     memo: Optional[str]
     time: datetime
-    bolt11: str
-    preimage: str
-    payment_hash: str
-    expiry: Optional[datetime]
-    extra: dict = {}
-    wallet_id: str
-    webhook: Optional[str]
-    webhook_status: Optional[int]
+    preimage: Optional[str]
+    payment_hash: Optional[str]
+    wallet_id: Optional[str]
+
+
+class PaymentDataPoint(BaseModel):
+    date: datetime
+    count: int
+    max_amount: int
+    min_amount: int
+    average_amount: int
+    total_amount: int
+    max_fee: int
+    min_fee: int
+    average_fee: int
+    total_fee: int
+
+
+PaymentCountField = Literal["status", "tag", "extension", "wallet_id"]
+
+
+class PaymentCountStat(BaseModel):
+    field: str = ""
+    total: float = 0
+
+
+class PaymentWalletStats(BaseModel):
+    wallet_id: str = ""
+    wallet_name: str = ""
+    user_id: str = ""
+    payments_count: int
+    balance: float = 0
+
+
+class PaymentDailyStats(BaseModel):
+    date: datetime
+    balance: float = 0
+    balance_in: Optional[float] = 0
+    balance_out: Optional[float] = 0
+    payments_count: int = 0
+    count_in: Optional[int] = 0
+    count_out: Optional[int] = 0
+    fee: float = 0
 
 
 class PaymentHistoryPoint(BaseModel):
