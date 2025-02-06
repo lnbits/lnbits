@@ -94,6 +94,8 @@ async def get_accounts(
 async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
+    if len(user_id) == 0:
+        return None
     return await (conn or db).fetchone(
         "SELECT * FROM accounts WHERE id = :id",
         {"id": user_id},
@@ -123,6 +125,8 @@ async def delete_accounts_no_wallets(
 async def get_account_by_username(
     username: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
+    if len(username) == 0:
+        return None
     return await (conn or db).fetchone(
         "SELECT * FROM accounts WHERE username = :username",
         {"username": username},
@@ -143,6 +147,8 @@ async def get_account_by_pubkey(
 async def get_account_by_email(
     email: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
+    if len(email) == 0:
+        return None
     return await (conn or db).fetchone(
         "SELECT * FROM accounts WHERE email = :email",
         {"email": email},

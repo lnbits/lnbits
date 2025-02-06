@@ -303,11 +303,11 @@ async def _get_account_from_jwt_payload(
     payload: AccessTokenPayload, path: str, method: str
 ) -> Optional[Account]:
     account = None
-    if payload.sub is not None:
+    if payload.sub:
         account = await get_account_by_username(payload.sub)
-    if payload.usr is not None:
+    elif payload.usr:
         account = await get_account(payload.usr)
-    if payload.email is not None:
+    elif payload.email:
         account = await get_account_by_email(payload.email)
 
     if not account:
