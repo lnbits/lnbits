@@ -178,7 +178,6 @@ window.app = Vue.createApp({
   },
   created() {
     console.log(Quasar.LocalStorage.getItem('lnbits.disclaimerShown'))
-    Quasar.LocalStorage.setItem('lnbits.testing', 'testing')
     this.description = SITE_DESCRIPTION
     this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
     if (this.isUserAuthorized) {
