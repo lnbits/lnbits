@@ -59,7 +59,7 @@ async def api_reset_wallet_keys(
     wallet_id: str, user: User = Depends(check_user_exists)
 ) -> Wallet:
     wallet = await get_wallet(wallet_id)
-    if not wallet:
+    if not wallet or wallet.user != user.id:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
 
     wallet.adminkey = uuid4().hex
@@ -92,11 +92,8 @@ async def api_delete_wallet(
     wallet_id: str, user: User = Depends(check_user_exists)
 ) -> None:
     wallet = await get_wallet(wallet_id)
-    if not wallet:
+    if not wallet or wallet.user != user.id:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
-
-    if wallet.user != user.id:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your wallet")
 
     await delete_wallet(
         user_id=wallet.user,
