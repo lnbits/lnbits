@@ -440,6 +440,7 @@ class Operator(Enum):
 
 class FilterModel(BaseModel):
     __search_fields__: list[str] = []
+    __search_like_filed___: Optional[str] = None
     __sort_fields__: Optional[list[str]] = None
 
 
@@ -548,12 +549,11 @@ class Filters(BaseModel, Generic[TFilterModel]):
         if self.filters:
             for page_filter in self.filters:
                 where_stmts.append(page_filter.statement)
-        if self.search and self.model:
-            fields = self.model.__search_fields__
-            if DB_TYPE == POSTGRES:
-                where_stmts.append(f"lower(concat({', '.join(fields)})) LIKE :search")
-            elif DB_TYPE == SQLITE:
-                where_stmts.append(f"lower({'||'.join(fields)}) LIKE :search")
+        if self.search and self.model and self.model.__search_fields__:
+            where_stmts.append(
+                f"lower(concat({', '.join(self.model.__search_fields__)})) LIKE :search"
+            )
+
         if where_stmts:
             return "WHERE " + " AND ".join(where_stmts)
         return ""
