@@ -174,7 +174,7 @@ window.WalletPageLogic = {
       this.receive.paymentHash = null
       this.receive.data.amount = null
       this.receive.data.memo = null
-      this.receive.unit = 'sat'
+      this.receive.unit = this.g.wallet.currency || 'sat'
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
       this.focusInput('setAmount')
