@@ -78,6 +78,10 @@ $themes: (
         background: scale-color($color, $lightness: -60%);
       }
       */
+    } @else {
+      body[data-theme='#{$theme}'].body--light {
+        background-color: #f4f4f4;
+      }
     }
     @if $name== 'info' {
       [data-theme='#{$theme}'] .q-card--dark,
