@@ -8,7 +8,7 @@ nav_order: 2
 
 Note that by default LNbits uses SQLite as its database, which is simple and effective but you can configure it to use PostgreSQL instead which is also described in a section below.
 
-## Option 1: AppImage/dmg
+## Option 1: AppImage (LInux)
 
 ### AppImage (Linux)
 
@@ -21,12 +21,6 @@ chmod +x LNbits-latest.AppImage
 ```
 
 LNbits will create a folder for db and extension files in the folder the AppImage runs from.
-
-### dmg (MacOS)
-
-Go to [releases](https://github.com/lnbits/lnbits/releases) and pull latest dmg.
-
-LNbits will create a folder for db and extension files in `/Library/Application Support/LNbits`
 
 ## Option 2: Poetry (recommended for developers)
 
