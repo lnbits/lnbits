@@ -471,7 +471,7 @@ async def lnurlwallet(request: Request, lightning: str = ""):
         res2.raise_for_status()
 
     return RedirectResponse(
-        f"/wallet?wal={wallet.id}",
+        f"/wallet?usr={account.id}&wal={wallet.id}",
     )
 
 
