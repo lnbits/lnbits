@@ -1,0 +1,73 @@
+name: Build LNbits AppImage DMG
+
+on:
+  release:
+    types: [published]
+
+jobs:
+
+  build-linux-package:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Step 2: Install Dependencies
+      - name: Install Dependencies
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          sudo apt-get update
+          sudo apt-get install -y libfuse2
+        shell: bash
+
+      # Step 3: Clone LNbits Repository
+      - name: Clone LNbits
+        run: |
+          mv .github/packaging packaging
+          mkdir -p packaging/linux/AppDir/usr
+          git clone https://github.com/lnbits/lnbits.git packaging/linux/AppDir/usr/lnbits
+        shell: bash
+
+      # Step 4: Make the AppImage Asset
+      - name: Make Asset
+        run: |
+          cd packaging/linux/AppDir/usr/lnbits
+          git checkout main
+          poetry install --main
+          poetry run pip install pyinstaller
+
+          # Build the LNbits binary
+          poetry run pyinstaller --onefile --name lnbits --collect-all lnbits --collect-all sqlalchemy --collect-all aiosqlite --hidden-import=passlib.handlers.bcrypt $(poetry run which lnbits)
+          cd ../../../../..
+          chmod +x packaging/linux/AppDir/AppRun
+          chmod +x packaging/linux/AppDir/lnbits.desktop
+          chmod +x packaging/linux/AppDir/usr/lnbits/dist/lnbits
+
+          find packaging/linux/AppDir/usr/lnbits -mindepth 1 -maxdepth 1 \
+              ! -name 'dist' \
+              ! -name 'lnbits' \
+              -exec rm -rf {} +
+
+          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          TAG_NAME=${{ github.event.release.tag_name }}
+          APPIMAGE_NAME="LNbits-${TAG_NAME}.AppImage"
+          ./appimagetool-x86_64.AppImage --updateinformation "gh-releases-zsync|lnbits|lnbits|latest|*.AppImage.zsync" packaging/linux/AppDir "$APPIMAGE_NAME"
+          chmod +x "$APPIMAGE_NAME"
+          echo "APPIMAGE_NAME=$APPIMAGE_NAME" >> $GITHUB_ENV
+        shell: bash
+
+      # Step 5: Upload Linux Release Asset
+      - name: Upload Linux Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ env.APPIMAGE_NAME }}
+          asset_name: ${{ env.APPIMAGE_NAME }}
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
