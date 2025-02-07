@@ -742,7 +742,7 @@
     </template>
     <template v-slot:body="props">
       <q-tr :props="props">
-        <q-td auto-width class="text-center">
+        <q-td auto-width class="text-center cursor-pointer">
           <q-icon
             v-if="props.row.isPaid"
             size="14px"
