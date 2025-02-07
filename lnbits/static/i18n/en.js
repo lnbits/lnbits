@@ -263,7 +263,7 @@ window.localisation.en = {
   enable_server_log: 'Enable Server Log',
   coming_soon: 'Feature coming soon',
   session_has_expired: 'Your session has expired. Please login again.',
-  instant_access_question: 'Want instant access?',
+  instant_access_question: 'or instant access',
   login_with_user_id: 'Login with user ID',
   or: 'or',
   create_new_wallet: 'Create New Wallet',

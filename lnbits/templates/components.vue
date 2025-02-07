@@ -1125,11 +1125,8 @@
   </div>
   <q-card-section v-show="showInstantLogin">
     <div>
-      <span
-        v-text="$t('instant_access_question')"
-        class="text-body1 text-grey"
-      ></span>
-      <div class="text-body2 q-mt-md">
+      <separator-text :text="$t('instant_access_question')"></separator-text>
+      <div class="text-body2 text-center q-mt-md">
         <q-badge
           @click="showLogin('user-id-only')"
           color="accent"
@@ -1161,7 +1158,7 @@
 
 <template id="username-password">
   <q-card-section class="q-pb-none">
-    <div class="text-center text-h6 q-mb-sm">
+    <div class="text-center text-h6 q-mb-sm q-mt-none q-pt-none">
       <span
         v-if="authAction === 'login'"
         v-text="$t('login_to_account')"
