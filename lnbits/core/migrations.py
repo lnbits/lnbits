@@ -609,13 +609,14 @@ async def m027_update_apipayments_data(db: Connection):
         await db.execute("COMMIT")
 
     offset = 0
+    limit = 1000
     payments: list[dict[Any, Any]] = []
     logger.info("Updating payments")
     while len(payments) > 0 or offset == 0:
-        logger.info(f"Updating {offset} to {offset+1000}")
+        logger.info(f"Updating {offset} to {offset+limit}")
 
         result = await db.execute(
-            f"SELECT * FROM apipayments  ORDER BY time OFFSET {offset} LIMIT 1000"
+            f"SELECT * FROM apipayments  ORDER BY time LIMIT {limit} OFFSET {offset}"
         )
         payments = result.mappings().all()
         logger.info(f"Payments count: {len(payments)}")
@@ -639,7 +640,7 @@ async def m027_update_apipayments_data(db: Connection):
                     "checking_id": payment.get("checking_id"),
                 },
             )
-        offset += 1000
+        offset += limit
     logger.info("Payments updated")
 
 
