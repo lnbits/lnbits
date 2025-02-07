@@ -538,7 +538,7 @@
     size="sm"
     icon="add"
   >
-    <q-popup-edit class="bg-accent text-white" v-slot="scope" v-model="credit">
+    <q-popup-edit class="text-white" v-slot="scope" v-model="credit">
       <q-input
         filled
         :label="$t('credit_label', {denomination: denomination})"
@@ -562,7 +562,7 @@
     class="float-right q-mt-sm"
     size="sm"
   >
-    <q-popup-edit class="bg-accent text-white" v-slot="scope" v-model="credit">
+    <q-popup-edit class="text-white" v-slot="scope" v-model="credit">
       <q-input
         filled
         :label="$t('credit_label', {denomination: denomination})"
