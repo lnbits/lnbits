@@ -98,26 +98,7 @@
             </div>
           </div>
         </div>
-        {% if lnurl and LNBITS_NEW_ACCOUNTS_ALLOWED and ("user-id-only" in
-        LNBITS_AUTH_METHODS)%}
-        <div class="row">
-          <div class="full-width q-mb-md">
-            <q-card>
-              <q-card-section>
-                <q-btn
-                  unelevated
-                  color="primary"
-                  @click="processing"
-                  type="a"
-                  href="/lnurlwallet?lightning={{ lnurl }}"
-                  v-text="$t('press_to_claim')"
-                  class="full-width"
-                ></q-btn>
-              </q-card-section>
-            </q-card>
-          </div>
-        </div>
-        {%else%} {% endif %}
+
         <div class="row">
           <q-badge
             v-if="isAccessTokenExpired"
@@ -129,13 +110,33 @@
               <span v-text="$t('session_has_expired')"></span>
             </div>
           </q-badge>
-          <q-card bordered class="full-width q-pt-md">
+          <q-card bordered class="full-width q-py-md">
             <div class="row">
               <div
                 class="col-12"
                 :class="{'col-sm-7' : '{{ LNBITS_CUSTOM_IMAGE }}', 'col-lg-6' : '{{ LNBITS_CUSTOM_IMAGE }}'}"
               >
-                {% if "username-password" in LNBITS_AUTH_METHODS %}
+                {% if lnurl and LNBITS_NEW_ACCOUNTS_ALLOWED and ("user-id-only"
+                in LNBITS_AUTH_METHODS)%}
+                <div class="full-height content-center">
+                  <q-card-section>
+                    <div class="text-body1">
+                      <span v-text="$t('claim_desc')"></span>
+                    </div>
+                  </q-card-section>
+                  <q-card-section>
+                    <q-btn
+                      unelevated
+                      color="primary"
+                      @click="processing"
+                      type="a"
+                      href="/lnurlwallet?lightning={{ lnurl }}"
+                      v-text="$t('press_to_claim')"
+                      class="full-width"
+                    ></q-btn>
+                  </q-card-section>
+                </div>
+                {%else%}
                 <username-password
                   v-if="authMethod != 'user-id-only'"
                   :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
@@ -171,7 +172,7 @@
                     </p>
                   </div>
                 </username-password>
-                {%endif%} {% if "user-id-only" in LNBITS_AUTH_METHODS %}
+                {% if "user-id-only" in LNBITS_AUTH_METHODS %}
                 <user-id-only
                   :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
                   v-model:usr="usr"
@@ -184,7 +185,7 @@
                   @create-wallet="createWallet"
                 >
                 </user-id-only>
-                {%endif%}
+                {%endif%} {% endif %}
               </div>
               <div
                 class="col-sm-5 col-lg-6 gt-xs"
@@ -202,7 +203,7 @@
           </q-card>
         </div>
       </div>
-      <div class="full-width q-mb-xl q-mt-sm">
+      <div class="full-width q-mb-lg q-mt-sm">
         <div class="flex flex-center q-gutter-md q-py-md">
           <q-btn
             outline
@@ -226,6 +227,35 @@
           ></q-btn>
         </div>
       </div>
+      {% if AD_SPACE %}
+      <div class="row justify-center q-mb-xl">
+        <div class="full-width text-center">
+          <span class="text-uppercase text-grey">{{ AD_SPACE_TITLE }}</span>
+        </div>
+        <div class="flex flex-center columm">
+          {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
+
+          <div class="flex flex-center column">
+            <a href="{{ AD[0] }}">
+              <img
+                v-if="($q.dark.isActive)"
+                src="{{ AD[1] }}"
+                style="max-width: 420px"
+                class="full-width"
+              />
+              <img
+                v-else
+                src="{{ AD[2] }}"
+                style="max-width: 420px"
+                class="full-width"
+              />
+            </a>
+          </div>
+
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
       <div class="full-width">
         <div class="wrapper">
           <div class="marquee">
@@ -623,35 +653,7 @@
         </div>
       </div>
     </div>
-    {% if AD_SPACE %}
-    <div class="row justify-center q-mt-xl">
-      <div class="full-width q-mb-md text-center">
-        <span class="text-uppercase text-grey">{{ AD_SPACE_TITLE }}</span>
-      </div>
-      <div class="flex flex-center columm">
-        {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
-
-        <div class="flex flex-center column">
-          <a href="{{ AD[0] }}">
-            <img
-              v-if="($q.dark.isActive)"
-              src="{{ AD[1] }}"
-              style="max-width: 420px"
-              class="full-width"
-            />
-            <img
-              v-else
-              src="{{ AD[2] }}"
-              style="max-width: 420px"
-              class="full-width"
-            />
-          </a>
-        </div>
-
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %} {% endblock %}
+    {% endblock %}
   </q-page>
 </q-page-container>
 {% endblock %}
