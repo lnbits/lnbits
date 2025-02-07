@@ -248,6 +248,7 @@ window.localisation.en = {
   enter_ip: 'Enter IP and hit enter',
   rate_limiter: 'Rate Limiter',
   wallet_limiter: 'Wallet Limiter',
+  wallet_config: 'Wallet Config',
   wallet_limit_max_withdraw_per_day:
     'Max daily wallet withdrawal in sats (0 for no limit, -1 to block withdrawal)',
   wallet_max_ballance: 'Wallet max balance in sats (0 to disable)',
