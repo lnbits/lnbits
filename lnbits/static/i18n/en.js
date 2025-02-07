@@ -58,6 +58,8 @@ window.localisation.en = {
   currency: 'Currency',
   update_currency: 'Update currency',
   press_to_claim: 'Press to claim bitcoin',
+  claim_desc:
+    'It seems you have a claimable amount of bitcoin but you don’t have a wallet yet. Press the button below to claim it. This will create a new wallet for you.',
   donate: 'Donate',
   view_github: 'View on GitHub',
   voidwallet_active: 'VoidWallet is active! Payments disabled',
@@ -270,7 +272,8 @@ window.localisation.en = {
   login_to_account: 'Login to your account',
   create_account: 'Create account',
   account_settings: 'Account Settings',
-  signin_with_oauth: 'or Login with',
+  signin_with_oauth: 'Login with',
+  signin_with_oauth_or: 'or Login with',
   signin_with_nostr: 'Continue with Nostr',
   signin_with_google: 'Sign in with Google',
   signin_with_github: 'Sign in with GitHub',
