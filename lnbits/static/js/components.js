@@ -600,7 +600,7 @@ window.app.component('username-password', {
     }
   },
   created() {
-    console.log('username-password created', this.passwordRepeat)
+    console.log('username-password created', this.authMethod, this.authMethods)
   }
 })
 

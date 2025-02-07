@@ -1157,140 +1157,152 @@
 </template>
 
 <template id="username-password">
-  <q-card-section class="q-pb-none">
-    <div class="text-center text-h6 q-mb-sm q-mt-none q-pt-none">
-      <span
-        v-if="authAction === 'login'"
-        v-text="$t('login_to_account')"
-      ></span>
-      <span
-        v-if="authAction === 'register'"
-        v-text="$t('create_account')"
-      ></span>
-      <span v-if="authAction === 'reset'" v-text="$t('reset_password')"></span>
-    </div>
-  </q-card-section>
-  <!-- LOGIN -->
-  <q-card-section v-if="authAction === 'login'">
-    <q-form @submit="login" class="q-gutter-sm">
-      <q-input
-        dense
-        filled
-        v-model="username"
-        name="username"
-        :label="$t('username_or_email') + ' *'"
-      ></q-input>
-      <q-input
-        dense
-        filled
-        v-model="password"
-        name="password"
-        :label="$t('password') + ' *'"
-        type="password"
-      ></q-input>
-      <div class="row justify-end">
-        <q-btn
-          :disable="!username || !password"
-          color="primary"
-          type="submit"
-          :label="$t('login')"
-          class="full-width"
-        ></q-btn>
+  <div v-if="authMethods.includes('username-password')">
+    <q-card-section class="q-pb-none">
+      <div class="text-center text-h6 q-mb-sm q-mt-none q-pt-none">
+        <span
+          v-if="authAction === 'login'"
+          v-text="$t('login_to_account')"
+        ></span>
+        <span
+          v-if="authAction === 'register'"
+          v-text="$t('create_account')"
+        ></span>
+        <span
+          v-if="authAction === 'reset'"
+          v-text="$t('reset_password')"
+        ></span>
       </div>
-    </q-form>
-  </q-card-section>
-  <!-- REGISTER -->
-  <q-card-section v-if="authAction === 'register'">
-    <q-form @submit="register" class="q-gutter-sm">
-      <q-input
-        dense
-        filled
-        required
-        v-model="username"
-        :label="$t('username') + ' *'"
-        :rules="[val => validateUsername(val) || $t('invalid_username')]"
-      ></q-input>
-      <q-input
-        dense
-        filled
-        v-model="password"
-        :label="$t('password') + ' *'"
-        type="password"
-        :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
-      ></q-input>
-      <q-input
-        dense
-        filled
-        v-model="passwordRepeat"
-        :label="$t('password_repeat') + ' *'"
-        type="password"
-        :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
-      ></q-input>
-      <div class="row justify-end">
-        <q-btn
-          unelevated
-          color="primary"
-          :disable="
-            !password ||
-            !passwordRepeat ||
-            !username ||
-            password !== passwordRepeat
-          "
-          type="submit"
-          class="full-width"
-          :label="$t('create_account')"
-        ></q-btn>
-      </div>
-    </q-form>
-  </q-card-section>
-  <slot></slot>
-  <!-- RESET -->
-  <q-card-section v-if="authAction === 'reset'">
-    <q-form @submit="reset" class="q-gutter-sm">
-      <q-input
-        dense
-        filled
-        required
-        :disable="true"
-        v-model="reset_key"
-        :label="$t('reset_key') + ' *'"
-      ></q-input>
-      <q-input
-        dense
-        filled
-        v-model="password"
-        :label="$t('password') + ' *'"
-        type="password"
-        :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
-      ></q-input>
-      <q-input
-        dense
-        filled
-        v-model="passwordRepeat"
-        :label="$t('password_repeat') + ' *'"
-        type="password"
-        :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
-      ></q-input>
-      <div class="row justify-end">
-        <q-btn
-          unelevated
-          color="primary"
-          :disable="
-            !password ||
-            !passwordRepeat ||
-            !reset_key ||
-            password !== passwordRepeat
-          "
-          type="submit"
-          class="full-width"
-          :label="$t('reset_password')"
-        ></q-btn>
-      </div>
-    </q-form>
-  </q-card-section>
+    </q-card-section>
+    <!-- LOGIN -->
+    <q-card-section v-if="authAction === 'login'">
+      <q-form @submit="login" class="q-gutter-sm">
+        <q-input
+          dense
+          filled
+          v-model="username"
+          name="username"
+          :label="$t('username_or_email') + ' *'"
+        ></q-input>
+        <q-input
+          dense
+          filled
+          v-model="password"
+          name="password"
+          :label="$t('password') + ' *'"
+          type="password"
+        ></q-input>
+        <div class="row justify-end">
+          <q-btn
+            :disable="!username || !password"
+            color="primary"
+            type="submit"
+            :label="$t('login')"
+            class="full-width"
+          ></q-btn>
+        </div>
+      </q-form>
+    </q-card-section>
+    <!-- REGISTER -->
+    <q-card-section v-if="authAction === 'register'">
+      <q-form @submit="register" class="q-gutter-sm">
+        <q-input
+          dense
+          filled
+          required
+          v-model="username"
+          :label="$t('username') + ' *'"
+          :rules="[val => validateUsername(val) || $t('invalid_username')]"
+        ></q-input>
+        <q-input
+          dense
+          filled
+          v-model="password"
+          :label="$t('password') + ' *'"
+          type="password"
+          :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+        ></q-input>
+        <q-input
+          dense
+          filled
+          v-model="passwordRepeat"
+          :label="$t('password_repeat') + ' *'"
+          type="password"
+          :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+        ></q-input>
+        <div class="row justify-end">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="
+              !password ||
+              !passwordRepeat ||
+              !username ||
+              password !== passwordRepeat
+            "
+            type="submit"
+            class="full-width"
+            :label="$t('create_account')"
+          ></q-btn>
+        </div>
+      </q-form>
+    </q-card-section>
+    <slot></slot>
+    <!-- RESET -->
+    <q-card-section v-if="authAction === 'reset'">
+      <q-form @submit="reset" class="q-gutter-sm">
+        <q-input
+          dense
+          filled
+          required
+          :disable="true"
+          v-model="reset_key"
+          :label="$t('reset_key') + ' *'"
+        ></q-input>
+        <q-input
+          dense
+          filled
+          v-model="password"
+          :label="$t('password') + ' *'"
+          type="password"
+          :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+        ></q-input>
+        <q-input
+          dense
+          filled
+          v-model="passwordRepeat"
+          :label="$t('password_repeat') + ' *'"
+          type="password"
+          :rules="[val => !val || val.length >= 8 || $t('invalid_password')]"
+        ></q-input>
+        <div class="row justify-end">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="
+              !password ||
+              !passwordRepeat ||
+              !reset_key ||
+              password !== passwordRepeat
+            "
+            type="submit"
+            class="full-width"
+            :label="$t('reset_password')"
+          ></q-btn>
+        </div>
+      </q-form>
+    </q-card-section>
+  </div>
   <!-- OAUTH -->
   <q-card-section v-if="showOauth">
-    <separator-text :text="$t('signin_with_oauth')"></separator-text>
+    <div v-if="authMethods.includes('username-password')">
+      <separator-text :text="$t('signin_with_oauth_or')"></separator-text>
+    </div>
+    <q-card-section v-else class="q-pb-none">
+      <div class="text-center text-h6">
+        <span v-text="$t('signin_with_oauth')"></span>
+      </div>
+    </q-card-section>
     <div class="flex justify-center q-mt-md" style="gap: 1rem">
       <q-btn
         v-if="authMethods.includes('nostr-auth-nip98')"

@@ -135,7 +135,6 @@
                 class="col-12"
                 :class="{'col-sm-7' : '{{ LNBITS_CUSTOM_IMAGE }}', 'col-lg-6' : '{{ LNBITS_CUSTOM_IMAGE }}'}"
               >
-                {% if "username-password" in LNBITS_AUTH_METHODS %}
                 <username-password
                   v-if="authMethod != 'user-id-only'"
                   :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
@@ -171,7 +170,7 @@
                     </p>
                   </div>
                 </username-password>
-                {%endif%} {% if "user-id-only" in LNBITS_AUTH_METHODS %}
+                {% if "user-id-only" in LNBITS_AUTH_METHODS %}
                 <user-id-only
                   :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
                   v-model:usr="usr"
@@ -202,7 +201,7 @@
           </q-card>
         </div>
       </div>
-      <div class="full-width q-mb-xl q-mt-sm">
+      <div class="full-width q-mb-lg q-mt-sm">
         <div class="flex flex-center q-gutter-md q-py-md">
           <q-btn
             outline
@@ -226,6 +225,35 @@
           ></q-btn>
         </div>
       </div>
+      {% if AD_SPACE %}
+      <div class="row justify-center q-mb-xl">
+        <div class="full-width text-center">
+          <span class="text-uppercase text-grey">{{ AD_SPACE_TITLE }}</span>
+        </div>
+        <div class="flex flex-center columm">
+          {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
+
+          <div class="flex flex-center column">
+            <a href="{{ AD[0] }}">
+              <img
+                v-if="($q.dark.isActive)"
+                src="{{ AD[1] }}"
+                style="max-width: 420px"
+                class="full-width"
+              />
+              <img
+                v-else
+                src="{{ AD[2] }}"
+                style="max-width: 420px"
+                class="full-width"
+              />
+            </a>
+          </div>
+
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
       <div class="full-width">
         <div class="wrapper">
           <div class="marquee">
@@ -623,35 +651,7 @@
         </div>
       </div>
     </div>
-    {% if AD_SPACE %}
-    <div class="row justify-center q-mt-xl">
-      <div class="full-width q-mb-md text-center">
-        <span class="text-uppercase text-grey">{{ AD_SPACE_TITLE }}</span>
-      </div>
-      <div class="flex flex-center columm">
-        {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
-
-        <div class="flex flex-center column">
-          <a href="{{ AD[0] }}">
-            <img
-              v-if="($q.dark.isActive)"
-              src="{{ AD[1] }}"
-              style="max-width: 420px"
-              class="full-width"
-            />
-            <img
-              v-else
-              src="{{ AD[2] }}"
-              style="max-width: 420px"
-              class="full-width"
-            />
-          </a>
-        </div>
-
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %} {% endblock %}
+    {% endblock %}
   </q-page>
 </q-page-container>
 {% endblock %}
