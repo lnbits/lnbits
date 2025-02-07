@@ -512,5 +512,7 @@ window.localisation.en = {
   payments_count_in_out_chart: 'Count In/Out Chart',
   reset_wallet_keys: 'Reset Keys',
   reset_wallet_keys_desc:
-    'Reset the API keys for this wallet. This will invalidate the current keys and generate new ones.'
+    'Reset the API keys for this wallet. This will invalidate the current keys and generate new ones.',
+  view_list: 'View wallets as list',
+  view_column: 'View wallets as rows'
 }
