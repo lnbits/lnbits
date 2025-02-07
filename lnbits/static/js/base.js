@@ -623,6 +623,8 @@ window.windowMixin = {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
       if (this.gradientChoice && !this.$q.dark.isActive) {
+        this.$q.localStorage.set('lnbits.gradientBg', false)
+        this.$q.localStorage.remove(`lnbits.backgroundImage`)
         window.location.reload()
       }
     },
