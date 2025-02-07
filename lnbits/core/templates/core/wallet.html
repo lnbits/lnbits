@@ -280,90 +280,87 @@
                 <q-separator></q-separator>
                 <q-expansion-item
                   group="extras"
-                  icon="edit"
-                  :label="$t('rename_wallet')"
+                  icon="settings"
+                  :label="$t('wallet_config')"
                 >
                   <q-card>
                     <q-card-section>
-                      <div class="" style="max-width: 320px">
-                        <q-input
-                          filled
-                          v-model.trim="update.name"
-                          label="Name"
-                          dense
-                        />
+                      <div class="row">
+                        <div class="col-6">
+                          <q-input
+                            filled
+                            v-model.trim="update.name"
+                            label="Name"
+                            dense
+                          />
+                        </div>
+                        <div class="col-4 q-pl-sm">
+                          <q-btn
+                            :disable="!update.name.length"
+                            unelevated
+                            class="q-mt-xs full-width"
+                            color="primary"
+                            :label="$t('update_name')"
+                            dense
+                            @click="updateWallet({ name: update.name })"
+                          ></q-btn>
+                        </div>
+                        <div class="col-2"></div>
                       </div>
-                      <q-btn
-                        :disable="!update.name.length"
-                        unelevated
-                        class="q-mt-sm"
-                        color="primary"
-                        :label="$t('update_name')"
-                        @click="updateWallet({ name: update.name })"
-                      ></q-btn>
                     </q-card-section>
-                  </q-card>
-                </q-expansion-item>
-                <q-separator></q-separator>
-                <q-expansion-item
-                  group="extras"
-                  icon="attach_money"
-                  :label="$t('fiat_tracking')"
-                >
-                  <q-card>
                     <q-card-section>
-                      <div style="max-width: 360px">
-                        <div class="row">
-                          <div class="col">
-                            <q-select
-                              filled
-                              dense
-                              v-model="update.currency"
-                              type="text"
-                              :disable="g.fiatTracking"
-                              :options="receive.units.filter((u) => u !== 'sat')"
-                            ></q-select>
-                          </div>
-                          <div class="col-auto">
-                            <q-btn
-                              color="primary"
-                              @click="handleFiatTracking()"
-                              :disable="update.currency == ''"
-                              :label="g.fiatTracking ? 'Remove' : 'Add'"
-                            ></q-btn>
-                          </div>
+                      <div class="row">
+                        <div class="col-6">
+                          <q-select
+                            filled
+                            dense
+                            v-model="update.currency"
+                            type="text"
+                            :disable="g.fiatTracking"
+                            :options="receive.units.filter((u) => u !== 'sat')"
+                          ></q-select>
+                        </div>
+                        <div class="col-4 q-pl-sm">
+                          <q-btn
+                            dense
+                            color="primary"
+                            class="q-mt-xs full-width"
+                            @click="handleFiatTracking()"
+                            :disable="update.currency == ''"
+                            :label="g.fiatTracking ? 'Remove' : 'Add'"
+                          ></q-btn>
+                        </div>
+                        <div class="col-2">
+                          <q-btn
+                            v-if="g.user.admin"
+                            flat
+                            round
+                            icon="settings"
+                            class="float-right q-mb-lg"
+                            to="/admin#exchange_providers"
+                            ><q-tooltip
+                              v-text="$t('exchange_providers')"
+                            ></q-tooltip
+                          ></q-btn>
                         </div>
                       </div>
-                      <q-btn
-                        v-if="g.user.admin"
-                        class="absolute-top-right"
-                        flat
-                        round
-                        icon="settings"
-                        to="/admin#exchange_providers"
-                        ><q-tooltip
-                          v-text="$t('exchange_providers')"
-                        ></q-tooltip
-                      ></q-btn>
                     </q-card-section>
-                  </q-card>
-                </q-expansion-item>
-
-                <q-separator></q-separator>
-                <q-expansion-item
-                  group="extras"
-                  icon="remove_circle"
-                  :label="$t('delete_wallet')"
-                >
-                  <q-card>
                     <q-card-section>
-                      <p v-text="$t('delete_wallet_desc')"></p>
-                      <q-btn
-                        unelevated
-                        color="red-10"
-                        @click="deleteWallet()"
-                        :label="$t('delete_wallet')"
-                      ></q-btn>
+                      <div class="row">
+                        <div class="col-6">
+                          <p v-text="$t('delete_wallet_desc')"></p>
+                        </div>
+                        <div class="col-4 q-pl-sm">
+                          <q-btn
+                            unelevated
+                            color="red-10"
+                            class="full-width"
+                            @click="deleteWallet()"
+                            :label="$t('delete_wallet')"
+                          ></q-btn>
+                        </div>
+                        <div class="col-2"></div>
+                      </div>
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
