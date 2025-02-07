@@ -98,26 +98,7 @@
             </div>
           </div>
         </div>
-        {% if lnurl and LNBITS_NEW_ACCOUNTS_ALLOWED and ("user-id-only" in
-        LNBITS_AUTH_METHODS)%}
-        <div class="row">
-          <div class="full-width q-mb-md">
-            <q-card>
-              <q-card-section>
-                <q-btn
-                  unelevated
-                  color="primary"
-                  @click="processing"
-                  type="a"
-                  href="/lnurlwallet?lightning={{ lnurl }}"
-                  v-text="$t('press_to_claim')"
-                  class="full-width"
-                ></q-btn>
-              </q-card-section>
-            </q-card>
-          </div>
-        </div>
-        {%else%} {% endif %}
+
         <div class="row">
           <q-badge
             v-if="isAccessTokenExpired"
@@ -129,12 +110,33 @@
               <span v-text="$t('session_has_expired')"></span>
             </div>
           </q-badge>
-          <q-card bordered class="full-width q-pt-md">
+          <q-card bordered class="full-width q-py-md">
             <div class="row">
               <div
                 class="col-12"
                 :class="{'col-sm-7' : '{{ LNBITS_CUSTOM_IMAGE }}', 'col-lg-6' : '{{ LNBITS_CUSTOM_IMAGE }}'}"
               >
+                {% if lnurl and LNBITS_NEW_ACCOUNTS_ALLOWED and ("user-id-only"
+                in LNBITS_AUTH_METHODS)%}
+                <div class="full-height content-center">
+                  <q-card-section>
+                    <div class="text-body1">
+                      <span v-text="$t('claim_desc')"></span>
+                    </div>
+                  </q-card-section>
+                  <q-card-section>
+                    <q-btn
+                      unelevated
+                      color="primary"
+                      @click="processing"
+                      type="a"
+                      href="/lnurlwallet?lightning={{ lnurl }}"
+                      v-text="$t('press_to_claim')"
+                      class="full-width"
+                    ></q-btn>
+                  </q-card-section>
+                </div>
+                {%else%}
                 <username-password
                   v-if="authMethod != 'user-id-only'"
                   :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
@@ -183,7 +185,7 @@
                   @create-wallet="createWallet"
                 >
                 </user-id-only>
-                {%endif%}
+                {%endif%} {% endif %}
               </div>
               <div
                 class="col-sm-5 col-lg-6 gt-xs"

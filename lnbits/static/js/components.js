@@ -523,7 +523,7 @@ window.app.component('user-id-only', {
       this.$emit('show-register', method)
     },
     loginUsr() {
-      this.$emit('update:user', this.user)
+      this.$emit('update:usr', this.user)
       this.$emit('login-usr')
     },
     createWallet() {
@@ -599,9 +599,7 @@ window.app.component('username-password', {
       return this.oauth.some(m => this.authMethods.includes(m))
     }
   },
-  created() {
-    console.log('username-password created', this.authMethod, this.authMethods)
-  }
+  created() {}
 })
 
 window.app.component('separator-text', {
