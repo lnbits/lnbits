@@ -399,14 +399,17 @@ async def calculate_fiat_amounts(
         amount_sat = int(amount)
 
     if wallet_currency:
-        if wallet_currency == currency:
-            fiat_amount = amount
-        else:
-            fiat_amount = await satoshis_amount_as_fiat(amount_sat, wallet_currency)
-        fiat_amounts["wallet_fiat_currency"] = wallet_currency
-        fiat_amounts["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
-        fiat_amounts["wallet_fiat_rate"] = amount_sat / fiat_amount
-        fiat_amounts["wallet_btc_rate"] = (fiat_amount / amount_sat) * 100_000_000
+        try:
+            if wallet_currency == currency:
+                fiat_amount = amount
+            else:
+                fiat_amount = await satoshis_amount_as_fiat(amount_sat, wallet_currency)
+            fiat_amounts["wallet_fiat_currency"] = wallet_currency
+            fiat_amounts["wallet_fiat_amount"] = round(fiat_amount, ndigits=3)
+            fiat_amounts["wallet_fiat_rate"] = amount_sat / fiat_amount
+            fiat_amounts["wallet_btc_rate"] = (fiat_amount / amount_sat) * 100_000_000
+        except Exception as e:
+            logger.error(f"Error calculating fiat amount for wallet '{wallet.id}': {e}")
 
     logger.debug(
         f"Calculated fiat amounts {wallet.id=} {amount=} {currency=}: {fiat_amounts=}"
