@@ -588,6 +588,7 @@ window.windowMixin = {
     changeTheme(newValue) {
       document.body.setAttribute('data-theme', newValue)
       if (this.themeSelection) {
+        this.themeChoice = newValue
         this.$q.localStorage.set('lnbits.theme', newValue)
       }
       this.setColors()
@@ -596,12 +597,10 @@ window.windowMixin = {
       darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
       primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
       if (this.gradientChoice) {
+        this.$q.localStorage.set('lnbits.gradientBg', true)
         if (!this.$q.dark.isActive) {
           this.$q.dark.toggle()
           this.$q.localStorage.set('lnbits.darkMode', true)
-        }
-        if (this.gradientSelection) {
-          this.$q.localStorage.set('lnbits.gradientBg', true)
         }
         const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
         document.body.style.setProperty(
@@ -617,15 +616,15 @@ window.windowMixin = {
           `[data-theme="${this.themeChoice}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
       } else {
-        if (this.gradientSelection) {
-          this.$q.localStorage.set('lnbits.gradientBg', false)
-        }
+        this.$q.localStorage.set('lnbits.gradientBg', false)
       }
     },
     toggleDarkMode() {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
       if (this.gradientChoice && !this.$q.dark.isActive) {
+        this.$q.localStorage.set('lnbits.gradientBg', false)
+        this.$q.localStorage.remove(`lnbits.backgroundImage`)
         window.location.reload()
       }
     },
@@ -640,12 +639,11 @@ window.windowMixin = {
       if (
         this.bgimageChoice &&
         this.bgimageChoice !== 'null' &&
+        this.bgimageChoice !== 'none' &&
         this.bgimageChoice !== ''
       ) {
-        if (!this.gradientChoice) {
-          this.gradientChoice = true
-          this.applyGradient()
-        }
+        this.gradientChoice = true
+        this.applyGradient()
         const style = document.createElement('style')
         style.innerHTML = `
         body[data-theme="${this.themeChoice}"]::before {
