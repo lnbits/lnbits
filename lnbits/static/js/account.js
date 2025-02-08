@@ -113,12 +113,9 @@ window.AccountPageLogic = {
       this.changeTheme(newValue)
       this.setColors()
       if (this.gradientChoice) {
-        console.log('reloading')
         this.applyGradient()
       }
-      console.log('bgimageChoice')
       if (this.bgimageChoice) {
-        console.log('bgimageChoice')
         this.applyBackgroundImage()
       }
       this.applyBorder()

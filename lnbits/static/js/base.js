@@ -616,7 +616,7 @@ window.windowMixin = {
           `[data-theme="${this.themeChoice}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
         document.head.appendChild(style)
       } else {
-          this.$q.localStorage.set('lnbits.gradientBg', false)
+        this.$q.localStorage.set('lnbits.gradientBg', false)
       }
     },
     toggleDarkMode() {
@@ -642,8 +642,6 @@ window.windowMixin = {
         this.bgimageChoice !== 'none' &&
         this.bgimageChoice !== ''
       ) {
-        console.log(this.bgimageChoice)
-        console.log(this.themeChoice)
         this.gradientChoice = true
         this.applyGradient()
         const style = document.createElement('style')
@@ -829,7 +827,6 @@ window.windowMixin = {
     }
   },
   async created() {
-    console.log(this.gradientChoice)
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
     this.$q.dark.set(
       this.$q.localStorage.has('lnbits.darkMode')
