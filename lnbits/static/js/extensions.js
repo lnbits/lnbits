@@ -608,20 +608,21 @@ window.ExtensionsPageLogic = {
           ext.isUpgraded = true
           ext.inProgress = false
           ext.installedRelease = ext.latestRelease
+          ext.isActive = true
           this.toggleExtension(ext)
         } catch (err) {
           console.warn(err)
           Quasar.Notify.create({
             type: 'negative',
-            message: `Failed to update ${ext.code}!`
+            message: `Failed to update ${ext.id}!`
           })
         } finally {
           ext.inProgress = false
         }
       }
       Quasar.Notify.create({
-        type: 'positive',
-        message: `${count} extensions updated!`
+        type: count ? 'positive' : 'warning',
+        message: `${count ? count : 'No'} extensions updated!`
       })
       this.showUpdateAllDialog = false
       setTimeout(() => {
