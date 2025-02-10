@@ -229,6 +229,7 @@ window.app.component('payment-list', {
       } else {
         this.paymentsTable.filter = null
       }
+      this.paymentsTable.pagination.page = 1
       this.fetchPayments()
     },
     lazy(newVal) {
