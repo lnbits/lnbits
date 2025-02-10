@@ -814,6 +814,7 @@ window.WalletPageLogic = {
           'GET',
           `/api/v1/payments/stats/daily?wallet_id=${this.g.wallet.id}`
         )
+        console.log('## data', data)
         // return
 
         // const timeFrom = this.searchDate.timeFrom + 'T00:00:00'
@@ -885,18 +886,6 @@ window.WalletPageLogic = {
             options: {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: {
-                title: {
-                  display: false
-                },
-                legend: {
-                  display: true,
-                  title: {
-                    display: false,
-                    text: 'Tags'
-                  }
-                }
-              },
               scales: {
                 x: {
                   stacked: true
@@ -910,11 +899,11 @@ window.WalletPageLogic = {
               labels,
               datasets: [
                 {
-                  label: 'Incoming Payments Balance',
+                  label: 'Balance In',
                   data: data.map(s => s.balance_in)
                 },
                 {
-                  label: 'Outgoing Payments Balance',
+                  label: 'Balance Out',
                   data: data.map(s => s.balance_out)
                 }
               ]
@@ -922,20 +911,43 @@ window.WalletPageLogic = {
           }
         )
 
-        // this.paymentsCountInOutChart.data.datasets = [
-        //   {
-        //     label: 'Incoming Payments Count',
-        //     data: data.map(s => s.count_in)
-        //   },
-        //   {
-        //     label: 'Outgoing Payments Count',
-        //     data: data.map(s => -s.count_out)
-        //   }
-        // ]
-        // this.paymentsCountInOutChart.data.labels = data.map(s =>
-        //   s.date.substring(0, 10)
-        // )
-        // this.paymentsCountInOutChart.update()
+        if (this.walletPaymentsInOut) {
+          this.walletPaymentsInOut.destroy()
+        }
+
+        this.walletPaymentsInOut = new Chart(
+          this.$refs.walletPaymentsInOut.getContext('2d'),
+          {
+            type: 'bar',
+
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+
+              scales: {
+                x: {
+                  stacked: true
+                },
+                y: {
+                  stacked: true
+                }
+              }
+            },
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Payments In',
+                  data: data.map(s => s.count_in)
+                },
+                {
+                  label: 'Payments Out',
+                  data: data.map(s => -s.count_out)
+                }
+              ]
+            }
+          }
+        )
       } catch (error) {
         console.warn(error)
         LNbits.utils.notifyApiError(error)
@@ -952,8 +964,11 @@ window.WalletPageLogic = {
     }
     this.createdTasks()
     console.log('### created')
-    this.fetchChartData()
-    // setTimeout(() => { this.fetchChartData() }, 1000)
+    try {
+      this.fetchChartData()
+    } catch (error) {
+      console.warn(`Chart creation failed: ${error}`)
+    }
   },
   watch: {
     'g.updatePayments'(newVal, oldVal) {
@@ -976,7 +991,11 @@ window.WalletPageLogic = {
           (this.g.exchangeRate / 100000000) * this.g.wallet.sat
         this.formatFiatAmount(this.g.fiatBalance, this.g.wallet.currency)
       }
-      this.fetchChartData()
+      try {
+        this.fetchChartData()
+      } catch (error) {
+        console.warn(`Chart creation failed: ${error}`)
+      }
     },
     '$q.screen.gt.sm'(value) {
       if (value == true) {
