@@ -38,9 +38,8 @@ python3 --version
 ### Install Poetry
 
 ```sh
-curl -sSL https://install.python-poetry.org | python3 -
-# Once the above poetry install is completed, use the installation path printed to terminal and replace in the following command
-export PATH="/home/$USER/.local/bin:$PATH"
+# If path 'export PATH="$HOME/.local/bin:$PATH"' fails, use the path echoed by the install
+curl -sSL https://install.python-poetry.org | python3 - && export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ### install LNbits
