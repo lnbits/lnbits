@@ -312,7 +312,7 @@ window.LNbits = {
     formatCurrency(value, currency) {
       return new Intl.NumberFormat(window.LOCALE, {
         style: 'currency',
-        currency: currency
+        currency: currency || 'sat'
       }).format(value)
     },
     formatSat(value) {

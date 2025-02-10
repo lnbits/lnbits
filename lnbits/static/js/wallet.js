@@ -650,10 +650,10 @@ window.WalletPageLogic = {
           (this.g.exchangeRate / 100000000) * this.g.wallet.sat
         this.formatFiatAmount(this.g.fiatBalance, currency)
       }
-      LNbits.api
-        .request('GET', `/api/v1/rate/` + currency, null)
-        .then(response => {
-          if (this.g.wallet.currency == currency) {
+      if (currency && this.g.wallet.currency == currency) {
+        LNbits.api
+          .request('GET', `/api/v1/rate/` + currency, null)
+          .then(response => {
             this.g.fiatBalance =
               (response.data.price / 100000000) * this.g.wallet.sat
             this.g.exchangeRate = response.data.price.toFixed(2)
@@ -663,9 +663,9 @@ window.WalletPageLogic = {
               'lnbits.exchangeRate.' + currency,
               this.g.exchangeRate
             )
-          }
-        })
-        .catch(e => console.error(e))
+          })
+          .catch(e => console.error(e))
+      }
     },
     pasteToTextArea() {
       this.$refs.textArea.focus()
