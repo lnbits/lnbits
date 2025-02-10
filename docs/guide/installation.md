@@ -29,19 +29,18 @@ It is recommended to use the latest version of Poetry. Make sure you have Python
 ### Install Python 3.12
 
 ```sh
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt update
-sudo apt install python3.12
-sudo apt-get install python3.12-dev # ensure correct headers needed for secp256k1
+sudo add-apt-repository -y ppa:deadsnakes/ppa
+sudo apt update -y
+sudo apt install -y python3.12 python3.12-dev # ensure correct headers needed for secp256k1
+sudo apt install -y pkg-config python3-dev build-essential # ensure correct headers
 python3 --version
 ```
 
 ### Install Poetry
 
 ```sh
-curl -sSL https://install.python-poetry.org | python3 -
-# Once the above poetry install is completed, use the installation path printed to terminal and replace in the following command
-export PATH="/home/user/.local/bin:$PATH"
+# If path 'export PATH="$HOME/.local/bin:$PATH"' fails, use the path echoed by the install
+curl -sSL https://install.python-poetry.org | python3 - && export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ### install LNbits
