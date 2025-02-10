@@ -29,10 +29,9 @@ It is recommended to use the latest version of Poetry. Make sure you have Python
 ### Install Python 3.12
 
 ```sh
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt update
-sudo apt install python3.12
-sudo apt-get install python3.12-dev # ensure correct headers needed for secp256k1
+sudo add-apt-repository -y ppa:deadsnakes/ppa
+sudo apt update -y
+sudo apt install -y python3.12 python3.12-dev # ensure correct headers needed for secp256k1
 python3 --version
 ```
 
