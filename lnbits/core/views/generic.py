@@ -207,17 +207,13 @@ async def wallet(
 )
 async def account(
     request: Request,
-    user: User = None,
+    user: User,
 ):
-    try:
-        user_dict = user.dict()
-    except Exception:
-        user_dict = None
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
         {
-            "user": user.json(),
+            "user": user.json() or None,
             "ajax": _is_ajax_request(request),
         },
     )
