@@ -879,7 +879,7 @@ window.WalletPageLogic = {
           }
         )
 
-        // this.walletDailyChart.update()
+        this.walletDailyChart.update()
 
         // this.paymentsBalanceInOutChart.data.datasets = [
         //   {
