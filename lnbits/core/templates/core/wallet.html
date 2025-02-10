@@ -364,6 +364,20 @@
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
+                <q-separator></q-separator>
+                <q-expansion-item
+                  group="charts"
+                  icon="insights"
+                  :label="$t('wallet_charts')"
+                >
+                  <q-card>
+                    <q-card-section>
+                      <div class="row">
+                        <div class="col-12">xxxxxx</div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </q-expansion-item>
 
                 <q-separator></q-separator>
                 {% include "core/_api_docs.html" %}
@@ -402,26 +416,15 @@
           {% endif %}
           <q-card>
             <q-card-section class="q-pa-none">
-              <q-list>
-                <q-expansion-item
-                  group="charts"
-                  icon="insights"
-                  :label="$t('wallet_charts')"
-                >
-                  <q-card>
-                    <q-card-section>
-                      <div class="row">
-                        <div class="col-12">xxxxxx</div>
-                      </div>
-                    </q-card-section>
-                  </q-card>
-                </q-expansion-item>
-              </q-list>
-            </q-card-section>
-            <q-card-section>
-              <strong v-text="$t('lnbits_balance', 2222)"></strong>
-              <div style="height: 300px" class="q-pa-sm">
+              <div style="height: 200px" class="q-pa-sm">
                 <canvas ref="walletDailyChart"></canvas>
+              </div>
+            </q-card-section>
+          </q-card>
+          <q-card>
+            <q-card-section class="q-pa-none">
+              <div style="height: 200px" class="q-pa-sm">
+                <canvas ref="walletBalanceInOut"></canvas>
               </div>
             </q-card-section>
           </q-card>

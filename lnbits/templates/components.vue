@@ -1129,7 +1129,7 @@
       <div class="text-body2 text-center q-mt-md">
         <q-badge
           @click="showLogin('user-id-only')"
-          color="accent"
+          color="primary"
           class="cursor-pointer"
           rounded
         >
@@ -1141,7 +1141,7 @@
           <span v-text="$t('or')" class="q-mx-sm text-grey"></span>
           <q-badge
             @click="showRegister('user-id-only')"
-            color="accent"
+            color="primary"
             class="cursor-pointer"
             rounded
           >
