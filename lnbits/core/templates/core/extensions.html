@@ -450,7 +450,7 @@
                   ></q-icon>
                   <span v-text="$t('release_details_error')"></span>
                 </div>
-                <q-card v-else>
+                <q-card class="no-border" v-else>
                   <q-card-section v-if="release.is_version_compatible">
                     <span
                       v-if="release.requiresPayment && !release.paid_sats"
