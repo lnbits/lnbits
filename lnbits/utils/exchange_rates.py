@@ -1,10 +1,10 @@
-import asyncio
-from typing import Callable, NamedTuple
+from typing import Optional
 
 import httpx
+import jsonpath_ng.ext as jpx
 from loguru import logger
 
-from lnbits.settings import settings
+from lnbits.settings import ExchangeRateProvider, settings
 from lnbits.utils.cache import cache
 
 currencies = {
@@ -145,7 +145,7 @@ currencies = {
     "TJS": "Tajikistani Somoni",
     "TMT": "Turkmenistani Manat",
     "TND": "Tunisian Dinar",
-    "TOP": "Tongan Paʻanga",
+    "TOP": "Tongan Pa'anga",
     "TRY": "Turkish Lira",
     "TTD": "Trinidad and Tobago Dollar",
     "TWD": "New Taiwan Dollar",
@@ -186,114 +186,86 @@ def allowed_currencies():
     return list(currencies.keys())
 
 
-class Provider(NamedTuple):
-    name: str
-    domain: str
-    api_url: str
-    getter: Callable
+async def btc_rates(currency: str) -> list[tuple[str, float]]:
+    def replacements(ticker: str):
+        return {
+            "FROM": "BTC",
+            "from": "btc",
+            "TO": ticker.upper(),
+            "to": ticker.lower(),
+        }
 
+    async def fetch_price(
+        provider: ExchangeRateProvider,
+    ) -> Optional[tuple[str, float]]:
+        if currency.lower() in provider.exclude_to:
+            logger.warning(f"Provider {provider.name} does not support {currency}.")
+            return None
 
-exchange_rate_providers = {
-    # https://binance-docs.github.io/apidocs/spot/en/#symbol-price-ticker
-    "binance": Provider(
-        "Binance",
-        "binance.com",
-        "https://api.binance.com/api/v3/ticker/price?symbol={FROM}{TO}",
-        lambda data, replacements: data["price"],
-    ),
-    "blockchain": Provider(
-        "Blockchain",
-        "blockchain.com",
-        "https://blockchain.info/tobtc?currency={TO}&value=1",
-        lambda data, replacements: 1 / data,
-    ),
-    "exir": Provider(
-        "Exir",
-        "exir.io",
-        "https://api.exir.io/v1/ticker?symbol={from}-{to}",
-        lambda data, replacements: data["last"],
-    ),
-    "bitfinex": Provider(
-        "Bitfinex",
-        "bitfinex.com",
-        "https://api.bitfinex.com/v1/pubticker/{from}{to}",
-        lambda data, replacements: data["last_price"],
-    ),
-    "bitstamp": Provider(
-        "Bitstamp",
-        "bitstamp.net",
-        "https://www.bitstamp.net/api/v2/ticker/{from}{to}/",
-        lambda data, replacements: data["last"],
-    ),
-    "coinbase": Provider(
-        "Coinbase",
-        "coinbase.com",
-        "https://api.coinbase.com/v2/exchange-rates?currency={FROM}",
-        lambda data, replacements: data["data"]["rates"][replacements["TO"]],
-    ),
-    "coinmate": Provider(
-        "CoinMate",
-        "coinmate.io",
-        "https://coinmate.io/api/ticker?currencyPair={FROM}_{TO}",
-        lambda data, replacements: data["data"]["last"],
-    ),
-    "kraken": Provider(
-        "Kraken",
-        "kraken.com",
-        "https://api.kraken.com/0/public/Ticker?pair=XBT{TO}",
-        lambda data, replacements: data["result"]["XXBTZ" + replacements["TO"]]["c"][0],
-    ),
-}
+        ticker = provider.convert_ticker(currency)
+        url = provider.api_url.format(**replacements(ticker))
+        json_path = provider.path.format(**replacements(ticker))
 
-
-async def btc_price(currency: str) -> float:
-    replacements = {
-        "FROM": "BTC",
-        "from": "btc",
-        "TO": currency.upper(),
-        "to": currency.lower(),
-    }
-
-    async def fetch_price(provider: Provider):
-        url = provider.api_url.format(**replacements)
         try:
             headers = {"User-Agent": settings.user_agent}
             async with httpx.AsyncClient(headers=headers) as client:
                 r = await client.get(url, timeout=0.5)
                 r.raise_for_status()
+
+                if not provider.path:
+                    return provider.name, float(r.text.replace(",", ""))
                 data = r.json()
-                return float(provider.getter(data, replacements))
+                price_query = jpx.parse(json_path)
+                result = price_query.find(data)
+                return provider.name, float(result[0].value)
+
         except Exception as e:
             logger.warning(
                 f"Failed to fetch Bitcoin price "
                 f"for {currency} from {provider.name}: {e}"
             )
-            raise
 
-    results = await asyncio.gather(
-        *[fetch_price(provider) for provider in exchange_rate_providers.values()],
-        return_exceptions=True,
-    )
-    rates = [r for r in results if not isinstance(r, BaseException)]
+        return None
 
+    # OK to be in squence: fetch_price times out after 0.5 seconds
+    results = [
+        await fetch_price(provider)
+        for provider in settings.lnbits_exchange_rate_providers
+    ]
+
+    return [r for r in results if r is not None]
+
+
+async def btc_price(currency: str) -> float:
+    rates = await btc_rates(currency)
     if not rates:
         return 9999999999
     elif len(rates) == 1:
         logger.warning("Could only fetch one Bitcoin price.")
 
-    return sum(rates) / len(rates)
+    rates_values = [r[1] for r in rates]
+    return sum(rates_values) / len(rates_values)
+
+
+async def get_fiat_rate_and_price_satoshis(currency: str) -> tuple[float, float]:
+    price = await cache.save_result(
+        lambda: btc_price(currency),
+        f"btc-price-{currency}",
+        settings.lnbits_exchange_rate_cache_seconds,
+    )
+    return float(100_000_000 / price), price
 
 
 async def get_fiat_rate_satoshis(currency: str) -> float:
-    price = await cache.save_result(
-        lambda: btc_price(currency), f"btc-price-{currency}"
-    )
-    return float(100_000_000 / price)
+    rate, _ = await get_fiat_rate_and_price_satoshis(currency)
+    return rate
 
 
 async def fiat_amount_as_satoshis(amount: float, currency: str) -> int:
-    return int(amount * (await get_fiat_rate_satoshis(currency)))
+    rate = await get_fiat_rate_satoshis(currency)
+    return int(amount * (rate))
 
 
 async def satoshis_amount_as_fiat(amount: float, currency: str) -> float:
-    return float(amount / (await get_fiat_rate_satoshis(currency)))
+    rate = await get_fiat_rate_satoshis(currency)
+    return float(amount / rate)

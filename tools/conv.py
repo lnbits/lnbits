@@ -1,5 +1,5 @@
 # Python script to migrate an LNbits SQLite DB to Postgres
-# All credits to @Fritz446 for the awesome work
+# credits to @Fritz446 for the awesome work
 
 # pip install psycopg2 OR psycopg2-binary
 
@@ -7,11 +7,15 @@ import argparse
 import os
 import sqlite3
 import sys
-from typing import List
-
-import psycopg2
+from typing import List, Optional
 
 from lnbits.settings import settings
+
+try:
+    import psycopg2  # type: ignore
+except ImportError:
+    print("Please install psycopg2")
+    sys.exit(1)
 
 sqfolder = settings.lnbits_data_folder
 db_url = settings.lnbits_database_url
@@ -55,8 +59,8 @@ def check_db_versions(sqdb):
             version = dbpost[key]
             if value != version:
                 raise Exception(
-                    f"sqlite database version ({value}) of {key} doesn't match postgres"
-                    f" database version {version}"
+                    f"sqlite database version ({value}) of {key} doesn't match "
+                    f"postgres database version {version}"
                 )
 
     connection = postgres.connection
@@ -90,21 +94,23 @@ def insert_to_pg(query, data):
     for d in data:
         try:
             cursor.execute(query, d)
-        except Exception as e:
+        except Exception as exc:
             if args.ignore_errors:
-                print(e)
+                print(exc)
                 print(f"Failed to insert {d}")
             else:
                 print("query:", query)
                 print("data:", d)
-                raise ValueError(f"Failed to insert {d}")
+                raise ValueError(f"Failed to insert {d}") from exc
     connection.commit()
 
     cursor.close()
     connection.close()
 
 
-def migrate_core(file: str, exclude_tables: List[str] = []):
+def migrate_core(file: str, exclude_tables: Optional[List[str]] = None):
+    if exclude_tables is None:
+        exclude_tables = []
     print(f"Migrating core: {file}")
     migrate_db(file, "public", exclude_tables)
     print("✅ Migrated core")
@@ -118,8 +124,10 @@ def migrate_ext(file: str):
     print(f"✅ Migrated ext: {schema}")
 
 
-def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
+def migrate_db(file: str, schema: str, exclude_tables: Optional[List[str]] = None):
     # first we check if this file exists:
+    if exclude_tables is None:
+        exclude_tables = []
     assert os.path.isfile(file), f"{file} does not exist!"
 
     cursor = get_sqlite_cursor(file)
@@ -131,39 +139,39 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
     ).fetchall()
 
     for table in tables:
-        tableName = table[0]
-        print(f"Migrating table {tableName}")
+        table_name = table[0]
+        print(f"Migrating table {table_name}")
         # hard coded skip for dbversions (already produced during startup)
-        if tableName == "dbversions":
+        if table_name == "dbversions":
             continue
-        if exclude_tables and tableName in exclude_tables:
+        if exclude_tables and table_name in exclude_tables:
             continue
 
-        columns = cursor.execute(f"PRAGMA table_info({tableName})").fetchall()
-        q = build_insert_query(schema, tableName, columns)
+        columns = cursor.execute(f"PRAGMA table_info({table_name})").fetchall()
+        q = build_insert_query(schema, table_name, columns)
 
-        data = cursor.execute(f"SELECT * FROM {tableName};").fetchall()
+        data = cursor.execute(f"SELECT * FROM {table_name};").fetchall()
 
         if len(data) == 0:
-            print(f"🛑 You sneaky dev! Table {tableName} is empty!")
+            print(f"🛑 You sneaky dev! Table {table_name} is empty!")
 
         insert_to_pg(q, data)
     cursor.close()
 
 
-def build_insert_query(schema, tableName, columns):
+def build_insert_query(schema, table_name, columns):
     to_columns = ", ".join([f'"{column[1].lower()}"' for column in columns])
     values = ", ".join([to_column_type(column[2]) for column in columns])
     return f"""
-            INSERT INTO {schema}.{tableName}({to_columns})
+            INSERT INTO {schema}.{table_name}({to_columns})
             VALUES ({values});
         """
 
 
-def to_column_type(columnType):
-    if columnType == "TIMESTAMP":
+def to_column_type(column_type):
+    if column_type == "TIMESTAMP":
         return "to_timestamp(%s)"
-    if columnType in ["BOOLEAN", "BOOL"]:
+    if column_type in ["BOOLEAN", "BOOL"]:
         return "%s::boolean"
     return "%s"
 

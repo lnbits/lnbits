@@ -1,0 +1,187 @@
+<div class="row q-mb-lg">
+  <div class="col">
+    <q-btn
+      icon="arrow_back_ios"
+      @click="backToUsersPage()"
+      :label="$t('back')"
+    ></q-btn>
+    <q-btn
+      v-if="activeUser.data.id"
+      @click="updateUser()"
+      color="primary"
+      :label="$t('update_account')"
+      class="q-ml-md"
+    ></q-btn>
+    <q-btn
+      v-else
+      @click="createUser()"
+      :label="$t('create_account')"
+      color="primary"
+      class="float-right"
+    ></q-btn>
+  </div>
+</div>
+<q-card v-if="activeUser.show" class="q-pa-md">
+  <q-card-section>
+    <div class="text-h6">
+      <span v-if="activeUser.data.id" v-text="$t('update_account')"></span>
+      <span v-else v-text="$t('create_account')"></span>
+    </div>
+  </q-card-section>
+  <q-card-section>
+    <q-input
+      v-if="activeUser.data.id"
+      v-model="activeUser.data.id"
+      :label="$t('user_id')"
+      filled
+      dense
+      readonly
+      :type="activeUser.data.showUserId ? 'text': 'password'"
+      class="q-mb-md"
+      ><q-btn
+        @click="activeUser.data.showUserId = !activeUser.data.showUserId"
+        dense
+        flat
+        :icon="activeUser.data.showUserId ? 'visibility_off' : 'visibility'"
+        color="grey"
+      ></q-btn>
+    </q-input>
+    <q-input
+      v-model="activeUser.data.username"
+      :label="$t('username')"
+      filled
+      dense
+      class="q-mb-md"
+    >
+    </q-input>
+    <q-toggle
+      size="xs"
+      v-if="!activeUser.data.id"
+      color="secondary"
+      :label="$t('set_password')"
+      v-model="activeUser.setPassword"
+    >
+      <q-tooltip>Toggle Admin</q-tooltip>
+    </q-toggle>
+
+    <q-input
+      v-if="activeUser.setPassword"
+      v-model="activeUser.data.password"
+      :type="activeUser.data.showPassword ? 'text': 'password'"
+      autocomplete="off"
+      :label="$t('password')"
+      filled
+      dense
+      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+    >
+      <q-btn
+        @click="activeUser.data.showPassword = !activeUser.data.showPassword"
+        dense
+        flat
+        :icon="activeUser.data.showPassword ? 'visibility_off' : 'visibility'"
+        color="grey"
+      ></q-btn>
+    </q-input>
+    <q-input
+      v-if="activeUser.setPassword"
+      v-model="activeUser.data.password_repeat"
+      :type="activeUser.data.showPassword ? 'text': 'password'"
+      type="password"
+      autocomplete="off"
+      :label="$t('password_repeat')"
+      filled
+      dense
+      class="q-mb-md"
+      :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
+    >
+      <q-btn
+        @click="activeUser.data.showPassword = !activeUser.data.showPassword"
+        dense
+        flat
+        :icon="activeUser.data.showPassword ? 'visibility_off' : 'visibility'"
+        color="grey"
+      ></q-btn>
+    </q-input>
+
+    <q-input
+      v-model="activeUser.data.pubkey"
+      :label="$t('pubkey')"
+      filled
+      dense
+      class="q-mb-md"
+    >
+    </q-input>
+    <q-input
+      v-model="activeUser.data.email"
+      :label="$t('email')"
+      filled
+      dense
+      class="q-mb-md"
+    >
+    </q-input>
+  </q-card-section>
+
+  <q-card-section v-if="activeUser.data.extra">
+    <q-input
+      v-model="activeUser.data.extra.first_name"
+      :label="$t('first_name')"
+      filled
+      dense
+      class="q-mb-md"
+    >
+    </q-input>
+    <q-input
+      v-model="activeUser.data.extra.last_name"
+      :label="$t('last_name')"
+      filled
+      dense
+      class="q-mb-md"
+    >
+    </q-input>
+    <q-input
+      v-model="activeUser.data.extra.provider"
+      :label="$t('auth_provider')"
+      filled
+      dense
+      class="q-mb-md"
+    >
+    </q-input>
+    <q-input
+      v-model="activeUser.data.extra.picture"
+      :label="$t('picture')"
+      filled
+      dense
+      class="q-mb-md"
+    >
+    </q-input>
+    <q-select
+      filled
+      dense
+      v-model="activeUser.data.extensions"
+      multiple
+      label="User extensions"
+      :options="g.extensions"
+    ></q-select>
+  </q-card-section>
+  <q-card-section v-if="activeUser.data.id">
+    <q-btn
+      @click="resetPassword(activeUser.data.id)"
+      :disable="activeUser.data.is_super_user"
+      :label="$t('reset_password')"
+      icon="refresh"
+      color="primary"
+    >
+      <q-tooltip>Generate and copy password reset url</q-tooltip>
+    </q-btn>
+    <q-btn
+      @click="deleteUser(activeUser.data.id)"
+      :disable="activeUser.data.is_super_user"
+      :label="$t('delete')"
+      icon="delete"
+      color="negative"
+      class="float-right"
+    >
+      <q-tooltip>Delete User</q-tooltip></q-btn
+    >
+  </q-card-section>
+</q-card>

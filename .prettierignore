@@ -10,4 +10,9 @@
 
 **/lnbits/static/vendor
 **/lnbits/static/bundle.*
+**/lnbits/static/bundle-components.*
 **/lnbits/static/css/*
+
+flake.lock
+
+.venv

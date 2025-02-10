@@ -1,15 +1,20 @@
+import asyncio
+import json
+from datetime import datetime, timezone
 from http import HTTPStatus
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Union
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from loguru import logger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from starlette.middleware.gzip import GZipMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.core.db import core_app_extra
+from lnbits.core.models import AuditEntry
 from lnbits.helpers import template_renderer
 from lnbits.settings import settings
 
@@ -29,7 +34,7 @@ class InstalledExtensionMiddleware:
             await self.app(scope, receive, send)
             return
 
-        top_path, *rest = [p for p in full_path.split("/") if p]
+        top_path, *rest = (p for p in full_path.split("/") if p)
         headers = scope.get("headers", [])
 
         # block path for all users if the extension is disabled
@@ -45,16 +50,11 @@ class InstalledExtensionMiddleware:
             await self.app(scope, receive, send)
             return
 
-        upgrade_path = next(
-            (
-                e
-                for e in settings.lnbits_upgraded_extensions
-                if e.endswith(f"/{top_path}")
-            ),
-            None,
-        )
         # re-route all trafic if the extension has been upgraded
-        if upgrade_path:
+        if top_path in settings.lnbits_upgraded_extensions:
+            upgrade_path = (
+                f"""{settings.lnbits_upgraded_extensions[top_path]}/{top_path}"""
+            )
             tail = "/".join(rest)
             scope["path"] = f"/upgrades/{upgrade_path}/{tail}"
 
@@ -92,18 +92,6 @@ class InstalledExtensionMiddleware:
         )
 
 
-class CustomGZipMiddleware(GZipMiddleware):
-    def __init__(self, *args, exclude_paths=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.exclude_paths = exclude_paths or []
-
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if "path" in scope and scope["path"] in self.exclude_paths:
-            await self.app(scope, receive, send)
-            return
-        await super().__call__(scope, receive, send)
-
-
 class ExtensionsRedirectMiddleware:
     # Extensions are allowed to specify redirect paths. A call to a path outside the
     # scope of the extension can be redirected to one of the extension's endpoints.
@@ -118,71 +106,99 @@ class ExtensionsRedirectMiddleware:
             return
 
         req_headers = scope["headers"] if "headers" in scope else []
-        redirect = self._find_redirect(scope["path"], req_headers)
+        redirect = settings.find_extension_redirect(scope["path"], req_headers)
         if redirect:
-            scope["path"] = self._new_path(redirect, scope["path"])
+            scope["path"] = redirect.new_path_from(scope["path"])
 
         await self.app(scope, receive, send)
 
-    def _find_redirect(self, path: str, req_headers: List[Tuple[bytes, bytes]]):
-        return next(
-            (
-                r
-                for r in settings.lnbits_extensions_redirects
-                if self._redirect_matches(r, path, req_headers)
-            ),
-            None,
-        )
 
-    def _redirect_matches(
-        self, redirect: dict, path: str, req_headers: List[Tuple[bytes, bytes]]
-    ) -> bool:
-        if "from_path" not in redirect:
-            return False
-        header_filters = (
-            redirect["header_filters"] if "header_filters" in redirect else {}
-        )
-        return self._has_common_path(redirect["from_path"], path) and self._has_headers(
-            header_filters, req_headers
-        )
+class AuditMiddleware(BaseHTTPMiddleware):
 
-    def _has_headers(
-        self, filter_headers: dict, req_headers: List[Tuple[bytes, bytes]]
-    ) -> bool:
-        for h in filter_headers:
-            if not self._has_header(req_headers, (str(h), str(filter_headers[h]))):
-                return False
-        return True
+    def __init__(self, app: ASGIApp, audit_queue: asyncio.Queue) -> None:
+        super().__init__(app)
+        self.audit_queue = audit_queue
+        # delete_time purge after X days
+        # time, # include pats, exclude paths (regex)
 
-    def _has_header(
-        self, req_headers: List[Tuple[bytes, bytes]], header: Tuple[str, str]
-    ) -> bool:
-        for h in req_headers:
-            if (
-                h[0].decode().lower() == header[0].lower()
-                and h[1].decode() == header[1]
-            ):
-                return True
-        return False
+    async def dispatch(self, request: Request, call_next) -> Response:
+        start_time = datetime.now(timezone.utc)
+        request_details = await self._request_details(request)
+        response: Optional[Response] = None
 
-    def _has_common_path(self, redirect_path: str, req_path: str) -> bool:
-        redirect_path_elements = redirect_path.split("/")
-        req_path_elements = req_path.split("/")
-        if len(redirect_path) > len(req_path):
-            return False
-        sub_path = req_path_elements[: len(redirect_path_elements)]
-        return redirect_path == "/".join(sub_path)
+        try:
+            response = await call_next(request)
+            assert response
+            return response
+        finally:
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+            await self._log_audit(request, response, duration, request_details)
 
-    def _new_path(self, redirect: dict, req_path: str) -> str:
-        from_path = redirect["from_path"].split("/")
-        redirect_to = redirect["redirect_to_path"].split("/")
-        req_tail_path = req_path.split("/")[len(from_path) :]
+    async def _log_audit(
+        self,
+        request: Request,
+        response: Optional[Response],
+        duration: float,
+        request_details: Optional[str],
+    ):
+        try:
+            http_method = request.scope.get("method", None)
+            path: Optional[str] = getattr(request.scope.get("route", {}), "path", None)
+            response_code = str(response.status_code) if response else None
+            if not settings.audit_http_request(http_method, path, response_code):
+                return None
+            ip_address = (
+                request.client.host
+                if settings.lnbits_audit_log_ip_address and request.client
+                else None
+            )
+            user_id = request.scope.get("user_id", None)
+            if settings.is_super_user(user_id):
+                user_id = "super_user"
+            component = "core"
+            if path and not path.startswith("/api"):
+                component = path.split("/")[1]
 
-        elements = [
-            e for e in ([redirect["ext_id"]] + redirect_to + req_tail_path) if e != ""
-        ]
+            data = AuditEntry(
+                component=component,
+                ip_address=ip_address,
+                user_id=user_id,
+                path=path,
+                request_type=request.scope.get("type", None),
+                request_method=http_method,
+                request_details=request_details,
+                response_code=response_code,
+                duration=duration,
+            )
+            await self.audit_queue.put(data)
+        except Exception as ex:
+            logger.warning(ex)
 
-        return "/" + "/".join(elements)
+    async def _request_details(self, request: Request) -> Optional[str]:
+        if not settings.audit_http_request_details():
+            return None
+
+        try:
+            http_method = request.scope.get("method", None)
+            path = request.scope.get("path", None)
+
+            if not settings.audit_http_request(http_method, path):
+                return None
+
+            details: dict = {}
+            if settings.lnbits_audit_log_path_params:
+                details["path_params"] = request.path_params
+            if settings.lnbits_audit_log_query_params:
+                details["query_params"] = dict(request.query_params)
+            if settings.lnbits_audit_log_request_body:
+                _body = await request.body()
+                details["body"] = _body.decode("utf-8")
+            details_str = json.dumps(details)
+            # Make sure the super_user id is not leaked
+            return details_str.replace(settings.super_user, "super_user")
+        except Exception as e:
+            logger.warning(e)
+        return None
 
 
 def add_ratelimit_middleware(app: FastAPI):
@@ -201,7 +217,7 @@ def add_ip_block_middleware(app: FastAPI):
     async def block_allow_ip_middleware(request: Request, call_next):
         if not request.client:
             return JSONResponse(
-                status_code=403,  # Forbidden
+                status_code=HTTPStatus.FORBIDDEN,
                 content={"detail": "No request client"},
             )
         if (
@@ -209,12 +225,10 @@ def add_ip_block_middleware(app: FastAPI):
             and request.client.host not in settings.lnbits_allowed_ips
         ):
             return JSONResponse(
-                status_code=403,  # Forbidden
+                status_code=HTTPStatus.FORBIDDEN,
                 content={"detail": "IP is blocked"},
             )
         return await call_next(request)
-
-    app.middleware("http")(block_allow_ip_middleware)
 
 
 def add_first_install_middleware(app: FastAPI):
@@ -228,5 +242,3 @@ def add_first_install_middleware(app: FastAPI):
         ):
             return RedirectResponse("/first_install")
         return await call_next(request)
-
-    app.middleware("http")(first_install_middleware)

@@ -10,16 +10,16 @@ Go to `Manage Server` > `Server` > `Extensions Manifests`
 
 ![image](https://user-images.githubusercontent.com/2951406/213494038-e8152d8e-61f2-4cb7-8b5f-361fc3f9a31f.png)
 
-
 An `Extension Manifest` is a link to a `JSON` file which contains information about various extensions that can be installed (repository of extensions).
 Multiple repositories can be configured. For more information check the [Manifest File](https://github.com/lnbits/lnbits/blob/main/docs/guide/extension-install.md#manifest-file) section.
 
-
 **LNbits** administrators should configure their instances to use repositories that they trust (like the [lnbits-extensions](https://github.com/lnbits/lnbits-extensions/) one).
+
 > **Warning**
 > Extensions can have bugs or malicious code, be careful what you install!!
 
 ## Install New Extension
+
 Only administrator users can install or upgrade extensions.
 
 Go to `Manage Extensions` > `Add Remove Extensions`
@@ -45,13 +45,12 @@ Select the version to be installed (usually the last one) and click `Install`. O
 >
 > For Explicit Release: the order of the releases is the one in the "extensions" object
 
-
 The extension has been installed but it cannot be accessed yet. In order to activate the extension toggle it in the `Activated` state.
 
 Go to `Manage Extensions` (as admin user or regular user). Search for the extension and enable it.
 
-
 ## Uninstall Extension
+
 On the `Install` page click `Manage` for the extension you want to uninstall:
 ![image](https://user-images.githubusercontent.com/2951406/213653194-32cbb1da-dcc8-43cf-8a82-1ec5d2d3dc16.png)
 
@@ -65,6 +64,7 @@ Users will no longer be able to access the extension.
 > The database for the extension is not removed. If the extension is re-installed later, the data will be accessible.
 
 ## Manifest File
+
 The manifest file is just a `JSON` file that lists a collection of extensions that can be installed. This file is of the form:
 
 ```json
@@ -77,30 +77,32 @@ The manifest file is just a `JSON` file that lists a collection of extensions th
 There are two ways to specify installable extensions:
 
 ### Explicit Release
+
 It goes under the `extensions` object and it is of the form:
+
 ```json
-        {
-            "id": "lnurlp",
-            "name": "LNURL Pay Links",
-            "version": 1,
-            "shortDescription": "Upgrade to version 111111111",
-            "icon": "receipt",
-            "details": "All charge names should be <code>111111111</code>. API panel must show: <br>",
-            "archive": "https://github.com/lnbits/lnbits-extensions/raw/main/new/lnurlp/1/lnurlp.zip",
-            "hash": "a22d02de6bf306a7a504cd344e032cc6d48837a1d4aeb569a55a57507bf9a43a",
-            "htmlUrl": "https://github.com/lnbits/lnbits-extensions/tree/main/new/lnurlp/1",
-            "infoNotification": "This is a very old version",
-            "dependencies": ["other-ext-id"]
-        }
+{
+  "id": "lnurlp",
+  "name": "LNURL Pay Links",
+  "version": 1,
+  "shortDescription": "Upgrade to version 111111111",
+  "icon": "receipt",
+  "details": "All charge names should be <code>111111111</code>. API panel must show: <br>",
+  "archive": "https://github.com/lnbits/lnbits-extensions/raw/main/new/lnurlp/1/lnurlp.zip",
+  "hash": "a22d02de6bf306a7a504cd344e032cc6d48837a1d4aeb569a55a57507bf9a43a",
+  "htmlUrl": "https://github.com/lnbits/lnbits-extensions/tree/main/new/lnurlp/1",
+  "infoNotification": "This is a very old version",
+  "dependencies": ["other-ext-id"]
+}
 ```
 
 <details><summary>Fields Detailed Description</summary>
 
 | Field                | Type          |           | Description                                                                                                                                                          |
-|----------------------|---------------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| id                   | string        | mandatory | The ID of the extension. Must be unique for each extension. It is also used as the path in the URL.                                                                          |
+| -------------------- | ------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                   | string        | mandatory | The ID of the extension. Must be unique for each extension. It is also used as the path in the URL.                                                                  |
 | name                 | string        | mandatory | User friendly name for the extension. It will be displayed on the installation page.                                                                                 |
-| version              | string        | mandatory | Version of this release. [Semantic versioning](https://semver.org/) is recommended.                                                                                   |
+| version              | string        | mandatory | Version of this release. [Semantic versioning](https://semver.org/) is recommended.                                                                                  |
 | shortDescription     | string        | optional  | A few words about the extension. It will be displayed on the installation page.                                                                                      |
 | icon                 | string        | optional  | quasar valid icon name                                                                                                                                               |
 | details              | string (html) | optional  | Details about this particular release                                                                                                                                |
@@ -109,31 +111,30 @@ It goes under the `extensions` object and it is of the form:
 | htmlUrl              | string        | optional  | Link to the extension home page.                                                                                                                                     |
 | infoNotification     | string        | optional  | Users that have this release installed will see a info message for their extension. For example if the extension support will be terminated soon.                    |
 | criticalNotification | string        | optional  | Reserved for urgent notifications. The admin user will receive a message each time it visits the `Install` page. One example is if the extension has a critical bug. |
-| dependencies         | list          | optional  | A list of extension IDs. It signals that those extensions must be installed BEFORE the this one can be installed.
+| dependencies         | list          | optional  | A list of extension IDs. It signals that those extensions must be installed BEFORE the this one can be installed.                                                    |
 
 </details>
 
 This mode has the advantage of strictly specifying what releases of an extension can be installed.
 
 ### GitHub Repository
+
 It goes under the `repos` object and it is of the form:
 
 ```json
 {
-    "id": "withdraw",
-    "organisation": "lnbits",
-    "repository": "withdraw-extension"
+  "id": "withdraw",
+  "organisation": "lnbits",
+  "repository": "withdraw-extension"
 }
 ```
 
-| Field        | Type   | Description                                           |
-|--------------|--------|-------------------------------------------------------|
-| id           | string | The ID of the extension. Must be unique for each extension. It is also used as the path in the URL.                               |
-| organisation | string | The GitHub organisation (eg: `lnbits`)                |
-| repository   | string | The GitHub repository name (eg: `withdraw-extension`) |
+| Field        | Type   | Description                                                                                         |
+| ------------ | ------ | --------------------------------------------------------------------------------------------------- |
+| id           | string | The ID of the extension. Must be unique for each extension. It is also used as the path in the URL. |
+| organisation | string | The GitHub organisation (eg: `lnbits`)                                                              |
+| repository   | string | The GitHub repository name (eg: `withdraw-extension`)                                               |
 
 The admin user will see all releases from the Github repository:
 
 ![image](https://user-images.githubusercontent.com/2951406/213508934-11de5ae5-2045-471c-854b-94b6acbf4434.png)
-
-

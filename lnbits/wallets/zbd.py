@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
@@ -13,7 +14,6 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    Unsupported,
     Wallet,
 )
 
@@ -64,17 +64,22 @@ class ZBDWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         # https://api.zebedee.io/v0/charges
-        if description_hash or unhashed_description:
-            raise Unsupported("description_hash")
 
         msats_amount = amount * 1000
         data: Dict = {
             "amount": f"{msats_amount}",
-            "description": memo,
             "expiresIn": 3600,
             "callbackUrl": "",
             "internalId": "",
         }
+
+        ## handle description_hash and unhashed for ZBD
+        if description_hash:
+            data["description"] = description_hash.hex()
+        elif unhashed_description:
+            data["description"] = hashlib.sha256(unhashed_description).hexdigest()
+        else:
+            data["description"] = memo or ""
 
         r = await self.client.post(
             "charges",
@@ -154,6 +159,6 @@ class ZBDWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
+        while settings.lnbits_running:
             value = await self.queue.get()
             yield value

@@ -1,300 +1,138 @@
-/* global _, Vue, moment, LNbits, EventHub, decryptLnurlPayAES */
+window.app.component(QrcodeVue)
 
-Vue.component('lnbits-fsat', {
+window.app.component('lnbits-extension-rating', {
+  template: '#lnbits-extension-rating',
+  name: 'lnbits-extension-rating',
+  props: ['rating']
+})
+
+window.app.component('lnbits-fsat', {
+  template: '<span>{{ fsat }}</span>',
   props: {
     amount: {
       type: Number,
       default: 0
     }
   },
-  template: '<span>{{ fsat }}</span>',
   computed: {
-    fsat: function () {
+    fsat() {
       return LNbits.utils.formatSat(this.amount)
     }
   }
 })
 
-Vue.component('lnbits-wallet-list', {
-  data: function () {
+window.app.component('lnbits-wallet-list', {
+  mixins: [window.windowMixin],
+  template: '#lnbits-wallet-list',
+  props: ['balance'],
+  data() {
     return {
-      user: null,
       activeWallet: null,
-      activeBalance: [],
+      balance: 0,
       showForm: false,
       walletName: '',
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
     }
   },
-  template: `
-    <q-list v-if="user && user.wallets.length" dense class="lnbits-drawer__q-list">
-      <q-item-label header v-text="$t('wallets')"></q-item-label>
-      <q-item v-for="wallet in wallets" :key="wallet.id"
-        clickable
-        :active="activeWallet && activeWallet.id === wallet.id"
-        tag="a" :href="wallet.url">
-        <q-item-section side>
-          <q-avatar size="md"
-            :color="(activeWallet && activeWallet.id === wallet.id)
-              ? (($q.dark.isActive) ? 'primary' : 'primary')
-              : 'grey-5'">
-            <q-icon name="flash_on" :size="($q.dark.isActive) ? '21px' : '20px'"
-              :color="($q.dark.isActive) ? 'blue-grey-10' : 'grey-3'"></q-icon>
-          </q-avatar>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1">{{ wallet.name }}</q-item-label>
-          <q-item-label v-if="LNBITS_DENOMINATION != 'sats'" caption>{{ parseFloat(String(wallet.live_fsat).replaceAll(",", "")) / 100  }} {{ LNBITS_DENOMINATION }}</q-item-label>
-          <q-item-label v-else caption>{{ wallet.live_fsat }} {{ LNBITS_DENOMINATION }}</q-item-label>
-        </q-item-section>
-        <q-item-section side v-show="activeWallet && activeWallet.id === wallet.id">
-          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
-        </q-item-section>
-      </q-item>
-      <q-item clickable @click="showForm = !showForm">
-        <q-item-section side>
-          <q-icon :name="(showForm) ? 'remove' : 'add'" color="grey-5" size="md"></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" class="text-caption" v-text="$t('add_wallet')"></q-item-label>
-        </q-item-section>
-      </q-item>
-      <q-item v-if="showForm">
-        <q-item-section>
-          <q-form @submit="createWallet">
-            <q-input filled dense v-model="walletName" label="Name wallet *">
-              <template v-slot:append>
-                <q-btn round dense flat icon="send" size="sm" @click="createWallet" :disable="walletName === ''"></q-btn>
-              </template>
-            </q-input>
-          </q-form>
-        </q-item-section>
-      </q-item>
-    </q-list>
-  `,
-  computed: {
-    wallets: function () {
-      var bal = this.activeBalance
-      return this.user.wallets.map(function (obj) {
-        obj.live_fsat =
-          bal.length && bal[0] === obj.id
-            ? LNbits.utils.formatSat(bal[1])
-            : obj.fsat
-        return obj
-      })
-    }
-  },
   methods: {
-    createWallet: function () {
-      LNbits.api.createWallet(this.user.wallets[0], this.walletName)
-    },
-    updateWalletBalance: function (payload) {
-      this.activeBalance = payload
+    createWallet() {
+      LNbits.api.createWallet(this.g.user.wallets[0], this.walletName)
     }
   },
-  created: function () {
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
-    }
-    if (window.wallet) {
-      this.activeWallet = LNbits.map.wallet(window.wallet)
-    }
-    EventHub.$on('update-wallet-balance', this.updateWalletBalance)
+  created() {
+    document.addEventListener('updateWalletBalance', this.updateWalletBalance)
   }
 })
 
-Vue.component('lnbits-extension-list', {
-  data: function () {
+window.app.component('lnbits-extension-list', {
+  mixins: [window.windowMixin],
+  template: '#lnbits-extension-list',
+  data() {
     return {
       extensions: [],
-      user: null
+      searchTerm: ''
     }
   },
-  template: `
-    <q-list v-if="user && userExtensions.length > 0" dense class="lnbits-drawer__q-list">
-      <q-item-label header v-text="$t('extensions')"></q-item-label>
-      <q-item v-for="extension in userExtensions" :key="extension.code"
-        clickable
-        :active="extension.isActive"
-        tag="a" :href="extension.url">
-        <q-item-section side>
-          <q-avatar size="md">
-            <q-img
-              :src="extension.tile"
-              style="max-width:20px"
-            ></q-img>
-          </q-avatar>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1">{{ extension.name }} </q-item-label>
-        </q-item-section>
-        <q-item-section side v-show="extension.isActive">
-          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
-        </q-item-section>
-      </q-item>
-      <div class="lt-md q-mt-xl q-mb-xl"></div>
-    </q-list>
-  `,
+  watch: {
+    'g.user.extensions': {
+      handler(newExtensions) {
+        this.loadExtensions()
+      },
+      deep: true
+    }
+  },
   computed: {
-    userExtensions: function () {
-      if (!this.user) return []
-
-      var path = window.location.pathname
-      var userExtensions = this.user.extensions
+    userExtensions() {
+      return this.updateUserExtensions(this.searchTerm)
+    }
+  },
+  methods: {
+    async loadExtensions() {
+      try {
+        const {data} = await LNbits.api.request('GET', '/api/v1/extension')
+        this.extensions = data
+          .map(extension => LNbits.map.extension(extension))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
+    },
+    updateUserExtensions(filterBy) {
+      const path = window.location.pathname
+      const userExtensions = this.g.user.extensions
 
       return this.extensions
-        .filter(function (obj) {
-          return userExtensions.indexOf(obj.code) !== -1
+        .filter(o => userExtensions.includes(o.code))
+        .filter(o => {
+          if (!filterBy) return true
+          return `${o.code} ${o.name} ${o.short_description} ${o.url}`
+            .toLocaleLowerCase()
+            .includes(filterBy.toLocaleLowerCase())
         })
-        .map(function (obj) {
+        .map(obj => {
           obj.isActive = path.startsWith(obj.url)
           return obj
         })
     }
   },
-  created: function () {
-    if (window.extensions) {
-      this.extensions = window.extensions
-        .map(function (data) {
-          return LNbits.map.extension(data)
-        })
-        .sort(function (a, b) {
-          return a.name.localeCompare(b.name)
-        })
-    }
-
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
-    }
+  async created() {
+    await this.loadExtensions()
   }
 })
 
-Vue.component('lnbits-manage', {
-  props: ['showAdmin', 'showNode', 'showExtensions'],
+window.app.component('lnbits-manage', {
+  mixins: [window.windowMixin],
+  template: '#lnbits-manage',
+  props: [
+    'showAdmin',
+    'showNode',
+    'showExtensions',
+    'showUsers',
+    'showAudit',
+    'showPayments'
+  ],
   methods: {
-    isActive: function (path) {
+    isActive(path) {
       return window.location.pathname === path
     }
   },
-  data: function () {
+  data() {
     return {
-      extensions: [],
-      user: null
-    }
-  },
-  template: `
-    <q-list v-if="user" dense class="lnbits-drawer__q-list">
-      <q-item-label header v-text="$t('manage')"></q-item-label>
-      <div v-if="user.admin">
-        <q-item v-if='showAdmin' clickable tag="a" href="/admin" :active="isActive('/admin')">
-          <q-item-section side>
-            <q-icon name="admin_panel_settings" :color="isActive('/admin') ? 'primary' : 'grey-5'" size="md"></q-icon>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label lines="1" v-text="$t('server')"></q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item v-if='showNode' clickable tag="a" href="/node" :active="isActive('/node')">
-          <q-item-section side>
-            <q-icon name="developer_board" :color="isActive('/node') ? 'primary' : 'grey-5'" size="md"></q-icon>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label lines="1" v-text="$t('node')"></q-item-label>
-          </q-item-section>
-        </q-item>
-      </div>
-      <q-item v-if="showExtensions" clickable tag="a" href="/extensions" :active="isActive('/extensions')">
-        <q-item-section side>
-          <q-icon name="extension" :color="isActive('/extensions') ? 'primary' : 'grey-5'" size="md"></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" v-text="$t('extensions')"></q-item-label>
-        </q-item-section>
-      </q-item>
-    </q-list>
-  `,
-
-  created: function () {
-    if (window.user) {
-      this.user = LNbits.map.user(window.user)
+      extensions: []
     }
   }
 })
 
-Vue.component('lnbits-payment-details', {
+window.app.component('lnbits-payment-details', {
+  mixins: [window.windowMixin],
+  template: '#lnbits-payment-details',
   props: ['payment'],
-  mixins: [windowMixin],
-  data: function () {
+  mixins: [window.windowMixin],
+  data() {
     return {
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
     }
   },
-  template: `
-  <div class="q-py-md" style="text-align: left">
-
-  <div v-if="payment.tag" class="row justify-center q-mb-md">
-    <q-badge v-if="hasTag" color="yellow" text-color="black">
-      #{{ payment.tag }}
-    </q-badge>
-  </div>
-
-  <div class="row">
-    <b v-text="$t('created')"></b>:
-    {{ payment.date }} ({{ payment.dateFrom }})
-  </div>
-
-  <div class="row" v-if="hasExpiry">
-   <b v-text="$t('expiry')"></b>:
-   {{ payment.expirydate }} ({{ payment.expirydateFrom }})
-  </div>
-
-  <div class="row">
-   <b v-text="$t('amount')"></b>:
-    {{ (payment.amount / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}
-  </div>
-
-  <div class="row">
-    <b v-text="$t('fee')"></b>:
-    {{ (payment.fee / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}
-  </div>
-
-  <div class="text-wrap">
-    <b style="white-space: nowrap;" v-text="$t('payment_hash')"></b>:&nbsp;{{ payment.payment_hash }}
-        <q-icon name="content_copy" @click="copyText(payment.payment_hash)" size="1em" color="grey" class="q-mb-xs cursor-pointer" />
-  </div>
-
-  <div class="text-wrap">
-    <b style="white-space: nowrap;" v-text="$t('memo')"></b>:&nbsp;{{ payment.memo }}
-  </div>
-
-  <div class="text-wrap" v-if="payment.webhook">
-    <b style="white-space: nowrap;" v-text="$t('webhook')"></b>:&nbsp;{{ payment.webhook }}:&nbsp;<q-badge :color="webhookStatusColor" text-color="white">
-      {{ webhookStatusText }}
-    </q-badge>
-  </div>
-
-  <div class="text-wrap" v-if="hasPreimage">
-    <b style="white-space: nowrap;" v-text="$t('payment_proof')"></b>:&nbsp;{{ payment.preimage }}
-  </div>
-
-  <div class="row" v-for="entry in extras">
-    <q-badge v-if="hasTag" color="secondary" text-color="white">
-      extra
-    </q-badge>
-    <b>{{ entry.key }}</b>:
-    {{ entry.value }}
-  </div>
-
-  <div class="row" v-if="hasSuccessAction">
-    <b>Success action</b>:
-      <lnbits-lnurlpay-success-action
-        :payment="payment"
-        :success_action="payment.extra.success_action"
-      ></lnbits-lnurlpay-success-action>
-  </div>
-
-</div>
-  `,
   computed: {
     hasPreimage() {
       return (
@@ -318,8 +156,8 @@ Vue.component('lnbits-payment-details', {
         this.payment.webhook_status < 0
         ? 'red-10'
         : !this.payment.webhook_status
-        ? 'cyan-7'
-        : 'green-10'
+          ? 'cyan-7'
+          : 'green-10'
     },
     webhookStatusText() {
       return this.payment.webhook_status
@@ -337,27 +175,17 @@ Vue.component('lnbits-payment-details', {
   }
 })
 
-Vue.component('lnbits-lnurlpay-success-action', {
+window.app.component('lnbits-lnurlpay-success-action', {
+  mixins: [window.windowMixin],
+  template: '#lnbits-lnurlpay-success-action',
   props: ['payment', 'success_action'],
   data() {
     return {
       decryptedValue: this.success_action.ciphertext
     }
   },
-  template: `
-    <div>
-      <p class="q-mb-sm">{{ success_action.message || success_action.description }}</p>
-      <code v-if="decryptedValue" class="text-h6 q-mt-sm q-mb-none">
-        {{ decryptedValue }}
-      </code>
-      <p v-else-if="success_action.url" class="text-h6 q-mt-sm q-mb-none">
-        <a target="_blank" style="color: inherit;" :href="success_action.url">{{ success_action.url }}</a>
-      </p>
-    </div>
-  `,
-  mounted: function () {
+  mounted() {
     if (this.success_action.tag !== 'aes') return null
-
     decryptLnurlPayAES(this.success_action, this.payment.preimage).then(
       value => {
         this.decryptedValue = value
@@ -366,26 +194,37 @@ Vue.component('lnbits-lnurlpay-success-action', {
   }
 })
 
-Vue.component('lnbits-qrcode', {
-  mixins: [windowMixin],
-  props: ['value'],
-  components: {[VueQrcode.name]: VueQrcode},
+window.app.component('lnbits-qrcode', {
+  mixins: [window.windowMixin],
+  template: '#lnbits-qrcode',
+  components: {
+    QrcodeVue
+  },
+  props: {
+    value: {
+      type: String,
+      required: true
+    },
+    options: Object
+  },
   data() {
     return {
-      logo: LNBITS_QR_LOGO
+      custom: {
+        margin: 1,
+        width: 350,
+        size: 350,
+        logo: LNBITS_QR_LOGO
+      }
     }
   },
-  template: `
-  <div class="qrcode__wrapper">
-    <qrcode :value="value"
-    :options="{errorCorrectionLevel: 'Q', width: 800}" class="rounded-borders"></qrcode>
-    <img class="qrcode__image" :src="logo" alt="..." />
-  </div>
-  `
+  created() {
+    this.custom = {...this.custom, ...this.options}
+  }
 })
 
-Vue.component('lnbits-notifications-btn', {
-  mixins: [windowMixin],
+window.app.component('lnbits-notifications-btn', {
+  template: '#lnbits-notifications-btn',
+  mixins: [window.windowMixin],
   props: ['pubkey'],
   data() {
     return {
@@ -395,26 +234,6 @@ Vue.component('lnbits-notifications-btn', {
       isPermissionDenied: false
     }
   },
-  template: `
-    <q-btn
-      v-if="g.user.wallets"
-      :disabled="!this.isSupported"
-      dense
-      flat
-      round
-      @click="toggleNotifications()"
-      :icon="this.isSubscribed ? 'notifications_active' : 'notifications_off'"
-      size="sm"
-      type="a"
-    >
-      <q-tooltip v-if="this.isSupported && !this.isSubscribed">Subscribe to notifications</q-tooltip>
-      <q-tooltip v-if="this.isSupported && this.isSubscribed">Unsubscribe from notifications</q-tooltip>
-      <q-tooltip v-if="this.isSupported && this.isPermissionDenied">
-          Notifications are disabled,<br/>please enable or reset permissions
-      </q-tooltip>
-      <q-tooltip v-if="!this.isSupported">Notifications are not supported</q-tooltip>
-    </q-btn>
-  `,
   methods: {
     // converts base64 to Array buffer
     urlB64ToUint8Array(base64String) {
@@ -464,8 +283,6 @@ Vue.component('lnbits-notifications-btn', {
       return subscribedUsers.includes(user)
     },
     subscribe() {
-      var self = this
-
       // catch clicks from disabled type='a' button (https://github.com/quasarframework/quasar/issues/9258)
       if (!this.isSupported || this.isPermissionDenied) {
         return
@@ -477,56 +294,43 @@ Vue.component('lnbits-notifications-btn', {
           this.isPermissionGranted = permission === 'granted'
           this.isPermissionDenied = permission === 'denied'
         })
-        .catch(function (e) {
-          console.log(e)
-        })
+        .catch(console.log)
 
       // create push subscription
       navigator.serviceWorker.ready.then(registration => {
         navigator.serviceWorker.getRegistration().then(registration => {
           registration.pushManager
             .getSubscription()
-            .then(function (subscription) {
+            .then(subscription => {
               if (
                 subscription === null ||
-                !self.isUserSubscribed(self.g.user.id)
+                !this.isUserSubscribed(this.g.user.id)
               ) {
-                const applicationServerKey = self.urlB64ToUint8Array(
-                  self.pubkey
+                const applicationServerKey = this.urlB64ToUint8Array(
+                  this.pubkey
                 )
                 const options = {applicationServerKey, userVisibleOnly: true}
 
                 registration.pushManager
                   .subscribe(options)
-                  .then(function (subscription) {
+                  .then(subscription => {
                     LNbits.api
-                      .request(
-                        'POST',
-                        '/api/v1/webpush',
-                        self.g.user.wallets[0].adminkey,
-                        {
-                          subscription: JSON.stringify(subscription)
-                        }
-                      )
-                      .then(function (response) {
-                        self.saveUserSubscribed(response.data.user)
-                        self.isSubscribed = true
+                      .request('POST', '/api/v1/webpush', null, {
+                        subscription: JSON.stringify(subscription)
                       })
-                      .catch(function (error) {
-                        LNbits.utils.notifyApiError(error)
+                      .then(response => {
+                        this.saveUserSubscribed(response.data.user)
+                        this.isSubscribed = true
                       })
+                      .catch(LNbits.utils.notifyApiError)
                   })
               }
             })
-            .catch(function (e) {
-              console.log(e)
-            })
+            .catch(console.log)
         })
       })
     },
     unsubscribe() {
-      var self = this
-
       navigator.serviceWorker.ready
         .then(registration => {
           registration.pushManager.getSubscription().then(subscription => {
@@ -535,23 +339,19 @@ Vue.component('lnbits-notifications-btn', {
                 .request(
                   'DELETE',
                   '/api/v1/webpush?endpoint=' + btoa(subscription.endpoint),
-                  self.g.user.wallets[0].adminkey
+                  null
                 )
-                .then(function () {
-                  self.removeUserSubscribed(self.g.user.id)
-                  self.isSubscribed = false
+                .then(() => {
+                  this.removeUserSubscribed(this.g.user.id)
+                  this.isSubscribed = false
                 })
-                .catch(function (error) {
-                  LNbits.utils.notifyApiError(error)
-                })
+                .catch(LNbits.utils.notifyApiError)
             }
           })
         })
-        .catch(function (e) {
-          console.log(e)
-        })
+        .catch(console.log)
     },
-    checkSupported: function () {
+    checkSupported() {
       let https = window.location.protocol === 'https:'
       let serviceWorkerApi = 'serviceWorker' in navigator
       let notificationApi = 'Notification' in window
@@ -573,22 +373,18 @@ Vue.component('lnbits-notifications-btn', {
 
       return this.isSupported
     },
-    updateSubscriptionStatus: async function () {
-      var self = this
-
+    async updateSubscriptionStatus() {
       await navigator.serviceWorker.ready
         .then(registration => {
           registration.pushManager.getSubscription().then(subscription => {
-            self.isSubscribed =
-              !!subscription && self.isUserSubscribed(self.g.user.id)
+            this.isSubscribed =
+              !!subscription && this.isUserSubscribed(this.g.user.id)
           })
         })
-        .catch(function (e) {
-          console.log(e)
-        })
+        .catch(console.log)
     }
   },
-  created: function () {
+  created() {
     this.isPermissionDenied = Notification.permission === 'denied'
 
     if (this.checkSupported()) {
@@ -597,63 +393,20 @@ Vue.component('lnbits-notifications-btn', {
   }
 })
 
-Vue.component('lnbits-dynamic-fields', {
-  mixins: [windowMixin],
-  props: ['options', 'value'],
+window.app.component('lnbits-dynamic-fields', {
+  template: '#lnbits-dynamic-fields',
+  mixins: [window.windowMixin],
+  props: ['options', 'modelValue'],
   data() {
     return {
-      formData: null
+      formData: null,
+      rules: [val => !!val || 'Field is required']
     }
   },
-
-  template: `
-    <div v-if="formData">
-      <div class="row q-mb-lg" v-for="o in options">
-        <div class="col auto-width">
-          <p v-if=o.options?.length class="q-ml-xl">
-            <span v-text="o.name"></span> <small v-if="o.description"> (<span v-text="o.description"></span>)</small>
-          </p>
-          <lnbits-dynamic-fields v-if="o.options?.length" :options="o.options" v-model="formData[o.name]"
-            @input="handleValueChanged" class="q-ml-xl">
-          </lnbits-dynamic-fields>
-          <div v-else>
-            <q-input v-if="o.type === 'number'" v-model="formData[o.name]" @input="handleValueChanged" type="number"
-              :label="o.name" :hint="o.description" filled dense>
-            </q-input>
-            <q-input v-else-if="o.type === 'text'" v-model="formData[o.name]" @input="handleValueChanged" type="textarea"
-              rows="5" :label="o.name" :hint="o.description" filled dense>
-            </q-input>
-            <q-input v-else-if="o.type === 'password'" v-model="formData[o.name]" @input="handleValueChanged" type="password"
-                :label="o.name" :hint="o.description" filled dense>
-            </q-input>
-            <div v-else-if="o.type === 'bool'">
-              <q-item tag="label" v-ripple>
-                <q-item-section avatar top>
-                  <q-checkbox v-model="formData[o.name]" @input="handleValueChanged" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label><span v-text="o.name"></span></q-item-label>
-                  <q-item-label caption> <span v-text="o.description"></span> </q-item-label>
-                </q-item-section>
-              </q-item>
-            </div>
-            <q-select v-else-if="o.type === 'select'" v-model="formData[o.name]" @input="handleValueChanged" :label="o.name"
-              :hint="o.description" :options="o.values"></q-select>
-
-            <q-select v-else-if="o.isList" filled multiple dense v-model.trim="formData[o.name]" use-input use-chips
-              @input="handleValueChanged" multiple hide-dropdown-icon input-debounce="0" new-value-mode="add-unique"
-              :label="o.name" :hint="o.description">
-            </q-select>
-            <q-input v-else v-model="formData[o.name]" @input="handleValueChanged" :label="o.name" :hint="o.description"
-              filled dense>
-            </q-input>
-
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
   methods: {
+    applyRules(required) {
+      return required ? this.rules : []
+    },
     buildData(options, data = {}) {
       return options.reduce((d, option) => {
         if (option.options?.length) {
@@ -665,65 +418,201 @@ Vue.component('lnbits-dynamic-fields', {
       }, {})
     },
     handleValueChanged() {
-      this.$emit('input', this.formData)
+      this.$emit('update:model-value', this.formData)
     }
   },
-  created: function () {
-    this.formData = this.buildData(this.options, this.value)
+  created() {
+    this.formData = this.buildData(this.options, this.modelValue)
   }
 })
 
-Vue.component('lnbits-update-balance', {
-  mixins: [windowMixin],
-  props: ['wallet_id', 'callback'],
+window.app.component('lnbits-dynamic-chips', {
+  template: '#lnbits-dynamic-chips',
+  mixins: [window.windowMixin],
+  props: ['modelValue'],
+  data() {
+    return {
+      chip: '',
+      chips: []
+    }
+  },
+  methods: {
+    addChip() {
+      if (!this.chip) return
+      this.chips.push(this.chip)
+      this.chip = ''
+      this.$emit('update:model-value', this.chips.join(','))
+    },
+    removeChip(index) {
+      this.chips.splice(index, 1)
+      this.$emit('update:model-value', this.chips.join(','))
+    }
+  },
+  created() {
+    if (typeof this.modelValue === 'string') {
+      this.chips = this.modelValue.split(',')
+    } else {
+      this.chips = [...this.modelValue]
+    }
+  }
+})
+
+window.app.component('lnbits-update-balance', {
+  template: '#lnbits-update-balance',
+  mixins: [window.windowMixin],
+  props: ['wallet_id', 'small_btn'],
   computed: {
     denomination() {
       return LNBITS_DENOMINATION
     },
     admin() {
-      return this.g.user.admin
+      return user.super_user
     }
   },
-  data: function () {
+  data() {
     return {
       credit: 0
     }
   },
   methods: {
-    updateBalance: function (credit) {
-      LNbits.api.updateBalance(credit, this.wallet_id).then(res => {
-        this.callback({value: res, wallet_id: this.wallet_id})
-      })
+    updateBalance(scope) {
+      LNbits.api
+        .updateBalance(scope.value, this.wallet_id)
+        .then(res => {
+          if (res.data.success !== true) {
+            throw new Error(res.data)
+          }
+          credit = parseInt(scope.value)
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('credit_ok', {
+              amount: credit
+            }),
+            icon: null
+          })
+          this.credit = 0
+          scope.value = 0
+          scope.set()
+        })
+        .catch(LNbits.utils.notifyApiError)
+    }
+  }
+})
+
+window.app.component('user-id-only', {
+  template: '#user-id-only',
+  mixins: [window.windowMixin],
+  props: {
+    allowed_new_users: Boolean,
+    authAction: String,
+    authMethod: String,
+    usr: String,
+    wallet: String
+  },
+  data() {
+    return {
+      user: this.usr,
+      walletName: this.wallet
     }
   },
-  template: `
-      <q-btn
-        v-if="admin"
-        round
-        color="primary"
-        icon="add"
-        size="sm"
-      >
-        <q-popup-edit
-          class="bg-accent text-white"
-          v-slot="scope"
-          v-model="credit"
-        >
-          <q-input
-            filled
-            :label='$t("credit_label", { denomination: denomination })'
-            :hint="$t('credit_hint')"
-            v-model="scope.value"
-            dense
-            autofocus
-            @keyup.enter="updateBalance(scope.value)"
-          >
-            <template v-slot:append>
-              <q-icon name="edit" />
-            </template>
-          </q-input>
-        </q-popup-edit>
-        <q-tooltip>Topup Wallet</q-tooltip>
-      </q-btn>
-    `
+  methods: {
+    showLogin(method) {
+      this.$emit('show-login', method)
+    },
+    showRegister(method) {
+      this.$emit('show-register', method)
+    },
+    loginUsr() {
+      this.$emit('update:usr', this.user)
+      this.$emit('login-usr')
+    },
+    createWallet() {
+      this.$emit('update:wallet', this.walletName)
+      this.$emit('create-wallet')
+    }
+  },
+  computed: {
+    showInstantLogin() {
+      // do not show if authmethod is 'username-password' and authAction is 'register'
+      return (
+        this.authMethod !== 'username-password' ||
+        this.authAction !== 'register'
+      )
+    }
+  },
+  created() {}
+})
+
+window.app.component('username-password', {
+  template: '#username-password',
+  mixins: [window.windowMixin],
+  props: {
+    allowed_new_users: Boolean,
+    authMethods: Array,
+    authAction: String,
+    username: String,
+    password_1: String,
+    password_2: String,
+    resetKey: String
+  },
+  data() {
+    return {
+      oauth: [
+        'nostr-auth-nip98',
+        'google-auth',
+        'github-auth',
+        'keycloak-auth'
+      ],
+      username: this.userName,
+      password: this.password_1,
+      passwordRepeat: this.password_2,
+      reset_key: this.resetKey
+    }
+  },
+  methods: {
+    login() {
+      this.$emit('update:userName', this.username)
+      this.$emit('update:password_1', this.password)
+      this.$emit('login')
+    },
+    register() {
+      this.$emit('update:userName', this.username)
+      this.$emit('update:password_1', this.password)
+      this.$emit('update:password_2', this.passwordRepeat)
+      this.$emit('register')
+    },
+    reset() {
+      this.$emit('update:resetKey', this.reset_key)
+      this.$emit('update:passeord_1', this.password)
+      this.$emit('update:password_2', this.passwordRepeat)
+      this.$emit('reset')
+    },
+    validateUsername(val) {
+      const usernameRegex = new RegExp(
+        '^(?=[a-zA-Z0-9._]{2,20}$)(?!.*[_.]{2})[^_.].*[^_.]$'
+      )
+      return usernameRegex.test(val)
+    }
+  },
+  computed: {
+    showOauth() {
+      return this.oauth.some(m => this.authMethods.includes(m))
+    }
+  },
+  created() {}
+})
+
+window.app.component('separator-text', {
+  template: '#separator-text',
+  props: {
+    text: String,
+    uppercase: {
+      type: Boolean,
+      default: false
+    },
+    color: {
+      type: String,
+      default: 'grey'
+    }
+  }
 })

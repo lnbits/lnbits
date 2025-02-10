@@ -4,7 +4,7 @@ import asyncio
 import base64
 import json
 from http import HTTPStatus
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from fastapi import HTTPException
 from httpx import HTTPStatusError
@@ -41,6 +41,14 @@ def _decode_bytes(data: str) -> str:
     return base64.b64decode(data).hex()
 
 
+def _encode_bytes(data: str) -> str:
+    return base64.b64encode(bytes.fromhex(data)).decode()
+
+
+def _encode_urlsafe_bytes(data: str) -> str:
+    return base64.urlsafe_b64encode(bytes.fromhex(data)).decode()
+
+
 def _parse_channel_point(raw: str) -> ChannelPoint:
     funding_tx, output_index = raw.split(":")
     return ChannelPoint(
@@ -60,11 +68,13 @@ class LndRestNode(Node):
         )
         try:
             response.raise_for_status()
-        except HTTPStatusError as e:
-            json = e.response.json()
+        except HTTPStatusError as exc:
+            json = exc.response.json()
             if json:
                 error = json.get("error") or json
-                raise HTTPException(e.response.status_code, detail=error.get("message"))
+                raise HTTPException(
+                    exc.response.status_code, detail=error.get("message")
+                ) from exc
         return response.json()
 
     def get(self, path: str, **kwargs):
@@ -81,8 +91,8 @@ class LndRestNode(Node):
     async def connect_peer(self, uri: str):
         try:
             pubkey, host = uri.split("@")
-        except ValueError:
-            raise HTTPException(400, detail="Invalid peer URI")
+        except ValueError as exc:
+            raise HTTPException(400, detail="Invalid peer URI") from exc
         await self.request(
             "POST",
             "/v1/peers",
@@ -96,11 +106,11 @@ class LndRestNode(Node):
     async def disconnect_peer(self, peer_id: str):
         try:
             await self.request("DELETE", "/v1/peers/" + peer_id)
-        except HTTPException as e:
-            if "unable to disconnect" in e.detail:
+        except HTTPException as exc:
+            if "unable to disconnect" in exc.detail:
                 raise HTTPException(
                     HTTPStatus.BAD_REQUEST, detail="Peer is not connected"
-                )
+                ) from exc
             raise
 
     async def _get_peer_info(self, peer_id: str) -> NodePeerInfo:
@@ -127,15 +137,12 @@ class LndRestNode(Node):
         response = await self.request(
             "POST",
             "/v1/channels",
-            data=json.dumps(
-                {
-                    # 'node_pubkey': base64.b64encode(peer_id.encode()).decode(),
-                    "node_pubkey_string": peer_id,
-                    "sat_per_vbyte": fee_rate,
-                    "local_funding_amount": local_amount,
-                    "push_sat": push_amount,
-                }
-            ),
+            json={
+                "node_pubkey": _encode_bytes(peer_id),
+                "sat_per_vbyte": fee_rate,
+                "local_funding_amount": local_amount,
+                "push_sat": push_amount,
+            },
         )
         return ChannelPoint(
             # WHY IS THIS REVERSED?!
@@ -157,9 +164,15 @@ class LndRestNode(Node):
             timeout=None,
         ) as stream:
             async for chunk in stream.aiter_text():
-                if chunk:
-                    chunk = json.loads(chunk)
-                    logger.info(f"LND Channel close update: {chunk['result']}")
+                if not chunk:
+                    continue
+                chunk = json.loads(chunk)
+                if "error" in chunk:
+                    raise HTTPException(
+                        status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                        detail=chunk["error"].get("message"),
+                    )
+                logger.info(f"LND Channel close update: {chunk.get('result')}")
 
     async def close_channel(
         self,
@@ -174,9 +187,84 @@ class LndRestNode(Node):
                 status_code=HTTPStatus.BAD_REQUEST, detail="Channel point required"
             )
 
-        asyncio.create_task(self._close_channel(point, force))
+        asyncio.create_task(self._close_channel(point, force))  # noqa: RUF006
 
-    async def get_channels(self) -> List[NodeChannel]:
+    async def set_channel_fee(self, channel_id: str, base_msat: int, ppm: int):
+        # https://lightning.engineering/api-docs/api/lnd/lightning/update-channel-policy/
+        channel = await self.get_channel(channel_id)
+        if not channel:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="Channel not found"
+            )
+        if not channel.point:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="Channel point required"
+            )
+        await self.request(
+            "POST",
+            "/v1/chanpolicy",
+            json={
+                "base_fee_msat": base_msat,
+                "fee_rate_ppm": ppm,
+                "chan_point": {
+                    "funding_txid_str": channel.point.funding_txid,
+                    "output_index": channel.point.output_index,
+                },
+                # https://docs.lightning.engineering/lightning-network-tools/lnd/optimal-configuration-of-a-routing-node#channel-defaults
+                "time_lock_delta": 80,
+                # 'max_htlc_msat': <uint64>,
+                # 'min_htlc_msat': <uint64>,
+                # 'inbound_fee': <InboundFee>,
+            },
+        )
+
+    async def get_channel(self, channel_id: str) -> Optional[NodeChannel]:
+        channel_info = await self.get(f"/v1/graph/edge/{channel_id}")
+        info = await self.get("/v1/getinfo")
+        if info["identity_pubkey"] == channel_info["node1_pub"]:
+            my_node_key = "node1"
+            peer_node_key = "node2"
+        else:
+            my_node_key = "node2"
+            peer_node_key = "node1"
+        peer_id = channel_info[f"{peer_node_key}_pub"]
+        peer_b64 = _encode_urlsafe_bytes(peer_id)
+        channels = await self.get(f"/v1/channels?peer={peer_b64}")
+        if "error" in channel_info and "error" in channels:
+            logger.debug("LND get_channel", channels)
+            return None
+        if len(channels["channels"]) == 0:
+            logger.debug(f"LND get_channel no channels founds with id {peer_b64}")
+            return None
+        for channel in channels["channels"]:
+            if channel["chan_id"] == channel_id:
+                peer_info = await self.get_peer_info(peer_id)
+                return NodeChannel(
+                    id=channel.get("chan_id"),
+                    peer_id=peer_info.id,
+                    name=peer_info.alias,
+                    color=peer_info.color,
+                    state=(
+                        ChannelState.ACTIVE
+                        if channel["active"]
+                        else ChannelState.INACTIVE
+                    ),
+                    fee_ppm=channel_info[f"{my_node_key}_policy"][
+                        "fee_rate_milli_msat"
+                    ],
+                    fee_base_msat=channel_info[f"{my_node_key}_policy"][
+                        "fee_base_msat"
+                    ],
+                    point=_parse_channel_point(channel["channel_point"]),
+                    balance=ChannelBalance(
+                        local_msat=msat(channel["local_balance"]),
+                        remote_msat=msat(channel["remote_balance"]),
+                        total_msat=msat(channel["capacity"]),
+                    ),
+                )
+        return None
+
+    async def get_channels(self) -> list[NodeChannel]:
         normal, pending, closed = await asyncio.gather(
             self.get("/v1/channels"),
             self.get("/v1/channels/pending"),
@@ -195,6 +283,7 @@ class LndRestNode(Node):
                         state=state,
                         name=info.alias,
                         color=info.color,
+                        id=channel.get("chan_id", "node is for pending channels"),
                         point=_parse_channel_point(channel["channel_point"]),
                         balance=ChannelBalance(
                             local_msat=msat(channel["local_balance"]),
@@ -214,6 +303,7 @@ class LndRestNode(Node):
             info = await self.get_peer_info(channel["remote_pubkey"])
             channels.append(
                 NodeChannel(
+                    id=channel.get("chan_id", "node is for closing channels"),
                     peer_id=info.id,
                     state=ChannelState.CLOSED,
                     name=info.alias,
@@ -231,6 +321,7 @@ class LndRestNode(Node):
             info = await self.get_peer_info(channel["remote_pubkey"])
             channels.append(
                 NodeChannel(
+                    id=channel["chan_id"],
                     short_id=channel["chan_id"],
                     point=_parse_channel_point(channel["channel_point"]),
                     peer_id=channel["remote_pubkey"],

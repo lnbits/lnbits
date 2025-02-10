@@ -1,172 +1,231 @@
-{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
-%} {% block page %}
-<div class="row q-col-gutter-md justify-center">
-  <div class="col q-my-md">
-    <q-btn
-      :label="$t('save')"
-      color="primary"
-      @click="updateSettings"
-      :disabled="!checkChanges"
-    >
-      <q-tooltip v-if="checkChanges">
-        <span v-text="$t('save_tooltip')"></span>
-      </q-tooltip>
+{% if not ajax %} {% extends "base.html" %} {% endif %} {% from "macros.jinja"
+import window_vars with context %} {% block scripts %} {{ window_vars(user) }}
+{% endblock %} {% block page %}
 
-      <q-badge
-        v-if="checkChanges"
-        color="red"
-        rounded
-        floating
-        style="padding: 6px; border-radius: 6px"
-      />
-    </q-btn>
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-12">
+    <q-card>
+      <div class="q-pa-sm">
+        <div class="row items-center justify-between q-gutter-xs">
+          <div class="col">
+            <q-btn
+              :label="$t('save')"
+              color="primary"
+              @click="updateSettings"
+              :disabled="!checkChanges"
+            >
+              <q-tooltip v-if="checkChanges">
+                <span v-text="$t('save_tooltip')"></span>
+              </q-tooltip>
 
-    <q-btn
-      v-if="isSuperUser"
-      :label="$t('restart')"
-      color="primary"
-      @click="restartServer"
-    >
-      <q-tooltip v-if="needsRestart">
-        <span v-text="$t('restart_tooltip')"></span>
-      </q-tooltip>
+              <q-badge
+                v-if="checkChanges"
+                color="red"
+                rounded
+                floating
+                style="padding: 6px; border-radius: 6px"
+              />
+            </q-btn>
 
-      <q-badge
-        v-if="needsRestart"
-        color="red"
-        rounded
-        floating
-        style="padding: 6px; border-radius: 6px"
-      />
-    </q-btn>
+            <q-btn
+              v-if="isSuperUser"
+              :label="$t('restart')"
+              color="primary"
+              @click="restartServer"
+              class="q-ml-md"
+            >
+              <q-tooltip v-if="needsRestart">
+                <span v-text="$t('restart_tooltip')"></span>
+              </q-tooltip>
 
-    <q-btn
-      v-if="isSuperUser"
-      :label="$t('topup')"
-      color="primary"
-      @click="topUpDialog.show = true"
-    >
-      <q-tooltip>
-        <span v-text="$t('add_funds_tooltip')"></span>
-      </q-tooltip>
-    </q-btn>
+              <q-badge
+                v-if="needsRestart"
+                color="red"
+                rounded
+                floating
+                style="padding: 6px; border-radius: 6px"
+              />
+            </q-btn>
 
-    <q-btn :label="$t('download_backup')" flat @click="downloadBackup"></q-btn>
+            <q-btn
+              :label="$t('download_backup')"
+              flat
+              @click="downloadBackup"
+            ></q-btn>
 
-    <q-btn
-      flat
-      v-if="isSuperUser"
-      :label="$t('reset_defaults')"
-      color="primary"
-      @click="deleteSettings"
-      class="float-right"
-    >
-      <q-tooltip>
-        <span v-text="$t('reset_defaults_tooltip')"></span>
-      </q-tooltip>
-    </q-btn>
+            <q-btn
+              flat
+              v-if="isSuperUser"
+              :label="$t('reset_defaults')"
+              color="primary"
+              @click="deleteSettings"
+              class="float-right"
+            >
+              <q-tooltip>
+                <span v-text="$t('reset_defaults_tooltip')"></span>
+              </q-tooltip>
+            </q-btn>
+          </div>
+          <div></div>
+        </div>
+      </div>
+    </q-card>
   </div>
 </div>
 
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md">
     <q-card>
-      <div class="q-pa-md">
-        <div class="q-gutter-y-md">
-          <q-tabs v-model="tab" active-color="primary" align="justify">
+      <q-splitter>
+        <template v-slot:before>
+          <q-tabs
+            @update:model-value="showExchangeProvidersTab"
+            v-model="tab"
+            vertical
+            active-color="primary"
+          >
             <q-tab
               name="funding"
-              :label="$t('funding')"
+              icon="account_balance_wallet"
+              :label="$q.screen.gt.sm ? $t('funding') : null"
               @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('funding')"></span></q-tooltip
             ></q-tab>
-
-            <q-tab
-              name="users"
-              :label="$t('users')"
-              @update="val => tab = val.name"
-            ></q-tab>
-
-            <q-tab
-              name="server"
-              :label="$t('server')"
-              @update="val => tab = val.name"
-            ></q-tab>
-
             <q-tab
               name="security"
-              :label="$t('security')"
+              icon="security"
+              :label="$q.screen.gt.sm ? $t('security') : null"
               @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('security')"></span></q-tooltip
+            ></q-tab>
+            <q-tab
+              name="server"
+              icon="price_change"
+              :label="$q.screen.gt.sm ? $t('payments') : null"
+              @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('payments')"></span></q-tooltip
+            ></q-tab>
+            <q-tab
+              name="exchange_providers"
+              icon="show_chart"
+              :label="$q.screen.gt.sm ? $t('exchanges') : null"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('exchanges')"></span></q-tooltip
+            ></q-tab>
+            <q-tab
+              name="users"
+              icon="group"
+              :label="$q.screen.gt.sm ? $t('users') : null"
+              @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('users')"></span></q-tooltip
             ></q-tab>
 
             <q-tab
-              name="theme"
-              :label="$t('theme')"
+              name="extensions"
+              icon="extension"
+              :label="$q.screen.gt.sm ? $t('extensions') : null"
               @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('extensions')"></span></q-tooltip
+            ></q-tab>
+
+            <q-tab
+              name="notifications"
+              icon="notifications"
+              :label="$q.screen.gt.sm ? $t('notifications') : null"
+              @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('notifications')"></span></q-tooltip
+            ></q-tab>
+            <q-tab
+              name="audit"
+              icon="playlist_add_check_circle"
+              :label="$q.screen.gt.sm ? $t('audit') : null"
+              @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('audit')"></span></q-tooltip
+            ></q-tab>
+            <q-tab
+              style="word-break: break-all"
+              name="site_customisation"
+              icon="language"
+              :label="$q.screen.gt.sm ? $t('site_customisation') : null"
+              @update="val => tab = val.name"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('site_customisation')"></span></q-tooltip
             ></q-tab>
           </q-tabs>
-        </div>
-      </div>
+        </template>
 
-      <q-form name="settings_form" id="settings_form">
-        <q-tab-panels v-model="tab" animated>
-          {% include "admin/_tab_funding.html" %} {% include
-          "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %} {%
-          include "admin/_tab_security.html" %} {% include
-          "admin/_tab_theme.html" %}
-        </q-tab-panels>
-      </q-form>
+        <template v-slot:after>
+          <q-form name="settings_form" id="settings_form">
+            <q-tab-panels
+              v-model="tab"
+              animated
+              swipeable
+              vertical
+              transition-prev="jump-up"
+              transition-next="jump-up"
+            >
+              {% include "admin/_tab_funding.html" %} {% include
+              "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %}
+              {% include "admin/_tab_exchange_providers.html" %} {% include
+              "admin/_tab_extensions.html" %} {% include
+              "admin/_tab_notifications.html" %} {% include
+              "admin/_tab_security.html" %} {% include "admin/_tab_theme.html"
+              %}{% include "admin/_tab_audit.html"%}
+            </q-tab-panels>
+          </q-form>
+        </template>
+      </q-splitter>
     </q-card>
   </div>
 </div>
 
-<q-dialog v-if="isSuperUser" v-model="topUpDialog.show" position="top">
-  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-    <q-form class="q-gutter-md">
-      <p v-text="$t('topup_wallet')"></p>
-
-      <div class="row">
-        <div class="col-12">
-          <q-input
-            dense
-            type="text"
-            filled
-            v-model="wallet.id"
-            label="Wallet ID"
-            :hint="$t('topup_hint')"
-          ></q-input>
-
-          <br />
-        </div>
-
-        <div class="col-12">
-          <q-input
-            dense
-            type="number"
-            filled
-            v-model="wallet.amount"
-            :label="$t('amount')"
-          ></q-input>
-        </div>
+<q-dialog v-model="exchangeData.showTickerConversion" position="top">
+  <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+    <div class="q-mb-md">
+      <strong v-text="$t('create_ticker_converter')"></strong>
+    </div>
+    <div class="row">
+      <div class="col-12 q-mb-md">
+        <q-select
+          filled
+          dense
+          v-model="exchangeData.convertFromTicker"
+          label="From Currency"
+          :options="{{ currencies | safe }}"
+        ></q-select>
       </div>
-
-      <div class="row q-mt-lg">
-        <q-btn
-          :label="$t('topup')"
-          color="primary"
-          @click="topupWallet"
-        ></q-btn>
-
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          :label="$t('cancel')"
-        ></q-btn>
+      <div class="col-12">
+        <q-input
+          v-model="exchangeData.convertToTicker"
+          dense
+          filled
+          label="New Ticker"
+          hint="This ticker will be used for the exchange API calls."
+        >
+        </q-input>
       </div>
-    </q-form>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn
+        @click="addExchangeTickerConversion()"
+        label="Add Ticker Conversion"
+        color="primary"
+      ></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('close')"
+      ></q-btn>
+    </div>
   </q-card>
 </q-dialog>
-{% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="{{ static_url_for('static', 'js/admin.js') }}"></script>
 {% endblock %}

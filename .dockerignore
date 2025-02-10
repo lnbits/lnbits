@@ -3,12 +3,14 @@ data
 docker
 docs
 tests
+node_modules
 
 lnbits/static/css/*
 lnbits/static/bundle.js
 lnbits/static/bundle.css
 
 *.md
+!README.md
 *.log
 
 .env

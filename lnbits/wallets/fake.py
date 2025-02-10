@@ -1,6 +1,6 @@
 import asyncio
-import hashlib
 from datetime import datetime
+from hashlib import sha256
 from os import urandom
 from typing import AsyncGenerator, Dict, Optional, Set
 
@@ -16,6 +16,7 @@ from bolt11 import (
 from loguru import logger
 
 from lnbits.settings import settings
+from lnbits.utils.crypto import fake_privkey
 
 from .base import (
     InvoiceResponse,
@@ -30,17 +31,16 @@ from .base import (
 
 
 class FakeWallet(Wallet):
-    queue: asyncio.Queue = asyncio.Queue(0)
-    payment_secrets: Dict[str, str] = {}
-    paid_invoices: Set[str] = set()
-    secret: str = settings.fake_wallet_secret
-    privkey: str = hashlib.pbkdf2_hmac(
-        "sha256",
-        secret.encode(),
-        ("FakeWallet").encode(),
-        2048,
-        32,
-    ).hex()
+
+    def __init__(self) -> None:
+        self.queue: asyncio.Queue = asyncio.Queue(0)
+        self.payment_secrets: Dict[str, str] = {}
+        self.paid_invoices: Set[str] = set()
+        self.secret = settings.fake_wallet_secret
+        self.privkey = fake_privkey(self.secret)
+
+    async def cleanup(self):
+        pass
 
     async def status(self) -> StatusResponse:
         logger.info(
@@ -66,7 +66,7 @@ class FakeWallet(Wallet):
         elif unhashed_description:
             tags.add(
                 TagChar.description_hash,
-                hashlib.sha256(unhashed_description).hexdigest(),
+                sha256(unhashed_description).hexdigest(),
             )
         else:
             tags.add(TagChar.description, memo or "")
@@ -80,7 +80,7 @@ class FakeWallet(Wallet):
             secret = urandom(32).hex()
         tags.add(TagChar.payment_secret, secret)
 
-        payment_hash = hashlib.sha256(secret.encode()).hexdigest()
+        payment_hash = sha256(secret.encode()).hexdigest()
 
         tags.add(TagChar.payment_hash, payment_hash)
 
@@ -130,6 +130,6 @@ class FakeWallet(Wallet):
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             value: Bolt11 = await self.queue.get()
             yield value.payment_hash

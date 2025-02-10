@@ -2,7 +2,7 @@ import asyncio
 import base64
 import hashlib
 import json
-from typing import AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
@@ -164,49 +164,46 @@ class LndRestWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # set the fee limit for the payment
-        lnrpcFeeLimit = {}
-        lnrpcFeeLimit["fixed_msat"] = f"{fee_limit_msat}"
+        lnrpc_fee_limit = {}
+        lnrpc_fee_limit["fixed_msat"] = f"{fee_limit_msat}"
 
         try:
+            json_: dict[str, Any] = {
+                "payment_request": bolt11,
+                "fee_limit": lnrpc_fee_limit,
+            }
+            if settings.lnd_rest_allow_self_payment:
+                json_["allow_self_payment"] = 1
             r = await self.client.post(
                 url="/v1/channels/transactions",
-                json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
+                json=json_,
                 timeout=None,
             )
             r.raise_for_status()
-        except Exception as exc:
-            logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
-            return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.endpoint}."
-            )
-
-        try:
             data = r.json()
 
-            if data.get("payment_error"):
-                error_message = r.json().get("payment_error") or r.text
-                logger.warning(
-                    f"LndRestWallet pay_invoice payment_error: {error_message}."
-                )
-                return PaymentResponse(False, None, None, None, error_message)
-
-            if (
-                "payment_hash" not in data
-                or "payment_route" not in data
-                or "total_fees_msat" not in data["payment_route"]
-                or "payment_preimage" not in data
-            ):
-                return PaymentResponse(
-                    False, None, None, None, "Server error: 'missing required fields'"
-                )
+            payment_error = data.get("payment_error")
+            if payment_error:
+                logger.warning(f"LndRestWallet payment_error: {payment_error}.")
+                return PaymentResponse(False, None, None, None, payment_error)
 
             checking_id = base64.b64decode(data["payment_hash"]).hex()
             fee_msat = int(data["payment_route"]["total_fees_msat"])
             preimage = base64.b64decode(data["payment_preimage"]).hex()
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        except KeyError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                None, None, None, None, "Server error: 'missing required fields'"
+            )
         except json.JSONDecodeError:
             return PaymentResponse(
-                False, None, None, None, "Server error: 'invalid json response'"
+                None, None, None, None, "Server error: 'invalid json response'"
+            )
+        except Exception as exc:
+            logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
+            return PaymentResponse(
+                None, None, None, None, f"Unable to connect to {self.endpoint}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -280,7 +277,7 @@ class LndRestWallet(Wallet):
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             try:
                 url = "/v1/invoices/subscribe"
                 async with self.client.stream("GET", url, timeout=None) as r:

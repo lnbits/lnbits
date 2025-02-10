@@ -1,145 +1,79 @@
 <q-tab-panel name="server">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none">Server Management</h6>
-    <br />
     <div>
-      <div class="row">
-        <div class="col">
-          <p>Server Info</p>
-          <ul>
-            <li
-              v-if="settings.lnbits_data_folder"
-              v-text="'SQlite: ' + settings.lnbits_data_folder"
-            ></li>
-            <li
-              v-if="settings.lnbits_database_url"
-              v-text="'Postgres: ' + settings.lnbits_database_url"
-            ></li>
-          </ul>
-          <br />
-        </div>
-      </div>
+      <h6 class="q-my-none"><span v-text="$t('currency_settings')"></span></h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
-          <p>Allowed currencies</p>
+          <p><span v-text="$t('allowed_currencies')"></span></p>
           <q-select
             filled
             v-model="formData.lnbits_allowed_currencies"
             multiple
-            hint="Limit the number of available fiat currencies"
-            label="Allowed currencies"
+            :hint="$t('allowed_currencies_hint')"
+            :label="$t('allowed_currencies')"
             :options="{{ currencies | safe }}"
           ></q-select>
           <br />
         </div>
         <div class="col-12 col-md-6">
-          <p>Default Accounting Currency</p>
+          <p><span v-text="$t('default_account_currency')"></span></p>
           <q-select
             filled
             v-model="formData.lnbits_default_accounting_currency"
             clearable
-            hint="Default currency for accounting"
-            label="Currency"
+            :hint="$t('default_account_currency_hint')"
+            :label="$t('currency')"
             :options="formData.lnbits_allowed_currencies?.length ? formData.lnbits_allowed_currencies : {{ currencies }}"
           ></q-select>
           <br />
         </div>
       </div>
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
-          <p>Admin Extensions</p>
-          <q-select
-            filled
-            v-model="formData.lnbits_admin_extensions"
-            multiple
-            hint="Extensions only user with admin privileges can use"
-            label="Admin extensions"
-            :options="g.extensions.map(e => e.code)"
-          ></q-select>
-          <br />
-        </div>
-        <div class="col-12 col-md-6">
-          <p>Miscellaneous</p>
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label>Disable Extensions</q-item-label>
-              <q-item-label caption>Disables all extensions</q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_extensions_deactivate_all"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label>Hide API</q-item-label>
-              <q-item-label caption
-                >Hides wallet api, extensions can choose to honor</q-item-label
-              >
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_hide_api"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-          <br />
-        </div>
-      </div>
+
       <br />
-      <h6 class="q-my-none">Service Fee</h6>
+      <h6 class="q-my-none"><span v-text="$t('service_fee')"></span></h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
-          <p>Service Fee</p>
+          <p><span v-text="$t('service_fee')"></span></p>
           <q-input
             filled
             type="number"
             v-model.number="formData.lnbits_service_fee"
-            label="Service fee (%)"
+            :label="$t('service_fee_label')"
             step="0.1"
-            hint="Fee charged per tx (%)"
+            :hint="$t('service_fee_hint')"
           ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-6">
-          <p>Service fee max</p>
+          <p><span v-text="$t('service_fee_max')"></span></p>
           <q-input
             filled
             type="number"
             v-model.number="formData.lnbits_service_fee_max"
-            label="Service fee max (sats)"
-            hint="Max service fee to charge in (sats)"
+            :label="$t('service_fee_max_label')"
+            :hint="$t('service_fee_max_hint')"
           ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-6">
-          <p>Fee Wallet</p>
+          <p><span v-text="$t('fee_wallet')"></span></p>
           <q-input
             filled
             v-model="formData.lnbits_service_fee_wallet"
-            label="Fee wallet (wallet ID)"
-            hint="Wallet ID to send funds to"
+            :label="$t('fee_wallet_label')"
+            :hint="$t('fee_wallet_hint')"
           ></q-input>
           <br />
         </div>
         <div class="col-12 col-md-6">
-          <p>Disable Service Fee for Internal Payments</p>
+          <p><span v-text="$t('disable_fee_internal')"></span></p>
           <q-item tag="label" v-ripple>
             <q-item-section>
-              <q-item-label>Disable Fee</q-item-label>
-              <q-item-label caption
-                >Disable Service Fee for Internal Lightning
-                Payments</q-item-label
-              >
+              <q-item-label v-text="$t('disable_fee')"></q-item-label>
+              <q-item-label
+                caption
+                v-text="$t('disable_fee_internal_desc')"
+              ></q-item-label>
             </q-item-section>
             <q-item-section avatar>
               <q-toggle
@@ -153,33 +87,6 @@
           </q-item>
           <br />
         </div>
-      </div>
-
-      <h6 class="q-my-none">Extensions</h6>
-      <div>
-        <p>Extension Sources</p>
-        <q-input
-          filled
-          v-model="formAddExtensionsManifest"
-          @keydown.enter="addExtensionsManifest"
-          type="text"
-          label="Source URL (only use the official LNbits extension source, and sources you can trust)"
-          hint="Repositories from where the extensions can be downloaded"
-        >
-          <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
-        </q-input>
-        <div>
-          <q-chip
-            v-for="manifestUrl in formData.lnbits_extensions_manifests"
-            :key="manifestUrl"
-            removable
-            @remove="removeExtensionsManifest(manifestUrl)"
-            color="primary"
-            text-color="white"
-            ><span v-text="manifestUrl"></span
-          ></q-chip>
-        </div>
-        <br />
       </div>
     </div>
   </q-card-section>

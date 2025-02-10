@@ -12,7 +12,7 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    Unsupported,
+    UnsupportedError,
     Wallet,
 )
 
@@ -25,6 +25,7 @@ class OpenNodeWallet(Wallet):
             raise ValueError(
                 "cannot initialize OpenNodeWallet: missing opennode_api_endpoint"
             )
+        super().__init__()
         key = (
             settings.opennode_key
             or settings.opennode_admin_key
@@ -74,7 +75,7 @@ class OpenNodeWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         if description_hash or unhashed_description:
-            raise Unsupported("description_hash")
+            raise UnsupportedError("description_hash")
 
         r = await self.client.post(
             "/v1/charges",
@@ -92,6 +93,7 @@ class OpenNodeWallet(Wallet):
         data = r.json()["data"]
         checking_id = data["id"]
         payment_request = data["lightning_invoice"]["payreq"]
+        self.pending_invoices.append(checking_id)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -141,6 +143,6 @@ class OpenNodeWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
+        while settings.lnbits_running:
             value = await self.queue.get()
             yield value

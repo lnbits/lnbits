@@ -1,79 +1,91 @@
 [tool.poetry]
 name = "lnbits"
-version = "0.12.4"
+version = "1.0.0-rc7"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
+readme = "README.md"
+repository = "https://github.com/lnbits/lnbits"
+homepage = "https://lnbits.com"
+packages = [
+  {include = "lnbits"},
+  {include = "lnbits/py.typed"},
+]
 
 [tool.poetry.dependencies]
-python = "^3.10 | ^3.9"
+python = "^3.13 | ^3.12 | ^3.11 | ^3.10 | ^3.9"
 bech32 = "1.2.0"
 click = "8.1.7"
-ecdsa = "0.18.0"
-fastapi = "0.109.2"
-httpx = "0.25.0"
-jinja2 = "3.1.3"
-lnurl = "0.4.2"
-psycopg2-binary = "2.9.7"
-pydantic = "1.10.9"
+ecdsa = "0.19.0"
+fastapi = "0.115.2"
+httpx = "0.27.0"
+jinja2 = "3.1.4"
+lnurl = "0.5.3"
+pydantic = "1.10.18"
 pyqrcode = "1.2.1"
-shortuuid = "1.0.11"
-sqlalchemy = "1.3.24"
-sqlalchemy-aio = "0.17.0"
-sse-starlette = "1.6.5"
-typing-extensions = "4.8.0"
-uvicorn = "0.23.2"
-uvloop = "0.17.0"
+shortuuid = "1.0.13"
+sse-starlette = "1.8.2"
+typing-extensions = "4.12.2"
+uvicorn = "0.30.6"
+sqlalchemy = "1.4.54"
+aiosqlite = "0.20.0"
+asyncpg = "0.30.0"
+uvloop = "0.21.0"
 websockets = "11.0.3"
 loguru = "0.7.2"
-grpcio = "1.58.0"
-protobuf = "4.24.3"
-pyln-client = "23.8"
-pywebpush = "1.14.0"
+grpcio = "1.69.0"
+protobuf = "5.28.0"
+pyln-client = "24.11"
+pywebpush = "1.14.1"
 slowapi = "0.1.9"
-websocket-client = "1.6.3"
-pycryptodomex = "3.19.1"
-packaging = "23.1"
-bolt11 = "2.0.5"
+websocket-client = "1.8.0"
+pycryptodomex = "3.20.0"
+packaging = "24.0"
+bolt11 = "2.1.0"
 # needed for new login methods: username-password, google-auth, github-auth
-bcrypt = "^4.1.1"
-python-jose = "^3.3.0"
-passlib = "^1.7.4"
-itsdangerous = "^2.1.2"
-fastapi-sso = "^0.9.1"
+bcrypt = "4.2.0"
+pyjwt = "2.9.0"
+passlib = "1.7.4"
+itsdangerous = "2.2.0"
+fastapi-sso = "0.15.0"
 # needed for boltz, lnurldevice, watchonly extensions
-embit = "0.7.0"
+embit = "0.8.0"
 # needed for cashu, lnurlp, nostrclient, nostrmarket, nostrrelay extensions
 secp256k1 = "0.14.0"
 # keep for backwards compatibility with lnurlp and cashu
 environs = "9.5.0"
 # needed for scheduler extension
-python-crontab = "3.0.0"
+python-crontab = "3.2.0"
 # needed for liquid support boltz
-wallycore = {version = "^1.0.0", optional = true}
+wallycore = {version = "1.3.0", optional = true}
+# needed for breez funding source
+breez-sdk = {version = "0.6.6", optional = true}
 
+jsonpath-ng = "^1.7.0"
+pynostr = "^0.6.2"
 [tool.poetry.extras]
+breez = ["breez-sdk"]
 liquid = ["wallycore"]
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.3.0"
-pytest-asyncio = "^0.21.0"
-pytest = "^7.3.2"
-pytest-cov = "^4.1.0"
-mypy = "^1.5.1"
-types-protobuf = "^4.24.0.2"
-pre-commit = "^3.2.2"
-openapi-spec-validator = "^0.6.0"
-ruff = "^0.3.2"
-# not our dependency but needed indirectly by openapi-spec-validator
-# we want to use 0.10.3 because newer versions are broken on nix
-rpds-py = "0.10.3"
-types-passlib = "^1.7.7.13"
-types-python-jose = "^3.3.4.8"
-openai = "^1.12.0"
-json5 = "^0.9.17"
+black = "^24.8.0"
+mypy = "^1.11.2"
+types-protobuf = "^5.27.0.20240626"
+pre-commit = "^3.8.0"
+openapi-spec-validator = "^0.7.1"
+ruff = "^0.6.4"
+types-passlib = "^1.7.7.20240327"
+openai = "^1.39.0"
+json5 = "^0.9.25"
 asgi-lifespan = "^2.1.0"
+anyio = "^4.7.0"
+pytest = "^8.3.4"
+pytest-cov = "^6.0.0"
 pytest-md = "^0.2.0"
-pytest-httpserver = "^1.0.10"
+pytest-httpserver = "^1.1.0"
+pytest-mock = "^3.14.0"
+types-mock = "^5.1.0.20240425"
+mock = "^5.1.0"
+grpcio-tools = "^1.69.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -90,6 +102,7 @@ include = [
   "tools",
 ]
 exclude = [
+  "lnbits/wallets/boltz_grpc_files",
   "lnbits/wallets/lnd_grpc_files",
   "lnbits/extensions",
   "lnbits/upgrades",
@@ -102,6 +115,7 @@ files = [
   "tools",
 ]
 exclude = [
+  "^lnbits/wallets/boltz_grpc_files",
   "^lnbits/wallets/lnd_grpc_files",
   "^lnbits/extensions",
   "^lnbits/upgrades",
@@ -113,7 +127,6 @@ module = [
   "secp256k1.*",
   "uvicorn.*",
   "sqlalchemy.*",
-  "sqlalchemy_aio.*",
   "websocket.*",
   "websockets.*",
   "pyqrcode.*",
@@ -123,13 +136,14 @@ module = [
   "bolt11.*",
   "bitstring.*",
   "ecdsa.*",
-  "psycopg2.*",
   "pyngrok.*",
+  "pynostr.*",
   "pyln.client.*",
   "py_vapid.*",
   "pywebpush.*",
   "fastapi_sso.sso.*",
   "json5.*",
+  "jsonpath_ng.*",
 ]
 ignore_missing_imports = "True"
 
@@ -149,6 +163,7 @@ extend-exclude = """(
     | lnbits/extensions
     | lnbits/upgrades
     | lnbits/wallets/lnd_grpc_files
+    | lnbits/wallets/boltz_grpc_files
 )"""
 
 [tool.ruff]
@@ -157,7 +172,8 @@ line-length = 88
 
 # Exclude generated files.
 extend-exclude = [
-    "lnbits/wallets/lnd_grpc_files"
+    "lnbits/wallets/lnd_grpc_files",
+    "lnbits/wallets/boltz_grpc_files"
 ]
 
 [tool.ruff.lint]
@@ -168,8 +184,14 @@ extend-exclude = [
 # I - isort
 # A - flake8-builtins
 # C - mccabe
-select = ["F", "E", "W", "I", "A", "C"]
-ignore = []
+# N - naming
+# UP - pyupgrade
+# RUF - ruff specific rules
+# B - bugbear
+select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B"]
+# UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
+# RUF012: mutable-class-default
+ignore = ["UP007", "RUF012"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
@@ -178,10 +200,22 @@ unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-# Ignore unused imports in __init__.py files.
-[tool.ruff.lint.extend-per-file-ignores]
-"__init__.py" = ["F401", "F403"]
+# needed for pydantic
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = [
+    "root_validator",
+    "validator",
+]
 
 [tool.ruff.lint.mccabe]
 # TODO: Decrease this to 10.
 max-complexity = 16
+
+[tool.ruff.lint.flake8-bugbear]
+# Allow default arguments like, e.g., `data: List[str] = fastapi.Query(None)`.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Body",
+    "lnbits.decorators.parse_filters"
+]

@@ -2,7 +2,7 @@
   description = "LNbits, free and open-source Lightning wallet and accounts system";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
     poetry2nix = {
       url = "github:nix-community/poetry2nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -30,16 +30,20 @@
           meta.rev = self.dirtyRev or self.rev;
           meta.mainProgram = projectName;
           overrides = pkgs.poetry2nix.overrides.withDefaults (final: prev: {
+            coincurve = prev.coincurve.override { preferWheel = true; };
             protobuf = prev.protobuf.override { preferWheel = true; };
             ruff = prev.ruff.override { preferWheel = true; };
             wallycore = prev.wallycore.override { preferWheel = true; };
-            # remove the following override when https://github.com/nix-community/poetry2nix/pull/1563 is merged
-            asgi-lifespan = prev.asgi-lifespan.overridePythonAttrs (
-              old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
-            );
-            pytest-md = prev.pytest-md.overridePythonAttrs (
-              old: { buildInputs = (old.buildInputs or []) ++ [ prev.setuptools ]; }
-            );
+            tlv8 = prev.tlv8.overrideAttrs (old: {
+              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+                prev.setuptools
+              ];
+            });
+            pynostr = prev.pynostr.overrideAttrs (old: {
+              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+                prev.setuptools-scm
+              ];
+            });
           });
         };
       });

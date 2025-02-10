@@ -1,0 +1,176 @@
+{% if not ajax %} {% extends "base.html" %} {% endif %}
+<!---->
+{% from "macros.jinja" import window_vars with context %}
+<!---->
+{% block scripts %} {{ window_vars(user) }}{% endblock %} {% block page %}
+
+<div class="row q-col-gutter-md justify-center">
+  <div class="col">
+    {% include "users/_manageWallet.html" %}
+    <div v-if="activeUser.show" class="row">
+      <div class="col-12 col-md-6">{%include "users/_manageUser.html" %}</div>
+    </div>
+    <div v-else-if="activeWallet.show">
+      {%include "users/_createWalletDialog.html" %}
+    </div>
+    <div v-else>
+      <div class="row q-col-gutter-md q-mb-md">
+        <div class="col-12">
+          <q-card>
+            <div class="q-pa-sm">
+              <div class="row items-center justify-between q-gutter-xs">
+                <div class="col">
+                  <q-btn
+                    @click="showAccountPage()"
+                    :label="$t('create_account')"
+                    color="primary"
+                  >
+                  </q-btn>
+                </div>
+                <div>
+                  <q-btn
+                    v-if="g.user.admin"
+                    flat
+                    round
+                    icon="settings"
+                    to="/admin#users"
+                  >
+                    <q-tooltip v-text="$t('admin_settings')"></q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
+            </div>
+          </q-card>
+        </div>
+      </div>
+
+      <q-card class="q-pa-md">
+        <q-table
+          row-key="id"
+          :rows="users"
+          :columns="usersTable.columns"
+          v-model:pagination="usersTable.pagination"
+          :no-data-label="$t('no_users')"
+          :filter="usersTable.search"
+          :loading="usersTable.loading"
+          @request="fetchUsers"
+        >
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                <q-input
+                  v-if="['user', 'username', 'email', 'pubkey', 'wallet_id'].includes(col.name)"
+                  v-model="searchData[col.name]"
+                  @keydown.enter="searchUserBy(col.name)"
+                  dense
+                  type="text"
+                  filled
+                  :label="col.label"
+                >
+                  <template v-slot:append>
+                    <q-icon
+                      name="search"
+                      @click="searchUserBy(col.name)"
+                      class="cursor-pointer"
+                    />
+                  </template>
+                </q-input>
+
+                <span v-else v-text="col.label"></span>
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr auto-width :props="props">
+              <q-td>
+                <q-btn
+                  @click="showAccountPage(props.row.id)"
+                  round
+                  icon="edit"
+                  size="sm"
+                  color="secondary"
+                  class="q-ml-xs"
+                >
+                  <q-tooltip>
+                    <span v-text="$t('update_account')"></span>
+                  </q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td>
+                <q-toggle
+                  size="xs"
+                  v-if="!props.row.is_super_user"
+                  color="secondary"
+                  v-model="props.row.is_admin"
+                  @update:model-value="toggleAdmin(props.row.id)"
+                >
+                  <q-tooltip>Toggle Admin</q-tooltip>
+                </q-toggle>
+                <q-btn
+                  round
+                  v-if="props.row.is_super_user"
+                  icon="verified"
+                  size="sm"
+                  color="secondary"
+                  class="q-ml-xs"
+                >
+                  <q-tooltip>Super User</q-tooltip>
+                </q-btn>
+              </q-td>
+
+              <q-td>
+                <q-btn
+                  icon="list"
+                  size="sm"
+                  color="secondary"
+                  :label="props.row.wallet_count"
+                  @click="fetchWallets(props.row.id)"
+                >
+                  <q-tooltip>Show Wallets</q-tooltip>
+                </q-btn>
+              </q-td>
+
+              <q-td>
+                <q-btn
+                  icon="content_copy"
+                  size="sm"
+                  flat
+                  class="cursor-pointer q-mr-xs"
+                  @click="copyText(props.row.id)"
+                >
+                  <q-tooltip>Copy User ID</q-tooltip>
+                </q-btn>
+                <span v-text="shortify(props.row.id)"></span>
+              </q-td>
+              <q-td v-text="props.row.username"></q-td>
+
+              <q-td v-text="props.row.email"></q-td>
+
+              <q-td>
+                <q-btn
+                  v-if="props.row.pubkey"
+                  icon="content_copy"
+                  size="sm"
+                  flat
+                  class="cursor-pointer q-mr-xs"
+                  @click="copyText(props.row.pubkey)"
+                >
+                  <q-tooltip>Copy Public Key</q-tooltip>
+                </q-btn>
+                <span v-text="shortify(props.row.pubkey)"></span>
+              </q-td>
+              <q-td v-text="formatSat(props.row.balance_msat)"></q-td>
+
+              <q-td v-text="props.row.transaction_count"></q-td>
+
+              <q-td v-text="formatDate(props.row.last_payment)"></q-td>
+            </q-tr>
+          </template>
+        </q-table>
+      </q-card>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

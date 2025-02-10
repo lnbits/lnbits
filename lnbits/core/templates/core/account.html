@@ -1,13 +1,11 @@
-{% extends "base.html" %}
+{% if not ajax %} {% extends "base.html" %} {% endif %}
 <!---->
 {% from "macros.jinja" import window_vars with context %}
 <!---->
-{% block scripts %} {{ window_vars(user) }}
-<script src="{{ static_url_for('static', 'js/account.js') }}"></script>
-{% endblock %} {% block page %}
+{% block scripts %} {{ window_vars(user) }}{% endblock %} {% block page %}
 
 <div class="row q-col-gutter-md">
-  <div v-if="user" class="col-12 col-md-6 q-gutter-y-md">
+  <div v-if="user" class="col-md-12 col-lg-6 q-gutter-y-md">
     <q-card>
       <q-card-section>
         <div class="row">
@@ -24,10 +22,17 @@
                 :label="$t('look_and_feel')"
                 @update="val => tab = val.name"
               ></q-tab>
+              <q-tab
+                name="api_acls"
+                :label="$t('access_control_list')"
+                @update="val => tab = val.name"
+              ></q-tab>
             </q-tabs>
             <q-tab-panels v-model="tab">
               <q-tab-panel name="user">
-                <div v-if="passwordData.show">
+                <div v-if="credentialsData.show">
+                  <q-separator></q-separator>
+
                   <q-card-section>
                     <div class="row">
                       <div class="col">
@@ -37,19 +42,26 @@
                       </div>
                       <div class="col">
                         <q-img
-                          v-if="user.config.picture"
+                          v-if="user.extra.picture"
                           style="max-width: 100px"
-                          :src="user.config.picture"
+                          :src="user.extra.picture"
                           class="float-right"
                         ></q-img>
                       </div>
                     </div>
                   </q-card-section>
-                  <q-separator></q-separator>
                   <q-card-section>
                     <q-input
+                      v-model="credentialsData.username"
+                      :label="$t('username')"
+                      filled
+                      dense
+                      :readonly="hasUsername"
+                      class="q-mb-md"
+                    ></q-input>
+                    <q-input
                       v-if="user.has_password"
-                      v-model="passwordData.oldPassword"
+                      v-model="credentialsData.oldPassword"
                       type="password"
                       autocomplete="off"
                       label="Old Password"
@@ -58,7 +70,7 @@
                       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
                     ></q-input>
                     <q-input
-                      v-model="passwordData.newPassword"
+                      v-model="credentialsData.newPassword"
                       type="password"
                       autocomplete="off"
                       :label="$t('password')"
@@ -67,7 +79,7 @@
                       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
                     ></q-input>
                     <q-input
-                      v-model="passwordData.newPasswordRepeat"
+                      v-model="credentialsData.newPasswordRepeat"
                       type="password"
                       autocomplete="off"
                       :label="$t('password_repeat')"
@@ -76,24 +88,47 @@
                       class="q-mb-md"
                       :rules="[(val) => !val || val.length >= 8 || $t('invalid_password')]"
                     ></q-input>
-                  </q-card-section>
-                  <q-separator></q-separator>
-                  <q-card-section class="q-pb-lg">
                     <q-btn
                       @click="updatePassword"
-                      :disable="(!passwordData.newPassword || !passwordData.newPasswordRepeat) || passwordData.newPassword !== passwordData.newPasswordRepeat"
+                      :disable="disableUpdatePassword()"
                       unelevated
                       color="primary"
+                      class="float-right"
                       :label="$t('change_password')"
                     >
                     </q-btn>
+                  </q-card-section>
+                  <q-separator class="q-mt-xl"></q-separator>
+                  <q-card-section>
+                    <div class="col q-mb-sm">
+                      <h4 class="q-my-none">
+                        <span v-text="$t('pubkey')"></span>
+                      </h4>
+                    </div>
+                    <q-input
+                      v-model="credentialsData.pubkey"
+                      type="text"
+                      label="Pubkey"
+                      filled
+                      dense
+                    ></q-input>
                     <q-btn
-                      @click="passwordData.show = false"
+                      @click="updatePubkey"
+                      unelevated
+                      color="primary"
+                      class="q-mt-md float-right"
+                      :label="$t('update_pubkey')"
+                    >
+                    </q-btn>
+                  </q-card-section>
+                  <q-separator class="q-mt-xl"></q-separator>
+                  <q-card-section class="q-pb-lg">
+                    <q-btn
+                      @click="credentialsData.show = false"
                       :label="$t('back')"
                       outline
                       unelevated
                       color="grey"
-                      class="float-right"
                     ></q-btn>
                   </q-card-section>
                 </div>
@@ -102,9 +137,9 @@
                     <div class="row">
                       <div class="col">
                         <q-img
-                          v-if="user.config.picture"
+                          v-if="user.extra.picture"
                           style="max-width: 100px"
-                          :src="user.config.picture"
+                          :src="user.extra.picture"
                           class="float-right"
                         ></q-img>
                       </div>
@@ -135,6 +170,15 @@
                       filled
                       dense
                       :readonly="hasUsername"
+                      class="q-mb-md"
+                    >
+                    </q-input>
+                    <q-input
+                      v-model="user.pubkey"
+                      :label="$t('pubkey')"
+                      filled
+                      dense
+                      readonly
                       class="q-mb-md"
                     >
                     </q-input>
@@ -196,9 +240,9 @@
                     </div>
                   </q-card-section>
 
-                  <q-card-section v-if="user.config">
+                  <q-card-section v-if="user.extra">
                     <q-input
-                      v-model="user.config.first_name"
+                      v-model="user.extra.first_name"
                       :label="$t('first_name')"
                       filled
                       dense
@@ -206,7 +250,7 @@
                     >
                     </q-input>
                     <q-input
-                      v-model="user.config.last_name"
+                      v-model="user.extra.last_name"
                       :label="$t('last_name')"
                       filled
                       dense
@@ -214,7 +258,7 @@
                     >
                     </q-input>
                     <q-input
-                      v-model="user.config.provider"
+                      v-model="user.extra.provider"
                       :label="$t('auth_provider')"
                       filled
                       dense
@@ -223,10 +267,9 @@
                     >
                     </q-input>
                     <q-input
-                      v-model="user.config.picture"
+                      v-model="user.extra.picture"
                       :label="$t('picture')"
                       filled
-                      dense
                       class="q-mb-md"
                     >
                     </q-input>
@@ -237,17 +280,25 @@
                       <span v-text="$t('update_account')"></span>
                     </q-btn>
                     <q-btn
-                      @click="showChangePassword()"
-                      :label="user.has_password ? $t('change_password'): $t('set_password')"
-                      outline
-                      unelevated
-                      color="grey"
+                      @click="showUpdateCredentials()"
+                      :label="$t('update_credentials')"
+                      filled
+                      color="primary"
                       class="float-right"
                     ></q-btn>
                   </q-card-section>
                 </div>
               </q-tab-panel>
               <q-tab-panel name="theme">
+                <q-btn
+                  v-if="g.user.admin"
+                  class="absolute-top-right"
+                  flat
+                  round
+                  icon="settings"
+                  to="/admin#site_customisation"
+                  ><q-tooltip v-text="$t('admin_settings')"></q-tooltip
+                ></q-btn>
                 <div class="row q-mb-md">
                   <div class="col-4"><span v-text="$t('language')"></span></div>
                   <div class="col-8">
@@ -287,7 +338,7 @@
                       v-if="g.allowedThemes.includes('classic')"
                       dense
                       flat
-                      @click="changeColor('classic')"
+                      @click="themeChoiceFunc('classic')"
                       icon="circle"
                       color="deep-purple"
                       size="md"
@@ -297,7 +348,7 @@
                       v-if="g.allowedThemes.includes('bitcoin')"
                       dense
                       flat
-                      @click="changeColor('bitcoin')"
+                      @click="themeChoiceFunc('bitcoin')"
                       icon="circle"
                       color="orange"
                       size="md"
@@ -307,7 +358,7 @@
                       v-if="g.allowedThemes.includes('mint')"
                       dense
                       flat
-                      @click="changeColor('mint')"
+                      @click="themeChoiceFunc('mint')"
                       icon="circle"
                       color="green"
                       size="md"
@@ -316,7 +367,7 @@
                       v-if="g.allowedThemes.includes('autumn')"
                       dense
                       flat
-                      @click="changeColor('autumn')"
+                      @click="themeChoiceFunc('autumn')"
                       icon="circle"
                       color="brown"
                       size="md"
@@ -326,7 +377,7 @@
                       v-if="g.allowedThemes.includes('monochrome')"
                       dense
                       flat
-                      @click="changeColor('monochrome')"
+                      @click="themeChoiceFunc('monochrome')"
                       icon="circle"
                       color="grey"
                       size="md"
@@ -336,7 +387,7 @@
                       v-if="g.allowedThemes.includes('salvador')"
                       dense
                       flat
-                      @click="changeColor('salvador')"
+                      @click="themeChoiceFunc('salvador')"
                       icon="circle"
                       color="blue-10"
                       size="md"
@@ -346,7 +397,7 @@
                       v-if="g.allowedThemes.includes('freedom')"
                       dense
                       flat
-                      @click="changeColor('freedom')"
+                      @click="themeChoiceFunc('freedom')"
                       icon="circle"
                       color="pink-13"
                       size="md"
@@ -356,7 +407,7 @@
                       v-if="g.allowedThemes.includes('cyber')"
                       dense
                       flat
-                      @click="changeColor('cyber')"
+                      @click="themeChoiceFunc('cyber')"
                       icon="circle"
                       color="light-green-9"
                       size="md"
@@ -366,7 +417,7 @@
                       v-if="g.allowedThemes.includes('flamingo')"
                       dense
                       flat
-                      @click="changeColor('flamingo')"
+                      @click="themeChoiceFunc('flamingo')"
                       icon="circle"
                       color="pink-3"
                       size="md"
@@ -374,6 +425,43 @@
                     </q-btn>
                   </div>
                 </div>
+                <div class="row q-mb-md">
+                  <div class="col-4">
+                    <span v-text="$t('background_image')"></span>
+                  </div>
+                  <div class="col-8">
+                    <q-input
+                      v-model="bgimageSelection"
+                      :label="$t('background_image')"
+                      @update:model-value="bgimageChoiceFunc"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('background_image')"></span
+                      ></q-tooltip>
+                    </q-input>
+                  </div>
+                </div>
+                <div class="row q-mb-md">
+                  <div class="col-4">
+                    <span v-text="$t('gradient_background')"></span>
+                  </div>
+                  <div class="col-8">
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      @click="toggleGradient"
+                      icon="gradient"
+                      size="sm"
+                      v-model="gradientChoice"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('toggle_gradient')"></span
+                      ></q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+
                 <div class="row q-mb-md">
                   <div class="col-4">
                     <span v-text="$t('toggle_darkmode')"></span>
@@ -394,7 +482,26 @@
                   </div>
                 </div>
                 <div class="row q-mb-md">
-                  <div class="col-4">Notifications</div>
+                  <div class="col-4">
+                    <span v-text="$t('border_choices')"></span>
+                  </div>
+                  <div class="col-8">
+                    <q-select
+                      v-model="borderSelection"
+                      :options="borderOptions"
+                      label="Borders"
+                      @update:model-value="applyBorder"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('border_choices')"></span
+                      ></q-tooltip>
+                    </q-select>
+                  </div>
+                </div>
+                <div class="row q-mb-md">
+                  <div class="col-4">
+                    <span v-text="$t('notifications')"></span>
+                  </div>
                   <div class="col-8">
                     <lnbits-notifications-btn
                       v-if="g.user"
@@ -408,10 +515,10 @@
                   </div>
                   <div class="col-8">
                     <q-select
-                      v-model="reactionChoice"
+                      v-model="reactionSelection"
                       :options="reactionOptions"
                       label="Reactions"
-                      @input="reactionChoiceFunc"
+                      @update:model-value="reactionChoiceFunc"
                     >
                       <q-tooltip
                         ><span v-text="$t('payment_reactions')"></span
@@ -419,6 +526,230 @@
                     </q-select>
                   </div>
                 </div>
+              </q-tab-panel>
+              <q-tab-panel name="api_acls">
+                <div class="row q-mb-md">
+                  <q-badge v-if="user.admin">
+                    <span
+                      v-text="$t('access_control_list_admin_warning')"
+                    ></span>
+                  </q-badge>
+                </div>
+
+                <q-card-section>
+                  <div class="row q-mb-md q-gutter-y-md">
+                    <div class="col-sm-12 col-md-6">
+                      <q-select
+                        v-model="selectedApiAcl.id"
+                        emit-value
+                        map-options
+                        @update:model-value="handleApiACLSelected"
+                        :options="apiAcl.data.map(t => ({label: t.name, value: t.id}))"
+                        :label="$t('access_control_list')"
+                        dense
+                      >
+                      </q-select>
+                    </div>
+                    <div class="col-sm-12 col-md-6">
+                      <q-btn
+                        @click="askPasswordAndRunFunction('newApiAclDialog')"
+                        filled
+                        outline
+                        icon="add"
+                        :label="$t('access_control_list')"
+                        color="grey"
+                        class="float-right"
+                      ></q-btn>
+                    </div>
+                  </div>
+                  <div v-if="selectedApiAcl.id">
+                    <div class="row q-mb-md">
+                      <div class="col-sm-12 col-md-6">
+                        <q-select
+                          :options="selectedApiAcl.token_id_list.map(t => ({label: t.name, value: t.id}))"
+                          v-model="apiAcl.selectedTokenId"
+                          emit-value
+                          map-options
+                          :label="$t('api_tokens')"
+                          dense
+                        >
+                        </q-select>
+                      </div>
+
+                      <div class="col-sm-12 col-md-6 q-pl-sm">
+                        <q-btn
+                          v-if="apiAcl.selectedTokenId"
+                          @click="askPasswordAndRunFunction('deleteToken')"
+                          icon="delete"
+                          filled
+                          color="negative"
+                          class="float-left"
+                        ></q-btn>
+                        <q-btn
+                          @click="askPasswordAndRunFunction('newTokenAclDialog')"
+                          outline
+                          icon="add"
+                          :label="$t('api_token')"
+                          filled
+                          color="grey"
+                          class="float-right"
+                        ></q-btn>
+                      </div>
+                    </div>
+                    <div v-if="apiAcl.apiToken" class="row q-mb-md">
+                      <div class="col-12">
+                        <q-badge>
+                          <span>Use this token in the HTTP</span>
+                          <strong>
+                            &nbsp;<code>Authorization</code>
+                            &nbsp;
+                          </strong>
+                          <span> header.</span>
+                        </q-badge>
+                      </div>
+                      <div class="col-12">
+                        <table
+                          class="full-width lnbits__table-bordered"
+                          style="
+                            border-collapse: collapse;
+                            background-color: grey;
+                          "
+                        >
+                          <thead>
+                            <tr>
+                              <th>
+                                <span class="float-left">Header Name</span>
+                              </th>
+                              <th>
+                                <span class="float-left">Header Value</span>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>
+                                <strong>Authorization</strong>
+                              </td>
+                              <td>
+                                <div class="row q-pt-sm">
+                                  <div class="col-2 q-mt-sm">
+                                    <strong>Bearer &nbsp;</strong>
+                                  </div>
+                                  <div class="col-10">
+                                    <q-input
+                                      v-model="apiAcl.apiToken"
+                                      :label="$t('api_token_id')"
+                                      filled
+                                      dense
+                                      readonly
+                                      :type="selectedApiAcl.showId ? 'text': 'password'"
+                                      class="q-mb-md"
+                                    >
+                                      <q-btn
+                                        @click="selectedApiAcl.showId = !selectedApiAcl.showId"
+                                        dense
+                                        flat
+                                        :icon="selectedApiAcl.showId ? 'visibility_off' : 'visibility'"
+                                        color="black"
+                                      ></q-btn>
+
+                                      <q-btn
+                                        @click="copyText(apiAcl.apiToken)"
+                                        icon="content_copy"
+                                        color="black"
+                                        flat
+                                        dense
+                                      ></q-btn>
+                                    </q-input>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="col-12">
+                        <q-badge>
+                          <span
+                            >Please store this token. It cannot be later
+                            retrieved, only revoked.</span
+                          >
+                        </q-badge>
+                      </div>
+                    </div>
+
+                    <q-table
+                      row-key="path"
+                      :rows="selectedApiAcl.endpoints"
+                      :columns="apiAcl.columns"
+                      v-model:pagination="apiAcl.pagination"
+                    >
+                      <template v-slot:header="props">
+                        <q-tr :props="props">
+                          <q-th
+                            v-for="col in props.cols"
+                            :key="col.name"
+                            :props="props"
+                          >
+                            <q-toggle
+                              v-if="col.name == 'read'"
+                              v-model="selectedApiAcl.allRead"
+                              @update:model-value="handleAllEndpointsReadAccess()"
+                              :label="$t('read')"
+                              size="sm"
+                            ></q-toggle>
+                            <q-toggle
+                              v-else-if="col.name == 'write'"
+                              v-model="selectedApiAcl.allWrite"
+                              @update:model-value="handleAllEndpointsWriteAccess()"
+                              :label="$t('write')"
+                              size="sm"
+                            ></q-toggle>
+                            <span v-else v-text="col.label"></span>
+                          </q-th>
+                        </q-tr>
+                      </template>
+                      <template v-slot:body="props">
+                        <q-tr :props="props">
+                          <q-td>
+                            <span v-text="props.row.name"></span>
+                          </q-td>
+                          <q-td>
+                            <span v-text="props.row.path"></span>
+                          </q-td>
+                          <q-td>
+                            <q-toggle size="sm" v-model="props.row.read" />
+                          </q-td>
+                          <q-td>
+                            <q-toggle size="sm" v-model="props.row.write" />
+                          </q-td>
+                        </q-tr>
+                      </template>
+                    </q-table>
+                    <q-separator></q-separator>
+                  </div>
+
+                  <div v-if="selectedApiAcl.id" class="row q-mt-md">
+                    <div class="col-sm-12 col-md-6">
+                      <q-btn
+                        @click="askPasswordAndRunFunction('updateApiACLs')"
+                        :label="$t('update')"
+                        filled
+                        color="primary"
+                      ></q-btn>
+                    </div>
+                    <div class="col-sm-12 col-md-6">
+                      <q-btn
+                        @click="askPasswordAndRunFunction('deleteApiACL')"
+                        :label="$t('delete')"
+                        icon="delete"
+                        color="negative"
+                        class="float-right"
+                      >
+                      </q-btn>
+                    </div>
+                  </div>
+                </q-card-section>
               </q-tab-panel>
             </q-tab-panels>
           </div>
@@ -434,4 +765,126 @@
     </q-card>
   </div>
 </div>
+
+<q-dialog v-model="apiAcl.showPasswordDialog" position="top">
+  <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+    <strong>User Password</strong>
+    <div class="row q-mt-md q-col-gutter-md">
+      <div class="col-12">
+        <q-input
+          v-model="apiAcl.password"
+          type="password"
+          dense
+          filled
+          label="Password"
+          hint="User password is required for this action."
+        >
+        </q-input>
+      </div>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn
+        @click="runPasswordGuardedFunction()"
+        :label="$t('ok')"
+        color="primary"
+      ></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('cancel')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
+
+<q-dialog v-model="apiAcl.showNewAclDialog" position="top">
+  <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+    <strong>New API Access Control List</strong>
+    <div class="row q-mt-md q-col-gutter-md">
+      <div class="col-12">
+        <q-input v-model="apiAcl.newAclName" dense filled label="ACL Name">
+        </q-input>
+      </div>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn @click="addApiACL()" label="Create" color="primary"></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('close')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
+<q-dialog v-model="apiAcl.showNewTokenDialog" position="top">
+  <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+    <strong>New API Token</strong>
+    <div class="row q-col-gutter-md q-mt-md">
+      <div class="col-12">
+        <q-input v-model="apiAcl.newTokenName" dense filled label="Token Name">
+        </q-input>
+      </div>
+      <div class="col-12">
+        <q-input
+          v-model="apiAcl.newTokenExpiry"
+          dense
+          filled
+          label="Expiration"
+          hit="Expiration time in minutes (default xxx)"
+        >
+          <template v-slot:prepend>
+            <q-icon name="event" class="cursor-pointer">
+              <q-popup-proxy
+                cover
+                transition-show="scale"
+                transition-hide="scale"
+              >
+                <q-date v-model="apiAcl.newTokenExpiry" mask="YYYY-MM-DD HH:mm">
+                  <div class="row items-center justify-end">
+                    <q-btn v-close-popup label="Close" color="primary" flat />
+                  </div>
+                </q-date>
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+
+          <template v-slot:append>
+            <q-icon name="access_time" class="cursor-pointer">
+              <q-popup-proxy
+                cover
+                transition-show="scale"
+                transition-hide="scale"
+              >
+                <q-time
+                  v-model="apiAcl.newTokenExpiry"
+                  mask="YYYY-MM-DD HH:mm"
+                  format24h
+                >
+                  <div class="row items-center justify-end">
+                    <q-btn v-close-popup label="Close" color="primary" flat />
+                  </div>
+                </q-time>
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+        </q-input>
+      </div>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn @click="generateApiToken()" label="Create" color="primary"></q-btn>
+      <q-btn
+        v-close-popup
+        flat
+        color="grey"
+        class="q-ml-auto"
+        v-text="$t('close')"
+      ></q-btn>
+    </div>
+  </q-card>
+</q-dialog>
+
 {% endblock %}

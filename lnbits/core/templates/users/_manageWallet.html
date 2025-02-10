@@ -1,0 +1,147 @@
+<div v-if="paymentPage.show">
+  <div class="row q-mb-lg">
+    <div class="col">
+      <q-btn
+        icon="arrow_back_ios"
+        @click="paymentPage.show = false"
+        :label="$t('back')"
+      ></q-btn>
+    </div>
+  </div>
+  <q-card class="q-pa-md">
+    <q-card-section>
+      <payment-list :wallet="paymentsWallet" />
+    </q-card-section>
+  </q-card>
+</div>
+<div v-else-if="activeWallet.show">
+  <div class="row q-mb-lg">
+    <div class="col">
+      <q-btn
+        icon="arrow_back_ios"
+        @click="backToUsersPage()"
+        :label="$t('back')"
+      ></q-btn>
+      <q-btn
+        @click="createWalletDialog.show = true"
+        :label="$t('create_new_wallet')"
+        color="primary"
+        class="q-ml-md"
+      ></q-btn>
+    </div>
+  </div>
+  <q-card class="q-pa-md">
+    <h2 class="text-h6 q-mb-md">Wallets</h2>
+    <q-table :rows="wallets" :columns="walletTable.columns">
+      <template v-slot:header="props">
+        <q-tr :props="props">
+          <q-th auto-width></q-th>
+          <q-th
+            auto-width
+            v-for="col in props.cols"
+            v-text="col.label"
+            :key="col.name"
+            :props="props"
+          ></q-th>
+        </q-tr>
+      </template>
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td auto-width>
+            <lnbits-update-balance
+              :wallet_id="props.row.id"
+              @credit-value="handleBalanceUpdate"
+              class="q-mr-md"
+            ></lnbits-update-balance>
+            <q-btn
+              round
+              icon="menu"
+              size="sm"
+              color="secondary"
+              @click="showPayments(props.row.id)"
+            >
+              <q-tooltip>Show Payments</q-tooltip>
+            </q-btn>
+
+            <q-btn
+              round
+              v-if="!props.row.deleted"
+              icon="vpn_key"
+              size="sm"
+              color="primary"
+              class="q-ml-xs"
+              @click="copyText(props.row.adminkey)"
+            >
+              <q-tooltip>Copy Admin Key</q-tooltip>
+            </q-btn>
+            <q-btn
+              round
+              v-if="!props.row.deleted"
+              icon="vpn_key"
+              size="sm"
+              color="secondary"
+              class="q-ml-xs"
+              @click="copyText(props.row.inkey)"
+            >
+              <q-tooltip>Copy Invoice Key</q-tooltip>
+            </q-btn>
+
+            <q-btn
+              round
+              icon="delete"
+              size="sm"
+              color="negative"
+              class="q-ml-xs"
+              @click="deleteUserWallet(props.row.user, props.row.id, props.row.deleted)"
+            >
+              <q-tooltip>Delete Wallet</q-tooltip>
+            </q-btn>
+          </q-td>
+          <q-td auto-width>
+            <q-btn
+              icon="link"
+              size="sm"
+              flat
+              class="cursor-pointer q-mr-xs"
+              @click="copyWalletLink(props.row.id)"
+            >
+              <q-tooltip>Copy Wallet Link</q-tooltip>
+            </q-btn>
+
+            <span v-text="props.row.name"></span>
+            <q-btn
+              round
+              v-if="props.row.deleted"
+              icon="toggle_off"
+              size="sm"
+              color="secondary"
+              class="q-ml-xs"
+              @click="undeleteUserWallet(props.row.user, props.row.id)"
+            >
+              <q-tooltip>Undelete Wallet</q-tooltip>
+            </q-btn>
+          </q-td>
+          <q-td auto-width>
+            <q-btn
+              icon="content_copy"
+              size="sm"
+              flat
+              class="cursor-pointer q-mr-xs"
+              @click="copyText(props.row.id)"
+            >
+              <q-tooltip>Copy Wallet ID</q-tooltip>
+            </q-btn>
+
+            <span
+              v-text="props.row.id"
+              :class="props.row.deleted ? 'text-strike' : ''"
+            ></span>
+          </q-td>
+
+          <q-td auto-width v-text="props.row.currency"></q-td>
+          <q-td auto-width v-text="formatSat(props.row.balance_msat)"></q-td>
+        </q-tr>
+      </template>
+    </q-table>
+  </q-card>
+</div>

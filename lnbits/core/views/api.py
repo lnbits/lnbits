@@ -2,7 +2,8 @@ import hashlib
 import json
 from http import HTTPStatus
 from io import BytesIO
-from typing import Dict, List
+from time import time
+from typing import Any
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
@@ -12,7 +13,7 @@ from fastapi import (
     Depends,
 )
 from fastapi.exceptions import HTTPException
-from starlette.responses import StreamingResponse
+from fastapi.responses import StreamingResponse
 
 from lnbits.core.models import (
     BaseWallet,
@@ -25,61 +26,79 @@ from lnbits.core.models import (
 from lnbits.decorators import (
     WalletTypeInfo,
     check_user_exists,
-    get_key_type,
     require_admin_key,
+    require_invoice_key,
 )
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     allowed_currencies,
     fiat_amount_as_satoshis,
+    get_fiat_rate_and_price_satoshis,
     satoshis_amount_as_fiat,
 )
+from lnbits.wallets import get_funding_source
+from lnbits.wallets.base import StatusResponse
 
-from ..crud import (
-    create_account,
-    create_wallet,
-)
-from ..services import perform_lnurlauth
-
-# backwards compatibility for extension
-# TODO: remove api_payment and pay_invoice imports from extensions
-from .payment_api import api_payment, pay_invoice  # noqa: F401
+from ..services import create_user_account, perform_lnurlauth
 
 api_router = APIRouter(tags=["Core"])
 
 
 @api_router.get("/api/v1/health", status_code=HTTPStatus.OK)
-async def health():
-    return
+async def health() -> dict:
+    return {
+        "server_time": int(time()),
+        "up_time": settings.lnbits_server_up_time,
+    }
+
+
+@api_router.get("/api/v1/status", status_code=HTTPStatus.OK)
+async def health_check(user: User = Depends(check_user_exists)) -> dict:
+    stat: dict[str, Any] = {
+        "server_time": int(time()),
+        "up_time": settings.lnbits_server_up_time,
+        "up_time_seconds": int(time() - settings.server_startup_time),
+    }
+
+    stat["version"] = settings.version
+    if not user.admin:
+        return stat
+
+    funding_source = get_funding_source()
+    stat["funding_source"] = funding_source.__class__.__name__
+
+    status: StatusResponse = await funding_source.status()
+    stat["funding_source_error"] = status.error_message
+    stat["funding_source_balance_msat"] = status.balance_msat
+
+    return stat
 
 
 @api_router.get(
     "/api/v1/wallets",
     name="Wallets",
     description="Get basic info for all of user's wallets.",
+    response_model=list[BaseWallet],
 )
-async def api_wallets(user: User = Depends(check_user_exists)) -> List[BaseWallet]:
-    return [BaseWallet(**w.dict()) for w in user.wallets]
+async def api_wallets(user: User = Depends(check_user_exists)) -> list[Wallet]:
+    return user.wallets
 
 
-@api_router.post("/api/v1/account", response_model=Wallet)
+@api_router.post("/api/v1/account")
 async def api_create_account(data: CreateWallet) -> Wallet:
-    if not settings.new_accounts_allowed:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Account creation is disabled.",
-        )
-    account = await create_account()
-    return await create_wallet(user_id=account.id, wallet_name=data.name)
+    user = await create_user_account(wallet_name=data.name)
+    return user.wallets[0]
 
 
 @api_router.get("/api/v1/lnurlscan/{code}")
-async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_lnurlscan(
+    code: str, wallet: WalletTypeInfo = Depends(require_invoice_key)
+):
     try:
         url = str(lnurl_decode(code))
         domain = urlparse(url).netloc
-    except Exception:
+    except Exception as exc:
         # parse internet identifier (user@domain.com)
         name_domain = code.split("@")
         if len(name_domain) == 2 and len(name_domain[1].split(".")) >= 2:
@@ -94,10 +113,10 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
         else:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="invalid lnurl"
-            )
+            ) from exc
 
     # params is what will be returned to the client
-    params: Dict = {"domain": domain}
+    params: dict = {"domain": domain}
 
     if "tag=login" in url:
         params.update(kind="auth")
@@ -119,14 +138,14 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
 
         try:
             data = json.loads(r.text)
-        except json.decoder.JSONDecodeError:
+        except json.decoder.JSONDecodeError as exc:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                 detail={
                     "domain": domain,
                     "message": f"got invalid response '{r.text[:200]}'",
                 },
-            )
+            ) from exc
 
         try:
             tag: str = data.get("tag")
@@ -146,7 +165,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
 
                 # callback with k1 already in it
                 parsed_callback: ParseResult = urlparse(data["callback"])
-                qs: Dict = parse_qs(parsed_callback.query)
+                qs: dict = parse_qs(parsed_callback.query)
                 qs["k1"] = data["k1"]
 
                 # balanceCheck/balanceNotify
@@ -185,7 +204,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                     "domain": domain,
                     "message": f"lnurl JSON response invalid: {exc}",
                 },
-            )
+            ) from exc
 
     return params
 
@@ -202,8 +221,22 @@ async def api_perform_lnurlauth(
     return ""
 
 
+@api_router.get(
+    "/api/v1/rate/history",
+    dependencies=[Depends(check_user_exists)],
+)
+async def api_exchange_rate_history() -> list[dict]:
+    return settings.lnbits_exchange_rate_history
+
+
+@api_router.get("/api/v1/rate/{currency}")
+async def api_check_fiat_rate(currency: str) -> dict[str, float]:
+    rate, price = await get_fiat_rate_and_price_satoshis(currency)
+    return {"rate": rate, "price": price}
+
+
 @api_router.get("/api/v1/currencies")
-async def api_list_currencies_available() -> List[str]:
+async def api_list_currencies_available() -> list[str]:
     return allowed_currencies()
 
 

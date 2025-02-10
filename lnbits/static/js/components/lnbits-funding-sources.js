@@ -1,6 +1,15 @@
-Vue.component('lnbits-funding-sources', {
-  mixins: [windowMixin],
+window.app.component('lnbits-funding-sources', {
+  template: '#lnbits-funding-sources',
+  mixins: [window.windowMixin],
   props: ['form-data', 'allowed-funding-sources'],
+  methods: {
+    getFundingSourceLabel(item) {
+      const fundingSource = this.rawFundingSources.find(
+        fundingSource => fundingSource[0] === item
+      )
+      return fundingSource ? fundingSource[1] : item
+    }
+  },
   computed: {
     fundingSources() {
       let tmp = []
@@ -14,6 +23,9 @@ Vue.component('lnbits-funding-sources', {
         tmp.push([key, tmpObj])
       }
       return new Map(tmp)
+    },
+    sortedAllowedFundingSources() {
+      return this.allowedFundingSources.sort()
     }
   },
   data() {
@@ -31,7 +43,8 @@ Vue.component('lnbits-funding-sources', {
           'CoreLightningWallet',
           'Core Lightning',
           {
-            corelightning_rpc: 'Endpoint'
+            corelightning_rpc: 'Endpoint',
+            corelightning_pay_command: 'Custom Pay Command'
           }
         ],
         [
@@ -51,7 +64,8 @@ Vue.component('lnbits-funding-sources', {
             lnd_rest_cert: 'Certificate',
             lnd_rest_macaroon: 'Macaroon',
             lnd_rest_macaroon_encrypted: 'Encrypted Macaroon',
-            lnd_rest_route_hints: 'Enable Route Hints'
+            lnd_rest_route_hints: 'Enable Route Hints',
+            lnd_rest_allow_self_payment: 'Allow Self Payment'
           }
         ],
         [
@@ -92,10 +106,19 @@ Vue.component('lnbits-funding-sources', {
         ],
         [
           'LNbitsWallet',
-          'LNBits',
+          'LNbits',
           {
             lnbits_endpoint: 'Endpoint',
             lnbits_key: 'Admin Key'
+          }
+        ],
+        [
+          'BlinkWallet',
+          'Blink',
+          {
+            blink_api_endpoint: 'Endpoint',
+            blink_ws_endpoint: 'WebSocket',
+            blink_token: 'Key'
           }
         ],
         [
@@ -107,11 +130,29 @@ Vue.component('lnbits-funding-sources', {
           }
         ],
         [
+          'BoltzWallet',
+          'Boltz',
+          {
+            boltz_client_endpoint: 'Endpoint',
+            boltz_client_macaroon: 'Admin Macaroon path or hex',
+            boltz_client_cert: 'Certificate path or hex',
+            boltz_client_wallet: 'Wallet Name'
+          }
+        ],
+        [
           'ZBDWallet',
           'ZBD',
           {
             zbd_api_endpoint: 'Endpoint',
             zbd_api_key: 'Key'
+          }
+        ],
+        [
+          'PhoenixdWallet',
+          'Phoenixd',
+          {
+            phoenixd_api_endpoint: 'Endpoint',
+            phoenixd_api_password: 'Key'
           }
         ],
         [
@@ -136,47 +177,26 @@ Vue.component('lnbits-funding-sources', {
             spark_url: 'Endpoint',
             spark_token: 'Token'
           }
+        ],
+        [
+          'NWCWallet',
+          'Nostr Wallet Connect',
+          {
+            nwc_pairing_url: 'Pairing URL'
+          }
+        ],
+        [
+          'BreezSdkWallet',
+          'Breez SDK',
+          {
+            breez_api_key: 'Breez API Key',
+            breez_greenlight_seed: 'Greenlight Seed',
+            breez_greenlight_device_key: 'Greenlight Device Key',
+            breez_greenlight_device_cert: 'Greenlight Device Cert',
+            breez_greenlight_invite_code: 'Greenlight Invite Code'
+          }
         ]
       ]
     }
-  },
-  template: `
-    <div class="funding-sources">
-        <h6 class="q-mt-xl q-mb-md">Funding Sources</h6>
-        <div class="row">
-          <div class="col-12">
-            <p>Active Funding<small> (Requires server restart)</small></p>
-            <q-select
-              filled
-              v-model="formData.lnbits_backend_wallet_class"
-              hint="Select the active funding wallet"
-              :options="allowedFundingSources"
-            ></q-select>
-          </div>
-        </div>
-        <q-list
-          class="q-mt-md"
-          v-for="(fund, idx) in allowedFundingSources"
-          :key="idx"
-        >
-          <div v-if="fundingSources.get(fund) && fund === formData.lnbits_backend_wallet_class">
-            <div class="row"
-              v-for="([key, prop], i) in Object.entries(fundingSources.get(fund))"
-              :key="i"
-            >
-              <div class="col-12">
-                <q-input
-                  filled
-                  type="text"
-                  class="q-mt-sm"
-                  v-model="formData[key]"
-                  :label="prop.label"
-                  :hint="prop.hint"
-                ></q-input>
-              </div>
-            </div>
-          </div>
-        </q-list>
-    </div>
-  `
+  }
 })

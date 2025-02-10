@@ -1,26 +1,74 @@
 <q-tab-panel name="security">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none q-mb-sm">Authentication</h6>
+    <h6 class="q-my-none"><span v-text="$t('server_management')"></span></h6>
     <div class="row">
-      <div class="col-md-6 col-sm-12 q-pr-sm">
+      <div class="col-md-6">
+        <p><span v-text="$t('base_url')"></span></p>
+        <q-input
+          filled
+          v-model.number="formData.lnbits_baseurl"
+          :label="$t('base_url_label')"
+        ></q-input>
+        <br />
+      </div>
+    </div>
+    <h6 class="q-my-none q-mb-sm">
+      <span v-text="$t('authentication')"></span>
+    </h6>
+    <div class="row q-col-gutter-sm">
+      <div class="col-12 col-sm-6">
         <q-input
           filled
           v-model="formData.auth_token_expire_minutes"
           type="number"
-          label="Token expire minutes"
-          hint="Time in minutes until the token expires"
+          :label="$t('auth_token_expiry_label')"
+          :hint="$t('auth_token_expiry_hint')"
         >
         </q-input>
       </div>
-      <div class="col-md-6 col-sm-12 q-pr-sm">
+      <div class="col-12 col-sm-6">
         <q-select
           filled
           v-model="formData.auth_allowed_methods"
           multiple
-          hint="Allowed authorization methods"
-          label="Select authorization methods"
+          :hint="$t('auth_allowed_methods_hint')"
+          :label="$t('auth_allowed_methods_label')"
           :options="formData.auth_all_methods"
         ></q-select>
+      </div>
+    </div>
+  </q-card-section>
+  <q-card-section
+    v-if="formData.auth_allowed_methods?.includes('nostr-auth-nip98')"
+    class="q-pl-xl"
+  >
+    <strong class="q-my-none q-mb-sm">Nostr Auth</strong>
+
+    <div class="row">
+      <div class="col-12">
+        <q-input
+          class="q-mb-sm"
+          filled
+          v-model="nostrAcceptedUrl"
+          @keydown.enter="addNostrUrl"
+          type="text"
+          :label="$t('auth_nostr_label')"
+          :hint="$t('auth_nostr_hint')"
+        >
+          <q-btn @click="addNostrUrl" dense flat icon="add"></q-btn>
+        </q-input>
+      </div>
+      <div class="col-12">
+        <q-chip
+          v-for="url in formData.nostr_absolute_request_urls"
+          :key="url"
+          removable
+          @remove="removeNostrUrl(url)"
+          color="primary"
+          text-color="white"
+          :label="url"
+          class="ellipsis"
+        ></q-chip>
       </div>
     </div>
   </q-card-section>
@@ -35,8 +83,8 @@
         <q-input
           filled
           v-model="formData.google_client_id"
-          label="Google Client ID"
-          hint="Make sure thant the authorized redirect URIs contain https://{domain}/api/v1/auth/google/token"
+          :label="$t('auth_google_ci_label')"
+          :hint="$t('auth_google_ci_hint')"
         >
         </q-input>
       </div>
@@ -45,7 +93,7 @@
           filled
           v-model="formData.google_client_secret"
           type="password"
-          label="Google Client Secret"
+          :label="$t('auth_google_cs_label')"
         >
         </q-input>
       </div>
@@ -62,8 +110,8 @@
         <q-input
           filled
           v-model="formData.github_client_id"
-          label="GitHub Client ID"
-          hint="Make sure thant the authorization callback URL is set to https://{domain}/api/v1/auth/github/token"
+          :label="$t('auth_gh_client_id_label')"
+          :hint="$t('auth_gh_client_id_hint')"
         >
         </q-input>
       </div>
@@ -72,7 +120,7 @@
           filled
           v-model="formData.github_client_secret"
           type="password"
-          label="GitHub Client Secret"
+          :label="$t('auth_gh_client_secret_label')"
         >
         </q-input>
       </div>
@@ -89,7 +137,7 @@
         <q-input
           filled
           v-model="formData.keycloak_discovery_url"
-          label="Keycloak Discovey URL"
+          :label="$t('auth_keycloak_label')"
         >
         </q-input>
       </div>
@@ -97,8 +145,8 @@
         <q-input
           filled
           v-model="formData.keycloak_client_id"
-          label="Keycloak Client ID"
-          hint="Make sure thant the authorization callback URL is set to https://{domain}/api/v1/auth/keycloak/token"
+          :label="$t('auth_keycloak_ci_label')"
+          :hint="$t('auth_keycloak_ci_hint')"
         >
         </q-input>
       </div>
@@ -107,7 +155,7 @@
           filled
           v-model="formData.keycloak_client_secret"
           type="password"
-          label="Keycloak Client Secret"
+          :label="$t('auth_keycloak_cs_label')"
         >
         </q-input>
       </div>
@@ -173,7 +221,8 @@
                   @remove="removeBlockedIPs(blocked_ip)"
                   color="primary"
                   text-color="white"
-                  v-text="blocked_ip"
+                  :label="blocked_ip"
+                  class="ellipsis"
                 ></q-chip>
               </div>
               <br />
@@ -202,7 +251,8 @@
                   @remove="removeAllowedIPs(allowed_ip)"
                   color="primary"
                   text-color="white"
-                  v-text="allowed_ip"
+                  :label="allowed_ip"
+                  class="ellipsis"
                 ></q-chip>
               </div>
               <br />
@@ -235,7 +285,7 @@
         <div class="col-12 col-md-12">
           <p v-text="$t('wallet_limiter')"></p>
           <div class="row q-col-gutter-md">
-            <div class="col-4">
+            <div class="col-3">
               <q-input
                 filled
                 type="number"
@@ -243,7 +293,7 @@
                 :label="$t('wallet_max_ballance')"
               ></q-input>
             </div>
-            <div class="col-4">
+            <div class="col-3">
               <q-input
                 filled
                 type="number"
@@ -251,7 +301,7 @@
                 :label="$t('wallet_limit_max_withdraw_per_day')"
               ></q-input>
             </div>
-            <div class="col-4">
+            <div class="col-3">
               <q-input
                 filled
                 type="number"
@@ -259,144 +309,14 @@
                 :label="$t('wallet_limit_secs_between_trans')"
               ></q-input>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <br />
-    <div>
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label v-text="$t('enable_notifications')"></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('enable_notifications_desc')"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
+            <div class="col-3">
               <q-toggle
-                size="md"
-                v-model="formData.lnbits_notifications"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-          <br />
-          <p
-            v-if="!formData.lnbits_notifications"
-            v-text="$t('notifications_disabled')"
-          ></p>
-          <div v-if="formData.lnbits_notifications">
-            {% include "admin/_tab_security_notifications.html" %}
+                v-model="formData.lnbits_only_allow_incoming_payments"
+                :label="$t('only_incoming_payments_allowed')"
+                ><q-tooltip v-text="$t('disable_outgoing_payments')"></q-tooltip
+              ></q-toggle>
+            </div>
           </div>
-          <br />
-          <div>
-            <p v-text="$t('notification_source')"></p>
-            <q-input
-              filled
-              v-model="formData.lnbits_status_manifest"
-              type="text"
-              :label="$t('notification_source_label')"
-            />
-          </div>
-          <br />
-        </div>
-        <div class="col-12 col-md-6">
-          <p v-text="$t('killswitch')"></p>
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label v-text="$t('enable_killswitch')"></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('enable_killswitch_desc')"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_killswitch"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label v-text="$t('killswitch_interval')"></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('killswitch_interval_desc')"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section>
-              <q-input
-                filled
-                v-model="formData.lnbits_killswitch_interval"
-                type="number"
-              />
-            </q-item-section>
-          </q-item>
-          <br />
-          <p v-text="$t('watchdog')"></p>
-          <q-item disabled tag="label" v-ripple>
-            <q-tooltip><span v-text="$t('coming_soon')"></span></q-tooltip>
-            <q-item-section>
-              <q-item-label v-text="$t('enable_watchdog')"></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('enable_watchdog_desc')"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_watchdog"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-          <q-item disabled tag="label" v-ripple>
-            <q-tooltip><span v-text="$t('coming_soon')"></span></q-tooltip>
-            <q-item-section>
-              <q-item-label v-text="$t('watchdog_interval')"></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('watchdog_interval_desc')"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section>
-              <q-input
-                filled
-                v-model="formData.lnbits_watchdog_interval"
-                type="number"
-              />
-            </q-item-section>
-          </q-item>
-          <q-item disabled tag="label" v-ripple>
-            <q-tooltip><span v-text="$t('coming_soon')"></span></q-tooltip>
-            <q-item-section>
-              <q-item-label v-text="$t('watchdog_delta')"></q-item-label>
-              <q-item-label
-                caption
-                v-text="$t('watchdog_delta_desc')"
-              ></q-item-label>
-            </q-item-section>
-            <q-item-section>
-              <q-input
-                filled
-                v-model="formData.lnbits_watchdog_delta"
-                type="number"
-              />
-            </q-item-section>
-          </q-item>
-          <br />
         </div>
       </div>
     </div>

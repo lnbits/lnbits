@@ -1,14 +1,9 @@
-{% extends "base.html" %}
+{% if not ajax %} {% extends "base.html" %} {% endif %}
 <!---->
 {% from "macros.jinja" import window_vars with context %}
 <!---->
-{% block scripts %} {{ window_vars(user, wallet) }}
-<script src="{{ static_url_for('static', 'js/wallet.js') }}"></script>
-{% endblock %}
-<!---->
-{% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}
-<!---->
-{% block page %}
+{% block scripts %} {{ window_vars(user, wallet) }}{% endblock %} {% block page
+%}
 <div class="row q-col-gutter-md">
   {% if HIDE_API and AD_SPACE %}
   <div class="col-12 col-md-8 q-gutter-y-md">
@@ -28,39 +23,120 @@
         <q-card
           :style="$q.screen.lt.md ? {
             background: $q.screen.lt.md ? 'none !important': ''
-          , boxShadow: $q.screen.lt.md ? 'none !important': ''
-          , margin: $q.screen.lt.md && mobileSimple ? 'auto !important': ''
-          , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
-        } : ''"
+            , boxShadow: $q.screen.lt.md ? 'none !important': ''
+            , border: $q.screen.lt.md ? 'none !important': ''
+            , width: $q.screen.lt.md && mobileSimple ? '90% !important': ''
+          } : ''"
         >
-          <q-card-section>
-            <h3 class="q-my-none text-no-wrap">
-              <strong v-text="formattedBalance"></strong>
-              <small>{{LNBITS_DENOMINATION}}</small>
-              <lnbits-update-balance
-                v-if="'{{user.super_user}}' == 'True'"
-                :wallet_id="this.g.wallet.id"
-                flat
-                :callback="updateBalanceCallback"
-                round
-              />
-            </h3>
+          <q-card-section style="height: 130px">
             <div class="row">
-              <div class="col">
-                <div v-if="g.wallet.currency">
+              <div class="col-1" style="max-width: 30px">
+                <q-btn
+                  v-if="g.fiatTracking"
+                  @click="swapBalancePriority"
+                  style="height: 50px"
+                  class="q-mt-lg"
+                  flat
+                  dense
+                  icon="swap_vert"
+                ></q-btn>
+              </div>
+              <div class="col-11">
+                <div
+                  class="column"
+                  :class="{
+                        'q-pt-sm': g.fiatTracking,
+                        'q-pt-lg': !g.fiatTracking
+                      }"
+                  v-if="!isPrioritySwapped || !g.fiatTracking"
+                  style="height: 100px"
+                >
+                  <div class="col-7">
+                    <div class="row">
+                      <div class="col-auto">
+                        <div class="text-h3 q-my-none text-no-wrap">
+                          <strong v-text="formattedBalance"></strong>
+                          <small> {{LNBITS_DENOMINATION}}</small>
+                        </div>
+                      </div>
+                      <div class="col-auto">
+                        <lnbits-update-balance
+                          v-if="$q.screen.lt.lg"
+                          :wallet_id="this.g.wallet.id"
+                          :callback="updateBalanceCallback"
+                          :small_btn="true"
+                        ></lnbits-update-balance>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-2">
+                    <div v-if="g.fiatTracking">
+                      <span
+                        class="text-h5 text-italic"
+                        v-text="formattedFiatAmount"
+                        style="opacity: 0.75"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="column"
+                  v-if="isPrioritySwapped  && g.fiatTracking"
+                  :class="{
+                        'q-pt-sm': g.fiatTracking,
+                        'q-pt-lg': !g.fiatTracking
+                      }"
+                  style="height: 100px"
+                >
+                  <div class="col-7">
+                    <div class="row">
+                      <div class="col-auto">
+                        <div
+                          v-if="g.fiatTracking"
+                          class="text-h3 q-my-none text-no-wrap"
+                        >
+                          <strong v-text="formattedFiatAmount"></strong>
+                        </div>
+                      </div>
+                      <div class="col-auto">
+                        <lnbits-update-balance
+                          v-if="$q.screen.lt.lg"
+                          :wallet_id="this.g.wallet.id"
+                          :callback="updateBalanceCallback"
+                          :small_btn="true"
+                        ></lnbits-update-balance>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-2">
+                    <span
+                      class="text-h5 text-italic"
+                      style="opacity: 0.75"
+                      v-text="formattedBalance + ' {{LNBITS_DENOMINATION}}'"
+                    >
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  class="absolute-right q-pa-md"
+                  v-if="$q.screen.gt.md && g.fiatTracking"
+                >
+                  <div class="text-bold text-italic">BTC Price</div>
                   <span
-                    class="text-h5 text-italic"
-                    v-text="formattedFiatBalance"
-                    style="opacity: 0.75"
+                    class="text-bold text-italic"
+                    v-text="formattedExchange"
                   ></span>
                 </div>
-              </div>
-              <div class="col">
                 <q-btn
-                  @click="mobileSimple = !mobileSimple"
+                  v-if="$q.screen.lt.md"
+                  @click="simpleMobile()"
                   color="primary"
-                  class="float-right lt-md"
+                  class="q-ml-xl absolute-right"
+                  dense
                   size="sm"
+                  style="height: 20px; margin-top: 75px"
                   flat
                   :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
                   :label="mobileSimple ? $t('more') : $t('less')"
@@ -73,269 +149,86 @@
               <q-btn
                 unelevated
                 color="primary"
-                class="full-width"
+                class="q-mr-md"
                 @click="showParseDialog"
                 :label="$t('paste_request')"
               ></q-btn>
-            </div>
-            <div class="col">
               <q-btn
                 unelevated
                 color="primary"
-                class="full-width"
+                class="q-mr-md"
                 @click="showReceiveDialog"
                 :label="$t('create_invoice')"
               ></q-btn>
-            </div>
-            <div class="col">
-              <q-btn
-                unelevated
-                color="secondary"
-                icon="photo_camera"
-                @click="showCamera"
-                :label="$t('scan')"
-              >
+              <q-btn unelevated color="secondary" icon="qr_code_scanner">
                 <q-tooltip
                   ><span v-text="$t('camera_tooltip')"></span
                 ></q-tooltip>
               </q-btn>
+              <lnbits-update-balance
+                v-if="$q.screen.gt.md"
+                :wallet_id="this.g.wallet.id"
+                :callback="updateBalanceCallback"
+                :small_btn="false"
+              ></lnbits-update-balance>
             </div>
           </div>
         </q-card>
 
         <q-card
-          :style="$q.screen.lt.md ? {
-            background: $q.screen.lt.md ? 'none !important': ''
-            , boxShadow: $q.screen.lt.md ? 'none !important': ''
-            , marginTop: $q.screen.lt.md ? '0px !important': ''
-          } : ''"
+          :style="
+          $q.screen.lt.md
+            ? {
+                background: $q.screen.lt.md ? 'none !important' : '',
+                boxShadow: $q.screen.lt.md ? 'none !important' : '',
+                border: $q.screen.lt.md ? 'none !important': '',
+                marginTop: $q.screen.lt.md ? '0px !important' : ''
+              }
+            : ''
+        "
         >
           <q-card-section>
-            <div class="row items-center no-wrap q-mb-sm">
-              <div class="col">
-                <h5
-                  class="text-subtitle1 q-my-none"
-                  :v-text="$t('transactions')"
-                ></h5>
-              </div>
-              <div class="gt-sm col-auto">
-                <q-btn
-                  flat
-                  color="grey"
-                  @click="exportCSV"
-                  :label="$t('export_csv')"
-                ></q-btn>
-                <q-btn
-                  dense
-                  flat
-                  round
-                  icon="show_chart"
-                  color="grey"
-                  @click="showChart"
-                >
-                  <q-tooltip>
-                    <span v-text="$t('chart_tooltip')"></span
-                  ></q-tooltip>
-                </q-btn>
-              </div>
-            </div>
-            <q-input
-              :style="$q.screen.lt.md ? {
-              display: mobileSimple ? 'none !important': ''
-            } : ''"
-              filled
-              dense
-              clearable
-              v-model="paymentsTable.search"
-              debounce="300"
-              :placeholder="$t('search_by_tag_memo_amount')"
-              class="q-mb-md"
-            >
-            </q-input>
-            <q-table
-              dense
-              flat
-              :data="paymentsOmitter"
-              :row-key="paymentTableRowKey"
-              :columns="paymentsTable.columns"
-              :pagination.sync="paymentsTable.pagination"
-              :no-data-label="$t('no_transactions')"
-              :filter="paymentsTable.search"
-              :loading="paymentsTable.loading"
-              :hide-header="mobileSimple"
-              :hide-bottom="mobileSimple"
-              @request="fetchPayments"
-            >
-              <template v-slot:header="props">
-                <q-tr :props="props">
-                  <q-th auto-width></q-th>
-                  <q-th
-                    v-for="col in props.cols"
-                    :key="col.name"
-                    :props="props"
-                    v-text="col.label"
-                  ></q-th>
-                </q-tr>
-              </template>
-              <template v-slot:body="props">
-                <q-tr :props="props">
-                  <q-td auto-width class="text-center">
-                    <q-icon
-                      v-if="props.row.isPaid"
-                      size="14px"
-                      :name="props.row.isOut ? 'call_made' : 'call_received'"
-                      :color="props.row.isOut ? 'pink' : 'green'"
-                      @click="props.expand = !props.expand"
-                    ></q-icon>
-                    <q-icon
-                      v-else
-                      name="settings_ethernet"
-                      color="grey"
-                      @click="props.expand = !props.expand"
-                    >
-                      <q-tooltip
-                        ><span v-text="$t('pending')"></span
-                      ></q-tooltip>
-                    </q-icon>
-                  </q-td>
-                  <q-td
-                    key="time"
-                    :props="props"
-                    style="white-space: normal; word-break: break-all"
-                  >
-                    <q-badge
-                      v-if="props.row.tag"
-                      color="yellow"
-                      text-color="black"
-                    >
-                      <a
-                        v-text="'#'+props.row.tag"
-                        class="inherit"
-                        :href="['/', props.row.tag].join('')"
-                      ></a>
-                    </q-badge>
-                    <span v-text="props.row.memo"></span>
-                    <br />
-
-                    <i>
-                      <span v-text="props.row.dateFrom"></span>
-                      <q-tooltip
-                        ><span v-text="props.row.date"></span
-                      ></q-tooltip>
-                    </i>
-                  </q-td>
-                  <q-td
-                    auto-width
-                    key="amount"
-                    v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-                    :props="props"
-                    v-text="parseFloat(String(props.row.fsat).replaceAll(',', '')) / 100"
-                  >
-                  </q-td>
-                  <q-td auto-width key="amount" v-else :props="props">
-                    <span v-text="props.row.fsat"></span>
-                    <br />
-                    <i v-if="props.row.extra.wallet_fiat_currency">
-                      <span
-                        v-text="formatFiat(props.row.extra.wallet_fiat_currency, props.row.extra.wallet_fiat_amount)"
-                      ></span>
-                      <br />
-                    </i>
-                    <i v-if="props.row.extra.fiat_currency">
-                      <span
-                        v-text="formatFiat(props.row.extra.fiat_currency, props.row.extra.fiat_amount)"
-                      ></span>
-                    </i>
-                  </q-td>
-                </q-tr>
-
-                <q-dialog v-model="props.expand" :props="props" position="top">
-                  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-                    <div class="text-center q-mb-lg">
-                      <div v-if="props.row.isIn && props.row.pending">
-                        <q-icon name="settings_ethernet" color="grey"></q-icon>
-                        <span v-text="$t('invoice_waiting')"></span>
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
-                        <div
-                          v-if="props.row.bolt11"
-                          class="text-center q-mb-lg"
-                        >
-                          <a :href="'lightning:' + props.row.bolt11">
-                            <q-responsive :ratio="1" class="q-mx-xl">
-                              <lnbits-qrcode
-                                :value="'lightning:' + props.row.bolt11.toUpperCase()"
-                              ></lnbits-qrcode>
-                            </q-responsive>
-                          </a>
-                        </div>
-                        <div class="row q-mt-lg">
-                          <q-btn
-                            outline
-                            color="grey"
-                            @click="copyText(props.row.bolt11)"
-                            :label="$t('copy_invoice')"
-                          ></q-btn>
-                          <q-btn
-                            v-close-popup
-                            flat
-                            color="grey"
-                            class="q-ml-auto"
-                            :label="$t('close')"
-                          ></q-btn>
-                        </div>
-                      </div>
-                      <div v-else-if="props.row.isPaid && props.row.isIn">
-                        <q-icon
-                          size="18px"
-                          :name="'call_received'"
-                          :color="'green'"
-                        ></q-icon>
-                        <span v-text="$t('payment_received')"></span>
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
-                      </div>
-                      <div v-else-if="props.row.isPaid && props.row.isOut">
-                        <q-icon
-                          size="18px"
-                          :name="'call_made'"
-                          :color="'pink'"
-                        ></q-icon>
-                        <span v-text="$t('payment_sent')"></span>
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
-                      </div>
-                      <div v-else-if="props.row.isOut && props.row.pending">
-                        <q-icon name="settings_ethernet" color="grey"></q-icon>
-                        <span v-text="$t('outgoing_payment_pending')"></span>
-                        <lnbits-payment-details
-                          :payment="props.row"
-                        ></lnbits-payment-details>
-                      </div>
-                    </div>
-                  </q-card>
-                </q-dialog>
-              </template>
-            </q-table>
+            <payment-list
+              :update="updatePayments"
+              :mobile-simple="mobileSimple"
+              :expand-details="expandDetails"
+            ></payment-list>
           </q-card-section>
         </q-card>
+        <div id="hiddenQrCodeContainer" style="display: none">
+          <lnbits-qrcode
+            :value="'lightning:' + this.receive.paymentReq"
+          ></lnbits-qrcode>
+        </div>
       </div>
       {% if HIDE_API %}
       <div class="col-12 col-md-4 q-gutter-y-md">
         {% else %}
-        <div
-          v-if="!mobileSimple || $q.screen.gt.sm"
-          class="col-12 col-md-5 q-gutter-y-md"
-        >
+        <div v-if="!mobileSimple" class="col-12 col-md-5 q-gutter-y-md">
           <q-card>
-            <q-card-section>
-              <h6 class="text-subtitle1 q-mt-none q-mb-sm">
-                {{ SITE_TITLE }} Wallet:
-                <strong><em>{{wallet.name}}</em></strong>
-              </h6>
+            <q-card-section class="q-pb-xs">
+              <div class="row items-center">
+                <q-avatar
+                  size="lg"
+                  :icon="g.wallet.extra.icon"
+                  :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+                  :color="g.wallet.extra.color"
+                >
+                </q-avatar>
+                <q-btn
+                  @click="icon.show = true"
+                  round
+                  color="grey-5"
+                  text-color="black"
+                  size="xs"
+                  icon="edit"
+                  style="position: relative; left: -15px; bottom: -10px"
+                ></q-btn>
+                <div class="text-subtitle1 q-mt-none q-mb-none">
+                  {{ SITE_TITLE }} Wallet:
+                  <strong><em v-text="g.wallet.name"></em></strong>
+                </div>
+              </div>
             </q-card-section>
             <q-card-section class="q-pa-none">
               <q-separator></q-separator>
@@ -369,11 +262,19 @@
                   <q-card>
                     <q-card-section class="text-center">
                       <p v-text="$t('export_to_phone_desc')"></p>
-                      <qrcode
-                        :value="'{{request.base_url}}wallet?usr={{user.id}}&wal={{wallet.id}}'"
-                        :options="{width:240}"
-                      ></qrcode>
+                      <lnbits-qrcode
+                        :value="`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
+                      ></lnbits-qrcode>
                     </q-card-section>
+                    <span v-text="exportWalletQR"></span>
+                    <q-card-actions class="flex-center q-pb-md">
+                      <q-btn
+                        outline
+                        color="grey"
+                        :label="$t('copy_wallet_url')"
+                        @click="copyText(`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`)"
+                      ></q-btn>
+                    </q-card-actions>
                   </q-card>
                 </q-expansion-item>
                 <q-separator></q-separator>
@@ -390,7 +291,6 @@
                           v-model.trim="update.name"
                           label="Name"
                           dense
-                          @update:model-value="(e) => console.log(e)"
                         />
                       </div>
                       <q-btn
@@ -413,23 +313,37 @@
                   <q-card>
                     <q-card-section>
                       <div style="max-width: 360px">
-                        <q-select
-                          filled
-                          dense
-                          clearable
-                          v-model="update.currency"
-                          type="text"
-                          :label="$t('currency')"
-                          :options="receive.units.filter((u) => u !== 'sat')"
-                        ></q-select>
+                        <div class="row">
+                          <div class="col">
+                            <q-select
+                              filled
+                              dense
+                              v-model="update.currency"
+                              type="text"
+                              :disable="g.fiatTracking"
+                              :options="receive.units.filter((u) => u !== 'sat')"
+                            ></q-select>
+                          </div>
+                          <div class="col-auto">
+                            <q-btn
+                              color="primary"
+                              @click="handleFiatTracking()"
+                              :disable="update.currency == ''"
+                              :label="g.fiatTracking ? 'Remove' : 'Add'"
+                            ></q-btn>
+                          </div>
+                        </div>
                       </div>
                       <q-btn
-                        :disable="!update.name.length"
-                        unelevated
-                        class="q-mt-sm"
-                        color="primary"
-                        :label="$t('update_currency')"
-                        @click="updateWallet({ currency: update.currency || '' })"
+                        v-if="g.user.admin"
+                        class="absolute-top-right"
+                        flat
+                        round
+                        icon="settings"
+                        to="/admin#exchange_providers"
+                        ><q-tooltip
+                          v-text="$t('exchange_providers')"
+                        ></q-tooltip
                       ></q-btn>
                     </q-card-section>
                   </q-card>
@@ -459,19 +373,21 @@
               </q-list>
             </q-card-section>
           </q-card>
-          {% endif %} {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD =
-          ADS.split(";") %}
+          {% endif %} {% if AD_SPACE %}
           <q-card>
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
                 {{ AD_SPACE_TITLE }}
               </h6>
             </q-card-section>
+            {% for ADS in AD_SPACE %} {% set AD = ADS.split(";") %}
+
             <q-card-section class="q-pa-none">
               <a
                 style="display: inline-block"
                 href="{{ AD[0] }}"
-                class="q-ma-md"
+                class="q-ml-md q-mb-xs q-mr-md"
+                style="max-width: 80%"
               >
                 <img
                   style="max-width: 100%; height: auto"
@@ -483,12 +399,62 @@
                   v-else
                   src="{{ AD[2] }}"
                 />
-              </a> </q-card-section></q-card
-          >{% endfor %} {% endif %}
+              </a> </q-card-section
+            >{% endfor %}
+          </q-card>
+          {% endif %}
         </div>
       </div>
 
-      <q-dialog v-model="receive.show" position="top">
+      <q-dialog v-model="icon.show" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <q-form @submit="setIcon" class="q-gutter-md">
+            <div class="q-gutter-sm q-pa-sm flex flex-wrap justify-center">
+              <!-- Loop through all icons -->
+              <q-btn
+                v-for="(thisIcon, index) in icon.options"
+                :key="index"
+                @click="setSelectedIcon(thisIcon)"
+                round
+                text-color="black"
+                :color="icon.data.icon === thisIcon ? icon.data.color || 'primary' : 'grey-5'"
+                size="md"
+                :icon="thisIcon"
+                class="q-mb-sm"
+              ></q-btn>
+            </div>
+            <div class="q-pa-sm flex justify-between items-center">
+              <div class="flex q-pl-lg">
+                <!-- Color options -->
+                <q-btn
+                  v-for="(color, index) in icon.colorOptions"
+                  :key="'color-' + index"
+                  @click="setSelectedColor(color)"
+                  round
+                  :color="color"
+                  size="xs"
+                  style="width: 24px; height: 24px; min-width: 24px; padding: 0"
+                  class="q-mr-xs"
+                ></q-btn>
+              </div>
+              <q-btn
+                unelevated
+                color="primary"
+                :disable="!icon.data.icon"
+                type="submit"
+              >
+                Save Icon
+              </q-btn>
+            </div>
+          </q-form>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog
+        v-model="receive.show"
+        position="top"
+        @hide="onReceiveDialogHide"
+      >
         <q-card
           v-if="!receive.paymentReq"
           class="q-pa-lg q-pt-xl lnbits__dialog-card"
@@ -522,13 +488,11 @@
             <q-input
               ref="setAmount"
               filled
+              :pattern="receive.unit === 'sat' ? '\\d*' : '\\d*\\.?\\d*'"
+              inputmode="numeric"
               dense
               v-model.number="receive.data.amount"
               :label="$t('amount') + ' (' + receive.unit + ') *'"
-              :mask="receive.unit != 'sat' ? '#.##' : '#'"
-              fill-mask="0"
-              reverse-fill-mask
-              :step="receive.unit != 'sat' ? '0.01' : '1'"
               :min="receive.minMax[0]"
               :max="receive.minMax[1]"
               :readonly="receive.lnurl && receive.lnurl.fixed"
@@ -562,11 +526,11 @@
                 :label="$t('cancel')"
               ></q-btn>
             </div>
-            <q-spinner
+            <q-spinner-bars
               v-if="receive.status == 'loading'"
               color="primary"
               size="2.55em"
-            ></q-spinner>
+            ></q-spinner-bars>
           </q-form>
         </q-card>
         <q-card
@@ -575,12 +539,29 @@
         >
           <div class="text-center q-mb-lg">
             <a :href="'lightning:' + receive.paymentReq">
-              <q-responsive :ratio="1" class="q-mx-xl">
-                <lnbits-qrcode
-                  :value="'lightning:' + receive.paymentReq.toUpperCase()"
-                ></lnbits-qrcode>
-              </q-responsive>
+              <div v-html="invoiceQrCode"></div>
             </a>
+          </div>
+          <div class="text-center">
+            <h3 class="q-my-md">
+              <span v-text="formattedAmount"></span>
+            </h3>
+            <h5 v-if="receive.unit != 'sat'" class="q-mt-none q-mb-sm">
+              <span v-text="formattedSatAmount"></span>
+            </h5>
+            <q-chip v-if="hasNfc" outline square color="positive">
+              <q-avatar
+                icon="nfc"
+                color="positive"
+                text-color="white"
+              ></q-avatar>
+              <span v-text="$t('nfc_supported')"></span>
+            </q-chip>
+            <span
+              v-else
+              class="text-caption text-grey"
+              v-text="$t('nfc_not_supported')"
+            ></span>
           </div>
           <div class="row q-mt-lg">
             <q-btn
@@ -618,10 +599,10 @@
               <strong v-text="$t('memo') + ': '"></strong>
               <span v-text="parse.invoice.description"></span>
               <br />
-              <strong>Expire date: </strong>
+              <strong v-text="$t('expire_date')"></strong>
               <span v-text="parse.invoice.expireDate"></span>
               <br />
-              <strong>Hash: </strong>
+              <strong v-text="$t('hash')"></strong>
               <span v-text="parse.invoice.hash"></span>
             </p>
             <div v-if="canPay" class="row q-mt-lg">
@@ -832,8 +813,8 @@
             <div v-else>
               <q-responsive :ratio="1">
                 <qrcode-stream
-                  @decode="decodeQR"
-                  @init="onInitQR"
+                  @detect="decodeQR"
+                  @camera-on="onInitQR"
                   class="rounded-borders"
                 ></qrcode-stream>
               </q-responsive>
@@ -856,8 +837,8 @@
         <q-card class="q-pa-lg q-pt-xl">
           <div class="text-center q-mb-lg">
             <qrcode-stream
-              @decode="decodeQR"
-              @init="onInitQR"
+              @detect="decodeQR"
+              @camera-on="onInitQR"
               class="rounded-borders"
             ></qrcode-stream>
           </div>
@@ -872,43 +853,28 @@
           </div>
         </q-card>
       </q-dialog>
-
-      <q-dialog v-model="paymentsChart.show" position="top">
-        <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
-          <q-card-section>
-            <div class="row q-gutter-sm justify-between">
-              <div class="text-h6">Payments Chart</div>
-              <q-select
-                label="Group"
-                filled
-                dense
-                v-model="paymentsChart.group"
-                style="min-width: 120px"
-                :options="paymentsChart.groupOptions"
-              >
-              </q-select>
-            </div>
-
-            <canvas ref="canvas" width="600" height="400"></canvas>
-          </q-card-section>
-        </q-card>
-      </q-dialog>
-
-      <q-tabs
+      <div
         class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
-        active-class="px-0"
-        indicator-color="transparent"
-        align="justify"
       >
-        <q-tab
-          icon="file_download"
-          @click="showReceiveDialog"
-          :label="$t('receive')"
+        <q-tabs
+          active-class="px-0"
+          indicator-color="transparent"
+          align="justify"
         >
-        </q-tab>
+          <q-tab
+            icon="file_download"
+            @click="showReceiveDialog"
+            :label="$t('receive')"
+          >
+          </q-tab>
 
-        <q-tab @click="showParseDialog" icon="file_upload" :label="$t('send')">
-        </q-tab>
+          <q-tab
+            @click="showParseDialog"
+            icon="file_upload"
+            :label="$t('send')"
+          >
+          </q-tab>
+        </q-tabs>
         <q-btn
           round
           size="35px"
@@ -918,8 +884,7 @@
           class="text-white bg-primary z-top vertical-bottom absolute-center absolute"
         >
         </q-btn>
-      </q-tabs>
-
+      </div>
       <q-dialog v-model="disclaimerDialog.show" position="top">
         <q-card class="q-pa-lg">
           <h6

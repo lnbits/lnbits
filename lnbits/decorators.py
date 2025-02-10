@@ -1,12 +1,12 @@
 from http import HTTPStatus
 from typing import Annotated, Literal, Optional, Type, Union
 
+import jwt
 from fastapi import Cookie, Depends, Query, Request, Security
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
 from fastapi.security import APIKeyHeader, APIKeyQuery, OAuth2PasswordBearer
 from fastapi.security.base import SecurityBase
-from jose import ExpiredSignatureError, JWTError, jwt
 from loguru import logger
 from pydantic.types import UUID4
 
@@ -14,26 +14,44 @@ from lnbits.core.crud import (
     get_account,
     get_account_by_email,
     get_account_by_username,
-    get_user,
+    get_user_active_extensions_ids,
+    get_user_from_account,
     get_wallet_for_key,
 )
-from lnbits.core.models import User, Wallet, WalletType, WalletTypeInfo
-from lnbits.db import Filter, Filters, TFilterModel
+from lnbits.core.crud.users import get_user_access_control_lists
+from lnbits.core.models import (
+    AccessTokenPayload,
+    Account,
+    KeyType,
+    SimpleStatus,
+    User,
+    WalletTypeInfo,
+)
+from lnbits.db import Connection, Filter, Filters, TFilterModel
 from lnbits.settings import AuthMethods, settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth", auto_error=False)
+
+api_key_header = APIKeyHeader(
+    name="X-API-KEY",
+    auto_error=False,
+    description="Admin or Invoice key for wallet API's",
+)
+api_key_query = APIKeyQuery(
+    name="api-key",
+    auto_error=False,
+    description="Admin or Invoice key for wallet API's",
+)
 
 
 class KeyChecker(SecurityBase):
     def __init__(
         self,
-        scheme_name: Optional[str] = None,
-        auto_error: bool = True,
         api_key: Optional[str] = None,
+        expected_key_type: Optional[KeyType] = None,
     ):
-        self.scheme_name = scheme_name or self.__class__.__name__
-        self.auto_error: bool = auto_error
-        self._key_type: WalletType = WalletType.invoice
+        self.auto_error: bool = True
+        self.expected_key_type = expected_key_type
         self._api_key = api_key
         if api_key:
             openapi_model = APIKey(
@@ -49,185 +67,65 @@ class KeyChecker(SecurityBase):
                 name="X-API-KEY",
                 description="Wallet API Key - HEADER",
             )
-        self.wallet: Optional[Wallet] = None
-        self.model: APIKey = openapi_model
+        self.model: APIKey = openapi_model  # type: ignore
 
-    async def __call__(self, request: Request):
-        try:
-            key_value = (
-                self._api_key
-                if self._api_key
-                else request.headers.get("X-API-KEY") or request.query_params["api-key"]
-            )
-            # FIXME: Find another way to validate the key. A fetch from DB should be
-            #        avoided here. Also, we should not return the wallet here - thats
-            #        silly. Possibly store it in a Redis DB
-            wallet = await get_wallet_for_key(key_value, self._key_type)
-            if not wallet:
-                raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED,
-                    detail="Invalid key or wallet.",
-                )
-            self.wallet = wallet
-        except KeyError:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, detail="`X-API-KEY` header missing."
-            )
+    async def __call__(self, request: Request) -> WalletTypeInfo:
 
-
-class WalletInvoiceKeyChecker(KeyChecker):
-    """
-    WalletInvoiceKeyChecker will ensure that the provided invoice
-    wallet key is correct and populate g().wallet with the wallet
-    for the key in `X-API-key`.
-
-    The checker will raise an HTTPException when the key is wrong in some ways.
-    """
-
-    def __init__(
-        self,
-        scheme_name: Optional[str] = None,
-        auto_error: bool = True,
-        api_key: Optional[str] = None,
-    ):
-        super().__init__(scheme_name, auto_error, api_key)
-        self._key_type = WalletType.invoice
-
-
-class WalletAdminKeyChecker(KeyChecker):
-    """
-    WalletAdminKeyChecker will ensure that the provided admin
-    wallet key is correct and populate g().wallet with the wallet
-    for the key in `X-API-key`.
-
-    The checker will raise an HTTPException when the key is wrong in some ways.
-    """
-
-    def __init__(
-        self,
-        scheme_name: Optional[str] = None,
-        auto_error: bool = True,
-        api_key: Optional[str] = None,
-    ):
-        super().__init__(scheme_name, auto_error, api_key)
-        self._key_type = WalletType.admin
-
-
-api_key_header = APIKeyHeader(
-    name="X-API-KEY",
-    auto_error=False,
-    description="Admin or Invoice key for wallet API's",
-)
-api_key_query = APIKeyQuery(
-    name="api-key",
-    auto_error=False,
-    description="Admin or Invoice key for wallet API's",
-)
-
-
-async def get_key_type(
-    r: Request,
-    api_key_header: str = Security(api_key_header),
-    api_key_query: str = Security(api_key_query),
-) -> WalletTypeInfo:
-    token = api_key_header or api_key_query
-
-    if not token:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Invoice (or Admin) key required.",
+        key_value = (
+            self._api_key
+            if self._api_key
+            else request.headers.get("X-API-KEY") or request.query_params.get("api-key")
         )
 
-    for wallet_type, WalletChecker in zip(
-        [WalletType.admin, WalletType.invoice],
-        [WalletAdminKeyChecker, WalletInvoiceKeyChecker],
-    ):
-        try:
-            checker = WalletChecker(api_key=token)
-            await checker.__call__(r)
-            if checker.wallet is None:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
-                )
-            wallet = WalletTypeInfo(wallet_type, checker.wallet)
-            if (
-                wallet.wallet.user != settings.super_user
-                and wallet.wallet.user not in settings.lnbits_admin_users
-            ) and (
-                settings.lnbits_admin_extensions
-                and r["path"].split("/")[1] in settings.lnbits_admin_extensions
-            ):
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail="User not authorized for this extension.",
-                )
-            return wallet
-        except HTTPException as exc:
-            if exc.status_code == HTTPStatus.BAD_REQUEST:
-                raise
-            elif exc.status_code == HTTPStatus.UNAUTHORIZED:
-                # we pass this in case it is not an invoice key, nor an admin key,
-                # and then return NOT_FOUND at the end of this block
-                pass
-            else:
-                raise
-        except Exception:
-            raise
-    raise HTTPException(
-        status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
-    )
+        if not key_value:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                detail="No Api Key provided.",
+            )
+
+        wallet = await get_wallet_for_key(key_value)
+
+        if not wallet:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail="Wallet not found.",
+            )
+
+        request.scope["user_id"] = wallet.user
+        if self.expected_key_type is KeyType.admin and wallet.adminkey != key_value:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                detail="Invalid adminkey.",
+            )
+
+        await _check_user_extension_access(wallet.user, request["path"])
+
+        key_type = KeyType.admin if wallet.adminkey == key_value else KeyType.invoice
+        return WalletTypeInfo(key_type, wallet)
 
 
 async def require_admin_key(
-    r: Request,
+    request: Request,
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),
-):
-    token = api_key_header or api_key_query
-
-    if not token:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Admin key required.",
-        )
-
-    wallet = await get_key_type(r, token)
-
-    if wallet.wallet_type != 0:
-        # If wallet type is not admin then return the unauthorized status
-        # This also covers when the user passes an invalid key type
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="Admin key required."
-        )
-    else:
-        return wallet
+) -> WalletTypeInfo:
+    check: KeyChecker = KeyChecker(
+        api_key=api_key_header or api_key_query,
+        expected_key_type=KeyType.admin,
+    )
+    return await check(request)
 
 
 async def require_invoice_key(
-    r: Request,
+    request: Request,
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),
-):
-    token = api_key_header or api_key_query
-
-    if not token:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Invoice (or Admin) key required.",
-        )
-
-    wallet = await get_key_type(r, token)
-
-    if (
-        wallet.wallet_type != WalletType.admin
-        and wallet.wallet_type != WalletType.invoice
-    ):
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Invoice (or Admin) key required.",
-        )
-    else:
-        return wallet
+) -> WalletTypeInfo:
+    check: KeyChecker = KeyChecker(
+        api_key=api_key_header or api_key_query,
+        expected_key_type=KeyType.invoice,
+    )
+    return await check(request)
 
 
 async def check_access_token(
@@ -243,28 +141,62 @@ async def check_user_exists(
     usr: Optional[UUID4] = None,
 ) -> User:
     if access_token:
-        account = await _get_account_from_token(access_token)
+        account = await _get_account_from_token(access_token, r["path"], r["method"])
     elif usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
         account = await get_account(usr.hex)
+        if account and account.is_admin:
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN, "User id only access for admins is forbidden."
+            )
     else:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing user ID or access token.")
 
-    if not account or not settings.is_user_allowed(account.id):
+    if not account:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
+
+    r.scope["user_id"] = account.id
+    if not settings.is_user_allowed(account.id):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not allowed.")
 
-    user = await get_user(account.id)
-    assert user, "User not found for account."
-
-    if not user.admin and r["path"].split("/")[1] in settings.lnbits_admin_extensions:
-        raise HTTPException(HTTPStatus.FORBIDDEN, "User not authorized for extension.")
-
+    user = await get_user_from_account(account)
+    if not user:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
+    await _check_user_extension_access(user.id, r["path"])
     return user
+
+
+async def optional_user_id(
+    r: Request,
+    access_token: Annotated[Optional[str], Depends(check_access_token)],
+    usr: Optional[UUID4] = None,
+) -> Optional[str]:
+    if usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
+        return usr.hex
+    if access_token:
+        account = await _get_account_from_token(access_token, r["path"], r["method"])
+        return account.id if account else None
+
+    return None
+
+
+async def access_token_payload(
+    access_token: Annotated[Optional[str], Depends(check_access_token)],
+) -> AccessTokenPayload:
+    if not access_token:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing access token.")
+
+    payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+    return AccessTokenPayload(**payload)
 
 
 async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User:
     if user.id != settings.super_user and user.id not in settings.lnbits_admin_users:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "User not authorized. No admin privileges."
+        )
+    if not user.has_password:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Admin users must have credentials configured."
         )
 
     return user
@@ -274,6 +206,10 @@ async def check_super_user(user: Annotated[User, Depends(check_user_exists)]) ->
     if user.id != settings.super_user:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "User not authorized. No super user privileges."
+        )
+    if not user.has_password:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Super user must have credentials configured."
         )
     return user
 
@@ -294,9 +230,9 @@ def parse_filters(model: Type[TFilterModel]):
     ):
         params = request.query_params
         filters = []
-        for key in params.keys():
+        for i, key in enumerate(params.keys()):
             try:
-                filters.append(Filter.parse_query(key, params.getlist(key), model))
+                filters.append(Filter.parse_query(key, params.getlist(key), model, i))
             except ValueError:
                 continue
 
@@ -313,21 +249,98 @@ def parse_filters(model: Type[TFilterModel]):
     return dependency
 
 
-async def _get_account_from_token(access_token):
-    try:
-        payload = jwt.decode(access_token, settings.auth_secret_key, "HS256")
-        if "sub" in payload and payload.get("sub"):
-            return await get_account_by_username(str(payload.get("sub")))
-        if "usr" in payload and payload.get("usr"):
-            return await get_account(str(payload.get("usr")))
-        if "email" in payload and payload.get("email"):
-            return await get_account_by_email(str(payload.get("email")))
+async def check_user_extension_access(
+    user_id: str, ext_id: str, conn: Optional[Connection] = None
+) -> SimpleStatus:
+    """
+    Check if the user has access to a particular extension.
+    Raises HTTP Forbidden if the user is not allowed.
+    """
+    if settings.is_admin_extension(ext_id) and not settings.is_admin_user(user_id):
+        return SimpleStatus(
+            success=False, message=f"User not authorized for extension '{ext_id}'."
+        )
 
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Data missing for access token.")
-    except ExpiredSignatureError:
+    if settings.is_extension_id(ext_id):
+        ext_ids = await get_user_active_extensions_ids(user_id, conn=conn)
+        if ext_id not in ext_ids:
+            return SimpleStatus(
+                success=False, message=f"User extension '{ext_id}' not enabled."
+            )
+
+    return SimpleStatus(success=True, message="OK")
+
+
+async def _check_user_extension_access(user_id: str, path: str):
+    ext_id = _path_segments(path)[0]
+    status = await check_user_extension_access(user_id, ext_id)
+    if not status.success:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            status.message,
+        )
+
+
+async def _get_account_from_token(
+    access_token: str, path: str, method: str
+) -> Optional[Account]:
+    try:
+        payload: dict = jwt.decode(access_token, settings.auth_secret_key, ["HS256"])
+        return await _get_account_from_jwt_payload(
+            AccessTokenPayload(**payload), path, method
+        )
+
+    except jwt.ExpiredSignatureError as exc:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Session expired.", {"token-expired": "true"}
-        )
-    except JWTError as e:
-        logger.debug(e)
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid access token.")
+        ) from exc
+    except jwt.PyJWTError as exc:
+        logger.debug(exc)
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid access token.") from exc
+
+
+async def _get_account_from_jwt_payload(
+    payload: AccessTokenPayload, path: str, method: str
+) -> Optional[Account]:
+    account = None
+    if payload.sub:
+        account = await get_account_by_username(payload.sub)
+    elif payload.usr:
+        account = await get_account(payload.usr)
+    elif payload.email:
+        account = await get_account_by_email(payload.email)
+
+    if not account:
+        return None
+
+    if payload.api_token_id:
+        await _check_account_api_access(account.id, payload.api_token_id, path, method)
+
+    return account
+
+
+async def _check_account_api_access(
+    user_id: str, token_id: str, path: str, method: str
+):
+    segments = path.split("/")
+    if len(segments) < 3:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Not an API endpoint.")
+
+    acls = await get_user_access_control_lists(user_id)
+    acl = acls.get_acl_by_token_id(token_id)
+    if not acl:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Invalid token id.")
+
+    path = "/" + "/".join(_path_segments(path)[:3])
+    endpoint = acl.get_endpoint(path)
+    if not endpoint:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Path not allowed.")
+    if not endpoint.supports_method(method):
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Method not allowed.")
+
+
+def _path_segments(path: str) -> list[str]:
+    segments = path.split("/")
+    if segments[1] == "upgrades":
+        return segments[3:]
+    return segments[1:]

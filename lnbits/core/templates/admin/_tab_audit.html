@@ -1,0 +1,228 @@
+<q-tab-panel name="audit">
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none q-mb-sm">Audit</h6>
+
+    <div class="row q-mb-lg">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_enabled"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label v-text="$t('enable_audit')"></q-item-label>
+            <q-item-label caption v-text="$t('audit_desc')"></q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-6 col-sm-12">
+        <q-input
+          filled
+          v-model="formData.lnbits_audit_retention_days"
+          type="number"
+          label="Retention days"
+          hint="Number of days to keep the audit entry."
+        >
+        </q-input>
+      </div>
+    </div>
+    <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+    <div class="row">
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_request_body"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label v-text="$t('audit_record_req')"></q-item-label>
+            <q-item-label caption>
+              <span v-text="$t('audit_record_warning')"></span>
+              <br />
+              <ul>
+                <li><span v-text="$t('audit_record_req_warning_1')"></span></li>
+                <li><span v-text="$t('audit_record_req_warning_2')"></span></li>
+              </ul>
+              <br />
+              <span v-text="$t('audit_record_use')"></span>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_ip_address"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>
+              <span v-text="$t('audit_ip')"></span>
+            </q-item-label>
+            <q-item-label caption>
+              <span v-text="$t('audit_ip_desc')"></span>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_path_params"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>
+              <span v-text="$t('audit_path_params')"></span>
+            </q-item-label>
+            <q-item-label caption>
+              <span v-text="$t('recommended')"></span>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+      <div class="col-md-3 col-sm-12 q-pr-sm">
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_audit_log_query_params"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>
+              <span v-text="$t('audit_query_params')"></span>
+            </q-item-label>
+            <q-item-label caption>
+              <span v-text="$t('recommended')"></span>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>
+    </div>
+    <q-separator class="q-mb-xl q-mt-sm"></q-separator>
+    <div class="row q-mb-lg">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p><span v-text="$t('audit_http_methods')"></span></p>
+        <q-select
+          filled
+          v-model="formData.lnbits_audit_http_methods"
+          multiple
+          :hint="$t('audit_http_methods_hint')"
+          :label="$t('audit_http_methods_label')"
+          :options="['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']"
+        ></q-select>
+      </div>
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p><span v-text="$t('audit_resp_codes')"></span></p>
+        <q-input
+          class="q-mb-md"
+          filled
+          v-model="formAddIncludeResponseCode"
+          @keydown.enter="addIncludeResponseCode"
+          type="text"
+          :label="$t('audit_resp_codes_label')"
+          :hint="$t('audit_resp_codes_hint')"
+        >
+          <q-btn @click="addIncludeResponseCode" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="code in formData.lnbits_audit_http_response_codes"
+            :key="code"
+            removable
+            @remove="removeIncludeResponseCode(code)"
+            color="primary"
+            text-color="white"
+            :label="code"
+          >
+          </q-chip>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 col-sm-12 q-pr-sm">
+        <p><span v-text="$t('audit_paths')"></span></p>
+        <q-input
+          class="q-mb-md"
+          filled
+          v-model="formAddIncludePath"
+          @keydown.enter="addIncludePath"
+          type="text"
+          :label="$t('audit_paths_label')"
+          :hint="$t('audit_paths_hint')"
+        >
+          <q-btn @click="addIncludePath" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="path in formData.lnbits_audit_include_paths"
+            :key="path"
+            removable
+            @remove="removeIncludePath(path)"
+            color="primary"
+            text-color="white"
+            :label="path"
+          >
+          </q-chip>
+        </div>
+        <br />
+      </div>
+      <div class="col-md-6 col-sm-12">
+        <p>
+          <span v-text="$t('audit_paths_exclude')"></span>
+        </p>
+        <q-input
+          class="q-mb-md"
+          filled
+          v-model="formAddExcludePath"
+          @keydown.enter="addExcludePath"
+          type="text"
+          :label="$t('audit_paths_exclude_label')"
+          :hint="$t('audit_paths_exclude_hint')"
+        >
+          <q-btn @click="addExcludePath" dense flat icon="add"></q-btn>
+        </q-input>
+        <div>
+          <q-chip
+            v-for="path in formData.lnbits_audit_exclude_paths"
+            :key="path"
+            removable
+            @remove="removeExcludePath(path)"
+            color="primary"
+            text-color="white"
+            :label="path"
+          >
+          </q-chip>
+        </div>
+        <br />
+
+        <br />
+      </div>
+    </div>
+  </q-card-section>
+</q-tab-panel>

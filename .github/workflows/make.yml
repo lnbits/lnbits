@@ -21,12 +21,12 @@ jobs:
     name: ${{ inputs.make }} (${{ inputs.python-version }})
     strategy:
       matrix:
-        os-version: ["ubuntu-latest"]
+        os-version: ["ubuntu-24.04"]
         node-version: ["18.x"]
     runs-on: ${{ matrix.os-version }}
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/prepare
+      - uses: lnbits/lnbits/.github/actions/prepare@dev
         with:
           python-version: ${{ inputs.python-version }}
           node-version: ${{ matrix.node-version }}

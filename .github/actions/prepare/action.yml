@@ -4,7 +4,7 @@ inputs:
   python-version:
     description: "Python Version"
     required: true
-    default: "3.9"
+    default: "3.10"
   poetry-version:
     description: "Poetry Version"
     default: "1.7.0"
@@ -46,7 +46,11 @@ runs:
 
     - name: Install the project dependencies
       shell: bash
-      run: poetry install
+      run: |
+        poetry env use python${{ inputs.python-version }}
+        poetry install
+        # needed for conv tests
+        poetry add psycopg2-binary
 
     - name: Use Node.js ${{ inputs.node-version }}
       if: ${{ (inputs.npm == 'true') }}

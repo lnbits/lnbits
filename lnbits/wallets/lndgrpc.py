@@ -109,11 +109,14 @@ class LndWallet(Wallet):
     def metadata_callback(self, _, callback):
         callback([("macaroon", self.macaroon)], None)
 
+    async def cleanup(self):
+        pass
+
     async def status(self) -> StatusResponse:
         try:
             resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())
         except Exception as exc:
-            return StatusResponse(str(exc), 0)
+            return StatusResponse(f"Unable to connect, got: '{exc}'", 0)
 
         return StatusResponse(None, resp.balance * 1000)
 
@@ -144,6 +147,7 @@ class LndWallet(Wallet):
             req = ln.Invoice(**data)
             resp = await self.rpc.AddInvoice(req)
         except Exception as exc:
+            logger.warning(exc)
             error_message = str(exc)
             return InvoiceResponse(False, None, None, error_message)
 
@@ -162,7 +166,8 @@ class LndWallet(Wallet):
         try:
             resp = await self.routerpc.SendPaymentV2(req).read()
         except Exception as exc:
-            return PaymentResponse(False, None, None, None, str(exc))
+            logger.warning(exc)
+            return PaymentResponse(None, None, None, None, str(exc))
 
         # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
         statuses = {
@@ -173,12 +178,12 @@ class LndWallet(Wallet):
         }
 
         failure_reasons = {
-            0: "No error given.",
-            1: "Payment timed out.",
-            2: "No route to destination.",
-            3: "Error.",
-            4: "Incorrect payment details.",
-            5: "Insufficient balance.",
+            0: "Payment failed: No error given.",
+            1: "Payment failed: Payment timed out.",
+            2: "Payment failed: No route to destination.",
+            3: "Payment failed: Error.",
+            4: "Payment failed: Incorrect payment details.",
+            5: "Payment failed: Insufficient balance.",
         }
 
         fee_msat = None
@@ -201,19 +206,23 @@ class LndWallet(Wallet):
         try:
             r_hash = hex_to_bytes(checking_id)
             if len(r_hash) != 32:
+                # this may happen if we switch between backend wallets
+                # that use different checking_id formats
                 raise ValueError
-        except ValueError:
-            # this may happen if we switch between backend wallets
-            # that use different checking_id formats
-            return PaymentPendingStatus()
-        try:
-            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
-        except grpc.RpcError:
-            return PaymentPendingStatus()
-        if resp.settled:
-            return PaymentSuccessStatus()
 
-        return PaymentPendingStatus()
+            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
+
+            # todo: where is the FAILED status
+            if resp.settled:
+                return PaymentSuccessStatus()
+
+            return PaymentPendingStatus()
+        except grpc.RpcError as exc:
+            logger.warning(exc)
+            return PaymentPendingStatus()
+        except Exception as exc:
+            logger.warning(exc)
+            return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
@@ -227,10 +236,6 @@ class LndWallet(Wallet):
             # this may happen if we switch between backend wallets
             # that use different checking_id formats
             return PaymentPendingStatus()
-
-        resp = self.routerpc.TrackPaymentV2(
-            router.TrackPaymentRequest(payment_hash=r_hash)
-        )
 
         # # HTLCAttempt.HTLCStatus:
         # # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
@@ -247,6 +252,9 @@ class LndWallet(Wallet):
         }
 
         try:
+            resp = self.routerpc.TrackPaymentV2(
+                router.TrackPaymentRequest(payment_hash=r_hash)
+            )
             async for payment in resp:
                 if len(payment.htlcs) and statuses[payment.status]:
                     return PaymentSuccessStatus(
@@ -260,7 +268,7 @@ class LndWallet(Wallet):
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             try:
                 request = ln.InvoiceSubscription()
                 async for i in self.rpc.SubscribeInvoices(request):

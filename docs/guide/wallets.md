@@ -4,14 +4,11 @@ title: Backend wallets
 nav_order: 3
 ---
 
-
-Backend wallets
-===============
+# Backend wallets
 
 LNbits can run on top of many Lightning Network funding sources with more being added regularly.
 
 A backend wallet can be configured using the following LNbits environment variables:
-
 
 ### CoreLightning
 
@@ -79,6 +76,15 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `OPENNODE_API_ENDPOINT`: https://api.opennode.com/
 - `OPENNODE_KEY`: opennodeAdminApiKey
 
+### Blink
+
+For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary. You can generate a Blink API key after logging in or creating a new Blink account at: https://dashboard.blink.sv. For more info visit: https://dev.blink.sv/api/auth#create-an-api-key```
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **BlinkWallet**
+- `BLINK_API_ENDPOINT`: https://api.blink.sv/graphql
+- `BLINK_WS_ENDPOINT`: wss://ws.blink.sv/graphql
+- `BLINK_TOKEN`: BlinkToken
+
 ### Alby
 
 For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary. You can generate an alby access token here: https://getalby.com/developer/access_tokens/new
@@ -86,6 +92,18 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `LNBITS_BACKEND_WALLET_CLASS`: **AlbyWallet**
 - `ALBY_API_ENDPOINT`: https://api.getalby.com/
 - `ALBY_ACCESS_TOKEN`: AlbyAccessToken
+
+### Boltz
+
+This funding source connects to a running [boltz-client](https://docs.boltz.exchange/v/boltz-client) and handles all lightning payments through submarine swaps on the liquid network.
+You can configure the daemon to run in standalone mode by `standalone = True` in the config file or using the cli flag (`boltzd --standalone`).
+Once running, you can create a liquid wallet using `boltzcli wallet create lnbits lbtc`.
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **BoltzWallet**
+- `BOLTZ_CLIENT_ENDPOINT`: 127.0.0.1:9002
+- `BOLTZ_CLIENT_MACAROON`: /home/bob/.boltz/macaroons/admin.macaroon or Base64/Hex
+- `BOLTZ_CLIENT_CERT`: /home/bob/.boltz/tls.cert or Base64/Hex
+- `BOLTZ_CLIENT_WALLET`: lnbits
 
 ### ZBD
 
@@ -95,6 +113,35 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 - `ZBD_API_ENDPOINT`: https://api.zebedee.io/v0/
 - `ZBD_API_KEY`: ZBDApiKey
 
+### Phoenixd
+
+For the invoice to work you must have a publicly accessible URL in your LNbits. You can get a phoenixd API key from the install
+~/.phoenix/phoenix.conf, also see the documentation for phoenixd.
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **PhoenixdWallet**
+- `PHOENIXD_API_ENDPOINT`: http://localhost:9740/
+- `PHOENIXD_API_PASSWORD`: PhoenixdApiPassword
+
+### Breez SDK
+
+A Greenlight invite code or Greenlight partner certificate/key can be used to register a new node with Greenlight. If the Greenlight node already exists, neither are required.
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **BreezSdkWallet**
+- `BREEZ_API_KEY`: ...
+- `BREEZ_GREENLIGHT_SEED`: ...
+- `BREEZ_GREENLIGHT_INVITE_CODE`: ...
+- `BREEZ_GREENLIGHT_DEVICE_KEY`: /path/to/breezsdk/device.pem or Base64/Hex
+- `BREEZ_GREENLIGHT_DEVICE_CERT`: /path/to/breezsdk/device.crt or Base64/Hex
+
 ### Cliche Wallet
 
 - `CLICHE_ENDPOINT`: ws://127.0.0.1:12000
+
+### Nostr Wallet Connect (NWC)
+
+To use NWC as funding source in LNbits you'll need a pairing URL (also known as pairing secret) from a NWC service provider. You can find a list of providers [here](https://github.com/getAlby/awesome-nwc?tab=readme-ov-file#nwc-wallets).
+
+You can configure Nostr Wallet Connect in the admin ui or using the following environment variables:
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **NWCWallet**
+- `NWC_PAIRING_URL`: **nostr+walletconnect://...your...pairing...secret...**

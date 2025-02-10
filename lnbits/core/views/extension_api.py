@@ -1,7 +1,6 @@
-from typing import (
-    List,
-    Optional,
-)
+import sys
+import traceback
+from http import HTTPStatus
 
 from bolt11 import decode as bolt11_decode
 from fastapi import (
@@ -9,41 +8,49 @@ from fastapi import (
     Depends,
     HTTPException,
 )
-from fastapi import (
-    status as HTTPStatus,
-)
 from loguru import logger
 
-from lnbits.core.db import core_app_extra
-from lnbits.core.helpers import (
-    migrate_extension_database,
-    stop_extension_background_work,
-)
+from lnbits.core.crud.extensions import get_user_extensions
 from lnbits.core.models import (
+    SimpleStatus,
     User,
 )
-from lnbits.decorators import (
-    check_access_token,
-    check_admin,
-)
-from lnbits.extension_manager import (
+from lnbits.core.models.extensions import (
     CreateExtension,
     Extension,
+    ExtensionConfig,
+    ExtensionMeta,
     ExtensionRelease,
     InstallableExtension,
-    fetch_github_release_config,
-    fetch_release_payment_info,
-    get_valid_extensions,
+    PayToEnableInfo,
+    ReleasePaymentInfo,
+    UserExtension,
+    UserExtensionInfo,
 )
-from lnbits.settings import settings
+from lnbits.core.services import check_transaction_status, create_invoice
+from lnbits.core.services.extensions import (
+    activate_extension,
+    deactivate_extension,
+    get_valid_extension,
+    get_valid_extensions,
+    install_extension,
+    uninstall_extension,
+)
+from lnbits.decorators import (
+    check_admin,
+    check_user_exists,
+)
 
 from ..crud import (
-    add_installed_extension,
+    create_user_extension,
     delete_dbversion,
-    delete_installed_extension,
     drop_extension_db,
-    get_dbversions,
+    get_db_version,
     get_installed_extension,
+    get_installed_extensions,
+    get_user_extension,
+    update_installed_extension,
+    update_user_extension,
 )
 
 extension_router = APIRouter(
@@ -52,12 +59,8 @@ extension_router = APIRouter(
 )
 
 
-@extension_router.post("")
-async def api_install_extension(
-    data: CreateExtension,
-    user: User = Depends(check_admin),
-    access_token: Optional[str] = Depends(check_access_token),
-):
+@extension_router.post("", dependencies=[Depends(check_admin)])
+async def api_install_extension(data: CreateExtension):
     release = await InstallableExtension.get_extension_release(
         data.ext_id, data.source_repo, data.archive, data.version
     )
@@ -66,80 +69,244 @@ async def api_install_extension(
             status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
         )
 
-    if not release.is_version_compatible:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Incompatible extension version"
-        )
-
     release.payment_hash = data.payment_hash
+    ext_meta = ExtensionMeta(installed_release=release)
     ext_info = InstallableExtension(
-        id=data.ext_id, name=data.ext_id, installed_release=release, icon=release.icon
+        id=data.ext_id,
+        name=data.ext_id,
+        version=data.version,
+        meta=ext_meta,
+        icon=release.icon,
     )
 
     try:
-        installed_ext = await get_installed_extension(data.ext_id)
-        ext_info.payments = installed_ext.payments if installed_ext else []
+        extension = await install_extension(ext_info)
 
-        await ext_info.download_archive()
-
-        ext_info.extract_archive()
-
-        extension = Extension.from_installable_ext(ext_info)
-
-        db_version = (await get_dbversions()).get(data.ext_id, 0)
-        await migrate_extension_database(extension, db_version)
-
-        await add_installed_extension(ext_info)
-
-        if extension.is_upgrade_extension:
-            # call stop while the old routes are still active
-            await stop_extension_background_work(data.ext_id, user.id, access_token)
-
-        if data.ext_id not in settings.lnbits_deactivated_extensions:
-            settings.lnbits_deactivated_extensions += [data.ext_id]
-
-        # mount routes for the new version
-        core_app_extra.register_new_ext_routes(extension)
-
-        if extension.upgrade_hash:
-            ext_info.notify_upgrade()
-
-        return extension
-    except AssertionError as e:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, str(e))
-    except Exception as ex:
-        logger.warning(ex)
+    except Exception as exc:
+        logger.warning(exc)
+        etype, _, tb = sys.exc_info()
+        traceback.print_exception(etype, exc, tb)
         ext_info.clean_extension_files()
+        detail = (
+            str(exc)
+            if isinstance(exc, AssertionError)
+            else f"Failed to install extension '{ext_info.id}'."
+            f"({ext_info.installed_version})."
+        )
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=(
-                f"Failed to install extension {ext_info.id} "
-                f"({ext_info.installed_version})."
-            ),
+            detail=detail,
+        ) from exc
+
+    try:
+        await activate_extension(extension)
+        return extension
+    except Exception as exc:
+        logger.warning(exc)
+        await deactivate_extension(extension.code)
+        detail = (
+            str(exc)
+            if isinstance(exc, AssertionError)
+            else f"Extension `{extension.code}` installed, but activation failed."
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=detail,
+        ) from exc
+
+
+@extension_router.get("/{ext_id}/details")
+async def api_extension_details(
+    ext_id: str,
+    details_link: str,
+):
+    all_releases = await InstallableExtension.get_extension_releases(ext_id)
+
+    release = next((r for r in all_releases if r.details_link == details_link), None)
+    if not release:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
         )
 
-
-@extension_router.delete("/{ext_id}")
-async def api_uninstall_extension(
-    ext_id: str,
-    user: User = Depends(check_admin),
-    access_token: Optional[str] = Depends(check_access_token),
-):
-    installable_extensions = await InstallableExtension.get_installable_extensions()
-
-    extensions = [e for e in installable_extensions if e.id == ext_id]
-    if len(extensions) == 0:
+    release_details = await ExtensionRelease.fetch_release_details(details_link)
+    if not release_details:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="Cannot fetch details for release",
+        )
+    release_details["icon"] = release.icon
+    release_details["repo"] = release.repo
+    return release_details
+
+
+@extension_router.put("/{ext_id}/sell")
+async def api_update_pay_to_enable(
+    ext_id: str,
+    data: PayToEnableInfo,
+    user: User = Depends(check_admin),
+) -> SimpleStatus:
+    if data.wallet not in user.wallet_ids:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Wallet does not belong to this admin user."
+        )
+    extension = await get_installed_extension(ext_id)
+    if not extension:
+        raise HTTPException(HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' not found.")
+    if extension.meta:
+        extension.meta.pay_to_enable = data
+    else:
+        extension.meta = ExtensionMeta(pay_to_enable=data)
+    await update_installed_extension(extension)
+    return SimpleStatus(
+        success=True, message=f"Payment info updated for '{ext_id}' extension."
+    )
+
+
+@extension_router.put("/{ext_id}/enable")
+async def api_enable_extension(
+    ext_id: str, user: User = Depends(check_user_exists)
+) -> SimpleStatus:
+    if ext_id not in [e.code for e in await get_valid_extensions()]:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' doesn't exist."
+        )
+    try:
+        logger.info(f"Enabling extension: {ext_id}.")
+        ext = await get_installed_extension(ext_id)
+        assert ext, f"Extension '{ext_id}' is not installed."
+        assert ext.active, f"Extension '{ext_id}' is not activated."
+
+        user_ext = await get_user_extension(user.id, ext_id)
+        if not user_ext:
+            user_ext = UserExtension(user=user.id, extension=ext_id, active=False)
+            await create_user_extension(user_ext)
+
+        if user.admin or not ext.requires_payment:
+            user_ext.active = True
+            await update_user_extension(user_ext)
+            return SimpleStatus(success=True, message=f"Extension '{ext_id}' enabled.")
+
+        if not (user_ext.extra and user_ext.extra.payment_hash_to_enable):
+            raise HTTPException(
+                HTTPStatus.PAYMENT_REQUIRED, f"Extension '{ext_id}' requires payment."
+            )
+
+        if user_ext.is_paid:
+            user_ext.active = True
+            await update_user_extension(user_ext)
+            return SimpleStatus(
+                success=True, message=f"Paid extension '{ext_id}' enabled."
+            )
+
+        assert (
+            ext.meta and ext.meta.pay_to_enable and ext.meta.pay_to_enable.wallet
+        ), f"Extension '{ext_id}' is missing payment wallet."
+
+        payment_status = await check_transaction_status(
+            wallet_id=ext.meta.pay_to_enable.wallet,
+            payment_hash=user_ext.extra.payment_hash_to_enable,
+        )
+
+        if not payment_status.paid:
+            raise HTTPException(
+                HTTPStatus.PAYMENT_REQUIRED,
+                f"Invoice generated but not paid for enabeling extension '{ext_id}'.",
+            )
+
+        user_ext.active = True
+        user_ext.extra.paid_to_enable = True
+        await update_user_extension(user_ext)
+        return SimpleStatus(success=True, message=f"Paid extension '{ext_id}' enabled.")
+
+    except AssertionError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+    except HTTPException as exc:
+        raise exc from exc
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=(f"Failed to enable '{ext_id}' "),
+        ) from exc
+
+
+@extension_router.put("/{ext_id}/disable")
+async def api_disable_extension(
+    ext_id: str, user: User = Depends(check_user_exists)
+) -> SimpleStatus:
+    if ext_id not in [e.code for e in await get_valid_extensions()]:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, f"Extension '{ext_id}' doesn't exist."
+        )
+    user_ext = await get_user_extension(user.id, ext_id)
+    if not user_ext or not user_ext.active:
+        return SimpleStatus(
+            success=True, message=f"Extension '{ext_id}' already disabled."
+        )
+    logger.info(f"Disabeling extension: {ext_id}.")
+    user_ext.active = False
+    await update_user_extension(user_ext)
+    return SimpleStatus(success=True, message=f"Extension '{ext_id}' disabled.")
+
+
+@extension_router.put("/{ext_id}/activate", dependencies=[Depends(check_admin)])
+async def api_activate_extension(ext_id: str) -> SimpleStatus:
+    try:
+        logger.info(f"Activating extension: '{ext_id}'.")
+
+        ext = await get_valid_extension(ext_id)
+        assert ext, f"Extension '{ext_id}' doesn't exist."
+
+        await activate_extension(ext)
+        return SimpleStatus(success=True, message=f"Extension '{ext_id}' activated.")
+    except Exception as exc:
+        logger.warning(exc)
+        await deactivate_extension(ext_id)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=(f"Failed to activate '{ext_id}'."),
+        ) from exc
+
+
+@extension_router.put("/{ext_id}/deactivate", dependencies=[Depends(check_admin)])
+async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
+    try:
+        logger.info(f"Deactivating extension: '{ext_id}'.")
+
+        ext = await get_valid_extension(ext_id)
+        assert ext, f"Extension '{ext_id}' doesn't exist."
+
+        await deactivate_extension(ext_id)
+        return SimpleStatus(success=True, message=f"Extension '{ext_id}' deactivated.")
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=(f"Failed to deactivate '{ext_id}'."),
+        ) from exc
+
+
+@extension_router.delete("/{ext_id}", dependencies=[Depends(check_admin)])
+async def api_uninstall_extension(ext_id: str) -> SimpleStatus:
+
+    extension = await get_installed_extension(ext_id)
+    if not extension:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
             detail=f"Unknown extension id: {ext_id}",
         )
 
+    installed_extensions = await get_installed_extensions()
     # check that other extensions do not depend on this one
-    for valid_ext_id in [ext.code for ext in get_valid_extensions()]:
+    for valid_ext_id in [ext.code for ext in await get_valid_extensions()]:
         installed_ext = next(
-            (ext for ext in installable_extensions if ext.id == valid_ext_id), None
+            (ext for ext in installed_extensions if ext.id == valid_ext_id), None
         )
-        if installed_ext and ext_id in installed_ext.dependencies:
+        if (
+            installed_ext
+            and installed_ext.meta
+            and ext_id in installed_ext.meta.dependencies
+        ):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=(
@@ -149,29 +316,22 @@ async def api_uninstall_extension(
             )
 
     try:
-        # call stop while the old routes are still active
-        await stop_extension_background_work(ext_id, user.id, access_token)
-
-        if ext_id not in settings.lnbits_deactivated_extensions:
-            settings.lnbits_deactivated_extensions += [ext_id]
-
-        for ext_info in extensions:
-            ext_info.clean_extension_files()
-            await delete_installed_extension(ext_id=ext_info.id)
+        await uninstall_extension(ext_id)
 
         logger.success(f"Extension '{ext_id}' uninstalled.")
-    except Exception as ex:
+        return SimpleStatus(success=True, message=f"Extension '{ext_id}' uninstalled.")
+    except Exception as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
-        )
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
 
 
 @extension_router.get("/{ext_id}/releases", dependencies=[Depends(check_admin)])
-async def get_extension_releases(ext_id: str):
+async def get_extension_releases(ext_id: str) -> list[ExtensionRelease]:
     try:
-        extension_releases: List[
-            ExtensionRelease
-        ] = await InstallableExtension.get_extension_releases(ext_id)
+        extension_releases: list[ExtensionRelease] = (
+            await InstallableExtension.get_extension_releases(ext_id)
+        )
 
         installed_ext = await get_installed_extension(ext_id)
         if not installed_ext:
@@ -184,53 +344,118 @@ async def get_extension_releases(ext_id: str):
 
         return extension_releases
 
-    except Exception as ex:
+    except Exception as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
-        )
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
 
 
-@extension_router.put("/invoice", dependencies=[Depends(check_admin)])
-async def get_extension_invoice(data: CreateExtension):
+@extension_router.put("/{ext_id}/invoice/install", dependencies=[Depends(check_admin)])
+async def get_pay_to_install_invoice(
+    ext_id: str, data: CreateExtension
+) -> ReleasePaymentInfo:
     try:
-        assert data.cost_sats, "A non-zero amount must be specified"
+        assert (
+            ext_id == data.ext_id
+        ), f"Wrong extension id. Expected {ext_id}, but got {data.ext_id}"
+        assert data.cost_sats, "A non-zero amount must be specified."
         release = await InstallableExtension.get_extension_release(
             data.ext_id, data.source_repo, data.archive, data.version
         )
-        assert release, "Release not found"
-        assert release.pay_link, "Pay link not found for release"
+        assert release, "Release not found."
+        assert release.pay_link, "Pay link not found for release."
 
-        payment_info = await fetch_release_payment_info(
-            release.pay_link, data.cost_sats
-        )
-        assert payment_info and payment_info.payment_request, "Cannot request invoice"
+        payment_info = await release.fetch_release_payment_info(data.cost_sats)
+
+        assert payment_info and payment_info.payment_request, "Cannot request invoice."
         invoice = bolt11_decode(payment_info.payment_request)
 
-        assert invoice.amount_msat is not None, "Invoic amount is missing"
+        assert invoice.amount_msat is not None, "Invoic amount is missing."
         invoice_amount = int(invoice.amount_msat / 1000)
         assert (
             invoice_amount == data.cost_sats
         ), f"Wrong invoice amount: {invoice_amount}."
         assert (
             payment_info.payment_hash == invoice.payment_hash
-        ), "Wroong invoice payment hash"
+        ), "Wrong invoice payment hash."
 
         return payment_info
 
-    except AssertionError as e:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, str(e))
-    except Exception as ex:
-        logger.warning(ex)
-        raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot request invoice")
+    except AssertionError as exc:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot request invoice"
+        ) from exc
+
+
+@extension_router.put("/{ext_id}/invoice/enable")
+async def get_pay_to_enable_invoice(
+    ext_id: str, data: PayToEnableInfo, user: User = Depends(check_user_exists)
+):
+    if not data.amount or data.amount <= 0:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Amount must be greater than 0."
+        )
+
+    ext = await get_installed_extension(ext_id)
+    if not ext:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Extension '{ext_id}' not found."
+        )
+
+    if not ext.meta or not ext.meta.pay_to_enable:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Payment info not found for extension '{ext_id}'.",
+        )
+
+    if not ext.meta.pay_to_enable.required:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Payment not required for extension '{ext_id}'.",
+        )
+
+    if not ext.meta.pay_to_enable.wallet or not ext.meta.pay_to_enable.amount:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Payment wallet or amount missing for extension '{ext_id}'.",
+        )
+
+    if data.amount < ext.meta.pay_to_enable.amount:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=(
+                f"Amount {data.amount} sats is less than required "
+                f"{ext.meta.pay_to_enable.amount} sats."
+            ),
+        )
+
+    payment = await create_invoice(
+        wallet_id=ext.meta.pay_to_enable.wallet,
+        amount=data.amount,
+        memo=f"Enable '{ext.name}' extension.",
+    )
+
+    user_ext = await get_user_extension(user.id, ext_id)
+    if not user_ext:
+        user_ext = UserExtension(user=user.id, extension=ext_id, active=False)
+        await create_user_extension(user_ext)
+    user_ext_info = user_ext.extra if user_ext.extra else UserExtensionInfo()
+    user_ext_info.payment_hash_to_enable = payment.payment_hash
+    user_ext.extra = user_ext_info
+    await update_user_extension(user_ext)
+    return {"payment_hash": payment.payment_hash, "payment_request": payment.bolt11}
 
 
 @extension_router.get(
     "/release/{org}/{repo}/{tag_name}",
-    dependencies=[Depends(check_admin)],
+    dependencies=[Depends(check_user_exists)],
 )
 async def get_extension_release(org: str, repo: str, tag_name: str):
     try:
-        config = await fetch_github_release_config(org, repo, tag_name)
+        config = await ExtensionConfig.fetch_github_release_config(org, repo, tag_name)
         if not config:
             return {}
 
@@ -239,10 +464,23 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
             "is_version_compatible": config.is_version_compatible(),
             "warning": config.warning,
         }
-    except Exception as ex:
+    except Exception as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(ex)
-        )
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
+
+
+@extension_router.get("")
+async def api_get_user_extensions(
+    user: User = Depends(check_user_exists),
+) -> list[Extension]:
+
+    user_extensions_ids = [ue.extension for ue in await get_user_extensions(user.id)]
+    return [
+        ext
+        for ext in await get_valid_extensions(False)
+        if ext.code in user_extensions_ids
+    ]
 
 
 @extension_router.delete(
@@ -251,7 +489,7 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
 )
 async def delete_extension_db(ext_id: str):
     try:
-        db_version = (await get_dbversions()).get(ext_id, None)
+        db_version = await get_db_version(ext_id)
         if not db_version:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
@@ -260,12 +498,15 @@ async def delete_extension_db(ext_id: str):
         await drop_extension_db(ext_id=ext_id)
         await delete_dbversion(ext_id=ext_id)
         logger.success(f"Database removed for extension '{ext_id}'")
+        return SimpleStatus(
+            success=True, message=f"DB deleted for '{ext_id}' extension."
+        )
     except HTTPException as ex:
         logger.error(ex)
         raise ex
-    except Exception as ex:
-        logger.error(ex)
+    except Exception as exc:
+        logger.error(exc)
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f"Cannot delete data for extension '{ext_id}'",
-        )
+        ) from exc

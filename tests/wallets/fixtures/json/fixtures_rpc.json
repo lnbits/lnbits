@@ -1,0 +1,2408 @@
+{
+  "funding_sources": {
+    "breez": {
+      "skip": true,
+      "wallet_class": "BreezSdkWallet",
+      "settings": {
+        "breez_api_key": "100",
+        "breez_greenlight_seed": "push divert icon era bracket fade much kind reason injury suffer muffin",
+        "breez_greenlight_device_key": "tests/wallets/certificates/cert.pem",
+        "breez_greenlight_device_cert": "tests/wallets/certificates/breez.crt"
+      }
+    },
+    "corelightning": {
+      "wallet_class": "CoreLightningWallet",
+      "settings": {
+        "corelightning_rpc": "some-mock-value"
+      }
+    },
+    "lndrpc": {
+      "wallet_class": "LndWallet",
+      "settings": {
+        "lnd_grpc_endpoint": "127.0.0.1",
+        "lnd_grpc_port": "10009",
+        "lnd_grpc_cert": "tests/wallets/fixtures/certificates/breez.crt",
+        "lnd_grpc_macaroon": "eNcRyPtEdMaCaRoOn"
+      }
+    }
+  },
+  "functions": {
+    "status": {
+      "mocks": {
+        "breez": {
+          "sdk_services": {
+            "method": "breez_sdk.connect",
+            "request_type": "function"
+          }
+        },
+        "corelightning": {
+          "ln": {
+            "method": "pyln.client.LightningRpc.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {
+              "help": {
+                "request_type": "function",
+                "response_type": "json",
+                "response": {
+                  "help": [
+                    {
+                      "command": "some command"
+                    }
+                  ]
+                }
+              },
+              "listinvoices": {
+                "request_type": "function",
+                "response_type": "json",
+                "response": {
+                  "invoices": []
+                }
+              }
+            }
+          }
+        },
+        "lndrpc": {
+          "rpc": {
+            "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {}
+          }
+        }
+      },
+      "tests": [
+        {
+          "description": "success",
+          "call_params": {},
+          "expect": {
+            "error_message": null,
+            "balance_msat": 55000
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "node_info": {
+                      "request_type": "function",
+                      "response_type": "data",
+                      "response": {
+                        "channels_balance_msat": 55000
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "description": "one channel",
+                  "response": {
+                    "listfunds": {
+                      "request_type": "function",
+                      "response_type": "json",
+                      "response": {
+                        "channels": [
+                          {
+                            "our_amount_msat": 55000
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "description": "two channels",
+                  "response": {
+                    "listfunds": {
+                      "request_type": "function",
+                      "response_type": "json",
+                      "response": {
+                        "channels": [
+                          {
+                            "our_amount_msat": 25000
+                          },
+                          {
+                            "our_amount_msat": 30000
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {
+                    "ChannelBalance": {
+                      "request_type": "async-function",
+                      "response_type": "data",
+                      "response": {
+                        "balance": 55
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "error",
+          "call_params": {},
+          "expect": {
+            "error_message": "Unable to connect, got: 'test-error'",
+            "balance_msat": 0
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "node_info": {
+                      "request_type": "function",
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "listfunds": {
+                      "request_type": "function",
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {
+                    "ChannelBalance": {
+                      "request_type": "async-function",
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "missing data",
+          "call_params": {},
+          "expect": {
+            "error_message": "no data",
+            "balance_msat": 0
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": []
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "listfunds": {
+                      "request_type": "function",
+                      "response_type": "json",
+                      "response": {}
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": []
+            }
+          }
+        },
+        {
+          "description": "RPC call failed:",
+          "call_params": {},
+          "expect": {
+            "error_message": "RPC 'test_method' failed with 'test-error'.",
+            "balance_msat": 0
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": []
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "listfunds": {
+                      "request_type": "function",
+                      "response_type": "exception",
+                      "response": {
+                        "module": "pyln.client.lightning",
+                        "class": "RpcError",
+                        "data": {
+                          "method": "test_method",
+                          "payload": "y",
+                          "error": "test-error"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": []
+            }
+          }
+        }
+      ]
+    },
+    "create_invoice": {
+      "mocks": {
+        "breez": {
+          "sdk_services": {
+            "method": "breez_sdk.connect",
+            "request_type": "function"
+          }
+        },
+        "corelightning": {
+          "ln": {
+            "method": "pyln.client.LightningRpc.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {
+              "help": {
+                "request_type": "function",
+                "response_type": "json",
+                "response": {
+                  "help": [
+                    {
+                      "command": "some command"
+                    }
+                  ]
+                }
+              },
+              "listinvoices": {
+                "request_type": "function",
+                "response_type": "json",
+                "response": {
+                  "invoices": []
+                }
+              }
+            }
+          }
+        },
+        "lndrpc": {
+          "rpc": {
+            "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {}
+          }
+        }
+      },
+      "tests": [
+        {
+          "description": "success",
+          "call_params": {
+            "amount": 555,
+            "memo": "Test Invoice",
+            "label": "test-label"
+          },
+          "expect": {
+            "success": true,
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+            "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n",
+            "error_message": null
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "receive_payment": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "breez_sdk.ReceivePaymentRequest",
+                        "kwargs": {
+                          "amount_msat": 555000,
+                          "description": "Test Invoice",
+                          "preimage": null,
+                          "opening_fee_params": null,
+                          "use_description_hash": null
+                        }
+                      },
+                      "response_type": "data",
+                      "response": {
+                        "ln_invoice": {
+                          "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                          "bolt11": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "description": "one channel",
+                  "response": {
+                    "invoice": {
+                      "request_type": "function",
+                      "request_data": {
+                        "kwargs": {
+                          "deschashonly": false,
+                          "description": "Test Invoice",
+                          "expiry": null,
+                          "exposeprivatechannels": true,
+                          "label": "test-label",
+                          "amount_msat": 555000
+                        }
+                      },
+                      "response_type": "json",
+                      "response": {
+                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "bolt11": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {
+                    "AddInvoice": {
+                      "request_type": "async-function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.Invoice",
+                        "kwargs": {
+                          "value": 555,
+                          "private": true,
+                          "memo": "Test Invoice"
+                        }
+                      },
+                      "response_type": "data",
+                      "response": {
+                        "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")",
+                        "payment_request": "lnbc5550n1pnq9jg3sp52rvwstvjcypjsaenzdh0h30jazvzsf8aaye0julprtth9kysxtuspp5e5s3z7felv4t9zrcc6wpn7ehvjl5yzewanzl5crljdl3jgeffyhqdq2f38xy6t5wvxqzjccqpjrzjq0yzeq76ney45hmjlnlpvu0nakzy2g35hqh0dujq8ujdpr2e42pf2rrs6vqpgcsqqqqqqqqqqqqqqeqqyg9qxpqysgqwftcx89k5pp28435pgxfl2vx3ksemzxccppw2j9yjn0ngr6ed7wj8ztc0d5kmt2mvzdlcgrludhz7jncd5l5l9w820hc4clpwhtqj3gq62g66n"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "error",
+          "call_params": {
+            "amount": 555,
+            "memo": "Test Invoice",
+            "label": "test-label"
+          },
+          "expect": {
+            "success": false,
+            "checking_id": null,
+            "payment_request": null,
+            "error_message": "test-error"
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "receive_payment": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "breez_sdk.ReceivePaymentRequest",
+                        "kwargs": {
+                          "amount_msat": 555000,
+                          "description": "Test Invoice",
+                          "preimage": null,
+                          "opening_fee_params": null,
+                          "use_description_hash": null
+                        }
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "invoice": {
+                      "request_type": "function",
+                      "request_data": {
+                        "kwargs": {
+                          "deschashonly": false,
+                          "description": "Test Invoice",
+                          "expiry": null,
+                          "exposeprivatechannels": true,
+                          "label": "test-label",
+                          "amount_msat": 555000
+                        }
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                },
+                {
+                  "response": {
+                    "invoice": {
+                      "request_type": "function",
+                      "request_data": {
+                        "kwargs": {
+                          "deschashonly": false,
+                          "description": "Test Invoice",
+                          "expiry": null,
+                          "exposeprivatechannels": true,
+                          "label": "test-label",
+                          "amount_msat": 555000
+                        }
+                      },
+                      "response_type": "json",
+                      "response": {
+                        "code": -1,
+                        "message": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {
+                    "AddInvoice": {
+                      "request_type": "async-function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.Invoice",
+                        "kwargs": {
+                          "value": 555,
+                          "private": true,
+                          "memo": "Test Invoice"
+                        }
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "missing data",
+          "call_params": {
+            "amount": 555,
+            "memo": "Test Invoice",
+            "label": "test-label"
+          },
+          "expect": {
+            "success": false,
+            "checking_id": null,
+            "payment_request": null,
+            "error_message": "Server error: 'missing required fields'"
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": []
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "invoice": {
+                      "request_type": "function",
+                      "request_data": {
+                        "kwargs": {
+                          "deschashonly": false,
+                          "description": "Test Invoice",
+                          "expiry": null,
+                          "exposeprivatechannels": true,
+                          "label": "test-label",
+                          "amount_msat": 555000
+                        }
+                      },
+                      "response_type": "json",
+                      "response": {}
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "rpc error",
+          "call_params": {
+            "amount": 555,
+            "memo": "Test Invoice",
+            "label": "test-label"
+          },
+          "expect": {
+            "success": false,
+            "checking_id": null,
+            "payment_request": null,
+            "error_message": "RPC 'test_method' failed with 'test-error'."
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": []
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "invoice": {
+                      "request_type": "function",
+                      "request_data": {
+                        "kwargs": {
+                          "deschashonly": false,
+                          "description": "Test Invoice",
+                          "expiry": null,
+                          "exposeprivatechannels": true,
+                          "label": "test-label",
+                          "amount_msat": 555000
+                        }
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "module": "pyln.client.lightning",
+                        "class": "RpcError",
+                        "data": {
+                          "method": "test_method",
+                          "payload": "y",
+                          "error": "test-error"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "pay_invoice": {
+      "mocks": {
+        "breez": {
+          "sdk_services": {
+            "method": "breez_sdk.connect",
+            "request_type": "function"
+          }
+        },
+        "corelightning": {
+          "ln": {
+            "method": "pyln.client.LightningRpc.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {
+              "help": {
+                "request_type": "function",
+                "response_type": "json",
+                "response": {
+                  "help": [
+                    {
+                      "command": "some command"
+                    }
+                  ]
+                }
+              },
+              "listinvoices": {
+                "request_type": "function",
+                "response_type": "json",
+                "response": {
+                  "invoices": []
+                }
+              },
+              "listpays": {
+                "description": "no data, pending",
+                "request_type": "function",
+                "response_type": "json",
+                "response": {}
+              }
+            }
+          }
+        },
+        "lndrpc": {
+          "rpc": {
+            "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {}
+          },
+          "routerpc": {
+            "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {}
+          }
+        }
+      },
+      "tests": [
+        {
+          "description": "success",
+          "call_params": {
+            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+            "fee_limit_msat": 25000
+          },
+          "expect": {
+            "error_message": null,
+            "success": true,
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+            "fee_msat": 50,
+            "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "send_payment": {
+                      "request_type": "function",
+                      "response_type": "data",
+                      "response": {
+                        "status": {
+                          "value": 2
+                        },
+                        "fee_msat": 50,
+                        "details": {
+                          "data": {
+                            "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "call": {
+                      "description": "indirect call to `pay` (via `call`)",
+                      "request_type": "function",
+                      "request_data": {
+                        "args": [
+                          "pay",
+                          {
+                            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                            "description": "Unit Test Invoice",
+                            "maxfee": 25000
+                          }
+                        ]
+                      },
+                      "response_type": "json",
+                      "response": {
+                        "amount_sent_msat": 21000,
+                        "amount_msat": 21050,
+                        "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                        "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "routerpc": [
+                {
+                  "description": "one HTLCs",
+                  "response": {
+                    "SendPaymentV2": {
+                      "request_type": "function",
+                      "response_type": "function",
+                      "response": {
+                        "read": {
+                          "request_type": "async-function",
+                          "response_type": "data",
+                          "response": {
+                            "status": 2,
+                            "htlcs": [
+                              {
+                                "route": {
+                                  "total_fees_msat": -50
+                                }
+                              }
+                            ],
+                            "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "description": "two HTLCs",
+                  "response": {
+                    "SendPaymentV2": {
+                      "request_type": "function",
+                      "response_type": "function",
+                      "response": {
+                        "read": {
+                          "request_type": "async-function",
+                          "response_type": "data",
+                          "response": {
+                            "status": 2,
+                            "htlcs": [
+                              {
+                                "route": {
+                                  "total_fees_msat": -100
+                                }
+                              },
+                              {
+                                "route": {
+                                  "total_fees_msat": -50
+                                }
+                              }
+                            ],
+                            "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "failed",
+          "call_params": {
+            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+            "fee_limit_msat": 25000
+          },
+          "expect": {
+            "__eval__:error_message": "\"Payment failed: \" in \"{error_message}\"",
+            "success": false,
+            "pending": false,
+            "failed": true,
+            "checking_id": null,
+            "fee_msat": null,
+            "preimage": null
+          },
+          "mocks": {
+            "breez": {},
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "call": {
+                      "description": "indirect call to `pay` (via `call`)",
+                      "request_type": "function",
+                      "request_data": {
+                        "args": [
+                          "pay",
+                          {
+                            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                            "description": "Unit Test Invoice",
+                            "maxfee": 25000
+                          }
+                        ]
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "module": "pyln.client.lightning",
+                        "class": "RpcError",
+                        "data": {
+                          "method": "test_method",
+                          "payload": "y",
+                          "error": {
+                            "code": 205,
+                            "attempts": [
+                              {
+                                "fail_reason": "some reason"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "routerpc": [
+                {
+                  "description": "No error given.",
+                  "response": {
+                    "SendPaymentV2": {
+                      "request_type": "function",
+                      "response_type": "function",
+                      "response": {
+                        "read": {
+                          "request_type": "async-function",
+                          "response_type": "data",
+                          "response": {
+                            "status": 3,
+                            "failure_reason": 0
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "description": "Payment timed out.",
+                  "response": {
+                    "SendPaymentV2": {
+                      "request_type": "function",
+                      "response_type": "function",
+                      "response": {
+                        "read": {
+                          "request_type": "async-function",
+                          "response_type": "data",
+                          "response": {
+                            "status": 3,
+                            "failure_reason": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "description": "No route to destination.",
+                  "response": {
+                    "SendPaymentV2": {
+                      "request_type": "function",
+                      "response_type": "function",
+                      "response": {
+                        "read": {
+                          "request_type": "async-function",
+                          "response_type": "data",
+                          "response": {
+                            "status": 3,
+                            "failure_reason": 2
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "description": "Error.",
+                  "response": {
+                    "SendPaymentV2": {
+                      "request_type": "function",
+                      "response_type": "function",
+                      "response": {
+                        "read": {
+                          "request_type": "async-function",
+                          "response_type": "data",
+                          "response": {
+                            "status": 3,
+                            "failure_reason": 3
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "description": "Incorrect payment details.",
+                  "response": {
+                    "SendPaymentV2": {
+                      "request_type": "function",
+                      "response_type": "function",
+                      "response": {
+                        "read": {
+                          "request_type": "async-function",
+                          "response_type": "data",
+                          "response": {
+                            "status": 3,
+                            "failure_reason": 4
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "description": "Insufficient balance.",
+                  "response": {
+                    "SendPaymentV2": {
+                      "request_type": "function",
+                      "response_type": "function",
+                      "response": {
+                        "read": {
+                          "request_type": "async-function",
+                          "response_type": "data",
+                          "response": {
+                            "status": 3,
+                            "failure_reason": 5
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "error",
+          "call_params": {
+            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+            "fee_limit_msat": 25000
+          },
+          "expect": {
+            "__eval__:error_message": "\"Payment failed: \" in \"{error_message}\"",
+            "success": false,
+            "pending": true,
+            "failed": false,
+            "checking_id": null,
+            "fee_msat": null,
+            "preimage": null
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "send_payment": {
+                      "request_type": "function",
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "description": "test-error",
+                  "response": {
+                    "call": {
+                      "description": "indirect call to `pay` (via `call`)",
+                      "request_type": "function",
+                      "request_data": {
+                        "args": [
+                          "pay",
+                          {
+                            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                            "description": "Unit Test Invoice",
+                            "maxfee": 25000
+                          }
+                        ]
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "routerpc": [
+                {
+                  "description": "RPC error.",
+                  "response": {
+                    "SendPaymentV2": {
+                      "request_type": "function",
+                      "response_type": "function",
+                      "response": {
+                        "read": {
+                          "request_type": "async-function",
+                          "response_type": "exception",
+                          "response": {
+                            "data": "Payment failed: 'rpc maybe'"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "missing data",
+          "call_params": {
+            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+            "fee_limit_msat": 25000
+          },
+          "expect": {
+            "error_message": "Server error: 'missing required fields'",
+            "success": false,
+            "pending": true,
+            "failed": false,
+            "checking_id": null,
+            "fee_msat": null,
+            "preimage": null
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": []
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "call": {
+                      "description": "indirect call to `pay` (via `call`)",
+                      "request_type": "function",
+                      "request_data": {
+                        "args": [
+                          "pay",
+                          {
+                            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                            "description": "Unit Test Invoice",
+                            "maxfee": 25000
+                          }
+                        ]
+                      },
+                      "response_type": "json",
+                      "response": {}
+                    }
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [],
+              "routerpc": []
+            }
+          }
+        },
+        {
+          "description": "rpc error",
+          "call_params": {
+            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+            "fee_limit_msat": 25000
+          },
+          "expect": {
+            "error_message": "RPC 'test_method' failed with 'test-error'.",
+            "success": false,
+            "pending": true,
+            "failed": false,
+            "checking_id": null,
+            "fee_msat": null,
+            "preimage": null
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": []
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "call": {
+                      "description": "indirect call to `pay` (via `call`)",
+                      "request_type": "function",
+                      "request_data": {
+                        "args": [
+                          "pay",
+                          {
+                            "bolt11": "lnbc210n1pjlgal5sp5xr3uwlfm7ltumdjyukhys0z2rw6grgm8me9k4w9vn05zt9svzzjspp5ud2jdfpaqn5c2k2vphatsjypfafyk8rcvkvwexnrhmwm94ex4jtqdqu24hxjapq23jhxapqf9h8vmmfvdjscqpjrzjqta942048v7qxh5x7pxwplhmtwfl0f25cq23jh87rhx7lgrwwvv86r90guqqnwgqqqqqqqqqqqqqqpsqyg9qxpqysgqylngsyg960lltngzy90e8n22v4j2hvjs4l4ttuy79qqefjv8q87q9ft7uhwdjakvnsgk44qyhalv6ust54x98whl3q635hkwgsyw8xgqjl7jwu",
+                            "description": "Unit Test Invoice",
+                            "maxfee": 25000
+                          }
+                        ]
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "module": "pyln.client.lightning",
+                        "class": "RpcError",
+                        "data": {
+                          "method": "test_method",
+                          "payload": "y",
+                          "error": "test-error"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "get_invoice_status": {
+      "mocks": {
+        "breez": {
+          "sdk_services": {
+            "method": "breez_sdk.connect",
+            "request_type": "function"
+          }
+        },
+        "corelightning": {
+          "ln": {
+            "method": "pyln.client.LightningRpc.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {
+              "help": {
+                "request_type": "function",
+                "response_type": "json",
+                "response": {
+                  "help": [
+                    {
+                      "command": "some command"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "lndrpc": {
+          "rpc": {
+            "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {}
+          },
+          "routerpc": {
+            "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {}
+          }
+        }
+      },
+      "tests": [
+        {
+          "description": "success",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "success": true,
+            "failed": false,
+            "pending": false
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "payment_by_hash": {
+                      "request_type": "function",
+                      "response_type": "data",
+                      "response": {
+                        "payment_type": {
+                          "value": 2
+                        },
+                        "status": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "description": "one invoice",
+                  "response": {
+                    "listinvoices": [
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": []
+                        }
+                      },
+                      {
+                        "request_type": "function",
+                        "response_type": "json",
+                        "response": {
+                          "invoices": [
+                            {
+                              "status": "paid",
+                              "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "routerpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "rpc": [
+                {
+                  "response": {
+                    "LookupInvoice": {
+                      "request_type": "async-function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                        "kwargs": {
+                          "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "data",
+                      "response": {
+                        "settled": true
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "pending",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "success": false,
+            "failed": false,
+            "pending": true
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "payment_by_hash": {
+                      "request_type": "function",
+                      "response_type": "data",
+                      "response": null
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "description": "no invoice",
+                  "response": {
+                    "listinvoices": [
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": []
+                        }
+                      },
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "description": "rpc error",
+                  "response": {
+                    "listinvoices": [
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": []
+                        }
+                      },
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "exception",
+                        "response": {
+                          "module": "pyln.client.lightning",
+                          "class": "RpcError",
+                          "data": {
+                            "method": "test_method",
+                            "payload": "y",
+                            "error": "test-error"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "description": "error",
+                  "response": {
+                    "listinvoices": [
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": []
+                        }
+                      },
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "exception",
+                        "response": {
+                          "data": "test-error"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "description": "no data",
+                  "response": {
+                    "listinvoices": [
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": []
+                        }
+                      },
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {}
+                      }
+                    ]
+                  }
+                },
+                {
+                  "description": "bad checking_id",
+                  "response": {
+                    "listinvoices": [
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": []
+                        }
+                      },
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": [
+                            {
+                              "status": "paid",
+                              "payment_hash": "baaade35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d72"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "description": "unpaid",
+                  "response": {
+                    "listinvoices": [
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": []
+                        }
+                      },
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": [
+                            {
+                              "status": "unpaid",
+                              "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "routerpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "rpc": [
+                {
+                  "description": "not settled",
+                  "response": {
+                    "LookupInvoice": {
+                      "request_type": "async-function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                        "kwargs": {
+                          "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "data",
+                      "response": {
+                        "settled": false
+                      }
+                    }
+                  }
+                },
+                {
+                  "description": "rpc error",
+                  "response": {
+                    "LookupInvoice": {
+                      "request_type": "async-function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                        "kwargs": {
+                          "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "module": "grpc",
+                        "class": "RpcError",
+                        "data": {}
+                      }
+                    }
+                  }
+                },
+                {
+                  "description": "rpc error",
+                  "response": {
+                    "LookupInvoice": {
+                      "request_type": "async-function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                        "kwargs": {
+                          "__eval__:r_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "pending - incorrect checking_id",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f"
+          },
+          "expect": {
+            "success": false,
+            "failed": false,
+            "pending": true
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "payment_by_hash": {
+                      "request_type": "function",
+                      "response_type": "data",
+                      "response": null
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "description": "validation should be added",
+                  "response": {
+                    "listinvoices": [
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": []
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "routerpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "rpc": [
+                {
+                  "response": {}
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "failed",
+          "description1": "pending should be false in the 'expect', this is a bug",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "success": false,
+            "failed": true,
+            "pending": true
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "description": "FAILED",
+                  "response_type": "data",
+                  "response": {
+                    "payment_by_hash": {
+                      "request_type": "function",
+                      "response_type": "data",
+                      "response": {
+                        "payment_type": {
+                          "value": 2
+                        },
+                        "status": {
+                          "value": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "description": "expired",
+                  "response": {
+                    "listinvoices": [
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": []
+                        }
+                      },
+                      {
+                        "request_type": "function",
+                        "request_data": {
+                          "kwargs": {
+                            "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                          }
+                        },
+                        "response_type": "json",
+                        "response": {
+                          "invoices": [
+                            {
+                              "status": "expired",
+                              "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "routerpc": [],
+              "rpc": []
+            }
+          }
+        }
+      ]
+    },
+    "get_payment_status": {
+      "mocks": {
+        "breez": {
+          "sdk_services": {
+            "method": "breez_sdk.connect",
+            "request_type": "function"
+          }
+        },
+        "corelightning": {
+          "ln": {
+            "method": "pyln.client.LightningRpc.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {
+              "help": {
+                "request_type": "function",
+                "response_type": "json",
+                "response": {
+                  "help": [
+                    {
+                      "command": "some command"
+                    }
+                  ]
+                }
+              },
+              "listinvoices": {
+                "request_type": "function",
+                "response_type": "json",
+                "response": {
+                  "invoices": []
+                }
+              }
+            }
+          }
+        },
+        "lndrpc": {
+          "rpc": {
+            "method": "lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc.LightningStub.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {}
+          },
+          "routerpc": {
+            "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {}
+          }
+        }
+      },
+      "tests": [
+        {
+          "description": "success",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "success": true,
+            "failed": false,
+            "pending": false,
+            "fee_msat": 50,
+            "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "response_type": "data",
+                  "response": {
+                    "payment_by_hash": {
+                      "request_type": "function",
+                      "response_type": "data",
+                      "response": {
+                        "fee_msat": 50,
+                        "details": {
+                          "data": {
+                            "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                          }
+                        },
+                        "payment_type": {
+                          "value": 1
+                        },
+                        "status": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "listpays": [
+                      {
+                        "request_type": "function",
+                        "response_type": "json",
+                        "response": {
+                          "pays": [
+                            {
+                              "status": "complete",
+                              "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                              "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                              "amount_sent_msat": 21000,
+                              "amount_msat": 21050
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "routerpc": [
+                {
+                  "description": "two HTLC",
+                  "response": {
+                    "TrackPaymentV2": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                        "kwargs": {
+                          "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "__aiter__",
+                      "response": [
+                        {
+                          "status": 2,
+                          "htlcs": [
+                            {
+                              "route": {
+                                "total_fees_msat": -100
+                              },
+                              "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                            },
+                            {
+                              "route": {
+                                "total_fees_msat": -50
+                              },
+                              "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "success status, no payment found",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "success": true,
+            "failed": false,
+            "pending": false,
+            "fee_msat": null,
+            "preimage": null
+          },
+          "mocks": {
+            "breez": {},
+            "corelightning": {},
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "routerpc": [
+                {
+                  "description": "two HTLC",
+                  "response": {
+                    "TrackPaymentV2": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                        "kwargs": {
+                          "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "__aiter__",
+                      "response": [
+                        {
+                          "status": 2,
+                          "htlcs": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "pending",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "success": false,
+            "failed": false,
+            "pending": true,
+            "fee_msat": null
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "description": "no data",
+                  "response_type": "data",
+                  "response": {
+                    "payment_by_hash": {
+                      "request_type": "function",
+                      "response_type": "data",
+                      "response": null
+                    }
+                  }
+                },
+                {
+                  "description": "error",
+                  "response_type": "data",
+                  "response": {
+                    "payment_by_hash": {
+                      "request_type": "function",
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                },
+                {
+                  "description": "pending",
+                  "response_type": "data",
+                  "response": {
+                    "payment_by_hash": {
+                      "request_type": "function",
+                      "response_type": "data",
+                      "response": {
+                        "status": {
+                          "value": 1
+                        },
+                        "payment_type": {
+                          "value": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "listpays": [
+                      {
+                        "description": "no data",
+                        "request_type": "function",
+                        "response_type": "json",
+                        "response": {}
+                      }
+                    ]
+                  }
+                },
+                {
+                  "description": "error",
+                  "response_type": "data",
+                  "response": {
+                    "listpays": {
+                      "request_type": "function",
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                },
+                {
+                  "response": {
+                    "listpays": [
+                      {
+                        "description": "pending status",
+                        "request_type": "function",
+                        "response_type": "json",
+                        "response": {
+                          "pays": [
+                            {
+                              "status": "pending",
+                              "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "response": {
+                    "listpays": [
+                      {
+                        "description": "bad checking_id",
+                        "request_type": "function",
+                        "response_type": "json",
+                        "response": {
+                          "pays": [
+                            {
+                              "status": "complete",
+                              "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d7bbbbbb"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "routerpc": [
+                {
+                  "description": "no HTLC",
+                  "response": {
+                    "TrackPaymentV2": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                        "kwargs": {
+                          "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "__aiter__",
+                      "response": [
+                        {
+                          "status": 0,
+                          "htlcs": []
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "description": "no payments",
+                  "response": {
+                    "TrackPaymentV2": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                        "kwargs": {
+                          "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "__aiter__",
+                      "response": []
+                    }
+                  }
+                },
+                {
+                  "description": "no status",
+                  "response": {
+                    "TrackPaymentV2": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                        "kwargs": {
+                          "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "__aiter__",
+                      "response": [{}]
+                    }
+                  }
+                },
+                {
+                  "description": "status: non-existend",
+                  "response": {
+                    "TrackPaymentV2": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                        "kwargs": {
+                          "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "__aiter__",
+                      "response": [
+                        {
+                          "status": 0,
+                          "htlcs": [
+                            {
+                              "route": {
+                                "total_fees_msat": -50
+                              },
+                              "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "description": "status: in-flight",
+                  "response": {
+                    "TrackPaymentV2": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                        "kwargs": {
+                          "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "__aiter__",
+                      "response": [
+                        {
+                          "status": 1,
+                          "htlcs": [
+                            {
+                              "route": {
+                                "total_fees_msat": -50
+                              },
+                              "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "description": "status: unknown",
+                  "response": {
+                    "TrackPaymentV2": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                        "kwargs": {
+                          "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "__aiter__",
+                      "response": [
+                        {
+                          "status": 999,
+                          "htlcs": [
+                            {
+                              "route": {
+                                "total_fees_msat": -50
+                              },
+                              "__eval__:preimage": "bytes.fromhex(\"0000000000000000000000000000000000000000000000000000000000000000\")"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "description": "raise error",
+                  "response": {
+                    "TrackPaymentV2": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                        "kwargs": {
+                          "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "exception",
+                      "response": {
+                        "data": "test-error"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "pending - incorrect checking_id",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f"
+          },
+          "expect": {
+            "success": false,
+            "failed": false,
+            "pending": true,
+            "fee_msat": null
+          },
+          "mocks": {
+            "breez": {},
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "listpays": [
+                      {
+                        "description": "no data",
+                        "request_type": "function",
+                        "response_type": "json",
+                        "response": {}
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "routerpc": [
+                {
+                  "description": "no HTLC",
+                  "response": {}
+                }
+              ]
+            }
+          }
+        },
+        {
+          "description": "failed",
+          "description1": "pending should be false in the 'expect', this is a bug",
+          "call_params": {
+            "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+          },
+          "expect": {
+            "success": false,
+            "failed": true,
+            "pending": true,
+            "fee_msat": null,
+            "preimage": null
+          },
+          "mocks": {
+            "breez": {
+              "sdk_services": [
+                {
+                  "description": "failed status",
+                  "response_type": "data",
+                  "response": {
+                    "payment_by_hash": {
+                      "request_type": "function",
+                      "response_type": "data",
+                      "response": {
+                        "status": {
+                          "value": 3
+                        },
+                        "payment_type": {
+                          "value": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "corelightning": {
+              "ln": [
+                {
+                  "response": {
+                    "listpays": [
+                      {
+                        "request_type": "function",
+                        "response_type": "json",
+                        "response": {
+                          "pays": [
+                            {
+                              "status": "failed",
+                              "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "lndrpc": {
+              "rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "routerpc": [
+                {
+                  "description": "two HTLC",
+                  "response": {
+                    "TrackPaymentV2": {
+                      "request_type": "function",
+                      "request_data": {
+                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
+                        "kwargs": {
+                          "__eval__:payment_hash": "bytes.fromhex(\"e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96\")"
+                        }
+                      },
+                      "response_type": "__aiter__",
+                      "response": [
+                        {
+                          "status": 3,
+                          "htlcs": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,83 +1,98 @@
 import asyncio
-from typing import Dict
+import traceback
+from typing import Callable, Coroutine
 
 import httpx
 from loguru import logger
 
 from lnbits.core.crud import (
-    get_balance_notify,
+    create_audit_entry,
     get_wallet,
     get_webpush_subscriptions_for_user,
     mark_webhook_sent,
 )
-from lnbits.core.models import Payment
+from lnbits.core.crud.audit import delete_expired_audit_entries
+from lnbits.core.crud.payments import get_payments_status_count
+from lnbits.core.crud.users import get_accounts
+from lnbits.core.crud.wallets import get_wallets_count
+from lnbits.core.models import AuditEntry, Payment
+from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services import (
-    get_balance_delta,
     send_payment_notification,
-    switch_to_voidwallet,
 )
-from lnbits.settings import get_wallet_class, settings
-from lnbits.tasks import send_push_notification
+from lnbits.core.services.funding_source import (
+    check_balance_delta_changed,
+    check_server_balance_against_node,
+    get_balance_delta,
+)
+from lnbits.core.services.notifications import (
+    enqueue_notification,
+    process_next_notification,
+)
+from lnbits.db import Filters
+from lnbits.settings import settings
+from lnbits.tasks import create_unique_task, send_push_notification
+from lnbits.utils.exchange_rates import btc_rates
 
-api_invoice_listeners: Dict[str, asyncio.Queue] = {}
-
-
-async def killswitch_task():
-    """
-    killswitch will check lnbits-status repository for a signal from
-    LNbits and will switch to VoidWallet if the killswitch is triggered.
-    """
-    while True:
-        WALLET = get_wallet_class()
-        if settings.lnbits_killswitch and WALLET.__class__.__name__ != "VoidWallet":
-            with httpx.Client() as client:
-                try:
-                    r = client.get(settings.lnbits_status_manifest, timeout=4)
-                    r.raise_for_status()
-                    if r.status_code == 200:
-                        ks = r.json().get("killswitch")
-                        if ks and ks == 1:
-                            logger.error(
-                                "Switching to VoidWallet. Killswitch triggered."
-                            )
-                            await switch_to_voidwallet()
-                except (httpx.RequestError, httpx.HTTPStatusError):
-                    logger.error(
-                        "Cannot fetch lnbits status manifest."
-                        f" {settings.lnbits_status_manifest}"
-                    )
-        await asyncio.sleep(settings.lnbits_killswitch_interval * 60)
+audit_queue: asyncio.Queue = asyncio.Queue()
 
 
-async def watchdog_task():
-    """
-    Registers a watchdog which will check lnbits balance and nodebalance
-    and will switch to VoidWallet if the watchdog delta is reached.
-    """
-    while True:
-        WALLET = get_wallet_class()
-        if settings.lnbits_watchdog and WALLET.__class__.__name__ != "VoidWallet":
+async def run_by_the_minute_tasks():
+    minute_counter = 0
+    while settings.lnbits_running:
+        status_minutes = settings.lnbits_notification_server_status_hours * 60
+
+        if settings.notification_balance_delta_changed:
             try:
-                delta, *_ = await get_balance_delta()
-                logger.debug(f"Running watchdog task. current delta: {delta}")
-                if delta + settings.lnbits_watchdog_delta <= 0:
-                    logger.error(f"Switching to VoidWallet. current delta: {delta}")
-                    await switch_to_voidwallet()
-            except Exception as e:
-                logger.error("Error in watchdog task", e)
-        await asyncio.sleep(settings.lnbits_watchdog_interval * 60)
+                # runs by default every minute, the delta should not change that often
+                await check_balance_delta_changed()
+            except Exception as ex:
+                logger.error(ex)
+
+        if minute_counter % settings.lnbits_watchdog_interval_minutes == 0:
+            try:
+                await check_server_balance_against_node()
+            except Exception as ex:
+                logger.error(ex)
+
+        if minute_counter % status_minutes == 0:
+            try:
+                await _notify_server_status()
+            except Exception as ex:
+                logger.error(ex)
+
+        minute_counter += 1
+        await asyncio.sleep(60)
+
+
+async def _notify_server_status():
+    accounts = await get_accounts(filters=Filters(limit=0))
+    wallets_count = await get_wallets_count()
+    payments = await get_payments_status_count()
+
+    status = await get_balance_delta()
+    values = {
+        "up_time": settings.lnbits_server_up_time,
+        "accounts_count": accounts.total,
+        "wallets_count": wallets_count,
+        "in_payments_count": payments.incoming,
+        "out_payments_count": payments.outgoing,
+        "pending_payments_count": payments.pending,
+        "failed_payments_count": payments.failed,
+        "delta_sats": status.delta_sats,
+        "lnbits_balance_sats": status.lnbits_balance_sats,
+        "node_balance_sats": status.node_balance_sats,
+    }
+    enqueue_notification(NotificationType.server_status, values)
 
 
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
     """
-    This task dispatches events to all api_invoice_listeners,
-    webhooks, push notifications and balance notifications.
+    This worker dispatches events to all extensions and dispatches webhooks.
     """
-    while True:
+    while settings.lnbits_running:
         payment = await invoice_paid_queue.get()
         logger.trace("received invoice paid event")
-        # dispatch api_invoice_listeners
-        await dispatch_api_invoice_listeners(payment)
         # payment notification
         wallet = await get_wallet(payment.wallet_id)
         if wallet:
@@ -85,45 +100,8 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
             await dispatch_webhook(payment)
-        # dispatch balance_notify
-        url = await get_balance_notify(payment.wallet_id)
-        if url:
-            headers = {"User-Agent": settings.user_agent}
-            async with httpx.AsyncClient(headers=headers) as client:
-                try:
-                    r = await client.post(url, timeout=4)
-                    r.raise_for_status()
-                    await mark_webhook_sent(payment.payment_hash, r.status_code)
-                except httpx.HTTPStatusError as exc:
-                    status_code = exc.response.status_code
-                    await mark_webhook_sent(payment.payment_hash, status_code)
-                    logger.warning(
-                        f"balance_notify returned a bad status_code: {status_code} "
-                        f"while requesting {exc.request.url!r}."
-                    )
-                    logger.warning(exc)
-                except httpx.RequestError as exc:
-                    await mark_webhook_sent(payment.payment_hash, -1)
-                    logger.warning(f"Could not send balance_notify to {url}")
-                    logger.warning(exc)
-
         # dispatch push notification
         await send_payment_push_notification(payment)
-
-
-async def dispatch_api_invoice_listeners(payment: Payment):
-    """
-    Emits events to invoice listener subscribed from the API.
-    """
-    for chan_name, send_channel in api_invoice_listeners.items():
-        try:
-            logger.debug(f"api invoice listener: sending paid event to {chan_name}")
-            send_channel.put_nowait(payment)
-        except asyncio.QueueFull:
-            logger.error(
-                f"api invoice listener: QueueFull, removing {send_channel}:{chan_name}"
-            )
-            api_invoice_listeners.pop(chan_name)
 
 
 async def dispatch_webhook(payment: Payment):
@@ -174,3 +152,76 @@ async def send_payment_push_notification(payment: Payment):
                 f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
             )
             await send_push_notification(subscription, title, body, url)
+
+
+async def wait_for_audit_data():
+    """
+    Waits for audit entries to be pushed to the queue.
+    Then it inserts the entries into the DB.
+    """
+    while settings.lnbits_running:
+        data: AuditEntry = await audit_queue.get()
+        try:
+            await create_audit_entry(data)
+        except Exception as ex:
+            logger.warning(ex)
+            await asyncio.sleep(3)
+
+
+async def wait_notification_messages():
+
+    while settings.lnbits_running:
+        try:
+            await process_next_notification()
+        except Exception as ex:
+            logger.log("error", ex)
+            await asyncio.sleep(3)
+
+
+async def purge_audit_data():
+    """
+    Remove audit entries which have passed their retention period.
+    """
+    while settings.lnbits_running:
+        try:
+            await delete_expired_audit_entries()
+        except Exception as ex:
+            logger.warning(ex)
+
+        # clean every hour
+        await asyncio.sleep(60 * 60)
+
+
+async def collect_exchange_rates_data():
+    """
+    Collect exchange rates data. Used for monitoring only.
+    """
+    while settings.lnbits_running:
+        currency = settings.lnbits_default_accounting_currency or "USD"
+        max_history_size = settings.lnbits_exchange_history_size
+        sleep_time = settings.lnbits_exchange_history_refresh_interval_seconds
+
+        if sleep_time > 0:
+            try:
+                rates = await btc_rates(currency)
+                if rates:
+                    rates_values = [r[1] for r in rates]
+                    lnbits_rate = sum(rates_values) / len(rates_values)
+                    rates.append(("LNbits", lnbits_rate))
+                settings.append_exchange_rate_datapoint(dict(rates), max_history_size)
+            except Exception as ex:
+                logger.warning(ex)
+        else:
+            sleep_time = 60
+        await asyncio.sleep(sleep_time)
+
+
+def _create_unique_task(name: str, func: Callable):
+    async def _to_coro(func: Callable[[], Coroutine]) -> Coroutine:
+        return await func()
+
+    try:
+        create_unique_task(name, _to_coro(func))
+    except Exception as e:
+        logger.error(f"Error in {name} task", e)
+        logger.error(traceback.format_exc())

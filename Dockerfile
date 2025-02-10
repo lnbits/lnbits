@@ -1,24 +1,50 @@
-FROM python:3.10-slim-bullseye
+FROM python:3.12-slim-bookworm AS builder
 
 RUN apt-get clean
 RUN apt-get update
 RUN apt-get install -y curl pkg-config build-essential libnss-myhostname
 
-RUN curl -sSL https://install.python-poetry.org | python3 -
+RUN curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
 ENV PATH="/root/.local/bin:$PATH"
 
+WORKDIR /app
+
+# Only copy the files required to install the dependencies
+COPY pyproject.toml poetry.lock ./
+
+RUN mkdir data
+
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
+
+RUN poetry install --only main
+
+FROM python:3.12-slim-bookworm
+
 # needed for backups postgresql-client version 14 (pg_dump)
-RUN apt-get install -y apt-utils wget
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt bullseye-pgdg main" > /etc/apt/sources.list.d/pgdg.list
-RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-RUN apt-get update
-RUN apt-get install -y postgresql-client-14
+RUN apt-get update && apt-get -y upgrade && \
+    apt-get -y install gnupg2 curl lsb-release && \
+    sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
+    curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
+    apt-get update && \
+    apt-get -y install postgresql-client-14 postgresql-client-common && \
+    apt-get clean all && rm -rf /var/lib/apt/lists/*
+
+RUN curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
+ENV PATH="/root/.local/bin:$PATH"
+
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
 COPY . .
-
-RUN mkdir data
+COPY --from=builder /app/.venv .venv
 
 RUN poetry install --only main
 

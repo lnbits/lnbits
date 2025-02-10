@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from pydantic import BaseModel
 
@@ -38,15 +38,22 @@ class ChannelPoint(BaseModel):
     funding_txid: str
     output_index: int
 
+    def __str__(self):
+        return f"{self.funding_txid}:{self.output_index}"
+
 
 class NodeChannel(BaseModel):
-    short_id: Optional[str] = None
-    point: Optional[ChannelPoint] = None
     peer_id: str
     balance: ChannelBalance
     state: ChannelState
-    name: Optional[str]
-    color: Optional[str]
+    # could be optional for closing/pending channels on lndrest
+    id: Optional[str] = None
+    short_id: Optional[str] = None
+    point: Optional[ChannelPoint] = None
+    name: Optional[str] = None
+    color: Optional[str] = None
+    fee_ppm: Optional[int] = None
+    fee_base_msat: Optional[int] = None
 
 
 class ChannelStats(BaseModel):
@@ -144,7 +151,6 @@ class NodePaymentsFilters(FilterModel):
 
 
 class Node(ABC):
-    wallet: Wallet
 
     def __init__(self, wallet: Wallet):
         self.wallet = wallet
@@ -161,7 +167,7 @@ class Node(ABC):
 
     @abstractmethod
     async def _get_id(self) -> str:
-        pass
+        raise NotImplementedError
 
     async def get_peers(self) -> list[NodePeerInfo]:
         peer_ids = await self.get_peer_ids()
@@ -169,15 +175,15 @@ class Node(ABC):
 
     @abstractmethod
     async def get_peer_ids(self) -> list[str]:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     async def connect_peer(self, uri: str):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     async def disconnect_peer(self, peer_id: str):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     async def _get_peer_info(self, peer_id: str) -> NodePeerInfo:
@@ -200,7 +206,7 @@ class Node(ABC):
         push_amount: Optional[int] = None,
         fee_rate: Optional[int] = None,
     ) -> ChannelPoint:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     async def close_channel(
@@ -209,15 +215,23 @@ class Node(ABC):
         point: Optional[ChannelPoint] = None,
         force: bool = False,
     ):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
-    async def get_channels(self) -> List[NodeChannel]:
-        pass
+    async def get_channel(self, channel_id: str) -> Optional[NodeChannel]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_channels(self) -> list[NodeChannel]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def set_channel_fee(self, channel_id: str, base_msat: int, ppm: int):
+        raise NotImplementedError
 
     @abstractmethod
     async def get_info(self) -> NodeInfoResponse:
-        pass
+        raise NotImplementedError
 
     async def get_public_info(self) -> PublicNodeInfo:
         info = await self.get_info()
@@ -227,10 +241,10 @@ class Node(ABC):
     async def get_payments(
         self, filters: Filters[NodePaymentsFilters]
     ) -> Page[NodePayment]:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     async def get_invoices(
         self, filters: Filters[NodeInvoiceFilters]
     ) -> Page[NodeInvoice]:
-        pass
+        raise NotImplementedError

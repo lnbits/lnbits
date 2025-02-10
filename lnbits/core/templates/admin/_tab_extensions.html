@@ -1,0 +1,111 @@
+<q-tab-panel name="extensions">
+  <q-card-section class="q-pa-none">
+    <div>
+      <h6 class="q-my-none">
+        <span v-text="$t('extensions')"></span>
+      </h6>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 q-mb-md">
+          <p>
+            <span v-text="$t('extension_sources')"></span>
+          </p>
+          <q-input
+            class="q-mb-md"
+            filled
+            v-model="formAddExtensionsManifest"
+            @keydown.enter="addExtensionsManifest"
+            type="text"
+            :label="$t('ext_sources_label')"
+            :hint="$t('ext_sources_hint')"
+          >
+            <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
+          </q-input>
+          <div>
+            <q-chip
+              v-for="manifestUrl in formData.lnbits_extensions_manifests"
+              :key="manifestUrl"
+              removable
+              @remove="removeExtensionsManifest(manifestUrl)"
+              color="primary"
+              text-color="white"
+              ><span class="ellipsis" v-text="manifestUrl"></span
+            ></q-chip>
+          </div>
+        </div>
+      </div>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-6">
+          <p>
+            <span v-text="$t('admin_extensions')"></span>
+          </p>
+          <q-select
+            filled
+            v-model="formData.lnbits_admin_extensions"
+            multiple
+            :label="$t('admin_extensions_label')"
+            :hint="$t('admin_extensions_hint')"
+            :options="g.extensions"
+          ></q-select>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <p>
+            <span v-text="$t('user_default_extensions')"></span>
+          </p>
+          <q-select
+            filled
+            v-model="formData.lnbits_user_default_extensions"
+            multiple
+            :label="$t('user_default_extensions_label')"
+            :hint="$t('user_default_extensions_hint')"
+            :options="g.extensions"
+          ></q-select>
+        </div>
+        <div class="col-12 col-md-6">
+          <p>
+            <span v-text="$t('miscellaneous')"></span>
+          </p>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label>
+                <span v-text="$t('misc_disable_extensions')"></span>
+              </q-item-label>
+              <q-item-label caption>
+                <span v-text="$t('misc_disable_extensions_label')"></span>
+              </q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_extensions_deactivate_all"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label>
+                <span v-text="$t('misc_hide_api')"></span>
+              </q-item-label>
+              <q-item-label caption>
+                <span v-text="$t('misc_hide_api_label')"></span>
+              </q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_hide_api"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <br />
+        </div>
+      </div>
+    </div>
+  </q-card-section>
+</q-tab-panel>
