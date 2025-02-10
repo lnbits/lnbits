@@ -207,13 +207,13 @@ async def wallet(
 )
 async def account(
     request: Request,
-    user: User,
+    user: User = Depends(check_user_exists),
 ):
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
         {
-            "user": user.json() or None,
+            "user": user.json(),
             "ajax": _is_ajax_request(request),
         },
     )

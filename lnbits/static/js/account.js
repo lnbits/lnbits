@@ -2,9 +2,7 @@ window.AccountPageLogic = {
   mixins: [window.windowMixin],
   data() {
     return {
-      user: {
-        config: {}
-      },
+      user: null,
       hasUsername: false,
       showUserId: false,
       reactionOptions: [
