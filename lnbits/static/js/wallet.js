@@ -886,7 +886,13 @@ window.WalletPageLogic = {
                     label: 'Balance',
                     data: data.map(s => s.balance),
                     pointStyle: false,
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.primaryColor,
+                      0.3
+                    ),
+                    borderColor: this.primaryColor,
                     borderWidth: 2,
+                    fill: true,
                     tension: 0.7,
                     fill: 1
                   },
@@ -894,7 +900,13 @@ window.WalletPageLogic = {
                     label: 'Fees',
                     data: data.map(s => s.fee),
                     pointStyle: false,
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.primaryColor,
+                      0.3
+                    ),
+                    borderColor: this.primaryColor,
                     borderWidth: 1,
+                    fill: true,
                     tension: 0.4,
                     fill: 1
                   }
