@@ -810,9 +810,15 @@ window.WalletPageLogic = {
       }
     },
     async fetchChartData() {
-      console.log('#### fetchChartData', this.mobileSimple)
-      // or all unchecked
       if (this.mobileSimple) {
+        this.chartConfig = {}
+        return
+      }
+      if (
+        !this.chartConfig.showBalance &&
+        !this.chartConfig.showBalanceInOut &&
+        !this.chartConfig.showPaymentCountInOut
+      ) {
         return
       }
 
@@ -864,7 +870,6 @@ window.WalletPageLogic = {
           day: 'numeric'
         })
       )
-      console.log('#### this.chartConfig', this.chartConfig)
       try {
         if (this.chartConfig.showBalance) {
           if (this.walletBalanceChart) {
@@ -902,7 +907,6 @@ window.WalletPageLogic = {
               }
             }
           )
-          console.log('### chart created 1')
         }
 
         if (this.chartConfig.showBalanceInOut) {
@@ -942,7 +946,6 @@ window.WalletPageLogic = {
               }
             }
           )
-          console.log('### chart created 2')
         }
 
         if (this.chartConfig.showPaymentCountInOut) {
@@ -983,8 +986,6 @@ window.WalletPageLogic = {
               }
             }
           )
-
-          console.log('### chart created 3')
         }
       } catch (error) {
         console.warn(error)
@@ -1004,7 +1005,6 @@ window.WalletPageLogic = {
       this.parse.show = true
     }
     this.createdTasks()
-    console.log('### created')
     try {
       this.fetchChartData()
     } catch (error) {
