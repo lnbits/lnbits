@@ -700,7 +700,7 @@
           </q-item>
         </q-list>
       </q-btn-dropdown>
-      <payment-chart :wallet="wallet"></payment-chart>
+
       <q-checkbox
         v-model="failedPaymentsToggle"
         checked-icon="warning"
@@ -1023,36 +1023,6 @@
       </div>
     </q-list>
   </div>
-</template>
-
-<template id="payment-chart">
-  <span id="payment-chart">
-    <q-btn dense flat round icon="show_chart" color="grey" @click="showChart">
-      <q-tooltip>
-        <span v-text="$t('chart_tooltip')"></span>
-      </q-tooltip>
-    </q-btn>
-
-    <q-dialog v-model="paymentsChart.show" position="top">
-      <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
-        <q-card-section>
-          <div class="row q-gutter-sm justify-between">
-            <div class="text-h6">Payments Chart</div>
-            <q-select
-              label="Group"
-              filled
-              dense
-              v-model="paymentsChart.group"
-              style="min-width: 120px"
-              :options="paymentsChart.groupOptions"
-            >
-            </q-select>
-          </div>
-          <canvas ref="canvas" width="600" height="400"></canvas>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-  </span>
 </template>
 
 <template id="user-id-only">
