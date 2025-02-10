@@ -814,8 +814,6 @@ window.WalletPageLogic = {
           'GET',
           `/api/v1/payments/stats/daily?wallet_id=${this.g.wallet.id}`
         )
-        console.log('### data', data)
-
         // return
 
         // const timeFrom = this.searchDate.timeFrom + 'T00:00:00'
@@ -834,29 +832,25 @@ window.WalletPageLogic = {
         //   return true
         // })
 
+        if (this.walletDailyChart) {
+          this.walletDailyChart.destroy()
+        }
+        const labels = data.map(s =>
+          new Date(s.date).toLocaleString('default', {
+            month: 'short',
+            day: 'numeric'
+          })
+        )
         this.walletDailyChart = new Chart(
           this.$refs.walletDailyChart.getContext('2d'),
           {
             type: 'line',
-
             options: {
               responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                title: {
-                  display: false
-                },
-                legend: {
-                  display: true,
-                  title: {
-                    display: false,
-                    text: 'Tags'
-                  }
-                }
-              }
+              maintainAspectRatio: false
             },
             data: {
-              labels: data.map(s => s.date.substring(0, 10)),
+              labels,
               datasets: [
                 {
                   label: 'Balance',
@@ -878,23 +872,55 @@ window.WalletPageLogic = {
             }
           }
         )
+        console.log('### chart created')
+        if (this.walletBalanceInOut) {
+          this.walletBalanceInOut.destroy()
+        }
 
-        this.walletDailyChart.update()
+        this.walletBalanceInOut = new Chart(
+          this.$refs.walletBalanceInOut.getContext('2d'),
+          {
+            type: 'bar',
 
-        // this.paymentsBalanceInOutChart.data.datasets = [
-        //   {
-        //     label: 'Incoming Payments Balance',
-        //     data: data.map(s => s.balance_in)
-        //   },
-        //   {
-        //     label: 'Outgoing Payments Balance',
-        //     data: data.map(s => s.balance_out)
-        //   }
-        // ]
-        // this.paymentsBalanceInOutChart.data.labels = data.map(s =>
-        //   s.date.substring(0, 10)
-        // )
-        // this.paymentsBalanceInOutChart.update()
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: false
+                },
+                legend: {
+                  display: true,
+                  title: {
+                    display: false,
+                    text: 'Tags'
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  stacked: true
+                },
+                y: {
+                  stacked: true
+                }
+              }
+            },
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Incoming Payments Balance',
+                  data: data.map(s => s.balance_in)
+                },
+                {
+                  label: 'Outgoing Payments Balance',
+                  data: data.map(s => s.balance_out)
+                }
+              ]
+            }
+          }
+        )
 
         // this.paymentsCountInOutChart.data.datasets = [
         //   {
@@ -925,8 +951,9 @@ window.WalletPageLogic = {
       this.parse.show = true
     }
     this.createdTasks()
-    setTimeout(() => { this.fetchChartData() }, 1000)
-
+    console.log('### created')
+    this.fetchChartData()
+    // setTimeout(() => { this.fetchChartData() }, 1000)
   },
   watch: {
     'g.updatePayments'(newVal, oldVal) {
@@ -949,6 +976,7 @@ window.WalletPageLogic = {
           (this.g.exchangeRate / 100000000) * this.g.wallet.sat
         this.formatFiatAmount(this.g.fiatBalance, this.g.wallet.currency)
       }
+      this.fetchChartData()
     },
     '$q.screen.gt.sm'(value) {
       if (value == true) {
@@ -958,7 +986,6 @@ window.WalletPageLogic = {
     'g.wallet': {
       handler(newWallet) {
         this.createdTasks()
-        this.fetchChartData
       },
       deep: true
     }
