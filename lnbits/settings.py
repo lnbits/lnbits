@@ -343,13 +343,6 @@ class ExchangeProvidersSettings(LNbitsSettings):
                 ticker_conversion=[],
             ),
             ExchangeRateProvider(
-                name="CoinMate",
-                api_url="https://coinmate.io/api/ticker?currencyPair=BTC_{TO}",
-                path="$.data.last",
-                exclude_to=[],
-                ticker_conversion=["USD:USDT"],
-            ),
-            ExchangeRateProvider(
                 name="Kraken",
                 api_url="https://api.kraken.com/0/public/Ticker?pair=XBT{TO}",
                 path="$.result.XXBTZ{TO}.c[0]",
