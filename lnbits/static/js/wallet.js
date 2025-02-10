@@ -44,6 +44,7 @@ window.WalletPageLogic = {
         show: false,
         location: window.location
       },
+      mobileSimple: this.$q.screen.lt.md,
       icon: {
         show: false,
         data: {},
@@ -104,6 +105,7 @@ window.WalletPageLogic = {
         name: null,
         currency: null
       },
+      walletDailyChart: null,
       inkeyHidden: true,
       adminkeyHidden: true,
       hasNfc: false,
@@ -800,6 +802,118 @@ window.WalletPageLogic = {
         this.update.currency = ''
         this.g.fiatTracking = false
       }
+    },
+    async fetchChartData() {
+      console.log('#### fetchChartData', this.mobileSimple)
+      // or all unchecked
+      if (this.mobileSimple) {
+        return
+      }
+      try {
+        let {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/payments/stats/daily?wallet_id=${this.g.wallet.id}`
+        )
+        console.log('### data', data)
+
+        // return
+
+        // const timeFrom = this.searchDate.timeFrom + 'T00:00:00'
+        // const timeTo = this.searchDate.timeTo + 'T00:00:00'
+        // this.lnbitsBalance = data[data.length - 1].balance
+        // data = data.filter(p => {
+        //   if (this.searchDate.timeFrom && this.searchDate.timeTo) {
+        //     return p.date >= timeFrom && p.date <= timeTo
+        //   }
+        //   if (this.searchDate.timeFrom) {
+        //     return p.date >= timeFrom
+        //   }
+        //   if (this.searchDate.timeTo) {
+        //     return p.date <= timeTo
+        //   }
+        //   return true
+        // })
+
+        this.walletDailyChart = new Chart(
+          this.$refs.walletDailyChart.getContext('2d'),
+          {
+            type: 'line',
+
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: false
+                },
+                legend: {
+                  display: true,
+                  title: {
+                    display: false,
+                    text: 'Tags'
+                  }
+                }
+              }
+            },
+            data: {
+              labels: data.map(s => s.date.substring(0, 10)),
+              datasets: [
+                {
+                  label: 'Balance',
+                  data: data.map(s => s.balance),
+                  pointStyle: false,
+                  borderWidth: 2,
+                  tension: 0.7,
+                  fill: 1
+                },
+                {
+                  label: 'Fees',
+                  data: data.map(s => s.fee),
+                  pointStyle: false,
+                  borderWidth: 1,
+                  tension: 0.4,
+                  fill: 1
+                }
+              ]
+            }
+          }
+        )
+
+        // this.walletDailyChart.update()
+
+        // this.paymentsBalanceInOutChart.data.datasets = [
+        //   {
+        //     label: 'Incoming Payments Balance',
+        //     data: data.map(s => s.balance_in)
+        //   },
+        //   {
+        //     label: 'Outgoing Payments Balance',
+        //     data: data.map(s => s.balance_out)
+        //   }
+        // ]
+        // this.paymentsBalanceInOutChart.data.labels = data.map(s =>
+        //   s.date.substring(0, 10)
+        // )
+        // this.paymentsBalanceInOutChart.update()
+
+        // this.paymentsCountInOutChart.data.datasets = [
+        //   {
+        //     label: 'Incoming Payments Count',
+        //     data: data.map(s => s.count_in)
+        //   },
+        //   {
+        //     label: 'Outgoing Payments Count',
+        //     data: data.map(s => -s.count_out)
+        //   }
+        // ]
+        // this.paymentsCountInOutChart.data.labels = data.map(s =>
+        //   s.date.substring(0, 10)
+        // )
+        // this.paymentsCountInOutChart.update()
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      }
     }
   },
   created() {
@@ -811,6 +925,8 @@ window.WalletPageLogic = {
       this.parse.show = true
     }
     this.createdTasks()
+    setTimeout(() => { this.fetchChartData() }, 1000)
+
   },
   watch: {
     'g.updatePayments'(newVal, oldVal) {
@@ -842,11 +958,12 @@ window.WalletPageLogic = {
     'g.wallet': {
       handler(newWallet) {
         this.createdTasks()
+        this.fetchChartData
       },
       deep: true
     }
   },
-  mounted() {
+  async mounted() {
     if (!Quasar.LocalStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       Quasar.LocalStorage.setItem('lnbits.disclaimerShown', true)
@@ -860,6 +977,8 @@ window.WalletPageLogic = {
       this.isPrioritySwapped = false
       Quasar.LocalStorage.setItem('lnbits.isPrioritySwapped', false)
     }
+    // await this.fetchChartData()
+    // setTimeout(() => { this.fetchChartData() }, 3000)
   }
 }
 
