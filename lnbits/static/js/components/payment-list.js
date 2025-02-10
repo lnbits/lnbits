@@ -223,14 +223,21 @@ window.app.component('payment-list', {
   watch: {
     failedPaymentsToggle(newVal) {
       if (newVal === false) {
-        this.paymentsTable.filter = {
-          'status[ne]': 'failed'
-        }
+        this.paymentsTable.filter['status[ne]'] = 'failed'
       } else {
-        this.paymentsTable.filter = null
+        delete this.paymentsTable.filter['status[ne]']
       }
       this.paymentsTable.pagination.page = 1
       this.fetchPayments()
+    },
+    'paymentsTable.search': {
+      handler() {
+        const props = {}
+        if (this.paymentsTable.search) {
+          props['search'] = this.paymentsTable.search
+        }
+        this.fetchPayments()
+      }
     },
     lazy(newVal) {
       if (newVal === true) this.fetchPayments()

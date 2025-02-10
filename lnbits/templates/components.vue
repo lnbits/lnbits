@@ -709,7 +709,7 @@
         size="xs"
       >
         <q-tooltip>
-          <span v-text="`View failed payments`"></span>
+          <span v-text="`Include failed payments`"></span>
         </q-tooltip>
       </q-checkbox>
     </div>
@@ -722,7 +722,7 @@
     :row-key="paymentTableRowKey"
     :columns="paymentsTable.columns"
     :no-data-label="$t('no_transactions')"
-    :filter="paymentsTable.search"
+    :filter="paymentsTable.filter"
     :loading="paymentsTable.loading"
     :hide-header="mobileSimple"
     :hide-bottom="mobileSimple"
