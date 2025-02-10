@@ -614,7 +614,7 @@ window.ExtensionsPageLogic = {
           console.warn(err)
           Quasar.Notify.create({
             type: 'negative',
-            message: `Failed to update ${ext.code}!`
+            message: `Failed to update ${ext.id}!`
           })
         } finally {
           ext.inProgress = false
