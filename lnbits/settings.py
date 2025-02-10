@@ -246,6 +246,8 @@ class ThemesSettings(LNbitsSettings):
             "monochrome",
             "autumn",
             "cyber",
+            "flamingo",
+            "bitcoin",
         ]
     )
     lnbits_custom_logo: Optional[str] = Field(default=None)
