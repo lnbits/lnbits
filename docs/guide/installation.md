@@ -32,6 +32,7 @@ It is recommended to use the latest version of Poetry. Make sure you have Python
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt update -y
 sudo apt install -y python3.12 python3.12-dev # ensure correct headers needed for secp256k1
+sudo apt-get install -y pkg-config libsecp256k1-dev python3-dev build-essential # ensure correct headers
 python3 --version
 ```
 
