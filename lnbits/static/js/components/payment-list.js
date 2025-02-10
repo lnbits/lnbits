@@ -38,6 +38,10 @@ window.app.component('payment-list', {
         },
         loading: false
       },
+      searchDate: {
+        from: null,
+        to: null
+      },
       exportTagName: '',
       exportPaymentTagList: [],
       paymentsCSV: {
@@ -136,7 +140,24 @@ window.app.component('payment-list', {
     }
   },
   methods: {
+    searchByDate() {
+      if (this.searchDate.from) {
+        this.paymentsTable.filter['time[ge]'] =
+          this.searchDate.from + 'T00:00:00'
+      }
+      if (this.searchDate.to) {
+        this.paymentsTable.filter['time[le]'] = this.searchDate.to + 'T23:59:59'
+      }
+      this.fetchPayments()
+    },
+    clearDateSeach() {
+      this.searchDate = {to: null, from: null}
+      delete this.paymentsTable.filter['time[ge]']
+      delete this.paymentsTable.filter['time[le]']
+      this.fetchPayments()
+    },
     fetchPayments(props) {
+      this.$emit('filter-changed', {...this.paymentsTable.filter})
       const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
       return LNbits.api
         .getPayments(this.currentWallet, params)

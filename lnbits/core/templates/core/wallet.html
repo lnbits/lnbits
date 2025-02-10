@@ -189,6 +189,7 @@
         >
           <q-card-section>
             <payment-list
+              @filter-changed="handleFilterChange"
               :update="updatePayments"
               :mobile-simple="mobileSimple"
               :expand-details="expandDetails"

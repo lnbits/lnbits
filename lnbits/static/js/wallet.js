@@ -809,6 +809,9 @@ window.WalletPageLogic = {
         this.g.fiatTracking = false
       }
     },
+    handleFilterChange(value) {
+      console.log('handleFilterChange:', value)
+    },
     async fetchChartData() {
       if (this.mobileSimple) {
         this.chartConfig = {}

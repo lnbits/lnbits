@@ -649,6 +649,7 @@
       <q-btn-dropdown
         outline
         persistent
+        dense
         class="q-mr-sm"
         color="grey"
         label="Export"
@@ -700,6 +701,41 @@
           </q-item>
         </q-list>
       </q-btn-dropdown>
+      <q-btn icon="event" outline flat color="grey">
+        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+          <q-date v-model="searchDate" mask="YYYY-MM-DD" range />
+          <div class="row">
+            <div class="col-6">
+              <q-btn
+                label="Search"
+                @click="searchByDate()"
+                color="primary"
+                flat
+                class="float-left"
+                v-close-popup
+              />
+            </div>
+            <div class="col-6">
+              <q-btn
+                v-close-popup
+                @click="clearDateSeach()"
+                label="Clear"
+                class="float-right"
+                color="grey"
+                flat
+              />
+            </div>
+          </div>
+        </q-popup-proxy>
+        <q-badge
+          v-if="searchDate.to || searchDate.from"
+          class="q-mt-lg q-mr-md"
+          color="primary"
+          rounded
+          floating
+          style="border-radius: 6px"
+        />
+      </q-btn>
 
       <q-checkbox
         v-model="failedPaymentsToggle"
