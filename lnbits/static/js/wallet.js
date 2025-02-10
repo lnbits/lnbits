@@ -105,7 +105,7 @@ window.WalletPageLogic = {
         name: null,
         currency: null
       },
-      walletDailyChart: null,
+      walletBalanceChart: null,
       inkeyHidden: true,
       adminkeyHidden: true,
       hasNfc: false,
@@ -113,7 +113,13 @@ window.WalletPageLogic = {
       isPrioritySwapped: false,
       formattedFiatAmount: 0,
       formattedExchange: null,
-      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor')
+      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
+      chartData: [],
+      chartConfig: {
+        showBalance: true,
+        showBalanceInOut: true,
+        showPaymentCountInOut: true
+      }
     }
   },
   computed: {
@@ -809,12 +815,16 @@ window.WalletPageLogic = {
       if (this.mobileSimple) {
         return
       }
+
       try {
-        let {data} = await LNbits.api.request(
+        const {data} = await LNbits.api.request(
           'GET',
           `/api/v1/payments/stats/daily?wallet_id=${this.g.wallet.id}`
         )
-        console.log('## data', data)
+        this.chartData = data
+        console.log('## data', this.chartData)
+
+        this.drawCharts(this.chartData)
         // return
 
         // const timeFrom = this.searchDate.timeFrom + 'T00:00:00'
@@ -832,126 +842,153 @@ window.WalletPageLogic = {
         //   }
         //   return true
         // })
-
-        if (this.walletDailyChart) {
-          this.walletDailyChart.destroy()
-        }
-        const labels = data.map(s =>
-          new Date(s.date).toLocaleString('default', {
-            month: 'short',
-            day: 'numeric'
-          })
-        )
-        this.walletDailyChart = new Chart(
-          this.$refs.walletDailyChart.getContext('2d'),
-          {
-            type: 'line',
-            options: {
-              responsive: true,
-              maintainAspectRatio: false
-            },
-            data: {
-              labels,
-              datasets: [
-                {
-                  label: 'Balance',
-                  data: data.map(s => s.balance),
-                  pointStyle: false,
-                  borderWidth: 2,
-                  tension: 0.7,
-                  fill: 1
-                },
-                {
-                  label: 'Fees',
-                  data: data.map(s => s.fee),
-                  pointStyle: false,
-                  borderWidth: 1,
-                  tension: 0.4,
-                  fill: 1
-                }
-              ]
-            }
-          }
-        )
-        console.log('### chart created')
-        if (this.walletBalanceInOut) {
-          this.walletBalanceInOut.destroy()
-        }
-
-        this.walletBalanceInOut = new Chart(
-          this.$refs.walletBalanceInOut.getContext('2d'),
-          {
-            type: 'bar',
-
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              scales: {
-                x: {
-                  stacked: true
-                },
-                y: {
-                  stacked: true
-                }
-              }
-            },
-            data: {
-              labels,
-              datasets: [
-                {
-                  label: 'Balance In',
-                  data: data.map(s => s.balance_in)
-                },
-                {
-                  label: 'Balance Out',
-                  data: data.map(s => s.balance_out)
-                }
-              ]
-            }
-          }
-        )
-
-        if (this.walletPaymentsInOut) {
-          this.walletPaymentsInOut.destroy()
-        }
-
-        this.walletPaymentsInOut = new Chart(
-          this.$refs.walletPaymentsInOut.getContext('2d'),
-          {
-            type: 'bar',
-
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-
-              scales: {
-                x: {
-                  stacked: true
-                },
-                y: {
-                  stacked: true
-                }
-              }
-            },
-            data: {
-              labels,
-              datasets: [
-                {
-                  label: 'Payments In',
-                  data: data.map(s => s.count_in)
-                },
-                {
-                  label: 'Payments Out',
-                  data: data.map(s => -s.count_out)
-                }
-              ]
-            }
-          }
-        )
       } catch (error) {
         console.warn(error)
         LNbits.utils.notifyApiError(error)
       }
+    },
+    drawCharts(data) {
+      console.log('#### drawCharts', data)
+      const chartConfig =
+        this.$q.localStorage.getItem('lnbits.wallets.chartConfig') || {}
+      this.chartConfig = {...this.chartConfig, ...chartConfig}
+      const labels = data.map(s =>
+        new Date(s.date).toLocaleString('default', {
+          month: 'short',
+          day: 'numeric'
+        })
+      )
+      console.log('#### this.chartConfig', this.chartConfig)
+      try {
+        if (this.chartConfig.showBalance) {
+          if (this.walletBalanceChart) {
+            this.walletBalanceChart.destroy()
+          }
+
+          this.walletBalanceChart = new Chart(
+            this.$refs.walletBalanceChart.getContext('2d'),
+            {
+              type: 'line',
+              options: {
+                responsive: true,
+                maintainAspectRatio: false
+              },
+              data: {
+                labels,
+                datasets: [
+                  {
+                    label: 'Balance',
+                    data: data.map(s => s.balance),
+                    pointStyle: false,
+                    borderWidth: 2,
+                    tension: 0.7,
+                    fill: 1
+                  },
+                  {
+                    label: 'Fees',
+                    data: data.map(s => s.fee),
+                    pointStyle: false,
+                    borderWidth: 1,
+                    tension: 0.4,
+                    fill: 1
+                  }
+                ]
+              }
+            }
+          )
+          console.log('### chart created 1')
+        }
+
+        if (this.chartConfig.showBalanceInOut) {
+          if (this.walletBalanceInOut) {
+            this.walletBalanceInOut.destroy()
+          }
+
+          this.walletBalanceInOut = new Chart(
+            this.$refs.walletBalanceInOut.getContext('2d'),
+            {
+              type: 'bar',
+
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  x: {
+                    stacked: true
+                  },
+                  y: {
+                    stacked: true
+                  }
+                }
+              },
+              data: {
+                labels,
+                datasets: [
+                  {
+                    label: 'Balance In',
+                    data: data.map(s => s.balance_in)
+                  },
+                  {
+                    label: 'Balance Out',
+                    data: data.map(s => s.balance_out)
+                  }
+                ]
+              }
+            }
+          )
+          console.log('### chart created 2')
+        }
+
+        if (this.chartConfig.showPaymentCountInOut) {
+          if (this.walletPaymentsInOut) {
+            this.walletPaymentsInOut.destroy()
+          }
+
+          this.walletPaymentsInOut = new Chart(
+            this.$refs.walletPaymentsInOut.getContext('2d'),
+            {
+              type: 'bar',
+
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+
+                scales: {
+                  x: {
+                    stacked: true
+                  },
+                  y: {
+                    stacked: true
+                  }
+                }
+              },
+              data: {
+                labels,
+                datasets: [
+                  {
+                    label: 'Payments In',
+                    data: data.map(s => s.count_in)
+                  },
+                  {
+                    label: 'Payments Out',
+                    data: data.map(s => -s.count_out)
+                  }
+                ]
+              }
+            }
+          )
+
+          console.log('### chart created 3')
+        }
+      } catch (error) {
+        console.warn(error)
+      }
+    },
+    saveChartsPreferences() {
+      this.$q.localStorage.set('lnbits.wallets.chartConfig', this.chartConfig)
+      setTimeout(() => {
+        this.drawCharts(this.chartData)
+      }, 200)
     }
   },
   created() {
