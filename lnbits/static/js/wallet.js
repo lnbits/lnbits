@@ -822,9 +822,8 @@ window.WalletPageLogic = {
           `/api/v1/payments/stats/daily?wallet_id=${this.g.wallet.id}`
         )
         this.chartData = data
-        console.log('## data', this.chartData)
+        this.refreshCharts()
 
-        this.drawCharts(this.chartData)
         // return
 
         // const timeFrom = this.searchDate.timeFrom + 'T00:00:00'
@@ -847,11 +846,18 @@ window.WalletPageLogic = {
         LNbits.utils.notifyApiError(error)
       }
     },
+    refreshCharts() {
+      this.chartConfig = {}
+      setTimeout(() => {
+        const chartConfig =
+          this.$q.localStorage.getItem('lnbits.wallets.chartConfig') || {}
+        this.chartConfig = {...this.chartConfig, ...chartConfig}
+      }, 10)
+      setTimeout(() => {
+        this.drawCharts(this.chartData)
+      }, 100)
+    },
     drawCharts(data) {
-      console.log('#### drawCharts', data)
-      const chartConfig =
-        this.$q.localStorage.getItem('lnbits.wallets.chartConfig') || {}
-      this.chartConfig = {...this.chartConfig, ...chartConfig}
       const labels = data.map(s =>
         new Date(s.date).toLocaleString('default', {
           month: 'short',
@@ -986,9 +992,7 @@ window.WalletPageLogic = {
     },
     saveChartsPreferences() {
       this.$q.localStorage.set('lnbits.wallets.chartConfig', this.chartConfig)
-      setTimeout(() => {
-        this.drawCharts(this.chartData)
-      }, 200)
+      this.refreshCharts()
     }
   },
   created() {
