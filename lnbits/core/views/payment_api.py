@@ -35,11 +35,13 @@ from lnbits.core.models import (
     PaymentWalletStats,
     Wallet,
 )
+from lnbits.core.models.users import User
 from lnbits.core.services.payments import get_payments_daily_stats
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_admin,
+    check_user_exists,
     parse_filters,
     require_admin_key,
     require_invoice_key,
@@ -135,13 +137,30 @@ async def api_payments_wallets_stats(
 @payment_router.get(
     "/stats/daily",
     name="Get payments history per day",
-    dependencies=[Depends(check_admin)],
+    dependencies=[Depends(check_user_exists)],
     response_model=List[PaymentDailyStats],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_daily_stats(
+    user: User = Depends(check_user_exists),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
+
+    if not user.admin:
+        exc = HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Missing wallet id.",
+        )
+        wallet_filter = next(
+            (f for f in filters.filters if f.field == "wallet_id"), None
+        )
+        if not wallet_filter:
+            raise exc
+        wallet_id = list((wallet_filter.values or {}).values())
+        if len(wallet_id) == 0:
+            raise exc
+        if not user.get_wallet(wallet_id[0]):
+            raise exc
     return await get_payments_daily_stats(filters)
 
 
