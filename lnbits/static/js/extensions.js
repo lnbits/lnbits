@@ -637,11 +637,16 @@ window.ExtensionsPageLogic = {
       selectedForUpdate: false
     }))
     this.filteredExtensions = this.extensions.concat([])
-    for (let i = 0; i < this.filteredExtensions.length; i++) {
-      if (this.filteredExtensions[i].isInstalled != false) {
-        this.handleTabChanged('installed')
-        this.tab = 'installed'
-      }
+    const hash = window.location.hash.replace('#', '')
+    const ext = this.filteredExtensions.find(ext => ext.id === hash)
+    if (ext) {
+      this.searchTerm = ext.id
+      this.handleTabChanged(ext.isInstalled ? 'installed' : 'all')
+      this.tab = ext.isInstalled ? 'installed' : 'all'
+    } else {
+      const hasInstalled = this.filteredExtensions.some(ext => ext.isInstalled)
+      this.handleTabChanged(hasInstalled ? 'installed' : 'all')
+      this.tab = hasInstalled ? 'installed' : 'all'
     }
     this.updatableExtensions = this.extensions.filter(ext =>
       this.hasNewVersion(ext)
