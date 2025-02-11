@@ -38,10 +38,7 @@ window.app.component('payment-list', {
         },
         loading: false
       },
-      searchDate: {
-        from: null,
-        to: null
-      },
+      searchDate: {from: null, to: null},
       exportTagName: '',
       exportPaymentTagList: [],
       paymentsCSV: {
@@ -141,6 +138,12 @@ window.app.component('payment-list', {
   },
   methods: {
     searchByDate() {
+      if (typeof this.searchDate === 'string') {
+        this.searchDate = {
+          from: this.searchDate,
+          to: this.searchDate
+        }
+      }
       if (this.searchDate.from) {
         this.paymentsTable.filter['time[ge]'] =
           this.searchDate.from + 'T00:00:00'
@@ -148,10 +151,11 @@ window.app.component('payment-list', {
       if (this.searchDate.to) {
         this.paymentsTable.filter['time[le]'] = this.searchDate.to + 'T23:59:59'
       }
+
       this.fetchPayments()
     },
     clearDateSeach() {
-      this.searchDate = {to: null, from: null}
+      this.searchDate = {from: null, to: null}
       delete this.paymentsTable.filter['time[ge]']
       delete this.paymentsTable.filter['time[le]']
       this.fetchPayments()

@@ -728,7 +728,7 @@
           </div>
         </q-popup-proxy>
         <q-badge
-          v-if="searchDate.to || searchDate.from"
+          v-if="searchDate?.to || searchDate?.from"
           class="q-mt-lg q-mr-md"
           color="primary"
           rounded
