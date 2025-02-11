@@ -538,7 +538,7 @@
     size="sm"
     icon="add"
   >
-    <q-popup-edit class="bg-accent text-white" v-slot="scope" v-model="credit">
+    <q-popup-edit class="text-white" v-slot="scope" v-model="credit">
       <q-input
         filled
         :label="$t('credit_label', {denomination: denomination})"
@@ -562,7 +562,7 @@
     class="float-right q-mt-sm"
     size="sm"
   >
-    <q-popup-edit class="bg-accent text-white" v-slot="scope" v-model="credit">
+    <q-popup-edit class="text-white" v-slot="scope" v-model="credit">
       <q-input
         filled
         :label="$t('credit_label', {denomination: denomination})"
@@ -649,6 +649,7 @@
       <q-btn-dropdown
         outline
         persistent
+        dense
         class="q-mr-sm"
         color="grey"
         label="Export"
@@ -700,7 +701,42 @@
           </q-item>
         </q-list>
       </q-btn-dropdown>
-      <payment-chart :wallet="wallet"></payment-chart>
+      <q-btn icon="event" outline flat color="grey">
+        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+          <q-date v-model="searchDate" mask="YYYY-MM-DD" range />
+          <div class="row">
+            <div class="col-6">
+              <q-btn
+                label="Search"
+                @click="searchByDate()"
+                color="primary"
+                flat
+                class="float-left"
+                v-close-popup
+              />
+            </div>
+            <div class="col-6">
+              <q-btn
+                v-close-popup
+                @click="clearDateSeach()"
+                label="Clear"
+                class="float-right"
+                color="grey"
+                flat
+              />
+            </div>
+          </div>
+        </q-popup-proxy>
+        <q-badge
+          v-if="searchDate?.to || searchDate?.from"
+          class="q-mt-lg q-mr-md"
+          color="primary"
+          rounded
+          floating
+          style="border-radius: 6px"
+        />
+      </q-btn>
+
       <q-checkbox
         v-model="failedPaymentsToggle"
         checked-icon="warning"
@@ -709,7 +745,7 @@
         size="xs"
       >
         <q-tooltip>
-          <span v-text="`View failed payments`"></span>
+          <span v-text="`Include failed payments`"></span>
         </q-tooltip>
       </q-checkbox>
     </div>
@@ -722,7 +758,7 @@
     :row-key="paymentTableRowKey"
     :columns="paymentsTable.columns"
     :no-data-label="$t('no_transactions')"
-    :filter="paymentsTable.search"
+    :filter="paymentsTable.filter"
     :loading="paymentsTable.loading"
     :hide-header="mobileSimple"
     :hide-bottom="mobileSimple"
@@ -742,7 +778,7 @@
     </template>
     <template v-slot:body="props">
       <q-tr :props="props">
-        <q-td auto-width class="text-center">
+        <q-td auto-width class="text-center cursor-pointer">
           <q-icon
             v-if="props.row.isPaid"
             size="14px"
@@ -1025,36 +1061,6 @@
   </div>
 </template>
 
-<template id="payment-chart">
-  <span id="payment-chart">
-    <q-btn dense flat round icon="show_chart" color="grey" @click="showChart">
-      <q-tooltip>
-        <span v-text="$t('chart_tooltip')"></span>
-      </q-tooltip>
-    </q-btn>
-
-    <q-dialog v-model="paymentsChart.show" position="top">
-      <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
-        <q-card-section>
-          <div class="row q-gutter-sm justify-between">
-            <div class="text-h6">Payments Chart</div>
-            <q-select
-              label="Group"
-              filled
-              dense
-              v-model="paymentsChart.group"
-              style="min-width: 120px"
-              :options="paymentsChart.groupOptions"
-            >
-            </q-select>
-          </div>
-          <canvas ref="canvas" width="600" height="400"></canvas>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-  </span>
-</template>
-
 <template id="user-id-only">
   <div v-if="authAction === 'login' && authMethod === 'user-id-only'">
     <q-card-section class="q-pb-none">
@@ -1129,7 +1135,7 @@
       <div class="text-body2 text-center q-mt-md">
         <q-badge
           @click="showLogin('user-id-only')"
-          color="accent"
+          color="primary"
           class="cursor-pointer"
           rounded
         >
@@ -1141,7 +1147,7 @@
           <span v-text="$t('or')" class="q-mx-sm text-grey"></span>
           <q-badge
             @click="showRegister('user-id-only')"
-            color="accent"
+            color="primary"
             class="cursor-pointer"
             rounded
           >

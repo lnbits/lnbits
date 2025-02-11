@@ -263,9 +263,9 @@ class ThemesSettings(LNbitsSettings):
     lnbits_default_accounting_currency: Optional[str] = Field(default=None)
     lnbits_qr_logo: str = Field(default="/static/images/logos/lnbits.png")
     lnbits_default_reaction: str = Field(default="confettiBothSides")
-    lnbits_default_theme: str = Field(default="classic")
+    lnbits_default_theme: str = Field(default="salvador")
     lnbits_default_border: str = Field(default="hard-border")
-    lnbits_default_gradient: bool = Field(default=False)
+    lnbits_default_gradient: bool = Field(default=True)
     lnbits_default_bgimage: str = Field(default=None)
 
 
@@ -341,13 +341,6 @@ class ExchangeProvidersSettings(LNbitsSettings):
                 path="$.data.rates.{TO}",
                 exclude_to=[],
                 ticker_conversion=[],
-            ),
-            ExchangeRateProvider(
-                name="CoinMate",
-                api_url="https://coinmate.io/api/ticker?currencyPair=BTC_{TO}",
-                path="$.data.last",
-                exclude_to=[],
-                ticker_conversion=["USD:USDT"],
             ),
             ExchangeRateProvider(
                 name="Kraken",

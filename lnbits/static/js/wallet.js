@@ -44,6 +44,7 @@ window.WalletPageLogic = {
         show: false,
         location: window.location
       },
+      mobileSimple: this.$q.screen.lt.md,
       icon: {
         show: false,
         data: {},
@@ -104,14 +105,23 @@ window.WalletPageLogic = {
         name: null,
         currency: null
       },
+      walletBalanceChart: null,
       inkeyHidden: true,
       adminkeyHidden: true,
       hasNfc: false,
       nfcReaderAbortController: null,
-      isPrioritySwapped: false,
+      isFiatPriority: false,
       formattedFiatAmount: 0,
       formattedExchange: null,
-      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor')
+      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
+      secondaryColor: this.$q.localStorage.getItem('lnbits.secondaryColor'),
+      chartData: [],
+      chartConfig: {
+        showBalance: true,
+        showBalanceInOut: true,
+        showPaymentCountInOut: true
+      },
+      paymentsFilter: {}
     }
   },
   computed: {
@@ -174,7 +184,9 @@ window.WalletPageLogic = {
       this.receive.paymentHash = null
       this.receive.data.amount = null
       this.receive.data.memo = null
-      this.receive.unit = 'sat'
+      this.receive.unit = this.isFiatPriority
+        ? this.g.wallet.currency || 'sat'
+        : 'sat'
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
       this.focusInput('setAmount')
@@ -770,17 +782,14 @@ window.WalletPageLogic = {
         })
     },
     swapBalancePriority() {
-      this.isPrioritySwapped = !this.isPrioritySwapped
-      this.$q.localStorage.setItem(
-        'lnbits.isPrioritySwapped',
-        this.isPrioritySwapped
-      )
+      this.isFiatPriority = !this.isFiatPriority
+      this.$q.localStorage.setItem('lnbits.isFiatPriority', this.isFiatPriority)
     },
     handleFiatTracking() {
       this.g.fiatTracking = !this.g.fiatTracking
       if (!this.g.fiatTracking) {
-        this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
-        this.isPrioritySwapped = false
+        this.$q.localStorage.setItem('lnbits.isFiatPriority', false)
+        this.isFiatPriority = false
         this.update.currency = ''
         this.g.wallet.currency = ''
         this.updateWallet({currency: ''})
@@ -800,6 +809,220 @@ window.WalletPageLogic = {
         this.update.currency = ''
         this.g.fiatTracking = false
       }
+    },
+    handleFilterChange(value = {}) {
+      if (
+        this.paymentsFilter['time[ge]'] !== value['time[ge]'] ||
+        this.paymentsFilter['time[le]'] !== value['time[le]']
+      ) {
+        this.refreshCharts()
+      }
+      this.paymentsFilter = value
+    },
+    async fetchChartData() {
+      if (this.mobileSimple) {
+        this.chartConfig = {}
+        return
+      }
+      if (
+        !this.chartConfig.showBalance &&
+        !this.chartConfig.showBalanceInOut &&
+        !this.chartConfig.showPaymentCountInOut
+      ) {
+        return
+      }
+
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/payments/stats/daily?wallet_id=${this.g.wallet.id}`
+        )
+        this.chartData = data
+        this.refreshCharts()
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+      }
+    },
+    filterChartData(data) {
+      const timeFrom = this.paymentsFilter['time[ge]'] + 'T00:00:00'
+      const timeTo = this.paymentsFilter['time[le]'] + 'T23:59:59'
+      data = data.filter(p => {
+        if (
+          this.paymentsFilter['time[ge]'] &&
+          this.paymentsFilter['time[le]']
+        ) {
+          return p.date >= timeFrom && p.date <= timeTo
+        }
+        if (this.paymentsFilter['time[ge]']) {
+          return p.date >= timeFrom
+        }
+        if (this.paymentsFilter['time[le]']) {
+          return p.date <= timeTo
+        }
+        return true
+      })
+      const labels = data.map(s =>
+        new Date(s.date).toLocaleString('default', {
+          month: 'short',
+          day: 'numeric'
+        })
+      )
+      return {data, labels}
+    },
+    refreshCharts() {
+      const originalChartConfig = this.chartConfig || {}
+      this.chartConfig = {}
+      setTimeout(() => {
+        const chartConfig =
+          this.$q.localStorage.getItem('lnbits.wallets.chartConfig') ||
+          originalChartConfig
+        this.chartConfig = {...originalChartConfig, ...chartConfig}
+      }, 10)
+      setTimeout(() => {
+        this.drawCharts(this.chartData)
+      }, 100)
+    },
+    drawCharts(allData) {
+      try {
+        const {data, labels} = this.filterChartData(allData)
+        if (this.chartConfig.showBalance) {
+          if (this.walletBalanceChart) {
+            this.walletBalanceChart.destroy()
+          }
+
+          this.walletBalanceChart = new Chart(
+            this.$refs.walletBalanceChart.getContext('2d'),
+            {
+              type: 'line',
+              options: {
+                responsive: true,
+                maintainAspectRatio: false
+              },
+              data: {
+                labels,
+                datasets: [
+                  {
+                    label: 'Balance',
+                    data: data.map(s => s.balance),
+                    pointStyle: false,
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.primaryColor,
+                      0.3
+                    ),
+                    borderColor: this.primaryColor,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.7,
+                    fill: 1
+                  },
+                  {
+                    label: 'Fees',
+                    data: data.map(s => s.fee),
+                    pointStyle: false,
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.secondaryColor,
+                      0.3
+                    ),
+                    borderColor: this.secondaryColor,
+                    borderWidth: 1,
+                    fill: true,
+                    tension: 0.7,
+                    fill: 1
+                  }
+                ]
+              }
+            }
+          )
+        }
+
+        if (this.chartConfig.showBalanceInOut) {
+          if (this.walletBalanceInOut) {
+            this.walletBalanceInOut.destroy()
+          }
+
+          this.walletBalanceInOut = new Chart(
+            this.$refs.walletBalanceInOut.getContext('2d'),
+            {
+              type: 'bar',
+
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  x: {
+                    stacked: true
+                  },
+                  y: {
+                    stacked: true
+                  }
+                }
+              },
+              data: {
+                labels,
+                datasets: [
+                  {
+                    label: 'Balance In',
+                    borderRadius: 5,
+                    data: data.map(s => s.balance_in)
+                  },
+                  {
+                    label: 'Balance Out',
+                    borderRadius: 5,
+                    data: data.map(s => s.balance_out)
+                  }
+                ]
+              }
+            }
+          )
+        }
+
+        if (this.chartConfig.showPaymentCountInOut) {
+          if (this.walletPaymentsInOut) {
+            this.walletPaymentsInOut.destroy()
+          }
+
+          this.walletPaymentsInOut = new Chart(
+            this.$refs.walletPaymentsInOut.getContext('2d'),
+            {
+              type: 'bar',
+
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+
+                scales: {
+                  x: {
+                    stacked: true
+                  },
+                  y: {
+                    stacked: true
+                  }
+                }
+              },
+              data: {
+                labels,
+                datasets: [
+                  {
+                    label: 'Payments In',
+                    data: data.map(s => s.count_in)
+                  },
+                  {
+                    label: 'Payments Out',
+                    data: data.map(s => -s.count_out)
+                  }
+                ]
+              }
+            }
+          )
+        }
+      } catch (error) {
+        console.warn(error)
+      }
+    },
+    saveChartsPreferences() {
+      this.$q.localStorage.set('lnbits.wallets.chartConfig', this.chartConfig)
+      this.refreshCharts()
     }
   },
   created() {
@@ -811,8 +1034,20 @@ window.WalletPageLogic = {
       this.parse.show = true
     }
     this.createdTasks()
+    try {
+      this.fetchChartData()
+    } catch (error) {
+      console.warn(`Chart creation failed: ${error}`)
+    }
   },
   watch: {
+    'g.wallet.id'(newVal, oldVal) {
+      try {
+        this.fetchChartData()
+      } catch (error) {
+        console.warn(`Chart creation failed: ${error}`)
+      }
+    },
     'g.updatePayments'(newVal, oldVal) {
       console.log('updatePayments changed:', {newVal, oldVal})
       this.parse.show = false
@@ -846,19 +1081,17 @@ window.WalletPageLogic = {
       deep: true
     }
   },
-  mounted() {
+  async mounted() {
     if (!Quasar.LocalStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       Quasar.LocalStorage.setItem('lnbits.disclaimerShown', true)
       Quasar.LocalStorage.setItem('lnbits.reactions', 'confettiTop')
     }
-    if (Quasar.LocalStorage.getItem('lnbits.isPrioritySwapped')) {
-      this.isPrioritySwapped = Quasar.LocalStorage.getItem(
-        'lnbits.isPrioritySwapped'
-      )
+    if (Quasar.LocalStorage.getItem('lnbits.isFiatPriority')) {
+      this.isFiatPriority = Quasar.LocalStorage.getItem('lnbits.isFiatPriority')
     } else {
-      this.isPrioritySwapped = false
-      Quasar.LocalStorage.setItem('lnbits.isPrioritySwapped', false)
+      this.isFiatPriority = false
+      Quasar.LocalStorage.setItem('lnbits.isFiatPriority', false)
     }
   }
 }

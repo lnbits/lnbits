@@ -48,7 +48,7 @@
                         'q-pt-sm': g.fiatTracking,
                         'q-pt-lg': !g.fiatTracking
                       }"
-                  v-if="!isPrioritySwapped || !g.fiatTracking"
+                  v-if="!isFiatPriority || !g.fiatTracking"
                   style="height: 100px"
                 >
                   <div class="col-7">
@@ -82,7 +82,7 @@
 
                 <div
                   class="column"
-                  v-if="isPrioritySwapped  && g.fiatTracking"
+                  v-if="isFiatPriority  && g.fiatTracking"
                   :class="{
                         'q-pt-sm': g.fiatTracking,
                         'q-pt-lg': !g.fiatTracking
@@ -189,6 +189,7 @@
         >
           <q-card-section>
             <payment-list
+              @filter-changed="handleFilterChange"
               :update="updatePayments"
               :mobile-simple="mobileSimple"
               :expand-details="expandDetails"
@@ -256,114 +257,191 @@
 
                 <q-expansion-item
                   group="extras"
-                  icon="settings_cell"
-                  :label="$t('export_to_phone')"
-                >
-                  <q-card>
-                    <q-card-section class="text-center">
-                      <p v-text="$t('export_to_phone_desc')"></p>
-                      <lnbits-qrcode
-                        :value="`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
-                      ></lnbits-qrcode>
-                    </q-card-section>
-                    <span v-text="exportWalletQR"></span>
-                    <q-card-actions class="flex-center q-pb-md">
-                      <q-btn
-                        outline
-                        color="grey"
-                        :label="$t('copy_wallet_url')"
-                        @click="copyText(`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`)"
-                      ></q-btn>
-                    </q-card-actions>
-                  </q-card>
-                </q-expansion-item>
-                <q-separator></q-separator>
-                <q-expansion-item
-                  group="extras"
-                  icon="edit"
-                  :label="$t('rename_wallet')"
+                  icon="phone_android"
+                  :label="$t('access_wallet_on_mobile')"
                 >
                   <q-card>
                     <q-card-section>
-                      <div class="" style="max-width: 320px">
-                        <q-input
-                          filled
-                          v-model.trim="update.name"
-                          label="Name"
-                          dense
-                        />
-                      </div>
-                      <q-btn
-                        :disable="!update.name.length"
-                        unelevated
-                        class="q-mt-sm"
-                        color="primary"
-                        :label="$t('update_name')"
-                        @click="updateWallet({ name: update.name })"
-                      ></q-btn>
+                      You can connect to this wallet from a mobile app:
+                      <ul>
+                        <li>
+                          Download
+                          <a class="text-secondary" href="https://zeusln.app"
+                            >Zeus</a
+                          >
+                          or
+                          <a
+                            class="text-secondary"
+                            href="https://bluewallet.io/"
+                            >BlueWallet</a
+                          >
+                          from App Store or Google Play
+                        </li>
+                        <li>
+                          Enable the
+                          <a class="text-secondary" href="/lndhub">LndHub </a>
+                          extension for this account
+                        </li>
+                        <li>
+                          Scan the QR code in the
+                          <a class="text-secondary" href="/lndhub">LndHub </a>
+                          extensions with your mobile app
+                        </li>
+                      </ul>
                     </q-card-section>
-                  </q-card>
-                </q-expansion-item>
-                <q-separator></q-separator>
-                <q-expansion-item
-                  group="extras"
-                  icon="attach_money"
-                  :label="$t('fiat_tracking')"
-                >
-                  <q-card>
                     <q-card-section>
-                      <div style="max-width: 360px">
-                        <div class="row">
-                          <div class="col">
-                            <q-select
-                              filled
-                              dense
-                              v-model="update.currency"
-                              type="text"
-                              :disable="g.fiatTracking"
-                              :options="receive.units.filter((u) => u !== 'sat')"
-                            ></q-select>
-                          </div>
-                          <div class="col-auto">
+                      Or you can access the wallet directly from your mobile
+                      browser using:
+                      <q-expansion-item
+                        icon="mobile_friendly"
+                        :label="$t('export_to_phone')"
+                      >
+                        <q-card>
+                          <q-card-section class="text-center">
+                            <p v-text="$t('export_to_phone_desc')"></p>
+                            <lnbits-qrcode
+                              :value="`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
+                            ></lnbits-qrcode>
+                          </q-card-section>
+                          <span v-text="exportWalletQR"></span>
+                          <q-card-actions class="flex-center q-pb-md">
                             <q-btn
-                              color="primary"
-                              @click="handleFiatTracking()"
-                              :disable="update.currency == ''"
-                              :label="g.fiatTracking ? 'Remove' : 'Add'"
+                              outline
+                              color="grey"
+                              :label="$t('copy_wallet_url')"
+                              @click="copyText(`${baseUrl}wallet?usr=${g.user.id}&wal=${g.wallet.id}`)"
                             ></q-btn>
-                          </div>
+                          </q-card-actions>
+                        </q-card>
+                      </q-expansion-item>
+                    </q-card-section>
+                  </q-card>
+                </q-expansion-item>
+                <q-separator></q-separator>
+                <q-expansion-item
+                  group="extras"
+                  icon="settings"
+                  :label="$t('wallet_config')"
+                >
+                  <q-card>
+                    <q-card-section>
+                      <div class="row">
+                        <div class="col-6">
+                          <q-input
+                            filled
+                            v-model.trim="update.name"
+                            label="Name"
+                            dense
+                          />
+                        </div>
+                        <div class="col-4 q-pl-sm">
+                          <q-btn
+                            :disable="!update.name.length"
+                            unelevated
+                            class="q-mt-xs full-width"
+                            color="primary"
+                            :label="$t('update_name')"
+                            dense
+                            @click="updateWallet({ name: update.name })"
+                          ></q-btn>
+                        </div>
+                        <div class="col-2"></div>
+                      </div>
+                    </q-card-section>
+                    <q-card-section>
+                      <div class="row">
+                        <div class="col-6">
+                          <q-select
+                            filled
+                            dense
+                            v-model="update.currency"
+                            type="text"
+                            :disable="g.fiatTracking"
+                            :options="receive.units.filter((u) => u !== 'sat')"
+                          ></q-select>
+                        </div>
+                        <div class="col-4 q-pl-sm">
+                          <q-btn
+                            dense
+                            color="primary"
+                            class="q-mt-xs full-width"
+                            @click="handleFiatTracking()"
+                            :disable="update.currency == ''"
+                            :label="g.fiatTracking ? 'Remove' : 'Add'"
+                          ></q-btn>
+                        </div>
+                        <div class="col-2">
+                          <q-btn
+                            v-if="g.user.admin"
+                            flat
+                            round
+                            icon="settings"
+                            class="float-right q-mb-lg"
+                            to="/admin#exchange_providers"
+                            ><q-tooltip
+                              v-text="$t('exchange_providers')"
+                            ></q-tooltip
+                          ></q-btn>
                         </div>
                       </div>
-                      <q-btn
-                        v-if="g.user.admin"
-                        class="absolute-top-right"
-                        flat
-                        round
-                        icon="settings"
-                        to="/admin#exchange_providers"
-                        ><q-tooltip
-                          v-text="$t('exchange_providers')"
-                        ></q-tooltip
-                      ></q-btn>
+                    </q-card-section>
+                    <q-card-section>
+                      <div class="row">
+                        <div class="col-6">
+                          <p v-text="$t('delete_wallet_desc')"></p>
+                        </div>
+                        <div class="col-4 q-pl-sm">
+                          <q-btn
+                            unelevated
+                            color="red-10"
+                            class="full-width"
+                            @click="deleteWallet()"
+                            :label="$t('delete_wallet')"
+                          ></q-btn>
+                        </div>
+                        <div class="col-2"></div>
+                      </div>
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
-
                 <q-separator></q-separator>
                 <q-expansion-item
-                  group="extras"
-                  icon="remove_circle"
-                  :label="$t('delete_wallet')"
+                  group="charts"
+                  icon="insights"
+                  :label="$t('wallet_charts')"
                 >
                   <q-card>
                     <q-card-section>
-                      <p v-text="$t('delete_wallet_desc')"></p>
-                      <q-btn
-                        unelevated
-                        color="red-10"
-                        @click="deleteWallet()"
-                        :label="$t('delete_wallet')"
-                      ></q-btn>
+                      <div class="row">
+                        <div class="col-md-4 col-sm-12">
+                          <q-checkbox
+                            dense
+                            @click="saveChartsPreferences"
+                            v-model="chartConfig.showBalance"
+                            :label="$t('payments_balance_chart')"
+                          >
+                          </q-checkbox>
+                        </div>
+
+                        <div class="col-md-4 col-sm-12">
+                          <q-checkbox
+                            dense
+                            @click="saveChartsPreferences"
+                            v-model="chartConfig.showBalanceInOut"
+                            :label="$t('payments_balance_in_out_chart')"
+                          >
+                          </q-checkbox>
+                        </div>
+                        <div class="col-md-4 col-sm-12">
+                          <q-checkbox
+                            dense
+                            @click="saveChartsPreferences"
+                            v-model="chartConfig.showPaymentCountInOut"
+                            :label="$t('payments_count_in_out_chart')"
+                          >
+                          </q-checkbox>
+                        </div>
+                      </div>
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
@@ -403,6 +481,27 @@
             >{% endfor %}
           </q-card>
           {% endif %}
+          <q-card v-if="chartConfig.showBalance">
+            <q-card-section class="q-pa-none">
+              <div style="height: 200px" class="q-pa-sm">
+                <canvas ref="walletBalanceChart"></canvas>
+              </div>
+            </q-card-section>
+          </q-card>
+          <q-card v-if="chartConfig.showBalanceInOut">
+            <q-card-section class="q-pa-none">
+              <div style="height: 200px" class="q-pa-sm">
+                <canvas ref="walletBalanceInOut"></canvas>
+              </div>
+            </q-card-section>
+          </q-card>
+          <q-card v-if="chartConfig.showPaymentCountInOut">
+            <q-card-section class="q-pa-none">
+              <div style="height: 200px" class="q-pa-sm">
+                <canvas ref="walletPaymentsInOut"></canvas>
+              </div>
+            </q-card-section>
+          </q-card>
         </div>
       </div>
 

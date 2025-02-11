@@ -239,7 +239,7 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
 async def btc_price(currency: str) -> float:
     rates = await btc_rates(currency)
     if not rates:
-        return 9999999999
+        raise ValueError("Could not fetch any Bitcoin price.")
     elif len(rates) == 1:
         logger.warning("Could only fetch one Bitcoin price.")
 

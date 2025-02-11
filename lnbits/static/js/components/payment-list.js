@@ -38,6 +38,7 @@ window.app.component('payment-list', {
         },
         loading: false
       },
+      searchDate: {from: null, to: null},
       exportTagName: '',
       exportPaymentTagList: [],
       paymentsCSV: {
@@ -136,7 +137,31 @@ window.app.component('payment-list', {
     }
   },
   methods: {
+    searchByDate() {
+      if (typeof this.searchDate === 'string') {
+        this.searchDate = {
+          from: this.searchDate,
+          to: this.searchDate
+        }
+      }
+      if (this.searchDate.from) {
+        this.paymentsTable.filter['time[ge]'] =
+          this.searchDate.from + 'T00:00:00'
+      }
+      if (this.searchDate.to) {
+        this.paymentsTable.filter['time[le]'] = this.searchDate.to + 'T23:59:59'
+      }
+
+      this.fetchPayments()
+    },
+    clearDateSeach() {
+      this.searchDate = {from: null, to: null}
+      delete this.paymentsTable.filter['time[ge]']
+      delete this.paymentsTable.filter['time[le]']
+      this.fetchPayments()
+    },
     fetchPayments(props) {
+      this.$emit('filter-changed', {...this.paymentsTable.filter})
       const params = LNbits.utils.prepareFilterQuery(this.paymentsTable, props)
       return LNbits.api
         .getPayments(this.currentWallet, params)
@@ -223,13 +248,21 @@ window.app.component('payment-list', {
   watch: {
     failedPaymentsToggle(newVal) {
       if (newVal === false) {
-        this.paymentsTable.filter = {
-          'status[ne]': 'failed'
-        }
+        this.paymentsTable.filter['status[ne]'] = 'failed'
       } else {
-        this.paymentsTable.filter = null
+        delete this.paymentsTable.filter['status[ne]']
       }
+      this.paymentsTable.pagination.page = 1
       this.fetchPayments()
+    },
+    'paymentsTable.search': {
+      handler() {
+        const props = {}
+        if (this.paymentsTable.search) {
+          props['search'] = this.paymentsTable.search
+        }
+        this.fetchPayments()
+      }
     },
     lazy(newVal) {
       if (newVal === true) this.fetchPayments()

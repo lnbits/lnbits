@@ -46,6 +46,7 @@ window.localisation.en = {
   export_to_phone: 'Export to Phone with QR Code',
   export_to_phone_desc:
     'This QR code contains your wallet URL with full access. You can scan it from your phone to open your wallet from there.',
+  access_wallet_on_mobile: 'Mobile Access',
   wallet: 'Wallet: ',
   wallets: 'Wallets',
   add_wallet: 'Add a new wallet',
@@ -248,6 +249,8 @@ window.localisation.en = {
   enter_ip: 'Enter IP and hit enter',
   rate_limiter: 'Rate Limiter',
   wallet_limiter: 'Wallet Limiter',
+  wallet_config: 'Wallet Config',
+  wallet_charts: 'Wallet Charts',
   wallet_limit_max_withdraw_per_day:
     'Max daily wallet withdrawal in sats (0 for no limit, -1 to block withdrawal)',
   wallet_max_ballance: 'Wallet max balance in sats (0 to disable)',
