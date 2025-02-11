@@ -230,12 +230,12 @@ window.WalletPageLogic = {
           this.receive.lnurl && this.receive.lnurl.callback
         )
         .then(response => {
+          this.g.updatePayments = !this.g.updatePayments
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.bolt11
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
           this.readNfcTag()
-
           // TODO: lnurl_callback and lnurl_response
           // WITHDRAW
           if (response.data.lnurl_response !== null) {
@@ -261,13 +261,13 @@ window.WalletPageLogic = {
               })
             }
           }
+
           // Hack as rendering in dialog causes reactivity issues. Does speed up, as only rendering lnbits-qrcode once.
           this.$nextTick(() => {
             this.invoiceQrCode = document.getElementById(
               'hiddenQrCodeContainer'
             ).innerHTML
           })
-          this.g.updatePayments = !this.g.updatePayments
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
