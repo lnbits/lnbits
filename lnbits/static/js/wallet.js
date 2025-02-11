@@ -110,7 +110,7 @@ window.WalletPageLogic = {
       adminkeyHidden: true,
       hasNfc: false,
       nfcReaderAbortController: null,
-      isPrioritySwapped: false,
+      isFiatPriority: false,
       formattedFiatAmount: 0,
       formattedExchange: null,
       primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
@@ -184,7 +184,9 @@ window.WalletPageLogic = {
       this.receive.paymentHash = null
       this.receive.data.amount = null
       this.receive.data.memo = null
-      this.receive.unit = this.g.wallet.currency || 'sat'
+      this.receive.unit = this.isFiatPriority
+        ? this.g.wallet.currency || 'sat'
+        : 'sat'
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
       this.focusInput('setAmount')
@@ -780,17 +782,14 @@ window.WalletPageLogic = {
         })
     },
     swapBalancePriority() {
-      this.isPrioritySwapped = !this.isPrioritySwapped
-      this.$q.localStorage.setItem(
-        'lnbits.isPrioritySwapped',
-        this.isPrioritySwapped
-      )
+      this.isFiatPriority = !this.isFiatPriority
+      this.$q.localStorage.setItem('lnbits.isFiatPriority', this.isFiatPriority)
     },
     handleFiatTracking() {
       this.g.fiatTracking = !this.g.fiatTracking
       if (!this.g.fiatTracking) {
-        this.$q.localStorage.setItem('lnbits.isPrioritySwapped', false)
-        this.isPrioritySwapped = false
+        this.$q.localStorage.setItem('lnbits.isFiatPriority', false)
+        this.isFiatPriority = false
         this.update.currency = ''
         this.g.wallet.currency = ''
         this.updateWallet({currency: ''})
@@ -1086,16 +1085,12 @@ window.WalletPageLogic = {
       Quasar.LocalStorage.setItem('lnbits.disclaimerShown', true)
       Quasar.LocalStorage.setItem('lnbits.reactions', 'confettiTop')
     }
-    if (Quasar.LocalStorage.getItem('lnbits.isPrioritySwapped')) {
-      this.isPrioritySwapped = Quasar.LocalStorage.getItem(
-        'lnbits.isPrioritySwapped'
-      )
+    if (Quasar.LocalStorage.getItem('lnbits.isFiatPriority')) {
+      this.isFiatPriority = Quasar.LocalStorage.getItem('lnbits.isFiatPriority')
     } else {
-      this.isPrioritySwapped = false
-      Quasar.LocalStorage.setItem('lnbits.isPrioritySwapped', false)
+      this.isFiatPriority = false
+      Quasar.LocalStorage.setItem('lnbits.isFiatPriority', false)
     }
-    // await this.fetchChartData()
-    // setTimeout(() => { this.fetchChartData() }, 3000)
   }
 }
 
