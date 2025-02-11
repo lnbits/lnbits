@@ -812,7 +812,6 @@ window.WalletPageLogic = {
       }
     },
     handleFilterChange(value = {}) {
-      console.log('handleFilterChange:', value)
       if (
         this.paymentsFilter['time[ge]'] !== value['time[ge]'] ||
         this.paymentsFilter['time[le]'] !== value['time[le]']
