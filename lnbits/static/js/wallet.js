@@ -119,7 +119,8 @@ window.WalletPageLogic = {
         showBalance: true,
         showBalanceInOut: true,
         showPaymentCountInOut: true
-      }
+      },
+      paymentsFilter: {}
     }
   },
   computed: {
@@ -809,8 +810,15 @@ window.WalletPageLogic = {
         this.g.fiatTracking = false
       }
     },
-    handleFilterChange(value) {
+    handleFilterChange(value = {}) {
       console.log('handleFilterChange:', value)
+      if (
+        this.paymentsFilter['time[ge]'] !== value['time[ge]'] ||
+        this.paymentsFilter['time[le]'] !== value['time[le]']
+      ) {
+        this.refreshCharts()
+      }
+      this.paymentsFilter = value
     },
     async fetchChartData() {
       if (this.mobileSimple) {
@@ -832,48 +840,53 @@ window.WalletPageLogic = {
         )
         this.chartData = data
         this.refreshCharts()
-
-        // return
-
-        // const timeFrom = this.searchDate.timeFrom + 'T00:00:00'
-        // const timeTo = this.searchDate.timeTo + 'T00:00:00'
-        // this.lnbitsBalance = data[data.length - 1].balance
-        // data = data.filter(p => {
-        //   if (this.searchDate.timeFrom && this.searchDate.timeTo) {
-        //     return p.date >= timeFrom && p.date <= timeTo
-        //   }
-        //   if (this.searchDate.timeFrom) {
-        //     return p.date >= timeFrom
-        //   }
-        //   if (this.searchDate.timeTo) {
-        //     return p.date <= timeTo
-        //   }
-        //   return true
-        // })
       } catch (error) {
         console.warn(error)
         LNbits.utils.notifyApiError(error)
       }
     },
-    refreshCharts() {
-      this.chartConfig = {}
-      setTimeout(() => {
-        const chartConfig =
-          this.$q.localStorage.getItem('lnbits.wallets.chartConfig') || {}
-        this.chartConfig = {...this.chartConfig, ...chartConfig}
-      }, 10)
-      setTimeout(() => {
-        this.drawCharts(this.chartData)
-      }, 100)
-    },
-    drawCharts(data) {
+    filterChartData(data) {
+      const timeFrom = this.paymentsFilter['time[ge]'] + 'T00:00:00'
+      const timeTo = this.paymentsFilter['time[le]'] + 'T23:59:59'
+      data = data.filter(p => {
+        if (
+          this.paymentsFilter['time[ge]'] &&
+          this.paymentsFilter['time[le]']
+        ) {
+          return p.date >= timeFrom && p.date <= timeTo
+        }
+        if (this.paymentsFilter['time[ge]']) {
+          return p.date >= timeFrom
+        }
+        if (this.paymentsFilter['time[le]']) {
+          return p.date <= timeTo
+        }
+        return true
+      })
       const labels = data.map(s =>
         new Date(s.date).toLocaleString('default', {
           month: 'short',
           day: 'numeric'
         })
       )
+      return {data, labels}
+    },
+    refreshCharts() {
+      const originalChartConfig = this.chartConfig || {}
+      this.chartConfig = {}
+      setTimeout(() => {
+        const chartConfig =
+          this.$q.localStorage.getItem('lnbits.wallets.chartConfig') ||
+          originalChartConfig
+        this.chartConfig = {...originalChartConfig, ...chartConfig}
+      }, 10)
+      setTimeout(() => {
+        this.drawCharts(this.chartData)
+      }, 100)
+    },
+    drawCharts(allData) {
       try {
+        const {data, labels} = this.filterChartData(allData)
         if (this.chartConfig.showBalance) {
           if (this.walletBalanceChart) {
             this.walletBalanceChart.destroy()
