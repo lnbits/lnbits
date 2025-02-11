@@ -1041,6 +1041,13 @@ window.WalletPageLogic = {
     }
   },
   watch: {
+    'g.wallet.id'(newVal, oldVal) {
+      try {
+        this.fetchChartData()
+      } catch (error) {
+        console.warn(`Chart creation failed: ${error}`)
+      }
+    },
     'g.updatePayments'(newVal, oldVal) {
       console.log('updatePayments changed:', {newVal, oldVal})
       this.parse.show = false
@@ -1060,11 +1067,6 @@ window.WalletPageLogic = {
         this.g.fiatBalance =
           (this.g.exchangeRate / 100000000) * this.g.wallet.sat
         this.formatFiatAmount(this.g.fiatBalance, this.g.wallet.currency)
-      }
-      try {
-        this.fetchChartData()
-      } catch (error) {
-        console.warn(`Chart creation failed: ${error}`)
       }
     },
     '$q.screen.gt.sm'(value) {
