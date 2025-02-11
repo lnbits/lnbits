@@ -397,8 +397,8 @@ async def get_daily_stats(
             SUM(apipayments.amount - ABS(apipayments.fee)) AS balance,
             ABS(SUM(apipayments.fee)) as fee,
             COUNT(*) as payments_count
-        FROM apipayments
-        RIGHT JOIN wallets ON apipayments.wallet_id = wallets.id
+        FROM wallets
+        LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
         {clause}
         AND (wallets.deleted = false OR wallets.deleted is NULL)
         GROUP BY date
