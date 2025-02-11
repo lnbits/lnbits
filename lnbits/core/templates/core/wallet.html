@@ -257,25 +257,64 @@
 
                 <q-expansion-item
                   group="extras"
-                  icon="settings_cell"
-                  :label="$t('export_to_phone')"
+                  icon="phone_android"
+                  :label="$t('access_wallet_on_mobile')"
                 >
                   <q-card>
-                    <q-card-section class="text-center">
-                      <p v-text="$t('export_to_phone_desc')"></p>
-                      <lnbits-qrcode
-                        :value="`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
-                      ></lnbits-qrcode>
+                    <q-card-section>
+                      You can connect to this wallet from a mobile app:
+                      <ul>
+                        <li>
+                          Download
+                          <a class="text-secondary" href="https://zeusln.app"
+                            >Zeus</a
+                          >
+                          or
+                          <a
+                            class="text-secondary"
+                            href="https://bluewallet.io/"
+                            >BlueWallet</a
+                          >
+                          from App Store or Google Play
+                        </li>
+                        <li>
+                          Enable the
+                          <a class="text-secondary" href="/lndhub">LndHub </a>
+                          extension for this account
+                        </li>
+                        <li>
+                          Scan the QR code in the
+                          <a class="text-secondary" href="/lndhub">LndHub </a>
+                          extensions with your mobile app
+                        </li>
+                      </ul>
                     </q-card-section>
-                    <span v-text="exportWalletQR"></span>
-                    <q-card-actions class="flex-center q-pb-md">
-                      <q-btn
-                        outline
-                        color="grey"
-                        :label="$t('copy_wallet_url')"
-                        @click="copyText(`${baseUrl}wallet?usr=${g.user.id}&wal=${g.wallet.id}`)"
-                      ></q-btn>
-                    </q-card-actions>
+                    <q-card-section>
+                      Or you can access the wallet directly from your mobile
+                      browser using:
+                      <q-expansion-item
+                        icon="mobile_friendly"
+                        :label="$t('export_to_phone')"
+                      >
+                        <q-card>
+                          <q-card-section class="text-center">
+                            <p v-text="$t('export_to_phone_desc')"></p>
+                            <lnbits-qrcode
+                              :value="`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
+                            ></lnbits-qrcode>
+                          </q-card-section>
+                          <span v-text="exportWalletQR"></span>
+                          <q-card-actions class="flex-center q-pb-md">
+                            <q-btn
+                              outline
+                              color="grey"
+                              :label="$t('copy_wallet_url')"
+                              @click="copyText(`${baseUrl}wallet?usr=${g.user.id}&wal=${g.wallet.id}`)"
+                            ></q-btn>
+                          </q-card-actions>
+                        </q-card>
+                      </q-expansion-item>
+                    </q-card-section>
                   </q-card>
                 </q-expansion-item>
                 <q-separator></q-separator>

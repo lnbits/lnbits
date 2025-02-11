@@ -114,6 +114,7 @@ window.WalletPageLogic = {
       formattedFiatAmount: 0,
       formattedExchange: null,
       primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
+      secondaryColor: this.$q.localStorage.getItem('lnbits.secondaryColor'),
       chartData: [],
       chartConfig: {
         showBalance: true,
@@ -922,13 +923,13 @@ window.WalletPageLogic = {
                     data: data.map(s => s.fee),
                     pointStyle: false,
                     backgroundColor: LNbits.utils.hexAlpha(
-                      this.primaryColor,
+                      this.secondaryColor,
                       0.3
                     ),
-                    borderColor: this.primaryColor,
+                    borderColor: this.secondaryColor,
                     borderWidth: 1,
                     fill: true,
-                    tension: 0.4,
+                    tension: 0.7,
                     fill: 1
                   }
                 ]
@@ -964,10 +965,12 @@ window.WalletPageLogic = {
                 datasets: [
                   {
                     label: 'Balance In',
+                    borderRadius: 5,
                     data: data.map(s => s.balance_in)
                   },
                   {
                     label: 'Balance Out',
+                    borderRadius: 5,
                     data: data.map(s => s.balance_out)
                   }
                 ]
