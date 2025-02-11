@@ -237,6 +237,9 @@ window.app.component('payment-list', {
     update() {
       this.fetchPayments()
     },
+    'g.updatePayments'() {
+      this.fetchPayments()
+    },
     'g.wallet': {
       handler(newWallet) {
         this.fetchPayments()
