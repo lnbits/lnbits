@@ -137,7 +137,6 @@ async def api_payments_wallets_stats(
 @payment_router.get(
     "/stats/daily",
     name="Get payments history per day",
-    dependencies=[Depends(check_user_exists)],
     response_model=List[PaymentDailyStats],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
