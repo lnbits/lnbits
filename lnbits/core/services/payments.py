@@ -1,6 +1,6 @@
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from bolt11 import Bolt11, MilliSatoshi, Tags
@@ -439,7 +439,7 @@ async def get_payments_daily_stats(
     data_in, data_out = await get_daily_stats(filters)
     balance_total: float = 0
 
-    _none = PaymentDailyStats(date=datetime.now())
+    _none = PaymentDailyStats(date=datetime.now(timezone.utc))
     if len(data_in) == 0:
         data_in = [_none]
     if len(data_out) == 0:

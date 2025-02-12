@@ -86,7 +86,12 @@ class Compat:
         if self.type in {POSTGRES, COCKROACH}:
             return f"date_trunc('{group}', time)"
         elif self.type == SQLITE:
-            return f"unixepoch(strftime('{sqlite_formats[group]}', time, 'unixepoch'))"
+            return (
+                "CAST (strftime('%s',datetime(strftime("
+                f"'{sqlite_formats[group]}'"
+                ", time, 'unixepoch'))) AS INT)"
+            )
+
         return "<bad grouping>"
 
     @property
