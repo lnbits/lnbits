@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from hashlib import sha256
 from os import path
+from pathlib import Path
 from time import gmtime, strftime, time
 from typing import Any, Optional
 
@@ -858,6 +859,10 @@ class ReadOnlySettings(
     SuperUserSettings,
 ):
     lnbits_admin_ui: bool = Field(default=True)
+
+    @property
+    def lnbits_extensions_upgrade_path(self) -> str:
+        return str(Path(self.lnbits_data_folder, "upgrades"))
 
     @validator(
         "lnbits_allowed_funding_sources",

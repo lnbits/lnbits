@@ -148,8 +148,6 @@ class Extension(BaseModel):
     @property
     def module_name(self) -> str:
         if self.is_upgrade_extension:
-            if settings.has_default_extension_path:
-                return f"lnbits.upgrades.{self.code}-{self.upgrade_hash}"
             return f"{self.code}-{self.upgrade_hash}"
 
         if settings.has_default_extension_path:
@@ -343,15 +341,11 @@ class InstallableExtension(BaseModel):
 
     @property
     def ext_upgrade_dir(self) -> Path:
-        return Path(
-            settings.lnbits_extensions_path, "upgrades", f"{self.id}-{self.hash}"
-        )
+        return Path(settings.lnbits_extensions_upgrade_path, f"{self.id}-{self.hash}")
 
     @property
     def module_name(self) -> str:
         if self.ext_upgrade_dir.is_dir():
-            if settings.has_default_extension_path:
-                return f"lnbits.upgrades.{self.id}-{self.hash}"
             return f"{self.id}-{self.hash}"
 
         if settings.has_default_extension_path:
@@ -411,9 +405,7 @@ class InstallableExtension(BaseModel):
 
     def extract_archive(self):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
-        Path(settings.lnbits_extensions_path, "upgrades").mkdir(
-            parents=True, exist_ok=True
-        )
+        Path(settings.lnbits_extensions_upgrade_path).mkdir(parents=True, exist_ok=True)
 
         tmp_dir = Path(settings.lnbits_data_folder, "unzip-temp", self.hash)
         shutil.rmtree(tmp_dir, True)
