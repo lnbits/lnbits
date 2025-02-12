@@ -331,5 +331,4 @@ def normalize_path(path: Optional[str]) -> str:
 
 
 def normalized_path(request: Request) -> str:
-    path = request["path"]
-    return "/" + "/".join(path_segments(path))
+    return "/" + "/".join(path_segments(request.url.path))
