@@ -390,8 +390,6 @@ def register_custom_extensions_path():
     sys.path.append(str(extensions_dir))
 
 
-
-
 def register_new_ext_routes(app: FastAPI) -> Callable:
     # Returns a function that registers new routes for an extension.
     # The returned function encapsulates (creates a closure around)
