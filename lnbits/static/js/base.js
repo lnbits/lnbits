@@ -480,19 +480,19 @@ window.windowMixin = {
       gradientSelection: false,
       borderChoice: this.$q.localStorage.has('lnbits.border')
         ? this.$q.localStorage.getItem('lnbits.border')
-        : this.USE_DEFAULT_BORDER,
+        : USE_DEFAULT_BORDER,
       gradientChoice: this.$q.localStorage.has('lnbits.gradientBg')
         ? this.$q.localStorage.getItem('lnbits.gradientBg')
-        : this.USE_DEFAULT_GRADIENT,
+        : USE_DEFAULT_GRADIENT,
       themeChoice: this.$q.localStorage.has('lnbits.theme')
         ? this.$q.localStorage.getItem('lnbits.theme')
-        : this.USE_DEFAULT_THEME,
+        : USE_DEFAULT_THEME,
       reactionChoice: this.$q.localStorage.has('lnbits.reactions')
         ? this.$q.localStorage.getItem('lnbits.reactions')
-        : this.USE_DEFAULT_REACTION,
+        : USE_DEFAULT_REACTION,
       bgimageChoice: this.$q.localStorage.has('lnbits.backgroundImage')
         ? this.$q.localStorage.getItem('lnbits.backgroundImage')
-        : this.USE_DEFAULT_BGIMAGE,
+        : USE_DEFAULT_BGIMAGE,
       isUserAuthorized: false,
       walletEventListeners: [],
       backgroundImage: ''
@@ -835,12 +835,6 @@ window.windowMixin = {
         ? this.$q.localStorage.getItem('lnbits.darkMode')
         : true
     )
-    this.USE_DEFAULT_BORDER = USE_DEFAULT_BORDER
-    this.USE_DEFAULT_GRADIENT = USE_DEFAULT_GRADIENT
-    this.USE_DEFAULT_THEME = USE_DEFAULT_THEME
-    this.USE_DEFAULT_REACTION = USE_DEFAULT_REACTION
-    this.USE_DEFAULT_BGIMAGE = USE_DEFAULT_BGIMAGE
-
     this.changeTheme(this.themeChoice)
     this.applyBorder()
     if (this.$q.dark.isActive) {
