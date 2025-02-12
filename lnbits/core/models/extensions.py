@@ -104,7 +104,7 @@ class ReleasePaymentInfo(BaseModel):
 
 
 class PayToEnableInfo(BaseModel):
-    amount: int
+    amount: int = 0
     required: bool = False
     wallet: Optional[str] = None
 
