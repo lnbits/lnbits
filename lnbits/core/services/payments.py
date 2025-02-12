@@ -9,6 +9,7 @@ from bolt11 import encode as bolt11_encode
 from loguru import logger
 
 from lnbits.core.crud.payments import get_daily_stats
+from lnbits.core.crud.wallets import get_wallet_for_key
 from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.notifications import NotificationType
@@ -89,6 +90,7 @@ async def pay_invoice(
 async def create_invoice(
     *,
     wallet_id: str,
+    wallet_key: Optional[str] = None,
     amount: float,
     currency: Optional[str] = "sat",
     memo: str,
@@ -102,7 +104,10 @@ async def create_invoice(
 ) -> Payment:
     if not amount > 0:
         raise InvoiceError("Amountless invoices not supported.", status="failed")
-
+    if wallet_key:
+        wallet = await get_wallet_for_key(wallet_key, conn=conn)
+        if wallet is not None:
+            wallet_id = wallet.id
     user_wallet = await get_wallet(wallet_id, conn=conn)
     if not user_wallet:
         raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
