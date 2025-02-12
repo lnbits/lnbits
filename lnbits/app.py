@@ -366,6 +366,11 @@ async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
 
 
 def register_custom_extensions_path():
+    upgrades_dir = settings.lnbits_extensions_upgrade_path
+    shutil.rmtree(upgrades_dir, True)
+    Path(upgrades_dir).mkdir(parents=True, exist_ok=True)
+    sys.path.append(str(upgrades_dir))
+
     if settings.has_default_extension_path:
         return
     default_ext_path = os.path.join("lnbits", "extensions")
@@ -384,10 +389,7 @@ def register_custom_extensions_path():
     Path(extensions_dir).mkdir(parents=True, exist_ok=True)
     sys.path.append(str(extensions_dir))
 
-    upgrades_dir = Path(settings.lnbits_extensions_path, "upgrades")
-    shutil.rmtree(upgrades_dir, True)
-    Path(upgrades_dir).mkdir(parents=True, exist_ok=True)
-    sys.path.append(str(upgrades_dir))
+
 
 
 def register_new_ext_routes(app: FastAPI) -> Callable:

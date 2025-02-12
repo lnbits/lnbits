@@ -339,7 +339,7 @@ async def extensions_update(
     if not await _can_run_operation(url):
         return
 
-    upgrades_dir = Path(settings.lnbits_extensions_path, "upgrades")
+    upgrades_dir = settings.lnbits_extensions_upgrade_path
     Path(upgrades_dir).mkdir(parents=True, exist_ok=True)
     sys.path.append(str(upgrades_dir))
 
