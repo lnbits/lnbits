@@ -683,3 +683,32 @@ async def test_api_payment_pay_with_nfc(
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == expected_response
+
+
+@pytest.mark.anyio
+async def test_api_payments_pay_lnurl(client, adminkey_headers_from):
+    valid_lnurl_data = {
+        "description_hash": "randomhash",
+        "callback": "https://example.com/callback",
+        "amount": 1000,
+        "unit": "sat",
+        "comment": "test comment",
+        "description": "test description",
+    }
+
+    invalid_lnurl_data = {**valid_lnurl_data, "callback": "invalid_url"}
+
+    # Test with valid callback URL
+    response = await client.post(
+        "/api/v1/payments/lnurl", json=valid_lnurl_data, headers=adminkey_headers_from
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Failed to connect to example.com."
+
+    # Test with invalid callback URL
+    response = await client.post(
+        "/api/v1/payments/lnurl", json=invalid_lnurl_data, headers=adminkey_headers_from
+    )
+    print("### response1", response.text)
+    assert response.status_code == 400
+    assert "Callback not allowed." in response.json()["detail"]

@@ -278,7 +278,7 @@ def check_callback_url(url: str):
     for rule in settings.lnbits_callback_url_rules:
         if re.match(rule, netloc) is None:
             raise ValueError(
-                "Callback not allowed." f"URL: {url}. Netloc: {netloc}. Rule: {rule}"
+                f"Callback not allowed. URL: {url}. Netloc: {netloc}. Rule: {rule}"
             )
 
 
