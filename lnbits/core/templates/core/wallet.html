@@ -300,7 +300,7 @@
                           <q-card-section class="text-center">
                             <p v-text="$t('export_to_phone_desc')"></p>
                             <lnbits-qrcode
-                              :value="`${baseUrl}/wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
+                              :value="`${baseUrl}wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
                             ></lnbits-qrcode>
                           </q-card-section>
                           <span v-text="exportWalletQR"></span>
