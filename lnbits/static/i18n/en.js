@@ -248,6 +248,10 @@ window.localisation.en = {
   allow_access_hint: 'Allow access by IP (will override blocked IPs)',
   enter_ip: 'Enter IP and hit enter',
   rate_limiter: 'Rate Limiter',
+  callback_url_rules: 'Callback URL Rules',
+  enter_callback_url_rule: 'Enter URL rule as regex and hit enter',
+  callback_url_rule_hint:
+    'Callback URLs (like LNURL one) will be validated against all of these rules. No rule means all URLs are allowed.',
   wallet_limiter: 'Wallet Limiter',
   wallet_config: 'Wallet Config',
   wallet_charts: 'Wallet Charts',

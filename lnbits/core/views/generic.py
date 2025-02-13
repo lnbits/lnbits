@@ -17,7 +17,7 @@ from lnbits.core.models.extensions import ExtensionMeta, InstallableExtension
 from lnbits.core.services import create_invoice, create_user_account
 from lnbits.core.services.extensions import get_valid_extensions
 from lnbits.decorators import check_admin, check_user_exists
-from lnbits.helpers import template_renderer
+from lnbits.helpers import check_callback_url, template_renderer
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
@@ -443,6 +443,7 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     lnurl = lnurl_decode(lightning)
 
     async with httpx.AsyncClient() as client:
+        check_callback_url(lnurl)
         res1 = await client.get(lnurl, timeout=2)
         res1.raise_for_status()
         data1 = res1.json()

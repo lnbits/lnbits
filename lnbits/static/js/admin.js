@@ -56,6 +56,7 @@ window.AdminPageLogic = {
       formAddExtensionsManifest: '',
       nostrNotificationIdentifier: '',
       formAllowedIPs: '',
+      formCallbackUrlRule: '',
       formBlockedIPs: '',
       nostrAcceptedUrl: '',
       formAddIncludePath: '',
@@ -331,6 +332,28 @@ window.AdminPageLogic = {
         b => b !== blocked_ip
       )
     },
+    addCallbackUrlRule() {
+      const allowedCallback = this.formCallbackUrlRule.trim()
+      const allowedCallbacks = this.formData.lnbits_callback_url_rules
+      if (
+        allowedCallback &&
+        allowedCallback.length &&
+        !allowedCallbacks.includes(allowedCallback)
+      ) {
+        this.formData.lnbits_callback_url_rules = [
+          ...allowedCallbacks,
+          allowedCallback
+        ]
+        this.formCallbackUrlRule = ''
+      }
+    },
+    removeCallbackUrlRule(allowedCallback) {
+      const allowedCallbacks = this.formData.lnbits_callback_url_rules
+      this.formData.lnbits_callback_url_rules = allowedCallbacks.filter(
+        a => a !== allowedCallback
+      )
+    },
+
     addNostrUrl() {
       const url = this.nostrAcceptedUrl.trim()
       this.removeNostrUrl(url)

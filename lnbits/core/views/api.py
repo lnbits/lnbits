@@ -29,6 +29,7 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
+from lnbits.helpers import check_callback_url
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
@@ -128,6 +129,7 @@ async def api_lnurlscan(
     else:
         headers = {"User-Agent": settings.user_agent}
         async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+            check_callback_url(url)
             r = await client.get(url, timeout=5)
             r.raise_for_status()
             if r.is_error:

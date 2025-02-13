@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional, Type
 from urllib import request
+from urllib.parse import urlparse
 
 import jinja2
 import jwt
@@ -270,6 +271,15 @@ def is_lnbits_version_ok(
         return False
 
     return True
+
+
+def check_callback_url(url: str):
+    netloc = urlparse(url).netloc
+    for rule in settings.lnbits_callback_url_rules:
+        if re.match(rule, netloc) is None:
+            raise ValueError(
+                f"Callback not allowed. URL: {url}. Netloc: {netloc}. Rule: {rule}"
+            )
 
 
 def download_url(url, save_path):

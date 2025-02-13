@@ -13,7 +13,7 @@ from lnbits.decorators import (
     WalletTypeInfo,
     require_admin_key,
 )
-from lnbits.helpers import url_for
+from lnbits.helpers import check_callback_url, url_for
 from lnbits.lnurl import LnurlErrorResponse
 from lnbits.lnurl import decode as decode_lnurl
 from lnbits.settings import settings
@@ -37,6 +37,7 @@ async def redeem_lnurl_withdraw(
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         lnurl = decode_lnurl(lnurl_request)
+        check_callback_url(str(lnurl))
         r = await client.get(str(lnurl))
         res = r.json()
 
@@ -72,6 +73,7 @@ async def redeem_lnurl_withdraw(
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         try:
+            check_callback_url(res["callback"])
             await client.get(res["callback"], params=params)
         except Exception:
             pass
@@ -135,6 +137,7 @@ async def perform_lnurlauth(
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         assert key.verifying_key, "LNURLauth verifying_key does not exist"
+        check_callback_url(callback)
         r = await client.get(
             callback,
             params={
