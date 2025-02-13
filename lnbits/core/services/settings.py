@@ -6,6 +6,7 @@ from py_vapid.utils import b64urlencode
 from lnbits.db import dict_to_model
 from lnbits.settings import (
     EditableSettings,
+    UpdateSettings,
     readonly_variables,
     settings,
 )
@@ -37,8 +38,12 @@ async def check_webpush_settings():
     logger.info(f"Pubkey: {settings.lnbits_webpush_pubkey}")
 
 
+def dict_to_settings(sets_dict: dict) -> UpdateSettings:
+    return dict_to_model(sets_dict, UpdateSettings)
+
+
 def update_cached_settings(sets_dict: dict):
-    editable_settings = dict_to_model(sets_dict, EditableSettings)
+    editable_settings = dict_to_settings(sets_dict)
     for key in sets_dict.keys():
         if key in readonly_variables:
             continue

@@ -16,6 +16,7 @@ from lnbits.core.services import (
     get_balance_delta,
     update_cached_settings,
 )
+from lnbits.core.services.settings import dict_to_settings
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
@@ -69,6 +70,15 @@ async def api_update_settings(data: UpdateSettings, user: User = Depends(check_a
     update_cached_settings(admin_settings.dict())
     core_app_extra.register_new_ratelimiter()
     return {"status": "Success"}
+
+
+@admin_router.patch(
+    "/api/v1/settings",
+    status_code=HTTPStatus.OK,
+)
+async def api_update_settings_partial(data: dict, user: User = Depends(check_admin)):
+    updatable_settings = dict_to_settings({**settings.dict(), **data})
+    return await api_update_settings(updatable_settings, user)
 
 
 @admin_router.get(
