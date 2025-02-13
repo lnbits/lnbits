@@ -318,6 +318,42 @@
             </div>
           </div>
         </div>
+
+        <div class="col-12 col-md-12">
+          <p v-text="$t('callback_url_rules')"></p>
+          <div class="row q-col-gutter-md">
+            <div class="col-12">
+              <q-input
+                filled
+                v-model="formCallbackUrlRule"
+                @keydown.enter="addCallbackUrlRule"
+                type="text"
+                :label="$t('enter_callback_url_rule')"
+                :hint="$t('callback_url_rule_hint')"
+              >
+                <q-btn
+                  @click="addCallbackUrlRule"
+                  dense
+                  flat
+                  icon="add"
+                ></q-btn>
+              </q-input>
+              <div>
+                <q-chip
+                  v-for="rule in formData.lnbits_callback_url_rules"
+                  :key="rule"
+                  removable
+                  @remove="removeCallbackUrlRule(rule)"
+                  color="primary"
+                  text-color="white"
+                  :label="rule"
+                  class="ellipsis"
+                ></q-chip>
+              </div>
+              <br />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </q-card-section>
