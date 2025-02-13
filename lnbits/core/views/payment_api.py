@@ -46,7 +46,11 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from lnbits.helpers import filter_dict_keys, generate_filter_params_openapi
+from lnbits.helpers import (
+    check_callback_url,
+    filter_dict_keys,
+    generate_filter_params_openapi,
+)
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
@@ -225,6 +229,7 @@ async def _api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         headers = {"User-Agent": settings.user_agent}
         async with httpx.AsyncClient(headers=headers) as client:
             try:
+                check_callback_url(data.lnurl_callback)
                 r = await client.get(
                     data.lnurl_callback,
                     params={"pr": payment.bolt11},
@@ -337,6 +342,7 @@ async def api_payments_pay_lnurl(
                 amount_msat = ceil(amount_msat // 1000) * 1000
             else:
                 amount_msat = data.amount
+            check_callback_url(data.callback)
             r = await client.get(
                 data.callback,
                 params={"amount": amount_msat, "comment": data.comment},
@@ -461,6 +467,7 @@ async def api_payment_pay_with_nfc(
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
         try:
+            check_callback_url(url)
             lnurl_req = await client.get(url, timeout=10)
             if lnurl_req.is_error:
                 return JSONResponse(

@@ -30,6 +30,7 @@ from lnbits.core.services.notifications import (
     process_next_notification,
 )
 from lnbits.db import Filters
+from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 from lnbits.tasks import create_unique_task, send_push_notification
 from lnbits.utils.exchange_rates import btc_rates
@@ -117,6 +118,7 @@ async def dispatch_webhook(payment: Payment):
     async with httpx.AsyncClient(headers=headers) as client:
         data = payment.dict()
         try:
+            check_callback_url(payment.webhook)
             r = await client.post(payment.webhook, json=data, timeout=40)
             r.raise_for_status()
             await mark_webhook_sent(payment.payment_hash, r.status_code)
