@@ -709,6 +709,5 @@ async def test_api_payments_pay_lnurl(client, adminkey_headers_from):
     response = await client.post(
         "/api/v1/payments/lnurl", json=invalid_lnurl_data, headers=adminkey_headers_from
     )
-    print("### response1", response.text)
     assert response.status_code == 400
     assert "Callback not allowed." in response.json()["detail"]
