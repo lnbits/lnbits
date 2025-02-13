@@ -276,8 +276,10 @@ def is_lnbits_version_ok(
 def check_callback_url(url: str):
     netloc = urlparse(url).netloc
     for rule in settings.lnbits_callback_url_rules:
-        if re.fullmatch(rule, netloc) is None:
-            raise ValueError(f"Callback URL not allowed: {url}. Rule: {rule}")
+        if re.match(rule, netloc) is None:
+            raise ValueError(
+                "Callback not allowed." f"URL: {url}. Netloc: {netloc}. Rule: {rule}"
+            )
 
 
 def download_url(url, save_path):
