@@ -689,7 +689,7 @@ async def test_api_payment_pay_with_nfc(
 async def test_api_payments_pay_lnurl(client, adminkey_headers_from):
     valid_lnurl_data = {
         "description_hash": "randomhash",
-        "callback": "https://example.com/callback",
+        "callback": "https://xxxxxxx.lnbits.com",
         "amount": 1000,
         "unit": "sat",
         "comment": "test comment",
@@ -703,7 +703,7 @@ async def test_api_payments_pay_lnurl(client, adminkey_headers_from):
         "/api/v1/payments/lnurl", json=valid_lnurl_data, headers=adminkey_headers_from
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Failed to connect to example.com."
+    assert response.json()["detail"] == "Failed to connect to xxxxxxx.lnbits.com."
 
     # Test with invalid callback URL
     response = await client.post(

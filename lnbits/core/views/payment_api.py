@@ -1,4 +1,5 @@
 import json
+import ssl
 from http import HTTPStatus
 from math import ceil
 from typing import List, Optional
@@ -351,7 +352,8 @@ async def api_payments_pay_lnurl(
             if r.is_error:
                 raise httpx.ConnectError("LNURL callback connection error")
             r.raise_for_status()
-        except (httpx.ConnectError, httpx.RequestError) as exc:
+        except (httpx.HTTPError, ssl.SSLError) as exc:
+            logger.warning(exc)
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=f"Failed to connect to {domain}.",
