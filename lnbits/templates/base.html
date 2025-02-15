@@ -314,7 +314,8 @@
                       >
                       </q-avatar>
                       <div
-                        class="text-h6 q-pl-md"
+                        class="text-h6 q-pl-md ellipsis"
+                        style="max-width: 80%"
                         :class="{
               'text-bold': g.wallet && g.wallet.id === wallet.id
             }"
@@ -322,7 +323,7 @@
                       ></div>
                     </div>
                     <div class="row items-center q-pt-sm">
-                      <h6 class="q-my-none text-no-wrap">
+                      <h6 class="q-my-none ellipsis full-width">
                         <strong v-text="wallet.fsat"></strong>
                         <small> {{LNBITS_DENOMINATION}}</small>
                       </h6>
