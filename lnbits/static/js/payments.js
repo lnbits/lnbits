@@ -4,10 +4,7 @@ window.PaymentsPageLogic = {
     return {
       payments: [],
       dailyChartData: [],
-      searchDate: {
-        timeFrom: null,
-        timeTo: null
-      },
+      searchDate: {from: null, to: null},
       searchData: {
         wallet_id: null,
         payment_hash: null,
@@ -104,7 +101,7 @@ window.PaymentsPageLogic = {
         },
         search: null,
         hideEmpty: true,
-        loading: true
+        loading: false
       },
       chartsReady: false,
       showDetails: false,
@@ -116,10 +113,6 @@ window.PaymentsPageLogic = {
     this.chartsReady = true
     await this.$nextTick()
     this.initCharts()
-    this.searchDate.timeFrom = moment()
-      .subtract(1, 'month')
-      .format('YYYY-MM-DD')
-    this.searchDate.timeTo = moment().format('YYYY-MM-DD')
     await this.fetchPayments()
   },
   computed: {},
@@ -132,11 +125,11 @@ window.PaymentsPageLogic = {
 
       delete filter['time[ge]']
       delete filter['time[le]']
-      if (this.searchDate.timeFrom) {
-        filter['time[ge]'] = this.searchDate.timeFrom + 'T00:00:00'
+      if (this.searchDate.from) {
+        filter['time[ge]'] = this.searchDate.from + 'T00:00:00'
       }
-      if (this.searchDate.timeTo) {
-        filter['time[le]'] = this.searchDate.timeTo + 'T23:59:59'
+      if (this.searchDate.to) {
+        filter['time[le]'] = this.searchDate.to + 'T23:59:59'
       }
       this.paymentsTable.filter = filter
 
@@ -183,15 +176,30 @@ window.PaymentsPageLogic = {
       }
       await this.fetchPayments()
     },
+    clearDateSeach() {
+      this.searchDate = {from: null, to: null}
+      delete this.paymentsTable.filter['time[ge]']
+      delete this.paymentsTable.filter['time[le]']
+      this.fetchPayments()
+    },
+    searchByDate() {
+      if (typeof this.searchDate === 'string') {
+        this.searchDate = {
+          from: this.searchDate,
+          to: this.searchDate
+        }
+      }
+      if (this.searchDate.from) {
+        this.paymentsTable.filter['time[ge]'] =
+          this.searchDate.from + 'T00:00:00'
+      }
+      if (this.searchDate.to) {
+        this.paymentsTable.filter['time[le]'] = this.searchDate.to + 'T23:59:59'
+      }
 
-    async removeCreatedFrom() {
-      this.searchDate.timeFrom = null
-      await this.fetchPayments()
+      this.fetchPayments()
     },
-    async removeCreatedTo() {
-      this.searchDate.timeTo = null
-      await this.fetchPayments()
-    },
+
     showDetailsToggle(payment) {
       this.paymentDetails = payment
       return (this.showDetails = !this.showDetails)
@@ -303,17 +311,17 @@ window.PaymentsPageLogic = {
           `/api/v1/payments/stats/daily?${noTimeParams}`
         )
 
-        const timeFrom = this.searchDate.timeFrom + 'T00:00:00'
-        const timeTo = this.searchDate.timeTo + 'T00:00:00'
+        const timeFrom = this.searchDate.from + 'T00:00:00'
+        const timeTo = this.searchDate.to + 'T23:59:59'
         this.lnbitsBalance = data[data.length - 1].balance
         data = data.filter(p => {
-          if (this.searchDate.timeFrom && this.searchDate.timeTo) {
+          if (this.searchDate.from && this.searchDate.to) {
             return p.date >= timeFrom && p.date <= timeTo
           }
-          if (this.searchDate.timeFrom) {
+          if (this.searchDate.from) {
             return p.date >= timeFrom
           }
-          if (this.searchDate.timeTo) {
+          if (this.searchDate.to) {
             return p.date <= timeTo
           }
           return true
