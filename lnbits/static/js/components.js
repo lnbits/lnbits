@@ -592,6 +592,80 @@ window.app.component('username-password', {
         '^(?=[a-zA-Z0-9._]{2,20}$)(?!.*[_.]{2})[^_.].*[^_.]$'
       )
       return usernameRegex.test(val)
+    },
+    async signInWithNostr() {
+      try {
+        console.log('### signInWithNostr')
+        const nostrToken = await this.createNostrToken()
+        if (!nostrToken) {
+          return
+        }
+        resp = await LNbits.api.loginByProvider(
+          'nostr',
+          {Authorization: nostrToken},
+          {}
+        )
+        window.location.href = '/wallet'
+      } catch (error) {
+        console.warn(error)
+        const details = error?.response?.data?.detail || `${error}`
+        Quasar.Notify.create({
+          type: 'negative',
+          message: 'Failed to sign in with Nostr.',
+          caption: details
+        })
+      }
+    },
+    async createNostrToken() {
+      try {
+        async function _signEvent(e) {
+          try {
+            const {data} = await LNbits.api.getServerHealth()
+            e.created_at = data.server_time
+            return await window.nostr.signEvent(e)
+          } catch (error) {
+            console.error(error)
+            Quasar.Notify.create({
+              type: 'negative',
+              message: 'Failed to sign nostr event.',
+              caption: `${error}`
+            })
+          }
+        }
+        if (!window.nostr?.signEvent) {
+          Quasar.Notify.create({
+            type: 'negative',
+            message: 'No Nostr signing app detected.',
+            caption: 'Is "window.nostr" present?'
+          })
+          return
+        }
+        const tagU = `${window.location}nostr`
+        const tagMethod = 'POST'
+        const nostrToken = await NostrTools.nip98.getToken(
+          tagU,
+          tagMethod,
+          e => _signEvent(e),
+          true
+        )
+        const isTokenValid = await NostrTools.nip98.validateToken(
+          nostrToken,
+          tagU,
+          tagMethod
+        )
+        if (!isTokenValid) {
+          throw new Error('Invalid signed token!')
+        }
+
+        return nostrToken
+      } catch (error) {
+        console.warn(error)
+        Quasar.Notify.create({
+          type: 'negative',
+          message: 'Failed create Nostr event.',
+          caption: `${error}`
+        })
+      }
     }
   },
   computed: {
