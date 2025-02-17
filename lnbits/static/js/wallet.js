@@ -152,6 +152,13 @@ window.WalletPageLogic = {
     },
     wallet() {
       return this.g.wallet
+    },
+    hasChartActive() {
+      return (
+        this.chartConfig.showBalance ||
+        this.chartConfig.showBalanceInOut ||
+        this.chartConfig.showPaymentCountInOut
+      )
     }
   },
   methods: {
@@ -825,11 +832,7 @@ window.WalletPageLogic = {
         this.chartConfig = {}
         return
       }
-      if (
-        !this.chartConfig.showBalance &&
-        !this.chartConfig.showBalanceInOut &&
-        !this.chartConfig.showPaymentCountInOut
-      ) {
+      if (!this.hasChartActive) {
         return
       }
 

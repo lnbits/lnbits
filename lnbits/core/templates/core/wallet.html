@@ -507,7 +507,7 @@
               </q-card-section>
             </q-card>
           </div>
-          <div v-show="!chartDataPointCount">
+          <div v-if="hasChartActive && !chartDataPointCount">
             <q-card>
               <q-card-section> No chart data available</q-card-section>
             </q-card>
