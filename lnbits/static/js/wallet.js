@@ -116,6 +116,7 @@ window.WalletPageLogic = {
       primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
       secondaryColor: this.$q.localStorage.getItem('lnbits.secondaryColor'),
       chartData: [],
+      chartDataPointCount: 0,
       chartConfig: {
         showBalance: true,
         showBalanceInOut: true,
@@ -868,6 +869,7 @@ window.WalletPageLogic = {
           day: 'numeric'
         })
       )
+      this.chartDataPointCount = data.length
       return {data, labels}
     },
     refreshCharts() {

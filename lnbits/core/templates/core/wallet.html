@@ -481,27 +481,37 @@
             >{% endfor %}
           </q-card>
           {% endif %}
-          <q-card v-if="chartConfig.showBalance">
-            <q-card-section class="q-pa-none">
-              <div style="height: 200px" class="q-pa-sm">
-                <canvas ref="walletBalanceChart"></canvas>
-              </div>
-            </q-card-section>
-          </q-card>
-          <q-card v-if="chartConfig.showBalanceInOut">
-            <q-card-section class="q-pa-none">
-              <div style="height: 200px" class="q-pa-sm">
-                <canvas ref="walletBalanceInOut"></canvas>
-              </div>
-            </q-card-section>
-          </q-card>
-          <q-card v-if="chartConfig.showPaymentCountInOut">
-            <q-card-section class="q-pa-none">
-              <div style="height: 200px" class="q-pa-sm">
-                <canvas ref="walletPaymentsInOut"></canvas>
-              </div>
-            </q-card-section>
-          </q-card>
+          <div
+            v-show="chartDataPointCount"
+            class="col-12 col-md-5 q-gutter-y-md"
+          >
+            <q-card v-if="chartConfig.showBalance">
+              <q-card-section class="q-pa-none">
+                <div style="height: 200px" class="q-pa-sm">
+                  <canvas ref="walletBalanceChart"></canvas>
+                </div>
+              </q-card-section>
+            </q-card>
+            <q-card v-if="chartConfig.showBalanceInOut">
+              <q-card-section class="q-pa-none">
+                <div style="height: 200px" class="q-pa-sm">
+                  <canvas ref="walletBalanceInOut"></canvas>
+                </div>
+              </q-card-section>
+            </q-card>
+            <q-card v-if="chartConfig.showPaymentCountInOut">
+              <q-card-section class="q-pa-none">
+                <div style="height: 200px" class="q-pa-sm">
+                  <canvas ref="walletPaymentsInOut"></canvas>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+          <div v-show="!chartDataPointCount">
+            <q-card>
+              <q-card-section> No chart data available</q-card-section>
+            </q-card>
+          </div>
         </div>
       </div>
 
