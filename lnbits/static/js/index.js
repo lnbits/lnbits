@@ -177,6 +177,7 @@ window.app = Vue.createApp({
   created() {
     this.description = SITE_DESCRIPTION
     this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
+    const _acccess_cookies_for_safari_refresh_do_not_delete = document.cookie
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'
     }
