@@ -149,7 +149,7 @@ window.PaymentsPageLogic = {
             p.tag = p.extra.tag
           }
           p.timeFrom = moment(p.created_at).fromNow()
-
+          p.outgoing = p.amount < 0
           p.amount =
             new Intl.NumberFormat(window.LOCALE).format(p.amount / 1000) +
             ' sats'

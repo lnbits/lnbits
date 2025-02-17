@@ -267,8 +267,8 @@
                     @click="showDetailsToggle(props.row)"
                     v-if="props.row.status === 'success'"
                     size="14px"
-                    :name="props.row.amount < 0 ? 'call_made' : 'call_received'"
-                    :color="props.row.amount < 0 ? 'pink' : 'green'"
+                    :name="props.row.outgoing ? 'call_made' : 'call_received'"
+                    :color="props.row.outgoing ? 'pink' : 'green'"
                     class="cursor-pointer"
                   ></q-icon>
                   <q-icon
