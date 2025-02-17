@@ -166,7 +166,6 @@ window.PaymentsPageLogic = {
         console.error(error)
         LNbits.utils.notifyApiError(error)
       } finally {
-        this.paymentsTable.loading = false
         this.updateCharts(props)
       }
     },

@@ -201,7 +201,6 @@
 
   <div class="row q-col-gutter-md justify-center">
     <div class="col">
-      <span v-text="paymentsTable.loading"></span>
       <q-card class="q-pa-md">
         <q-table
           row-key="payment_hash"
@@ -209,7 +208,6 @@
           :columns="paymentsTable.columns"
           v-model:pagination="paymentsTable.pagination"
           :filter="paymentsTable.search"
-          :loading="paymentsTable.loading"
           @request="fetchPayments"
         >
           <template v-slot:header="props">
