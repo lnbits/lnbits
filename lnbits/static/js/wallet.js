@@ -116,6 +116,7 @@ window.WalletPageLogic = {
       primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
       secondaryColor: this.$q.localStorage.getItem('lnbits.secondaryColor'),
       chartData: [],
+      chartDataPointCount: 0,
       chartConfig: {
         showBalance: true,
         showBalanceInOut: true,
@@ -151,6 +152,13 @@ window.WalletPageLogic = {
     },
     wallet() {
       return this.g.wallet
+    },
+    hasChartActive() {
+      return (
+        this.chartConfig.showBalance ||
+        this.chartConfig.showBalanceInOut ||
+        this.chartConfig.showPaymentCountInOut
+      )
     }
   },
   methods: {
@@ -824,11 +832,7 @@ window.WalletPageLogic = {
         this.chartConfig = {}
         return
       }
-      if (
-        !this.chartConfig.showBalance &&
-        !this.chartConfig.showBalanceInOut &&
-        !this.chartConfig.showPaymentCountInOut
-      ) {
+      if (!this.hasChartActive) {
         return
       }
 
@@ -868,6 +872,7 @@ window.WalletPageLogic = {
           day: 'numeric'
         })
       )
+      this.chartDataPointCount = data.length
       return {data, labels}
     },
     refreshCharts() {
@@ -964,12 +969,20 @@ window.WalletPageLogic = {
                   {
                     label: 'Balance In',
                     borderRadius: 5,
-                    data: data.map(s => s.balance_in)
+                    data: data.map(s => s.balance_in),
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.primaryColor,
+                      0.3
+                    )
                   },
                   {
                     label: 'Balance Out',
                     borderRadius: 5,
-                    data: data.map(s => s.balance_out)
+                    data: data.map(s => s.balance_out),
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.secondaryColor,
+                      0.3
+                    )
                   }
                 ]
               }
@@ -1005,11 +1018,19 @@ window.WalletPageLogic = {
                 datasets: [
                   {
                     label: 'Payments In',
-                    data: data.map(s => s.count_in)
+                    data: data.map(s => s.count_in),
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.primaryColor,
+                      0.3
+                    )
                   },
                   {
                     label: 'Payments Out',
-                    data: data.map(s => -s.count_out)
+                    data: data.map(s => -s.count_out),
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.secondaryColor,
+                      0.3
+                    )
                   }
                 ]
               }
