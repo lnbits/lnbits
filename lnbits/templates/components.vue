@@ -1312,7 +1312,7 @@
     <div class="flex justify-center q-mt-md" style="gap: 1rem">
       <q-btn
         v-if="authMethods.includes('nostr-auth-nip98')"
-        @click="signInWithNostr"
+        @click="signInWithNostr()"
         outline
         no-caps
         color="grey"
