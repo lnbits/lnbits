@@ -420,7 +420,8 @@ window.WalletPageLogic = {
       let cleanInvoice = {
         msat: invoice.human_readable_part.amount,
         sat: invoice.human_readable_part.amount / 1000,
-        fsat: LNbits.utils.formatSat(invoice.human_readable_part.amount / 1000)
+        fsat: LNbits.utils.formatSat(invoice.human_readable_part.amount / 1000),
+        bolt11: this.parse.data.request
       }
 
       _.each(invoice.data.tags, tag => {
@@ -433,14 +434,29 @@ window.WalletPageLogic = {
             const expireDate = new Date(
               (invoice.data.time_stamp + tag.value) * 1000
             )
+            const createdDate = new Date(invoice.data.time_stamp * 1000)
             cleanInvoice.expireDate = Quasar.date.formatDate(
               expireDate,
               'YYYY-MM-DDTHH:mm:ss.SSSZ'
             )
+            cleanInvoice.createdDate = Quasar.date.formatDate(
+              createdDate,
+              'YYYY-MM-DDTHH:mm:ss.SSSZ'
+            )
+            cleanInvoice.expireDateFrom = moment(expireDate).fromNow()
+            cleanInvoice.createdDateFrom = moment(createdDate).fromNow()
+
             cleanInvoice.expired = false // TODO
           }
         }
       })
+
+      if (this.g.wallet.currency) {
+        cleanInvoice.fiatAmount = LNbits.utils.formatCurrency(
+          ((cleanInvoice.sat / 1e8) * this.g.exchangeRate).toFixed(2),
+          this.g.wallet.currency
+        )
+      }
 
       this.parse.invoice = Object.freeze(cleanInvoice)
     },
