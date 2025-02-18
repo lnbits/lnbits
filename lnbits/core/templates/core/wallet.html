@@ -29,19 +29,20 @@
           } : ''"
         >
           <q-card-section style="height: 130px">
-            <div class="row">
+            <div class="row q-gutter-md">
               <div class="col-1" style="max-width: 30px">
                 <q-btn
                   v-if="g.fiatTracking"
                   @click="swapBalancePriority"
                   style="height: 50px"
                   class="q-mt-lg"
+                  color="primary"
                   flat
                   dense
                   icon="swap_vert"
                 ></q-btn>
               </div>
-              <div class="col-11">
+              <div class="col">
                 <div
                   class="column"
                   :class="{
@@ -693,27 +694,95 @@
       <q-dialog v-model="parse.show" @hide="closeParseDialog" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="parse.invoice">
-            <h4
-              v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-              class="q-my-md text-center"
-            >
-              <span
-                v-text="parseFloat(String(parse.invoice.fsat).replaceAll(',', '')) / 100"
-              ></span>
-              <span class="text-h6" v-text="'{{LNBITS_DENOMINATION}}'"></span>
-            </h4>
-            <h4 v-else class="q-my-md text-center">
-              <span v-text="parse.invoice.fsat"></span>
-              <span class="text-h6" v-text="'{{LNBITS_DENOMINATION}}'"></span>
-            </h4>
-            <q-separator class="q-mb-md"></q-separator>
-            <h6
-              class="q-mb-md text-center"
-              v-text="parse.invoice.description"
-            ></h6>
+            <div class="column content-center text-center q-mb-md">
+              <div v-if="!isFiatPriority">
+                <h4
+                  v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
+                  class="q-my-none text-bold"
+                >
+                  <span
+                    v-text="parseFloat(String(parse.invoice.fsat).replaceAll(',', '')) / 100"
+                  ></span>
+                  <span
+                    class="text-h5"
+                    v-text="'{{LNBITS_DENOMINATION}}'"
+                  ></span>
+                </h4>
+                <h4 v-else class="q-my-none text-bold">
+                  <span v-text="parse.invoice.fsat"></span>
+                  <span
+                    class="text-h5"
+                    v-text="'{{LNBITS_DENOMINATION}}'"
+                  ></span>
+                </h4>
+              </div>
+              <div v-else>
+                <h4
+                  class="q-my-none text-bold"
+                  v-text="parse.invoice.fiatAmount"
+                ></h4>
+              </div>
+              <div class="q-my-md absolute">
+                <q-btn
+                  v-if="g.fiatTracking"
+                  @click="swapBalancePriority"
+                  flat
+                  dense
+                  icon="swap_vert"
+                  color="primary"
+                ></q-btn>
+              </div>
+              <div v-if="!isFiatPriority">
+                <div class="text-h5 text-italic">
+                  <span
+                    v-text="parse.invoice.fiatAmount"
+                    style="opacity: 0.75"
+                  ></span>
+                </div>
+              </div>
+              <div v-else style="opacity: 0.75">
+                <h5
+                  v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
+                  class="q-my-none text-bold"
+                >
+                  <span
+                    v-text="parseFloat(String(parse.invoice.fsat).replaceAll(',', '')) / 100"
+                  ></span>
+                  <span
+                    class="text-h6"
+                    v-text="'{{LNBITS_DENOMINATION}}'"
+                  ></span>
+                </h5>
+                <h5 v-else class="q-my-none text-bold">
+                  <span v-text="parse.invoice.fsat"></span>
+                  <span
+                    class="text-h6"
+                    v-text="'{{LNBITS_DENOMINATION}}'"
+                  ></span>
+                </h5>
+              </div>
+            </div>
+            <q-separator></q-separator>
+            <h6 class="text-center" v-text="parse.invoice.description"></h6>
             <q-list separator bordered dense class="q-mb-md">
               <q-expansion-item expand-separator icon="info" label="Details">
-                <q-list dense separator>
+                <q-list separator>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label v-text="$t('created')"></q-item-label>
+                      <q-item-label
+                        caption
+                        v-text="parse.invoice.createdDate"
+                      ></q-item-label>
+                    </q-item-section>
+
+                    <q-item-section side top>
+                      <q-item-label
+                        caption
+                        v-text="parse.invoice.createdDateFrom"
+                      ></q-item-label>
+                    </q-item-section>
+                  </q-item>
                   <q-item>
                     <q-item-section>
                       <q-item-label v-text="$t('expire_date')"></q-item-label>
@@ -722,30 +791,62 @@
                         v-text="parse.invoice.expireDate"
                       ></q-item-label>
                     </q-item-section>
+                    <q-item-section side top>
+                      <q-item-label
+                        caption
+                        v-text="parse.invoice.expireDateFrom"
+                      ></q-item-label>
+                    </q-item-section>
                   </q-item>
                   <q-item>
                     <q-item-section>
-                      <q-item-label v-text="$t('hash')"></q-item-label>
+                      <q-item-label v-text="$t('payment_hash')"></q-item-label>
                       <q-item-label
-                        lines="2"
                         caption
-                        v-text="parse.invoice.hash"
+                        v-text="`${parse.invoice.hash.slice(0, 12)}...${parse.invoice.hash.slice(-12)}`"
                       ></q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-item-label>
+                        <q-icon
+                          name="content_copy"
+                          @click="copyText(parse.invoice.hash)"
+                          size="1em"
+                          color="grey"
+                          class="cursor-pointer"
+                        />
+                      </q-item-label>
+                      <q-tooltip>
+                        <span v-text="parse.invoice.hash"></span>
+                      </q-tooltip>
+                    </q-item-section>
+                  </q-item>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label v-text="$t('Invoice')"></q-item-label>
+                      <q-item-label
+                        caption
+                        v-text="`${parse.invoice.bolt11.slice(0, 12)}...${parse.invoice.bolt11.slice(-12)}`"
+                      ></q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-item-label>
+                        <q-icon
+                          name="content_copy"
+                          @click="copyText(parse.invoice.bolt11)"
+                          size="1em"
+                          color="grey"
+                          class="cursor-pointer"
+                        />
+                      </q-item-label>
+                      <q-tooltip>
+                        <span v-text="parse.invoice.bolt11"></span>
+                      </q-tooltip>
                     </q-item-section>
                   </q-item>
                 </q-list>
               </q-expansion-item>
             </q-list>
-            <!-- <p class="text-wrap">
-              <strong v-text="$t('memo') + ': '"></strong>
-              <span v-text="parse.invoice.description"></span>
-              <br />
-              <strong v-text="$t('expire_date')"></strong>
-              <span v-text="parse.invoice.expireDate"></span>
-              <br />
-              <strong v-text="$t('hash')"></strong>
-              <span v-text="parse.invoice.hash"></span>
-            </p> -->
             <div v-if="canPay" class="row q-mt-lg">
               <q-btn
                 unelevated
