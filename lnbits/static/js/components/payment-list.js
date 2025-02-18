@@ -179,7 +179,7 @@ window.app.component('payment-list', {
     },
     checkPayment(payment_hash) {
       LNbits.api
-        .getPayment(this.wallet, payment_hash)
+        .getPayment(this.g.wallet, payment_hash)
         .then(res => {
           this.update = !this.update
           if (res.data.status == 'success') {
