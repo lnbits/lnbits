@@ -693,18 +693,50 @@
       <q-dialog v-model="parse.show" @hide="closeParseDialog" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
           <div v-if="parse.invoice">
-            <h6
+            <h4
               v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-              class="q-my-none"
-              v-text="parseFloat(String(parse.invoice.fsat).replaceAll(',', '')) / 100 + '{{LNBITS_DENOMINATION}}'"
-            ></h6>
+              class="q-my-md text-center"
+            >
+              <span
+                v-text="parseFloat(String(parse.invoice.fsat).replaceAll(',', '')) / 100"
+              ></span>
+              <span class="text-h6" v-text="'{{LNBITS_DENOMINATION}}'"></span>
+            </h4>
+            <h4 v-else class="q-my-md text-center">
+              <span v-text="parse.invoice.fsat"></span>
+              <span class="text-h6" v-text="'{{LNBITS_DENOMINATION}}'"></span>
+            </h4>
+            <q-separator class="q-mb-md"></q-separator>
             <h6
-              v-else
-              class="q-my-none"
-              v-text="parse.invoice.fsat + '{{LNBITS_DENOMINATION}}'"
+              class="q-mb-md text-center"
+              v-text="parse.invoice.description"
             ></h6>
-            <q-separator class="q-my-sm"></q-separator>
-            <p class="text-wrap">
+            <q-list separator bordered dense class="q-mb-md">
+              <q-expansion-item expand-separator icon="info" label="Details">
+                <q-list dense separator>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label v-text="$t('expire_date')"></q-item-label>
+                      <q-item-label
+                        caption
+                        v-text="parse.invoice.expireDate"
+                      ></q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label v-text="$t('hash')"></q-item-label>
+                      <q-item-label
+                        lines="2"
+                        caption
+                        v-text="parse.invoice.hash"
+                      ></q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-expansion-item>
+            </q-list>
+            <!-- <p class="text-wrap">
               <strong v-text="$t('memo') + ': '"></strong>
               <span v-text="parse.invoice.description"></span>
               <br />
@@ -713,7 +745,7 @@
               <br />
               <strong v-text="$t('hash')"></strong>
               <span v-text="parse.invoice.hash"></span>
-            </p>
+            </p> -->
             <div v-if="canPay" class="row q-mt-lg">
               <q-btn
                 unelevated
