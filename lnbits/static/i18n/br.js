@@ -89,7 +89,7 @@ window.localisation.br = {
   pay: 'Pagar',
   memo: 'Memo',
   date: 'Data',
-  processing_payment: 'Processando pagamento...',
+  payment_processing: 'Processando pagamento...',
   not_enough_funds: 'Fundos insuficientes!',
   search_by_tag_memo_amount: 'Pesquisar por tag, memo, quantidade',
   invoice_waiting: 'Fatura aguardando pagamento',

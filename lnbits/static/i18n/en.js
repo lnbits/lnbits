@@ -94,7 +94,7 @@ window.localisation.en = {
   memo: 'Memo',
   date: 'Date',
   path: 'Path',
-  processing_payment: 'Processing payment...',
+  payment_processing: 'Processing payment...',
   payment_processing: 'Processing payment...',
   payment_successful: 'Payment successful!',
   payment_pending: 'Payment pending...',

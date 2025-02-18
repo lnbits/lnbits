@@ -91,7 +91,7 @@ window.localisation.it = {
   pay: 'Paga',
   memo: 'Memo',
   date: 'Dati',
-  processing_payment: 'Elaborazione pagamento...',
+  payment_processing: 'Elaborazione pagamento...',
   not_enough_funds: 'Non ci sono abbastanza fondi!',
   search_by_tag_memo_amount: 'Cerca per tag, memo, importo...',
   invoice_waiting: 'Fattura in attesa di pagamento',

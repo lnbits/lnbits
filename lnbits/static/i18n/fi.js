@@ -96,7 +96,7 @@ window.localisation.fi = {
   memo: 'Kuvaus',
   date: 'Päiväys',
   path: 'Path',
-  processing_payment: 'Maksua käsitellään...',
+  payment_processing: 'Maksua käsitellään...',
   not_enough_funds: 'Varat eivät riitä!',
   search_by_tag_memo_amount: 'Etsi tunnisteella, muistiolla tai määrällä',
   invoice_waiting: 'Lasku osottaa maksamista',

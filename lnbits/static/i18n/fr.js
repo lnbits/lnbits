@@ -93,7 +93,7 @@ window.localisation.fr = {
   pay: 'Payer',
   memo: 'Mémo',
   date: 'Date',
-  processing_payment: 'Traitement du paiement...',
+  payment_processing: 'Traitement du paiement...',
   not_enough_funds: 'Fonds insuffisants !',
   search_by_tag_memo_amount: 'Rechercher par tag, mémo, montant',
   invoice_waiting: 'Facture en attente de paiement',
