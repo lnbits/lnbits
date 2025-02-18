@@ -608,7 +608,7 @@ window.windowMixin = {
           gradientStyle,
           'important'
         )
-        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
+        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important; backdrop-filter: blur(6px);`
         const style = document.createElement('style')
         style.innerHTML =
           `body[data-theme="${this.themeChoice}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
