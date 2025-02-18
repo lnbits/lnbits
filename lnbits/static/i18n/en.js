@@ -415,8 +415,12 @@ window.localisation.en = {
   invoice_expiry: 'Invoice Expiry',
   invoice_expiry_label: 'Invoice expiry (seconds)',
   fee_reserve: 'Fee Reserve',
+  fee_reserve_percent: 'Fee Reserve Percent',
   fee_reserve_msats: 'Reserve fee in msats',
-  fee_reserve_percent: 'Reserve fee in percent',
+  reserve_fee_in_percent: 'Reserve fee in percent',
+  payment_wait_time: 'Payment Wait Time',
+  payment_wait_time_desc:
+    'How long to wait when making a payment before marking it as pending. Set higher values for HODL invoices, Boltz, etc.',
   server_management: 'Server Management',
   base_url: 'Base URL',
   base_url_label: 'Static/Base url for the server',

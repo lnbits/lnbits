@@ -588,7 +588,8 @@ async def _pay_external_invoice(
 
     # make sure a hold invoice or deferred payment is not blocking the server
     try:
-        payment_response = await asyncio.wait_for(task, 5)
+        wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
+        payment_response = await asyncio.wait_for(task, wait_time)
     except asyncio.TimeoutError:
         # return pending payment on timeout
         logger.debug(f"payment timeout, {checking_id} is still pending")
