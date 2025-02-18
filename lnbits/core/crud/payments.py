@@ -85,7 +85,7 @@ async def get_latest_payments_by_extension(
         WHERE status = '{PaymentState.SUCCESS}'
         AND extra LIKE :ext_name
         AND extra LIKE :ext_id
-        ORDER BY time DESC LIMIT {limit}
+        ORDER BY time DESC LIMIT {int(limit)}
         """,
         {"ext_name": f"%{ext_name}%", "ext_id": f"%{ext_id}%"},
         Payment,
@@ -251,6 +251,7 @@ async def create_payment(
     # note: this can be removed if the db uniqueness constraints are set appropriately
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     assert previous_payment is None, "Payment already exists"
+    extra = data.extra or {}
 
     payment = Payment(
         checking_id=checking_id,
@@ -264,7 +265,8 @@ async def create_payment(
         expiry=data.expiry,
         webhook=data.webhook,
         fee=data.fee,
-        extra=data.extra or {},
+        tag=extra.get("tag", None),
+        extra=extra,
     )
 
     await (conn or db).insert("apipayments", payment)
