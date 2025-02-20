@@ -798,7 +798,11 @@
             v-else
             name="downloading"
             color="grey"
-            :style="props.row.isOut ? 'transform: rotateX(180deg)' : ''"
+            :style="
+              props.row.isOut
+                ? 'transform: rotate(225deg)'
+                : 'transform: rotate(45deg)'
+            "
             @click="props.expand = !props.expand"
           >
             <q-tooltip><span v-text="$t('pending')"></span></q-tooltip>
