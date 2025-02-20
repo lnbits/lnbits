@@ -796,8 +796,9 @@
           </q-icon>
           <q-icon
             v-else
-            name="settings_ethernet"
+            name="downloading"
             color="grey"
+            :style="props.row.isOut ? 'transform: rotateX(180deg)' : ''"
             @click="props.expand = !props.expand"
           >
             <q-tooltip><span v-text="$t('pending')"></span></q-tooltip>
