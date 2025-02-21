@@ -696,24 +696,8 @@
           <div v-if="parse.invoice">
             <div class="column content-center text-center q-mb-md">
               <div v-if="!isFiatPriority">
-                <h4
-                  v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-                  class="q-my-none text-bold"
-                >
-                  <span
-                    v-text="parseFloat(String(parse.invoice.fsat).replaceAll(',', '')) / 100"
-                  ></span>
-                  <span
-                    class="text-h5"
-                    v-text="'{{LNBITS_DENOMINATION}}'"
-                  ></span>
-                </h4>
-                <h4 v-else class="q-my-none text-bold">
-                  <span v-text="parse.invoice.fsat"></span>
-                  <span
-                    class="text-h5"
-                    v-text="'{{LNBITS_DENOMINATION}}'"
-                  ></span>
+                <h4 class="q-my-none text-bold">
+                  <span v-text="formatBalance(parse.invoice.sat)"></span>
                 </h4>
               </div>
               <div v-else>
@@ -732,7 +716,8 @@
                   color="primary"
                 ></q-btn>
               </div>
-              <div v-if="!isFiatPriority">
+            <div v-if="g.fiatTracking">
+              <div v-if="isFiatPriority">
                 <div class="text-h5 text-italic">
                   <span
                     v-text="parse.invoice.fiatAmount"
@@ -741,26 +726,11 @@
                 </div>
               </div>
               <div v-else style="opacity: 0.75">
-                <h5
-                  v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-                  class="q-my-none text-bold"
-                >
-                  <span
-                    v-text="parseFloat(String(parse.invoice.fsat).replaceAll(',', '')) / 100"
-                  ></span>
-                  <span
-                    class="text-h6"
-                    v-text="'{{LNBITS_DENOMINATION}}'"
-                  ></span>
-                </h5>
-                <h5 v-else class="q-my-none text-bold">
-                  <span v-text="parse.invoice.fsat"></span>
-                  <span
-                    class="text-h6"
-                    v-text="'{{LNBITS_DENOMINATION}}'"
-                  ></span>
+                <h5 class="q-my-none text-bold">
+                <span v-text="formatBalance(parse.invoice.sat)"></span>
                 </h5>
               </div>
+            </div>
             </div>
             <q-separator></q-separator>
             <h6 class="text-center" v-text="parse.invoice.description"></h6>
