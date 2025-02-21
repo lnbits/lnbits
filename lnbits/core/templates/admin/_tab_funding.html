@@ -39,13 +39,13 @@
           ></q-toggle>
           <q-toggle
             v-if="formData.lnbits_node_ui"
-            :label="$('toggle_public_node_ui')"
+            :label="$t('toggle_public_node_ui')"
             v-model="formData.lnbits_public_node_ui"
           ></q-toggle>
           <br />
           <q-toggle
             v-if="formData.lnbits_node_ui"
-            :label="$('toggle_transactions_node_ui')"
+            :label="$t('toggle_transactions_node_ui')"
             v-model="formData.lnbits_node_ui_transactions"
           ></q-toggle>
           {% else %}
