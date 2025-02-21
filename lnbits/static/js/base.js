@@ -585,6 +585,13 @@ window.windowMixin = {
         window.history.replaceState({}, '', url.toString())
       }
     },
+    formatBalance(amount) {
+      if (LNBITS_DENOMINATION != 'sats') {
+        return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)
+      } else {
+        return LNbits.utils.formatSat(amount)
+      }
+    },
     changeTheme(newValue) {
       document.body.setAttribute('data-theme', newValue)
       if (this.themeSelection) {
