@@ -801,7 +801,7 @@
             :style="
               props.row.isOut
                 ? 'transform: rotate(225deg)'
-                : 'transform: rotate(45deg)'
+                : 'transform: scaleX(-1) rotate(315deg)'
             "
             @click="props.expand = !props.expand"
           >

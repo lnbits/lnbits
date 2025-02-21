@@ -273,7 +273,7 @@
                     v-else-if="props.row.status === 'pending'"
                     @click="showDetailsToggle(props.row)"
                     name="downloading"
-                    :style="props.row.outgoing ? 'transform: rotate(225deg)' : 'transform: rotate(45deg)'"
+                    :style="props.row.outgoing ? 'transform: rotate(225deg)' : 'transform: scaleX(-1) rotate(315deg)'"
                     color="grey"
                     class="cursor-pointer"
                   ></q-icon>
