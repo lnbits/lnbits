@@ -51,7 +51,7 @@ async def home(request: Request, lightning: str = ""):
 async def first_install(request: Request):
     if not settings.first_install:
         raise HTTPException(
-            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            status_code=HTTPStatus.BAD_REQUEST,
             detail="Super user account has already been configured.",
         )
     return template_renderer().TemplateResponse(
