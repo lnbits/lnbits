@@ -138,10 +138,10 @@ window.WalletPageLogic = {
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
     formattedAmount() {
-      if (this.receive.unit != 'sat') {
+      if (this.receive.unit != 'sat' || LNBITS_DENOMINATION != 'sats') {
         return LNbits.utils.formatCurrency(
           Number(this.receive.data.amount).toFixed(2),
-          this.receive.unit
+          LNBITS_DENOMINATION != 'sats' ? LNBITS_DENOMINATION: this.receive.unit
         )
       } else {
         return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
