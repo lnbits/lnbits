@@ -312,3 +312,16 @@ def get_api_routes(routes: list) -> dict[str, str]:
             data["/".join(segments[0:4])] = segments[1].capitalize()
 
     return data
+
+def path_segments(path: str) -> list[str]:
+    path = path.strip("/")
+    segments = path.split("/")
+    if len(segments) < 2:
+        return segments
+    if segments[0] == "upgrades":
+        return segments[2:]
+    return segments[0:]
+
+
+def normalize_url(url: str) -> str:
+    return "/" + "/".join(path_segments(url))
