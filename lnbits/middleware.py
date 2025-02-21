@@ -15,7 +15,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.core.db import core_app_extra
 from lnbits.core.models import AuditEntry
-from lnbits.helpers import template_renderer
+from lnbits.helpers import normalize_path, template_renderer
 from lnbits.settings import settings
 
 
@@ -156,6 +156,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             if settings.is_super_user(user_id):
                 user_id = "super_user"
             component = "core"
+            path = normalize_path(path)
             if path and not path.startswith("/api"):
                 component = path.split("/")[1]
 

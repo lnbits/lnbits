@@ -313,6 +313,7 @@ def get_api_routes(routes: list) -> dict[str, str]:
 
     return data
 
+
 def path_segments(path: str) -> list[str]:
     path = path.strip("/")
     segments = path.split("/")
@@ -323,5 +324,6 @@ def path_segments(path: str) -> list[str]:
     return segments[0:]
 
 
-def normalize_path(path: str) -> str:
+def normalize_path(path: Optional[str]) -> str:
+    path = path or ""
     return "/" + "/".join(path_segments(path))
