@@ -233,8 +233,6 @@ async def api_exchange_rate_history() -> list[dict]:
 
 @api_router.get("/api/v1/rate/{currency}")
 async def api_check_fiat_rate(currency: str) -> dict[str, float]:
-    if currency == settings.lnbits_denomination:
-        return {"rate": 1.0, "price": 1.0}
     rate, price = await get_fiat_rate_and_price_satoshis(currency)
     return {"rate": rate, "price": price}
 
