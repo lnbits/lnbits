@@ -194,7 +194,7 @@ window.WalletPageLogic = {
       this.receive.data.memo = null
       this.receive.unit = this.isFiatPriority
         ? this.g.wallet.currency || 'sat'
-        : '{{ LNBITS_DENOMINATION }}'
+        : 'sat'
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
       this.focusInput('setAmount')

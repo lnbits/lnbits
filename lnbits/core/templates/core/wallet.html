@@ -30,11 +30,7 @@
         >
           <q-card-section style="height: 130px">
             <div class="row q-gutter-md">
-              <div
-                v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
-                class="col-1"
-                style="max-width: 30px"
-              >
+              <div  v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'" class="col-1" style="max-width: 30px">
                 <q-btn
                   v-if="g.fiatTracking"
                   @click="swapBalancePriority"
@@ -590,7 +586,6 @@
               :min="receive.minMax[0]"
               :max="receive.minMax[1]"
               :readonly="receive.lnurl && receive.lnurl.fixed"
-              ref="setAmount"
             ></q-input>
             {% else %}
             <q-select
