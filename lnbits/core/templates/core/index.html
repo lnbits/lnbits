@@ -90,6 +90,12 @@
               >
                 {{SITE_TAGLINE}}
               </h6>
+              <p
+                class="q-my-sm"
+                v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
+              >
+                {{SITE_DESCRIPTION}}
+            </p>
               <!-- <div
             class="gt-sm"
             v-html="formatDescription"
@@ -203,7 +209,7 @@
           </q-card>
         </div>
       </div>
-      <div class="full-width q-mb-lg q-mt-sm">
+      <div  v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'" class="full-width q-mb-lg q-mt-sm">
         <div class="flex flex-center q-gutter-md q-py-md">
           <q-btn
             outline
@@ -256,7 +262,7 @@
         </div>
       </div>
       {% endif %}
-      <div class="full-width">
+      <div v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'" class="full-width">
         <div class="wrapper">
           <div class="marquee">
             <div class="marquee__group">

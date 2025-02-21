@@ -826,7 +826,7 @@ window.WalletPageLogic = {
     createdTasks() {
       this.update.name = this.g.wallet.name
       this.receive.units = ['sat', ...(window.currencies || [])]
-      if (this.g.wallet.currency != '') {
+      if (this.g.wallet.currency != '' && LNBITS_DENOMINATION == 'sats') {
         this.g.fiatTracking = true
         this.updateFiatBalance(this.g.wallet.currency)
       } else {

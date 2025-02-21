@@ -30,7 +30,7 @@
         >
           <q-card-section style="height: 130px">
             <div class="row q-gutter-md">
-              <div class="col-1" style="max-width: 30px">
+              <div  v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'" class="col-1" style="max-width: 30px">
                 <q-btn
                   v-if="g.fiatTracking"
                   @click="swapBalancePriority"
@@ -122,7 +122,7 @@
 
                 <div
                   class="absolute-right q-pa-md"
-                  v-if="$q.screen.gt.md && g.fiatTracking"
+                  v-if="$q.screen.gt.md && g.fiatTracking &&  '{{ LNBITS_DENOMINATION }}' == 'sats'"
                 >
                   <div class="text-bold text-italic">BTC Price</div>
                   <span
