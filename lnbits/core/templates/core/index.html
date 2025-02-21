@@ -237,31 +237,32 @@
         </div>
       </div>
       {% if AD_SPACE %}
-      <div class="row justify-center q-mb-xl">
-        <div class="full-width text-center">
-          <span class="text-uppercase text-grey">{{ AD_SPACE_TITLE }}</span>
-        </div>
-        <div class="flex flex-center columm">
-          {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
-
-          <div class="flex flex-center column">
-            <a href="{{ AD[0] }}">
-              <img
-                v-if="($q.dark.isActive)"
-                src="{{ AD[1] }}"
-                style="max-width: 420px"
-                class="full-width"
-              />
-              <img
-                v-else
-                src="{{ AD[2] }}"
-                style="max-width: 420px"
-                class="full-width"
-              />
-            </a>
+      <div class="q-pt-md full-width">
+        <div class="row justify-center q-mb-xl">
+          <div class="full-width text-center">
+            <span class="text-uppercase text-grey">{{ AD_SPACE_TITLE }}</span>
           </div>
+          <div class="flex flex-center columm">
+            {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
+            <div class="flex flex-center column q-pr-sm">
+              <a href="{{ AD[0] }}">
+                <img
+                  v-if="($q.dark.isActive)"
+                  src="{{ AD[1] }}"
+                  style="max-width: 420px"
+                  class="full-width"
+                />
+                <img
+                  v-else
+                  src="{{ AD[2] }}"
+                  style="max-width: 420px"
+                  class="full-width"
+                />
+              </a>
+            </div>
 
-          {% endfor %}
+            {% endfor %}
+          </div>
         </div>
       </div>
       {% endif %}
