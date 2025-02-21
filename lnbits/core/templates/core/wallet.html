@@ -261,6 +261,7 @@
                 {% endif %}
 
                 <q-expansion-item
+                 v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
                   group="extras"
                   icon="phone_android"
                   :label="$t('access_wallet_on_mobile')"
@@ -353,7 +354,7 @@
                         <div class="col-2"></div>
                       </div>
                     </q-card-section>
-                    <q-card-section>
+                    <q-card-section v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'">
                       <div class="row">
                         <div class="col-6">
                           <q-select
