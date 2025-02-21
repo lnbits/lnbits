@@ -128,7 +128,10 @@ window.WalletPageLogic = {
   computed: {
     formattedBalance() {
       if (LNBITS_DENOMINATION != 'sats') {
-        return LNbits.utils.formatCurrency(this.g.wallet.sat / 100, LNBITS_DENOMINATION)
+        return LNbits.utils.formatCurrency(
+          this.g.wallet.sat / 100,
+          LNBITS_DENOMINATION
+        )
       } else {
         return LNbits.utils.formatSat(this.g.wallet.sat)
       }
@@ -141,7 +144,9 @@ window.WalletPageLogic = {
       if (this.receive.unit != 'sat' || LNBITS_DENOMINATION != 'sats') {
         return LNbits.utils.formatCurrency(
           Number(this.receive.data.amount).toFixed(2),
-          LNBITS_DENOMINATION != 'sats' ? LNBITS_DENOMINATION: this.receive.unit
+          LNBITS_DENOMINATION != 'sats'
+            ? LNBITS_DENOMINATION
+            : this.receive.unit
         )
       } else {
         return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'

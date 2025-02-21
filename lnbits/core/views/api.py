@@ -40,7 +40,7 @@ from lnbits.utils.exchange_rates import (
 )
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import StatusResponse
-from lnbits.settings import settings
+
 from ..services import create_user_account, perform_lnurlauth
 
 api_router = APIRouter(tags=["Core"])

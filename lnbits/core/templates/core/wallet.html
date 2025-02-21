@@ -30,7 +30,11 @@
         >
           <q-card-section style="height: 130px">
             <div class="row q-gutter-md">
-              <div  v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'" class="col-1" style="max-width: 30px">
+              <div
+                v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
+                class="col-1"
+                style="max-width: 30px"
+              >
                 <q-btn
                   v-if="g.fiatTracking"
                   @click="swapBalancePriority"
@@ -56,7 +60,9 @@
                     <div class="row">
                       <div class="col-auto">
                         <div class="text-h3 q-my-none text-no-wrap">
-                          <small v-text="formatBalance(this.g.wallet.sat)"></small>
+                          <small
+                            v-text="formatBalance(this.g.wallet.sat)"
+                          ></small>
                         </div>
                       </div>
                       <div class="col-auto">
@@ -256,7 +262,7 @@
                 {% endif %}
 
                 <q-expansion-item
-                 v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
+                  v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
                   group="extras"
                   icon="phone_android"
                   :label="$t('access_wallet_on_mobile')"
@@ -349,7 +355,9 @@
                         <div class="col-2"></div>
                       </div>
                     </q-card-section>
-                    <q-card-section v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'">
+                    <q-card-section
+                      v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
+                    >
                       <div class="row">
                         <div class="col-6">
                           <q-select
@@ -716,21 +724,21 @@
                   color="primary"
                 ></q-btn>
               </div>
-            <div v-if="g.fiatTracking">
-              <div v-if="isFiatPriority">
-                <div class="text-h5 text-italic">
-                  <span
-                    v-text="parse.invoice.fiatAmount"
-                    style="opacity: 0.75"
-                  ></span>
+              <div v-if="g.fiatTracking">
+                <div v-if="isFiatPriority">
+                  <div class="text-h5 text-italic">
+                    <span
+                      v-text="parse.invoice.fiatAmount"
+                      style="opacity: 0.75"
+                    ></span>
+                  </div>
+                </div>
+                <div v-else style="opacity: 0.75">
+                  <h5 class="q-my-none text-bold">
+                    <span v-text="formatBalance(parse.invoice.sat)"></span>
+                  </h5>
                 </div>
               </div>
-              <div v-else style="opacity: 0.75">
-                <h5 class="q-my-none text-bold">
-                <span v-text="formatBalance(parse.invoice.sat)"></span>
-                </h5>
-              </div>
-            </div>
             </div>
             <q-separator></q-separator>
             <h6 class="text-center" v-text="parse.invoice.description"></h6>

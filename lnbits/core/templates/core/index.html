@@ -95,7 +95,7 @@
                 v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
               >
                 {{SITE_DESCRIPTION}}
-            </p>
+              </p>
               <!-- <div
             class="gt-sm"
             v-html="formatDescription"
@@ -209,7 +209,10 @@
           </q-card>
         </div>
       </div>
-      <div  v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'" class="full-width q-mb-lg q-mt-sm">
+      <div
+        v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
+        class="full-width q-mb-lg q-mt-sm"
+      >
         <div class="flex flex-center q-gutter-md q-py-md">
           <q-btn
             outline
