@@ -63,11 +63,11 @@ async def pay_invoice(
     invoice = _validate_payment_request(payment_request, max_sat)
     assert invoice.amount_msat
 
-    async with db.reuse_conn(conn) if conn else db.connect() as conn:
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         amount_msat = invoice.amount_msat
-        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, conn)
+        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
 
-        if await is_internal_status_success(invoice.payment_hash, conn):
+        if await is_internal_status_success(invoice.payment_hash, new_conn):
             raise PaymentError("Internal invoice already paid.", status="failed")
 
         _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
@@ -82,8 +82,10 @@ async def pay_invoice(
             extra=extra,
         )
 
-        payment = await _pay_invoice(wallet, create_payment_model, conn)
-        await _credit_service_fee_wallet(payment, conn)
+    payment = await _pay_invoice(wallet, create_payment_model, conn)
+
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        await _credit_service_fee_wallet(payment, new_conn)
 
         return payment
 
