@@ -323,5 +323,5 @@ def path_segments(path: str) -> list[str]:
     return segments[0:]
 
 
-def normalize_url(url: str) -> str:
-    return "/" + "/".join(path_segments(url))
+def normalize_path(path: str) -> str:
+    return "/" + "/".join(path_segments(path))
