@@ -224,18 +224,30 @@ def create_access_token(data: dict, token_expire_minutes: Optional[int] = None) 
     return jwt.encode(to_encode, settings.auth_secret_key, "HS256")
 
 
-def encrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
-    """Encrypt message with the internal secret key"""
+def encrypt_internal_message(m: Optional[str] = None, urlsafe: bool = False) -> Optional[str]:
+    """
+    Encrypt message with the internal secret key
+
+    Args:
+        m: Message to encrypt
+        urlsafe: Whether to use URL-safe base64 encoding
+    """
     if not m:
         return None
-    return AESCipher(key=settings.auth_secret_key).encrypt(m.encode())
+    return AESCipher(key=settings.auth_secret_key).encrypt(m.encode(), urlsafe=urlsafe)
 
 
-def decrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
-    """Decrypt message with the internal secret key"""
+def decrypt_internal_message(m: Optional[str] = None, urlsafe: bool = False) -> Optional[str]:
+    """
+    Decrypt message with the internal secret key
+
+    Args:
+        m: Message to decrypt
+        urlsafe: Whether the message uses URL-safe base64 encoding
+    """
     if not m:
         return None
-    return AESCipher(key=settings.auth_secret_key).decrypt(m)
+    return AESCipher(key=settings.auth_secret_key).decrypt(m, urlsafe=urlsafe)
 
 
 def filter_dict_keys(data: dict, filter_keys: Optional[list[str]]) -> dict:
