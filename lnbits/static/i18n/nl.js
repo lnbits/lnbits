@@ -91,7 +91,7 @@ window.localisation.nl = {
   pay: 'Betalen',
   memo: 'Memo',
   date: 'Datum',
-  processing_payment: 'Verwerking betaling...',
+  payment_processing: 'Verwerking betaling...',
   not_enough_funds: 'Onvoldoende saldo!',
   search_by_tag_memo_amount: 'Zoeken op tag, memo, bedrag',
   invoice_waiting: 'Factuur wachtend op betaling',

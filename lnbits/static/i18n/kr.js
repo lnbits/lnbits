@@ -89,7 +89,7 @@ window.localisation.kr = {
   pay: '지불하기',
   memo: 'Memo',
   date: '일시',
-  processing_payment: '결제 처리 중...',
+  payment_processing: '결제 처리 중...',
   not_enough_funds: '자금이 부족합니다!',
   search_by_tag_memo_amount: '태그, memo, 수량으로 검색하기',
   invoice_waiting: '결제를 기다리는 인보이스',

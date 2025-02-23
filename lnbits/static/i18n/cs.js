@@ -90,7 +90,7 @@ window.localisation.cs = {
   pay: 'Platit',
   memo: 'Poznámka',
   date: 'Datum',
-  processing_payment: 'Zpracování platby...',
+  payment_processing: 'Zpracování platby...',
   not_enough_funds: 'Nedostatek prostředků!',
   search_by_tag_memo_amount: 'Hledat podle tagu, poznámky, částky',
   invoice_waiting: 'Faktura čeká na platbu',

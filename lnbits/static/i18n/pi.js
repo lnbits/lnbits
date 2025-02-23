@@ -90,7 +90,7 @@ window.localisation.pi = {
   pay: 'Pay up or walk the plank, ye scallywag',
   memo: 'Message in a bottle, argh',
   date: 'Date of the map, me matey',
-  processing_payment: 'Processing yer payment... don´t make me say it again',
+  payment_processing: 'Processing yer payment... don´t make me say it again',
   not_enough_funds: 'Arrr, ye don´t have enough doubloons! Walk the plank!',
   search_by_tag_memo_amount: 'Search by tag, message, or booty amount, savvy',
   invoice_waiting: 'Invoice waiting to be plundered, arrr',

@@ -553,6 +553,9 @@ class FundingSourcesSettings(
     BreezSdkFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
+    # How long to wait for the payment to be confirmed before returning a pending status
+    # It will not fail the payment, it will make it return pending after the timeout
+    lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5)
 
 
 class WebPushSettings(LNbitsSettings):

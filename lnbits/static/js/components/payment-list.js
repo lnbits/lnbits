@@ -177,6 +177,26 @@ window.app.component('payment-list', {
           LNbits.utils.notifyApiError(err)
         })
     },
+    checkPayment(payment_hash) {
+      LNbits.api
+        .getPayment(this.g.wallet, payment_hash)
+        .then(res => {
+          this.update = !this.update
+          if (res.data.status == 'success') {
+            Quasar.Notify.create({
+              type: 'positive',
+              message: this.$t('payment_successful')
+            })
+          }
+          if (res.data.status == 'pending') {
+            Quasar.Notify.create({
+              type: 'info',
+              message: this.$t('payment_pending')
+            })
+          }
+        })
+        .catch(LNbits.utils.notifyApiError)
+    },
     paymentTableRowKey(row) {
       return row.payment_hash + row.amount
     },

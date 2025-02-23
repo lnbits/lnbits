@@ -950,6 +950,13 @@
                   :label="$t('copy_invoice')"
                 ></q-btn>
                 <q-btn
+                  outline
+                  color="grey"
+                  @click="checkPayment(props.row.payment_hash)"
+                  icon="refresh"
+                  :label="$t('payment_check')"
+                ></q-btn>
+                <q-btn
                   v-close-popup
                   flat
                   color="grey"

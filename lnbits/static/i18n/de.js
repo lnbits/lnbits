@@ -91,7 +91,7 @@ window.localisation.de = {
   pay: 'Zahlen',
   memo: 'Memo',
   date: 'Datum',
-  processing_payment: 'Zahlung wird verarbeitet ...',
+  payment_processing: 'Zahlung wird verarbeitet ...',
   not_enough_funds: 'Geldmittel sind erschöpft!',
   search_by_tag_memo_amount: 'Suche nach Tag, Memo, Betrag',
   invoice_waiting: 'Rechnung wartend auf Zahlung',
