@@ -326,8 +326,7 @@
                     </div>
                     <div class="row items-center q-pt-sm">
                       <h6 class="q-my-none ellipsis full-width">
-                        <strong v-text="wallet.fsat"></strong>
-                        <small> {{LNBITS_DENOMINATION}}</small>
+                        <strong v-text="formatBalance(wallet.sat)"></strong>
                       </h6>
                     </div>
                   </q-card-section>
