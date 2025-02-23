@@ -38,9 +38,14 @@ async def test_pay_real_invoice(
     assert len(invoice["payment_hash"]) == 64
     assert len(invoice["checking_id"]) > 0
 
-    data = from_wallet_ws.receive_json()
-    assert "wallet_balance" in data
-    payment = Payment(**data["payment"])
+    while True:
+        data = from_wallet_ws.receive_json()
+        assert "wallet_balance" in data
+        assert "payment" in data
+        if data["payment"]["payment_hash"] == invoice["payment_hash"]:
+            payment = Payment(**data["payment"])
+            break
+
     assert payment.payment_hash == invoice["payment_hash"]
 
     # check the payment status

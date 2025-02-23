@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 import jinja2
 import jwt
 import shortuuid
+from fastapi import Request
 from fastapi.routing import APIRoute
 from packaging import version
 from pydantic.schema import field_schema
@@ -98,7 +99,7 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         settings.lnbits_node_ui and get_node_class() is not None
     )
     t.env.globals["LNBITS_NODE_UI_AVAILABLE"] = get_node_class() is not None
-    t.env.globals["EXTENSIONS"] = list(settings.lnbits_all_extensions_ids)
+    t.env.globals["EXTENSIONS"] = list(settings.lnbits_installed_extensions_ids)
 
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
@@ -327,3 +328,7 @@ def path_segments(path: str) -> list[str]:
 def normalize_path(path: Optional[str]) -> str:
     path = path or ""
     return "/" + "/".join(path_segments(path))
+
+
+def normalized_path(request: Request) -> str:
+    return "/" + "/".join(path_segments(request.url.path))
