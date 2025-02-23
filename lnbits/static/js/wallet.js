@@ -468,22 +468,27 @@ window.WalletPageLogic = {
     payInvoice() {
       const dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
-        message: this.$t('processing_payment')
+        message: this.$t('payment_processing')
       })
 
       LNbits.api
         .payInvoice(this.g.wallet, this.parse.data.request)
-        .then(_ => {
-          clearInterval(this.parse.paymentChecker)
-          setTimeout(() => {
-            clearInterval(this.parse.paymentChecker)
-          }, 40000)
-          this.parse.paymentChecker = setInterval(() => {
-            if (!this.parse.show) {
-              dismissPaymentMsg()
-              clearInterval(this.parse.paymentChecker)
-            }
-          }, 2000)
+        .then(response => {
+          dismissPaymentMsg()
+          this.updatePayments = !this.updatePayments
+          this.parse.show = false
+          if (response.data.status == 'success') {
+            Quasar.Notify.create({
+              type: 'positive',
+              message: this.$t('payment_successful')
+            })
+          }
+          if (response.data.status == 'pending') {
+            Quasar.Notify.create({
+              type: 'info',
+              message: this.$t('payment_pending')
+            })
+          }
         })
         .catch(err => {
           dismissPaymentMsg()

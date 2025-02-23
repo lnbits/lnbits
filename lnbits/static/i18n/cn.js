@@ -86,7 +86,7 @@ window.localisation.cn = {
   pay: '付款',
   memo: '备注',
   date: '日期',
-  processing_payment: '正在处理支付...',
+  payment_processing: '正在处理支付...',
   not_enough_funds: '资金不足！',
   search_by_tag_memo_amount: '按标签、备注、金额搜索',
   invoice_waiting: '待支付的发票',

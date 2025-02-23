@@ -90,7 +90,7 @@ window.localisation.we = {
   pay: 'Talu',
   memo: 'Memo',
   date: 'Dyddiad',
-  processing_payment: 'Prosesu taliad...',
+  payment_processing: 'Prosesu taliad...',
   not_enough_funds: 'Dim digon o arian!',
   search_by_tag_memo_amount: 'Chwilio yn ôl tag, memo, swm',
   invoice_waiting: 'Anfoneb yn aros i gael ei thalu',

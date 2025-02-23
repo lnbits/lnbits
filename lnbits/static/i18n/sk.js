@@ -87,7 +87,7 @@ window.localisation.sk = {
   pay: 'Platiť',
   memo: 'Poznámka',
   date: 'Dátum',
-  processing_payment: 'Spracovávanie platby...',
+  payment_processing: 'Spracovávanie platby...',
   not_enough_funds: 'Nedostatok prostriedkov!',
   search_by_tag_memo_amount: 'Vyhľadať podľa značky, poznámky, sumy',
   invoice_waiting: 'Faktúra čakajúca na zaplatenie',

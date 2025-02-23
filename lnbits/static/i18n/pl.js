@@ -89,7 +89,7 @@ window.localisation.pl = {
   pay: 'Zapłać',
   memo: 'Memo',
   date: 'Data',
-  processing_payment: 'Przetwarzam płatność...',
+  payment_processing: 'Przetwarzam płatność...',
   not_enough_funds: 'Brak wystarczających środków!',
   search_by_tag_memo_amount: 'Szukaj po tagu, memo czy wartości',
   invoice_waiting: 'Faktura oczekuje na zapłatę',
