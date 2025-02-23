@@ -30,7 +30,11 @@
         >
           <q-card-section style="height: 130px">
             <div class="row q-gutter-md">
-              <div class="col-1" style="max-width: 30px">
+              <div
+                v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
+                class="col-1"
+                style="max-width: 30px"
+              >
                 <q-btn
                   v-if="g.fiatTracking"
                   @click="swapBalancePriority"
@@ -56,8 +60,9 @@
                     <div class="row">
                       <div class="col-auto">
                         <div class="text-h3 q-my-none text-no-wrap">
-                          <strong v-text="formattedBalance"></strong>
-                          <small> {{LNBITS_DENOMINATION}}</small>
+                          <strong
+                            v-text="formatBalance(this.g.wallet.sat)"
+                          ></strong>
                         </div>
                       </div>
                       <div class="col-auto">
@@ -122,7 +127,7 @@
 
                 <div
                   class="absolute-right q-pa-md"
-                  v-if="$q.screen.gt.md && g.fiatTracking"
+                  v-if="$q.screen.gt.md && g.fiatTracking &&  '{{ LNBITS_DENOMINATION }}' == 'sats'"
                 >
                   <div class="text-bold text-italic">BTC Price</div>
                   <span
@@ -257,6 +262,7 @@
                 {% endif %}
 
                 <q-expansion-item
+                  v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
                   group="extras"
                   icon="phone_android"
                   :label="$t('access_wallet_on_mobile')"
@@ -349,7 +355,9 @@
                         <div class="col-2"></div>
                       </div>
                     </q-card-section>
-                    <q-card-section>
+                    <q-card-section
+                      v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
+                    >
                       <div class="row">
                         <div class="col-6">
                           <q-select
@@ -466,7 +474,6 @@
                 style="display: inline-block"
                 href="{{ AD[0] }}"
                 class="q-ml-md q-mb-xs q-mr-md"
-                style="max-width: 80%"
               >
                 <img
                   style="max-width: 100%; height: auto"
@@ -577,7 +584,7 @@
             <q-input
               filled
               dense
-              v-model.number="receive.data.amount"
+              v-model="receive.data.amount"
               :label="$t('amount')+' ({{LNBITS_DENOMINATION}}) *'"
               mask="#.##"
               fill-mask="0"
@@ -696,24 +703,8 @@
           <div v-if="parse.invoice">
             <div class="column content-center text-center q-mb-md">
               <div v-if="!isFiatPriority">
-                <h4
-                  v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-                  class="q-my-none text-bold"
-                >
-                  <span
-                    v-text="parseFloat(String(parse.invoice.fsat).replaceAll(',', '')) / 100"
-                  ></span>
-                  <span
-                    class="text-h5"
-                    v-text="'{{LNBITS_DENOMINATION}}'"
-                  ></span>
-                </h4>
-                <h4 v-else class="q-my-none text-bold">
-                  <span v-text="parse.invoice.fsat"></span>
-                  <span
-                    class="text-h5"
-                    v-text="'{{LNBITS_DENOMINATION}}'"
-                  ></span>
+                <h4 class="q-my-none text-bold">
+                  <span v-text="formatBalance(parse.invoice.sat)"></span>
                 </h4>
               </div>
               <div v-else>
@@ -732,34 +723,20 @@
                   color="primary"
                 ></q-btn>
               </div>
-              <div v-if="!isFiatPriority">
-                <div class="text-h5 text-italic">
-                  <span
-                    v-text="parse.invoice.fiatAmount"
-                    style="opacity: 0.75"
-                  ></span>
+              <div v-if="g.fiatTracking">
+                <div v-if="isFiatPriority">
+                  <div class="text-h5 text-italic">
+                    <span
+                      v-text="parse.invoice.fiatAmount"
+                      style="opacity: 0.75"
+                    ></span>
+                  </div>
                 </div>
-              </div>
-              <div v-else style="opacity: 0.75">
-                <h5
-                  v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
-                  class="q-my-none text-bold"
-                >
-                  <span
-                    v-text="parseFloat(String(parse.invoice.fsat).replaceAll(',', '')) / 100"
-                  ></span>
-                  <span
-                    class="text-h6"
-                    v-text="'{{LNBITS_DENOMINATION}}'"
-                  ></span>
-                </h5>
-                <h5 v-else class="q-my-none text-bold">
-                  <span v-text="parse.invoice.fsat"></span>
-                  <span
-                    class="text-h6"
-                    v-text="'{{LNBITS_DENOMINATION}}'"
-                  ></span>
-                </h5>
+                <div v-else style="opacity: 0.75">
+                  <h5 class="q-my-none text-bold">
+                    <span v-text="formatBalance(parse.invoice.sat)"></span>
+                  </h5>
+                </div>
               </div>
             </div>
             <q-separator></q-separator>

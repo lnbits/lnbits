@@ -29,22 +29,15 @@
         >
         </q-avatar>
       </q-item-section>
-      <q-item-section>
+      <q-item-section
+        style="max-width: 100px"
+        class="q-my-none ellipsis full-width"
+      >
         <q-item-label lines="1"
           ><span v-text="walletRec.name"></span
         ></q-item-label>
-        <q-item-label v-if="LNBITS_DENOMINATION != 'sats'" caption>
-          <span
-            v-text="
-              parseFloat(String(walletRec.fsat).replaceAll(',', '')) / 100
-            "
-          ></span
-          >&nbsp;
-          <span v-text="LNBITS_DENOMINATION"></span>
-        </q-item-label>
-        <q-item-label v-else caption>
-          <span v-text="walletRec.fsat"></span>&nbsp;
-          <span v-text="LNBITS_DENOMINATION"></span>
+        <q-item-label class="q-my-none ellipsis full-width" caption>
+          <strong v-text="formatBalance(walletRec.sat)"></strong>
         </q-item-label>
       </q-item-section>
       <q-item-section side v-show="g.wallet && g.wallet.id === walletRec.id">
