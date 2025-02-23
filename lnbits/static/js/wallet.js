@@ -844,6 +844,13 @@ window.WalletPageLogic = {
         this.g.fiatTracking = false
       }
     },
+    walletFormatBalance(amount) {
+      if (LNBITS_DENOMINATION != 'sats') {
+        return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)
+      } else {
+        return LNbits.utils.formatSat(amount) + ' sats'
+      }
+    },
     handleFilterChange(value = {}) {
       if (
         this.paymentsFilter['time[ge]'] !== value['time[ge]'] ||

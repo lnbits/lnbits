@@ -61,7 +61,7 @@
                       <div class="col-auto">
                         <div class="text-h3 q-my-none text-no-wrap">
                           <strong
-                            v-text="formatBalance(this.g.wallet.sat)"
+                            v-text="walletFormatBalance(this.g.wallet.sat)"
                           ></strong>
                         </div>
                       </div>
@@ -704,7 +704,7 @@
             <div class="column content-center text-center q-mb-md">
               <div v-if="!isFiatPriority">
                 <h4 class="q-my-none text-bold">
-                  <span v-text="formatBalance(parse.invoice.sat)"></span>
+                  <span v-text="walletFormatBalance(parse.invoice.sat)"></span>
                 </h4>
               </div>
               <div v-else>
@@ -734,7 +734,9 @@
                 </div>
                 <div v-else style="opacity: 0.75">
                   <h5 class="q-my-none text-bold">
-                    <span v-text="formatBalance(parse.invoice.sat)"></span>
+                    <span
+                      v-text="walletFormatBalance(parse.invoice.sat)"
+                    ></span>
                   </h5>
                 </div>
               </div>
