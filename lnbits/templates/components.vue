@@ -1052,13 +1052,21 @@
         >
           <div class="col-12">
             <q-input
-              filled
-              type="text"
-              class="q-mt-sm"
               v-model="formData[key]"
+              filled
+              class="q-mt-sm"
+              :type="hideInput ? 'password' : 'text'"
               :label="prop.label"
               :hint="prop.hint"
-            ></q-input>
+            >
+              <template v-slot:append>
+                <q-icon
+                  :name="hideInput ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  @click="this.hideInput = !this.hideInput"
+                ></q-icon>
+              </template>
+            </q-input>
           </div>
         </div>
       </div>

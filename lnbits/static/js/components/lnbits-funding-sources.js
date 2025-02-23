@@ -30,6 +30,7 @@ window.app.component('lnbits-funding-sources', {
   },
   data() {
     return {
+      hideInput: true,
       rawFundingSources: [
         ['VoidWallet', 'Void Wallet', null],
         [
