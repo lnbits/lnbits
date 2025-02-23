@@ -1055,15 +1055,15 @@
               v-model="formData[key]"
               filled
               class="q-mt-sm"
-              :type="hideInputToggle ? 'password' : 'text'"
+              :type="hideInput ? 'password' : 'text'"
               :label="prop.label"
               :hint="prop.hint"
             >
               <template v-slot:append>
                 <q-icon
-                  :name="hideInputToggle ? 'visibility_off' : 'visibility'"
+                  :name="hideInput ? 'visibility_off' : 'visibility'"
                   class="cursor-pointer"
-                  @click="hideToggle()"
+                  @click="this.hideInput = !this.hideInput"
                 ></q-icon>
               </template>
             </q-input>

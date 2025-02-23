@@ -8,9 +8,6 @@ window.app.component('lnbits-funding-sources', {
         fundingSource => fundingSource[0] === item
       )
       return fundingSource ? fundingSource[1] : item
-    },
-    hideToggle() {
-      this.hideInputToggle = !this.hideInputToggle
     }
   },
   computed: {
@@ -33,7 +30,7 @@ window.app.component('lnbits-funding-sources', {
   },
   data() {
     return {
-      hideInputToggle: true,
+      hideInput: true,
       rawFundingSources: [
         ['VoidWallet', 'Void Wallet', null],
         [
