@@ -67,16 +67,16 @@ async def redeem_lnurl_withdraw(
             external=True,
             wal=wallet_id,
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.trace(exc)
 
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         try:
             check_callback_url(res["callback"])
             await client.get(res["callback"], params=params)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.trace(exc)
 
 
 async def perform_lnurlauth(
