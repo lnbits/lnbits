@@ -122,7 +122,7 @@ async def create_invoice(
 
     if amount_sat > settings.lnbits_max_incoming_payment_amount_sats:
         raise InvoiceError(
-            "Amount in invoice is too high. Max allowed: "
+            f"Invoice amount '{amount_sat} sats' is too high. Max allowed: "
             f"{settings.lnbits_max_incoming_payment_amount_sats} sats.",
             status="failed",
         )
@@ -716,7 +716,8 @@ def _validate_payment_request(
     max_sat = max(max_sat or 0, settings.lnbits_max_outgoing_payment_amount_sats)
     if max_sat and invoice.amount_msat > max_sat * 1000:
         raise PaymentError(
-            f"Amount in invoice is too high. Max allowed {max_sat} sats.",
+            f"Invoice amount {invoice.amount_msat // 1000} sats is too high. "
+            f"Max allowed: {settings.lnbits_max_incoming_payment_amount_sats} sats.",
             status="failed",
         )
 
