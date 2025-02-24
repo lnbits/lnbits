@@ -718,7 +718,7 @@ def _validate_payment_request(
     if invoice.amount_msat > max_sat * 1000:
         raise PaymentError(
             f"Invoice amount {invoice.amount_msat // 1000} sats is too high. "
-            f"Max allowed: {settings.lnbits_max_outgoing_payment_amount_sats} sats.",
+            f"Max allowed: {max_sat} sats.",
             status="failed",
         )
 

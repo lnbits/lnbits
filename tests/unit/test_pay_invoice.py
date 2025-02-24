@@ -65,7 +65,7 @@ async def test_payment_limit(to_wallet: Wallet):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=101, memo="")
     with pytest.raises(
         PaymentError,
-        match="Invoice amount 101 sats is too high." " Max allowed: 10000000000 sats.",
+        match="Invoice amount 101 sats is too high. Max allowed: 100 sats.",
     ):
         await pay_invoice(
             wallet_id=to_wallet.id,
