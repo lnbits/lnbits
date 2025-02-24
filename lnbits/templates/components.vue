@@ -729,8 +729,35 @@
           style="border-radius: 6px"
         />
       </q-btn>
-
-      <q-checkbox
+      <q-btn-dropdown
+        color="grey"
+        icon="filter_alt"
+        outline
+        flat
+        @hide="computedFilter"
+      >
+        <q-list>
+          <q-item>
+            <q-checkbox
+              v-model="filters.failed"
+              label="Failed Payments"
+            ></q-checkbox>
+          </q-item>
+          <q-item>
+            <q-checkbox
+              v-model="filters.incoming"
+              label="Incoming Payments"
+            ></q-checkbox>
+          </q-item>
+          <q-item>
+            <q-checkbox
+              v-model="filters.outgoing"
+              label="Outgoing Payments"
+            ></q-checkbox>
+          </q-item>
+        </q-list>
+      </q-btn-dropdown>
+      <!-- <q-checkbox
         v-model="failedPaymentsToggle"
         checked-icon="warning"
         unchecked-icon="warning_off"
@@ -740,7 +767,7 @@
         <q-tooltip>
           <span v-text="`Include failed payments`"></span>
         </q-tooltip>
-      </q-checkbox>
+      </q-checkbox> -->
     </div>
   </div>
   <div class="row q-my-md"></div>

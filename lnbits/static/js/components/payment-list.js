@@ -34,7 +34,8 @@ window.app.component('payment-list', {
         },
         search: '',
         filter: {
-          'status[ne]': 'failed'
+          'status[ne]': 'failed',
+          'amount[ge]': 0
         },
         loading: false
       },
@@ -113,6 +114,13 @@ window.app.component('payment-list', {
           }
         ],
         loading: false
+      },
+      filters: {
+        success: true,
+        pending: true,
+        failed: false,
+        incoming: true,
+        outgoing: true
       }
     }
   },
@@ -263,18 +271,75 @@ window.app.component('payment-list', {
         console.error(e)
         return `${amount} ???`
       }
+    },
+    computedFilter() {
+      console.log('computedFilter')
+      const {success, pending, failed, incoming, outgoing} = this.filters
+      // Build the status part:
+      const statuses = {success, pending, failed}
+      const allowed = Object.keys(statuses).filter(key => statuses[key])
+      const allStatuses = Object.keys(statuses)
+      let statusFilter = {}
+      if (allowed.length === 1) {
+        statusFilter = {'status[eq]': allowed[0]}
+      } else if (allowed.length === 2) {
+        const disallowed = allStatuses.find(key => !statuses[key])
+        statusFilter = {'status[ne]': disallowed}
+      }
+      // If all are true (or if allowed.length === 0, handle as needed) then no status filter.
+
+      // Build the amount part:
+      let amountFilter = {}
+      if (incoming && !outgoing) {
+        // Only incoming: amounts >= 0
+        amountFilter = {'amount[ge]': 0}
+      } else if (!incoming && outgoing) {
+        // Only outgoing: amounts < 0
+        amountFilter = {'amount[le]': 0}
+      }
+      console.log('statusFilter', statusFilter)
+      console.log('amountFilter', amountFilter)
+      // Both incoming and outgoing: no filter
+      const newFilter = {...statusFilter, ...amountFilter}
+      if (
+        JSON.stringify(this.paymentsTable.filter) !== JSON.stringify(newFilter)
+      ) {
+        this.paymentsTable.filter = {...newFilter}
+        // this.paymentsTable.pagination.page = 1
+        // this.fetchPayments()
+      }
     }
   },
   watch: {
-    failedPaymentsToggle(newVal) {
-      if (newVal === false) {
-        this.paymentsTable.filter['status[ne]'] = 'failed'
-      } else {
-        delete this.paymentsTable.filter['status[ne]']
-      }
-      this.paymentsTable.pagination.page = 1
-      this.fetchPayments()
-    },
+    // computedFilter: {
+    //   handler(newFilter) {
+    //     console.log('computedFilter', newFilter)
+    //     // Compare new filter with the current one. (You can use a deep comparison method here.)
+    //     if (
+    //       JSON.stringify(this.paymentsTable.filter) !==
+    //       JSON.stringify(newFilter)
+    //     ) {
+    //       // Replace the filter with a fresh object so it doesn't trigger unwanted deep watching.
+    //       this.paymentsTable.filter = {...newFilter}
+    //       console.log('computedFilter', this.paymentsTable.filter)
+    //       // Optionally reset pagination.
+    //       // this.paymentsTable.pagination.page = 1
+    //       // Call the API.
+    //       debugger
+    //       //this.fetchPayments()
+    //     }
+    //   },
+    //   deep: true
+    // },
+    // failedPaymentsToggle(newVal) {
+    //   if (newVal === false) {
+    //     this.paymentsTable.filter['status[ne]'] = 'failed'
+    //   } else {
+    //     delete this.paymentsTable.filter['status[ne]']
+    //   }
+    //   this.paymentsTable.pagination.page = 1
+    //   this.fetchPayments()
+    // },
     'paymentsTable.search': {
       handler() {
         const props = {}
@@ -301,6 +366,7 @@ window.app.component('payment-list', {
     }
   },
   created() {
+    console.log(this.paymentsTable.filter)
     if (this.lazy === undefined) this.fetchPayments()
   }
 })
