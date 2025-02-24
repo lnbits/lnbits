@@ -300,7 +300,6 @@ def check_callback_url(url: str):
 
 
 def download_url(url: str, save_path: Path):
-
     with request.urlopen(url, timeout=60) as dl_file:
         with open(save_path, "wb") as out_file:
             out_file.write(dl_file.read())
