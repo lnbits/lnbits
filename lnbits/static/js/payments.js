@@ -312,7 +312,7 @@ window.PaymentsPageLogic = {
 
         const timeFrom = this.searchDate.from + 'T00:00:00'
         const timeTo = this.searchDate.to + 'T23:59:59'
-        this.lnbitsBalance = data[data.length - 1].balance
+        this.lnbitsBalance = data.length ? data[data.length - 1].balance : 0
         data = data.filter(p => {
           if (this.searchDate.from && this.searchDate.to) {
             return p.date >= timeFrom && p.date <= timeTo
