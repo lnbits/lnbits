@@ -122,7 +122,7 @@ async def create_invoice(
 
     if amount_sat > settings.lnbits_max_incoming_payment_amount_sats:
         raise InvoiceError(
-            f"Invoice amount '{amount_sat} sats' is too high. Max allowed: "
+            f"Invoice amount {amount_sat} sats is too high. Max allowed: "
             f"{settings.lnbits_max_incoming_payment_amount_sats} sats.",
             status="failed",
         )
