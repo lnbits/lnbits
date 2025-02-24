@@ -449,6 +449,16 @@ window.localisation.en = {
   allowed_currencies_hint: 'Limit the number of available fiat currencies',
   default_account_currency: 'Default Account Currency',
   default_account_currency_hint: 'Default currency for accounting',
+
+  max_incoming_payment_amount: 'Max Incoming Payment Amount',
+  max_incoming_payment_amount_desc:
+    'Maximum amount allowed for generating an invoice',
+  max_outgoing_payment_amount: 'Max Outgoing Payment Amount',
+  max_outgoing_payment_amount_desc:
+    'Maximum amount allowed for making a payment',
+  disable_internal_payments: 'Disable Internal Payments',
+  disable_internal_payments_desc:
+    'Always use the funding source node for payments',
   service_fee: 'Service Fee',
   service_fee_label: 'Service fee (%)',
   service_fee_hint: 'Fee charged per tx (%)',
