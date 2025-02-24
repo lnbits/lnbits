@@ -713,11 +713,12 @@ def _validate_payment_request(
     if not invoice.amount_msat or not invoice.amount_msat > 0:
         raise PaymentError("Amountless invoices not supported.", status="failed")
 
-    max_sat = max(max_sat or 0, settings.lnbits_max_outgoing_payment_amount_sats)
-    if max_sat and invoice.amount_msat > max_sat * 1000:
+    max_sat = max_sat or settings.lnbits_max_outgoing_payment_amount_sats
+    max_sat = min(max_sat, settings.lnbits_max_outgoing_payment_amount_sats)
+    if invoice.amount_msat > max_sat * 1000:
         raise PaymentError(
             f"Invoice amount {invoice.amount_msat // 1000} sats is too high. "
-            f"Max allowed: {settings.lnbits_max_incoming_payment_amount_sats} sats.",
+            f"Max allowed: {settings.lnbits_max_outgoing_payment_amount_sats} sats.",
             status="failed",
         )
 
