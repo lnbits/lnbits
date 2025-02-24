@@ -15,6 +15,7 @@ Note that by default LNbits uses SQLite as its database, which is simple and eff
 Go to [releases](https://github.com/lnbits/lnbits/releases) and pull latest AppImage, or:
 
 ```sh
+sudo apt-get install libfuse2
 wget $(curl -s https://api.github.com/repos/lnbits/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
 chmod +x LNbits-latest.AppImage
 ./LNbits-latest.AppImage --host 0.0.0.0
