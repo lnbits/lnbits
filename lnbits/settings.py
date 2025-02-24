@@ -378,6 +378,9 @@ class SecuritySettings(LNbitsSettings):
     lnbits_watchdog_interval_minutes: int = Field(default=60)
     lnbits_watchdog_delta: int = Field(default=1_000_000)
 
+    lnbits_max_outgoing_payment_amount_sats: int = Field(default=10_000_000)
+    lnbits_max_incoming_payment_amount_sats: int = Field(default=10_000_000)
+
     def is_wallet_max_balance_exceeded(self, amount):
         return (
             self.lnbits_wallet_limit_max_balance

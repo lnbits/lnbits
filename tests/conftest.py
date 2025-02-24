@@ -310,3 +310,5 @@ def _settings_cleanup(settings: Settings):
     settings.lnbits_wallet_limit_daily_max_withdraw = 0
     settings.lnbits_admin_extensions = []
     settings.lnbits_admin_users = []
+    settings.lnbits_max_outgoing_payment_amount_sats = 10_000_000_100
+    settings.lnbits_max_incoming_payment_amount_sats = 10_000_000_200

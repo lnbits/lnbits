@@ -11,7 +11,7 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.crud import get_standalone_payment, get_wallet
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, pay_invoice
-from lnbits.exceptions import PaymentError
+from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
 from lnbits.tasks import (
     create_permanent_task,
@@ -61,14 +61,42 @@ async def test_bad_wallet_id(to_wallet: Wallet):
 
 
 @pytest.mark.anyio
-async def test_payment_limit(to_wallet: Wallet):
+async def test_payment_explicit_limit(to_wallet: Wallet):
     payment = await create_invoice(wallet_id=to_wallet.id, amount=101, memo="")
-    with pytest.raises(PaymentError, match="Amount in invoice is too high."):
+    with pytest.raises(
+        PaymentError,
+        match="Invoice amount 101 sats is too high. Max allowed: 100 sats.",
+    ):
         await pay_invoice(
             wallet_id=to_wallet.id,
             max_sat=100,
             payment_request=payment.bolt11,
         )
+
+
+@pytest.mark.anyio
+async def test_payment_system_limit(to_wallet: Wallet, settings: Settings):
+    settings.lnbits_max_outgoing_payment_amount_sats = 100
+    payment = await create_invoice(wallet_id=to_wallet.id, amount=200, memo="")
+    with pytest.raises(
+        PaymentError,
+        match="Invoice amount 200 sats is too high. Max allowed: 100 sats.",
+    ):
+        await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=payment.bolt11,
+        )
+
+
+@pytest.mark.anyio
+async def test_create_payment_system_limit(to_wallet: Wallet, settings: Settings):
+    settings.lnbits_max_incoming_payment_amount_sats = 101
+
+    with pytest.raises(
+        InvoiceError,
+        match="Invoice amount 202 sats is too high. Max allowed: 101 sats.",
+    ):
+        await create_invoice(wallet_id=to_wallet.id, amount=202, memo="")
 
 
 @pytest.mark.anyio
