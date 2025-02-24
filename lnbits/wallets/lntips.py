@@ -166,7 +166,8 @@ class LnTipsWallet(Wallet):
                             inv = json.loads(data)
                             if not inv.get("payment_hash"):
                                 continue
-                        except Exception:
+                        except Exception as exc:
+                            logger.trace(exc)
                             continue
                         yield inv["payment_hash"]
             except Exception as exc:

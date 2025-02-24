@@ -380,7 +380,7 @@ class NWCConnection:
         n = max_length - len(subid)
         if n > 0:
             for _ in range(n):
-                subid += chars[random.randint(0, len(chars) - 1)]
+                subid += chars[random.randint(0, len(chars) - 1)]  # nosec
         return subid
 
     async def _close_subscription_by_subid(

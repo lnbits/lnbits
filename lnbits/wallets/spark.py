@@ -114,7 +114,7 @@ class SparkWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = f"lbs{random.random()}"
+        label = f"lbs{random.random()}"  # nosec
         checking_id = label
 
         try:

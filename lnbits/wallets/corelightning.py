@@ -90,7 +90,7 @@ class CoreLightningWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = kwargs.get("label", f"lbl{random.random()}")
+        label = kwargs.get("label", f"lbl{random.random()}")  # nosec
         msat: int = int(amount * 1000)
         try:
             if description_hash and not unhashed_description:

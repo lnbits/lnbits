@@ -176,7 +176,8 @@ class ClicheWallet(Wallet):
                     try:
                         if data["result"]["status"]:
                             yield data["result"]["payment_hash"]
-                    except Exception:
+                    except Exception as exc:
+                        logger.trace(exc)
                         continue
             except Exception as exc:
                 logger.error(

@@ -108,7 +108,7 @@ class CoreLightningRestWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = kwargs.get("label", f"lbl{random.random()}")
+        label = kwargs.get("label", f"lbl{random.random()}")  # nosec
         data: Dict = {
             "amount": amount * 1000,
             "description": memo,
@@ -290,7 +290,8 @@ class CoreLightningRestWallet(Wallet):
                             self.last_pay_index = inv["pay_index"]
                             if not paid:
                                 continue
-                        except Exception:
+                        except Exception as exc:
+                            logger.trace(exc)
                             continue
                         logger.trace(f"paid invoice: {inv}")
 

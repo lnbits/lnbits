@@ -271,7 +271,8 @@ class LndRestWallet(Wallet):
                         )
                     else:
                         return PaymentPendingStatus()
-                except Exception:
+                except Exception as exc:
+                    logger.trace(exc)
                     continue
 
         return PaymentPendingStatus()
@@ -286,7 +287,8 @@ class LndRestWallet(Wallet):
                             inv = json.loads(line)["result"]
                             if not inv["settled"]:
                                 continue
-                        except Exception:
+                        except Exception as exc:
+                            logger.trace(exc)
                             continue
 
                         payment_hash = base64.b64decode(inv["r_hash"]).hex()
