@@ -380,7 +380,6 @@ class SecuritySettings(LNbitsSettings):
 
     lnbits_max_outgoing_payment_amount_sats: int = Field(default=10_000_000)
     lnbits_max_incoming_payment_amount_sats: int = Field(default=10_000_000)
-    lnbits_disable_internal_payments: bool = Field(default=False)
 
     def is_wallet_max_balance_exceeded(self, amount):
         return (

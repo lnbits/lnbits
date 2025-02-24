@@ -120,6 +120,12 @@ async def create_invoice(
         amount, user_wallet, currency, extra
     )
 
+    if amount_sat > settings.lnbits_max_incoming_payment_amount_sats:
+        raise InvoiceError(
+            "Amount in invoice is too high. Max allowed: "
+            f"{settings.lnbits_max_incoming_payment_amount_sats} sats.",
+            status="failed",
+        )
     if settings.is_wallet_max_balance_exceeded(
         user_wallet.balance_msat / 1000 + amount_sat
     ):
@@ -707,8 +713,12 @@ def _validate_payment_request(
     if not invoice.amount_msat or not invoice.amount_msat > 0:
         raise PaymentError("Amountless invoices not supported.", status="failed")
 
+    max_sat = max(max_sat or 0, settings.lnbits_max_outgoing_payment_amount_sats)
     if max_sat and invoice.amount_msat > max_sat * 1000:
-        raise PaymentError("Amount in invoice is too high.", status="failed")
+        raise PaymentError(
+            f"Amount in invoice is too high. Max allowed {max_sat} sats.",
+            status="failed",
+        )
 
     return invoice
 

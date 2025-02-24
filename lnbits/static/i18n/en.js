@@ -456,9 +456,6 @@ window.localisation.en = {
   max_outgoing_payment_amount: 'Max Outgoing Payment Amount',
   max_outgoing_payment_amount_desc:
     'Maximum amount allowed for making a payment',
-  disable_internal_payments: 'Disable Internal Payments',
-  disable_internal_payments_desc:
-    'Always use the funding source node for payments',
   service_fee: 'Service Fee',
   service_fee_label: 'Service fee (%)',
   service_fee_hint: 'Fee charged per tx (%)',
