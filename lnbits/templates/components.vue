@@ -419,7 +419,6 @@
             dense
             use-input
             use-chips
-            multiple
             hide-dropdown-icon
           ></q-select>
           <div v-else-if="o.type === 'bool'">
