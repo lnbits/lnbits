@@ -639,13 +639,12 @@
     </div>
     <div class="gt-sm col-auto">
       <q-btn-dropdown
-        outline
+        flat
         persistent
-        dense
+        icon="archive"
+        split
         class="q-mr-sm"
         color="grey"
-        label="Export"
-        split
         @click="exportCSV(false)"
       >
         <q-list>
@@ -693,7 +692,7 @@
           </q-item>
         </q-list>
       </q-btn-dropdown>
-      <q-btn icon="event" outline flat color="grey">
+      <q-btn icon="event" flat color="grey">
         <q-popup-proxy cover transition-show="scale" transition-hide="scale">
           <q-date v-model="searchDate" mask="YYYY-MM-DD" range />
           <div class="row">
@@ -726,25 +725,28 @@
           rounded
           floating
           style="border-radius: 6px"
-        />
+        ></q-badge>
+        <q-tooltip>
+          <span v-text="$t('filter_date')"></span>
+        </q-tooltip>
       </q-btn>
-      <q-btn-dropdown color="grey" icon="filter_alt" outline flat dense>
-        <q-list dense>
-          <q-item>
+      <q-btn color="grey" icon="filter_alt" flat>
+        <q-menu>
+          <q-item dense>
             <q-checkbox
               v-model="searchStatus.success"
               @click="handleFilterChanged"
               label="Success Payments"
             ></q-checkbox>
           </q-item>
-          <q-item>
+          <q-item dense>
             <q-checkbox
               v-model="searchStatus.pending"
               @click="handleFilterChanged"
               label="Pending Payments"
             ></q-checkbox>
           </q-item>
-          <q-item>
+          <q-item dense>
             <q-checkbox
               v-model="searchStatus.failed"
               @click="handleFilterChanged"
@@ -752,22 +754,25 @@
             ></q-checkbox>
           </q-item>
           <q-separator></q-separator>
-          <q-item>
+          <q-item dense>
             <q-checkbox
               v-model="searchStatus.incoming"
               @click="handleFilterChanged"
               label="Incoming Payments"
             ></q-checkbox>
           </q-item>
-          <q-item>
+          <q-item dense>
             <q-checkbox
               v-model="searchStatus.outgoing"
               @click="handleFilterChanged"
               label="Outgoing Payments"
             ></q-checkbox>
           </q-item>
-        </q-list>
-      </q-btn-dropdown>
+        </q-menu>
+        <q-tooltip>
+          <span v-text="$t('filter_payments')"></span>
+        </q-tooltip>
+      </q-btn>
     </div>
   </div>
   <div class="row q-my-md"></div>

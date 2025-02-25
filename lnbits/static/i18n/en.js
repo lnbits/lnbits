@@ -539,5 +539,7 @@ window.localisation.en = {
   reset_wallet_keys_desc:
     'Reset the API keys for this wallet. This will invalidate the current keys and generate new ones.',
   view_list: 'View wallets as list',
-  view_column: 'View wallets as rows'
+  view_column: 'View wallets as rows',
+  filter_payments: 'Filter payments',
+  filter_date: 'Filter by date'
 }
