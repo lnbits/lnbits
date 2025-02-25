@@ -729,45 +729,46 @@
           style="border-radius: 6px"
         />
       </q-btn>
-      <q-btn-dropdown
-        color="grey"
-        icon="filter_alt"
-        outline
-        flat
-        @hide="computedFilter"
-      >
-        <q-list>
+      <q-btn-dropdown color="grey" icon="filter_alt" outline flat dense>
+        <q-list dense>
           <q-item>
             <q-checkbox
-              v-model="filters.failed"
-              label="Failed Payments"
+              v-model="filters.success"
+              @click="handleFilterChanged"
+              label="Success Payments"
             ></q-checkbox>
           </q-item>
           <q-item>
             <q-checkbox
+              v-model="filters.pending"
+              @click="handleFilterChanged"
+              label="Pending Payments"
+            ></q-checkbox>
+          </q-item>
+          <q-item>
+            <q-checkbox
+              v-model="filters.failed"
+              @click="handleFilterChanged"
+              label="Failed Payments"
+            ></q-checkbox>
+          </q-item>
+          <q-separator></q-separator>
+          <q-item>
+            <q-checkbox
               v-model="filters.incoming"
+              @click="handleFilterChanged"
               label="Incoming Payments"
             ></q-checkbox>
           </q-item>
           <q-item>
             <q-checkbox
               v-model="filters.outgoing"
+              @click="handleFilterChanged"
               label="Outgoing Payments"
             ></q-checkbox>
           </q-item>
         </q-list>
       </q-btn-dropdown>
-      <!-- <q-checkbox
-        v-model="failedPaymentsToggle"
-        checked-icon="warning"
-        unchecked-icon="warning_off"
-        :color="failedPaymentsToggle ? 'yellow' : 'grey'"
-        size="xs"
-      >
-        <q-tooltip>
-          <span v-text="`Include failed payments`"></span>
-        </q-tooltip>
-      </q-checkbox> -->
     </div>
   </div>
   <div class="row q-my-md"></div>
@@ -783,8 +784,8 @@
     :hide-header="mobileSimple"
     :hide-bottom="mobileSimple"
     v-model:pagination="paymentsTable.pagination"
-    @request="fetchPayments"
   >
+    <!-- @request="fetchPayments" -->
     <template v-slot:header="props">
       <q-tr :props="props" class="text-grey-5">
         <q-th auto-width></q-th>

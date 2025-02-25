@@ -6,7 +6,6 @@ window.app.component('payment-list', {
   data() {
     return {
       denomination: LNBITS_DENOMINATION,
-      failedPaymentsToggle: false,
       payments: [],
       paymentsTable: {
         columns: [
@@ -272,74 +271,41 @@ window.app.component('payment-list', {
         return `${amount} ???`
       }
     },
-    computedFilter() {
-      console.log('computedFilter')
+    handleFilterChanged() {
       const {success, pending, failed, incoming, outgoing} = this.filters
-      // Build the status part:
-      const statuses = {success, pending, failed}
-      const allowed = Object.keys(statuses).filter(key => statuses[key])
-      const allStatuses = Object.keys(statuses)
-      let statusFilter = {}
-      if (allowed.length === 1) {
-        statusFilter = {'status[eq]': allowed[0]}
-      } else if (allowed.length === 2) {
-        const disallowed = allStatuses.find(key => !statuses[key])
-        statusFilter = {'status[ne]': disallowed}
-      }
-      // If all are true (or if allowed.length === 0, handle as needed) then no status filter.
 
-      // Build the amount part:
-      let amountFilter = {}
-      if (incoming && !outgoing) {
-        // Only incoming: amounts >= 0
-        amountFilter = {'amount[ge]': 0}
-      } else if (!incoming && outgoing) {
-        // Only outgoing: amounts < 0
-        amountFilter = {'amount[le]': 0}
+      delete this.paymentsTable.filter['status[ne]']
+      delete this.paymentsTable.filter['status[eq]']
+      if (success && pending && failed) {
+        // No status filter
+      } else if (success && pending) {
+        this.paymentsTable.filter['status[ne]'] = 'failed'
+      } else if (success && failed) {
+        this.paymentsTable.filter['status[ne]'] = 'pending'
+      } else if (failed && pending) {
+        this.paymentsTable.filter['status[ne]'] = 'success'
+      } else if (success) {
+        this.paymentsTable.filter['status[eq]'] = 'success'
+      } else if (pending) {
+        this.paymentsTable.filter['status[eq]'] = 'pending'
+      } else if (failed) {
+        this.paymentsTable.filter['status[eq]'] = 'failed'
       }
-      console.log('statusFilter', statusFilter)
-      console.log('amountFilter', amountFilter)
-      // Both incoming and outgoing: no filter
-      const newFilter = {...statusFilter, ...amountFilter}
-      if (
-        JSON.stringify(this.paymentsTable.filter) !== JSON.stringify(newFilter)
-      ) {
-        this.paymentsTable.filter = {...newFilter}
-        // this.paymentsTable.pagination.page = 1
-        // this.fetchPayments()
+
+      delete this.paymentsTable.filter['amount[ge]']
+      delete this.paymentsTable.filter['amount[le]']
+      if (incoming && outgoing) {
+        // do nothing
+      } else if (incoming) {
+        this.paymentsTable.filter['amount[ge]'] = 0
+      } else if (outgoing) {
+        this.paymentsTable.filter['amount[le]'] = 0
       }
+      this.paymentsTable.pagination.page = 1
+      this.fetchPayments()
     }
   },
   watch: {
-    // computedFilter: {
-    //   handler(newFilter) {
-    //     console.log('computedFilter', newFilter)
-    //     // Compare new filter with the current one. (You can use a deep comparison method here.)
-    //     if (
-    //       JSON.stringify(this.paymentsTable.filter) !==
-    //       JSON.stringify(newFilter)
-    //     ) {
-    //       // Replace the filter with a fresh object so it doesn't trigger unwanted deep watching.
-    //       this.paymentsTable.filter = {...newFilter}
-    //       console.log('computedFilter', this.paymentsTable.filter)
-    //       // Optionally reset pagination.
-    //       // this.paymentsTable.pagination.page = 1
-    //       // Call the API.
-    //       debugger
-    //       //this.fetchPayments()
-    //     }
-    //   },
-    //   deep: true
-    // },
-    // failedPaymentsToggle(newVal) {
-    //   if (newVal === false) {
-    //     this.paymentsTable.filter['status[ne]'] = 'failed'
-    //   } else {
-    //     delete this.paymentsTable.filter['status[ne]']
-    //   }
-    //   this.paymentsTable.pagination.page = 1
-    //   this.fetchPayments()
-    // },
     'paymentsTable.search': {
       handler() {
         const props = {}
