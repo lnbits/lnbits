@@ -329,7 +329,6 @@ window.app.component('payment-list', {
     }
   },
   created() {
-    console.log(this.paymentsTable.filter)
     if (this.lazy === undefined) this.fetchPayments()
   }
 })
