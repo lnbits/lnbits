@@ -583,7 +583,7 @@ window.app.component('username-password', {
     },
     reset() {
       this.$emit('update:resetKey', this.reset_key)
-      this.$emit('update:passeord_1', this.password)
+      this.$emit('update:password_1', this.password)
       this.$emit('update:password_2', this.passwordRepeat)
       this.$emit('reset')
     },
