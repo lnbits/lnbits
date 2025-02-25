@@ -733,21 +733,21 @@
         <q-list dense>
           <q-item>
             <q-checkbox
-              v-model="filters.success"
+              v-model="searchStatus.success"
               @click="handleFilterChanged"
               label="Success Payments"
             ></q-checkbox>
           </q-item>
           <q-item>
             <q-checkbox
-              v-model="filters.pending"
+              v-model="searchStatus.pending"
               @click="handleFilterChanged"
               label="Pending Payments"
             ></q-checkbox>
           </q-item>
           <q-item>
             <q-checkbox
-              v-model="filters.failed"
+              v-model="searchStatus.failed"
               @click="handleFilterChanged"
               label="Failed Payments"
             ></q-checkbox>
@@ -755,14 +755,14 @@
           <q-separator></q-separator>
           <q-item>
             <q-checkbox
-              v-model="filters.incoming"
+              v-model="searchStatus.incoming"
               @click="handleFilterChanged"
               label="Incoming Payments"
             ></q-checkbox>
           </q-item>
           <q-item>
             <q-checkbox
-              v-model="filters.outgoing"
+              v-model="searchStatus.outgoing"
               @click="handleFilterChanged"
               label="Outgoing Payments"
             ></q-checkbox>
@@ -784,8 +784,8 @@
     :hide-header="mobileSimple"
     :hide-bottom="mobileSimple"
     v-model:pagination="paymentsTable.pagination"
+    @request="fetchPayments"
   >
-    <!-- @request="fetchPayments" -->
     <template v-slot:header="props">
       <q-tr :props="props" class="text-grey-5">
         <q-th auto-width></q-th>

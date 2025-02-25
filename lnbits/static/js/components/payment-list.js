@@ -33,12 +33,18 @@ window.app.component('payment-list', {
         },
         search: '',
         filter: {
-          'status[ne]': 'failed',
-          'amount[ge]': 0
+          'status[ne]': 'failed'
         },
         loading: false
       },
       searchDate: {from: null, to: null},
+      searchStatus: {
+        success: true,
+        pending: true,
+        failed: false,
+        incoming: true,
+        outgoing: true
+      },
       exportTagName: '',
       exportPaymentTagList: [],
       paymentsCSV: {
@@ -113,13 +119,6 @@ window.app.component('payment-list', {
           }
         ],
         loading: false
-      },
-      filters: {
-        success: true,
-        pending: true,
-        failed: false,
-        incoming: true,
-        outgoing: true
       }
     }
   },
@@ -272,7 +271,7 @@ window.app.component('payment-list', {
       }
     },
     handleFilterChanged() {
-      const {success, pending, failed, incoming, outgoing} = this.filters
+      const {success, pending, failed, incoming, outgoing} = this.searchStatus
 
       delete this.paymentsTable.filter['status[ne]']
       delete this.paymentsTable.filter['status[eq]']
@@ -301,8 +300,6 @@ window.app.component('payment-list', {
       } else if (outgoing) {
         this.paymentsTable.filter['amount[le]'] = 0
       }
-      this.paymentsTable.pagination.page = 1
-      this.fetchPayments()
     }
   },
   watch: {

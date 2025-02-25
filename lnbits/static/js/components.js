@@ -595,7 +595,6 @@ window.app.component('username-password', {
     },
     async signInWithNostr() {
       try {
-        console.log('### signInWithNostr')
         const nostrToken = await this.createNostrToken()
         if (!nostrToken) {
           return
