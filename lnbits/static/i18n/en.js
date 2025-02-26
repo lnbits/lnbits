@@ -483,6 +483,7 @@ window.localisation.en = {
   lnbits_wallet: 'LNbits wallet',
   denomination: 'Denomination',
   denomination_hint: 'The name for the FakeWallet token',
+  denomination_error: 'Denomination must be 3 characters, or `sats`',
   ui_qr_code_logo: 'QR Code Logo',
   ui_qr_code_logo_hint: 'URL to logo image in QR code',
   ui_custom_image: 'Custom Image',
