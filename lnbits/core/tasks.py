@@ -1,22 +1,18 @@
 import asyncio
-import json
 import traceback
 from typing import Callable, Coroutine
 
-import httpx
 from loguru import logger
 
 from lnbits.core.crud import (
     create_audit_entry,
     get_wallet,
-    get_webpush_subscriptions_for_user,
-    mark_webhook_sent,
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.payments import get_payments_status_count
 from lnbits.core.crud.users import get_accounts
 from lnbits.core.crud.wallets import get_wallets_count
-from lnbits.core.models import AuditEntry, Payment, Wallet
+from lnbits.core.models import AuditEntry
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.funding_source import (
@@ -27,12 +23,11 @@ from lnbits.core.services.funding_source import (
 from lnbits.core.services.notifications import (
     enqueue_notification,
     process_next_notification,
+    send_payment_notification,
 )
-from lnbits.core.services.websockets import websocket_manager
 from lnbits.db import Filters
-from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
-from lnbits.tasks import create_unique_task, send_push_notification
+from lnbits.tasks import create_unique_task
 from lnbits.utils.exchange_rates import btc_rates
 
 audit_queue: asyncio.Queue = asyncio.Queue()
@@ -105,112 +100,6 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         wallet = await get_wallet(payment.wallet_id)
         if wallet:
             await send_payment_notification(wallet, payment)
-
-
-async def dispatch_webhook(payment: Payment):
-    """
-    Dispatches the webhook to the webhook url.
-    """
-    logger.debug("sending webhook", payment.webhook)
-
-    if not payment.webhook:
-        return await mark_webhook_sent(payment.payment_hash, -1)
-
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers) as client:
-        data = payment.dict()
-        try:
-            check_callback_url(payment.webhook)
-            r = await client.post(payment.webhook, json=data, timeout=40)
-            r.raise_for_status()
-            await mark_webhook_sent(payment.payment_hash, r.status_code)
-        except httpx.HTTPStatusError as exc:
-            await mark_webhook_sent(payment.payment_hash, exc.response.status_code)
-            logger.warning(
-                f"webhook returned a bad status_code: {exc.response.status_code} "
-                f"while requesting {exc.request.url!r}."
-            )
-        except httpx.RequestError:
-            await mark_webhook_sent(payment.payment_hash, -1)
-            logger.warning(f"Could not send webhook to {payment.webhook}")
-
-
-async def send_payment_notification(wallet: Wallet, payment: Payment):
-    try:
-        await send_ws_payment_notification(wallet, payment)
-    except Exception as e:
-        logger.error("Error sending websocket payment notification", e)
-    try:
-        send_chat_payment_notification(wallet, payment)
-    except Exception as e:
-        logger.error("Error sending chat payment notification", e)
-    try:
-        await send_payment_push_notification(wallet, payment)
-    except Exception as e:
-        logger.error("Error sending push payment notification", e)
-
-    if payment.webhook and not payment.webhook_status:
-        await dispatch_webhook(payment)
-
-
-async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
-    # TODO: websocket message should be a clean payment model
-    # await websocket_manager.send_data(payment.json(), wallet.inkey)
-    # TODO: figure out why we send the balance with the payment here.
-    # cleaner would be to have a separate message for the balance
-    # and send it with the id of the wallet so wallets can subscribe to it
-    payment_notification = json.dumps(
-        {
-            "wallet_balance": wallet.balance,
-            # use pydantic json serialization to get the correct datetime format
-            "payment": json.loads(payment.json()),
-        },
-    )
-    await websocket_manager.send_data(payment_notification, wallet.inkey)
-    await websocket_manager.send_data(payment_notification, wallet.adminkey)
-
-    await websocket_manager.send_data(
-        json.dumps({"pending": payment.pending}), payment.payment_hash
-    )
-
-
-def send_chat_payment_notification(wallet: Wallet, payment: Payment):
-    amount_sats = abs(payment.sat)
-    values: dict = {
-        "wallet_id": wallet.id,
-        "wallet_name": wallet.name,
-        "amount_sats": amount_sats,
-        "fiat_value_fmt": "",
-    }
-    if payment.extra.get("wallet_fiat_currency", None):
-        amount_fiat = payment.extra.get("wallet_fiat_amount", None)
-        currency = payment.extra.get("wallet_fiat_currency", None)
-        values["fiat_value_fmt"] = f"`{amount_fiat}`*{currency}* / "
-
-    if payment.is_out:
-        if amount_sats >= settings.lnbits_notification_outgoing_payment_amount_sats:
-            enqueue_notification(NotificationType.outgoing_payment, values)
-    else:
-        if amount_sats >= settings.lnbits_notification_incoming_payment_amount_sats:
-            enqueue_notification(NotificationType.incoming_payment, values)
-
-
-async def send_payment_push_notification(wallet: Wallet, payment: Payment):
-    subscriptions = await get_webpush_subscriptions_for_user(wallet.user)
-
-    amount = int(payment.amount / 1000)
-
-    title = f"LNbits: {wallet.name}"
-    body = f"You just received {amount} sat{'s'[:amount^1]}!"
-
-    if payment.memo:
-        body += f"\r\n{payment.memo}"
-
-    for subscription in subscriptions:
-        # todo: review permissions when user-id-only not allowed
-        # todo: replace all this logic with websockets?
-        url = f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
-        await send_push_notification(subscription, title, body, url)
 
 
 async def wait_for_audit_data():
