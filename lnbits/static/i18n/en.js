@@ -82,6 +82,7 @@ window.localisation.en = {
   create_invoice: 'Create Invoice',
   camera_tooltip: 'Use camera to scan an invoice/QR',
   export_csv: 'Export to CSV',
+  export_csv_details: 'Export to CSV with details',
   chart_tooltip: 'Show chart',
   pending: 'Pending',
   copy_invoice: 'Copy invoice',

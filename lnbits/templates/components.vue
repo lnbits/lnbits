@@ -638,60 +638,6 @@
       </q-input>
     </div>
     <div class="gt-sm col-auto">
-      <q-btn-dropdown
-        flat
-        persistent
-        icon="archive"
-        split
-        class="q-mr-sm"
-        color="grey"
-        @click="exportCSV(false)"
-      >
-        <q-list>
-          <q-item>
-            <q-item-section>
-              <q-input
-                @keydown.enter="addFilterTag"
-                filled
-                dense
-                v-model="exportTagName"
-                type="text"
-                label="Payment Tags"
-                class="q-pa-sm"
-              >
-                <q-btn @click="addFilterTag" dense flat icon="add"></q-btn>
-              </q-input>
-            </q-item-section>
-          </q-item>
-          <q-item v-if="exportPaymentTagList.length">
-            <q-item-section>
-              <div>
-                <q-chip
-                  v-for="tag in exportPaymentTagList"
-                  :key="tag"
-                  removable
-                  @remove="removeExportTag(tag)"
-                  color="primary"
-                  text-color="white"
-                  :label="tag"
-                ></q-chip>
-              </div>
-            </q-item-section>
-          </q-item>
-
-          <q-item>
-            <q-item-section>
-              <q-btn
-                v-close-popup
-                outline
-                color="grey"
-                @click="exportCSV(true)"
-                label="Export to CSV with details"
-              ></q-btn>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-btn-dropdown>
       <q-btn icon="event" flat color="grey">
         <q-popup-proxy cover transition-show="scale" transition-hide="scale">
           <q-date v-model="searchDate" mask="YYYY-MM-DD" range />
@@ -773,6 +719,64 @@
           <span v-text="$t('filter_payments')"></span>
         </q-tooltip>
       </q-btn>
+      <q-btn-dropdown
+        dense
+        outline
+        persistent
+        icon="archive"
+        split
+        class="q-mr-sm"
+        color="grey"
+        @click="exportCSV(false)"
+      >
+        <q-tooltip>
+          <span v-text="$t('export_csv')"></span>
+        </q-tooltip>
+        <q-list>
+          <q-item>
+            <q-item-section>
+              <q-input
+                @keydown.enter="addFilterTag"
+                filled
+                dense
+                v-model="exportTagName"
+                type="text"
+                label="Payment Tags"
+                class="q-pa-sm"
+              >
+                <q-btn @click="addFilterTag" dense flat icon="add"></q-btn>
+              </q-input>
+            </q-item-section>
+          </q-item>
+          <q-item v-if="exportPaymentTagList.length">
+            <q-item-section>
+              <div>
+                <q-chip
+                  v-for="tag in exportPaymentTagList"
+                  :key="tag"
+                  removable
+                  @remove="removeExportTag(tag)"
+                  color="primary"
+                  text-color="white"
+                  :label="tag"
+                ></q-chip>
+              </div>
+            </q-item-section>
+          </q-item>
+
+          <q-item>
+            <q-item-section>
+              <q-btn
+                v-close-popup
+                outline
+                color="grey"
+                @click="exportCSV(true)"
+                :label="$t('export_csv_details')"
+              ></q-btn>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-btn-dropdown>
     </div>
   </div>
   <div class="row q-my-md"></div>
