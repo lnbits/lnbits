@@ -14,6 +14,7 @@ from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.notifications import enqueue_notification
+from lnbits.core.tasks import dispatch_webhook, send_payment_push_notification
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
@@ -288,6 +289,13 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
         send_chat_payment_notification(wallet, payment)
     except Exception as e:
         logger.error("Error sending chat payment notification", e)
+    try:
+        await send_payment_push_notification(payment)
+    except Exception as e:
+        logger.error("Error sending push payment notification", e)
+
+    if payment.webhook and not payment.webhook_status:
+        await dispatch_webhook(payment)
 
 
 async def send_ws_payment_notification(wallet: Wallet, payment: Payment):

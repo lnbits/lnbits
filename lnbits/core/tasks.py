@@ -106,11 +106,6 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         wallet = await get_wallet(payment.wallet_id)
         if wallet:
             await send_payment_notification(wallet, payment)
-        # dispatch webhook
-        if payment.webhook and not payment.webhook_status:
-            await dispatch_webhook(payment)
-        # dispatch push notification
-        await send_payment_push_notification(payment)
 
 
 async def dispatch_webhook(payment: Payment):
