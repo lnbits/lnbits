@@ -145,7 +145,7 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
     except Exception as e:
         logger.error("Error sending chat payment notification", e)
     try:
-        await send_payment_push_notification(payment)
+        await send_payment_push_notification(wallet, payment)
     except Exception as e:
         logger.error("Error sending push payment notification", e)
 
@@ -195,27 +195,22 @@ def send_chat_payment_notification(wallet: Wallet, payment: Payment):
             enqueue_notification(NotificationType.incoming_payment, values)
 
 
-async def send_payment_push_notification(payment: Payment):
-    wallet = await get_wallet(payment.wallet_id)
+async def send_payment_push_notification(wallet: Wallet, payment: Payment):
+    subscriptions = await get_webpush_subscriptions_for_user(wallet.user)
 
-    if wallet:
-        subscriptions = await get_webpush_subscriptions_for_user(wallet.user)
+    amount = int(payment.amount / 1000)
 
-        amount = int(payment.amount / 1000)
+    title = f"LNbits: {wallet.name}"
+    body = f"You just received {amount} sat{'s'[:amount^1]}!"
 
-        title = f"LNbits: {wallet.name}"
-        body = f"You just received {amount} sat{'s'[:amount^1]}!"
+    if payment.memo:
+        body += f"\r\n{payment.memo}"
 
-        if payment.memo:
-            body += f"\r\n{payment.memo}"
-
-        for subscription in subscriptions:
-            # todo: review permissions when user-id-only not allowed
-            # todo: replace all this logic with websockets?
-            url = (
-                f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
-            )
-            await send_push_notification(subscription, title, body, url)
+    for subscription in subscriptions:
+        # todo: review permissions when user-id-only not allowed
+        # todo: replace all this logic with websockets?
+        url = f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
+        await send_push_notification(subscription, title, body, url)
 
 
 async def wait_for_audit_data():
