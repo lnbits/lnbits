@@ -695,12 +695,14 @@ class AuditSettings(LNbitsSettings):
                 if _re_fullmatch_safe(exclude_path, path):
                     return False
 
-        if len(self.lnbits_audit_include_paths) != 0:
-            if not path:
-                return False
-            for include_path in self.lnbits_audit_include_paths:
-                if _re_fullmatch_safe(include_path, path):
-                    return True
+        if len(self.lnbits_audit_include_paths) == 0:
+            return True
+
+        if not path:
+            return False
+        for include_path in self.lnbits_audit_include_paths:
+            if _re_fullmatch_safe(include_path, path):
+                return True
 
         return False
 
