@@ -1,0 +1,17 @@
+POST /api/v1/payments?usr=40d64a953a464ae4b5a226e524e79fcb HTTP/1.1
+Accept: application/json, text/plain, */*
+Accept-Language: en-GB,en;q=0.9
+Connection: keep-alive
+Content-Type: application/json
+Origin: http://localhost:5000
+Referer: http://localhost:5000/wallet?wal=deefb76e774b4a9e97a8088d52311e51
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36
+X-Api-Key: 050d3e0d7f3b4ae48585e60811e86411
+sec-ch-ua-mobile: ?0
+Host: localhost:5000
+Content-Length: 1
+
+{"out":false,"amount":10,"memo":"Ten Dollars","lnurl_callback":null,"unit":"USD"}

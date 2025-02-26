@@ -1,0 +1,18 @@
+POST /api/v1/auth HTTP/1.1
+Host: localhost:5000
+Accept: application/json, text/plain, */*
+Accept-Language: en-GB,en;q=0.9
+Connection: keep-alive
+Content-Type: application/json
+Origin: http://localhost:5000
+Referer: http://localhost:5000/
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36
+sec-ch-ua: "Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Content-Length: 46
+
+{"username":"admin1","password":"secret1234"}

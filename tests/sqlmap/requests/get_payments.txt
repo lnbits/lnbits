@@ -1,0 +1,12 @@
+GET /api/v1/payments/paginated?limit=10&offset=0&sortby=time&direction=desc&time%5Bge%5D=2025-02-02T00%3A00%3A00&time%5Ble%5D=2025-02-26T23%3A59%3A59&status%5Bne%5D=failed HTTP/1.1
+Accept: application/json, text/plain, */*
+Accept-Language: en-GB,en;q=0.9
+Connection: keep-alive
+Referer: http://localhost:5000/wallet
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36
+X-Api-Key: e4c94dcce3e04b4fbfc4e36dd63971de
+sec-ch-ua-mobile: ?0
+Host: localhost:5000
