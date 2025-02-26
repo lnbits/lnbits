@@ -189,6 +189,7 @@ def allowed_currencies() -> list[str]:
 async def btc_rates(currency: str) -> list[tuple[str, float]]:
     if currency.upper() not in allowed_currencies():
         raise ValueError(f"Currency '{currency}' not allowed.")
+
     def replacements(ticker: str):
         return {
             "FROM": "BTC",
