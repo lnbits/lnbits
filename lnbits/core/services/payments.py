@@ -11,7 +11,6 @@ from loguru import logger
 from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
-from lnbits.core.tasks import send_payment_notification
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
@@ -43,6 +42,7 @@ from ..models import (
     PaymentState,
     Wallet,
 )
+from .notifications import send_payment_notification
 
 
 async def pay_invoice(
