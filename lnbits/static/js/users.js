@@ -352,9 +352,6 @@ window.UsersPageLogic = {
         })
         .catch(LNbits.utils.notifyApiError)
     },
-    exportUsers() {
-      console.log('export users')
-    },
     async showAccountPage(user_id) {
       this.activeUser.showPassword = false
       this.activeUser.showUserId = false

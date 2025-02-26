@@ -891,11 +891,11 @@ window.WalletPageLogic = {
       data = data.map(p => {
         if (this.paymentsFilter['amount[ge]'] !== undefined) {
           totalBalance += p.balance_in
-          return {...p, balance: totalBalance}
+          return {...p, balance: totalBalance, balance_out: 0, count_out: 0}
         }
         if (this.paymentsFilter['amount[le]'] !== undefined) {
           totalBalance -= p.balance_out
-          return {...p, balance: totalBalance}
+          return {...p, balance: totalBalance, balance_in: 0, count_in: 0}
         }
         return {...p}
       })
