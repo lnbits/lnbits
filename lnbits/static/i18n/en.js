@@ -82,6 +82,7 @@ window.localisation.en = {
   create_invoice: 'Create Invoice',
   camera_tooltip: 'Use camera to scan an invoice/QR',
   export_csv: 'Export to CSV',
+  export_csv_details: 'Export to CSV with details',
   chart_tooltip: 'Show chart',
   pending: 'Pending',
   copy_invoice: 'Copy invoice',
@@ -539,5 +540,7 @@ window.localisation.en = {
   reset_wallet_keys_desc:
     'Reset the API keys for this wallet. This will invalidate the current keys and generate new ones.',
   view_list: 'View wallets as list',
-  view_column: 'View wallets as rows'
+  view_column: 'View wallets as rows',
+  filter_payments: 'Filter payments',
+  filter_date: 'Filter by date'
 }

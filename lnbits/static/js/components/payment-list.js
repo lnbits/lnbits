@@ -6,7 +6,6 @@ window.app.component('payment-list', {
   data() {
     return {
       denomination: LNBITS_DENOMINATION,
-      failedPaymentsToggle: false,
       payments: [],
       paymentsTable: {
         columns: [
@@ -39,6 +38,13 @@ window.app.component('payment-list', {
         loading: false
       },
       searchDate: {from: null, to: null},
+      searchStatus: {
+        success: true,
+        pending: true,
+        failed: false,
+        incoming: true,
+        outgoing: true
+      },
       exportTagName: '',
       exportPaymentTagList: [],
       paymentsCSV: {
@@ -263,18 +269,40 @@ window.app.component('payment-list', {
         console.error(e)
         return `${amount} ???`
       }
+    },
+    handleFilterChanged() {
+      const {success, pending, failed, incoming, outgoing} = this.searchStatus
+
+      delete this.paymentsTable.filter['status[ne]']
+      delete this.paymentsTable.filter['status[eq]']
+      if (success && pending && failed) {
+        // No status filter
+      } else if (success && pending) {
+        this.paymentsTable.filter['status[ne]'] = 'failed'
+      } else if (success && failed) {
+        this.paymentsTable.filter['status[ne]'] = 'pending'
+      } else if (failed && pending) {
+        this.paymentsTable.filter['status[ne]'] = 'success'
+      } else if (success) {
+        this.paymentsTable.filter['status[eq]'] = 'success'
+      } else if (pending) {
+        this.paymentsTable.filter['status[eq]'] = 'pending'
+      } else if (failed) {
+        this.paymentsTable.filter['status[eq]'] = 'failed'
+      }
+
+      delete this.paymentsTable.filter['amount[ge]']
+      delete this.paymentsTable.filter['amount[le]']
+      if (incoming && outgoing) {
+        // do nothing
+      } else if (incoming) {
+        this.paymentsTable.filter['amount[ge]'] = 0
+      } else if (outgoing) {
+        this.paymentsTable.filter['amount[le]'] = 0
+      }
     }
   },
   watch: {
-    failedPaymentsToggle(newVal) {
-      if (newVal === false) {
-        this.paymentsTable.filter['status[ne]'] = 'failed'
-      } else {
-        delete this.paymentsTable.filter['status[ne]']
-      }
-      this.paymentsTable.pagination.page = 1
-      this.fetchPayments()
-    },
     'paymentsTable.search': {
       handler() {
         const props = {}
