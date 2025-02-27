@@ -4,9 +4,9 @@ import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional, Type
-from urllib import request
 from urllib.parse import urlparse
 
+import httpx
 import jinja2
 import jwt
 import shortuuid
@@ -300,9 +300,9 @@ def check_callback_url(url: str):
 
 
 def download_url(url: str, save_path: Path):
-    with request.urlopen(url, timeout=60) as dl_file:
-        with open(save_path, "wb") as out_file:
-            out_file.write(dl_file.read())
+    dl_file = httpx.get(url, timeout=10)
+    with open(save_path, "wb") as out_file:
+        out_file.write(dl_file.read())
 
 
 def file_hash(filename):
