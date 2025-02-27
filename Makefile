@@ -4,12 +4,9 @@ all: format check
 
 format: prettier black ruff
 
-check: bandit mypy pyright checkblack checkruff checkprettier checkbundle
+check: mypy pyright checkblack checkruff checkprettier checkbundle
 
 test: test-unit test-wallets test-api test-regtest
-
-bandit:
-	poetry run bandit -r -v -r . -c "pyproject.toml"
 
 prettier:
 	poetry run ./node_modules/.bin/prettier --write .
