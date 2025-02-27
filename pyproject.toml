@@ -233,5 +233,6 @@ exclude_dirs = [
     "tests",
     "node_modules",
     ".git",
+    ".venv",
 ]
 skips = ["B101"]
