@@ -2,25 +2,19 @@ import asyncio
 import traceback
 from typing import Callable, Coroutine
 
-import httpx
 from loguru import logger
 
 from lnbits.core.crud import (
     create_audit_entry,
     get_wallet,
-    get_webpush_subscriptions_for_user,
-    mark_webhook_sent,
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.payments import get_payments_status_count
 from lnbits.core.crud.users import get_accounts
 from lnbits.core.crud.wallets import get_wallets_count
-from lnbits.core.models import AuditEntry, Payment
+from lnbits.core.models import AuditEntry
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.services import (
-    send_payment_notification,
-)
 from lnbits.core.services.funding_source import (
     check_balance_delta_changed,
     check_server_balance_against_node,
@@ -29,11 +23,11 @@ from lnbits.core.services.funding_source import (
 from lnbits.core.services.notifications import (
     enqueue_notification,
     process_next_notification,
+    send_payment_notification,
 )
 from lnbits.db import Filters
-from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
-from lnbits.tasks import create_unique_task, send_push_notification
+from lnbits.tasks import create_unique_task
 from lnbits.utils.exchange_rates import btc_rates
 
 audit_queue: asyncio.Queue = asyncio.Queue()
@@ -106,62 +100,6 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         wallet = await get_wallet(payment.wallet_id)
         if wallet:
             await send_payment_notification(wallet, payment)
-        # dispatch webhook
-        if payment.webhook and not payment.webhook_status:
-            await dispatch_webhook(payment)
-        # dispatch push notification
-        await send_payment_push_notification(payment)
-
-
-async def dispatch_webhook(payment: Payment):
-    """
-    Dispatches the webhook to the webhook url.
-    """
-    logger.debug("sending webhook", payment.webhook)
-
-    if not payment.webhook:
-        return await mark_webhook_sent(payment.payment_hash, -1)
-
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers) as client:
-        data = payment.dict()
-        try:
-            check_callback_url(payment.webhook)
-            r = await client.post(payment.webhook, json=data, timeout=40)
-            r.raise_for_status()
-            await mark_webhook_sent(payment.payment_hash, r.status_code)
-        except httpx.HTTPStatusError as exc:
-            await mark_webhook_sent(payment.payment_hash, exc.response.status_code)
-            logger.warning(
-                f"webhook returned a bad status_code: {exc.response.status_code} "
-                f"while requesting {exc.request.url!r}."
-            )
-        except httpx.RequestError:
-            await mark_webhook_sent(payment.payment_hash, -1)
-            logger.warning(f"Could not send webhook to {payment.webhook}")
-
-
-async def send_payment_push_notification(payment: Payment):
-    wallet = await get_wallet(payment.wallet_id)
-
-    if wallet:
-        subscriptions = await get_webpush_subscriptions_for_user(wallet.user)
-
-        amount = int(payment.amount / 1000)
-
-        title = f"LNbits: {wallet.name}"
-        body = f"You just received {amount} sat{'s'[:amount^1]}!"
-
-        if payment.memo:
-            body += f"\r\n{payment.memo}"
-
-        for subscription in subscriptions:
-            # todo: review permissions when user-id-only not allowed
-            # todo: replace all this logic with websockets?
-            url = (
-                f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
-            )
-            await send_push_notification(subscription, title, body, url)
 
 
 async def wait_for_audit_data():

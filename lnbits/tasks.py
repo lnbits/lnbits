@@ -1,9 +1,7 @@
 import asyncio
-import json
 import time
 import traceback
 import uuid
-from http import HTTPStatus
 from typing import (
     Callable,
     Coroutine,
@@ -13,11 +11,8 @@ from typing import (
 )
 
 from loguru import logger
-from py_vapid import Vapid
-from pywebpush import WebPushException, webpush
 
 from lnbits.core.crud import (
-    delete_webpush_subscriptions,
     get_payments,
     get_standalone_payment,
     update_payment,
@@ -216,28 +211,3 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
         for name, send_chan in invoice_listeners.items():
             logger.trace(f"invoice listeners: sending to `{name}`")
             await send_chan.put(payment)
-
-
-async def send_push_notification(subscription, title, body, url=""):
-    vapid = Vapid()
-    try:
-        logger.debug("sending push notification")
-        webpush(
-            json.loads(subscription.data),
-            json.dumps({"title": title, "body": body, "url": url}),
-            (
-                vapid.from_pem(bytes(settings.lnbits_webpush_privkey, "utf-8"))
-                if settings.lnbits_webpush_privkey
-                else None
-            ),
-            {"aud": "", "sub": "mailto:alan@lnbits.com"},
-        )
-    except WebPushException as e:
-        if e.response and e.response.status_code == HTTPStatus.GONE:
-            # cleanup unsubscribed or expired push subscriptions
-            await delete_webpush_subscriptions(subscription.endpoint)
-        else:
-            logger.error(
-                f"failed sending push notification: "
-                f"{e.response.text if e.response else e}"
-            )
