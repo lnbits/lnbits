@@ -87,6 +87,7 @@ pytest-mock = "^3.14.0"
 types-mock = "^5.1.0.20240425"
 mock = "^5.1.0"
 grpcio-tools = "^1.69.0"
+bandit = "^1.8.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -221,18 +222,3 @@ extend-immutable-calls = [
     "fastapi.Body",
     "lnbits.decorators.parse_filters"
 ]
-
-# poetry run bandit -r -v -r . -c "pyproject.toml"
-[tool.bandit]
-exclude_dirs = [
-    "lnbits/wallets/lnd_grpc_files",
-    "lnbits/wallets/boltz_grpc_files",
-    "lnbits/extensions",
-    "lnbits/upgrades",
-    "tools",
-    "tests",
-    "node_modules",
-    ".git",
-    ".venv",
-]
-skips = ["B101"]
