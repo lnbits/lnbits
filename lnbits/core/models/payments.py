@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import Query
 from pydantic import BaseModel, Field, validator
@@ -28,16 +28,16 @@ class PaymentState(str, Enum):
 
 
 class PaymentExtra(BaseModel):
-    comment: Optional[str] = None
-    success_action: Optional[str] = None
-    lnurl_response: Optional[str] = None
+    comment: str | None = None
+    success_action: str | None = None
+    lnurl_response: str | None = None
 
 
 class PayInvoice(BaseModel):
     payment_request: str
-    description: Optional[str] = None
-    max_sat: Optional[int] = None
-    extra: Optional[dict] = {}
+    description: str | None = None
+    max_sat: int | None = None
+    extra: dict | None = {}
 
 
 class CreatePayment(BaseModel):
@@ -46,10 +46,10 @@ class CreatePayment(BaseModel):
     bolt11: str
     amount_msat: int
     memo: str
-    extra: Optional[dict] = {}
-    preimage: Optional[str] = None
-    expiry: Optional[datetime] = None
-    webhook: Optional[str] = None
+    extra: dict | None = {}
+    preimage: str | None = None
+    expiry: datetime | None = None
+    webhook: str | None = None
     fee: int = 0
 
 
@@ -61,13 +61,13 @@ class Payment(BaseModel):
     fee: int
     bolt11: str
     status: str = PaymentState.PENDING
-    memo: Optional[str] = None
-    expiry: Optional[datetime] = None
-    webhook: Optional[str] = None
-    webhook_status: Optional[int] = None
-    preimage: Optional[str] = None
-    tag: Optional[str] = None
-    extension: Optional[str] = None
+    memo: str | None = None
+    expiry: datetime | None = None
+    webhook: str | None = None
+    webhook_status: int | None = None
+    preimage: str | None = None
+    tag: str | None = None
+    extension: str | None = None
     time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -129,16 +129,16 @@ class PaymentFilters(FilterModel):
 
     __sort_fields__ = ["created_at", "amount", "fee", "memo", "time", "tag"]
 
-    status: Optional[str]
-    tag: Optional[str]
-    checking_id: Optional[str]
+    status: str | None
+    tag: str | None
+    checking_id: str | None
     amount: int
     fee: int
-    memo: Optional[str]
+    memo: str | None
     time: datetime
-    preimage: Optional[str]
-    payment_hash: Optional[str]
-    wallet_id: Optional[str]
+    preimage: str | None
+    payment_hash: str | None
+    wallet_id: str | None
 
 
 class PaymentDataPoint(BaseModel):
@@ -173,11 +173,11 @@ class PaymentWalletStats(BaseModel):
 class PaymentDailyStats(BaseModel):
     date: datetime
     balance: float = 0
-    balance_in: Optional[float] = 0
-    balance_out: Optional[float] = 0
+    balance_in: float | None = 0
+    balance_out: float | None = 0
     payments_count: int = 0
-    count_in: Optional[int] = 0
-    count_out: Optional[int] = 0
+    count_in: int | None = 0
+    count_out: int | None = 0
     fee: float = 0
 
 
@@ -190,7 +190,7 @@ class PaymentHistoryPoint(BaseModel):
 
 class DecodePayment(BaseModel):
     data: str
-    filter_fields: Optional[list[str]] = []
+    filter_fields: list[str] | None = []
 
 
 class CreateInvoice(BaseModel):
@@ -198,14 +198,14 @@ class CreateInvoice(BaseModel):
     internal: bool = False
     out: bool = True
     amount: float = Query(None, ge=0)
-    memo: Optional[str] = None
-    description_hash: Optional[str] = None
-    unhashed_description: Optional[str] = None
-    expiry: Optional[int] = None
-    extra: Optional[dict] = None
-    webhook: Optional[str] = None
-    bolt11: Optional[str] = None
-    lnurl_callback: Optional[str] = None
+    memo: str | None = None
+    description_hash: str | None = None
+    unhashed_description: str | None = None
+    expiry: int | None = None
+    extra: dict | None = None
+    webhook: str | None = None
+    bolt11: str | None = None
+    lnurl_callback: str | None = None
 
     @validator("unit")
     @classmethod

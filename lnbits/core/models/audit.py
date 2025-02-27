@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -10,16 +9,16 @@ from lnbits.settings import settings
 
 
 class AuditEntry(BaseModel):
-    component: Optional[str] = None
-    ip_address: Optional[str] = None
-    user_id: Optional[str] = None
-    path: Optional[str] = None
-    request_type: Optional[str] = None
-    request_method: Optional[str] = None
-    request_details: Optional[str] = None
-    response_code: Optional[str] = None
+    component: str | None = None
+    ip_address: str | None = None
+    user_id: str | None = None
+    path: str | None = None
+    request_type: str | None = None
+    request_method: str | None = None
+    request_details: str | None = None
+    response_code: str | None = None
     duration: float
-    delete_at: Optional[datetime] = None
+    delete_at: datetime | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __init__(self, **data):
@@ -42,12 +41,12 @@ class AuditFilters(FilterModel):
         "duration",
     ]
 
-    ip_address: Optional[str] = None
-    user_id: Optional[str] = None
-    path: Optional[str] = None
-    request_method: Optional[str] = None
-    response_code: Optional[str] = None
-    component: Optional[str] = None
+    ip_address: str | None = None
+    user_id: str | None = None
+    path: str | None = None
+    request_method: str | None = None
+    response_code: str | None = None
+    component: str | None = None
 
 
 class AuditCountStat(BaseModel):
