@@ -7,6 +7,9 @@ import httpx
 from loguru import logger
 from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from lnbits.core.crud import (
     delete_webpush_subscriptions,
@@ -101,6 +104,21 @@ async def send_telegram_message(token: str, chat_id: str, message: str) -> dict:
         response.raise_for_status()
         return response.json()
 
+
+async def send_email(to_emails: list, subject: str, message: str):
+    msg = MIMEMultipart()
+    msg["From"] = settings.lnbits_email
+    msg["To"] = ", ".join(to_emails)
+    msg["Subject"] = subject
+    msg.attach(MIMEText(message, "plain"))
+    try:
+        with smtplib.SMTP(settings.lnbits_email_server, settings.lnbits_email_port) as server:
+            server.starttls()
+            server.login(settings.lnbits_email, settings.lnbits_email_pasword)
+            server.sendmail(settings.lnbits_email, to_emails, msg.as_string())
+            logger.debug(f"Email sent successfully to: {', '.join(to_emails)}")
+    except Exception as e:
+        logger.debug(f"Failed to send email: {e}")
 
 def is_message_type_enabled(message_type: NotificationType) -> bool:
     if message_type == NotificationType.balance_update:
