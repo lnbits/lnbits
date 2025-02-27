@@ -1259,7 +1259,7 @@
       </q-form>
     </q-card-section>
     <!-- REGISTER -->
-    <q-card-section v-if="authAction === 'register'">
+    <q-card-section v-if="allowed_new_users && authAction === 'register'">
       <q-form @submit="register" class="q-gutter-sm">
         <q-input
           dense
@@ -1301,6 +1301,9 @@
           ></q-btn>
         </div>
       </q-form>
+    </q-card-section>
+    <q-card-section v-else-if="!allowed_new_users && authAction === 'register'">
+      <h5 class="text-center" v-text="$t('new_user_not_allowed')"></h5>
     </q-card-section>
     <slot></slot>
     <!-- RESET -->

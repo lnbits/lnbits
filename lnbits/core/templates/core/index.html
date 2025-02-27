@@ -160,7 +160,10 @@
                     class="text-center text-grey-6"
                     v-if="authAction !== 'reset'"
                   >
-                    <p v-if="authAction === 'login'" class="q-mb-none">
+                    <p
+                      v-if="authAction === 'login' && {{ LNBITS_NEW_ACCOUNTS_ALLOWED }}"
+                      class="q-mb-none"
+                    >
                       Not registered? Create an
                       <span
                         class="text-secondary cursor-pointer"
@@ -168,7 +171,8 @@
                         >Account</span
                       >
                     </p>
-                    <p v-else class="q-mb-none">
+
+                    <p v-else-if="authAction === 'register'" class="q-mb-none">
                       Aready have an account?
                       <span
                         class="text-secondary cursor-pointer"
