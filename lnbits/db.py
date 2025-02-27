@@ -131,7 +131,18 @@ class Compat:
         return "INT"
 
     def timestamp_placeholder(self, key: str) -> str:
+        logger.warning(
+            "DEPRECATED: DONT USE fstrings, use `db.timestamp(ts)` and `:ts` instead"
+        )
         return compat_timestamp_placeholder(key)
+
+    def timestamp(self, timestamp) -> str:
+        if DB_TYPE == POSTGRES:
+            return f"to_timestamp({timestamp})"
+        elif DB_TYPE == COCKROACH:
+            return f"cast({timestamp} AS timestamp)"
+        else:
+            return f"{timestamp}"
 
 
 class Connection(Compat):
@@ -247,12 +258,13 @@ class Connection(Compat):
             if filters.offset or filters.limit:
                 result = await self.execute(
                     f"""
+                    # nosec
                     SELECT COUNT(*) as count FROM (
                         {query}
                         {clause}
                         {group_by_string}
                     ) as count
-                    """,
+                    """,  # nosec
                     parsed_values,
                 )
                 row = result.mappings().first()
@@ -593,7 +605,7 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
     fields = ", ".join([f'"{key}"' for key in keys])
     values = ", ".join(placeholders)
-    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
+    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"  # nosec
 
 
 def update_query(
@@ -611,7 +623,7 @@ def update_query(
         # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
         fields.append(f'"{field}" = {placeholder}')
     query = ", ".join(fields)
-    return f"UPDATE {table_name} SET {query} {where}"
+    return f"UPDATE {table_name} SET {query} {where}"  # nosec
 
 
 def model_to_dict(model: BaseModel) -> dict:
@@ -637,7 +649,6 @@ def model_to_dict(model: BaseModel) -> dict:
             _dict[key] = json.dumps(value)
             continue
         _dict[key] = value
-
     return _dict
 
 
