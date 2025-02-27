@@ -61,8 +61,8 @@
             v-model="formData.lnbits_denomination"
             label="sats"
             :hint="$t('denomination_hint')"
+            :rules="[(val) => !val || val.length == 3 || val == 'sats' || $t('denomination_error')]"
           ></q-input>
-          <!-- :rules="[(val) => !val || val.length = 3 || val === 'sats' || $t('denomination_error')]" -->
         </div>
         <div class="col-12 col-md-4">
           <p><span v-text="$t('ui_qr_code_logo')"></span></p>
