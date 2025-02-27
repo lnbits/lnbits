@@ -166,7 +166,7 @@
                     v-if="authAction !== 'reset'"
                   >
                     <p
-                      v-if="authAction === 'login' && allowedRegister"
+                      v-if="authAction === 'login' && LNBITS_NEW_ACCOUNTS_ALLOWED"
                       class="q-mb-none"
                     >
                       Not registered? Create an
@@ -177,12 +177,11 @@
                       >
                     </p>
                     <p
-                      v-else-if="authAction === 'login' && !allowedRegister"
+                      v-else-if="authAction === 'login' && !LNBITS_NEW_ACCOUNTS_ALLOWED"
                       class="q-mb-none"
                     >
                       <span v-text="$t('new_user_not_allowed')"></span>
                     </p>
-
                     <p v-else-if="authAction === 'register'" class="q-mb-none">
                       <span v-text="$t('existing_account_question')"></span>
 
