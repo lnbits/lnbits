@@ -176,7 +176,7 @@ currencies = {
 }
 
 
-def allowed_currencies():
+def allowed_currencies() -> list[str]:
     if len(settings.lnbits_allowed_currencies) > 0:
         return [
             item
@@ -187,6 +187,9 @@ def allowed_currencies():
 
 
 async def btc_rates(currency: str) -> list[tuple[str, float]]:
+    if currency.upper() not in allowed_currencies():
+        raise ValueError(f"Currency '{currency}' not allowed.")
+
     def replacements(ticker: str):
         return {
             "FROM": "BTC",
