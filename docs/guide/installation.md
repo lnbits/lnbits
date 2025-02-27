@@ -226,7 +226,7 @@ Problems installing? These commands have helped us install LNbits.
 sudo apt install pkg-config libffi-dev libpq-dev
 
 # build essentials for debian/ubuntu
-sudo apt install python3.9-dev gcc build-essential
+sudo apt install python3.10-dev gcc build-essential
 
 # if the secp256k1 build fails:
 # if you used poetry
