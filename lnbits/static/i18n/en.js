@@ -514,7 +514,7 @@ window.localisation.en = {
   allowed_users_label: 'User ID',
   allow_creation_user: 'Allow creation of new users',
   allow_creation_user_desc: 'Allow creation of new users on the index page',
-  new_user_not_allowed: 'New user creation is not allowed',
+  new_user_not_allowed: 'Registration is disabled.',
   components: 'Components',
   long_running_endpoints: 'Top 5 Long Running Endpoints',
   http_request_methods: 'HTTP Request Methods',
