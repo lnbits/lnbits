@@ -203,7 +203,8 @@ async def update_pending_payments(
     payments: list[Payment], delay: Optional[float] = None
 ) -> list[Payment]:
     for payment in payments:
-        await update_pending_payment(payment)
+        if payment.pending:
+            await update_pending_payment(payment)
         if delay is not None:
             await asyncio.sleep(delay)  # to avoid complete blocking
     return payments
