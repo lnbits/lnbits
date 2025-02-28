@@ -59,6 +59,9 @@
     }
   }
 </style>
+<script>
+  const ALLOWED_REGISTER = {{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }};
+</script>
 <script src="{{ static_url_for('static', 'js/index.js') }}"></script>
 {% endblock %} {% block page_container %}
 <q-page-container>
@@ -145,7 +148,7 @@
                 {%else%}
                 <username-password
                   v-if="authMethod != 'user-id-only'"
-                  :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
+                  :allowed_new_users="allowedRegister"
                   :auth-methods="{{ LNBITS_AUTH_METHODS }}"
                   :auth-action="authAction"
                   v-model:user-name="username"
@@ -161,7 +164,7 @@
                     v-if="authAction !== 'reset'"
                   >
                     <p
-                      v-if="authAction === 'login' && {{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
+                      v-if="authAction === 'login' && allowedRegister"
                       class="q-mb-none"
                     >
                       Not registered? Create an
@@ -170,6 +173,12 @@
                         @click="showRegister('username-password')"
                         >Account</span
                       >
+                    </p>
+                    <p
+                      v-else-if="authAction === 'login' && !allowedRegister"
+                      class="q-mb-none"
+                    >
+                      <span v-text="$t('new_user_not_allowed')"></span>
                     </p>
 
                     <p v-else-if="authAction === 'register'" class="q-mb-none">
@@ -184,7 +193,7 @@
                 </username-password>
                 {% if "user-id-only" in LNBITS_AUTH_METHODS %}
                 <user-id-only
-                  :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
+                  :allowed_new_users="allowedRegister"
                   v-model:usr="usr"
                   v-model:wallet="walletName"
                   :auth-action="authAction"

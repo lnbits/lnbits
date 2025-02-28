@@ -9,9 +9,7 @@ window.app = Vue.createApp({
         description: ''
       },
       isUserAuthorized: false,
-      authAction: Quasar.LocalStorage.getItem('lnbits.disclaimerShown')
-        ? 'login'
-        : 'register',
+      authAction: 'login',
       authMethod: 'username-password',
       usr: '',
       username: '',
@@ -104,6 +102,12 @@ window.app = Vue.createApp({
   },
   created() {
     this.description = SITE_DESCRIPTION
+    this.allowedRegister = ALLOWED_REGISTER
+    this.authAction =
+      !this.allowedRegister ||
+      Quasar.LocalStorage.getItem('lnbits.disclaimerShown')
+        ? 'login'
+        : 'register'
     this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
     const _acccess_cookies_for_safari_refresh_do_not_delete = document.cookie
     if (this.isUserAuthorized) {
