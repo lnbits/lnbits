@@ -63,10 +63,15 @@ class AESCipher:
             final_key += key
         return final_key[:output]
 
-    def decrypt(self, encrypted: str) -> str:
+    def decrypt(self, encrypted: str, urlsafe: bool = False) -> str:
         """Decrypts a string using AES-256-CBC."""
         passphrase = self.passphrase
-        encrypted_bytes = base64.b64decode(encrypted)
+
+        if urlsafe:
+            encrypted_bytes = base64.urlsafe_b64decode(encrypted)
+        else:
+            encrypted_bytes = base64.b64decode(encrypted)
+
         assert encrypted_bytes[0:8] == b"Salted__"
         salt = encrypted_bytes[8:16]
         key_iv = self.bytes_to_key(passphrase.encode(), salt, 32 + 16)
@@ -78,13 +83,14 @@ class AESCipher:
         except UnicodeDecodeError as exc:
             raise ValueError("Wrong passphrase") from exc
 
-    def encrypt(self, message: bytes) -> str:
+    def encrypt(self, message: bytes, urlsafe: bool = False) -> str:
         passphrase = self.passphrase
         salt = Random.new().read(8)
         key_iv = self.bytes_to_key(passphrase.encode(), salt, 32 + 16)
         key = key_iv[:32]
         iv = key_iv[32:]
         aes = AES.new(key, AES.MODE_CBC, iv)
-        return base64.b64encode(
-            b"Salted__" + salt + aes.encrypt(self.pad(message))
+        encoded = b"Salted__" + salt + aes.encrypt(self.pad(message))
+        return (
+            base64.urlsafe_b64encode(encoded) if urlsafe else base64.b64encode(encoded)
         ).decode()
