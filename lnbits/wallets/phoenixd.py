@@ -218,7 +218,9 @@ class PhoenixdWallet(Wallet):
             r = await self.client.get(f"/payments/outgoing/{checking_id}")
             if r.is_error:
                 return PaymentPendingStatus()
+            logger.info("### phoenixd get_payment_status data: ", r.text)
             data = r.json()
+
 
             if data["isPaid"]:
                 fee_msat = data["fees"]
