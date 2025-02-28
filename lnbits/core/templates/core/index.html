@@ -161,7 +161,7 @@
                     v-if="authAction !== 'reset'"
                   >
                     <p
-                      v-if="authAction === 'login' && {{ LNBITS_NEW_ACCOUNTS_ALLOWED }}"
+                      v-if="authAction === 'login' && {{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
                       class="q-mb-none"
                     >
                       Not registered? Create an
