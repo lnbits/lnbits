@@ -13,11 +13,11 @@ from typing import (
 from loguru import logger
 
 from lnbits.core.crud import (
-    get_payments,
     get_standalone_payment,
     update_payment,
 )
 from lnbits.core.models import Payment, PaymentState
+from lnbits.core.services.payments import update_pending_payments
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
@@ -162,35 +162,26 @@ async def check_pending_payments():
             await asyncio.sleep(sleep_time)
             continue
         start_time = time.time()
-        pending_payments = await get_payments(
-            since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
-            complete=False,
-            pending=True,
-            exclude_uncheckable=True,
-        )
-        count = len(pending_payments)
-        if count > 0:
-            logger.info(f"Task: checking {count} pending payments of last 15 days...")
-            for i, payment in enumerate(pending_payments):
-                status = await payment.check_status()
-                prefix = f"payment ({i+1} / {count})"
-                if status.failed:
-                    payment.status = PaymentState.FAILED
-                    await update_payment(payment)
-                    logger.debug(f"{prefix} failed {payment.checking_id}")
-                elif status.success:
-                    payment.fee = status.fee_msat or 0
-                    payment.preimage = status.preimage
-                    payment.status = PaymentState.SUCCESS
-                    await update_payment(payment)
-                    logger.debug(f"{prefix} success {payment.checking_id}")
-                else:
-                    logger.debug(f"{prefix} pending {payment.checking_id}")
-                await asyncio.sleep(0.01)  # to avoid complete blocking
+
+        since = int(time.time()) - 60 * 60 * 24 * 31  # 31 days ago
+        offset = 0
+        limit = 100
+        count = -1
+        while count != 0:
             logger.info(
-                f"Task: pending check finished for {count} payments"
-                f" (took {time.time() - start_time:0.3f} s)"
+                f"Task [{offset, offset+limit}]: "
+                "checking pending payments of last 31 days..."
             )
+            pending_payments = await update_pending_payments(
+                offset=offset, limit=limit, since=since
+            )
+            count = len(pending_payments)
+            offset += limit
+            logger.info(
+                f"Task: pending check finished for {count} payments "
+                f"(took {time.time() - start_time:0.3f} s)"
+            )
+            await asyncio.sleep(0.1)
         await asyncio.sleep(sleep_time)
 
 

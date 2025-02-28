@@ -171,7 +171,7 @@ async def create_invoice(
     return payment
 
 
-async def update_pending_payments(wallet_id: str):
+async def update_wallet_pending_payments(wallet_id: str):
     pending_payments = await get_payments(
         wallet_id=wallet_id,
         pending=True,
@@ -185,6 +185,43 @@ async def update_pending_payments(wallet_id: str):
         elif status.success:
             payment.status = PaymentState.SUCCESS
             await update_payment(payment)
+
+
+async def update_pending_payments(
+    offset: Optional[int] = 0,
+    limit: Optional[int] = 100,
+    since: Optional[int] = None,
+    delay: Optional[int] = 0,
+) -> list[Payment]:
+    """
+    Updates the status of the pending payments based on the funding source state.
+    """
+    pending_payments = await get_payments(
+        since=since,
+        complete=False,
+        pending=True,
+        exclude_uncheckable=True,
+        offset=offset,
+        limit=limit,
+    )
+    for i, payment in enumerate(pending_payments):
+        status = await payment.check_status()
+        prefix = f"payment [{(offset or 0) +i +1}]"
+        if status.failed:
+            payment.status = PaymentState.FAILED
+            await update_payment(payment)
+            logger.debug(f"{prefix} failed {payment.checking_id}")
+        elif status.success:
+            payment.fee = status.fee_msat or 0
+            payment.preimage = status.preimage
+            payment.status = PaymentState.SUCCESS
+            await update_payment(payment)
+            logger.debug(f"{prefix} success {payment.checking_id}")
+        else:
+            logger.debug(f"{prefix} pending {payment.checking_id}")
+        await asyncio.sleep(delay or 0.01)  # to avoid complete blocking
+
+    return pending_payments
 
 
 def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:

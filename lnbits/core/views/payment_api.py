@@ -68,7 +68,7 @@ from ..services import (
     create_invoice,
     fee_reserve_total,
     pay_invoice,
-    update_pending_payments,
+    update_wallet_pending_payments,
 )
 
 payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
@@ -86,7 +86,7 @@ async def api_payments(
     key_info: WalletTypeInfo = Depends(require_invoice_key),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(key_info.wallet.id)
+    await update_wallet_pending_payments(key_info.wallet.id)
     return await get_payments(
         wallet_id=key_info.wallet.id,
         pending=True,
@@ -106,7 +106,7 @@ async def api_payments_history(
     group: DateTrunc = Query("day"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(key_info.wallet.id)
+    await update_wallet_pending_payments(key_info.wallet.id)
     return await get_payments_history(key_info.wallet.id, group, filters)
 
 
@@ -180,7 +180,7 @@ async def api_payments_paginated(
     key_info: WalletTypeInfo = Depends(require_invoice_key),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(key_info.wallet.id)
+    await update_wallet_pending_payments(key_info.wallet.id)
     page = await get_payments_paginated(
         wallet_id=key_info.wallet.id,
         filters=filters,
