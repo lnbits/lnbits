@@ -160,6 +160,7 @@ class AlbyWallet(Wallet):
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
+            # todo: check failed/expired
             r = await self.client.get(f"/invoices/{checking_id}")
 
             if r.is_error:

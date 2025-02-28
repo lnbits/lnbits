@@ -137,6 +137,7 @@ class LnTipsWallet(Wallet):
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
+            # todo: failed/expired
             r = await self.client.post(
                 url=f"/api/v1/paymentstatus/{checking_id}",
             )
