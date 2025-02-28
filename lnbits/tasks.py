@@ -17,7 +17,7 @@ from lnbits.core.crud import (
     update_payment,
 )
 from lnbits.core.models import Payment, PaymentState
-from lnbits.core.services.payments import update_pending_payments
+from lnbits.core.services.payments import update_all_pending_payments
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
@@ -172,16 +172,20 @@ async def check_pending_payments():
                 f"Task [{offset, offset+limit}]: "
                 "checking pending payments of last 31 days..."
             )
-            pending_payments = await update_pending_payments(
+            pending_payments = await update_all_pending_payments(
                 offset=offset, limit=limit, since=since
             )
+            for i, payment in enumerate(pending_payments):
+                logger.debug(f"Payment[{offset+i}] status: {payment.status}")
             count = len(pending_payments)
             offset += limit
-            logger.info(
-                f"Task: pending check finished for {count} payments "
-                f"(took {time.time() - start_time:0.3f} s)"
-            )
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)  # time to breathe
+
+        logger.info(
+            f"Task: pending check finished for {offset+count} payments "
+            f"(took {time.time() - start_time:0.3f} s)"
+        )
+
         await asyncio.sleep(sleep_time)
 
 

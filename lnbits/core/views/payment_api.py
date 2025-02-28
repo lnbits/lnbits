@@ -32,12 +32,15 @@ from lnbits.core.models import (
     PaymentCountStat,
     PaymentDailyStats,
     PaymentFilters,
-    PaymentHistoryPoint,
     PaymentWalletStats,
     Wallet,
 )
 from lnbits.core.models.users import User
-from lnbits.core.services.payments import get_payments_daily_stats
+from lnbits.core.services.payments import (
+    get_payments_daily_stats,
+    update_pending_payments,
+    update_wallet_pending_payments,
+)
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -57,9 +60,7 @@ from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from ..crud import (
-    DateTrunc,
     get_payments,
-    get_payments_history,
     get_payments_paginated,
     get_standalone_payment,
     get_wallet_for_key,
@@ -68,7 +69,6 @@ from ..services import (
     create_invoice,
     fee_reserve_total,
     pay_invoice,
-    update_wallet_pending_payments,
 )
 
 payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
@@ -93,21 +93,6 @@ async def api_payments(
         complete=True,
         filters=filters,
     )
-
-
-@payment_router.get(
-    "/history",
-    name="Get payments history",
-    response_model=List[PaymentHistoryPoint],
-    openapi_extra=generate_filter_params_openapi(PaymentFilters),
-)
-async def api_payments_history(
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
-    group: DateTrunc = Query("day"),
-    filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
-):
-    await update_wallet_pending_payments(key_info.wallet.id)
-    return await get_payments_history(key_info.wallet.id, group, filters)
 
 
 @payment_router.get(
@@ -180,11 +165,11 @@ async def api_payments_paginated(
     key_info: WalletTypeInfo = Depends(require_invoice_key),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_wallet_pending_payments(key_info.wallet.id)
     page = await get_payments_paginated(
         wallet_id=key_info.wallet.id,
         filters=filters,
     )
+    page.data = await update_pending_payments(page.data)
     return page
 
 

@@ -362,35 +362,6 @@ async def test_get_payments_paginated(client, inkey_fresh_headers_to, fake_payme
     assert paginated["total"] == len(fake_data)
 
 
-@pytest.mark.anyio
-async def test_get_payments_history(client, inkey_fresh_headers_to, fake_payments):
-    fake_data, filters = fake_payments
-
-    response = await client.get(
-        "/api/v1/payments/history",
-        params=filters,
-        headers=inkey_fresh_headers_to,
-    )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["income"] == sum(
-        [int(payment.amount * 1000) for payment in fake_data if not payment.out]
-    )
-    assert data[0]["spending"] == sum(
-        [int(payment.amount * 1000) for payment in fake_data if payment.out]
-    )
-
-    response = await client.get(
-        "/api/v1/payments/history?group=INVALID",
-        params=filters,
-        headers=inkey_fresh_headers_to,
-    )
-
-    assert response.status_code == 400
-
-
 # check POST /api/v1/payments/decode
 @pytest.mark.anyio
 async def test_decode_invoice(client, invoice: Payment):
