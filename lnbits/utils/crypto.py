@@ -66,22 +66,11 @@ class AESCipher:
     def decrypt(self, encrypted: str, urlsafe: bool = False) -> str:
         """Decrypts a string using AES-256-CBC."""
         passphrase = self.passphrase
-        try:
-            # Try urlsafe first if specified
-            if urlsafe:
-                encrypted_bytes = base64.urlsafe_b64decode(encrypted)
-            else:
-                encrypted_bytes = base64.b64decode(encrypted)
-        except Exception:
-            # Fallback to other method if the first fails
-            try:
-                encrypted_bytes = (
-                    base64.urlsafe_b64decode(encrypted)
-                    if not urlsafe
-                    else base64.b64decode(encrypted)
-                )
-            except Exception as exc:
-                raise ValueError("Invalid base64 encoding") from exc
+
+        if urlsafe:
+            encrypted_bytes = base64.urlsafe_b64decode(encrypted)
+        else:
+            encrypted_bytes = base64.b64decode(encrypted)
 
         assert encrypted_bytes[0:8] == b"Salted__"
         salt = encrypted_bytes[8:16]
