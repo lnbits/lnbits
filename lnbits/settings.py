@@ -397,7 +397,7 @@ class NotificationsSettings(LNbitsSettings):
     lnbits_email_notifications_enabled: bool = Field(default=False)
     lnbits_email_notifications_email: str = Field(default="")
     lnbits_email_notifications_password: str = Field(default="")
-    lnbits_email_notifications_server: str = Field(default="smtp.gmail.com")
+    lnbits_email_notifications_server: str = Field(default="smtp.protonmail.ch")
     lnbits_email_notifications_port: int = Field(default=587)
     lnbits_email_notifications_to_emails: list[str] = Field(default=[])
 
