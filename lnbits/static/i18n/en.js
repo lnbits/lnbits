@@ -196,6 +196,22 @@ window.localisation.en = {
   notifications_chat_id: 'Chat ID',
   notifications_chat_id_desc: 'Chat ID to send the notifications to',
 
+  notifications_email_config: 'Email Configuration',
+  notifications_enable_email: 'Enable Email',
+  notifications_enable_email_desc: 'Send notfications over Email',
+  notifications_send_email: 'Send email',
+  notifications_send_email_desc: 'Email you will send from',
+  notifications_send_email_password: 'Send email password',
+  notifications_send_email_password_desc:
+    'Password for the email you will send from',
+  notifications_send_email_server_port: 'Send email SMTP port',
+  notifications_send_email_server_port_desc: 'Port for the SMTP server',
+  notifications_send_email_server: 'Send email SMTP server',
+  notifications_send_email_server_desc:
+    'SMTP server for the email you will send from',
+  notifications_send_to_emails: 'Emails to send to',
+  notifications_send_to_emails_desc: 'Emails notifications will be sent to',
+
   notification_settings_update: 'Settings updated',
   notification_settings_update_desc:
     'Notify when server settings have been updated',

@@ -55,6 +55,7 @@ window.AdminPageLogic = {
       formAddUser: '',
       formAddExtensionsManifest: '',
       nostrNotificationIdentifier: '',
+      emailNotificationAddress: '',
       formAllowedIPs: '',
       formCallbackUrlRule: '',
       formBlockedIPs: '',
@@ -268,6 +269,20 @@ window.AdminPageLogic = {
       const identifiers = this.formData.lnbits_nostr_notifications_identifiers
       this.formData.lnbits_nostr_notifications_identifiers = identifiers.filter(
         m => m !== identifer
+      )
+    },
+    addEmailNotificationAddress() {
+      const email = this.emailNotificationAddress.trim()
+      const emails = this.formData.lnbits_email_notifications_to_emails
+      if (email && email.length && !emails.includes(email)) {
+        this.formData.lnbits_email_notifications_to_emails = [...emails, email]
+        this.emailNotificationAddress = ''
+      }
+    },
+    removeEmailNotificationAddress(email) {
+      const emails = this.formData.lnbits_email_notifications_to_emails
+      this.formData.lnbits_email_notifications_to_emails = emails.filter(
+        m => m !== email
       )
     },
     async toggleServerLog() {

@@ -395,10 +395,11 @@ class NotificationsSettings(LNbitsSettings):
     lnbits_telegram_notifications_access_token: str = Field(default="")
     lnbits_telegram_notifications_chat_id: str = Field(default="")
     lnbits_email_notifications_enabled: bool = Field(default=False)
-    lnbits_email: str = Field(default="")
-    lnbits_email_pasword: str = Field(default="")
-    lnbits_email_server: str = Field(default="smtp.gmail.com")
-    lnbits_email_port: int = Field(default=587)
+    lnbits_email_notifications_email: str = Field(default="")
+    lnbits_email_notifications_password: str = Field(default="")
+    lnbits_email_notifications_server: str = Field(default="smtp.gmail.com")
+    lnbits_email_notifications_port: int = Field(default=587)
+    lnbits_email_notifications_to_emails: list[str] = Field(default=[])
 
     lnbits_notification_settings_update: bool = Field(default=True)
     lnbits_notification_credit_debit: bool = Field(default=True)
@@ -408,6 +409,7 @@ class NotificationsSettings(LNbitsSettings):
     lnbits_notification_server_status_hours: int = Field(default=24)
     lnbits_notification_incoming_payment_amount_sats: int = Field(default=1_000_000)
     lnbits_notification_outgoing_payment_amount_sats: int = Field(default=1_000_000)
+
 
 class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")

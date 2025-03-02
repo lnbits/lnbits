@@ -1,5 +1,8 @@
 import asyncio
 import json
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from http import HTTPStatus
 from typing import Optional, Tuple
 
@@ -7,9 +10,6 @@ import httpx
 from loguru import logger
 from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 from lnbits.core.crud import (
     delete_webpush_subscriptions,
@@ -65,6 +65,12 @@ async def send_notification(
             logger.debug(f"Sent nostr notification: {message_type}")
     except Exception as e:
         logger.error(f"Error sending nostr notification {message_type}: {e}")
+    try:
+        if settings.lnbits_email_notifications_enabled:
+            await send_email_notification(message)
+            logger.debug(f"Sent email notification: {message_type}")
+    except Exception as e:
+        logger.error(f"Error sending email notification {message_type}: {e}")
 
 
 async def send_nostr_notification(message: str) -> dict:
@@ -105,20 +111,42 @@ async def send_telegram_message(token: str, chat_id: str, message: str) -> dict:
         return response.json()
 
 
-async def send_email(to_emails: list, subject: str, message: str):
+async def send_email_notification(message: str) -> dict:
+    await send_email(
+        settings.lnbits_email_notifications_server,
+        settings.lnbits_email_notifications_port,
+        settings.lnbits_email_notifications_password,
+        settings.lnbits_email_notifications_email,
+        settings.lnbits_email_notifications_to_emails,
+        "LNbits Notification",
+        message,
+    )
+    return {"status": "ok"}
+
+
+async def send_email(
+    server: str,
+    port: int,
+    password: str,
+    from_email: str,
+    to_emails: list,
+    subject: str,
+    message: str,
+):
     msg = MIMEMultipart()
-    msg["From"] = settings.lnbits_email
+    msg["From"] = from_email
     msg["To"] = ", ".join(to_emails)
     msg["Subject"] = subject
     msg.attach(MIMEText(message, "plain"))
     try:
-        with smtplib.SMTP(settings.lnbits_email_server, settings.lnbits_email_port) as server:
-            server.starttls()
-            server.login(settings.lnbits_email, settings.lnbits_email_pasword)
-            server.sendmail(settings.lnbits_email, to_emails, msg.as_string())
-            logger.debug(f"Email sent successfully to: {', '.join(to_emails)}")
+        with smtplib.SMTP(server, port) as smtp_server:
+            smtp_server.starttls()
+            smtp_server.login(from_email, password)
+            smtp_server.sendmail(from_email, to_emails, msg.as_string())
+            logger.debug(f"Emails sent successfully to: {', '.join(to_emails)}")
     except Exception as e:
         logger.debug(f"Failed to send email: {e}")
+
 
 def is_message_type_enabled(message_type: NotificationType) -> bool:
     if message_type == NotificationType.balance_update:

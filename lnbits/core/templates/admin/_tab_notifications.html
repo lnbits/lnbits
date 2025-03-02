@@ -139,6 +139,145 @@
           </q-item-section>
         </q-item>
       </div>
+      <div class="col-12">
+        <strong v-text="$t('notifications_email_config')"></strong>
+        <q-item tag="label" v-ripple>
+          <q-item-section>
+            <q-item-label
+              v-text="$t('notifications_enable_email')"
+            ></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('notifications_enable_email_desc')"
+            ></q-item-label>
+          </q-item-section>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_email_notifications_enabled"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+        </q-item>
+
+        <div class="row">
+          <div class="col">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label
+                  v-text="$t('notifications_send_email')"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('notifications_send_email_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-input
+                  type="password"
+                  filled
+                  v-model="formData.lnbits_email_notifications_email"
+                />
+              </q-item-section>
+            </q-item>
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label
+                  v-text="$t('notifications_send_email_password')"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('notifications_send_email_password_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-input
+                  type="password"
+                  filled
+                  v-model="formData.lnbits_email_notifications_password"
+                />
+              </q-item-section>
+            </q-item>
+
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label
+                  v-text="$t('notifications_send_to_emails')"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('notifications_send_to_emails_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-input
+                  filled
+                  v-model="emailNotificationAddress"
+                  @keydown.enter="addEmailNotificationAddress"
+                >
+                  <q-btn
+                    @click="addEmailNotificationAddress()"
+                    dense
+                    flat
+                    icon="add"
+                  ></q-btn>
+                </q-input>
+                <div>
+                  <q-chip
+                    v-for="email in formData.lnbits_email_notifications_to_emails"
+                    :key="email"
+                    removable
+                    @remove="removeEmailNotificationAddress(email)"
+                    color="primary"
+                    text-color="white"
+                    ><span class="ellipsis" v-text="email"></span
+                  ></q-chip>
+                </div>
+              </q-item-section>
+            </q-item>
+          </div>
+          <div class="col">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label
+                  v-text="$t('notifications_send_email_server_port')"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('notifications_send_email_server_port_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-input
+                  type="password"
+                  filled
+                  v-model="formData.lnbits_email_notifications_port"
+                />
+              </q-item-section>
+            </q-item>
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label
+                  v-text="$t('notifications_send_email_server')"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('notifications_send_email_server_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-input
+                  type="password"
+                  filled
+                  v-model="formData.lnbits_email_notifications_server"
+                />
+              </q-item-section>
+            </q-item>
+          </div>
+        </div>
+      </div>
     </div>
     <q-separator> </q-separator>
     <h6 class="q-mb-sm">
