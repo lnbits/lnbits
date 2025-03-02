@@ -2,7 +2,14 @@
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('notifications_configure')"></span>
+      <q-btn
+        round
+        flat
+        @click="hideInputsToggle()"
+        :icon="hideInputToggle ? 'visibility_off' : 'visibility'"
+      ></q-btn>
     </h6>
+
     <q-separator class="q-mt-md q-mb-sm"></q-separator>
     <div class="row q-col-gutter-md">
       <div class="col-sm-12 col-md-6">
@@ -39,12 +46,13 @@
           </q-item-section>
           <q-item-section>
             <q-input
-              type="password"
+              :type="hideInputToggle ? 'password' : 'text'"
               filled
               v-model="formData.lnbits_nostr_notifications_private_key"
             />
           </q-item-section>
         </q-item>
+
         <q-item tag="label" v-ripple>
           <q-item-section>
             <q-item-label
@@ -117,7 +125,7 @@
           </q-item-section>
           <q-item-section>
             <q-input
-              type="password"
+              :type="hideInputToggle ? 'password' : 'text'"
               filled
               v-model="formData.lnbits_telegram_notifications_access_token"
             />
@@ -176,7 +184,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
-                  type="password"
+                  :type="hideInputToggle ? 'password' : 'text'"
                   filled
                   v-model="formData.lnbits_email_notifications_email"
                 />
@@ -194,7 +202,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
-                  type="password"
+                  :type="hideInputToggle ? 'password' : 'text'"
                   filled
                   v-model="formData.lnbits_email_notifications_password"
                 />
@@ -226,18 +234,19 @@
                 </q-input>
                 <div>
                   <q-chip
-                    v-for="email in formData.lnbits_email_notifications_to_emails"
-                    :key="email"
+                    v-for="to_email in formData.lnbits_email_notifications_to_emails"
+                    :key="to_email"
                     removable
-                    @remove="removeEmailNotificationAddress(email)"
+                    @remove="removeEmailNotificationAddress(to_email)"
                     color="primary"
                     text-color="white"
-                    ><span class="ellipsis" v-text="email"></span
+                    ><span class="ellipsis" v-text="to_email"></span
                   ></q-chip>
                 </div>
               </q-item-section>
             </q-item>
           </div>
+          
           <div class="col">
             <q-item tag="label" v-ripple>
               <q-item-section>
@@ -251,7 +260,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
-                  type="password"
+                  :type="hideInputToggle ? 'password' : 'text'"
                   filled
                   v-model="formData.lnbits_email_notifications_port"
                 />
@@ -269,7 +278,7 @@
               </q-item-section>
               <q-item-section>
                 <q-input
-                  type="password"
+                  :type="hideInputToggle ? 'password' : 'text'"
                   filled
                   v-model="formData.lnbits_email_notifications_server"
                 />

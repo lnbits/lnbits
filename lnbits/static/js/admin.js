@@ -53,6 +53,7 @@ window.AdminPageLogic = {
       chartReady: false,
       formAddAdmin: '',
       formAddUser: '',
+      hideInputToggle: true,
       formAddExtensionsManifest: '',
       nostrNotificationIdentifier: '',
       emailNotificationAddress: '',
@@ -284,6 +285,9 @@ window.AdminPageLogic = {
       this.formData.lnbits_email_notifications_to_emails = emails.filter(
         m => m !== email
       )
+    },
+    hideInputsToggle() {
+      this.hideInputToggle = !this.hideInputToggle
     },
     async toggleServerLog() {
       this.serverlogEnabled = !this.serverlogEnabled
