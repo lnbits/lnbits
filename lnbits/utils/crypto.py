@@ -56,10 +56,10 @@ class AESCipher:
         # extended from https://gist.github.com/gsakkis/4546068
         assert len(salt) == 8, len(salt)
         data += salt
-        key = md5(data).digest()  # nosec
+        key = md5(data).digest()
         final_key = key
         while len(final_key) < output:
-            key = md5(key + data).digest()  # nosec
+            key = md5(key + data).digest()
             final_key += key
         return final_key[:output]
 

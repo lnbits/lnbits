@@ -1,5 +1,5 @@
 import asyncio
-import random
+from secrets import token_urlsafe
 from typing import Any, AsyncGenerator, Optional
 
 from bolt11.decode import decode as bolt11_decode
@@ -90,7 +90,7 @@ class CoreLightningWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = kwargs.get("label", f"lbl{random.random()}")  # nosec
+        label = kwargs.get("label", f"lbl{token_urlsafe(16)}")
         msat: int = int(amount * 1000)
         try:
             if description_hash and not unhashed_description:

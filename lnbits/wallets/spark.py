@@ -1,7 +1,7 @@
 import asyncio
 import hashlib
 import json
-import random
+from secrets import token_urlsafe
 from typing import AsyncGenerator, Optional
 
 import httpx
@@ -114,7 +114,7 @@ class SparkWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = f"lbs{random.random()}"  # nosec
+        label = f"lbl{token_urlsafe()}"
         checking_id = label
 
         try:

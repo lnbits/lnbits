@@ -1,9 +1,9 @@
 import asyncio
 import hashlib
 import json
-import random
 import time
-from typing import AsyncGenerator, Dict, List, Optional, Union, cast
+from secrets import randbelow
+from typing import AsyncGenerator, Optional, Union, cast
 from urllib.parse import parse_qs, unquote, urlparse
 
 import secp256k1
@@ -349,12 +349,12 @@ class NWCConnection:
         """
         return self.shutdown or not settings.lnbits_running
 
-    async def _send(self, data: List[Union[str, Dict]]):
+    async def _send(self, data: list[Union[str, dict]]):
         """
         Sends data to the NWC relay.
 
         Args:
-            data (Dict): The data to be sent.
+            data (dict): The data to be sent.
         """
         if self._is_shutting_down():
             logger.warning("Trying to send data while shutting down")
@@ -380,12 +380,12 @@ class NWCConnection:
         n = max_length - len(subid)
         if n > 0:
             for _ in range(n):
-                subid += chars[random.randint(0, len(chars) - 1)]  # nosec
+                subid += chars[randbelow(len(chars) - 1)]
         return subid
 
     async def _close_subscription_by_subid(
         self, sub_id: str, send_event: bool = True
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Closes a subscription by its sub_id.
 
@@ -394,7 +394,7 @@ class NWCConnection:
             sendEvent (bool): If True, sends a CLOSE event to the relay.
 
         Returns:
-            Dict: The subscription that was closed.
+            dict: The subscription that was closed.
         """
         logger.debug("Closing subscription " + sub_id)
         sub_to_close = None
@@ -416,7 +416,7 @@ class NWCConnection:
 
     async def _close_subscription_by_eventid(
         self, event_id, send_event=True
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Closes a subscription associated to an event_id.
 
@@ -425,7 +425,7 @@ class NWCConnection:
             sendEvent (bool): If True, sends a CLOSE event to the relay.
 
         Returns:
-            Dict: The subscription that was closed.
+            dict: The subscription that was closed.
         """
         logger.debug("Closing subscription for event " + event_id)
         # find and remove the subscription
@@ -489,7 +489,7 @@ class NWCConnection:
         except Exception as e:
             logger.error("Error handling subscription timeout: " + str(e))
 
-    async def _on_ok_message(self, msg: List[str]):
+    async def _on_ok_message(self, msg: list[str]):
         """
         Handles OK messages from the relay.
         """
@@ -503,12 +503,12 @@ class NWCConnection:
             if subscription:  # Check if the subscription exists first
                 subscription["future"].set_exception(Exception(info))
 
-    async def _on_event_message(self, msg: List[Union[str, Dict]]):
+    async def _on_event_message(self, msg: list[Union[str, dict]]):
         """
         Handles EVENT messages from the relay.
         """
         sub_id = cast(str, msg[1])
-        event = cast(Dict, msg[2])
+        event = cast(dict, msg[2])
         if not verify_event(event):  # Ensure the event is valid (do not trust relays)
             raise Exception("Invalid event signature")
         tags = event["tags"]
@@ -562,7 +562,7 @@ class NWCConnection:
                     else:
                         subscription["future"].set_result(result)
 
-    async def _on_closed_message(self, msg: List[str]):
+    async def _on_closed_message(self, msg: list[str]):
         """
         Handles CLOSED messages from the relay.
         """
@@ -637,16 +637,16 @@ class NWCConnection:
                 logger.debug("Reconnecting to NWC relay in 5 seconds...")
                 await asyncio.sleep(5)
 
-    async def call(self, method: str, params: Dict) -> Dict:
+    async def call(self, method: str, params: dict) -> dict:
         """
         Call a NWC method.
 
         Args:
             method (str): The method name.
-            params (Dict): The method parameters.
+            params (dict): The method parameters.
 
         Returns:
-            Dict: The result of the method call.
+            dict: The result of the method call.
         """
         await self._wait_for_connection()
         logger.debug("Calling " + method + " with params: " + str(params))
@@ -699,12 +699,12 @@ class NWCConnection:
         # Wait for the response
         return await future
 
-    async def get_info(self) -> Dict:
+    async def get_info(self) -> dict:
         """
         Get the info about the service provider and cache it.
 
         Returns:
-            Dict: The info about the service provider.
+            dict: The info about the service provider.
         """
         if not self.info:  # if not cached
             try:
@@ -784,7 +784,7 @@ class NWCConnection:
             logger.warning("Error closing connection: " + str(e))
 
 
-def parse_nwc(nwc) -> Dict:
+def parse_nwc(nwc) -> dict:
     """
     Parses a NWC URL (nostr+walletconnect://...) and extracts relevant information.
 
@@ -792,7 +792,7 @@ def parse_nwc(nwc) -> Dict:
         nwc (str): The Nostr Wallet Connect URL to be parsed.
 
     Returns:
-        Dict[str, str]: A dict containing:'pubkey', 'relay', and 'secret'.
+        dict[str, str]: A dict containing:'pubkey', 'relay', and 'secret'.
         If the URL is invalid, an exception is raised.
 
     Example:
