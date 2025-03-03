@@ -196,6 +196,9 @@ select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B", "S"]
 # S101: Use of assert detected. mostly for tests...
 ignore = ["RUF012", "S101"]
 
+[tool.ruff.lint.per-file-ignores]
+"test_auth.py" = ["S106"]
+
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
 unfixable = []
