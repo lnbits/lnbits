@@ -147,6 +147,10 @@
           </q-item-section>
         </q-item>
       </div>
+      <div class="col-sm-12">
+        <q-separator></q-separator>
+      </div>
+
       <div class="col-12">
         <strong v-text="$t('notifications_email_config')"></strong>
         <q-item tag="label" v-ripple>
@@ -170,7 +174,7 @@
           </q-item-section>
         </q-item>
 
-        <div class="row">
+        <div v-if="formData.lnbits_email_notifications_enabled" class="row">
           <div class="col">
             <q-item tag="label" v-ripple>
               <q-item-section>
