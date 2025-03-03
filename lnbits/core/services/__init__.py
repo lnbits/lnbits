@@ -23,7 +23,7 @@ from .settings import (
 from .users import (
     check_admin_settings,
     create_user_account,
-    create_user_account_no_ckeck,
+    create_user_account_no_check,
     init_admin_settings,
     update_user_account,
     update_user_extensions,
@@ -57,7 +57,7 @@ __all__ = [
     # users
     "check_admin_settings",
     "create_user_account",
-    "create_user_account_no_ckeck",
+    "create_user_account_no_check",
     "init_admin_settings",
     "update_user_account",
     "update_user_extensions",

@@ -2,7 +2,7 @@ import base64
 import json
 import time
 from http import HTTPStatus
-from typing import List, Optional
+from typing import Optional
 from uuid import uuid4
 
 import shortuuid
@@ -34,7 +34,7 @@ from lnbits.core.models import (
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.models.users import Account
 from lnbits.core.services import (
-    create_user_account_no_ckeck,
+    create_user_account_no_check,
     enqueue_notification,
     update_user_account,
     update_user_extensions,
@@ -104,7 +104,7 @@ async def api_create_user(data: CreateUser) -> CreateUser:
     )
     account.validate_fields()
     account.hash_password(data.password)
-    user = await create_user_account_no_ckeck(account)
+    user = await create_user_account_no_check(account)
     data.id = user.id
     return data
 
@@ -206,7 +206,7 @@ async def api_users_toggle_admin(user_id: str) -> SimpleStatus:
 
 
 @users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
-async def api_users_get_user_wallet(user_id: str) -> List[Wallet]:
+async def api_users_get_user_wallet(user_id: str) -> list[Wallet]:
     return await get_wallets(user_id)
 
 
