@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -136,7 +137,8 @@ async def check_admin_settings():
         settings.super_user = to_valid_user_id(settings.super_user).hex
 
     if not settings.lnbits_admin_ui:
-        settings.check_auth_secret_key(settings.super_user)
+        # set a temporary auth secret key if the admin did not configured it
+        settings.check_auth_secret_key(settings.super_user + str(datetime.now()))
         logger.success(
             "✗ Admin UI is NOT enabled. Run `poetry run lnbits-cli superuser` "
             "to get the superuser."
@@ -163,10 +165,17 @@ async def check_admin_settings():
     account = await get_account(settings.super_user)
     if account:
         if account.extra.provider == "env":
+            # do not check the auth auth_secret on first install
+            # it will be set when the super user is configured
             settings.first_install = True
-        settings.check_auth_secret_key(account.password_hash or str(account.created_at))
+        else:
+            # The super user is forced to set a password
+            settings.check_auth_secret_key(
+                account.password_hash or str(account.created_at)
+            )
     else:
-        settings.check_auth_secret_key(settings_db.super_user)
+        logger.warning("Super user not found in the database.")
+        settings.check_auth_secret_key(settings_db.super_user + str(datetime.now()))
 
     logger.success(
         "✔️ Admin UI is enabled. "
