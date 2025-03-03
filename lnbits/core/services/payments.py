@@ -178,13 +178,20 @@ async def update_pending_payments(wallet_id: str):
         exclude_uncheckable=True,
     )
     for payment in pending_payments:
-        status = await payment.check_status()
-        if status.failed:
-            payment.status = PaymentState.FAILED
-            await update_payment(payment)
-        elif status.success:
-            payment.status = PaymentState.SUCCESS
-            await update_payment(payment)
+        await update_pending_payment(payment)
+
+
+async def update_pending_payment(payment: Payment) -> bool:
+    status = await payment.check_status()
+    if status.failed:
+        payment.status = PaymentState.FAILED
+        await update_payment(payment)
+        return True
+    if status.success:
+        payment.status = PaymentState.SUCCESS
+        await update_payment(payment)
+        return True
+    return False
 
 
 def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
