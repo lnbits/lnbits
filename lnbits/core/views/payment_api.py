@@ -37,7 +37,10 @@ from lnbits.core.models import (
     Wallet,
 )
 from lnbits.core.models.users import User
-from lnbits.core.services.payments import get_payments_daily_stats
+from lnbits.core.services.payments import (
+    get_payments_daily_stats,
+    update_pending_payment,
+)
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -180,11 +183,14 @@ async def api_payments_paginated(
     key_info: WalletTypeInfo = Depends(require_invoice_key),
     filters: Filters = Depends(parse_filters(PaymentFilters)),
 ):
-    await update_pending_payments(key_info.wallet.id)
     page = await get_payments_paginated(
         wallet_id=key_info.wallet.id,
         filters=filters,
     )
+    for payment in page.data:
+        if payment.pending:
+            await update_pending_payment(payment)
+
     return page
 
 
