@@ -8,6 +8,7 @@ from bolt11 import Bolt11Exception
 from bolt11.decode import decode
 from loguru import logger
 
+from lnbits.exceptions import PaymentError
 from lnbits.settings import settings
 
 from .base import (
@@ -306,11 +307,13 @@ class CoreLightningRestWallet(Wallet):
                         )
                         paid_invoice = r.json()
                         logger.trace(f"paid invoice: {paid_invoice}")
-                        assert self.statuses[
-                            paid_invoice["invoices"][0]["status"]
-                        ], "streamed invoice not paid"
-                        assert "invoices" in paid_invoice, "no invoices in response"
-                        assert len(paid_invoice["invoices"]), "no invoices in response"
+                        if (
+                            "invoices" not in paid_invoice
+                            or len(paid_invoice["invoices"]) == 0
+                        ):
+                            raise PaymentError("no invoices in response")
+                        if not self.statuses[paid_invoice["invoices"][0]["status"]]:
+                            raise PaymentError("streamed invoice invalid status")
                         yield paid_invoice["invoices"][0]["payment_hash"]
 
             except Exception as exc:

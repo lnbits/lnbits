@@ -193,7 +193,7 @@ extend-exclude = [
 select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B", "S"]
 # UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
 # RUF012: mutable-class-default
-ignore = ["RUF012", "S101"]
+ignore = ["RUF012"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
@@ -211,6 +211,8 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 # S607: Starting a process with a partial executable path
 # S608: Possible SQL injection vector through string-based query construction
 # S324 Probable use of insecure hash functions in `hashlib`: `md5`
+"lnbits/core/views/*" = ["S101"]
+"lnbits/core/crud/*" = ["S101"]
 "lnbits/core/views/admin_api.py" = ["S603", "S607"]
 "crypto.py" = ["S324"]
 "test*.py" = ["S101", "S105", "S106", "S307"]
@@ -236,17 +238,3 @@ extend-immutable-calls = [
     "fastapi.Body",
     "lnbits.decorators.parse_filters"
 ]
-
-# poetry run bandit -r -v -r . -c "pyproject.toml"
-[tool.bandit]
-exclude_dirs = [
-    "lnbits/wallets/lnd_grpc_files",
-    "lnbits/wallets/boltz_grpc_files",
-    "lnbits/extensions",
-    "lnbits/upgrades",
-    "tools",
-    "tests",
-    "node_modules",
-    ".git",
-]
-skips = ["B101"]

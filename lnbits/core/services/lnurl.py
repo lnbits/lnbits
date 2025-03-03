@@ -136,7 +136,8 @@ async def perform_lnurlauth(
 
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
-        assert key.verifying_key, "LNURLauth verifying_key does not exist"
+        if not key.verifying_key:
+            return LnurlErrorResponse(reason="LNURLauth verifying_key does not exist")
         check_callback_url(callback)
         r = await client.get(
             callback,

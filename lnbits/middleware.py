@@ -131,7 +131,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
         try:
             response = await call_next(request)
-            assert response
+            if not response:
+                raise Exception("No response")
             return response
         finally:
             if request_details:

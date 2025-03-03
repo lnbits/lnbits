@@ -4,12 +4,12 @@ import json
 from typing import AsyncGenerator, Optional
 
 import httpx
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 from pydantic import BaseModel
 from websockets.client import WebSocketClientProtocol, connect
 from websockets.typing import Subprotocol
 
-from lnbits import bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -104,7 +104,7 @@ class BlinkWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
         # https://dev.blink.sv/api/btc-ln-receive
 
@@ -161,15 +161,12 @@ class BlinkWallet(Wallet):
                 False, None, None, f"Unable to connect to {self.endpoint}."
             )
 
-    async def pay_invoice(
-        self, bolt11_invoice: str, fee_limit_msat: int
-    ) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://dev.blink.sv/api/btc-ln-send
-        # Future: add check fee estimate is < fee_limit_msat before paying invoice
-
+        # TODO: add check fee estimate is < fee_limit_msat before paying invoice
         payment_variables = {
             "input": {
-                "paymentRequest": bolt11_invoice,
+                "paymentRequest": bolt11,
                 "walletId": self.wallet_id,
                 "memo": "Payment memo",
             }
@@ -187,14 +184,14 @@ class BlinkWallet(Wallet):
                 error_message = errors[0].get("message")
                 return PaymentResponse(False, None, None, None, error_message)
 
-            checking_id = bolt11.decode(bolt11_invoice).payment_hash
+            checking_id = bolt11_decode(bolt11).payment_hash
 
             payment_status = await self.get_payment_status(checking_id)
             fee_msat = payment_status.fee_msat
             preimage = payment_status.preimage
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)
         except Exception as exc:
-            logger.info(f"Failed to pay invoice {bolt11_invoice}")
+            logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
                 None, None, None, None, f"Unable to connect to {self.endpoint}."
@@ -245,7 +242,8 @@ class BlinkWallet(Wallet):
             response = await self._graphql_query(data)
 
             response_data = response.get("data")
-            assert response_data is not None
+            if not response_data:
+                raise ValueError("No data in response")
             txs_data = (
                 response_data.get("me", {})
                 .get("defaultAccount", {})
@@ -253,7 +251,8 @@ class BlinkWallet(Wallet):
                 .get("transactionsByPaymentHash", [])
             )
             tx_data = next((t for t in txs_data if t.get("direction") == "SEND"), None)
-            assert tx_data, "No SEND data found."
+            if not tx_data:
+                raise ValueError("No send transaction found")
             fee = tx_data.get("settlementFee")
             preimage = tx_data.get("settlementVia", {}).get("preImage")
             status = tx_data.get("status")
@@ -277,9 +276,8 @@ class BlinkWallet(Wallet):
                     await ws.send(json.dumps(self.ws_auth))
                     confirmation = await ws.recv()
                     ack = json.loads(confirmation)
-                    assert (
-                        ack.get("type") == "connection_ack"
-                    ), "Websocket connection not acknowledged."
+                    if ack.get("type") != "connection_ack":
+                        raise Exception("Websocket connection not acknowledged.")
 
                     logger.info("Websocket connection acknowledged.")
                     subscription_req = {

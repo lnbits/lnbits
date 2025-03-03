@@ -43,10 +43,10 @@ async def create_user_account(
     if not settings.new_accounts_allowed:
         raise ValueError("Account creation is disabled.")
 
-    return await create_user_account_no_ckeck(account, wallet_name)
+    return await create_user_account_no_check(account, wallet_name)
 
 
-async def create_user_account_no_ckeck(
+async def create_user_account_no_check(
     account: Optional[Account] = None, wallet_name: Optional[str] = None
 ) -> User:
 
@@ -75,7 +75,8 @@ async def create_user_account_no_ckeck(
         await update_user_extension(user_ext)
 
     user = await get_user_from_account(account)
-    assert user, "Cannot find user for account."
+    if not user:
+        raise Exception("Expected user for new account.")
 
     return user
 

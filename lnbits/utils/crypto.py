@@ -54,7 +54,8 @@ class AESCipher:
 
     def bytes_to_key(self, data, salt, output=48):
         # extended from https://gist.github.com/gsakkis/4546068
-        assert len(salt) == 8, len(salt)
+        if len(salt) != 8:
+            raise ValueError("Salt must be 8 bytes long")
         data += salt
         key = md5(data).digest()
         final_key = key
@@ -72,7 +73,9 @@ class AESCipher:
         else:
             encrypted_bytes = base64.b64decode(encrypted)
 
-        assert encrypted_bytes[0:8] == b"Salted__"
+        if encrypted_bytes[0:8] != b"Salted__":
+            raise ValueError("Not a valid encrypted string")
+
         salt = encrypted_bytes[8:16]
         key_iv = self.bytes_to_key(passphrase.encode(), salt, 32 + 16)
         key = key_iv[:32]
