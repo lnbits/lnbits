@@ -5,7 +5,7 @@
 {% block scripts %} {{ window_vars(user, wallet) }}{% endblock %} {% block page
 %}
 <div class="row q-col-gutter-md">
-  {% if HIDE_API and AD_SPACE %}
+  {% if HIDE_API and AD_SPACE_ENABLED and AD_SPACE %}
   <div class="col-12 col-md-8 q-gutter-y-md">
     {% elif HIDE_API %}
     <div class="col-12 q-gutter-y-md">
@@ -31,7 +31,7 @@
           <q-card-section style="height: 130px">
             <div class="row q-gutter-md">
               <div
-                v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
+                v-if="{{ LNBITS_DENOMINATION }}' == 'sats'"
                 class="col-1"
                 style="max-width: 30px"
               >
@@ -468,7 +468,7 @@
               </q-list>
             </q-card-section>
           </q-card>
-          {% endif %} {% if AD_SPACE %}
+          {% endif %} {% if AD_SPACE_ENABLED and AD_SPACE %}
           <q-card>
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
