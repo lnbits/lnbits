@@ -8,7 +8,6 @@ from lnbits.core.models.extensions import UserExtension
 from lnbits.settings import (
     EditableSettings,
     SuperSettings,
-    send_admin_user_to_saas,
     settings,
 )
 
@@ -136,43 +135,46 @@ async def check_admin_settings():
     if settings.super_user:
         settings.super_user = to_valid_user_id(settings.super_user).hex
 
-    if settings.lnbits_admin_ui:
-        settings_db = await get_super_settings()
-        if not settings_db:
-            # create new settings if table is empty
-            logger.warning("Settings DB empty. Inserting default settings.")
-            settings_db = await init_admin_settings(settings.super_user)
-            logger.warning("Initialized settings from environment variables.")
-
-        if settings.super_user and settings.super_user != settings_db.super_user:
-            # .env super_user overwrites DB super_user
-            settings_db = await update_super_user(settings.super_user)
-
-        update_cached_settings(settings_db.dict())
-
-        # saving superuser to {data_dir}/.super_user file
-        with open(Path(settings.lnbits_data_folder) / ".super_user", "w") as file:
-            file.write(settings.super_user)
-
-        # callback for saas
-        if (
-            settings.lnbits_saas_callback
-            and settings.lnbits_saas_secret
-            and settings.lnbits_saas_instance_id
-        ):
-            send_admin_user_to_saas()
-
-        account = await get_account(settings.super_user)
-        if account and account.extra and account.extra.provider == "env":
-            settings.first_install = True
-
+    if not settings.lnbits_admin_ui:
+        settings.check_auth_secret_key(settings.super_user)
         logger.success(
-            "✔️ Admin UI is enabled. run `poetry run lnbits-cli superuser` "
+            "✗ Admin UI is NOT enabled. Run `poetry run lnbits-cli superuser` "
             "to get the superuser."
         )
+        return
+
+    settings_db = await get_super_settings()
+    if not settings_db:
+        # create new settings if table is empty
+        logger.warning("Settings DB empty. Inserting default settings.")
+        settings_db = await _init_admin_settings(settings.super_user)
+        logger.warning("Initialized settings from environment variables.")
+
+    if settings.super_user and settings.super_user != settings_db.super_user:
+        # .env super_user overwrites DB super_user
+        settings_db = await update_super_user(settings.super_user)
+
+    update_cached_settings(settings_db.dict())
+
+    # saving superuser to {data_dir}/.super_user file
+    with open(Path(settings.lnbits_data_folder) / ".super_user", "w") as file:
+        file.write(settings.super_user)
+
+    account = await get_account(settings.super_user)
+    if account:
+        if account.extra.provider == "env":
+            settings.first_install = True
+        settings.check_auth_secret_key(account.password_hash or str(account.created_at))
+    else:
+        settings.check_auth_secret_key(settings_db.super_user)
+
+    logger.success(
+        "✔️ Admin UI is enabled. "
+        "Access the app in the browser in order to set the super user credentials."
+    )
 
 
-async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings:
+async def _init_admin_settings(super_user: Optional[str] = None) -> SuperSettings:
     account = None
     if super_user:
         account = await get_account(super_user)
