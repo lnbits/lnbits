@@ -175,7 +175,7 @@ async def check_admin_settings():
             )
     else:
         logger.warning("Super user not found in the database.")
-        settings.check_auth_secret_key(settings_db.super_user + str(datetime.now()))
+        settings.check_auth_secret_key(settings.super_user + str(datetime.now()))
 
     logger.success(
         "✔️ Admin UI is enabled. "

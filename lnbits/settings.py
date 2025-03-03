@@ -807,6 +807,7 @@ class EnvSettings(LNbitsSettings):
     def check_auth_secret_key(self, extra_random: str):
         if self.auth_secret_key:
             return
+
 class PersistenceSettings(LNbitsSettings):
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str = Field(default=None)
