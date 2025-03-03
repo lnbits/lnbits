@@ -496,7 +496,8 @@ window.windowMixin = {
         : USE_DEFAULT_BGIMAGE,
       isUserAuthorized: false,
       walletEventListeners: [],
-      backgroundImage: ''
+      backgroundImage: '',
+      ...WINDOW_SETTINGS
     }
   },
 

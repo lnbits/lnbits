@@ -59,9 +59,6 @@
     }
   }
 </style>
-<script>
-  const ALLOWED_REGISTER = {{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }};
-</script>
 <script src="{{ static_url_for('static', 'js/index.js') }}"></script>
 {% endblock %} {% block page_container %}
 <q-page-container>
@@ -150,8 +147,6 @@
                 {%else%}
                 <username-password
                   v-if="authMethod != 'user-id-only'"
-                  :allowed_new_users="allowedRegister"
-                  :auth-methods="{{ LNBITS_AUTH_METHODS }}"
                   :auth-action="authAction"
                   v-model:user-name="username"
                   v-model:password_1="password"
@@ -195,7 +190,6 @@
                 </username-password>
                 {% if "user-id-only" in LNBITS_AUTH_METHODS %}
                 <user-id-only
-                  :allowed_new_users="allowedRegister"
                   v-model:usr="usr"
                   v-model:wallet="walletName"
                   :auth-action="authAction"
