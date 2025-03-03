@@ -258,7 +258,6 @@ class Connection(Compat):
             if filters.offset or filters.limit:
                 result = await self.execute(
                     f"""
-                    # nosec
                     SELECT COUNT(*) as count FROM (
                         {query}
                         {clause}

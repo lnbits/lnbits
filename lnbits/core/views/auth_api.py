@@ -72,7 +72,7 @@ async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
 
 @auth_router.post("", description="Login via the username and password")
 async def login(data: LoginUsernamePassword) -> JSONResponse:
-    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
+    if not settings.is_auth_method_allowed(AuthMethods.username):
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Login by 'Username and Password' not allowed."
         )
@@ -283,7 +283,7 @@ async def logout() -> JSONResponse:
 
 @auth_router.post("/register")
 async def register(data: RegisterUser) -> JSONResponse:
-    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
+    if not settings.is_auth_method_allowed(AuthMethods.username):
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED,
             "Register by 'Username and Password' not allowed.",
@@ -373,7 +373,7 @@ async def update_password(
 
 @auth_router.put("/reset")
 async def reset_password(data: ResetUserPassword) -> JSONResponse:
-    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
+    if not settings.is_auth_method_allowed(AuthMethods.username):
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
         )
