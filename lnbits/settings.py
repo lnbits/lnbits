@@ -807,7 +807,7 @@ class EnvSettings(LNbitsSettings):
         if self.auth_secret_key:
             return
         auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key")
-        if auth_key_file.is_file():
+        if auth_key_file.exists() and auth_key_file.is_file():
             with open(auth_key_file) as file:
                 self.auth_secret_key = file.readline()
             return
