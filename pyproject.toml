@@ -193,11 +193,12 @@ extend-exclude = [
 select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B", "S"]
 # UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
 # RUF012: mutable-class-default
-# S101: Use of assert detected. mostly for tests...
-ignore = ["RUF012", "S101"]
+ignore = ["RUF012"]
 
 [tool.ruff.lint.per-file-ignores]
-"test_auth.py" = ["S106"]
+# S101: Use of assert detected. mostly for tests...
+# S106: Possible hardcoded password: 'password'.
+"test/*.py" = ["S101", "S106"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
