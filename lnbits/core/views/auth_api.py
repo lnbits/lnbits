@@ -459,7 +459,6 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     account.hash_password(data.password)
     await update_account(account)
     settings.first_install = False
-    settings.check_auth_secret_key(account.password_hash or str(account.created_at))
     return _auth_success_response(account.username, account.id, account.email)
 
 
