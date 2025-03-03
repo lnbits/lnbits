@@ -258,7 +258,7 @@ class Connection(Compat):
             if filters.offset or filters.limit:
                 result = await self.execute(
                     f"""
-                    SELECT COUNT(*) as count FROM (
+                    {"SELECT"} COUNT(*) as count FROM (
                         {query}
                         {clause}
                         {group_by_string}
@@ -604,7 +604,7 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
     fields = ", ".join([f'"{key}"' for key in keys])
     values = ", ".join(placeholders)
-    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
+    return f"""{"INSERT INTO"} {table_name} ({fields}) {"VALUES"} ({values})"""
 
 
 def update_query(
@@ -622,7 +622,7 @@ def update_query(
         # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
         fields.append(f'"{field}" = {placeholder}')
     query = ", ".join(fields)
-    return f"UPDATE {table_name} SET {query} {where}"
+    return f"""{"UPDATE"} {table_name} SET {query} {where}"""
 
 
 def model_to_dict(model: BaseModel) -> dict:
