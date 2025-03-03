@@ -7,7 +7,6 @@ import json
 import re
 from datetime import datetime, timezone
 from enum import Enum
-from hashlib import sha256
 from os import path
 from pathlib import Path
 from time import gmtime, strftime, time
@@ -803,9 +802,18 @@ class EnvSettings(LNbitsSettings):
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
 
-    def check_auth_secret_key(self, extra_random: str):
+    def check_auth_secret_key(self):
         if self.auth_secret_key:
             return
+        auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key")
+        if auth_key_file.is_file():
+            with open(auth_key_file) as file:
+                self.auth_secret_key = file.readline()
+            return
+        self.auth_secret_key = uuid4().hex
+        with open(auth_key_file, "w") as file:
+            file.write(self.auth_secret_key)
+
 
 class PersistenceSettings(LNbitsSettings):
     lnbits_data_folder: str = Field(default="./data")
@@ -957,6 +965,8 @@ settings = Settings()
 settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 
 settings.version = importlib.metadata.version("lnbits")
+
+settings.check_auth_secret_key()
 
 if not settings.user_agent:
     settings.user_agent = f"LNbits/{settings.version}"
