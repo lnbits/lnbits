@@ -109,16 +109,16 @@ async def delete_accounts_no_wallets(
 ) -> None:
     delta = int(time()) - time_delta
     await (conn or db).execute(
-        f"""
+        """
         DELETE FROM accounts
         WHERE NOT EXISTS (
             SELECT wallets.id FROM wallets WHERE wallets.user = accounts.id
         ) AND (
             (updated_at is null AND created_at < :delta)
-            OR updated_at < {db.timestamp_placeholder("delta")}
+            OR updated_at < :ts
         )
         """,
-        {"delta": delta},
+        {"delta": delta, "ts": db.timestamp(delta)},
     )
 
 

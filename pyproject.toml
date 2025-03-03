@@ -210,8 +210,10 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 # S307 Use of possibly insecure function; consider using `ast.literal_eval
 # S311 Standard pseudo-random generators are not suitable for cryptographic purposes
 # S603 `subprocess` call: check for execution of untrusted input
+# S607: Starting a process with a partial executable path
 # S608: Possible SQL injection vector through string-based query construction
 # S324 Probable use of insecure hash functions in `hashlib`: `md5`
+"lnbits/core/views/admin_api.py" = ["S603", "S607"]
 "crypto.py" = ["S324"]
 "test*.py" = ["S101", "S105", "S106", "S307"]
 "tools*.py" = ["S101", "S608"]

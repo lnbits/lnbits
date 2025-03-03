@@ -45,14 +45,18 @@ async def delete_wallet(
     deleted: bool = True,
     conn: Optional[Connection] = None,
 ) -> None:
-    now = int(time())
     await (conn or db).execute(
-        f"""
+        """
         UPDATE wallets
-        SET deleted = :deleted, updated_at = {db.timestamp_placeholder('now')}
+        SET deleted = :deleted, updated_at = :ts
         WHERE id = :wallet AND "user" = :user
         """,
-        {"wallet": wallet_id, "user": user_id, "deleted": deleted, "now": now},
+        {
+            "wallet": wallet_id,
+            "user": user_id,
+            "deleted": deleted,
+            "ts": db.timestamp(int(time())),
+        },
     )
 
 
@@ -68,14 +72,9 @@ async def force_delete_wallet(
 async def delete_wallet_by_id(
     wallet_id: str, conn: Optional[Connection] = None
 ) -> Optional[int]:
-    now = int(time())
     result = await (conn or db).execute(
-        f"""
-        UPDATE wallets
-        SET deleted = true, updated_at = {db.timestamp_placeholder('now')}
-        WHERE id = :wallet
-        """,
-        {"wallet": wallet_id, "now": now},
+        "UPDATE wallets SET deleted = true, updated_at = :ts WHERE id = :wallet",
+        {"wallet": wallet_id, "ts": db.timestamp(int(time()))},
     )
     return result.rowcount
 
@@ -106,33 +105,35 @@ async def delete_unused_wallets(
 async def get_wallet(
     wallet_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
-    where = "AND deleted = :deleted" if deleted is not None else ""
-    return await (conn or db).fetchone(
-        f"""
+    sql = """
         SELECT *, COALESCE((
             SELECT balance FROM balances WHERE wallet_id = wallets.id
         ), 0) AS balance_msat FROM wallets
-        WHERE id = :wallet {where}
-        """,
-        {"wallet": wallet_id, "deleted": deleted},
-        Wallet,
-    )
+        WHERE id = :wallet
+    """
+    values: dict = {"wallet": wallet_id}
+    if deleted is not None:
+        sql += " AND deleted = :deleted"
+        values["deleted"] = deleted
+
+    return await (conn or db).fetchone(sql, values, Wallet)
 
 
 async def get_wallets(
     user_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
 ) -> list[Wallet]:
-    where = "AND deleted = :deleted" if deleted is not None else ""
-    return await (conn or db).fetchall(
-        f"""
+    sql = """
         SELECT *, COALESCE((
             SELECT balance FROM balances WHERE wallet_id = wallets.id
         ), 0) AS balance_msat FROM wallets
-        WHERE "user" = :user {where}
-        """,
-        {"user": user_id, "deleted": deleted},
-        Wallet,
-    )
+        WHERE "user" = :user
+    """
+    values: dict = {"user": user_id}
+    if deleted is not None:
+        sql += " AND deleted = :deleted"
+        values["deleted"] = deleted
+
+    return await (conn or db).fetchall(sql, values, Wallet)
 
 
 async def get_wallets_count():

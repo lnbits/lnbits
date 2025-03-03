@@ -263,7 +263,7 @@ class Connection(Compat):
                         {clause}
                         {group_by_string}
                     ) as count
-                    """,  # nosec
+                    """,
                     parsed_values,
                 )
                 row = result.mappings().first()
@@ -604,7 +604,7 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
     fields = ", ".join([f'"{key}"' for key in keys])
     values = ", ".join(placeholders)
-    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"  # nosec
+    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
 
 
 def update_query(
@@ -622,7 +622,7 @@ def update_query(
         # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
         fields.append(f'"{field}" = {placeholder}')
     query = ", ".join(fields)
-    return f"UPDATE {table_name} SET {query} {where}"  # nosec
+    return f"UPDATE {table_name} SET {query} {where}"
 
 
 def model_to_dict(model: BaseModel) -> dict:

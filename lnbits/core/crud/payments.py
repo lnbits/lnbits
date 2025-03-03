@@ -1,5 +1,5 @@
 from time import time
-from typing import Optional, Tuple
+from typing import Optional
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
 from lnbits.core.db import db
@@ -37,25 +37,18 @@ async def get_standalone_payment(
     incoming: Optional[bool] = False,
     wallet_id: Optional[str] = None,
 ) -> Optional[Payment]:
-    clause: str = "checking_id = :checking_id OR payment_hash = :hash"
-    values = {
-        "wallet_id": wallet_id,
-        "checking_id": checking_id_or_hash,
-        "hash": checking_id_or_hash,
-    }
-    if incoming:
-        clause = f"({clause}) AND amount > 0"
 
+    sql = "SELECT * FROM apipayments "
+    sql += "WHERE (checking_id = :id or payment_hash = :id) "
+    if incoming:
+        sql += "AND amount > 0 "
     if wallet_id:
-        clause = f"({clause}) AND wallet_id = :wallet_id"
+        sql += "AND wallet_id = :wallet_id "
+    sql += "ORDER BY amount LIMIT 1"
 
     row = await (conn or db).fetchone(
-        f"""
-        SELECT * FROM apipayments
-        WHERE {clause}
-        ORDER BY amount LIMIT 1
-        """,
-        values,
+        sql,
+        {"wallet_id": wallet_id, "id": checking_id_or_hash},
         Payment,
     )
     return row
@@ -80,14 +73,17 @@ async def get_latest_payments_by_extension(
     ext_name: str, ext_id: str, limit: int = 5
 ) -> list[Payment]:
     return await db.fetchall(
-        f"""
+        """
         SELECT * FROM apipayments
-        WHERE status = '{PaymentState.SUCCESS}'
-        AND extra LIKE :ext_name
-        AND extra LIKE :ext_id
-        ORDER BY time DESC LIMIT {int(limit)}
+        WHERE status = :status AND extra LIKE :ext_name AND extra LIKE :ext_id
+        ORDER BY time DESC LIMIT :limit
         """,
-        {"ext_name": f"%{ext_name}%", "ext_id": f"%{ext_id}%"},
+        {
+            "ext_name": f"%{ext_name}%",
+            "ext_id": f"%{ext_id}%",
+            "limit": int(limit),
+            "status": str(PaymentState.SUCCESS),
+        },
         Payment,
     )
 
@@ -222,22 +218,22 @@ async def delete_expired_invoices(
 ) -> None:
     # first we delete all invoices older than one month
 
+    delta = int(time() - 2592000)
     await (conn or db).execute(
-        f"""
-        DELETE FROM apipayments
-        WHERE status = '{PaymentState.PENDING}' AND amount > 0
-        AND time < {db.timestamp_placeholder("delta")}
-        """,
-        {"delta": int(time() - 2592000)},
+        "DELETE FROM apipayments WHERE status = :status AND amount > 0 AND time < :ts",
+        {
+            "status": str(PaymentState.PENDING),
+            "delta": delta,
+            "ts": db.timestamp(delta),
+        },
     )
     # then we delete all invoices whose expiry date is in the past
     await (conn or db).execute(
-        f"""
+        """
         DELETE FROM apipayments
-        WHERE status = '{PaymentState.PENDING}' AND amount > 0
-        AND expiry < {db.timestamp_placeholder("now")}
+        WHERE status = :status AND amount > 0 AND expiry < :now
         """,
-        {"now": int(time())},
+        {"now": db.timestamp(int(time())), "status": str(PaymentState.PENDING)},
     )
 
 
@@ -302,33 +298,28 @@ async def get_payments_history(
 ) -> list[PaymentHistoryPoint]:
     if not filters:
         filters = Filters()
-
-    date_trunc = db.datetime_grouping(group)
-
     values = {
         "wallet_id": wallet_id,
+        "date_trunc": db.datetime_grouping(group),
+        "success": str(PaymentState.SUCCESS),
+        "pending": str(PaymentState.PENDING),
     }
-    # count outgoing payments if they are still pending
-    where = [
-        f"""
-        wallet_id = :wallet_id AND (
-            status = '{PaymentState.SUCCESS}'
-            OR (amount < 0 AND status = '{PaymentState.PENDING}')
-        )
+    sql = "SELECT :date_trunc date"
+    sql += ", SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income"
+    sql += ", SUM(CASE WHEN amount < 0 THEN abs(amount) + abs(fee) ELSE 0 END) spending"
+    sql += " FROM apipayments"
+    sql += filters.where(
+        [
+            """
+        wallet_id = :wallet_id AND
+        (status = :success OR (amount < 0 AND status = :pending))
         """
-    ]
-    transactions: list[dict] = await db.fetchall(
-        f"""
-        SELECT {date_trunc} date,
-               SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income,
-               SUM(CASE WHEN amount < 0 THEN abs(amount) + abs(fee) ELSE 0 END) spending
-        FROM apipayments
-        {filters.where(where)}
-        GROUP BY date
-        ORDER BY date DESC
-        """,
-        filters.values(values),
+        ]
     )
+    sql += " GROUP BY date ORDER BY date DESC"
+
+    # count outgoing payments if they are still pending
+    transactions: list[dict] = await db.fetchall(sql, filters.values(values))
     if wallet_id:
         wallet = await get_wallet(wallet_id)
         if wallet:
@@ -364,25 +355,18 @@ async def get_payment_count_stats(
     if not filters:
         filters = Filters()
     clause = filters.where()
-    data = await (conn or db).fetchall(
-        query=f"""
-            SELECT {field} as field, count(*) as total
-            FROM apipayments
-            {clause}
-            GROUP BY {field}
-            ORDER BY {field}
-        """,
-        values=filters.values(),
-        model=PaymentCountStat,
-    )
-
-    return data
+    values = filters.values()
+    values["field"] = field
+    sql = "SELECT :field as field, count(*) as total FROM apipayments"
+    sql += clause
+    sql += " GROUP BY :field ORDER BY :field"
+    return await (conn or db).fetchall(sql, values, PaymentCountStat)
 
 
 async def get_daily_stats(
     filters: Optional[Filters[PaymentFilters]] = None,
     conn: Optional[Connection] = None,
-) -> Tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
+) -> tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
 
     if not filters:
         filters = Filters()
@@ -442,20 +426,19 @@ async def get_wallets_stats(
         """,
     ]
     clauses = filters.where(where_stmts)
-
+    sql = """
+        SELECT apipayments.wallet_id,
+            MAX(wallets.name) AS wallet_name,
+            MAX(wallets.user) AS user_id,
+            COUNT(*) as payments_count,
+            SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+        FROM wallets
+        LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
+    """
+    sql += clauses
+    sql += " GROUP BY apipayments.wallet_id ORDER BY payments_count"
     data = await (conn or db).fetchall(
-        query=f"""
-            SELECT apipayments.wallet_id,
-                    MAX(wallets.name) AS wallet_name,
-                    MAX(wallets.user) AS user_id,
-                    COUNT(*) as payments_count,
-                    SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
-            FROM wallets
-            LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
-            {clauses}
-            GROUP BY apipayments.wallet_id
-            ORDER BY payments_count
-        """,
+        query=sql,
         values=filters.values(),
         model=PaymentWalletStats,
     )
@@ -480,11 +463,11 @@ async def check_internal(
     otherwise None
     """
     return await (conn or db).fetchone(
-        f"""
+        """
         SELECT * FROM apipayments
-        WHERE payment_hash = :hash AND status = '{PaymentState.PENDING}' AND amount > 0
+        WHERE payment_hash = :hash AND status = :status AND amount > 0
         """,
-        {"hash": payment_hash},
+        {"hash": payment_hash, "status": str(PaymentState.PENDING)},
         Payment,
     )
 

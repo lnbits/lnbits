@@ -1,3 +1,4 @@
+from time import time
 from typing import Optional
 
 from lnbits.core.db import db
@@ -30,10 +31,8 @@ async def delete_expired_audit_entries(
     conn: Optional[Connection] = None,
 ):
     await (conn or db).execute(
-        f"""
-            DELETE from audit
-            WHERE delete_at < {db.timestamp_now}
-        """,
+        "DELETE from audit WHERE delete_at < :ts",
+        {"ts": db.timestamp(int(time()))},
     )
 
 
@@ -47,15 +46,14 @@ async def get_count_stats(
     if not filters:
         filters = Filters()
     clause = filters.where()
+    values = filters.values()
+    values["field"] = field
+    sql = "SELECT :field as field, count(:field) as total FROM audit"
+    sql += clause
+    sql += " GROUP BY :field ORDER BY :field"
     data = await (conn or db).fetchall(
-        query=f"""
-            SELECT {field} as field, count({field}) as total
-            FROM audit
-            {clause}
-            GROUP BY {field}
-            ORDER BY {field}
-        """,
-        values=filters.values(),
+        query=sql,
+        values=values,
         model=AuditCountStat,
     )
 
@@ -68,15 +66,11 @@ async def get_long_duration_stats(
 ) -> list[AuditCountStat]:
     if not filters:
         filters = Filters()
-    clause = filters.where()
+    sql = "SELECT path as field, max(duration) as total FROM audit "
+    sql += filters.where()
+    sql += " GROUP BY path ORDER BY total DESC LIMIT 5"
     long_duration_paths = await (conn or db).fetchall(
-        query=f"""
-            SELECT path as field, max(duration) as total FROM audit
-            {clause}
-            GROUP BY path
-            ORDER BY total DESC
-            LIMIT 5
-        """,
+        query=sql,
         values=filters.values(),
         model=AuditCountStat,
     )
