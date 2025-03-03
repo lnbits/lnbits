@@ -15,7 +15,6 @@ from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import settings
-from lnbits.tasks import create_task
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
@@ -171,20 +170,58 @@ async def create_invoice(
     return payment
 
 
-async def update_pending_payments(wallet_id: str):
+async def update_wallet_pending_payments(wallet_id: str):
     pending_payments = await get_payments(
         wallet_id=wallet_id,
         pending=True,
         exclude_uncheckable=True,
     )
-    for payment in pending_payments:
-        status = await payment.check_status()
-        if status.failed:
-            payment.status = PaymentState.FAILED
-            await update_payment(payment)
-        elif status.success:
-            payment.status = PaymentState.SUCCESS
-            await update_payment(payment)
+    await update_pending_payments(payments=pending_payments, delay=0.01)
+
+
+async def update_all_pending_payments(
+    offset: Optional[int] = 0,
+    limit: Optional[int] = 100,
+    since: Optional[int] = None,
+    delay: Optional[float] = None,
+) -> list[Payment]:
+    """
+    Updates the status of the pending payments based on the funding source state.
+    """
+    pending_payments = await get_payments(
+        since=since,
+        complete=False,
+        pending=True,
+        exclude_uncheckable=True,
+        offset=offset,
+        limit=limit,
+    )
+    return await update_pending_payments(pending_payments, delay)
+
+
+async def update_pending_payments(
+    payments: list[Payment], delay: Optional[float] = None
+) -> list[Payment]:
+    for payment in payments:
+        if payment.pending:
+            await update_pending_payment(payment)
+        if delay is not None:
+            await asyncio.sleep(delay)  # to avoid complete blocking
+    return payments
+
+
+async def update_pending_payment(payment: Payment) -> Payment:
+    status = await payment.check_status()
+    if status.failed:
+        payment.status = PaymentState.FAILED
+        await update_payment(payment)
+    elif status.success:
+        payment.fee = status.fee_msat or 0
+        payment.preimage = status.preimage
+        payment.status = PaymentState.SUCCESS
+        await update_payment(payment)
+
+    return payment
 
 
 def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
@@ -532,6 +569,8 @@ async def _pay_external_invoice(
 
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
     service_fee_msat = service_fee(amount_msat, internal=False)
+
+    from lnbits.tasks import create_task
 
     task = create_task(
         _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)

@@ -13,8 +13,8 @@ from .payments import (
     fee_reserve_total,
     pay_invoice,
     service_fee,
-    update_pending_payments,
     update_wallet_balance,
+    update_wallet_pending_payments,
 )
 from .settings import (
     check_webpush_settings,
@@ -49,7 +49,7 @@ __all__ = [
     "fee_reserve_total",
     "pay_invoice",
     "service_fee",
-    "update_pending_payments",
+    "update_wallet_pending_payments",
     "update_wallet_balance",
     # settings
     "check_webpush_settings",
