@@ -7,7 +7,7 @@ import os
 import shutil
 import zipfile
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from loguru import logger
@@ -29,17 +29,17 @@ class ExplicitRelease(BaseModel):
     archive: str
     hash: str
     dependencies: list[str] = []
-    repo: Optional[str]
-    icon: Optional[str]
-    short_description: Optional[str]
-    min_lnbits_version: Optional[str]
-    max_lnbits_version: Optional[str]
-    html_url: Optional[str]  # todo: release_url
-    warning: Optional[str]
-    info_notification: Optional[str]
-    critical_notification: Optional[str]
-    details_link: Optional[str]
-    pay_link: Optional[str]
+    repo: str | None
+    icon: str | None
+    short_description: str | None
+    min_lnbits_version: str | None
+    max_lnbits_version: str | None
+    html_url: str | None  # todo: release_url
+    warning: str | None
+    info_notification: str | None
+    critical_notification: str | None
+    details_link: str | None
+    pay_link: str | None
 
     def is_version_compatible(self):
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -77,9 +77,9 @@ class ExtensionConfig(BaseModel):
     name: str
     short_description: str
     tile: str = ""
-    warning: Optional[str] = ""
-    min_lnbits_version: Optional[str]
-    max_lnbits_version: Optional[str]
+    warning: str | None = ""
+    min_lnbits_version: str | None
+    max_lnbits_version: str | None
 
     def is_version_compatible(self) -> bool:
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -87,7 +87,7 @@ class ExtensionConfig(BaseModel):
     @classmethod
     async def fetch_github_release_config(
         cls, org: str, repo: str, tag_name: str
-    ) -> Optional[ExtensionConfig]:
+    ) -> ExtensionConfig | None:
         config_url = (
             f"https://raw.githubusercontent.com/{org}/{repo}/{tag_name}/config.json"
         )
@@ -97,28 +97,28 @@ class ExtensionConfig(BaseModel):
 
 
 class ReleasePaymentInfo(BaseModel):
-    amount: Optional[int] = None
-    pay_link: Optional[str] = None
-    payment_hash: Optional[str] = None
-    payment_request: Optional[str] = None
+    amount: int | None = None
+    pay_link: str | None = None
+    payment_hash: str | None = None
+    payment_request: str | None = None
 
 
 class PayToEnableInfo(BaseModel):
     amount: int = 0
     required: bool = False
-    wallet: Optional[str] = None
+    wallet: str | None = None
 
 
 class UserExtensionInfo(BaseModel):
-    paid_to_enable: Optional[bool] = False
-    payment_hash_to_enable: Optional[str] = None
+    paid_to_enable: bool | None = False
+    payment_hash_to_enable: str | None = None
 
 
 class UserExtension(BaseModel):
     user: str
     extension: str
     active: bool
-    extra: Optional[UserExtensionInfo] = None
+    extra: UserExtensionInfo | None = None
 
     @property
     def is_paid(self) -> bool:
@@ -140,10 +140,10 @@ class UserExtension(BaseModel):
 class Extension(BaseModel):
     code: str
     is_valid: bool
-    name: Optional[str] = None
-    short_description: Optional[str] = None
-    tile: Optional[str] = None
-    upgrade_hash: Optional[str] = ""
+    name: str | None = None
+    short_description: str | None = None
+    tile: str | None = None
+    upgrade_hash: str | None = ""
 
     @property
     def module_name(self) -> str:
@@ -176,21 +176,21 @@ class ExtensionRelease(BaseModel):
     archive: str
     source_repo: str
     is_github_release: bool = False
-    hash: Optional[str] = None
-    min_lnbits_version: Optional[str] = None
-    max_lnbits_version: Optional[str] = None
-    is_version_compatible: Optional[bool] = True
-    html_url: Optional[str] = None
-    description: Optional[str] = None
-    warning: Optional[str] = None
-    repo: Optional[str] = None
-    icon: Optional[str] = None
-    details_link: Optional[str] = None
+    hash: str | None = None
+    min_lnbits_version: str | None = None
+    max_lnbits_version: str | None = None
+    is_version_compatible: bool | None = True
+    html_url: str | None = None
+    description: str | None = None
+    warning: str | None = None
+    repo: str | None = None
+    icon: str | None = None
+    details_link: str | None = None
 
-    pay_link: Optional[str] = None
-    cost_sats: Optional[int] = None
-    paid_sats: Optional[int] = 0
-    payment_hash: Optional[str] = None
+    pay_link: str | None = None
+    cost_sats: int | None = None
+    paid_sats: int | None = 0
+    payment_hash: str | None = None
 
     @property
     def archive_url(self) -> str:
@@ -208,8 +208,8 @@ class ExtensionRelease(BaseModel):
         self.cost_sats = payment_info.amount if payment_info else None
 
     async def fetch_release_payment_info(
-        self, amount: Optional[int] = None
-    ) -> Optional[ReleasePaymentInfo]:
+        self, amount: int | None = None
+    ) -> ReleasePaymentInfo | None:
         url = f"{self.pay_link}?amount={amount}" if amount else self.pay_link
         assert url, "Missing URL for payment info."
         try:
@@ -281,7 +281,7 @@ class ExtensionRelease(BaseModel):
         return [GitHubRepoRelease.parse_obj(r) for r in releases]
 
     @classmethod
-    async def fetch_release_details(cls, details_link: str) -> Optional[dict]:
+    async def fetch_release_details(cls, details_link: str) -> dict | None:
 
         try:
             async with httpx.AsyncClient() as client:
@@ -300,12 +300,12 @@ class ExtensionRelease(BaseModel):
 
 
 class ExtensionMeta(BaseModel):
-    installed_release: Optional[ExtensionRelease] = None
-    latest_release: Optional[ExtensionRelease] = None
-    pay_to_enable: Optional[PayToEnableInfo] = None
+    installed_release: ExtensionRelease | None = None
+    latest_release: ExtensionRelease | None = None
+    pay_to_enable: PayToEnableInfo | None = None
     payments: list[ReleasePaymentInfo] = []
     dependencies: list[str] = []
-    archive: Optional[str] = None
+    archive: str | None = None
     featured: bool = False
 
 
@@ -313,11 +313,11 @@ class InstallableExtension(BaseModel):
     id: str
     name: str
     version: str
-    active: Optional[bool] = False
-    short_description: Optional[str] = None
-    icon: Optional[str] = None
+    active: bool | None = False
+    short_description: str | None = None
+    icon: str | None = None
     stars: int = 0
-    meta: Optional[ExtensionMeta] = None
+    meta: ExtensionMeta | None = None
 
     @property
     def hash(self) -> str:
@@ -452,7 +452,7 @@ class InstallableExtension(BaseModel):
 
         shutil.rmtree(self.ext_upgrade_dir, True)
 
-    def check_latest_version(self, release: Optional[ExtensionRelease]):
+    def check_latest_version(self, release: ExtensionRelease | None):
         if not release:
             return
         if not self.meta or not self.meta.latest_release:
@@ -465,9 +465,7 @@ class InstallableExtension(BaseModel):
         ):
             self.meta.latest_release = release
 
-    def find_existing_payment(
-        self, pay_link: Optional[str]
-    ) -> Optional[ReleasePaymentInfo]:
+    def find_existing_payment(self, pay_link: str | None) -> ReleasePaymentInfo | None:
         if not pay_link or not self.meta or not self.meta.payments:
             return None
         return next(
@@ -507,7 +505,7 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def from_github_release(
         cls, github_release: GitHubRelease
-    ) -> Optional[InstallableExtension]:
+    ) -> InstallableExtension | None:
         try:
             repo, latest_release, config = await cls.fetch_github_repo_info(
                 github_release.organisation, github_release.repository
@@ -546,7 +544,7 @@ class InstallableExtension(BaseModel):
         )
 
     @classmethod
-    def from_ext_dir(cls, ext_id: str) -> Optional[InstallableExtension]:
+    def from_ext_dir(cls, ext_id: str) -> InstallableExtension | None:
         try:
             conf_path = Path(
                 settings.lnbits_extensions_path, "extensions", ext_id, "config.json"
@@ -657,7 +655,7 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def get_extension_release(
         cls, ext_id: str, source_repo: str, archive: str, version: str
-    ) -> Optional[ExtensionRelease]:
+    ) -> ExtensionRelease | None:
         all_releases: list[ExtensionRelease] = (
             await InstallableExtension.get_extension_releases(ext_id)
         )
@@ -708,8 +706,8 @@ class CreateExtension(BaseModel):
     archive: str
     source_repo: str
     version: str
-    cost_sats: Optional[int] = 0
-    payment_hash: Optional[str] = None
+    cost_sats: int | None = 0
+    payment_hash: str | None = None
 
 
 class ExtensionDetailsRequest(BaseModel):
@@ -718,7 +716,7 @@ class ExtensionDetailsRequest(BaseModel):
     version: str
 
 
-async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
+async def github_api_get(url: str, error_msg: str | None) -> Any:
     headers = {"User-Agent": settings.user_agent}
     if settings.lnbits_ext_github_token:
         headers["Authorization"] = f"Bearer {settings.lnbits_ext_github_token}"
@@ -730,7 +728,7 @@ async def github_api_get(url: str, error_msg: Optional[str]) -> Any:
         return resp.json()
 
 
-def icon_to_github_url(source_repo: str, path: Optional[str]) -> str:
+def icon_to_github_url(source_repo: str, path: str | None) -> str:
     if not path:
         return ""
     _, _, *rest = path.split("/")

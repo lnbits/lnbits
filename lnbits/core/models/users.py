@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
 from uuid import UUID
 
 from fastapi import Query
@@ -17,16 +16,16 @@ from .wallets import Wallet
 
 
 class UserExtra(BaseModel):
-    email_verified: Optional[bool] = False
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    display_name: Optional[str] = None
-    picture: Optional[str] = None
+    email_verified: bool | None = False
+    first_name: str | None = None
+    last_name: str | None = None
+    display_name: str | None = None
+    picture: str | None = None
     # Auth provider, possible values:
     # - "env": the user was created automatically by the system
     # - "lnbits": the user was created via register form (username/pass or user_id only)
     # - "google | github | ...": the user was created using an SSO provider
-    provider: Optional[str] = "lnbits"  # auth provider
+    provider: str | None = "lnbits"  # auth provider
 
 
 class EndpointAccess(BaseModel):
@@ -50,13 +49,13 @@ class AccessControlList(BaseModel):
     endpoints: list[EndpointAccess] = []
     token_id_list: list[SimpleItem] = []
 
-    def get_endpoint(self, path: str) -> Optional[EndpointAccess]:
+    def get_endpoint(self, path: str) -> EndpointAccess | None:
         for e in self.endpoints:
             if e.path == path:
                 return e
         return None
 
-    def get_token_by_id(self, token_id: str) -> Optional[SimpleItem]:
+    def get_token_by_id(self, token_id: str) -> SimpleItem | None:
         for t in self.token_id_list:
             if t.id == token_id:
                 return t
@@ -71,7 +70,7 @@ class UserAcls(BaseModel):
     access_control_list: list[AccessControlList] = []
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    def get_acl_by_id(self, acl_id: str) -> Optional[AccessControlList]:
+    def get_acl_by_id(self, acl_id: str) -> AccessControlList | None:
         for acl in self.access_control_list:
             if acl.id == acl_id:
                 return acl
@@ -82,7 +81,7 @@ class UserAcls(BaseModel):
             acl for acl in self.access_control_list if acl.id != acl_id
         ]
 
-    def get_acl_by_token_id(self, token_id: str) -> Optional[AccessControlList]:
+    def get_acl_by_token_id(self, token_id: str) -> AccessControlList | None:
         for acl in self.access_control_list:
             if acl.get_token_by_id(token_id):
                 return acl
@@ -91,10 +90,10 @@ class UserAcls(BaseModel):
 
 class Account(BaseModel):
     id: str
-    username: Optional[str] = None
-    password_hash: Optional[str] = None
-    pubkey: Optional[str] = None
-    email: Optional[str] = None
+    username: str | None = None
+    password_hash: str | None = None
+    pubkey: str | None = None
+    email: str | None = None
     extra: UserExtra = UserExtra()
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -134,10 +133,10 @@ class Account(BaseModel):
 
 
 class AccountOverview(Account):
-    transaction_count: Optional[int] = 0
-    wallet_count: Optional[int] = 0
-    balance_msat: Optional[int] = 0
-    last_payment: Optional[datetime] = None
+    transaction_count: int | None = 0
+    wallet_count: int | None = 0
+    balance_msat: int | None = 0
+    last_payment: datetime | None = None
 
 
 class AccountFilters(FilterModel):
@@ -151,20 +150,20 @@ class AccountFilters(FilterModel):
         "last_payment",
     ]
 
-    email: Optional[str] = None
-    user: Optional[str] = None
-    username: Optional[str] = None
-    pubkey: Optional[str] = None
-    wallet_id: Optional[str] = None
+    email: str | None = None
+    user: str | None = None
+    username: str | None = None
+    pubkey: str | None = None
+    wallet_id: str | None = None
 
 
 class User(BaseModel):
     id: str
     created_at: datetime
     updated_at: datetime
-    email: Optional[str] = None
-    username: Optional[str] = None
-    pubkey: Optional[str] = None
+    email: str | None = None
+    username: str | None = None
+    pubkey: str | None = None
     extensions: list[str] = []
     wallets: list[Wallet] = []
     admin: bool = False
@@ -176,7 +175,7 @@ class User(BaseModel):
     def wallet_ids(self) -> list[str]:
         return [wallet.id for wallet in self.wallets]
 
-    def get_wallet(self, wallet_id: str) -> Optional[Wallet]:
+    def get_wallet(self, wallet_id: str) -> Wallet | None:
         w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
         return w[0] if w else None
 
@@ -192,33 +191,33 @@ class User(BaseModel):
 
 
 class RegisterUser(BaseModel):
-    email: Optional[str] = Query(default=None)
+    email: str | None = Query(default=None)
     username: str = Query(default=..., min_length=2, max_length=20)
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
 
 
 class CreateUser(BaseModel):
-    id: Optional[str] = Query(default=None)
-    email: Optional[str] = Query(default=None)
-    username: Optional[str] = Query(default=None, min_length=2, max_length=20)
-    password: Optional[str] = Query(default=None, min_length=8, max_length=50)
-    password_repeat: Optional[str] = Query(default=None, min_length=8, max_length=50)
+    id: str | None = Query(default=None)
+    email: str | None = Query(default=None)
+    username: str | None = Query(default=None, min_length=2, max_length=20)
+    password: str | None = Query(default=None, min_length=8, max_length=50)
+    password_repeat: str | None = Query(default=None, min_length=8, max_length=50)
     pubkey: str = Query(default=None, max_length=64)
-    extensions: Optional[list[str]] = None
-    extra: Optional[UserExtra] = None
+    extensions: list[str] | None = None
+    extra: UserExtra | None = None
 
 
 class UpdateUser(BaseModel):
     user_id: str
-    email: Optional[str] = Query(default=None)
-    username: Optional[str] = Query(default=..., min_length=2, max_length=20)
-    extra: Optional[UserExtra] = None
+    email: str | None = Query(default=None)
+    username: str | None = Query(default=..., min_length=2, max_length=20)
+    extra: UserExtra | None = None
 
 
 class UpdateUserPassword(BaseModel):
     user_id: str
-    password_old: Optional[str] = None
+    password_old: str | None = None
     password: str = Query(default=..., min_length=8, max_length=50)
     password_repeat: str = Query(default=..., min_length=8, max_length=50)
     username: str = Query(default=..., min_length=2, max_length=20)
@@ -252,10 +251,10 @@ class LoginUsernamePassword(BaseModel):
 
 class AccessTokenPayload(BaseModel):
     sub: str
-    usr: Optional[str] = None
-    email: Optional[str] = None
-    auth_time: Optional[int] = 0
-    api_token_id: Optional[str] = None
+    usr: str | None = None
+    email: str | None = None
+    auth_time: int | None = 0
+    api_token_id: str | None = None
 
 
 class UpdateBalance(BaseModel):
