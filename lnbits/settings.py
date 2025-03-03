@@ -13,7 +13,6 @@ from pathlib import Path
 from time import gmtime, strftime, time
 from typing import Any
 
-import httpx
 from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, Field, validator
 
@@ -805,13 +804,9 @@ class EnvSettings(LNbitsSettings):
         up_time = int(time() - self.server_startup_time)
         return strftime("%H:%M:%S", gmtime(up_time))
 
-
-class SaaSSettings(LNbitsSettings):
-    lnbits_saas_callback: str | None = Field(default=None)
-    lnbits_saas_secret: str | None = Field(default=None)
-    lnbits_saas_instance_id: str | None = Field(default=None)
-
-
+    def check_auth_secret_key(self, extra_random: str):
+        if self.auth_secret_key:
+            return
 class PersistenceSettings(LNbitsSettings):
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str = Field(default=None)
@@ -869,7 +864,6 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
 class ReadOnlySettings(
     EnvSettings,
     ExtensionsInstallSettings,
-    SaaSSettings,
     PersistenceSettings,
     SuperUserSettings,
 ):
@@ -948,31 +942,6 @@ def set_cli_settings(**kwargs):
         setattr(settings, key, value)
 
 
-def send_admin_user_to_saas():
-    if settings.lnbits_saas_callback:
-        with httpx.Client() as client:
-            headers = {
-                "Content-Type": "application/json; charset=utf-8",
-                "X-API-KEY": settings.lnbits_saas_secret,
-            }
-            payload = {
-                "instance_id": settings.lnbits_saas_instance_id,
-                "adminuser": settings.super_user,
-            }
-            try:
-                client.post(
-                    settings.lnbits_saas_callback,
-                    headers=headers,
-                    json=payload,
-                )
-                logger.success("sent super_user to saas application")
-            except Exception as e:
-                logger.error(
-                    "error sending super_user to saas:"
-                    f" {settings.lnbits_saas_callback}. Error: {e!s}"
-                )
-
-
 readonly_variables = ReadOnlySettings.readonly_fields()
 transient_variables = TransientSettings.readonly_fields()
 
@@ -981,9 +950,6 @@ settings = Settings()
 settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 
 settings.version = importlib.metadata.version("lnbits")
-settings.auth_secret_key = (
-    settings.auth_secret_key or sha256(settings.super_user.encode("utf-8")).hexdigest()
-)
 
 if not settings.user_agent:
     settings.user_agent = f"LNbits/{settings.version}"
