@@ -1,6 +1,6 @@
 import asyncio
-import random
 from http import HTTPStatus
+from secrets import randbelow
 
 import pytest
 from httpx import AsyncClient, Headers
@@ -112,9 +112,10 @@ async def test_get_channel(node_client):
     response = await node_client.get("/node/api/v1/channels")
     assert response.status_code == 200
     channels = parse_obj_as(list[NodeChannel], response.json())
-    ch = random.choice(
-        [channel for channel in channels if channel.state == ChannelState.ACTIVE]
-    )
+    active_channels = [
+        channel for channel in channels if channel.state == ChannelState.ACTIVE
+    ]
+    ch = active_channels[randbelow(len(active_channels))]
     assert ch, "No active channel found"
     assert ch.point, "No channel point found"
 
@@ -132,10 +133,10 @@ async def test_set_channel_fees(node_client):
     response = await node_client.get("/node/api/v1/channels")
     assert response.status_code == 200
     channels = parse_obj_as(list[NodeChannel], response.json())
-
-    ch = random.choice(
-        [channel for channel in channels if channel.state == ChannelState.ACTIVE]
-    )
+    active_channels = [
+        channel for channel in channels if channel.state == ChannelState.ACTIVE
+    ]
+    ch = active_channels[randbelow(len(active_channels))]
     assert ch, "No active channel found"
     assert ch.point, "No channel point found"
 
@@ -160,10 +161,11 @@ async def test_channel_management(node_client):
         assert response.status_code == 200
         return parse_obj_as(list[NodeChannel], response.json())
 
-    data = await get_channels()
-    close = random.choice(
-        [channel for channel in data if channel.state == ChannelState.ACTIVE]
-    )
+    channels = await get_channels()
+    active_channels = [
+        channel for channel in channels if channel.state == ChannelState.ACTIVE
+    ]
+    close = active_channels[randbelow(len(active_channels))]
     assert close, "No active channel found"
     assert close.point, "No channel point found"
 
@@ -173,10 +175,10 @@ async def test_channel_management(node_client):
     )
     assert response.status_code == 200
 
-    data = await get_channels()
+    channels = await get_channels()
     assert any(
         channel.point == close.point and channel.state == ChannelState.CLOSED
-        for channel in data
+        for channel in channels
     )
 
     response = await node_client.post(
