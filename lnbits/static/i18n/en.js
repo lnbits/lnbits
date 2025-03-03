@@ -310,6 +310,7 @@ window.localisation.en = {
   password: 'Password',
   password_config: 'Password Config',
   password_repeat: 'Password repeat',
+  update_password: 'Update Password',
   change_password: 'Change Password',
   update_credentials: 'Update Credentials',
   update_pubkey: 'Update Public Key',
