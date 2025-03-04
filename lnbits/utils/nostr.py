@@ -2,7 +2,7 @@ import base64
 import hashlib
 import json
 import re
-from typing import Dict, Tuple, Union
+from typing import Union
 from urllib.parse import urlparse
 
 import secp256k1
@@ -13,7 +13,7 @@ from Cryptodome.Util.Padding import pad, unpad
 from pynostr.key import PrivateKey
 
 
-def generate_keypair() -> Tuple[str, str]:
+def generate_keypair() -> tuple[str, str]:
     private_key = PrivateKey()
     public_key = private_key.public_key
     return private_key.hex(), public_key.hex()
@@ -82,12 +82,12 @@ def decrypt_content(
     return decrypted
 
 
-def verify_event(event: Dict) -> bool:
+def verify_event(event: dict) -> bool:
     """
     Verify the event signature
 
     Args:
-        event (Dict): The event to verify.
+        event (dict): The event to verify.
 
     Returns:
         bool: True if the event signature is valid, False otherwise.
@@ -115,18 +115,18 @@ def verify_event(event: Dict) -> bool:
 
 
 def sign_event(
-    event: Dict, account_public_key_hex: str, account_private_key: secp256k1.PrivateKey
-) -> Dict:
+    event: dict, account_public_key_hex: str, account_private_key: secp256k1.PrivateKey
+) -> dict:
     """
     Signs the event (in place) with the service secret
 
     Args:
-        event (Dict): The event to be signed.
+        event (dict): The event to be signed.
         account_public_key_hex (str): The account public key in hex format.
         account_private_key (secp256k1.PrivateKey): The account private key.
 
     Returns:
-        Dict: The input event with the signature added.
+        dict: The input event with the signature added.
     """
     signature_data = json_dumps(
         [
@@ -149,17 +149,17 @@ def sign_event(
     return event
 
 
-def json_dumps(data: Union[Dict, list]) -> str:
+def json_dumps(data: Union[dict, list]) -> str:
     """
     Converts a Python dictionary to a JSON string with compact encoding.
 
     Args:
-        data (Dict): The dictionary to be converted.
+        data (dict): The dictionary to be converted.
 
     Returns:
         str: The compact JSON string.
     """
-    if isinstance(data, Dict):
+    if isinstance(data, dict):
         data = {k: v for k, v in data.items() if v is not None}
     return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
 
@@ -175,18 +175,20 @@ def normalize_private_key(key: str) -> str:
 def normalize_bech32_key(hrp: str, key: str) -> str:
     if key.startswith(hrp):
         _, decoded_data = bech32_decode(key)
-        assert decoded_data, f"Key is not valid {hrp}."
+        if not decoded_data:
+            raise ValueError(f"Key is not valid {hrp}.")
 
         decoded_data_bits = convertbits(decoded_data, 5, 8, False)
-        assert decoded_data_bits, f"Key is not valid {hrp}."
-
+        if not decoded_data_bits:
+            raise ValueError(f"Key is not valid {hrp}.")
         return bytes(decoded_data_bits).hex()
 
-    assert len(key) == 64, "Key has wrong length."
+    if len(key) != 64:
+        raise ValueError("Key has wrong length.")
     try:
         int(key, 16)
     except Exception as exc:
-        raise AssertionError("Key is not valid hex.") from exc
+        raise ValueError("Key is not valid hex.") from exc
     return key
 
 
@@ -203,7 +205,8 @@ def hex_to_npub(hex_pubkey: str) -> str:
     normalize_public_key(hex_pubkey)
     pubkey_bytes = bytes.fromhex(hex_pubkey)
     bits = convertbits(pubkey_bytes, 8, 5, True)
-    assert bits
+    if not bits:
+        raise ValueError("Failed to convert public key to bech32.")
     return bech32_encode("npub", bits)
 
 

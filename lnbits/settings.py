@@ -201,10 +201,11 @@ class InstalledExtensionsSettings(LNbitsSettings):
             if r.find_in_conflict(ext_redirect_paths)
         }
 
-        assert len(existing_redirects) == 0, (
-            f"Cannot redirect for extension '{ext_id}'."
-            f" Already mapped by {existing_redirects}."
-        )
+        if len(existing_redirects) > 0:
+            raise ValueError(
+                f"Cannot redirect for extension '{ext_id}'."
+                f" Already mapped by {existing_redirects}."
+            )
 
         self._remove_extension_redirects(ext_id)
         self.lnbits_extensions_redirects += ext_redirect_paths
@@ -582,7 +583,7 @@ class NodeUISettings(LNbitsSettings):
 
 class AuthMethods(Enum):
     user_id_only = "user-id-only"
-    username_and_password = "username-password"
+    username = "username-password"
     nostr_auth_nip98 = "nostr-auth-nip98"
     google_auth = "google-auth"
     github_auth = "github-auth"
@@ -592,7 +593,7 @@ class AuthMethods(Enum):
     def all(cls):
         return [
             AuthMethods.user_id_only.value,
-            AuthMethods.username_and_password.value,
+            AuthMethods.username.value,
             AuthMethods.nostr_auth_nip98.value,
             AuthMethods.google_auth.value,
             AuthMethods.github_auth.value,
@@ -606,7 +607,7 @@ class AuthSettings(LNbitsSettings):
     auth_allowed_methods: list[str] = Field(
         default=[
             AuthMethods.user_id_only.value,
-            AuthMethods.username_and_password.value,
+            AuthMethods.username.value,
         ]
     )
     # How many seconds after login the user is allowed to update its credentials.

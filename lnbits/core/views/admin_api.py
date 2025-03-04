@@ -123,24 +123,23 @@ async def api_download_backup() -> FileResponse:
 
     if is_pg:
         p = urlparse(db_url)
-        command = (
-            f"pg_dump --host={p.hostname} "
-            f"--dbname={p.path.replace('/', '')} "
-            f"--username={p.username} "
-            "--no-password "
-            "--format=c "
-            f"--file={pg_backup_filename}"
-        )
-        proc = Popen(
-            command, shell=True, env={**os.environ, "PGPASSWORD": p.password or ""}
-        )
+        command = [
+            "pg_dump",
+            f"--host={p.hostname}",
+            f"--dbname={p.path.replace('/', '')}",
+            f"--username={p.username}",
+            "--no-password",
+            "--format=c",
+            f"--file={pg_backup_filename}",
+        ]
+        proc = Popen(command, env={**os.environ, "PGPASSWORD": p.password or ""})
         proc.wait()
 
     make_archive(last_filename, "zip", settings.lnbits_data_folder)
 
     # cleanup pg_dump file
     if is_pg:
-        proc = Popen(f"rm {pg_backup_filename}", shell=True)
+        proc = Popen(["rm", pg_backup_filename])
         proc.wait()
 
     return FileResponse(

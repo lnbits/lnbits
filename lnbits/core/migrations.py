@@ -56,18 +56,19 @@ async def m001_initial(db: Connection):
     """
     )
     await db.execute(
-        f"""
+        """
         CREATE TABLE IF NOT EXISTS apipayments (
             payhash TEXT NOT NULL,
-            amount {db.big_int} NOT NULL,
+            amount %big_int NOT NULL,
             fee INTEGER NOT NULL DEFAULT 0,
             wallet TEXT NOT NULL,
             pending BOOLEAN NOT NULL,
             memo TEXT,
-            time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
+            time TIMESTAMP NOT NULL DEFAULT %ts,
             UNIQUE (wallet, payhash)
         );
-    """
+        """,
+        safe_replace={"ts": db.timestamp_column_default, "big_int": db.big_int},
     )
 
     await db.execute(
@@ -85,7 +86,7 @@ async def m001_initial(db: Connection):
             GROUP BY wallet
         )x
         GROUP BY wallet;
-    """
+        """
     )
 
 
@@ -214,15 +215,15 @@ async def m007_set_invoice_expiries(db: Connection):
     """
     try:
         result = await db.execute(
-            f"""
-            SELECT bolt11, checking_id
-            FROM apipayments
+            """
+            SELECT bolt11, checking_id FROM apipayments
             WHERE pending = true
             AND amount > 0
             AND bolt11 IS NOT NULL
             AND expiry IS NULL
-            AND time < {db.timestamp_now}
-            """
+            AND time < %ts
+            """,
+            safe_replace={"ts": db.timestamp_now},
         )
         rows = result.mappings().all()
         if len(rows):
@@ -242,13 +243,15 @@ async def m007_set_invoice_expiries(db: Connection):
                     f" {invoice.payment_hash} to {expiration_date}"
                 )
                 await db.execute(
-                    f"""
-                    UPDATE apipayments SET expiry = {db.timestamp_placeholder('expiry')}
+                    """
+                    UPDATE apipayments SET expiry = %expiry
                     WHERE checking_id = :checking_id AND amount > 0
                     """,
-                    {"expiry": expiration_date, "checking_id": checking_id},
+                    {"checking_id": checking_id},
+                    {"expiry": db.timestamp(expiration_date)},
                 )
-            except Exception:
+            except Exception as exc:
+                logger.trace(exc)
                 continue
     except OperationalError:
         # this is necessary now because it may be the case that this migration will
@@ -271,15 +274,16 @@ async def m008_create_admin_settings_table(db: Connection):
 
 async def m009_create_tinyurl_table(db: Connection):
     await db.execute(
-        f"""
+        """
         CREATE TABLE IF NOT EXISTS tiny_url (
           id TEXT PRIMARY KEY,
           url TEXT,
           endless BOOL NOT NULL DEFAULT false,
           wallet TEXT,
-          time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+          time TIMESTAMP NOT NULL DEFAULT %ts
         );
-    """
+        """,
+        safe_replace={"ts": db.timestamp_now},
     )
 
 
@@ -371,7 +375,8 @@ async def m014_set_deleted_wallets(db: Connection):
                         "wallet": row.get("id"),
                     },
                 )
-            except Exception:
+            except Exception as exc:
+                logger.trace(exc)
                 continue
     except OperationalError:
         # this is necessary now because it may be the case that this migration will
@@ -383,16 +388,17 @@ async def m014_set_deleted_wallets(db: Connection):
 
 async def m015_create_push_notification_subscriptions_table(db: Connection):
     await db.execute(
-        f"""
+        """
         CREATE TABLE IF NOT EXISTS webpush_subscriptions (
             endpoint TEXT NOT NULL,
             "user" TEXT NOT NULL,
             data TEXT NOT NULL,
             host TEXT NOT NULL,
-            timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
+            timestamp TIMESTAMP NOT NULL DEFAULT %ts,
             PRIMARY KEY (endpoint, "user")
         );
-    """
+        """,
+        safe_replace={"ts": db.timestamp_now},
     )
 
 
@@ -413,20 +419,20 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db: Connection):
     """
     try:
         await db.execute(
-            "ALTER TABLE accounts "
-            f"ADD COLUMN created_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+            "ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP DEFAULT %ts",
+            safe_replace={"ts": db.timestamp_column_default},
         )
         await db.execute(
-            "ALTER TABLE accounts "
-            f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+            "ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP DEFAULT %ts",
+            safe_replace={"ts": db.timestamp_column_default},
         )
         await db.execute(
-            "ALTER TABLE wallets "
-            f"ADD COLUMN created_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+            "ALTER TABLE wallets ADD COLUMN created_at TIMESTAMP DEFAULT %ts",
+            safe_replace={"ts": db.timestamp_column_default},
         )
         await db.execute(
-            "ALTER TABLE wallets "
-            f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+            "ALTER TABLE wallets ADD COLUMN updated_at TIMESTAMP DEFAULT %ts",
+            safe_replace={"ts": db.timestamp_column_default},
         )
 
         # # set their wallets created_at with the first payment
@@ -454,18 +460,18 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db: Connection):
         # set all to now where they are null
         now = int(time())
         await db.execute(
-            f"""
-            UPDATE wallets SET created_at = {db.timestamp_placeholder('now')}
+            """
+            UPDATE wallets SET created_at = %now
             WHERE created_at IS NULL
             """,
-            {"now": now},
+            safe_replace={"now": db.timestamp(now)},
         )
         await db.execute(
-            f"""
-            UPDATE accounts SET created_at = {db.timestamp_placeholder('now')}
+            """
+            UPDATE accounts SET created_at = %now
             WHERE created_at IS NULL
             """,
-            {"now": now},
+            safe_replace={"now": db.timestamp(now)},
         )
 
     except OperationalError as exc:
@@ -489,7 +495,7 @@ async def m018_balances_view_exclude_deleted(db: Connection):
               AND ((apipayments.pending = false AND apipayments.amount > 0)
               OR apipayments.amount < 0)
         GROUP BY wallet
-    """
+        """
     )
 
 
@@ -543,7 +549,7 @@ async def m021_add_success_failed_to_apipayments(db: Connection):
             OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
         )
         GROUP BY apipayments.wallet
-    """
+        """
     )
 
 
@@ -588,7 +594,7 @@ async def m025_refresh_view(db: Connection):
             OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
         )
         GROUP BY apipayments.wallet_id
-    """
+        """
     )
 
 
@@ -616,7 +622,8 @@ async def m027_update_apipayments_data(db: Connection):
         logger.info(f"Updating {offset} to {offset+limit}")
 
         result = await db.execute(
-            f"SELECT * FROM apipayments  ORDER BY time LIMIT {limit} OFFSET {offset}"
+            "SELECT * FROM apipayments  ORDER BY time LIMIT :limit OFFSET :offset",
+            {"offset": offset, "limit": limit},
         )
         payments = result.mappings().all()
         logger.info(f"Payments count: {len(payments)}")
@@ -627,18 +634,17 @@ async def m027_update_apipayments_data(db: Connection):
             if payment.get("extra"):
                 extra = json.loads(str(payment.get("extra")))
                 tag = extra.get("tag")
-            tsph = db.timestamp_placeholder("created_at")
             await db.execute(
-                f"""
+                """
                 UPDATE apipayments
-                SET tag = :tag, created_at = {tsph}, updated_at = {tsph}
+                SET tag = :tag, created_at = %ts, updated_at = %ts
                 WHERE checking_id = :checking_id
                 """,
                 {
                     "tag": tag,
-                    "created_at": created_at,
                     "checking_id": payment.get("checking_id"),
                 },
+                safe_replace={"ts": db.timestamp(created_at)},
             )
         offset += limit
     logger.info("Payments updated")
@@ -680,7 +686,7 @@ async def m028_update_settings(db: Connection):
 
 async def m029_create_audit_table(db: Connection):
     await db.execute(
-        f"""
+        """
         CREATE TABLE IF NOT EXISTS audit (
             component TEXT,
             ip_address TEXT,
@@ -692,9 +698,10 @@ async def m029_create_audit_table(db: Connection):
             response_code TEXT,
             duration REAL NOT NULL,
             delete_at TIMESTAMP,
-            created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+            created_at TIMESTAMP NOT NULL DEFAULT %ts
         );
-        """
+        """,
+        safe_replace={"ts": db.timestamp_now},
     )
 
 

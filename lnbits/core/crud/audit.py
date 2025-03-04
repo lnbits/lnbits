@@ -1,3 +1,4 @@
+from time import time
 from typing import Optional
 
 from lnbits.core.db import db
@@ -30,10 +31,8 @@ async def delete_expired_audit_entries(
     conn: Optional[Connection] = None,
 ):
     await (conn or db).execute(
-        f"""
-            DELETE from audit
-            WHERE delete_at < {db.timestamp_now}
-        """,
+        "DELETE from audit WHERE delete_at < %ts",
+        safe_replace={"ts": db.timestamp(int(time()))},
     )
 
 
@@ -46,17 +45,14 @@ async def get_count_stats(
         return []
     if not filters:
         filters = Filters()
-    clause = filters.where()
     data = await (conn or db).fetchall(
-        query=f"""
-            SELECT {field} as field, count({field}) as total
-            FROM audit
-            {clause}
-            GROUP BY {field}
-            ORDER BY {field}
+        query="""
+        SELECT %field as field, count(%field) as total FROM audit
+        %where GROUP BY %field ORDER BY %field
         """,
         values=filters.values(),
         model=AuditCountStat,
+        safe_replace={"field": field, "where": filters.where()},
     )
 
     return data
@@ -68,17 +64,14 @@ async def get_long_duration_stats(
 ) -> list[AuditCountStat]:
     if not filters:
         filters = Filters()
-    clause = filters.where()
     long_duration_paths = await (conn or db).fetchall(
-        query=f"""
-            SELECT path as field, max(duration) as total FROM audit
-            {clause}
-            GROUP BY path
-            ORDER BY total DESC
-            LIMIT 5
+        query="""
+        SELECT path as field, max(duration) as total FROM audit
+        %where GROUP BY path ORDER BY total DESC LIMIT 5
         """,
         values=filters.values(),
         model=AuditCountStat,
+        safe_replace={"where": filters.where()},
     )
 
     return long_duration_paths

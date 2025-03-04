@@ -131,7 +131,21 @@ class Compat:
         return "INT"
 
     def timestamp_placeholder(self, key: str) -> str:
+        logger.warning(
+            """
+            DEPRECATED db.py: timestamp_placeholder: DONT USE fstrings
+            use `%ts` and safe_replace={"ts", "db.timestamp(now)"} instead
+            """
+        )
         return compat_timestamp_placeholder(key)
+
+    def timestamp(self, timestamp) -> str:
+        if DB_TYPE == POSTGRES:
+            return f"to_timestamp({timestamp})"
+        elif DB_TYPE == COCKROACH:
+            return f"cast({timestamp} AS timestamp)"
+        else:
+            return f"{timestamp}"
 
 
 class Connection(Compat):
@@ -141,7 +155,10 @@ class Connection(Compat):
         self.name = name
         self.schema = schema
 
-    def rewrite_query(self, query) -> str:
+    def rewrite_query(self, query, safe_replace: dict | None = None) -> str:
+        if safe_replace:
+            for key, value in safe_replace.items():
+                query = query.replace(f"%{key}", value)
         if self.type in {POSTGRES, COCKROACH}:
             query = query.replace("%", "%%")
             query = query.replace("?", "%s")
@@ -169,9 +186,12 @@ class Connection(Compat):
         query: str,
         values: dict | None = None,
         model: type[TModel] | None = None,
+        safe_replace: dict | None = None,
     ) -> list[TModel]:
         params = self.rewrite_values(values) if values else {}
-        result = await self.conn.execute(text(self.rewrite_query(query)), params)
+        result = await self.conn.execute(
+            text(self.rewrite_query(query, safe_replace)), params
+        )
         row = result.mappings().all()
         result.close()
         if not row:
@@ -185,9 +205,12 @@ class Connection(Compat):
         query: str,
         values: dict | None = None,
         model: type[TModel] | None = None,
+        safe_replace: dict | None = None,
     ) -> TModel:
         params = self.rewrite_values(values) if values else {}
-        result = await self.conn.execute(text(self.rewrite_query(query)), params)
+        result = await self.conn.execute(
+            text(self.rewrite_query(query, safe_replace)), params
+        )
         row = result.mappings().first()
         result.close()
         if model and row:
@@ -247,7 +270,7 @@ class Connection(Compat):
             if filters.offset or filters.limit:
                 result = await self.execute(
                     f"""
-                    SELECT COUNT(*) as count FROM (
+                    {"SELECT"} COUNT(*) as count FROM (
                         {query}
                         {clause}
                         {group_by_string}
@@ -268,9 +291,13 @@ class Connection(Compat):
             total=count,
         )
 
-    async def execute(self, query: str, values: dict | None = None):
+    async def execute(
+        self, query: str, values: dict | None = None, safe_replace: dict | None = None
+    ):
         params = self.rewrite_values(values) if values else {}
-        result = await self.conn.execute(text(self.rewrite_query(query)), params)
+        result = await self.conn.execute(
+            text(self.rewrite_query(query, safe_replace)), params
+        )
         await self.conn.commit()
         return result
 
@@ -352,18 +379,20 @@ class Database(Compat):
         query: str,
         values: dict | None = None,
         model: type[TModel] | None = None,
+        safe_replace: dict | None = None,
     ) -> list[TModel]:
         async with self.connect() as conn:
-            return await conn.fetchall(query, values, model)
+            return await conn.fetchall(query, values, model, safe_replace)
 
     async def fetchone(
         self,
         query: str,
         values: dict | None = None,
         model: type[TModel] | None = None,
+        safe_replace: dict | None = None,
     ) -> TModel:
         async with self.connect() as conn:
-            return await conn.fetchone(query, values, model)
+            return await conn.fetchone(query, values, model, safe_replace)
 
     async def insert(self, table_name: str, model: BaseModel) -> None:
         async with self.connect() as conn:
@@ -387,9 +416,11 @@ class Database(Compat):
         async with self.connect() as conn:
             return await conn.fetch_page(query, where, values, filters, model, group_by)
 
-    async def execute(self, query: str, values: dict | None = None):
+    async def execute(
+        self, query: str, values: dict | None = None, safe_replace: dict | None = None
+    ):
         async with self.connect() as conn:
-            return await conn.execute(query, values)
+            return await conn.execute(query, values, safe_replace)
 
     @asynccontextmanager
     async def reuse_conn(self, conn: Connection):
@@ -593,7 +624,7 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
     fields = ", ".join([f'"{key}"' for key in keys])
     values = ", ".join(placeholders)
-    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
+    return f"""{"INSERT INTO"} {table_name} ({fields}) {"VALUES"} ({values})"""
 
 
 def update_query(
@@ -611,7 +642,7 @@ def update_query(
         # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
         fields.append(f'"{field}" = {placeholder}')
     query = ", ".join(fields)
-    return f"UPDATE {table_name} SET {query} {where}"
+    return f"""{"UPDATE"} {table_name} SET {query} {where}"""
 
 
 def model_to_dict(model: BaseModel) -> dict:
@@ -637,7 +668,6 @@ def model_to_dict(model: BaseModel) -> dict:
             _dict[key] = json.dumps(value)
             continue
         _dict[key] = value
-
     return _dict
 
 

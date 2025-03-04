@@ -26,9 +26,7 @@ async def update_installed_extension_state(
     *, ext_id: str, active: bool, conn: Optional[Connection] = None
 ) -> None:
     await (conn or db).execute(
-        """
-        UPDATE installed_extensions SET active = :active WHERE id = :ext
-        """,
+        "UPDATE installed_extensions SET active = :active WHERE id = :ext",
         {"ext": ext_id, "active": active},
     )
 
@@ -78,14 +76,16 @@ async def get_installed_extensions(
     active: Optional[bool] = None,
     conn: Optional[Connection] = None,
 ) -> list[InstallableExtension]:
-    where = "WHERE active = :active" if active is not None else ""
-    values = {"active": active} if active is not None else {}
-    all_extensions = await (conn or db).fetchall(
-        f"SELECT * FROM installed_extensions {where}",
+    sql = "SELECT * FROM installed_extensions"
+    values: dict = {}
+    if active is not None:
+        sql += " WHERE active = :active"
+        values["active"] = active
+    return await (conn or db).fetchall(
+        sql,
         values,
         model=InstallableExtension,
     )
-    return all_extensions
 
 
 async def get_user_extension(

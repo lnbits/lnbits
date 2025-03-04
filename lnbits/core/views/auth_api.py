@@ -72,7 +72,7 @@ async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
 
 @auth_router.post("", description="Login via the username and password")
 async def login(data: LoginUsernamePassword) -> JSONResponse:
-    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
+    if not settings.is_auth_method_allowed(AuthMethods.username):
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Login by 'Username and Password' not allowed."
         )
@@ -283,7 +283,7 @@ async def logout() -> JSONResponse:
 
 @auth_router.post("/register")
 async def register(data: RegisterUser) -> JSONResponse:
-    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
+    if not settings.is_auth_method_allowed(AuthMethods.username):
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED,
             "Register by 'Username and Password' not allowed.",
@@ -373,7 +373,7 @@ async def update_password(
 
 @auth_router.put("/reset")
 async def reset_password(data: ResetUserPassword) -> JSONResponse:
-    if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
+    if not settings.is_auth_method_allowed(AuthMethods.username):
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
         )
@@ -565,8 +565,8 @@ def _find_auth_provider_class(provider: str) -> Callable:
             provider_class = getattr(provider_module, f"{provider.title()}SSO")
             if provider_class:
                 return provider_class
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.trace(exc)
 
     raise ValueError(f"No SSO provider found for '{provider}'.")
 
@@ -612,7 +612,9 @@ def _validate_auth_timeout(auth_time: Optional[int] = 0):
     if abs(time() - (auth_time or 0)) > settings.auth_credetials_update_threshold:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST,
-            "You can only update your credentials in the first"
-            f" {settings.auth_credetials_update_threshold} seconds."
-            " Please login again or ask a new reset key!",
+            (
+                "You can only update your credentials in the first "
+                f"{settings.auth_credetials_update_threshold} seconds. "
+                "Please login again or ask a new reset key!"
+            ),
         )

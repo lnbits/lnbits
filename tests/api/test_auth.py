@@ -131,7 +131,7 @@ async def test_login_usr_not_allowed(
     user_alan: User, http_client: AsyncClient, settings: Settings
 ):
     # exclude 'user_id_only'
-    settings.auth_allowed_methods = [AuthMethods.username_and_password.value]
+    settings.auth_allowed_methods = [AuthMethods.username.value]
 
     response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
 
@@ -591,7 +591,7 @@ async def test_register_nostr_ok(http_client: AsyncClient, settings: Settings):
 @pytest.mark.anyio
 async def test_register_nostr_not_allowed(http_client: AsyncClient, settings: Settings):
     # exclude 'nostr_auth_nip98'
-    settings.auth_allowed_methods = [AuthMethods.username_and_password.value]
+    settings.auth_allowed_methods = [AuthMethods.username.value]
     response = await http_client.post(
         "/api/v1/auth/nostr",
         json={},
