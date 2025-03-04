@@ -150,7 +150,6 @@
       <div class="col-sm-12">
         <q-separator></q-separator>
       </div>
-
       <div class="col-12">
         <strong v-text="$t('notifications_email_config')"></strong>
         <q-item tag="label" v-ripple>
@@ -267,6 +266,12 @@
                     ><span class="ellipsis" v-text="to_email"></span
                   ></q-chip>
                 </div>
+                <q-btn
+                  @click="sendTestEmail()"
+                  label="Test Email Notification"
+                  color="primary"
+                  class="q-mt-md"
+                ></q-btn>
               </q-item-section>
             </q-item>
             <q-item tag="label" v-ripple>

@@ -450,7 +450,29 @@ window.AdminPageLogic = {
     formatDate(date) {
       return moment(date * 1000).fromNow()
     },
-
+    sendTestEmail() {
+      LNbits.api
+        .request(
+          'GET',
+          '/admin/api/v1/testemail',
+          this.g.user.wallets[0].adminkey
+        )
+        .then(response => {
+          if (response.data.status === 'error') {
+            throw new Error(response.data.message)
+          }
+          this.$q.notify({
+            message: 'Test email sent!',
+            color: 'positive'
+          })
+        })
+        .catch(error => {
+          this.$q.notify({
+            message: error.message,
+            color: 'negative'
+          })
+        })
+    },
     getAudit() {
       LNbits.api
         .request('GET', '/admin/api/v1/audit', this.g.user.wallets[0].adminkey)
