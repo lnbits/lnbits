@@ -209,7 +209,7 @@ window.LNbits = {
         })
       obj.walletOptions = obj.wallets.map(obj => {
         return {
-          label: [obj.name, ' - ', obj.id].join(''),
+          label: [obj.name, ' - ', obj.id.substring(0, 5), '...'].join(''),
           value: obj.id
         }
       })
