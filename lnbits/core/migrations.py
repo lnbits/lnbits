@@ -398,7 +398,7 @@ async def m015_create_push_notification_subscriptions_table(db: Connection):
             PRIMARY KEY (endpoint, "user")
         );
         """,
-        safe_replace={"ts": db.timestamp_column_default},
+        safe_replace={"ts": db.timestamp_now},
     )
 
 
