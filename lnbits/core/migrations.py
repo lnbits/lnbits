@@ -637,7 +637,7 @@ async def m027_update_apipayments_data(db: Connection):
             await db.execute(
                 """
                 UPDATE apipayments
-                SET tag = :tag, created_at = :ts, updated_at = %ts
+                SET tag = :tag, created_at = %ts, updated_at = %ts
                 WHERE checking_id = :checking_id
                 """,
                 {
