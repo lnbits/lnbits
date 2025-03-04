@@ -75,7 +75,7 @@ async def get_latest_payments_by_extension(
     return await db.fetchall(
         """
         SELECT * FROM apipayments
-        WHERE status = "%status" AND extra LIKE :ext_name AND extra LIKE :ext_id
+        WHERE status = %status AND extra LIKE :ext_name AND extra LIKE :ext_id
         ORDER BY time DESC LIMIT :limit
         """,
         {
@@ -84,7 +84,7 @@ async def get_latest_payments_by_extension(
             "limit": int(limit),
         },
         Payment,
-        {"status": str(PaymentState.SUCCESS)},
+        {"status": f"'{PaymentState.SUCCESS}'"},
     )
 
 
@@ -217,19 +217,19 @@ async def delete_expired_invoices(
     delta = int(time() - 2592000)
     await (conn or db).execute(
         """
-        DELETE FROM apipayments WHERE status = '%status' AND amount > 0 AND time < %ts
+        DELETE FROM apipayments WHERE status = %status AND amount > 0 AND time < %ts
         """,
-        safe_replace={"ts": db.timestamp(delta), "status": str(PaymentState.PENDING)},
+        safe_replace={"ts": db.timestamp(delta), "status": f"'{PaymentState.PENDING}'"},
     )
     # then we delete all invoices whose expiry date is in the past
     await (conn or db).execute(
         """
         DELETE FROM apipayments
-        WHERE status = "%status" AND amount > 0 AND expiry < %now
+        WHERE status = %status AND amount > 0 AND expiry < %now
         """,
         safe_replace={
             "now": db.timestamp(int(time())),
-            "status": str(PaymentState.PENDING),
+            "status": f"'{PaymentState.PENDING}'",
         },
     )
 
@@ -429,8 +429,8 @@ async def get_wallets_stats(
         )
         """,
     ]
-    clauses = filters.where(where_stmts)
-    sql = """
+    return await (conn or db).fetchall(
+        """
         SELECT apipayments.wallet_id,
             MAX(wallets.name) AS wallet_name,
             MAX(wallets.user) AS user_id,
@@ -440,15 +440,11 @@ async def get_wallets_stats(
         LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
         %clauses
         GROUP BY apipayments.wallet_id ORDER BY payments_count
-    """
-    data = await (conn or db).fetchall(
-        query=sql,
+        """,
         values=filters.values(),
         model=PaymentWalletStats,
-        safe_replace={"clauses": clauses},
+        safe_replace={"clauses": filters.where(where_stmts)},
     )
-
-    return data
 
 
 async def delete_wallet_payment(
@@ -470,11 +466,11 @@ async def check_internal(
     return await (conn or db).fetchone(
         """
         SELECT * FROM apipayments
-        WHERE payment_hash = :hash AND status = "%status" AND amount > 0
+        WHERE payment_hash = :hash AND status = %status AND amount > 0
         """,
         {"hash": payment_hash},
         Payment,
-        safe_replace={"status": str(PaymentState.PENDING)},
+        safe_replace={"status": f"'{PaymentState.PENDING}'"},
     )
 
 
