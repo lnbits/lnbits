@@ -31,8 +31,8 @@ async def delete_expired_audit_entries(
     conn: Optional[Connection] = None,
 ):
     await (conn or db).execute(
-        "DELETE from audit WHERE delete_at < :ts",
-        {"ts": db.timestamp(int(time()))},
+        "DELETE from audit WHERE delete_at < %ts",
+        safe_replace={"ts": db.timestamp(int(time()))},
     )
 
 
@@ -45,16 +45,14 @@ async def get_count_stats(
         return []
     if not filters:
         filters = Filters()
-    clause = filters.where()
-    values = filters.values()
-    values["field"] = field
-    sql = "SELECT :field as field, count(:field) as total FROM audit"
-    sql += clause
-    sql += " GROUP BY :field ORDER BY :field"
     data = await (conn or db).fetchall(
-        query=sql,
-        values=values,
+        query="""
+        SELECT %field as field, count(%field) as total FROM audit
+        %where GROUP BY %field ORDER BY %field
+        """,
+        values=filters.values(),
         model=AuditCountStat,
+        safe_replace={"field": field, "where": filters.where()},
     )
 
     return data
@@ -66,13 +64,14 @@ async def get_long_duration_stats(
 ) -> list[AuditCountStat]:
     if not filters:
         filters = Filters()
-    sql = "SELECT path as field, max(duration) as total FROM audit "
-    sql += filters.where()
-    sql += " GROUP BY path ORDER BY total DESC LIMIT 5"
     long_duration_paths = await (conn or db).fetchall(
-        query=sql,
+        query="""
+        SELECT path as field, max(duration) as total FROM audit
+        %where GROUP BY path ORDER BY total DESC LIMIT 5
+        """,
         values=filters.values(),
         model=AuditCountStat,
+        safe_replace={"where": filters.where()},
     )
 
     return long_duration_paths
