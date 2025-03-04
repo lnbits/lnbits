@@ -283,7 +283,7 @@ async def m009_create_tinyurl_table(db: Connection):
           time TIMESTAMP NOT NULL DEFAULT %ts
         );
         """,
-        safe_replace={"ts": db.timestamp_column_default},
+        safe_replace={"ts": db.timestamp_now},
     )
 
 
@@ -701,7 +701,7 @@ async def m029_create_audit_table(db: Connection):
             created_at TIMESTAMP NOT NULL DEFAULT %ts
         );
         """,
-        safe_replace={"ts": db.timestamp_column_default},
+        safe_replace={"ts": db.timestamp_now},
     )
 
 
