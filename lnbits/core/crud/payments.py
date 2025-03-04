@@ -37,19 +37,19 @@ async def get_standalone_payment(
     incoming: Optional[bool] = False,
     wallet_id: Optional[str] = None,
 ) -> Optional[Payment]:
-
-    sql = "SELECT * FROM apipayments "
-    sql += "WHERE (checking_id = :id or payment_hash = :id) "
+    clause = "checking_id = :id OR payment_hash = :id"
     if incoming:
-        sql += "AND amount > 0 "
+        clause = f"({clause}) AND amount > 0"
     if wallet_id:
-        sql += "AND wallet_id = :wallet_id "
-    sql += "ORDER BY amount LIMIT 1"
-
+        clause = f"({clause}) AND wallet_id = :wallet_id"
     row = await (conn or db).fetchone(
-        sql,
+        """
+        SELECT * FROM apipayments WHERE %clause
+        ORDER BY amount LIMIT 1
+        """,
         {"wallet_id": wallet_id, "id": checking_id_or_hash},
         Payment,
+        safe_replace={"clause": clause},
     )
     return row
 

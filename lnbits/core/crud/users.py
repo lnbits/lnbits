@@ -114,11 +114,10 @@ async def delete_accounts_no_wallets(
         WHERE NOT EXISTS (
             SELECT wallets.id FROM wallets WHERE wallets.user = accounts.id
         ) AND (
-            (updated_at is null AND created_at < :delta)
+            (updated_at is null AND created_at < %ts)
             OR updated_at < %ts
         )
         """,
-        {"delta": delta},
         safe_replace={"ts": db.timestamp(delta)},
     )
 
