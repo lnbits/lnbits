@@ -48,15 +48,15 @@ async def delete_wallet(
     await (conn or db).execute(
         """
         UPDATE wallets
-        SET deleted = :deleted, updated_at = :ts
+        SET deleted = :deleted, updated_at = %ts
         WHERE id = :wallet AND "user" = :user
         """,
         {
             "wallet": wallet_id,
             "user": user_id,
             "deleted": deleted,
-            "ts": db.timestamp(int(time())),
         },
+        {"ts": db.timestamp(int(time()))},
     )
 
 
@@ -73,8 +73,9 @@ async def delete_wallet_by_id(
     wallet_id: str, conn: Optional[Connection] = None
 ) -> Optional[int]:
     result = await (conn or db).execute(
-        "UPDATE wallets SET deleted = true, updated_at = :ts WHERE id = :wallet",
-        {"wallet": wallet_id, "ts": db.timestamp(int(time()))},
+        "UPDATE wallets SET deleted = true, updated_at = %ts WHERE id = :wallet",
+        {"wallet": wallet_id},
+        {"ts": db.timestamp(int(time()))},
     )
     return result.rowcount
 

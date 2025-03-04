@@ -59,16 +59,16 @@ async def m001_initial(db: Connection):
         """
         CREATE TABLE IF NOT EXISTS apipayments (
             payhash TEXT NOT NULL,
-            amount :big_int NOT NULL,
+            amount %big_int NOT NULL,
             fee INTEGER NOT NULL DEFAULT 0,
             wallet TEXT NOT NULL,
             pending BOOLEAN NOT NULL,
             memo TEXT,
-            time TIMESTAMP NOT NULL DEFAULT :ts,
+            time TIMESTAMP NOT NULL DEFAULT %ts,
             UNIQUE (wallet, payhash)
         );
         """,
-        {"ts": db.timestamp_column_default, "big_int": db.big_int},
+        safe_replace={"ts": db.timestamp_column_default, "big_int": db.big_int},
     )
 
     await db.execute(
@@ -221,9 +221,9 @@ async def m007_set_invoice_expiries(db: Connection):
             AND amount > 0
             AND bolt11 IS NOT NULL
             AND expiry IS NULL
-            AND time < :ts
+            AND time < %ts
             """,
-            {"ts": db.timestamp_now},
+            safe_replace={"ts": db.timestamp_now},
         )
         rows = result.mappings().all()
         if len(rows):
@@ -244,13 +244,11 @@ async def m007_set_invoice_expiries(db: Connection):
                 )
                 await db.execute(
                     """
-                    UPDATE apipayments SET expiry = :expiry
+                    UPDATE apipayments SET expiry = %expiry
                     WHERE checking_id = :checking_id AND amount > 0
                     """,
-                    {
-                        "expiry": db.timestamp(expiration_date),
-                        "checking_id": checking_id,
-                    },
+                    {"checking_id": checking_id},
+                    {"expiry": db.timestamp(expiration_date)},
                 )
             except Exception as exc:
                 logger.trace(exc)
@@ -282,10 +280,10 @@ async def m009_create_tinyurl_table(db: Connection):
           url TEXT,
           endless BOOL NOT NULL DEFAULT false,
           wallet TEXT,
-          time TIMESTAMP NOT NULL DEFAULT :ts
+          time TIMESTAMP NOT NULL DEFAULT %ts
         );
         """,
-        {"ts": db.timestamp_column_default},
+        safe_replace={"ts": db.timestamp_column_default},
     )
 
 
@@ -396,11 +394,11 @@ async def m015_create_push_notification_subscriptions_table(db: Connection):
             "user" TEXT NOT NULL,
             data TEXT NOT NULL,
             host TEXT NOT NULL,
-            timestamp TIMESTAMP NOT NULL DEFAULT :ts,
+            timestamp TIMESTAMP NOT NULL DEFAULT %ts,
             PRIMARY KEY (endpoint, "user")
         );
         """,
-        {"ts": db.timestamp_column_default},
+        safe_replace={"ts": db.timestamp_column_default},
     )
 
 
@@ -421,20 +419,20 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db: Connection):
     """
     try:
         await db.execute(
-            "ALTER TABLE accounts "
-            f"ADD COLUMN created_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+            "ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP DEFAULT %ts",
+            safe_replace={"ts": db.timestamp_column_default},
         )
         await db.execute(
-            "ALTER TABLE accounts "
-            f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+            "ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP DEFAULT %ts",
+            safe_replace={"ts": db.timestamp_column_default},
         )
         await db.execute(
-            "ALTER TABLE wallets "
-            f"ADD COLUMN created_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+            "ALTER TABLE wallets ADD COLUMN created_at TIMESTAMP DEFAULT %ts",
+            safe_replace={"ts": db.timestamp_column_default},
         )
         await db.execute(
-            "ALTER TABLE wallets "
-            f"ADD COLUMN updated_at TIMESTAMP DEFAULT {db.timestamp_column_default}"
+            "ALTER TABLE wallets ADD COLUMN updated_at TIMESTAMP DEFAULT %ts",
+            safe_replace={"ts": db.timestamp_column_default},
         )
 
         # # set their wallets created_at with the first payment
@@ -463,17 +461,17 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db: Connection):
         now = int(time())
         await db.execute(
             """
-            UPDATE wallets SET created_at = :now
+            UPDATE wallets SET created_at = %now
             WHERE created_at IS NULL
             """,
-            {"now": db.timestamp(now)},
+            safe_replace={"now": db.timestamp(now)},
         )
         await db.execute(
             """
-            UPDATE accounts SET created_at = :now
+            UPDATE accounts SET created_at = %now
             WHERE created_at IS NULL
             """,
-            {"now": db.timestamp(now)},
+            safe_replace={"now": db.timestamp(now)},
         )
 
     except OperationalError as exc:
@@ -497,7 +495,7 @@ async def m018_balances_view_exclude_deleted(db: Connection):
               AND ((apipayments.pending = false AND apipayments.amount > 0)
               OR apipayments.amount < 0)
         GROUP BY wallet
-    """
+        """
     )
 
 
@@ -551,7 +549,7 @@ async def m021_add_success_failed_to_apipayments(db: Connection):
             OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
         )
         GROUP BY apipayments.wallet
-    """
+        """
     )
 
 
@@ -596,7 +594,7 @@ async def m025_refresh_view(db: Connection):
             OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
         )
         GROUP BY apipayments.wallet_id
-    """
+        """
     )
 
 
@@ -639,14 +637,14 @@ async def m027_update_apipayments_data(db: Connection):
             await db.execute(
                 """
                 UPDATE apipayments
-                SET tag = :tag, created_at = :ts, updated_at = :ts
+                SET tag = :tag, created_at = :ts, updated_at = %ts
                 WHERE checking_id = :checking_id
                 """,
                 {
                     "tag": tag,
-                    "ts": db.timestamp(created_at),
                     "checking_id": payment.get("checking_id"),
                 },
+                safe_replace={"ts": db.timestamp(created_at)},
             )
         offset += limit
     logger.info("Payments updated")
@@ -700,10 +698,10 @@ async def m029_create_audit_table(db: Connection):
             response_code TEXT,
             duration REAL NOT NULL,
             delete_at TIMESTAMP,
-            created_at TIMESTAMP NOT NULL DEFAULT :ts
+            created_at TIMESTAMP NOT NULL DEFAULT %ts
         );
         """,
-        {"ts": db.timestamp_column_default},
+        safe_replace={"ts": db.timestamp_column_default},
     )
 
 

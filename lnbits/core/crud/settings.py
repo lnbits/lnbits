@@ -81,7 +81,7 @@ async def get_settings_field(
     row: dict = await db.fetchone(
         """
             SELECT * FROM system_settings
-            WHERE  id = :id AND tag = :tag
+            WHERE id = :id AND tag = :tag
         """,
         {"id": id_, "tag": tag},
     )
