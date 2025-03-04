@@ -438,7 +438,7 @@ window.AdminPageLogic = {
       LNbits.api
         .request('GET', '/admin/api/v1/restart/')
         .then(response => {
-          Quasar.Notify.create({
+          this.$q.notify({
             type: 'positive',
             message: 'Success! Restarted Server',
             icon: null

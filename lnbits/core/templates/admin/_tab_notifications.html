@@ -229,6 +229,16 @@
                 />
               </q-item-section>
             </q-item>
+            <q-item>
+              <q-item-section>
+                <q-btn
+                  @click="sendTestEmail()"
+                  label="Send Test Email Notification"
+                  color="primary"
+                  class="q-mt-md"
+                ></q-btn>
+              </q-item-section>
+            </q-item>
           </div>
 
           <div class="col">
@@ -266,12 +276,6 @@
                     ><span class="ellipsis" v-text="to_email"></span
                   ></q-chip>
                 </div>
-                <q-btn
-                  @click="sendTestEmail()"
-                  label="Test Email Notification"
-                  color="primary"
-                  class="q-mt-md"
-                ></q-btn>
               </q-item-section>
             </q-item>
             <q-item tag="label" v-ripple>
