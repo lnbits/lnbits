@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from time import time
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from lnbits.core.db import db
@@ -112,7 +112,7 @@ async def get_wallet(
         ), 0) AS balance_msat FROM wallets
         WHERE id = :wallet
     """
-    values: dict = {"wallet": wallet_id}
+    values: dict[str, Any] = {"wallet": wallet_id}
     if deleted is not None:
         sql += " AND deleted = :deleted"
         values["deleted"] = deleted
@@ -129,7 +129,7 @@ async def get_wallets(
         ), 0) AS balance_msat FROM wallets
         WHERE "user" = :user
     """
-    values: dict = {"user": user_id}
+    values: dict[str, Any] = {"user": user_id}
     if deleted is not None:
         sql += " AND deleted = :deleted"
         values["deleted"] = deleted
