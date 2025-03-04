@@ -1,8 +1,5 @@
 import asyncio
 import json
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from http import HTTPStatus
 from typing import Optional, Tuple
 
@@ -24,7 +21,7 @@ from lnbits.core.models.notifications import (
 )
 from lnbits.core.services.nostr import fetch_nip5_details, send_nostr_dm
 from lnbits.core.services.websockets import websocket_manager
-from lnbits.helpers import check_callback_url
+from lnbits.helpers import check_callback_url, send_email
 from lnbits.settings import settings
 from lnbits.utils.nostr import normalize_private_key
 
@@ -111,41 +108,26 @@ async def send_telegram_message(token: str, chat_id: str, message: str) -> dict:
         return response.json()
 
 
-async def send_email_notification(message: str) -> dict:
-    await send_email(
-        settings.lnbits_email_notifications_server,
-        settings.lnbits_email_notifications_port,
-        settings.lnbits_email_notifications_password,
-        settings.lnbits_email_notifications_email,
-        settings.lnbits_email_notifications_to_emails,
-        "LNbits Notification",
-        message,
-    )
-    return {"status": "ok"}
-
-
-async def send_email(
-    server: str,
-    port: int,
-    password: str,
-    from_email: str,
-    to_emails: list,
-    subject: str,
-    message: str,
-):
-    msg = MIMEMultipart()
-    msg["From"] = from_email
-    msg["To"] = ", ".join(to_emails)
-    msg["Subject"] = subject
-    msg.attach(MIMEText(message, "plain"))
+async def send_email_notification(
+    message: str, subject: str = "LNbits Notification"
+) -> dict:
+    if not settings.lnbits_email_notifications_enabled:
+        return {"status": "error", "message": "Email notifications are disabled"}
     try:
-        with smtplib.SMTP(server, port) as smtp_server:
-            smtp_server.starttls()
-            smtp_server.login(from_email, password)
-            smtp_server.sendmail(from_email, to_emails, msg.as_string())
-            logger.debug(f"Emails sent successfully to: {', '.join(to_emails)}")
+        await send_email(
+            settings.lnbits_email_notifications_server,
+            settings.lnbits_email_notifications_port,
+            settings.lnbits_email_notifications_username,
+            settings.lnbits_email_notifications_password,
+            settings.lnbits_email_notifications_email,
+            settings.lnbits_email_notifications_to_emails,
+            subject,
+            message,
+        )
+        return {"status": "ok"}
     except Exception as e:
-        logger.debug(f"Failed to send email: {e}")
+        logger.error(f"Error sending email notification: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 def is_message_type_enabled(message_type: NotificationType) -> bool:

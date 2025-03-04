@@ -16,6 +16,7 @@ from lnbits.core.services import (
     get_balance_delta,
     update_cached_settings,
 )
+from lnbits.core.services.notifications import send_email_notification
 from lnbits.core.services.settings import dict_to_settings
 from lnbits.decorators import check_admin, check_super_user
 from lnbits.server import server_restart
@@ -48,6 +49,18 @@ async def api_monitor():
     return {
         "invoice_listeners": list(invoice_listeners.keys()),
     }
+
+
+@admin_router.get(
+    "/api/v1/testemail",
+    name="TestEmail",
+    description="send a test email to the admin",
+    dependencies=[Depends(check_admin)],
+)
+async def api_test_email():
+    return await send_email_notification(
+        "This is a LNbits test email.", "LNbits Test Email"
+    )
 
 
 @admin_router.get("/api/v1/settings", response_model=Optional[AdminSettings])

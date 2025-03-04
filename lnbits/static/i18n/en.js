@@ -198,9 +198,13 @@ window.localisation.en = {
 
   notifications_email_config: 'Email Configuration',
   notifications_enable_email: 'Enable Email',
-  notifications_enable_email_desc: 'Send notfications over Email',
+  notifications_enable_email_desc: 'Send notfications over email',
+  notifications_send_test_email: 'Send test email',
   notifications_send_email: 'Send email',
   notifications_send_email_desc: 'Email you will send from',
+  notifications_send_email_username: 'Username',
+  notifications_send_email_username_desc:
+    'Username, will use the email if not set',
   notifications_send_email_password: 'Send email password',
   notifications_send_email_password_desc:
     'Password for the email you will send from',

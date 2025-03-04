@@ -1,7 +1,10 @@
 import hashlib
 import json
 import re
+import smtplib
 from datetime import datetime, timedelta, timezone
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Any, Optional, Type
 from urllib import request
@@ -198,7 +201,11 @@ def generate_filter_params_openapi(model: Type[FilterModel], keep_optional=False
 
 
 def is_valid_email_address(email: str) -> bool:
-    email_regex = r"[A-Za-z0-9\._%+-]+@[A-Za-z0-9\.-]+\.[A-Za-z]{2,63}"
+    # https://regexr.com/2rhq7
+    email_regex = (
+        r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@"
+        r"(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
+    )
     return re.fullmatch(email_regex, email) is not None
 
 
@@ -348,3 +355,26 @@ def normalize_path(path: Optional[str]) -> str:
 
 def normalized_path(request: Request) -> str:
     return "/" + "/".join(path_segments(request.url.path))
+
+
+async def send_email(
+    server: str,
+    port: int,
+    username: str,
+    password: str,
+    from_email: str,
+    to_emails: list,
+    subject: str,
+    message: str,
+) -> bool:
+    msg = MIMEMultipart()
+    msg["From"] = from_email
+    msg["To"] = ", ".join(to_emails)
+    msg["Subject"] = subject
+    msg.attach(MIMEText(message, "plain"))
+    username = username if len(username) > 0 else from_email
+    with smtplib.SMTP(server, port) as smtp_server:
+        smtp_server.starttls()
+        smtp_server.login(username, password)
+        smtp_server.sendmail(from_email, to_emails, msg.as_string())
+        return True
