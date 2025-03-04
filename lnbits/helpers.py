@@ -10,7 +10,6 @@ from urllib.parse import urlparse
 import jinja2
 import jwt
 import shortuuid
-from fastapi import Request
 from fastapi.routing import APIRoute
 from packaging import version
 from pydantic.schema import field_schema
@@ -344,7 +343,3 @@ def path_segments(path: str) -> list[str]:
 def normalize_path(path: Optional[str]) -> str:
     path = path or ""
     return "/" + "/".join(path_segments(path))
-
-
-def normalized_path(request: Request) -> str:
-    return "/" + "/".join(path_segments(request.url.path))

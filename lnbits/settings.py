@@ -4,16 +4,16 @@ import importlib
 import importlib.metadata
 import inspect
 import json
+import os
 import re
 from datetime import datetime, timezone
 from enum import Enum
-from hashlib import sha256
 from os import path
 from pathlib import Path
 from time import gmtime, strftime, time
 from typing import Any
+from uuid import uuid4
 
-import httpx
 from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, Field, validator
 
@@ -275,9 +275,9 @@ class OpsSettings(LNbitsSettings):
 
 
 class FeeSettings(LNbitsSettings):
-    lnbits_reserve_fee_min: int = Field(default=2000)
-    lnbits_reserve_fee_percent: float = Field(default=1.0)
-    lnbits_service_fee: float = Field(default=0)
+    lnbits_reserve_fee_min: int = Field(default=2000, ge=0)
+    lnbits_reserve_fee_percent: float = Field(default=1.0, ge=0)
+    lnbits_service_fee: float = Field(default=0, ge=0)
     lnbits_service_fee_ignore_internal: bool = Field(default=True)
     lnbits_service_fee_max: int = Field(default=0)
     lnbits_service_fee_wallet: str | None = Field(default=None)
@@ -293,9 +293,9 @@ class FeeSettings(LNbitsSettings):
 
 
 class ExchangeProvidersSettings(LNbitsSettings):
-    lnbits_exchange_rate_cache_seconds: int = Field(default=30)
-    lnbits_exchange_history_size: int = Field(default=60)
-    lnbits_exchange_history_refresh_interval_seconds: int = Field(default=300)
+    lnbits_exchange_rate_cache_seconds: int = Field(default=30, ge=0)
+    lnbits_exchange_history_size: int = Field(default=60, ge=0)
+    lnbits_exchange_history_refresh_interval_seconds: int = Field(default=300, ge=0)
 
     lnbits_exchange_rate_providers: list[ExchangeRateProvider] = Field(
         default=[
@@ -360,7 +360,7 @@ class ExchangeProvidersSettings(LNbitsSettings):
 
 
 class SecuritySettings(LNbitsSettings):
-    lnbits_rate_limit_no: str = Field(default="200")
+    lnbits_rate_limit_no: int = Field(default=200, ge=0)
     lnbits_rate_limit_unit: str = Field(default="minute")
     lnbits_allowed_ips: list[str] = Field(default=[])
     lnbits_blocked_ips: list[str] = Field(default=[])
@@ -368,16 +368,16 @@ class SecuritySettings(LNbitsSettings):
         default=["^(?!\\d+\\.\\d+\\.\\d+\\.\\d+$)(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$"]
     )
 
-    lnbits_wallet_limit_max_balance: int = Field(default=0)
-    lnbits_wallet_limit_daily_max_withdraw: int = Field(default=0)
-    lnbits_wallet_limit_secs_between_trans: int = Field(default=0)
+    lnbits_wallet_limit_max_balance: int = Field(default=0, ge=0)
+    lnbits_wallet_limit_daily_max_withdraw: int = Field(default=0, ge=0)
+    lnbits_wallet_limit_secs_between_trans: int = Field(default=0, ge=0)
     lnbits_only_allow_incoming_payments: bool = Field(default=False)
     lnbits_watchdog_switch_to_voidwallet: bool = Field(default=False)
-    lnbits_watchdog_interval_minutes: int = Field(default=60)
-    lnbits_watchdog_delta: int = Field(default=1_000_000)
+    lnbits_watchdog_interval_minutes: int = Field(default=60, gt=0)
+    lnbits_watchdog_delta: int = Field(default=1_000_000, gt=0)
 
-    lnbits_max_outgoing_payment_amount_sats: int = Field(default=10_000_000)
-    lnbits_max_incoming_payment_amount_sats: int = Field(default=10_000_000)
+    lnbits_max_outgoing_payment_amount_sats: int = Field(default=10_000_000, ge=0)
+    lnbits_max_incoming_payment_amount_sats: int = Field(default=10_000_000, ge=0)
 
     def is_wallet_max_balance_exceeded(self, amount):
         return (
@@ -406,9 +406,13 @@ class NotificationsSettings(LNbitsSettings):
     notification_balance_delta_changed: bool = Field(default=True)
     lnbits_notification_server_start_stop: bool = Field(default=True)
     lnbits_notification_watchdog: bool = Field(default=False)
-    lnbits_notification_server_status_hours: int = Field(default=24)
-    lnbits_notification_incoming_payment_amount_sats: int = Field(default=1_000_000)
-    lnbits_notification_outgoing_payment_amount_sats: int = Field(default=1_000_000)
+    lnbits_notification_server_status_hours: int = Field(default=24, gt=0)
+    lnbits_notification_incoming_payment_amount_sats: int = Field(
+        default=1_000_000, ge=0
+    )
+    lnbits_notification_outgoing_payment_amount_sats: int = Field(
+        default=1_000_000, ge=0
+    )
 
 
 class FakeWalletFundingSource(LNbitsSettings):
@@ -535,7 +539,7 @@ class BoltzFundingSource(LNbitsSettings):
 
 
 class LightningSettings(LNbitsSettings):
-    lightning_invoice_expiry: int = Field(default=3600)
+    lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
 
 class FundingSourcesSettings(
@@ -562,7 +566,7 @@ class FundingSourcesSettings(
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
     # How long to wait for the payment to be confirmed before returning a pending status
     # It will not fail the payment, it will make it return pending after the timeout
-    lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5)
+    lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
 
 
 class WebPushSettings(LNbitsSettings):
@@ -601,7 +605,7 @@ class AuthMethods(Enum):
 
 
 class AuthSettings(LNbitsSettings):
-    auth_token_expire_minutes: int = Field(default=525600)
+    auth_token_expire_minutes: int = Field(default=525600, gt=0)
     auth_all_methods = [a.value for a in AuthMethods]
     auth_allowed_methods: list[str] = Field(
         default=[
@@ -611,7 +615,7 @@ class AuthSettings(LNbitsSettings):
     )
     # How many seconds after login the user is allowed to update its credentials.
     # A fresh login is required afterwards.
-    auth_credetials_update_threshold: int = Field(default=120)
+    auth_credetials_update_threshold: int = Field(default=120, gt=0)
 
     def is_auth_method_allowed(self, method: AuthMethods):
         return method.value in self.auth_allowed_methods
@@ -643,7 +647,7 @@ class AuditSettings(LNbitsSettings):
     lnbits_audit_enabled: bool = Field(default=True)
 
     # number of days to keep the audit entry
-    lnbits_audit_retention_days: int = Field(default=7)
+    lnbits_audit_retention_days: int = Field(default=7, ge=0)
 
     lnbits_audit_log_ip_address: bool = Field(default=False)
     lnbits_audit_log_path_params: bool = Field(default=True)
@@ -780,7 +784,7 @@ class EnvSettings(LNbitsSettings):
     debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
-    port: int = Field(default=5000)
+    port: int = Field(default=5000, gt=0)
     forwarded_allow_ips: str = Field(default="*")
     lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
@@ -792,24 +796,27 @@ class EnvSettings(LNbitsSettings):
     enable_log_to_file: bool = Field(default=True)
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
-    server_startup_time: int = Field(default=time())
-    cleanup_wallets_days: int = Field(default=90)
-    funding_source_max_retries: int = Field(default=4)
+
+    cleanup_wallets_days: int = Field(default=90, ge=0)
+    funding_source_max_retries: int = Field(default=4, ge=0)
 
     @property
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
 
-    @property
-    def lnbits_server_up_time(self) -> str:
-        up_time = int(time() - self.server_startup_time)
-        return strftime("%H:%M:%S", gmtime(up_time))
-
-
-class SaaSSettings(LNbitsSettings):
-    lnbits_saas_callback: str | None = Field(default=None)
-    lnbits_saas_secret: str | None = Field(default=None)
-    lnbits_saas_instance_id: str | None = Field(default=None)
+    def check_auth_secret_key(self):
+        if self.auth_secret_key:
+            return
+        if not os.path.isdir(settings.lnbits_data_folder):
+            os.mkdir(settings.lnbits_data_folder)
+        auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key")
+        if auth_key_file.is_file():
+            with open(auth_key_file) as file:
+                self.auth_secret_key = file.readline()
+            return
+        self.auth_secret_key = uuid4().hex
+        with open(auth_key_file, "w+") as file:
+            file.write(self.auth_secret_key)
 
 
 class PersistenceSettings(LNbitsSettings):
@@ -861,6 +868,13 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
 
     lnbits_all_extensions_ids: set[str] = Field(default=[])
 
+    server_startup_time: int = Field(default=time())
+
+    @property
+    def lnbits_server_up_time(self) -> str:
+        up_time = int(time() - self.server_startup_time)
+        return strftime("%H:%M:%S", gmtime(up_time))
+
     @classmethod
     def readonly_fields(cls):
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
@@ -869,7 +883,6 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
 class ReadOnlySettings(
     EnvSettings,
     ExtensionsInstallSettings,
-    SaaSSettings,
     PersistenceSettings,
     SuperUserSettings,
 ):
@@ -948,31 +961,6 @@ def set_cli_settings(**kwargs):
         setattr(settings, key, value)
 
 
-def send_admin_user_to_saas():
-    if settings.lnbits_saas_callback:
-        with httpx.Client() as client:
-            headers = {
-                "Content-Type": "application/json; charset=utf-8",
-                "X-API-KEY": settings.lnbits_saas_secret,
-            }
-            payload = {
-                "instance_id": settings.lnbits_saas_instance_id,
-                "adminuser": settings.super_user,
-            }
-            try:
-                client.post(
-                    settings.lnbits_saas_callback,
-                    headers=headers,
-                    json=payload,
-                )
-                logger.success("sent super_user to saas application")
-            except Exception as e:
-                logger.error(
-                    "error sending super_user to saas:"
-                    f" {settings.lnbits_saas_callback}. Error: {e!s}"
-                )
-
-
 readonly_variables = ReadOnlySettings.readonly_fields()
 transient_variables = TransientSettings.readonly_fields()
 
@@ -981,9 +969,8 @@ settings = Settings()
 settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 
 settings.version = importlib.metadata.version("lnbits")
-settings.auth_secret_key = (
-    settings.auth_secret_key or sha256(settings.super_user.encode("utf-8")).hexdigest()
-)
+
+settings.check_auth_secret_key()
 
 if not settings.user_agent:
     settings.user_agent = f"LNbits/{settings.version}"

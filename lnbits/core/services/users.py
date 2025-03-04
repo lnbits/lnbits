@@ -8,7 +8,6 @@ from lnbits.core.models.extensions import UserExtension
 from lnbits.settings import (
     EditableSettings,
     SuperSettings,
-    send_admin_user_to_saas,
     settings,
 )
 
@@ -153,14 +152,6 @@ async def check_admin_settings():
         # saving superuser to {data_dir}/.super_user file
         with open(Path(settings.lnbits_data_folder) / ".super_user", "w") as file:
             file.write(settings.super_user)
-
-        # callback for saas
-        if (
-            settings.lnbits_saas_callback
-            and settings.lnbits_saas_secret
-            and settings.lnbits_saas_instance_id
-        ):
-            send_admin_user_to_saas()
 
         account = await get_account(settings.super_user)
         if account and account.extra and account.extra.provider == "env":
