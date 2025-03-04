@@ -4,6 +4,7 @@ import importlib
 import importlib.metadata
 import inspect
 import json
+import os
 import re
 from datetime import datetime, timezone
 from enum import Enum
@@ -806,6 +807,8 @@ class EnvSettings(LNbitsSettings):
     def check_auth_secret_key(self):
         if self.auth_secret_key:
             return
+        if not os.path.isdir(settings.lnbits_data_folder):
+            os.mkdir(settings.lnbits_data_folder)
         auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key")
         if auth_key_file.is_file():
             with open(auth_key_file) as file:
