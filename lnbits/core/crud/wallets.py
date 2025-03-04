@@ -115,7 +115,7 @@ async def get_wallet(
     values: dict = {"wallet": wallet_id}
     if deleted is not None:
         sql += " AND deleted = :deleted"
-        values["deleted"] = str(deleted).lower()
+        values["deleted"] = deleted
 
     return await (conn or db).fetchone(sql, values, Wallet)
 
@@ -132,7 +132,7 @@ async def get_wallets(
     values: dict = {"user": user_id}
     if deleted is not None:
         sql += " AND deleted = :deleted"
-        values["deleted"] = str(deleted).lower()
+        values["deleted"] = deleted
 
     return await (conn or db).fetchall(sql, values, Wallet)
 

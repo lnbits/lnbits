@@ -612,9 +612,9 @@ def _validate_auth_timeout(auth_time: Optional[int] = 0):
     if abs(time() - (auth_time or 0)) > settings.auth_credetials_update_threshold:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST,
-            f"""
-            You can only update your credentials in the first
-            {settings.auth_credetials_update_threshold} seconds.
-            Please login again or ask a new reset key!
-            """,
+            (
+                "You can only update your credentials in the first "
+                f"{settings.auth_credetials_update_threshold} seconds. "
+                "Please login again or ask a new reset key!"
+            ),
         )
