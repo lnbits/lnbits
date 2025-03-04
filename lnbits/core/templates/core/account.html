@@ -45,7 +45,7 @@
                     <div class="row">
                       <div class="col">
                         <h4 class="q-my-none">
-                          <span v-text="$t('password_config')"></span>
+                          <span v-text="$t('password')"></span>
                         </h4>
                       </div>
                       <div class="col">
@@ -102,7 +102,7 @@
                       unelevated
                       color="primary"
                       class="float-right"
-                      :label="$t('change_password')"
+                      :label="$t('update_password')"
                     >
                     </q-btn>
                   </q-card-section>
@@ -110,7 +110,7 @@
                   <q-card-section>
                     <div class="col q-mb-sm">
                       <h4 class="q-my-none">
-                        <span v-text="$t('pubkey')"></span>
+                        Nostr <span v-text="$t('pubkey')"></span>
                       </h4>
                     </div>
                     <q-input
@@ -287,7 +287,7 @@
                     </q-btn>
                     <q-btn
                       @click="showUpdateCredentials()"
-                      :label="$t('update_credentials')"
+                      :label="$t('change_password')"
                       filled
                       color="primary"
                       class="float-right"
