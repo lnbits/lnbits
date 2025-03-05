@@ -150,7 +150,6 @@
       <div class="col-sm-12">
         <q-separator></q-separator>
       </div>
-
       <div class="col-12">
         <strong v-text="$t('notifications_email_config')"></strong>
         <q-item tag="label" v-ripple>
@@ -197,6 +196,24 @@
             <q-item tag="label" v-ripple>
               <q-item-section>
                 <q-item-label
+                  v-text="$t('notifications_send_email_username')"
+                ></q-item-label>
+                <q-item-label
+                  caption
+                  v-text="$t('notifications_send_email_username_desc')"
+                ></q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-input
+                  :type="hideInputToggle ? 'password' : 'text'"
+                  filled
+                  v-model="formData.lnbits_email_notifications_username"
+                />
+              </q-item-section>
+            </q-item>
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label
                   v-text="$t('notifications_send_email_password')"
                 ></q-item-label>
                 <q-item-label
@@ -212,7 +229,19 @@
                 />
               </q-item-section>
             </q-item>
+            <q-item>
+              <q-item-section>
+                <q-btn
+                  @click="sendTestEmail()"
+                  label="Send Test Email Notification"
+                  color="primary"
+                  class="q-mt-md"
+                ></q-btn>
+              </q-item-section>
+            </q-item>
+          </div>
 
+          <div class="col">
             <q-item tag="label" v-ripple>
               <q-item-section>
                 <q-item-label
@@ -249,9 +278,6 @@
                 </div>
               </q-item-section>
             </q-item>
-          </div>
-
-          <div class="col">
             <q-item tag="label" v-ripple>
               <q-item-section>
                 <q-item-label
