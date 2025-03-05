@@ -1,10 +1,7 @@
 import hashlib
 import json
 import re
-import smtplib
 from datetime import datetime, timedelta, timezone
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Any, Optional, Type
 from urllib import request
@@ -351,33 +348,3 @@ def normalize_path(path: Optional[str]) -> str:
 
 def normalized_path(request: Request) -> str:
     return "/" + "/".join(path_segments(request.url.path))
-
-
-async def send_email(
-    server: str,
-    port: int,
-    username: str,
-    password: str,
-    from_email: str,
-    to_emails: list[str],
-    subject: str,
-    message: str,
-) -> bool:
-    if not is_valid_email_address(from_email):
-        raise ValueError(f"Invalid from email address: {from_email}")
-    if len(to_emails) == 0:
-        raise ValueError("No email addresses provided")
-    for email in to_emails:
-        if not is_valid_email_address(email):
-            raise ValueError(f"Invalid email address: {email}")
-    msg = MIMEMultipart()
-    msg["From"] = from_email
-    msg["To"] = ", ".join(to_emails)
-    msg["Subject"] = subject
-    msg.attach(MIMEText(message, "plain"))
-    username = username if len(username) > 0 else from_email
-    with smtplib.SMTP(server, port) as smtp_server:
-        smtp_server.starttls()
-        smtp_server.login(username, password)
-        smtp_server.sendmail(from_email, to_emails, msg.as_string())
-        return True

@@ -1,5 +1,8 @@
 import asyncio
 import json
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from http import HTTPStatus
 from typing import Optional, Tuple
 
@@ -21,7 +24,7 @@ from lnbits.core.models.notifications import (
 )
 from lnbits.core.services.nostr import fetch_nip5_details, send_nostr_dm
 from lnbits.core.services.websockets import websocket_manager
-from lnbits.helpers import check_callback_url, send_email
+from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
 from lnbits.utils.nostr import normalize_private_key
 
@@ -128,6 +131,36 @@ async def send_email_notification(
     except Exception as e:
         logger.error(f"Error sending email notification: {e}")
         return {"status": "error", "message": str(e)}
+
+
+async def send_email(
+    server: str,
+    port: int,
+    username: str,
+    password: str,
+    from_email: str,
+    to_emails: list[str],
+    subject: str,
+    message: str,
+) -> bool:
+    if not is_valid_email_address(from_email):
+        raise ValueError(f"Invalid from email address: {from_email}")
+    if len(to_emails) == 0:
+        raise ValueError("No email addresses provided")
+    for email in to_emails:
+        if not is_valid_email_address(email):
+            raise ValueError(f"Invalid email address: {email}")
+    msg = MIMEMultipart()
+    msg["From"] = from_email
+    msg["To"] = ", ".join(to_emails)
+    msg["Subject"] = subject
+    msg.attach(MIMEText(message, "plain"))
+    username = username if len(username) > 0 else from_email
+    with smtplib.SMTP(server, port) as smtp_server:
+        smtp_server.starttls()
+        smtp_server.login(username, password)
+        smtp_server.sendmail(from_email, to_emails, msg.as_string())
+        return True
 
 
 def is_message_type_enabled(message_type: NotificationType) -> bool:
