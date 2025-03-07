@@ -87,18 +87,20 @@
               >
                 {{SITE_TITLE}}
               </h5>
-              <h6
-                class="q-my-sm"
-                v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
-              >
-                {{SITE_TAGLINE}}
-              </h6>
-              <p
-                class="q-my-sm"
-                v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
-              >
-                {{SITE_DESCRIPTION}}
-              </p>
+              <template v-if="$q.screen.gt.sm">
+                <h6
+                  class="q-my-sm"
+                  v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
+                >
+                  {{SITE_TAGLINE}}
+                </h6>
+                <p
+                  class="q-my-sm"
+                  v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
+                >
+                  {{SITE_DESCRIPTION}}
+                </p>
+              </template>
               <!-- <div
             class="gt-sm"
             v-html="formatDescription"
