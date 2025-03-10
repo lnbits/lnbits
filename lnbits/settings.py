@@ -271,7 +271,6 @@ class ThemesSettings(LNbitsSettings):
 class OpsSettings(LNbitsSettings):
     lnbits_baseurl: str = Field(default="http://127.0.0.1:5000/")
     lnbits_hide_api: bool = Field(default=False)
-    lnbits_denomination: str = Field(default="sats")
 
 
 class FeeSettings(LNbitsSettings):
@@ -418,6 +417,7 @@ class NotificationsSettings(LNbitsSettings):
 
 class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")
+    lnbits_denomination: str = Field(default="sats")
 
 
 class LNbitsFundingSource(LNbitsSettings):
