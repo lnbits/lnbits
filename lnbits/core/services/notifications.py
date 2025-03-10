@@ -261,7 +261,8 @@ async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
     await websocket_manager.send_data(payment_notification, wallet.adminkey)
 
     await websocket_manager.send_data(
-        json.dumps({"pending": payment.pending}), payment.payment_hash
+        json.dumps({"pending": payment.pending, "status": payment.status}),
+        payment.payment_hash,
     )
 
 
