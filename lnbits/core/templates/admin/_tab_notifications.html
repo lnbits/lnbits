@@ -230,14 +230,12 @@
               </q-item-section>
             </q-item>
             <q-item>
-              <q-item-section>
-                <q-btn
-                  @click="sendTestEmail()"
-                  label="Send Test Email Notification"
-                  color="primary"
-                  class="q-mt-md"
-                ></q-btn>
-              </q-item-section>
+              <q-btn
+                @click="sendTestEmail()"
+                :label="$t('notifications_send_test_email')"
+                color="primary"
+                class="q-mt-md"
+              ></q-btn>
             </q-item>
           </div>
 
