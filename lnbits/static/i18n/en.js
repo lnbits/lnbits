@@ -166,6 +166,7 @@ window.localisation.en = {
   payment_hash: 'Payment Hash',
   fee: 'Fee',
   amount: 'Amount',
+  max: 'Max',
   amount_sats: 'Amount (sats)',
   tag: 'Tag',
   unit: 'Unit',
