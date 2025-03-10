@@ -1057,7 +1057,16 @@
 
 <template id="lnbits-funding-sources">
   <div class="funding-sources">
-    <h6 class="q-mt-xl q-mb-md">Funding Sources</h6>
+    <h6 class="q-my-none q-mb-sm">
+      <span v-text="$t('funding_sources')"></span>
+      <q-btn
+        round
+        flat
+        @click="this.hideInput = !this.hideInput"
+        :icon="this.hideInput ? 'visibility_off' : 'visibility'"
+      ></q-btn>
+    </h6>
+
     <div class="row">
       <div class="col-12">
         <p>Active Funding<small> (Requires server restart)</small></p>
@@ -1095,13 +1104,6 @@
               :label="prop.label"
               :hint="prop.hint"
             >
-              <template v-slot:append>
-                <q-icon
-                  :name="hideInput ? 'visibility_off' : 'visibility'"
-                  class="cursor-pointer"
-                  @click="this.hideInput = !this.hideInput"
-                ></q-icon>
-              </template>
             </q-input>
           </div>
         </div>
