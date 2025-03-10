@@ -508,7 +508,7 @@ window.localisation.en = {
   denomination_hint: 'The name for the FakeWallet token',
   denomination_error: 'Denomination must be 3 characters, or `sats`',
   ui_qr_code_logo: 'QR Code/Favicon Logo',
-  ui_qr_code_logo_hint: 'QR code and favicon logo',
+  ui_qr_code_logo_hint: 'QR code and favicon logo url',
   ui_custom_image: 'Custom Image',
   ui_custom_image_label: 'URL to custom image',
   ui_custom_image_hint: 'Image showed at homepage/login',
