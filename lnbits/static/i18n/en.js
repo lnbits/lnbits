@@ -175,6 +175,7 @@ window.localisation.en = {
   payment_proof: 'Payment Proof',
   update: 'Update',
   update_available: 'Update {version} available!',
+  funding_sources: 'Funding Sources',
   latest_update: 'You are on the latest version {version}.',
   notifications: 'Notifications',
   notifications_configure: 'Configure Notifications',
