@@ -24,25 +24,11 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
-        # cache poetry install via pip
-        cache: "pip"
 
     - name: Set up Poetry ${{ inputs.poetry-version }}
-      uses: abatilo/actions-poetry@v2
+      uses: abatilo/actions-poetry@v3
       with:
         poetry-version: ${{ inputs.poetry-version }}
-
-    - name: Setup a local virtual environment (if no poetry.toml file)
-      shell: bash
-      run: |
-        poetry config virtualenvs.create true --local
-        poetry config virtualenvs.in-project true --local
-
-    - uses: actions/cache@v4
-      name: Define a cache for the virtual environment based on the dependencies lock file
-      with:
-        path: ./.venv
-        key: venv-${{ hashFiles('poetry.lock') }}
 
     - name: Install the project dependencies
       shell: bash
