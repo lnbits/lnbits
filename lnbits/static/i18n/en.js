@@ -65,8 +65,8 @@ window.localisation.en = {
   view_github: 'View on GitHub',
   voidwallet_active: 'VoidWallet is active! Payments disabled',
   use_with_caution: 'USE WITH CAUTION - {name} wallet is still in BETA',
-  service_fee: 'Service fee: {amount} % per transaction',
-  service_fee_max:
+  service_fee_badge: 'Service fee: {amount} % per transaction',
+  service_fee_max_badge:
     'Service fee: {amount} % per transaction (max {max} {denom})',
   service_fee_tooltip:
     'Service fee charged by the LNbits server admin per outgoing transaction',
