@@ -166,7 +166,12 @@
                 @click="showReceiveDialog"
                 :label="$t('create_invoice')"
               ></q-btn>
-              <q-btn unelevated color="secondary" icon="qr_code_scanner">
+              <q-btn
+                unelevated
+                color="secondary"
+                icon="qr_code_scanner"
+                @click="showCamera"
+              >
                 <q-tooltip
                   ><span v-text="$t('camera_tooltip')"></span
                 ></q-tooltip>
