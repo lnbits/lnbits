@@ -198,7 +198,7 @@ class CreateInvoice(BaseModel):
     internal: bool = False
     out: bool = True
     amount: float = Query(None, ge=0)
-    memo: str | None = Query(None, max_length=1024)
+    memo: str | None = Query(None, max_length=640)
     description_hash: str | None = None
     unhashed_description: str | None = None
     expiry: int | None = None
