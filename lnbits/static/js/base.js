@@ -843,6 +843,7 @@ window.windowMixin = {
         ? this.$q.localStorage.getItem('lnbits.darkMode')
         : true
     )
+    Chart.defaults.color = this.$q.dark.isActive ? '#fff' : '#000'
     this.changeTheme(this.themeChoice)
     this.applyBorder()
     if (this.$q.dark.isActive) {
