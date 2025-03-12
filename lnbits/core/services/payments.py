@@ -108,7 +108,7 @@ async def create_invoice(
     if not user_wallet:
         raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
 
-    invoice_memo = None if description_hash else memo
+    invoice_memo = None if description_hash else memo[:1024]
 
     # use the fake wallet if the invoice is for internal use only
     funding_source = fake_wallet if internal else get_funding_source()
