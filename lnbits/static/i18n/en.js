@@ -64,7 +64,6 @@ window.localisation.en = {
   donate: 'Donate',
   view_github: 'View on GitHub',
   voidwallet_active: 'VoidWallet is active! Payments disabled',
-  use_with_caution: 'USE WITH CAUTION - {name} wallet is still in BETA',
   service_fee_badge: 'Service fee: {amount} % per transaction',
   service_fee_max_badge:
     'Service fee: {amount} % per transaction (max {max} {denom})',
@@ -117,7 +116,7 @@ window.localisation.en = {
   copy_wallet_url: 'Copy wallet URL',
   disclaimer_dialog_title: 'Important!',
   disclaimer_dialog:
-    'You *must* save your  login credentials to be able to access your wallet again. If you lose them, you will lose access to your wallet and funds.\n\nFind your  login credentials on your account settings page.\n\nThis service is in BETA. LNbits holds no responsibility for loss of access to funds.',
+    'You *must* save your  login credentials to be able to access your wallet again. If you lose them, you will lose access to your wallet and funds.\n\nFind your  login credentials on your account settings page.\n\nLNbits holds no responsibility for loss of access to funds.',
   no_transactions: 'No transactions made yet',
   manage: 'Manage',
   exchanges: 'Exchanges',
@@ -513,8 +512,7 @@ window.localisation.en = {
   ui_custom_image_label: 'URL to custom image',
   ui_custom_image_hint: 'Image showed at homepage/login',
   ui_custom_badge: 'Custom Badge',
-  ui_custom_badge_label:
-    "Custom Badge 'USE WITH CAUTION - LNbits wallet is still in BETA'",
+  ui_custom_badge_label: "Custom Badge 'USE WITH CAUTION'",
   ui_custom_badge_color_label: 'Custom Badge Color',
   themes: 'Themes',
   themes_hint: 'Choose themes available for users',
