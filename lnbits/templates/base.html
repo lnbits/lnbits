@@ -89,11 +89,11 @@
             >
               {% if LNBITS_SERVICE_FEE_MAX > 0 %}
               <span
-                v-text='$t("service_fee_max", { amount: "{{ LNBITS_SERVICE_FEE }}", max: "{{ LNBITS_SERVICE_FEE_MAX }}"})'
+                v-text='$t("service_fee_max_badge", { amount: "{{ LNBITS_SERVICE_FEE }}", max: "{{ LNBITS_SERVICE_FEE_MAX }}", denom: "{{ LNBITS_DENOMINATION }}"})'
               ></span>
               {%else%}
               <span
-                v-text='$t("service_fee", { amount: "{{ LNBITS_SERVICE_FEE }}" })'
+                v-text='$t("service_fee_badge", { amount: "{{ LNBITS_SERVICE_FEE}}"})'
               ></span>
               {%endif%}
               <q-tooltip
