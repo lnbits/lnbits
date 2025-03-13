@@ -89,7 +89,7 @@
             >
               {% if LNBITS_SERVICE_FEE_MAX > 0 %}
               <span
-                v-text='$t("service_fee_max_badge", { amount: "{{ LNBITS_SERVICE_FEE }}", max: "{{ LNBITS_SERVICE_FEE_MAX }}", denom: "{{ LNBITS_DENOMINATION }}"})'
+                v-text='$t("service_fee_max_badge", { amount: "{{ LNBITS_SERVICE_FEE }}", max: "{{ LNBITS_SERVICE_FEE_MAX }} {{ LNBITS_DENOMINATION }}"})'
               ></span>
               {%else%}
               <span
