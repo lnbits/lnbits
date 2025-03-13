@@ -58,7 +58,10 @@ users_router = APIRouter(
     "/user",
     name="Get accounts",
     summary="Get paginated list of accounts",
-    openapi_extra=generate_filter_params_openapi(AccountFilters),
+    openapi_extra={
+        **generate_filter_params_openapi(AccountFilters),
+        "security": [{"BearerAuth": []}],
+    },
 )
 async def api_get_users(
     filters: Filters = Depends(parse_filters(AccountFilters)),
