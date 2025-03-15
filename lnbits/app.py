@@ -81,6 +81,7 @@ async def startup(app: FastAPI):
 
     # setup admin settings
     await check_admin_settings()
+    core_app_extra.register_new_ratelimiter()
     await check_webpush_settings()
 
     # check extensions after restart
@@ -283,14 +284,14 @@ async def build_all_installed_extensions_list(
     MUST be installed by default (see LNBITS_EXTENSIONS_DEFAULT_INSTALL).
     """
     installed_extensions = await get_installed_extensions()
-    settings.lnbits_all_extensions_ids = {e.id for e in installed_extensions}
+    settings.lnbits_installed_extensions_ids = {e.id for e in installed_extensions}
 
     for ext_dir in Path(settings.lnbits_extensions_path, "extensions").iterdir():
         try:
             if not ext_dir.is_dir():
                 continue
             ext_id = ext_dir.name
-            if ext_id in settings.lnbits_all_extensions_ids:
+            if ext_id in settings.lnbits_installed_extensions_ids:
                 continue
             ext_info = InstallableExtension.from_ext_dir(ext_id)
             if not ext_info:
@@ -305,7 +306,7 @@ async def build_all_installed_extensions_list(
             logger.warning(e)
 
     for ext_id in settings.lnbits_extensions_default_install:
-        if ext_id in settings.lnbits_all_extensions_ids:
+        if ext_id in settings.lnbits_installed_extensions_ids:
             continue
 
         ext_releases = await InstallableExtension.get_extension_releases(ext_id)

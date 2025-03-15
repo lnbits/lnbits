@@ -64,9 +64,9 @@ window.localisation.en = {
   donate: 'Donate',
   view_github: 'View on GitHub',
   voidwallet_active: 'VoidWallet is active! Payments disabled',
-  use_with_caution: 'USE WITH CAUTION - {name} wallet is still in BETA',
-  service_fee: 'Service fee: {amount} % per transaction',
-  service_fee_max: 'Service fee: {amount} % per transaction (max {max} sats)',
+  service_fee_badge: 'Service fee: {amount} % per transaction',
+  service_fee_max_badge:
+    'Service fee: {amount} % per transaction (max {max} {denom})',
   service_fee_tooltip:
     'Service fee charged by the LNbits server admin per outgoing transaction',
   toggle_darkmode: 'Toggle Dark Mode',
@@ -82,6 +82,7 @@ window.localisation.en = {
   create_invoice: 'Create Invoice',
   camera_tooltip: 'Use camera to scan an invoice/QR',
   export_csv: 'Export to CSV',
+  export_csv_details: 'Export to CSV with details',
   chart_tooltip: 'Show chart',
   pending: 'Pending',
   copy_invoice: 'Copy invoice',
@@ -94,7 +95,11 @@ window.localisation.en = {
   memo: 'Memo',
   date: 'Date',
   path: 'Path',
-  processing_payment: 'Processing payment...',
+  payment_processing: 'Processing payment...',
+  payment_processing: 'Processing payment...',
+  payment_successful: 'Payment successful!',
+  payment_pending: 'Payment pending...',
+  payment_check: 'Check payment',
   not_enough_funds: 'Not enough funds!',
   search_by_tag_memo_amount: 'Search by tag, memo, amount',
   invoice_waiting: 'Invoice waiting to be paid',
@@ -111,7 +116,7 @@ window.localisation.en = {
   copy_wallet_url: 'Copy wallet URL',
   disclaimer_dialog_title: 'Important!',
   disclaimer_dialog:
-    'You *must* save your  login credentials to be able to access your wallet again. If you lose them, you will lose access to your wallet and funds.\n\nFind your  login credentials on your account settings page.\n\nThis service is in BETA. LNbits holds no responsibility for loss of access to funds.',
+    'You *must* save your  login credentials to be able to access your wallet again. If you lose them, you will lose access to your wallet and funds.\n\nFind your  login credentials on your account settings page.\n\nLNbits holds no responsibility for loss of access to funds.',
   no_transactions: 'No transactions made yet',
   manage: 'Manage',
   exchanges: 'Exchanges',
@@ -170,6 +175,7 @@ window.localisation.en = {
   payment_proof: 'Payment Proof',
   update: 'Update',
   update_available: 'Update {version} available!',
+  funding_sources: 'Funding Sources',
   latest_update: 'You are on the latest version {version}.',
   notifications: 'Notifications',
   notifications_configure: 'Configure Notifications',
@@ -190,6 +196,26 @@ window.localisation.en = {
   notifications_telegram_access_token_desc: 'Access token for the bot',
   notifications_chat_id: 'Chat ID',
   notifications_chat_id_desc: 'Chat ID to send the notifications to',
+
+  notifications_email_config: 'Email Configuration',
+  notifications_enable_email: 'Enable Email',
+  notifications_enable_email_desc: 'Send notfications over email',
+  notifications_send_test_email: 'Send test email',
+  notifications_send_email: 'Send email',
+  notifications_send_email_desc: 'Email you will send from',
+  notifications_send_email_username: 'Username',
+  notifications_send_email_username_desc:
+    'Username, will use the email if not set',
+  notifications_send_email_password: 'Send email password',
+  notifications_send_email_password_desc:
+    'Password for the email you will send from',
+  notifications_send_email_server_port: 'Send email SMTP port',
+  notifications_send_email_server_port_desc: 'Port for the SMTP server',
+  notifications_send_email_server: 'Send email SMTP server',
+  notifications_send_email_server_desc:
+    'SMTP server for the email you will send from',
+  notifications_send_to_emails: 'Emails to send to',
+  notifications_send_to_emails_desc: 'Emails notifications will be sent to',
 
   notification_settings_update: 'Settings updated',
   notification_settings_update_desc:
@@ -289,6 +315,7 @@ window.localisation.en = {
   password: 'Password',
   password_config: 'Password Config',
   password_repeat: 'Password repeat',
+  update_password: 'Update Password',
   change_password: 'Change Password',
   update_credentials: 'Update Credentials',
   update_pubkey: 'Update Public Key',
@@ -411,8 +438,12 @@ window.localisation.en = {
   invoice_expiry: 'Invoice Expiry',
   invoice_expiry_label: 'Invoice expiry (seconds)',
   fee_reserve: 'Fee Reserve',
+  fee_reserve_percent: 'Fee Reserve Percent',
   fee_reserve_msats: 'Reserve fee in msats',
-  fee_reserve_percent: 'Reserve fee in percent',
+  reserve_fee_in_percent: 'Reserve fee in percent',
+  payment_wait_time: 'Payment Wait Time',
+  payment_wait_time_desc:
+    'How long to wait when making a payment before marking it as pending. Set higher values for HODL invoices, Boltz, etc.',
   server_management: 'Server Management',
   base_url: 'Base URL',
   base_url_label: 'Static/Base url for the server',
@@ -441,6 +472,13 @@ window.localisation.en = {
   allowed_currencies_hint: 'Limit the number of available fiat currencies',
   default_account_currency: 'Default Account Currency',
   default_account_currency_hint: 'Default currency for accounting',
+
+  max_incoming_payment_amount: 'Max Incoming Payment Amount',
+  max_incoming_payment_amount_desc:
+    'Maximum amount allowed for generating an invoice',
+  max_outgoing_payment_amount: 'Max Outgoing Payment Amount',
+  max_outgoing_payment_amount_desc:
+    'Maximum amount allowed for making a payment',
   service_fee: 'Service Fee',
   service_fee_label: 'Service fee (%)',
   service_fee_hint: 'Fee charged per tx (%)',
@@ -467,14 +505,14 @@ window.localisation.en = {
   lnbits_wallet: 'LNbits wallet',
   denomination: 'Denomination',
   denomination_hint: 'The name for the FakeWallet token',
-  ui_qr_code_logo: 'QR Code Logo',
-  ui_qr_code_logo_hint: 'URL to logo image in QR code',
+  denomination_error: 'Denomination must be 3 characters, or `sats`',
+  ui_qr_code_logo: 'QR Code/Favicon Logo',
+  ui_qr_code_logo_hint: 'QR code and favicon logo url',
   ui_custom_image: 'Custom Image',
   ui_custom_image_label: 'URL to custom image',
   ui_custom_image_hint: 'Image showed at homepage/login',
   ui_custom_badge: 'Custom Badge',
-  ui_custom_badge_label:
-    "Custom Badge 'USE WITH CAUTION - LNbits wallet is still in BETA'",
+  ui_custom_badge_label: "Custom Badge 'USE WITH CAUTION'",
   ui_custom_badge_color_label: 'Custom Badge Color',
   themes: 'Themes',
   themes_hint: 'Choose themes available for users',
@@ -497,6 +535,7 @@ window.localisation.en = {
   allowed_users_label: 'User ID',
   allow_creation_user: 'Allow creation of new users',
   allow_creation_user_desc: 'Allow creation of new users on the index page',
+  new_user_not_allowed: 'Registration is disabled.',
   components: 'Components',
   long_running_endpoints: 'Top 5 Long Running Endpoints',
   http_request_methods: 'HTTP Request Methods',
@@ -524,5 +563,7 @@ window.localisation.en = {
   reset_wallet_keys_desc:
     'Reset the API keys for this wallet. This will invalidate the current keys and generate new ones.',
   view_list: 'View wallets as list',
-  view_column: 'View wallets as rows'
+  view_column: 'View wallets as rows',
+  filter_payments: 'Filter payments',
+  filter_date: 'Filter by date'
 }

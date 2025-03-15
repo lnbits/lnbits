@@ -30,13 +30,15 @@ window.app.component('lnbits-funding-sources', {
   },
   data() {
     return {
+      hideInput: true,
       rawFundingSources: [
         ['VoidWallet', 'Void Wallet', null],
         [
           'FakeWallet',
           'Fake Wallet',
           {
-            fake_wallet_secret: 'Secret'
+            fake_wallet_secret: 'Secret',
+            lnbits_denomination: '"sats" or 3 Letter Custom Denomination'
           }
         ],
         [

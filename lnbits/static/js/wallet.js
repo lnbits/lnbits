@@ -116,6 +116,7 @@ window.WalletPageLogic = {
       primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
       secondaryColor: this.$q.localStorage.getItem('lnbits.secondaryColor'),
       chartData: [],
+      chartDataPointCount: 0,
       chartConfig: {
         showBalance: true,
         showBalanceInOut: true,
@@ -127,7 +128,10 @@ window.WalletPageLogic = {
   computed: {
     formattedBalance() {
       if (LNBITS_DENOMINATION != 'sats') {
-        return this.g.wallet.sat / 100
+        return LNbits.utils.formatCurrency(
+          this.g.wallet.sat / 100,
+          LNBITS_DENOMINATION
+        )
       } else {
         return LNbits.utils.formatSat(this.g.wallet.sat)
       }
@@ -137,10 +141,12 @@ window.WalletPageLogic = {
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
     formattedAmount() {
-      if (this.receive.unit != 'sat') {
+      if (this.receive.unit != 'sat' || LNBITS_DENOMINATION != 'sats') {
         return LNbits.utils.formatCurrency(
           Number(this.receive.data.amount).toFixed(2),
-          this.receive.unit
+          LNBITS_DENOMINATION != 'sats'
+            ? LNBITS_DENOMINATION
+            : this.receive.unit
         )
       } else {
         return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
@@ -151,6 +157,13 @@ window.WalletPageLogic = {
     },
     wallet() {
       return this.g.wallet
+    },
+    hasChartActive() {
+      return (
+        this.chartConfig.showBalance ||
+        this.chartConfig.showBalanceInOut ||
+        this.chartConfig.showPaymentCountInOut
+      )
     }
   },
   methods: {
@@ -412,7 +425,8 @@ window.WalletPageLogic = {
       let cleanInvoice = {
         msat: invoice.human_readable_part.amount,
         sat: invoice.human_readable_part.amount / 1000,
-        fsat: LNbits.utils.formatSat(invoice.human_readable_part.amount / 1000)
+        fsat: LNbits.utils.formatSat(invoice.human_readable_part.amount / 1000),
+        bolt11: this.parse.data.request
       }
 
       _.each(invoice.data.tags, tag => {
@@ -425,36 +439,56 @@ window.WalletPageLogic = {
             const expireDate = new Date(
               (invoice.data.time_stamp + tag.value) * 1000
             )
+            const createdDate = new Date(invoice.data.time_stamp * 1000)
             cleanInvoice.expireDate = Quasar.date.formatDate(
               expireDate,
               'YYYY-MM-DDTHH:mm:ss.SSSZ'
             )
+            cleanInvoice.createdDate = Quasar.date.formatDate(
+              createdDate,
+              'YYYY-MM-DDTHH:mm:ss.SSSZ'
+            )
+            cleanInvoice.expireDateFrom = moment(expireDate).fromNow()
+            cleanInvoice.createdDateFrom = moment(createdDate).fromNow()
+
             cleanInvoice.expired = false // TODO
           }
         }
       })
+
+      if (this.g.wallet.currency) {
+        cleanInvoice.fiatAmount = LNbits.utils.formatCurrency(
+          ((cleanInvoice.sat / 1e8) * this.g.exchangeRate).toFixed(2),
+          this.g.wallet.currency
+        )
+      }
 
       this.parse.invoice = Object.freeze(cleanInvoice)
     },
     payInvoice() {
       const dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
-        message: this.$t('processing_payment')
+        message: this.$t('payment_processing')
       })
 
       LNbits.api
         .payInvoice(this.g.wallet, this.parse.data.request)
-        .then(_ => {
-          clearInterval(this.parse.paymentChecker)
-          setTimeout(() => {
-            clearInterval(this.parse.paymentChecker)
-          }, 40000)
-          this.parse.paymentChecker = setInterval(() => {
-            if (!this.parse.show) {
-              dismissPaymentMsg()
-              clearInterval(this.parse.paymentChecker)
-            }
-          }, 2000)
+        .then(response => {
+          dismissPaymentMsg()
+          this.updatePayments = !this.updatePayments
+          this.parse.show = false
+          if (response.data.status == 'success') {
+            Quasar.Notify.create({
+              type: 'positive',
+              message: this.$t('payment_successful')
+            })
+          }
+          if (response.data.status == 'pending') {
+            Quasar.Notify.create({
+              type: 'info',
+              message: this.$t('payment_pending')
+            })
+          }
         })
         .catch(err => {
           dismissPaymentMsg()
@@ -801,8 +835,8 @@ window.WalletPageLogic = {
     },
     createdTasks() {
       this.update.name = this.g.wallet.name
-      this.receive.units = ['sat', ...window.currencies]
-      if (this.g.wallet.currency != '') {
+      this.receive.units = ['sat', ...(window.currencies || [])]
+      if (this.g.wallet.currency != '' && LNBITS_DENOMINATION == 'sats') {
         this.g.fiatTracking = true
         this.updateFiatBalance(this.g.wallet.currency)
       } else {
@@ -810,10 +844,19 @@ window.WalletPageLogic = {
         this.g.fiatTracking = false
       }
     },
+    walletFormatBalance(amount) {
+      if (LNBITS_DENOMINATION != 'sats') {
+        return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)
+      } else {
+        return LNbits.utils.formatSat(amount) + ' sats'
+      }
+    },
     handleFilterChange(value = {}) {
       if (
         this.paymentsFilter['time[ge]'] !== value['time[ge]'] ||
-        this.paymentsFilter['time[le]'] !== value['time[le]']
+        this.paymentsFilter['time[le]'] !== value['time[le]'] ||
+        this.paymentsFilter['amount[ge]'] !== value['amount[ge]'] ||
+        this.paymentsFilter['amount[le]'] !== value['amount[le]']
       ) {
         this.refreshCharts()
       }
@@ -824,11 +867,7 @@ window.WalletPageLogic = {
         this.chartConfig = {}
         return
       }
-      if (
-        !this.chartConfig.showBalance &&
-        !this.chartConfig.showBalanceInOut &&
-        !this.chartConfig.showPaymentCountInOut
-      ) {
+      if (!this.hasChartActive) {
         return
       }
 
@@ -847,6 +886,19 @@ window.WalletPageLogic = {
     filterChartData(data) {
       const timeFrom = this.paymentsFilter['time[ge]'] + 'T00:00:00'
       const timeTo = this.paymentsFilter['time[le]'] + 'T23:59:59'
+
+      let totalBalance = 0
+      data = data.map(p => {
+        if (this.paymentsFilter['amount[ge]'] !== undefined) {
+          totalBalance += p.balance_in
+          return {...p, balance: totalBalance, balance_out: 0, count_out: 0}
+        }
+        if (this.paymentsFilter['amount[le]'] !== undefined) {
+          totalBalance -= p.balance_out
+          return {...p, balance: totalBalance, balance_in: 0, count_in: 0}
+        }
+        return {...p}
+      })
       data = data.filter(p => {
         if (
           this.paymentsFilter['time[ge]'] &&
@@ -862,12 +914,14 @@ window.WalletPageLogic = {
         }
         return true
       })
+
       const labels = data.map(s =>
         new Date(s.date).toLocaleString('default', {
           month: 'short',
           day: 'numeric'
         })
       )
+      this.chartDataPointCount = data.length
       return {data, labels}
     },
     refreshCharts() {
@@ -964,12 +1018,20 @@ window.WalletPageLogic = {
                   {
                     label: 'Balance In',
                     borderRadius: 5,
-                    data: data.map(s => s.balance_in)
+                    data: data.map(s => s.balance_in),
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.primaryColor,
+                      0.3
+                    )
                   },
                   {
                     label: 'Balance Out',
                     borderRadius: 5,
-                    data: data.map(s => s.balance_out)
+                    data: data.map(s => s.balance_out),
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.secondaryColor,
+                      0.3
+                    )
                   }
                 ]
               }
@@ -1005,11 +1067,19 @@ window.WalletPageLogic = {
                 datasets: [
                   {
                     label: 'Payments In',
-                    data: data.map(s => s.count_in)
+                    data: data.map(s => s.count_in),
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.primaryColor,
+                      0.3
+                    )
                   },
                   {
                     label: 'Payments Out',
-                    data: data.map(s => -s.count_out)
+                    data: data.map(s => -s.count_out),
+                    backgroundColor: LNbits.utils.hexAlpha(
+                      this.secondaryColor,
+                      0.3
+                    )
                   }
                 ]
               }

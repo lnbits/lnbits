@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "1.0.0-rc7"
+version = "1.0.0-rc9"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 readme = "README.md"
@@ -12,7 +12,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.13 | ^3.12 | ^3.11 | ^3.10 | ^3.9"
+python = "~3.12 | ~3.11 | ~3.10"
 bech32 = "1.2.0"
 click = "8.1.7"
 ecdsa = "0.19.0"
@@ -62,6 +62,7 @@ breez-sdk = {version = "0.6.6", optional = true}
 
 jsonpath-ng = "^1.7.0"
 pynostr = "^0.6.2"
+python-multipart = "^0.0.20"
 [tool.poetry.extras]
 breez = ["breez-sdk"]
 liquid = ["wallycore"]
@@ -191,7 +192,7 @@ extend-exclude = [
 select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B"]
 # UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
 # RUF012: mutable-class-default
-ignore = ["UP007", "RUF012"]
+ignore = ["RUF012"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

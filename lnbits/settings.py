@@ -4,16 +4,16 @@ import importlib
 import importlib.metadata
 import inspect
 import json
+import os
 import re
 from datetime import datetime, timezone
 from enum import Enum
-from hashlib import sha256
 from os import path
 from pathlib import Path
 from time import gmtime, strftime, time
-from typing import Any, Optional
+from typing import Any
+from uuid import uuid4
 
-import httpx
 from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, Field, validator
 
@@ -77,7 +77,7 @@ class RedirectPath(BaseModel):
             other.from_path, list(other.header_filters.items())
         ) or other.redirect_matches(self.from_path, list(self.header_filters.items()))
 
-    def find_in_conflict(self, others: list[RedirectPath]) -> Optional[RedirectPath]:
+    def find_in_conflict(self, others: list[RedirectPath]) -> RedirectPath | None:
         for other in others:
             if self.in_conflict(other):
                 return other
@@ -149,11 +149,11 @@ class InstalledExtensionsSettings(LNbitsSettings):
     lnbits_extensions_redirects: list[RedirectPath] = Field(default=[])
 
     # list of all extension ids
-    lnbits_all_extensions_ids: set[str] = Field(default=[])
+    lnbits_installed_extensions_ids: set[str] = Field(default=[])
 
     def find_extension_redirect(
         self, path: str, req_headers: list[tuple[bytes, bytes]]
-    ) -> Optional[RedirectPath]:
+    ) -> RedirectPath | None:
         headers = [(k.decode(), v.decode()) for k, v in req_headers]
         return next(
             (
@@ -167,8 +167,8 @@ class InstalledExtensionsSettings(LNbitsSettings):
     def activate_extension_paths(
         self,
         ext_id: str,
-        upgrade_hash: Optional[str] = None,
-        ext_redirects: Optional[list[dict]] = None,
+        upgrade_hash: str | None = None,
+        ext_redirects: list[dict] | None = None,
     ):
         self.lnbits_deactivated_extensions.discard(ext_id)
 
@@ -182,7 +182,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
         if ext_redirects:
             self._activate_extension_redirects(ext_id, ext_redirects)
 
-        self.lnbits_all_extensions_ids.add(ext_id)
+        self.lnbits_installed_extensions_ids.add(ext_id)
 
     def deactivate_extension_paths(self, ext_id: str):
         self.lnbits_deactivated_extensions.add(ext_id)
@@ -231,12 +231,12 @@ class ExchangeHistorySettings(LNbitsSettings):
 class ThemesSettings(LNbitsSettings):
     lnbits_site_title: str = Field(default="LNbits")
     lnbits_site_tagline: str = Field(default="free and open-source lightning wallet")
-    lnbits_site_description: Optional[str] = Field(
+    lnbits_site_description: str | None = Field(
         default="The world's most powerful suite of bitcoin tools."
     )
     lnbits_show_home_page_elements: bool = Field(default=True)
     lnbits_default_wallet_name: str = Field(default="LNbits wallet")
-    lnbits_custom_badge: Optional[str] = Field(default=None)
+    lnbits_custom_badge: str | None = Field(default=None)
     lnbits_custom_badge_color: str = Field(default="warning")
     lnbits_theme_options: list[str] = Field(
         default=[
@@ -251,18 +251,16 @@ class ThemesSettings(LNbitsSettings):
             "bitcoin",
         ]
     )
-    lnbits_custom_logo: Optional[str] = Field(default=None)
-    lnbits_custom_image: Optional[str] = Field(
-        default="/static/images/logos/lnbits.svg"
-    )
+    lnbits_custom_logo: str | None = Field(default=None)
+    lnbits_custom_image: str | None = Field(default="/static/images/logos/lnbits.svg")
     lnbits_ad_space_title: str = Field(default="Supported by")
     lnbits_ad_space: str = Field(
         default="https://shop.lnbits.com/;/static/images/bitcoin-shop-banner.png;/static/images/bitcoin-shop-banner.png,https://affil.trezor.io/aff_c?offer_id=169&aff_id=33845;/static/images/bitcoin-hardware-wallet.png;/static/images/bitcoin-hardware-wallet.png,https://opensats.org/;/static/images/open-sats.png;/static/images/open-sats.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
     lnbits_allowed_currencies: list[str] = Field(default=[])
-    lnbits_default_accounting_currency: Optional[str] = Field(default=None)
-    lnbits_qr_logo: str = Field(default="/static/images/logos/lnbits.png")
+    lnbits_default_accounting_currency: str | None = Field(default=None)
+    lnbits_qr_logo: str = Field(default="/static/images/favicon_qr_logo.png")
     lnbits_default_reaction: str = Field(default="confettiBothSides")
     lnbits_default_theme: str = Field(default="salvador")
     lnbits_default_border: str = Field(default="hard-border")
@@ -273,16 +271,15 @@ class ThemesSettings(LNbitsSettings):
 class OpsSettings(LNbitsSettings):
     lnbits_baseurl: str = Field(default="http://127.0.0.1:5000/")
     lnbits_hide_api: bool = Field(default=False)
-    lnbits_denomination: str = Field(default="sats")
 
 
 class FeeSettings(LNbitsSettings):
-    lnbits_reserve_fee_min: int = Field(default=2000)
-    lnbits_reserve_fee_percent: float = Field(default=1.0)
-    lnbits_service_fee: float = Field(default=0)
+    lnbits_reserve_fee_min: int = Field(default=2000, ge=0)
+    lnbits_reserve_fee_percent: float = Field(default=1.0, ge=0)
+    lnbits_service_fee: float = Field(default=0, ge=0)
     lnbits_service_fee_ignore_internal: bool = Field(default=True)
     lnbits_service_fee_max: int = Field(default=0)
-    lnbits_service_fee_wallet: Optional[str] = Field(default=None)
+    lnbits_service_fee_wallet: str | None = Field(default=None)
 
     # WARN: this same value must be used for balance check and passed to
     # funding_source.pay_invoice(), it may cause a vulnerability if the values differ
@@ -295,9 +292,9 @@ class FeeSettings(LNbitsSettings):
 
 
 class ExchangeProvidersSettings(LNbitsSettings):
-    lnbits_exchange_rate_cache_seconds: int = Field(default=30)
-    lnbits_exchange_history_size: int = Field(default=60)
-    lnbits_exchange_history_refresh_interval_seconds: int = Field(default=300)
+    lnbits_exchange_rate_cache_seconds: int = Field(default=30, ge=0)
+    lnbits_exchange_history_size: int = Field(default=60, ge=0)
+    lnbits_exchange_history_refresh_interval_seconds: int = Field(default=300, ge=0)
 
     lnbits_exchange_rate_providers: list[ExchangeRateProvider] = Field(
         default=[
@@ -362,7 +359,7 @@ class ExchangeProvidersSettings(LNbitsSettings):
 
 
 class SecuritySettings(LNbitsSettings):
-    lnbits_rate_limit_no: str = Field(default="200")
+    lnbits_rate_limit_no: int = Field(default=200, ge=0)
     lnbits_rate_limit_unit: str = Field(default="minute")
     lnbits_allowed_ips: list[str] = Field(default=[])
     lnbits_blocked_ips: list[str] = Field(default=[])
@@ -370,13 +367,16 @@ class SecuritySettings(LNbitsSettings):
         default=["^(?!\\d+\\.\\d+\\.\\d+\\.\\d+$)(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$"]
     )
 
-    lnbits_wallet_limit_max_balance: int = Field(default=0)
-    lnbits_wallet_limit_daily_max_withdraw: int = Field(default=0)
-    lnbits_wallet_limit_secs_between_trans: int = Field(default=0)
+    lnbits_wallet_limit_max_balance: int = Field(default=0, ge=0)
+    lnbits_wallet_limit_daily_max_withdraw: int = Field(default=0, ge=0)
+    lnbits_wallet_limit_secs_between_trans: int = Field(default=0, ge=0)
     lnbits_only_allow_incoming_payments: bool = Field(default=False)
     lnbits_watchdog_switch_to_voidwallet: bool = Field(default=False)
-    lnbits_watchdog_interval_minutes: int = Field(default=60)
-    lnbits_watchdog_delta: int = Field(default=1_000_000)
+    lnbits_watchdog_interval_minutes: int = Field(default=60, gt=0)
+    lnbits_watchdog_delta: int = Field(default=1_000_000, gt=0)
+
+    lnbits_max_outgoing_payment_amount_sats: int = Field(default=10_000_000, ge=0)
+    lnbits_max_incoming_payment_amount_sats: int = Field(default=10_000_000, ge=0)
 
     def is_wallet_max_balance_exceeded(self, amount):
         return (
@@ -393,142 +393,154 @@ class NotificationsSettings(LNbitsSettings):
     lnbits_telegram_notifications_enabled: bool = Field(default=False)
     lnbits_telegram_notifications_access_token: str = Field(default="")
     lnbits_telegram_notifications_chat_id: str = Field(default="")
+    lnbits_email_notifications_enabled: bool = Field(default=False)
+    lnbits_email_notifications_email: str = Field(default="")
+    lnbits_email_notifications_username: str = Field(default="")
+    lnbits_email_notifications_password: str = Field(default="")
+    lnbits_email_notifications_server: str = Field(default="smtp.protonmail.ch")
+    lnbits_email_notifications_port: int = Field(default=587)
+    lnbits_email_notifications_to_emails: list[str] = Field(default=[])
 
     lnbits_notification_settings_update: bool = Field(default=True)
     lnbits_notification_credit_debit: bool = Field(default=True)
     notification_balance_delta_changed: bool = Field(default=True)
     lnbits_notification_server_start_stop: bool = Field(default=True)
     lnbits_notification_watchdog: bool = Field(default=False)
-    lnbits_notification_server_status_hours: int = Field(default=24)
-    lnbits_notification_incoming_payment_amount_sats: int = Field(default=1_000_000)
-    lnbits_notification_outgoing_payment_amount_sats: int = Field(default=1_000_000)
+    lnbits_notification_server_status_hours: int = Field(default=24, gt=0)
+    lnbits_notification_incoming_payment_amount_sats: int = Field(
+        default=1_000_000, ge=0
+    )
+    lnbits_notification_outgoing_payment_amount_sats: int = Field(
+        default=1_000_000, ge=0
+    )
 
 
 class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")
+    lnbits_denomination: str = Field(default="sats")
 
 
 class LNbitsFundingSource(LNbitsSettings):
     lnbits_endpoint: str = Field(default="https://demo.lnbits.com")
-    lnbits_key: Optional[str] = Field(default=None)
-    lnbits_admin_key: Optional[str] = Field(default=None)
-    lnbits_invoice_key: Optional[str] = Field(default=None)
+    lnbits_key: str | None = Field(default=None)
+    lnbits_admin_key: str | None = Field(default=None)
+    lnbits_invoice_key: str | None = Field(default=None)
 
 
 class ClicheFundingSource(LNbitsSettings):
-    cliche_endpoint: Optional[str] = Field(default=None)
+    cliche_endpoint: str | None = Field(default=None)
 
 
 class CoreLightningFundingSource(LNbitsSettings):
-    corelightning_rpc: Optional[str] = Field(default=None)
+    corelightning_rpc: str | None = Field(default=None)
     corelightning_pay_command: str = Field(default="pay")
-    clightning_rpc: Optional[str] = Field(default=None)
+    clightning_rpc: str | None = Field(default=None)
 
 
 class CoreLightningRestFundingSource(LNbitsSettings):
-    corelightning_rest_url: Optional[str] = Field(default=None)
-    corelightning_rest_macaroon: Optional[str] = Field(default=None)
-    corelightning_rest_cert: Optional[str] = Field(default=None)
+    corelightning_rest_url: str | None = Field(default=None)
+    corelightning_rest_macaroon: str | None = Field(default=None)
+    corelightning_rest_cert: str | None = Field(default=None)
 
 
 class EclairFundingSource(LNbitsSettings):
-    eclair_url: Optional[str] = Field(default=None)
-    eclair_pass: Optional[str] = Field(default=None)
+    eclair_url: str | None = Field(default=None)
+    eclair_pass: str | None = Field(default=None)
 
 
 class LndRestFundingSource(LNbitsSettings):
-    lnd_rest_endpoint: Optional[str] = Field(default=None)
-    lnd_rest_cert: Optional[str] = Field(default=None)
-    lnd_rest_macaroon: Optional[str] = Field(default=None)
-    lnd_rest_macaroon_encrypted: Optional[str] = Field(default=None)
+    lnd_rest_endpoint: str | None = Field(default=None)
+    lnd_rest_cert: str | None = Field(default=None)
+    lnd_rest_macaroon: str | None = Field(default=None)
+    lnd_rest_macaroon_encrypted: str | None = Field(default=None)
     lnd_rest_route_hints: bool = Field(default=True)
     lnd_rest_allow_self_payment: bool = Field(default=False)
-    lnd_cert: Optional[str] = Field(default=None)
-    lnd_admin_macaroon: Optional[str] = Field(default=None)
-    lnd_invoice_macaroon: Optional[str] = Field(default=None)
-    lnd_rest_admin_macaroon: Optional[str] = Field(default=None)
-    lnd_rest_invoice_macaroon: Optional[str] = Field(default=None)
+    lnd_cert: str | None = Field(default=None)
+    lnd_admin_macaroon: str | None = Field(default=None)
+    lnd_invoice_macaroon: str | None = Field(default=None)
+    lnd_rest_admin_macaroon: str | None = Field(default=None)
+    lnd_rest_invoice_macaroon: str | None = Field(default=None)
 
 
 class LndGrpcFundingSource(LNbitsSettings):
-    lnd_grpc_endpoint: Optional[str] = Field(default=None)
-    lnd_grpc_cert: Optional[str] = Field(default=None)
-    lnd_grpc_port: Optional[int] = Field(default=None)
-    lnd_grpc_admin_macaroon: Optional[str] = Field(default=None)
-    lnd_grpc_invoice_macaroon: Optional[str] = Field(default=None)
-    lnd_grpc_macaroon: Optional[str] = Field(default=None)
-    lnd_grpc_macaroon_encrypted: Optional[str] = Field(default=None)
+    lnd_grpc_endpoint: str | None = Field(default=None)
+    lnd_grpc_cert: str | None = Field(default=None)
+    lnd_grpc_port: int | None = Field(default=None)
+    lnd_grpc_admin_macaroon: str | None = Field(default=None)
+    lnd_grpc_invoice_macaroon: str | None = Field(default=None)
+    lnd_grpc_macaroon: str | None = Field(default=None)
+    lnd_grpc_macaroon_encrypted: str | None = Field(default=None)
 
 
 class LnPayFundingSource(LNbitsSettings):
-    lnpay_api_endpoint: Optional[str] = Field(default=None)
-    lnpay_api_key: Optional[str] = Field(default=None)
-    lnpay_wallet_key: Optional[str] = Field(default=None)
-    lnpay_admin_key: Optional[str] = Field(default=None)
+    lnpay_api_endpoint: str | None = Field(default=None)
+    lnpay_api_key: str | None = Field(default=None)
+    lnpay_wallet_key: str | None = Field(default=None)
+    lnpay_admin_key: str | None = Field(default=None)
 
 
 class BlinkFundingSource(LNbitsSettings):
-    blink_api_endpoint: Optional[str] = Field(default="https://api.blink.sv/graphql")
-    blink_ws_endpoint: Optional[str] = Field(default="wss://ws.blink.sv/graphql")
-    blink_token: Optional[str] = Field(default=None)
+    blink_api_endpoint: str | None = Field(default="https://api.blink.sv/graphql")
+    blink_ws_endpoint: str | None = Field(default="wss://ws.blink.sv/graphql")
+    blink_token: str | None = Field(default=None)
 
 
 class ZBDFundingSource(LNbitsSettings):
-    zbd_api_endpoint: Optional[str] = Field(default="https://api.zebedee.io/v0/")
-    zbd_api_key: Optional[str] = Field(default=None)
+    zbd_api_endpoint: str | None = Field(default="https://api.zebedee.io/v0/")
+    zbd_api_key: str | None = Field(default=None)
 
 
 class PhoenixdFundingSource(LNbitsSettings):
-    phoenixd_api_endpoint: Optional[str] = Field(default="http://localhost:9740/")
-    phoenixd_api_password: Optional[str] = Field(default=None)
+    phoenixd_api_endpoint: str | None = Field(default="http://localhost:9740/")
+    phoenixd_api_password: str | None = Field(default=None)
 
 
 class AlbyFundingSource(LNbitsSettings):
-    alby_api_endpoint: Optional[str] = Field(default="https://api.getalby.com/")
-    alby_access_token: Optional[str] = Field(default=None)
+    alby_api_endpoint: str | None = Field(default="https://api.getalby.com/")
+    alby_access_token: str | None = Field(default=None)
 
 
 class OpenNodeFundingSource(LNbitsSettings):
-    opennode_api_endpoint: Optional[str] = Field(default=None)
-    opennode_key: Optional[str] = Field(default=None)
-    opennode_admin_key: Optional[str] = Field(default=None)
-    opennode_invoice_key: Optional[str] = Field(default=None)
+    opennode_api_endpoint: str | None = Field(default=None)
+    opennode_key: str | None = Field(default=None)
+    opennode_admin_key: str | None = Field(default=None)
+    opennode_invoice_key: str | None = Field(default=None)
 
 
 class SparkFundingSource(LNbitsSettings):
-    spark_url: Optional[str] = Field(default=None)
-    spark_token: Optional[str] = Field(default=None)
+    spark_url: str | None = Field(default=None)
+    spark_token: str | None = Field(default=None)
 
 
 class LnTipsFundingSource(LNbitsSettings):
-    lntips_api_endpoint: Optional[str] = Field(default=None)
-    lntips_api_key: Optional[str] = Field(default=None)
-    lntips_admin_key: Optional[str] = Field(default=None)
-    lntips_invoice_key: Optional[str] = Field(default=None)
+    lntips_api_endpoint: str | None = Field(default=None)
+    lntips_api_key: str | None = Field(default=None)
+    lntips_admin_key: str | None = Field(default=None)
+    lntips_invoice_key: str | None = Field(default=None)
 
 
 class NWCFundingSource(LNbitsSettings):
-    nwc_pairing_url: Optional[str] = Field(default=None)
+    nwc_pairing_url: str | None = Field(default=None)
 
 
 class BreezSdkFundingSource(LNbitsSettings):
-    breez_api_key: Optional[str] = Field(default=None)
-    breez_greenlight_seed: Optional[str] = Field(default=None)
-    breez_greenlight_invite_code: Optional[str] = Field(default=None)
-    breez_greenlight_device_key: Optional[str] = Field(default=None)
-    breez_greenlight_device_cert: Optional[str] = Field(default=None)
+    breez_api_key: str | None = Field(default=None)
+    breez_greenlight_seed: str | None = Field(default=None)
+    breez_greenlight_invite_code: str | None = Field(default=None)
+    breez_greenlight_device_key: str | None = Field(default=None)
+    breez_greenlight_device_cert: str | None = Field(default=None)
     breez_use_trampoline: bool = Field(default=True)
 
 
 class BoltzFundingSource(LNbitsSettings):
-    boltz_client_endpoint: Optional[str] = Field(default="127.0.0.1:9002")
-    boltz_client_macaroon: Optional[str] = Field(default=None)
-    boltz_client_wallet: Optional[str] = Field(default="lnbits")
-    boltz_client_cert: Optional[str] = Field(default=None)
+    boltz_client_endpoint: str | None = Field(default="127.0.0.1:9002")
+    boltz_client_macaroon: str | None = Field(default=None)
+    boltz_client_wallet: str | None = Field(default="lnbits")
+    boltz_client_cert: str | None = Field(default=None)
 
 
 class LightningSettings(LNbitsSettings):
-    lightning_invoice_expiry: int = Field(default=3600)
+    lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
 
 class FundingSourcesSettings(
@@ -553,11 +565,14 @@ class FundingSourcesSettings(
     BreezSdkFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
+    # How long to wait for the payment to be confirmed before returning a pending status
+    # It will not fail the payment, it will make it return pending after the timeout
+    lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
 
 
 class WebPushSettings(LNbitsSettings):
-    lnbits_webpush_pubkey: Optional[str] = Field(default=None)
-    lnbits_webpush_privkey: Optional[str] = Field(default=None)
+    lnbits_webpush_pubkey: str | None = Field(default=None)
+    lnbits_webpush_privkey: str | None = Field(default=None)
 
 
 class NodeUISettings(LNbitsSettings):
@@ -591,7 +606,7 @@ class AuthMethods(Enum):
 
 
 class AuthSettings(LNbitsSettings):
-    auth_token_expire_minutes: int = Field(default=525600)
+    auth_token_expire_minutes: int = Field(default=525600, gt=0)
     auth_all_methods = [a.value for a in AuthMethods]
     auth_allowed_methods: list[str] = Field(
         default=[
@@ -601,7 +616,7 @@ class AuthSettings(LNbitsSettings):
     )
     # How many seconds after login the user is allowed to update its credentials.
     # A fresh login is required afterwards.
-    auth_credetials_update_threshold: int = Field(default=120)
+    auth_credetials_update_threshold: int = Field(default=120, gt=0)
 
     def is_auth_method_allowed(self, method: AuthMethods):
         return method.value in self.auth_allowed_methods
@@ -633,7 +648,7 @@ class AuditSettings(LNbitsSettings):
     lnbits_audit_enabled: bool = Field(default=True)
 
     # number of days to keep the audit entry
-    lnbits_audit_retention_days: int = Field(default=7)
+    lnbits_audit_retention_days: int = Field(default=7, ge=0)
 
     lnbits_audit_log_ip_address: bool = Field(default=False)
     lnbits_audit_log_path_params: bool = Field(default=True)
@@ -663,9 +678,9 @@ class AuditSettings(LNbitsSettings):
 
     def audit_http_request(
         self,
-        http_method: Optional[str] = None,
-        path: Optional[str] = None,
-        http_response_code: Optional[str] = None,
+        http_method: str | None = None,
+        path: str | None = None,
+        http_response_code: str | None = None,
     ) -> bool:
         if not self.lnbits_audit_enabled:
             return False
@@ -683,24 +698,24 @@ class AuditSettings(LNbitsSettings):
 
         return True
 
-    def _is_http_request_path_auditable(self, path: Optional[str]):
+    def _is_http_request_path_auditable(self, path: str | None):
         if len(self.lnbits_audit_exclude_paths) != 0 and path:
             for exclude_path in self.lnbits_audit_exclude_paths:
                 if _re_fullmatch_safe(exclude_path, path):
                     return False
 
-        if len(self.lnbits_audit_include_paths) != 0:
-            if not path:
-                return False
-            for include_path in self.lnbits_audit_include_paths:
-                if _re_fullmatch_safe(include_path, path):
-                    return True
+        if len(self.lnbits_audit_include_paths) == 0:
+            return True
+
+        if not path:
+            return False
+        for include_path in self.lnbits_audit_include_paths:
+            if _re_fullmatch_safe(include_path, path):
+                return True
 
         return False
 
-    def _is_http_response_code_auditable(
-        self, http_response_code: Optional[str]
-    ) -> bool:
+    def _is_http_response_code_auditable(self, http_response_code: str | None) -> bool:
         if not http_response_code:
             # No response code means only request filters should apply
             return True
@@ -770,7 +785,7 @@ class EnvSettings(LNbitsSettings):
     debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
-    port: int = Field(default=5000)
+    port: int = Field(default=5000, gt=0)
     forwarded_allow_ips: str = Field(default="*")
     lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
@@ -782,24 +797,27 @@ class EnvSettings(LNbitsSettings):
     enable_log_to_file: bool = Field(default=True)
     log_rotation: str = Field(default="100 MB")
     log_retention: str = Field(default="3 months")
-    server_startup_time: int = Field(default=time())
-    cleanup_wallets_days: int = Field(default=90)
-    funding_source_max_retries: int = Field(default=4)
+
+    cleanup_wallets_days: int = Field(default=90, ge=0)
+    funding_source_max_retries: int = Field(default=4, ge=0)
 
     @property
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
 
-    @property
-    def lnbits_server_up_time(self) -> str:
-        up_time = int(time() - self.server_startup_time)
-        return strftime("%H:%M:%S", gmtime(up_time))
-
-
-class SaaSSettings(LNbitsSettings):
-    lnbits_saas_callback: Optional[str] = Field(default=None)
-    lnbits_saas_secret: Optional[str] = Field(default=None)
-    lnbits_saas_instance_id: Optional[str] = Field(default=None)
+    def check_auth_secret_key(self):
+        if self.auth_secret_key:
+            return
+        if not os.path.isdir(settings.lnbits_data_folder):
+            os.mkdir(settings.lnbits_data_folder)
+        auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key")
+        if auth_key_file.is_file():
+            with open(auth_key_file) as file:
+                self.auth_secret_key = file.readline()
+            return
+        self.auth_secret_key = uuid4().hex
+        with open(auth_key_file, "w+") as file:
+            file.write(self.auth_secret_key)
 
 
 class PersistenceSettings(LNbitsSettings):
@@ -849,6 +867,15 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     # Remember the latest balance delta in order to compare with the current one
     latest_balance_delta_sats: int = Field(default=None)
 
+    lnbits_all_extensions_ids: set[str] = Field(default=[])
+
+    server_startup_time: int = Field(default=time())
+
+    @property
+    def lnbits_server_up_time(self) -> str:
+        up_time = int(time() - self.server_startup_time)
+        return strftime("%H:%M:%S", gmtime(up_time))
+
     @classmethod
     def readonly_fields(cls):
         return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
@@ -857,7 +884,6 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
 class ReadOnlySettings(
     EnvSettings,
     ExtensionsInstallSettings,
-    SaaSSettings,
     PersistenceSettings,
     SuperUserSettings,
 ):
@@ -895,7 +921,7 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
             or user_id == self.super_user
         )
 
-    def is_super_user(self, user_id: Optional[str] = None) -> bool:
+    def is_super_user(self, user_id: str | None = None) -> bool:
         return user_id == self.super_user
 
     def is_admin_user(self, user_id: str) -> bool:
@@ -904,8 +930,8 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
     def is_admin_extension(self, ext_id: str) -> bool:
         return ext_id in self.lnbits_admin_extensions
 
-    def is_extension_id(self, ext_id: str) -> bool:
-        return ext_id in self.lnbits_all_extensions_ids
+    def is_installed_extension_id(self, ext_id: str) -> bool:
+        return ext_id in self.lnbits_installed_extensions_ids
 
 
 class SuperSettings(EditableSettings):
@@ -914,12 +940,12 @@ class SuperSettings(EditableSettings):
 
 class AdminSettings(EditableSettings):
     is_super_user: bool
-    lnbits_allowed_funding_sources: Optional[list[str]]
+    lnbits_allowed_funding_sources: list[str] | None
 
 
 class SettingsField(BaseModel):
     id: str
-    value: Optional[Any]
+    value: Any | None
     tag: str = "core"
 
 
@@ -936,31 +962,6 @@ def set_cli_settings(**kwargs):
         setattr(settings, key, value)
 
 
-def send_admin_user_to_saas():
-    if settings.lnbits_saas_callback:
-        with httpx.Client() as client:
-            headers = {
-                "Content-Type": "application/json; charset=utf-8",
-                "X-API-KEY": settings.lnbits_saas_secret,
-            }
-            payload = {
-                "instance_id": settings.lnbits_saas_instance_id,
-                "adminuser": settings.super_user,
-            }
-            try:
-                client.post(
-                    settings.lnbits_saas_callback,
-                    headers=headers,
-                    json=payload,
-                )
-                logger.success("sent super_user to saas application")
-            except Exception as e:
-                logger.error(
-                    "error sending super_user to saas:"
-                    f" {settings.lnbits_saas_callback}. Error: {e!s}"
-                )
-
-
 readonly_variables = ReadOnlySettings.readonly_fields()
 transient_variables = TransientSettings.readonly_fields()
 
@@ -969,9 +970,8 @@ settings = Settings()
 settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 
 settings.version = importlib.metadata.version("lnbits")
-settings.auth_secret_key = (
-    settings.auth_secret_key or sha256(settings.super_user.encode("utf-8")).hexdigest()
-)
+
+settings.check_auth_secret_key()
 
 if not settings.user_agent:
     settings.user_agent = f"LNbits/{settings.version}"

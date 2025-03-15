@@ -209,7 +209,7 @@ window.LNbits = {
         })
       obj.walletOptions = obj.wallets.map(obj => {
         return {
-          label: [obj.name, ' - ', obj.id].join(''),
+          label: [obj.name, ' - ', obj.id.substring(0, 5), '...'].join(''),
           value: obj.id
         }
       })
@@ -357,9 +357,10 @@ window.LNbits = {
       }
     },
     prepareFilterQuery(tableConfig, props) {
+      tableConfig.filter = tableConfig.filter || {}
       if (props) {
         tableConfig.pagination = props.pagination
-        tableConfig.filter = props.filter
+        Object.assign(tableConfig.filter, props.filter)
       }
       const pagination = tableConfig.pagination
       tableConfig.loading = true
@@ -585,6 +586,13 @@ window.windowMixin = {
         window.history.replaceState({}, '', url.toString())
       }
     },
+    formatBalance(amount) {
+      if (LNBITS_DENOMINATION != 'sats') {
+        return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)
+      } else {
+        return LNbits.utils.formatSat(amount) + ' sats'
+      }
+    },
     changeTheme(newValue) {
       document.body.setAttribute('data-theme', newValue)
       if (this.themeSelection) {
@@ -608,7 +616,7 @@ window.windowMixin = {
           gradientStyle,
           'important'
         )
-        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important`
+        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important; backdrop-filter: blur(6px);`
         const style = document.createElement('style')
         style.innerHTML =
           `body[data-theme="${this.themeChoice}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
@@ -835,6 +843,7 @@ window.windowMixin = {
         ? this.$q.localStorage.getItem('lnbits.darkMode')
         : true
     )
+    Chart.defaults.color = this.$q.dark.isActive ? '#fff' : '#000'
     this.changeTheme(this.themeChoice)
     this.applyBorder()
     if (this.$q.dark.isActive) {

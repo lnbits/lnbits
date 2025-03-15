@@ -15,7 +15,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from lnbits.core.db import core_app_extra
 from lnbits.core.models import AuditEntry
-from lnbits.helpers import template_renderer
+from lnbits.helpers import normalize_path, template_renderer
 from lnbits.settings import settings
 
 
@@ -82,7 +82,11 @@ class InstalledExtensionMiddleware:
             return HTMLResponse(
                 status_code=status_code,
                 content=template_renderer()
-                .TemplateResponse(Request(scope), "error.html", {"err": msg})
+                .TemplateResponse(
+                    Request(scope),
+                    "error.html",
+                    {"err": msg, "status_code": status_code, "message": msg},
+                )
                 .body,
             )
 
@@ -114,7 +118,6 @@ class ExtensionsRedirectMiddleware:
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
-
     def __init__(self, app: ASGIApp, audit_queue: asyncio.Queue) -> None:
         super().__init__(app)
         self.audit_queue = audit_queue
@@ -131,8 +134,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
             assert response
             return response
         finally:
-            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
-            await self._log_audit(request, response, duration, request_details)
+            if request_details:
+                duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+                await self._log_audit(request, response, duration, request_details)
 
     async def _log_audit(
         self,
@@ -156,6 +160,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             if settings.is_super_user(user_id):
                 user_id = "super_user"
             component = "core"
+            path = normalize_path(path)
             if path and not path.startswith("/api"):
                 component = path.split("/")[1]
 

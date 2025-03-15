@@ -9,9 +9,7 @@ window.app = Vue.createApp({
         description: ''
       },
       isUserAuthorized: false,
-      authAction: Quasar.LocalStorage.getItem('lnbits.disclaimerShown')
-        ? 'login'
-        : 'register',
+      authAction: 'login',
       authMethod: 'username-password',
       usr: '',
       username: '',
@@ -45,79 +43,7 @@ window.app = Vue.createApp({
       this.authAction = 'register'
       this.authMethod = authMethod
     },
-    async signInWithNostr() {
-      try {
-        const nostrToken = await this.createNostrToken()
-        if (!nostrToken) {
-          return
-        }
-        resp = await LNbits.api.loginByProvider(
-          'nostr',
-          {Authorization: nostrToken},
-          {}
-        )
-        window.location.href = '/wallet'
-      } catch (error) {
-        console.warn(error)
-        const details = error?.response?.data?.detail || `${error}`
-        Quasar.Notify.create({
-          type: 'negative',
-          message: 'Failed to sign in with Nostr.',
-          caption: details
-        })
-      }
-    },
-    async createNostrToken() {
-      try {
-        async function _signEvent(e) {
-          try {
-            const {data} = await LNbits.api.getServerHealth()
-            e.created_at = data.server_time
-            return await window.nostr.signEvent(e)
-          } catch (error) {
-            console.error(error)
-            Quasar.Notify.create({
-              type: 'negative',
-              message: 'Failed to sign nostr event.',
-              caption: `${error}`
-            })
-          }
-        }
-        if (!window.nostr?.signEvent) {
-          Quasar.Notify.create({
-            type: 'negative',
-            message: 'No Nostr signing app detected.',
-            caption: 'Is "window.nostr" present?'
-          })
-          return
-        }
-        const tagU = `${window.location}nostr`
-        const tagMethod = 'POST'
-        const nostrToken = await NostrTools.nip98.getToken(
-          tagU,
-          tagMethod,
-          e => _signEvent(e),
-          true
-        )
-        const isTokenValid = await NostrTools.nip98.validateToken(
-          nostrToken,
-          tagU,
-          tagMethod
-        )
-        if (!isTokenValid) {
-          throw new Error('Invalid signed token!')
-        }
 
-        return nostrToken
-      } catch (error) {
-        console.warn(error)
-        Quasar.Notify.create({
-          type: 'negative',
-          message: 'Failed create Nostr event.',
-          caption: `${error}`
-        })
-      }
-    },
     async register() {
       try {
         await LNbits.api.register(
@@ -176,7 +102,14 @@ window.app = Vue.createApp({
   },
   created() {
     this.description = SITE_DESCRIPTION
+    this.allowedRegister = ALLOWED_REGISTER
+    this.authAction =
+      !this.allowedRegister ||
+      Quasar.LocalStorage.getItem('lnbits.disclaimerShown')
+        ? 'login'
+        : 'register'
     this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
+    const _acccess_cookies_for_safari_refresh_do_not_delete = document.cookie
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'
     }

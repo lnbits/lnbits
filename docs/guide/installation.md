@@ -15,9 +15,10 @@ Note that by default LNbits uses SQLite as its database, which is simple and eff
 Go to [releases](https://github.com/lnbits/lnbits/releases) and pull latest AppImage, or:
 
 ```sh
+sudo apt-get install libfuse2
 wget $(curl -s https://api.github.com/repos/lnbits/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
 chmod +x LNbits-latest.AppImage
-./LNbits-latest.AppImage --host 0.0.0.0
+./LNbits-latest.AppImage --host 0.0.0.0 --port 5000
 ```
 
 LNbits will create a folder for db and extension files in the folder the AppImage runs from.
@@ -225,7 +226,7 @@ Problems installing? These commands have helped us install LNbits.
 sudo apt install pkg-config libffi-dev libpq-dev
 
 # build essentials for debian/ubuntu
-sudo apt install python3.9-dev gcc build-essential
+sudo apt install python3.10-dev gcc build-essential
 
 # if the secp256k1 build fails:
 # if you used poetry

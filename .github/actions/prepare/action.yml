@@ -7,7 +7,7 @@ inputs:
     default: "3.10"
   poetry-version:
     description: "Poetry Version"
-    default: "1.7.0"
+    default: "1.8.5"
   node-version:
     description: "Node Version"
     default: "20.x"

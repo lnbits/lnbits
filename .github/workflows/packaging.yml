@@ -36,12 +36,11 @@ jobs:
       - name: Make Asset
         run: |
           cd packaging/linux/AppDir/usr/lnbits
-          git checkout main
-          poetry install --main
+          poetry install
           poetry run pip install pyinstaller
 
           # Build the LNbits binary
-          poetry run pyinstaller --onefile --name lnbits --collect-all lnbits --collect-all sqlalchemy --collect-all aiosqlite --hidden-import=passlib.handlers.bcrypt $(poetry run which lnbits)
+          poetry run pyinstaller --onefile --name lnbits --hidden-import=embit --collect-all embit --collect-all lnbits --collect-all sqlalchemy --collect-all aiosqlite --hidden-import=passlib.handlers.bcrypt $(poetry run which lnbits)
           cd ../../../../..
           chmod +x packaging/linux/AppDir/AppRun
           chmod +x packaging/linux/AppDir/lnbits.desktop

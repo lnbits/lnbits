@@ -59,6 +59,9 @@
     }
   }
 </style>
+<script>
+  const ALLOWED_REGISTER = {{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }};
+</script>
 <script src="{{ static_url_for('static', 'js/index.js') }}"></script>
 {% endblock %} {% block page_container %}
 <q-page-container>
@@ -84,12 +87,20 @@
               >
                 {{SITE_TITLE}}
               </h5>
-              <h6
-                class="q-my-sm"
-                v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
-              >
-                {{SITE_TAGLINE}}
-              </h6>
+              <template v-if="$q.screen.gt.sm">
+                <h6
+                  class="q-my-sm"
+                  v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
+                >
+                  {{SITE_TAGLINE}}
+                </h6>
+                <p
+                  class="q-my-sm"
+                  v-if="'{{LNBITS_SHOW_HOME_PAGE_ELEMENTS}}' == 'True'"
+                >
+                  {{SITE_DESCRIPTION}}
+                </p>
+              </template>
               <!-- <div
             class="gt-sm"
             v-html="formatDescription"
@@ -139,7 +150,7 @@
                 {%else%}
                 <username-password
                   v-if="authMethod != 'user-id-only'"
-                  :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
+                  :allowed_new_users="allowedRegister"
                   :auth-methods="{{ LNBITS_AUTH_METHODS }}"
                   :auth-action="authAction"
                   v-model:user-name="username"
@@ -154,7 +165,10 @@
                     class="text-center text-grey-6"
                     v-if="authAction !== 'reset'"
                   >
-                    <p v-if="authAction === 'login'" class="q-mb-none">
+                    <p
+                      v-if="authAction === 'login' && allowedRegister"
+                      class="q-mb-none"
+                    >
                       Not registered? Create an
                       <span
                         class="text-secondary cursor-pointer"
@@ -162,7 +176,14 @@
                         >Account</span
                       >
                     </p>
-                    <p v-else class="q-mb-none">
+                    <p
+                      v-else-if="authAction === 'login' && !allowedRegister"
+                      class="q-mb-none"
+                    >
+                      <span v-text="$t('new_user_not_allowed')"></span>
+                    </p>
+
+                    <p v-else-if="authAction === 'register'" class="q-mb-none">
                       Aready have an account?
                       <span
                         class="text-secondary cursor-pointer"
@@ -174,7 +195,7 @@
                 </username-password>
                 {% if "user-id-only" in LNBITS_AUTH_METHODS %}
                 <user-id-only
-                  :allowed_new_users="{{ LNBITS_NEW_ACCOUNTS_ALLOWED | tojson }}"
+                  :allowed_new_users="allowedRegister"
                   v-model:usr="usr"
                   v-model:wallet="walletName"
                   :auth-action="authAction"
@@ -203,7 +224,10 @@
           </q-card>
         </div>
       </div>
-      <div class="full-width q-mb-lg q-mt-sm">
+      <div
+        v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
+        class="full-width q-mb-lg q-mt-sm"
+      >
         <div class="flex flex-center q-gutter-md q-py-md">
           <q-btn
             outline
@@ -228,35 +252,36 @@
         </div>
       </div>
       {% if AD_SPACE %}
-      <div class="row justify-center q-mb-xl">
-        <div class="full-width text-center">
-          <span class="text-uppercase text-grey">{{ AD_SPACE_TITLE }}</span>
-        </div>
-        <div class="flex flex-center columm">
-          {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
-
-          <div class="flex flex-center column">
-            <a href="{{ AD[0] }}">
-              <img
-                v-if="($q.dark.isActive)"
-                src="{{ AD[1] }}"
-                style="max-width: 420px"
-                class="full-width"
-              />
-              <img
-                v-else
-                src="{{ AD[2] }}"
-                style="max-width: 420px"
-                class="full-width"
-              />
-            </a>
+      <div class="q-pt-md full-width">
+        <div class="row justify-center q-mb-xl">
+          <div class="full-width text-center">
+            <span class="text-uppercase text-grey">{{ AD_SPACE_TITLE }}</span>
           </div>
+          <div class="flex flex-center columm">
+            {% for ADS in AD_SPACE %} {% set AD = ADS.split(';') %}
+            <div class="flex flex-center column q-pr-sm">
+              <a href="{{ AD[0] }}">
+                <img
+                  v-if="($q.dark.isActive)"
+                  src="{{ AD[1] }}"
+                  style="max-width: 420px"
+                  class="full-width"
+                />
+                <img
+                  v-else
+                  src="{{ AD[2] }}"
+                  style="max-width: 420px"
+                  class="full-width"
+                />
+              </a>
+            </div>
 
-          {% endfor %}
+            {% endfor %}
+          </div>
         </div>
       </div>
       {% endif %}
-      <div class="full-width">
+      <div v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'" class="full-width">
         <div class="wrapper">
           <div class="marquee">
             <div class="marquee__group">
@@ -452,6 +477,18 @@
                   ></q-img>
                 </a>
               </div>
+              <div>
+                <a
+                  href="https://www.blink.sv/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/blink_logo.png') }}' : '{{ static_url_for('static', 'images/blink_logol.png') }}'"
+                  ></q-img>
+                </a>
+              </div>
               <!-- # -->
             </div>
             <div class="marquee__group">
@@ -644,6 +681,18 @@
                   <q-img
                     contain
                     :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/boltz.svg') }}' : '{{ static_url_for('static', 'images/boltz.svg') }}'"
+                  ></q-img>
+                </a>
+              </div>
+              <div>
+                <a
+                  href="https://www.blink.sv/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <q-img
+                    contain
+                    :src="($q.dark.isActive) ? '{{ static_url_for('static', 'images/blink_logo.png') }}' : '{{ static_url_for('static', 'images/blink_logol.png') }}'"
                   ></q-img>
                 </a>
               </div>

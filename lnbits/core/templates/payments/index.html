@@ -8,52 +8,7 @@
     <q-card>
       <div class="q-pa-sm q-pl-lg">
         <div class="row items-center justify-between q-gutter-xs">
-          <div class="col">
-            <div class="float-left">
-              <q-chip
-                v-if="searchDate.timeFrom"
-                removable
-                @remove="removeCreatedFrom()"
-                :label="searchDate.timeFrom"
-                class="ellipsis"
-              >
-              </q-chip>
-
-              <q-icon name="event" class="cursor-pointer">
-                <q-popup-proxy
-                  cover
-                  transition-show="scale"
-                  transition-hide="scale"
-                >
-                  <q-date v-model="searchDate.timeFrom" mask="YYYY-MM-DD">
-                    <div class="row">
-                      <q-btn
-                        label="Search"
-                        color="primary"
-                        flat
-                        @click="fetchPayments()"
-                        class="float-left"
-                        v-close-popup
-                      />
-                    </div>
-                  </q-date>
-                  <q-date v-model="searchDate.timeTo" mask="YYYY-MM-DD">
-                    <div class="row items-center justify-end">
-                      <q-btn v-close-popup label="Close" color="primary" flat />
-                    </div>
-                  </q-date>
-                </q-popup-proxy>
-              </q-icon>
-              <q-chip
-                removable
-                v-if="searchDate.timeTo"
-                @remove="removeCreatedTo()"
-                :label="searchDate.timeTo"
-                class="ellipsis"
-              >
-              </q-chip>
-            </div>
-          </div>
+          <div class="col"></div>
           <div class="float-left">
             <q-checkbox
               dense
@@ -115,7 +70,46 @@
             </q-checkbox>
           </div>
           <q-separator vertical class="q-ma-sm"></q-separator>
-
+          <q-btn icon="event" outline flat>
+            <q-popup-proxy
+              cover
+              transition-show="scale"
+              transition-hide="scale"
+            >
+              <q-date v-model="searchDate" mask="YYYY-MM-DD" range />
+              <div class="row">
+                <div class="col-6">
+                  <q-btn
+                    label="Search"
+                    @click="searchByDate()"
+                    color="primary"
+                    flat
+                    class="float-left"
+                    v-close-popup
+                  />
+                </div>
+                <div class="col-6">
+                  <q-btn
+                    v-close-popup
+                    @click="clearDateSeach()"
+                    label="Clear"
+                    class="float-right"
+                    color="grey"
+                    flat
+                  />
+                </div>
+              </div>
+            </q-popup-proxy>
+            <q-badge
+              v-if="searchDate?.to || searchDate?.from"
+              class="q-mt-lg q-mr-md"
+              color="primary"
+              rounded
+              floating
+              style="border-radius: 6px"
+            />
+          </q-btn>
+          <q-separator vertical class="q-ma-sm"></q-separator>
           <div>
             <q-btn
               v-if="g.user.admin"
@@ -214,7 +208,6 @@
           :columns="paymentsTable.columns"
           v-model:pagination="paymentsTable.pagination"
           :filter="paymentsTable.search"
-          :loading="paymentsTable.loading"
           @request="fetchPayments"
         >
           <template v-slot:header="props">
@@ -272,14 +265,15 @@
                     @click="showDetailsToggle(props.row)"
                     v-if="props.row.status === 'success'"
                     size="14px"
-                    :name="props.row.amount < 0 ? 'call_made' : 'call_received'"
-                    :color="props.row.amount < 0 ? 'pink' : 'green'"
+                    :name="props.row.outgoing ? 'call_made' : 'call_received'"
+                    :color="props.row.outgoing ? 'pink' : 'green'"
                     class="cursor-pointer"
                   ></q-icon>
                   <q-icon
                     v-else-if="props.row.status === 'pending'"
                     @click="showDetailsToggle(props.row)"
-                    name="settings_ethernet"
+                    name="downloading"
+                    :style="props.row.outgoing ? 'transform: rotate(225deg)' : 'transform: scaleX(-1) rotate(315deg)'"
                     color="grey"
                     class="cursor-pointer"
                   ></q-icon>

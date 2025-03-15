@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from pathlib import Path
 from typing import Annotated, List, Optional, Union
 from urllib.parse import urlencode, urlparse
 
@@ -37,7 +36,7 @@ generic_router = APIRouter(
 
 @generic_router.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
-    return FileResponse(Path("lnbits", "static", "favicon.ico"))
+    return RedirectResponse(settings.lnbits_qr_logo)
 
 
 @generic_router.get("/", response_class=HTMLResponse)
@@ -50,12 +49,9 @@ async def home(request: Request, lightning: str = ""):
 @generic_router.get("/first_install", response_class=HTMLResponse)
 async def first_install(request: Request):
     if not settings.first_install:
-        return template_renderer().TemplateResponse(
-            request,
-            "error.html",
-            {
-                "err": "Super user account has already been configured.",
-            },
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Super user account has already been configured.",
         )
     return template_renderer().TemplateResponse(
         request,
@@ -180,8 +176,9 @@ async def wallet(
         wallet = user.wallets[0]
 
     if not wallet or wallet.deleted:
-        return template_renderer().TemplateResponse(
-            request, "error.html", {"err": "Wallet not found"}, HTTPStatus.NOT_FOUND
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Wallet not found",
         )
     context = {
         "user": user.json(),

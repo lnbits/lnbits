@@ -13,7 +13,6 @@
             :label="$t('allowed_currencies')"
             :options="{{ currencies | safe }}"
           ></q-select>
-          <br />
         </div>
         <div class="col-12 col-md-6">
           <p><span v-text="$t('default_account_currency')"></span></p>
@@ -25,11 +24,77 @@
             :label="$t('currency')"
             :options="formData.lnbits_allowed_currencies?.length ? formData.lnbits_allowed_currencies : {{ currencies }}"
           ></q-select>
-          <br />
         </div>
       </div>
 
-      <br />
+      <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+      <h6 class="q-my-none"><span v-text="$t('payments')"></span></h6>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-3">
+          <p><span v-text="$t('max_outgoing_payment_amount')"></span></p>
+          <q-input
+            filled
+            type="number"
+            v-model.number="formData.lnbits_max_outgoing_payment_amount_sats"
+            :label="$t('max_outgoing_payment_amount')"
+            step="1"
+            min="0"
+            :hint="$t('max_outgoing_payment_amount_desc')"
+          ></q-input>
+        </div>
+
+        <div class="col-12 col-md-3">
+          <p><span v-text="$t('max_incoming_payment_amount')"></span></p>
+          <q-input
+            filled
+            type="number"
+            v-model.number="formData.lnbits_max_incoming_payment_amount_sats"
+            :label="$t('max_incoming_payment_amount')"
+            step="1"
+            min="0"
+            :hint="$t('max_incoming_payment_amount_desc')"
+          ></q-input>
+        </div>
+        <div class="col-12 col-md-6"></div>
+      </div>
+
+      <q-separator class="q-mb-lg q-mt-sm"></q-separator>
+      <h6 class="q-my-none"><span v-text="$t('wallet_limiter')"></span></h6>
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-md-3">
+          <q-input
+            filled
+            type="number"
+            v-model.number="formData.lnbits_wallet_limit_max_balance"
+            :label="$t('wallet_max_ballance')"
+          ></q-input>
+        </div>
+        <div class="col-12 col-md-3">
+          <q-input
+            filled
+            type="number"
+            v-model.number="formData.lnbits_wallet_limit_daily_max_withdraw"
+            :label="$t('wallet_limit_max_withdraw_per_day')"
+          ></q-input>
+        </div>
+        <div class="col-12 col-md-3">
+          <q-input
+            filled
+            type="number"
+            v-model.number="formData.lnbits_wallet_limit_secs_between_trans"
+            :label="$t('wallet_limit_secs_between_trans')"
+          ></q-input>
+        </div>
+        <div class="col-12 col-md-3">
+          <q-toggle
+            v-model="formData.lnbits_only_allow_incoming_payments"
+            :label="$t('only_incoming_payments_allowed')"
+            ><q-tooltip v-text="$t('disable_outgoing_payments')"></q-tooltip
+          ></q-toggle>
+        </div>
+      </div>
+
+      <q-separator class="q-mb-lg q-mt-sm"></q-separator>
       <h6 class="q-my-none"><span v-text="$t('service_fee')"></span></h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">

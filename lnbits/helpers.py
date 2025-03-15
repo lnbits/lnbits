@@ -98,7 +98,7 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         settings.lnbits_node_ui and get_node_class() is not None
     )
     t.env.globals["LNBITS_NODE_UI_AVAILABLE"] = get_node_class() is not None
-    t.env.globals["EXTENSIONS"] = list(settings.lnbits_all_extensions_ids)
+    t.env.globals["EXTENSIONS"] = list(settings.lnbits_installed_extensions_ids)
 
     if settings.lnbits_custom_logo:
         t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
@@ -224,18 +224,34 @@ def create_access_token(data: dict, token_expire_minutes: Optional[int] = None) 
     return jwt.encode(to_encode, settings.auth_secret_key, "HS256")
 
 
-def encrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
-    """Encrypt message with the internal secret key"""
+def encrypt_internal_message(
+    m: Optional[str] = None, urlsafe: bool = False
+) -> Optional[str]:
+    """
+    Encrypt message with the internal secret key
+
+    Args:
+        m: Message to encrypt
+        urlsafe: Whether to use URL-safe base64 encoding
+    """
     if not m:
         return None
-    return AESCipher(key=settings.auth_secret_key).encrypt(m.encode())
+    return AESCipher(key=settings.auth_secret_key).encrypt(m.encode(), urlsafe=urlsafe)
 
 
-def decrypt_internal_message(m: Optional[str] = None) -> Optional[str]:
-    """Decrypt message with the internal secret key"""
+def decrypt_internal_message(
+    m: Optional[str] = None, urlsafe: bool = False
+) -> Optional[str]:
+    """
+    Decrypt message with the internal secret key
+
+    Args:
+        m: Message to decrypt
+        urlsafe: Whether the message uses URL-safe base64 encoding
+    """
     if not m:
         return None
-    return AESCipher(key=settings.auth_secret_key).decrypt(m)
+    return AESCipher(key=settings.auth_secret_key).decrypt(m, urlsafe=urlsafe)
 
 
 def filter_dict_keys(data: dict, filter_keys: Optional[list[str]]) -> dict:
@@ -312,3 +328,18 @@ def get_api_routes(routes: list) -> dict[str, str]:
             data["/".join(segments[0:4])] = segments[1].capitalize()
 
     return data
+
+
+def path_segments(path: str) -> list[str]:
+    path = path.strip("/")
+    segments = path.split("/")
+    if len(segments) < 2:
+        return segments
+    if segments[0] == "upgrades":
+        return segments[2:]
+    return segments[0:]
+
+
+def normalize_path(path: Optional[str]) -> str:
+    path = path or ""
+    return "/" + "/".join(path_segments(path))

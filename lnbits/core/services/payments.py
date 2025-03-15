@@ -1,4 +1,4 @@
-import json
+import asyncio
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -11,12 +11,11 @@ from loguru import logger
 from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
-from lnbits.core.models.notifications import NotificationType
-from lnbits.core.services.notifications import enqueue_notification
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import settings
+from lnbits.tasks import create_task
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
@@ -43,7 +42,7 @@ from ..models import (
     PaymentState,
     Wallet,
 )
-from .websockets import websocket_manager
+from .notifications import send_payment_notification
 
 
 async def pay_invoice(
@@ -61,11 +60,11 @@ async def pay_invoice(
     invoice = _validate_payment_request(payment_request, max_sat)
     assert invoice.amount_msat
 
-    async with db.reuse_conn(conn) if conn else db.connect() as conn:
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         amount_msat = invoice.amount_msat
-        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, conn)
+        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
 
-        if await is_internal_status_success(invoice.payment_hash, conn):
+        if await is_internal_status_success(invoice.payment_hash, new_conn):
             raise PaymentError("Internal invoice already paid.", status="failed")
 
         _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
@@ -80,8 +79,10 @@ async def pay_invoice(
             extra=extra,
         )
 
-        payment = await _pay_invoice(wallet, create_payment_model, conn)
-        await _credit_service_fee_wallet(payment, conn)
+    payment = await _pay_invoice(wallet, create_payment_model, conn)
+
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        await _credit_service_fee_wallet(payment, new_conn)
 
         return payment
 
@@ -107,7 +108,7 @@ async def create_invoice(
     if not user_wallet:
         raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
 
-    invoice_memo = None if description_hash else memo
+    invoice_memo = None if description_hash else memo[:640]
 
     # use the fake wallet if the invoice is for internal use only
     funding_source = fake_wallet if internal else get_funding_source()
@@ -116,6 +117,12 @@ async def create_invoice(
         amount, user_wallet, currency, extra
     )
 
+    if amount_sat > settings.lnbits_max_incoming_payment_amount_sats:
+        raise InvoiceError(
+            f"Invoice amount {amount_sat} sats is too high. Max allowed: "
+            f"{settings.lnbits_max_incoming_payment_amount_sats} sats.",
+            status="failed",
+        )
     if settings.is_wallet_max_balance_exceeded(
         user_wallet.balance_msat / 1000 + amount_sat
     ):
@@ -171,13 +178,20 @@ async def update_pending_payments(wallet_id: str):
         exclude_uncheckable=True,
     )
     for payment in pending_payments:
-        status = await payment.check_status()
-        if status.failed:
-            payment.status = PaymentState.FAILED
-            await update_payment(payment)
-        elif status.success:
-            payment.status = PaymentState.SUCCESS
-            await update_payment(payment)
+        await update_pending_payment(payment)
+
+
+async def update_pending_payment(payment: Payment) -> bool:
+    status = await payment.check_status()
+    if status.failed:
+        payment.status = PaymentState.FAILED
+        await update_payment(payment)
+        return True
+    if status.success:
+        payment.status = PaymentState.SUCCESS
+        await update_payment(payment)
+        return True
+    return False
 
 
 def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
@@ -266,60 +280,6 @@ async def update_wallet_balance(
         from lnbits.tasks import internal_invoice_queue
 
         await internal_invoice_queue.put(payment.checking_id)
-
-
-async def send_payment_notification(wallet: Wallet, payment: Payment):
-    try:
-        await send_ws_payment_notification(wallet, payment)
-    except Exception as e:
-        logger.error("Error sending websocket payment notification", e)
-
-    try:
-        send_chat_payment_notification(wallet, payment)
-    except Exception as e:
-        logger.error("Error sending chat payment notification", e)
-
-
-async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
-    # TODO: websocket message should be a clean payment model
-    # await websocket_manager.send_data(payment.json(), wallet.inkey)
-    # TODO: figure out why we send the balance with the payment here.
-    # cleaner would be to have a separate message for the balance
-    # and send it with the id of the wallet so wallets can subscribe to it
-    payment_notification = json.dumps(
-        {
-            "wallet_balance": wallet.balance,
-            # use pydantic json serialization to get the correct datetime format
-            "payment": json.loads(payment.json()),
-        },
-    )
-    await websocket_manager.send_data(payment_notification, wallet.inkey)
-    await websocket_manager.send_data(payment_notification, wallet.adminkey)
-
-    await websocket_manager.send_data(
-        json.dumps({"pending": payment.pending}), payment.payment_hash
-    )
-
-
-def send_chat_payment_notification(wallet: Wallet, payment: Payment):
-    amount_sats = abs(payment.sat)
-    values: dict = {
-        "wallet_id": wallet.id,
-        "wallet_name": wallet.name,
-        "amount_sats": amount_sats,
-        "fiat_value_fmt": "",
-    }
-    if payment.extra.get("wallet_fiat_currency", None):
-        amount_fiat = payment.extra.get("wallet_fiat_amount", None)
-        currency = payment.extra.get("wallet_fiat_currency", None)
-        values["fiat_value_fmt"] = f"`{amount_fiat}`*{currency}* / "
-
-    if payment.is_out:
-        if amount_sats >= settings.lnbits_notification_outgoing_payment_amount_sats:
-            enqueue_notification(NotificationType.outgoing_payment, values)
-    else:
-        if amount_sats >= settings.lnbits_notification_incoming_payment_amount_sats:
-            enqueue_notification(NotificationType.incoming_payment, values)
 
 
 async def check_wallet_limits(
@@ -440,6 +400,8 @@ async def get_payments_daily_stats(
     balance_total: float = 0
 
     _none = PaymentDailyStats(date=datetime.now(timezone.utc))
+    if len(data_in) == 0 and len(data_out) == 0:
+        return []
     if len(data_in) == 0:
         data_in = [_none]
     if len(data_out) == 0:
@@ -578,13 +540,19 @@ async def _pay_external_invoice(
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
     service_fee_msat = service_fee(amount_msat, internal=False)
 
-    funding_source = get_funding_source()
-
-    logger.debug(f"fundingsource: sending payment {checking_id}")
-    payment_response: PaymentResponse = await funding_source.pay_invoice(
-        create_payment_model.bolt11, fee_reserve_msat
+    task = create_task(
+        _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)
     )
-    logger.debug(f"backend: pay_invoice finished {checking_id}, {payment_response}")
+
+    # make sure a hold invoice or deferred payment is not blocking the server
+    try:
+        wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
+        payment_response = await asyncio.wait_for(task, wait_time)
+    except asyncio.TimeoutError:
+        # return pending payment on timeout
+        logger.debug(f"payment timeout, {checking_id} is still pending")
+        return payment
+
     if payment_response.checking_id and payment_response.checking_id != checking_id:
         logger.warning(
             f"backend sent unexpected checking_id (expected: {checking_id} got:"
@@ -620,7 +588,20 @@ async def _pay_external_invoice(
             "didn't receive checking_id from backend, payment may be stuck in"
             f" database: {checking_id}"
         )
+
     return payment
+
+
+async def _fundingsource_pay_invoice(
+    checking_id: str, bolt11: str, fee_reserve_msat: int
+) -> PaymentResponse:
+    logger.debug(f"fundingsource: sending payment {checking_id}")
+    funding_source = get_funding_source()
+    payment_response: PaymentResponse = await funding_source.pay_invoice(
+        bolt11, fee_reserve_msat
+    )
+    logger.debug(f"backend: pay_invoice finished {checking_id}, {payment_response}")
+    return payment_response
 
 
 async def _verify_external_payment(
@@ -682,8 +663,14 @@ def _validate_payment_request(
     if not invoice.amount_msat or not invoice.amount_msat > 0:
         raise PaymentError("Amountless invoices not supported.", status="failed")
 
-    if max_sat and invoice.amount_msat > max_sat * 1000:
-        raise PaymentError("Amount in invoice is too high.", status="failed")
+    max_sat = max_sat or settings.lnbits_max_outgoing_payment_amount_sats
+    max_sat = min(max_sat, settings.lnbits_max_outgoing_payment_amount_sats)
+    if invoice.amount_msat > max_sat * 1000:
+        raise PaymentError(
+            f"Invoice amount {invoice.amount_msat // 1000} sats is too high. "
+            f"Max allowed: {max_sat} sats.",
+            status="failed",
+        )
 
     return invoice
 

@@ -4,39 +4,48 @@
 <!---->
 {% block scripts %} {{ window_vars(user) }}{% endblock %} {% block page %}
 
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-12">
+    <q-card>
+      <div>
+        <div class="q-gutter-y-md">
+          <q-tabs v-model="tab" align="left">
+            <q-tab
+              name="user"
+              :label="$t('account_settings')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="theme"
+              :label="$t('look_and_feel')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="api_acls"
+              :label="$t('access_control_list')"
+              @update="val => tab = val.name"
+            ></q-tab>
+          </q-tabs>
+        </div>
+      </div>
+    </q-card>
+  </div>
+</div>
+
 <div class="row q-col-gutter-md">
   <div v-if="user" class="col-md-12 col-lg-6 q-gutter-y-md">
     <q-card>
       <q-card-section>
         <div class="row">
           <div class="col">
-            <q-tabs v-model="tab" align="justify">
-              <q-tab
-                name="user"
-                :label="$t('account_settings')"
-                @update="val => tab = val.name"
-              ></q-tab>
-              <q-tab
-                name="theme"
-                :label="$t('look_and_feel')"
-                @update="val => tab = val.name"
-              ></q-tab>
-              <q-tab
-                name="api_acls"
-                :label="$t('access_control_list')"
-                @update="val => tab = val.name"
-              ></q-tab>
-            </q-tabs>
             <q-tab-panels v-model="tab">
               <q-tab-panel name="user">
                 <div v-if="credentialsData.show">
-                  <q-separator></q-separator>
-
                   <q-card-section>
                     <div class="row">
                       <div class="col">
                         <h4 class="q-my-none">
-                          <span v-text="$t('password_config')"></span>
+                          <span v-text="$t('password')"></span>
                         </h4>
                       </div>
                       <div class="col">
@@ -93,7 +102,7 @@
                       unelevated
                       color="primary"
                       class="float-right"
-                      :label="$t('change_password')"
+                      :label="$t('update_password')"
                     >
                     </q-btn>
                   </q-card-section>
@@ -101,7 +110,7 @@
                   <q-card-section>
                     <div class="col q-mb-sm">
                       <h4 class="q-my-none">
-                        <span v-text="$t('pubkey')"></span>
+                        Nostr <span v-text="$t('pubkey')"></span>
                       </h4>
                     </div>
                     <q-input
@@ -132,11 +141,10 @@
                   </q-card-section>
                 </div>
                 <div v-else>
-                  <q-card-section>
+                  <q-card-section v-if="user.extra.picture">
                     <div class="row">
                       <div class="col">
                         <q-img
-                          v-if="user.extra.picture"
                           style="max-width: 100px"
                           :src="user.extra.picture"
                           class="float-right"
@@ -144,7 +152,6 @@
                       </div>
                     </div>
                   </q-card-section>
-                  <q-separator></q-separator>
 
                   <q-card-section>
                     <q-input
@@ -280,7 +287,7 @@
                     </q-btn>
                     <q-btn
                       @click="showUpdateCredentials()"
-                      :label="$t('update_credentials')"
+                      :label="$t('change_password')"
                       filled
                       color="primary"
                       class="float-right"
@@ -349,7 +356,7 @@
                       flat
                       @click="themeChoiceFunc('bitcoin')"
                       icon="circle"
-                      color="orange"
+                      color="deep-orange"
                       size="md"
                       ><q-tooltip>bitcoin</q-tooltip>
                     </q-btn>

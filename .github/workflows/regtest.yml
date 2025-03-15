@@ -63,6 +63,8 @@ jobs:
           LNBITS_ENDPOINT: http://localhost:5001
           LNBITS_KEY: "d08a3313322a4514af75d488bcc27eee"
           ECLAIR_URL: http://127.0.0.1:8082
+          LNBITS_MAX_OUTGOING_PAYMENT_AMOUNT_SATS: 1000000000
+          LNBITS_MAX_INCOMING_PAYMENT_AMOUNT_SATS: 1000000000
           ECLAIR_PASS: lnbits
           PYTHONUNBUFFERED: 1
           DEBUG: true

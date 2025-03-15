@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from time import time
-from typing import Any, NamedTuple, Optional
+from typing import Any, NamedTuple
 
 from loguru import logger
 
@@ -23,7 +23,7 @@ class Cache:
         self.interval = interval
         self._values: dict[Any, Cached] = {}
 
-    def get(self, key: str, default=None) -> Optional[Any]:
+    def get(self, key: str, default=None) -> Any | None:
         cached = self._values.get(key)
         if cached is not None:
             if cached.expiry > time():
@@ -35,7 +35,7 @@ class Cache:
     def set(self, key: str, value: Any, expiry: float = 10):
         self._values[key] = Cached(value, time() + expiry)
 
-    def pop(self, key: str, default=None) -> Optional[Any]:
+    def pop(self, key: str, default=None) -> Any | None:
         cached = self._values.pop(key, None)
         if cached and cached.expiry > time():
             return cached.value

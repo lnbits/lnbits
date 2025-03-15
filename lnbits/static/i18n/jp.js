@@ -87,7 +87,7 @@ window.localisation.jp = {
   pay: '支払う',
   memo: 'メモ',
   date: '日付',
-  processing_payment: '支払い処理中',
+  payment_processing: '支払い処理中',
   not_enough_funds: '資金が不足しています',
   search_by_tag_memo_amount: 'タグ、メモ、金額で検索',
   invoice_waiting: '請求書を待っています',

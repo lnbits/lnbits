@@ -90,7 +90,7 @@ window.localisation.es = {
   pay: 'Pagar',
   memo: 'Memo',
   date: 'Fecha',
-  processing_payment: 'Procesando pago ...',
+  payment_processing: 'Procesando pago ...',
   not_enough_funds: '¡No hay suficientes fondos!',
   search_by_tag_memo_amount: 'Buscar por etiqueta, memo, cantidad',
   invoice_waiting: 'Factura esperando pago',

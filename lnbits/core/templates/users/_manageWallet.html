@@ -35,6 +35,7 @@
     <q-table :rows="wallets" :columns="walletTable.columns">
       <template v-slot:header="props">
         <q-tr :props="props">
+          <q-th auto-width v-if="g.user.super_user"></q-th>
           <q-th auto-width></q-th>
           <q-th
             auto-width
@@ -47,12 +48,14 @@
       </template>
       <template v-slot:body="props">
         <q-tr :props="props">
-          <q-td auto-width>
+          <q-td auto-width v-if="g.user.super_user">
             <lnbits-update-balance
               :wallet_id="props.row.id"
               @credit-value="handleBalanceUpdate"
               class="q-mr-md"
             ></lnbits-update-balance>
+          </q-td>
+          <q-td auto-width>
             <q-btn
               round
               icon="menu"

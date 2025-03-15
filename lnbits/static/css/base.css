@@ -110,16 +110,16 @@ body[data-theme=bitcoin].body--light {
 }
 
 [data-theme=bitcoin] .bg-primary {
-  background: #ff9853 !important;
+  background: #ea611d !important;
 }
 [data-theme=bitcoin] .text-primary {
-  color: #ff9853 !important;
+  color: #ea611d !important;
 }
 [data-theme=bitcoin] .bg-secondary {
-  background: #ff7353 !important;
+  background: #e56f35 !important;
 }
 [data-theme=bitcoin] .text-secondary {
-  color: #ff7353 !important;
+  color: #e56f35 !important;
 }
 [data-theme=bitcoin] .bg-dark {
   background: #2d293b !important;
@@ -134,10 +134,10 @@ body[data-theme=bitcoin].body--light {
   color: #333646 !important;
 }
 [data-theme=bitcoin] .bg-marginal-bg {
-  background: #2d293b !important;
+  background: #000000 !important;
 }
 [data-theme=bitcoin] .text-marginal-bg {
-  color: #2d293b !important;
+  color: #000000 !important;
 }
 [data-theme=bitcoin] .bg-marginal-text {
   background: #fff !important;

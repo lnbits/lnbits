@@ -3,7 +3,7 @@ from .funding_source import (
     switch_to_voidwallet,
 )
 from .lnurl import perform_lnurlauth, redeem_lnurl_withdraw
-from .notifications import enqueue_notification
+from .notifications import enqueue_notification, send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
     check_transaction_status,
@@ -12,7 +12,6 @@ from .payments import (
     fee_reserve,
     fee_reserve_total,
     pay_invoice,
-    send_payment_notification,
     service_fee,
     update_pending_payments,
     update_wallet_balance,
@@ -25,7 +24,6 @@ from .users import (
     check_admin_settings,
     create_user_account,
     create_user_account_no_ckeck,
-    init_admin_settings,
     update_user_account,
     update_user_extensions,
 )
@@ -40,6 +38,7 @@ __all__ = [
     "perform_lnurlauth",
     # notifications
     "enqueue_notification",
+    "send_payment_notification",
     # payments
     "calculate_fiat_amounts",
     "check_transaction_status",
@@ -48,7 +47,6 @@ __all__ = [
     "fee_reserve",
     "fee_reserve_total",
     "pay_invoice",
-    "send_payment_notification",
     "service_fee",
     "update_pending_payments",
     "update_wallet_balance",
@@ -59,7 +57,6 @@ __all__ = [
     "check_admin_settings",
     "create_user_account",
     "create_user_account_no_ckeck",
-    "init_admin_settings",
     "update_user_account",
     "update_user_extensions",
     # websockets
