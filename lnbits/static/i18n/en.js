@@ -199,7 +199,7 @@ window.localisation.en = {
 
   notifications_email_config: 'Email Configuration',
   notifications_enable_email: 'Enable Email',
-  notifications_enable_email_desc: 'Send notfications over email',
+  notifications_enable_email_desc: 'Send notifications over email',
   notifications_send_test_email: 'Send test email',
   notifications_send_email: 'Send email',
   notifications_send_email_desc: 'Email you will send from',
