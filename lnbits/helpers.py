@@ -71,7 +71,11 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
     t.env.globals["VOIDWALLET"] = settings.lnbits_backend_wallet_class == "VoidWallet"
     t.env.globals["HIDE_API"] = settings.lnbits_hide_api
     t.env.globals["SITE_TITLE"] = settings.lnbits_site_title
-    t.env.globals["LNBITS_DENOMINATION"] = settings.lnbits_denomination
+    t.env.globals["LNBITS_DENOMINATION"] = (
+        settings.lnbits_denomination
+        if settings.lnbits_backend_wallet_class == "FakeWallet"
+        else "sats"
+    )
     t.env.globals["SITE_TAGLINE"] = settings.lnbits_site_tagline
     t.env.globals["SITE_DESCRIPTION"] = settings.lnbits_site_description
     t.env.globals["LNBITS_SHOW_HOME_PAGE_ELEMENTS"] = (
