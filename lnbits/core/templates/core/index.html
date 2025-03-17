@@ -281,7 +281,10 @@
         </div>
       </div>
       {% endif %}
-      <div v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'" class="full-width">
+      <div
+        v-if="'{{ LNBITS_DENOMINATION }}' == 'sats' && '{{ SITE_TITLE }}' == 'LNbits'"
+        class="full-width"
+      >
         <div class="wrapper">
           <div class="marquee">
             <div class="marquee__group">
