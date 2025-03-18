@@ -84,6 +84,7 @@ window.localisation.fi = {
   create_invoice: 'Laskuta',
   camera_tooltip: 'Kuvaa lasku tai QR-koodi',
   export_csv: 'Vie CSV-tiedostoon',
+  export_csv_details: 'Vie CSV-tiedostoon lisätietoineen',
   chart_tooltip: 'Näytä kaaviokuva',
   pending: 'Odottaa',
   copy_invoice: 'Kopioi lasku',
@@ -113,7 +114,7 @@ window.localisation.fi = {
   copy_wallet_url: 'Kopioi lompakon URL',
   disclaimer_dialog_title: 'Tärkeää!',
   disclaimer_dialog:
-    'Sinun *PITÄÄ TALLETTAA*  kirjautumistietosi turvallisesta ja helposti saataville, jotta pääset jatkossa kirjautumaan lompakkoosi! Löydät kirjautumistiedot Tilin asetukset -sivulta. Tämä palvelu on kokeiluvaiheessa (eli BETA), ja niinpä kukaan ei ota mitään vastuuta varojen säilymisestä tai niiden käytettävyyden takaamisesta.',
+    'Sinun *PITÄÄ TALLETTAA*  kirjautumistietosi turvallisesta ja helposti saataville, jotta pääset jatkossa kirjautumaan lompakkoosi! Löydät kirjautumistiedot Tilin asetukset -sivulta. Kukaan ei ota mitään vastuuta varojen säilymisestä tai niiden käytettävyyden takaamisesta.',
   no_transactions: 'Lompakossa ei ole yhtään tapahtumaa',
   manage: 'Hallinnointi',
   exchanges: 'Pörssit',
@@ -168,11 +169,12 @@ window.localisation.fi = {
   tag: 'Tunniste',
   unit: 'Yksikkö',
   description: 'Kuvaus',
-  expiry: 'Vanheneminen',
+  expiry: 'Vanhenee',
   webhook: 'Webhook',
   payment_proof: 'Maksun varmenne',
   update: 'Päivitä',
   update_available: 'Saatavilla on päivitys {version}-versioon!',
+  update_available: 'Rahoituslähteet',
   latest_update:
     'Käytössä oleva versio {version}, on viimeisin saatavilla oleva.',
   notifications: 'Tiedotteet',
@@ -182,7 +184,7 @@ window.localisation.fi = {
   notifications_enable_nostr_desc: 'Lähetä tietodukset Nostr:in kautta',
   notifications_nostr_private_key: 'Nostr-yksityisavain',
   notifications_nostr_private_key_desc:
-    'Yksityinen avain (hex tai nsec) Nostr viestien lähettämisen allekirjoitukseen',
+    'Yksityinen avain (hex tai nsec) Nostr-viestien lähettämisen allekirjoitukseen',
   notifications_nostr_identifiers: 'Nostr-tunnisteet',
   notifications_nostr_identifiers_desc:
     'Lista tunnisteista kenelle tiedotukset lähetetään',
@@ -194,6 +196,25 @@ window.localisation.fi = {
   notifications_telegram_access_token_desc: 'Telegram botin Access token',
   notifications_chat_id: 'Keskustelun tunnus',
   notifications_chat_id_desc: 'Keskustelun tunnus minne tiedotukset lähetetään',
+
+  notifications_email_config: 'Sähköposti määritykset',
+  notifications_enable_email: 'Käytä sähköpostia',
+  notifications_enable_email_desc: 'Lähetä tiedotteet sähköpostilla',
+  notifications_send_test_email: 'Lähetä testiposti',
+  notifications_send_email: 'Lähetä sähköpostiosoitteella',
+  notifications_send_email_desc: 'Lähettäjänä näkyvä sähköpostiosoite',
+  notifications_send_email_username: 'Käyttäjätunnus',
+  notifications_send_email_username_desc:
+    'Käyttäjätunnus, mikäli tyhjä, käytetään sähköpostiosoitetta',
+  notifications_send_email_password: 'Lähtevän sähköpostin salasana',
+  notifications_send_email_password_desc: 'Salasana lähettävälle sähköpostille',
+  notifications_send_email_server_port: 'Lähtevän sähköpostin SMTP-portti',
+  notifications_send_email_server_port_desc: 'SMTP-palvelimen portti',
+  notifications_send_email_server: 'Lähtevän sähköpostin SMTP-palvelin',
+  notifications_send_email_server_desc:
+    'SMTP-palvelin jonka kautta sähköpostit lähetetään',
+  notifications_send_to_emails: 'Sähköpostien vastaanottaja',
+  notifications_send_to_emails_desc: 'Kenelle sähköpostit lähetetään',
 
   notification_settings_update: 'Asetuksia päivitetty',
   notification_settings_update_desc:
@@ -269,7 +290,7 @@ window.localisation.fi = {
   number_of_requests: 'Pyyntöjen lukumäärä',
   time_unit: 'aikayksikkö',
   minute: 'minuutti',
-  settings: 'Settings',
+  settings: 'Asetukset',
   second: 'sekunti',
   hour: 'tunti',
   disable_server_log: 'Poista palvelimen loki käytöstä',
@@ -293,6 +314,7 @@ window.localisation.fi = {
   password: 'Anna uusi salasana',
   password_config: 'Salasanan määritys',
   password_repeat: 'Toista uusi salasana',
+  update_password: 'Päivitä salasana',
   change_password: 'Vaihda salasana',
   update_credentials: 'Päivitä käyttöoikeustiedot',
   update_pubkey: 'Päivitä julkinen avain',
@@ -450,10 +472,16 @@ window.localisation.fi = {
     'Rajoita käytettävissä olevien fiat-valuuttojen määrää',
   default_account_currency: 'Tilin oletusvaluutta',
   default_account_currency_hint: 'Kirjanpidon oletusvaluutta',
-  service_fee: 'Palvelumaksu',
+
+  max_incoming_payment_amount: 'Saapuvan maksun enimmäismäärä',
+  max_incoming_payment_amount_desc: 'Enimmäismäärä jonka voi laskuttaa',
+  max_outgoing_payment_amount: 'Lähtevän maksun enimmäismäärä',
+  max_outgoing_payment_amount_desc: 'Enimmäismäärä jonka voi maksaa',
+  service_fee_badge: 'Palvelumaksu: {amount} % tapahtumasta',
   service_fee_label: 'Palvelumaksu (%)',
   service_fee_hint: 'Tapahtumastakohtainen palvelumaksu (%)',
-  service_fee_max: 'Palvelumaksun enimmäismäärä',
+  service_fee_max_badge:
+    'Palvelumaksu: {amount} % tapahtomasta (enintään {max} {denom})',
   service_fee_max_label: 'Palvelumaksu enintään (sat)',
   service_fee_max_hint: 'Suurin veloitettava palvelumaksu (sat)',
   fee_wallet: 'Palvelumaksujen lompakko',
@@ -476,9 +504,10 @@ window.localisation.fi = {
   lnbits_wallet: 'LNbits-lompakko',
   denomination: 'Valuutan nimi',
   denomination_hint: 'FakeWallet-lompakon valuutan nimi',
-  ui_qr_code_logo: 'QR-koodin logo',
+  denomination_error: 'Valuutta tunnisssa on oltava 3 merkkiä, tai `sat`',
+  ui_qr_code_logo: 'QR- ja Favicon-logo',
   ui_qr_code_logo_hint:
-    'Anna QR-koodissa käytettävää logo-kuvaan osoittava URL',
+    'Anna QR-koodissa ja Faviconissa käytettävän logo-kuvan URL',
   ui_custom_image: 'Yksilöyty kuva',
   ui_custom_image_label: 'Anna yksilöidyn kuvan URL-osoite',
   ui_custom_image_hint:
@@ -508,6 +537,7 @@ window.localisation.fi = {
   allowed_users_label: 'Käyttäjätunnus',
   allow_creation_user: 'Salli uusien käyttäjien luominen',
   allow_creation_user_desc: 'Salli uusien käyttäjien luominen etusivulla',
+  new_user_not_allowed: 'Tunnusten luonti on estetty.',
   components: 'Komponentit',
   long_running_endpoints: 'Top 5 pisimpään yhteydessä ollutta päätepistettä',
   http_request_methods: 'HTTP-pyynnön menetelmät',
@@ -536,5 +566,7 @@ window.localisation.fi = {
   reset_wallet_keys_desc:
     'Tämän lompakon API-avaimet uusitaan. Edelliset API-avaimet lakkaavat toimimasta ja uudet luodaan niiden tilalle..',
   view_list: 'Näytä lompakot listana',
-  view_column: 'Näytä lompakot riveinä'
+  view_column: 'Näytä lompakot riveinä',
+  filter_payments: 'Suodata maksuja',
+  filter_date: 'Suodata päiväyksellä'
 }
