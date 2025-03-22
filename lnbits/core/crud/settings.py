@@ -65,9 +65,16 @@ async def delete_admin_settings(tag: Optional[str] = "core") -> None:
         """
         DELETE FROM system_settings
         WHERE tag = :tag
-        AND id NOT IN ('super_user', 'lnbits_webpush_pubkey', 'lnbits_webpush_privkey')
+        AND (
+            tag != 'core'
+            OR id NOT IN (
+                'super_user',
+                'lnbits_webpush_pubkey',
+                'lnbits_webpush_privkey'
+            )
+        )
         """,
-        {"tag": tag}
+        {"tag": tag},
     )
 
 
