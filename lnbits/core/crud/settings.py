@@ -61,7 +61,14 @@ async def update_super_user(super_user: str) -> SuperSettings:
 
 
 async def delete_admin_settings(tag: Optional[str] = "core") -> None:
-    await db.execute("DELETE FROM system_settings WHERE tag = :tag", {"tag": tag})
+    await db.execute(
+        """
+        DELETE FROM system_settings
+        WHERE tag = :tag
+        AND id NOT IN ('super_user', 'lnbits_webpush_pubkey', 'lnbits_webpush_privkey')
+        """,
+        {"tag": tag}
+    )
 
 
 async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSettings:
