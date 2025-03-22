@@ -549,7 +549,7 @@ window.AdminPageLogic = {
                   'Success! Restored settings to defaults. Restarting...',
                 icon: null
               })
-              localStorage.clear()
+              this.$q.localStorage.clear()
             })
             .catch(LNbits.utils.notifyApiError)
         })
