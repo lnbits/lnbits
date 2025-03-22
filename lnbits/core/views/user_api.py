@@ -104,7 +104,7 @@ async def api_create_user(data: CreateUser) -> CreateUser:
     )
     account.validate_fields()
     account.hash_password(data.password)
-    user = await create_user_account_no_ckeck(account)
+    user = await create_user_account_no_ckeck(account, default_exts=data.extensions)
     data.id = user.id
     return data
 
