@@ -230,6 +230,11 @@
           "X-Api-Key: <i v-text="wallet.inkey"></i>" -H "Content-type:
           application/json"</code
         >
+        <h5 class="text-caption q-mt-sm q-mb-none">Websocket example (returns payment)</h5>
+        <code
+          >wscat -c
+          <span v-text="{{websocketUrl}}"></span>api/v1/ws/{{ wallet.inkey }}</code
+        >
       </q-card-section>
     </q-card>
   </q-expansion-item>
