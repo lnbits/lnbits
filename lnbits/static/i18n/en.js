@@ -568,5 +568,6 @@ window.localisation.en = {
   view_list: 'View wallets as list',
   view_column: 'View wallets as rows',
   filter_payments: 'Filter payments',
-  filter_date: 'Filter by date'
+  filter_date: 'Filter by date',
+  websocket_example: 'Websocket example'
 }

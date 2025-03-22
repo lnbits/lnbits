@@ -4,6 +4,7 @@ window.WalletPageLogic = {
     return {
       origin: window.location.origin,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
+      websocketUrl: `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`,
       parse: {
         show: false,
         invoice: null,

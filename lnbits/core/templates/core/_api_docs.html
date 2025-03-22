@@ -230,11 +230,27 @@
           "X-Api-Key: <i v-text="wallet.inkey"></i>" -H "Content-type:
           application/json"</code
         >
-        <h5 class="text-caption q-mt-sm q-mb-none">Websocket example (returns payment)</h5>
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-card-section>
         <code
-          >wscat -c
-          <span v-text="{{websocketUrl}}"></span>api/v1/ws/{{ wallet.inkey }}</code
+          ><span class="text-pink">WS</span>
+          /api/v1/ws/&lt;invoice_key&gt;</code
         >
+        <h5
+          class="text-caption q-mt-sm q-mb-none"
+          v-text="$t('websocket_example')"
+        ></h5>
+        <code
+          >wscat -c <span v-text="websocketUrl"></span>/<span
+            v-text="wallet.inkey"
+          ></span
+        ></code>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)/payments
+        </h5>
+        <code>{"balance": &lt;int&gt;, "payment": &lt;object&gt;}</code>
       </q-card-section>
     </q-card>
   </q-expansion-item>
