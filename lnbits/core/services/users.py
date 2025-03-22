@@ -46,7 +46,9 @@ async def create_user_account(
 
 
 async def create_user_account_no_ckeck(
-    account: Optional[Account] = None, wallet_name: Optional[str] = None
+    account: Optional[Account] = None,
+    wallet_name: Optional[str] = None,
+    default_exts: Optional[list[str]] = None,
 ) -> User:
 
     if account:
@@ -69,9 +71,13 @@ async def create_user_account_no_ckeck(
         wallet_name=wallet_name or settings.lnbits_default_wallet_name,
     )
 
-    for ext_id in settings.lnbits_user_default_extensions:
-        user_ext = UserExtension(user=account.id, extension=ext_id, active=True)
-        await update_user_extension(user_ext)
+    user_extensions = (default_exts or []) + settings.lnbits_user_default_extensions
+    for ext_id in user_extensions:
+        try:
+            user_ext = UserExtension(user=account.id, extension=ext_id, active=True)
+            await create_user_extension(user_ext)
+        except Exception as e:
+            logger.error(f"Error enabeling default extension {ext_id}: {e}")
 
     user = await get_user_from_account(account)
     assert user, "Cannot find user for account."

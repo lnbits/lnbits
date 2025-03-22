@@ -199,7 +199,7 @@ window.localisation.en = {
 
   notifications_email_config: 'Email Configuration',
   notifications_enable_email: 'Enable Email',
-  notifications_enable_email_desc: 'Send notfications over email',
+  notifications_enable_email_desc: 'Send notifications over email',
   notifications_send_test_email: 'Send test email',
   notifications_send_email: 'Send email',
   notifications_send_email_desc: 'Email you will send from',
@@ -494,9 +494,11 @@ window.localisation.en = {
     'Disable Service Fee for Internal Lightning Payments',
   ui_management: 'UI Management',
   ui_site_title: 'Site Title',
+  ui_changing_remove_lnbits_elements:
+    ' (changing will remove LNbits elements on the homepage and footer)',
   ui_site_tagline: 'Site Tagline',
-  ui_elements_enable: 'Enable elements on homepage',
-  ui_elements_disable: 'Disable elements on homepage',
+  ui_elements_enable: 'Enable elements on homepage/footer',
+  ui_elements_disable: 'Disable elements on homepage/footer',
   ui_toggle_elements_tip: "Remove homepage elements like 'runs on' etc",
   ui_site_description: 'Site Description',
   ui_site_description_hint: 'Use plain text, Markdown, or raw HTML',
