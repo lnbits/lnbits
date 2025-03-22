@@ -343,7 +343,7 @@
         {% endblock %} {% block footer %}
 
         <q-footer
-          v-if="'{{ SITE_TITLE }}' == 'LNbits'"
+          v-if="'{{ SITE_TITLE }}' == 'LNbits' && '{{ LNBITS_SHOW_HOME_PAGE_ELEMENTS }}' == 'True'"
           class="bg-transparent q-px-lg q-py-md"
           :class="{'text-dark': !$q.dark.isActive}"
         >
