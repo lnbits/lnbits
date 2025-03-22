@@ -61,7 +61,7 @@ async def update_super_user(super_user: str) -> SuperSettings:
 
 
 async def delete_admin_settings(tag: Optional[str] = "core") -> None:
-    await db.execute("DELETE FROM settings WHERE tag = :tag", {"tag": tag})
+    await db.execute("DELETE FROM system_settings WHERE tag = :tag", {"tag": tag})
 
 
 async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSettings:
