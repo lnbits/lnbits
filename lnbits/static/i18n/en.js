@@ -494,6 +494,8 @@ window.localisation.en = {
     'Disable Service Fee for Internal Lightning Payments',
   ui_management: 'UI Management',
   ui_site_title: 'Site Title',
+  ui_changing_remove_lnbits_elements:
+    ' (changing will remove LNbits elements on the homepage and footer)',
   ui_site_tagline: 'Site Tagline',
   ui_elements_enable: 'Enable elements on homepage',
   ui_elements_disable: 'Disable elements on homepage',
