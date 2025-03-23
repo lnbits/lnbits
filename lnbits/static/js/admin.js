@@ -589,6 +589,7 @@ window.AdminPageLogic = {
           '/admin/api/v1/images',
           this.g.user.wallets[0].adminkey
         )
+        console.log(response.data)
         this.library_images = response.data
       } catch (error) {
         LNbits.utils.notifyApiError(error)

@@ -17,43 +17,44 @@
       @change="onImageInput"
     />
   </q-card-section>
+  <div class="row q-col-gutter-sm q-pa-sm">
+    <div
+      v-for="image in library_images"
+      :key="image.filename"
+      class="col-6 col-sm-4 col-md-3 col-lg-2"
+      style="max-width: 200px"
+    >
+      <q-card class="q-mb-sm">
+        <q-img :src="image.url" style="height: 150px" />
 
-  <div v-if="images && library_images.length > 0">
-    <q-card v-for="image in images" :key="image.filename" class="q-mb-sm">
-      <q-img :src="image.url" style="height: 150px" />
-
-      <q-card-section
-        class="q-pt-sm q-pb-none row items-center justify-between"
-      >
-        <div
-          class="text-body2 ellipsis"
-          style="max-width: 80%"
-          v-text="image.url"
-        ></div>
-        <q-btn
-          dense
-          flat
-          icon="content_copy"
-          @click="copyText(image.url)"
-          :title="$t('copy')"
-        ></q-btn>
-      </q-card-section>
-
-      <q-card-actions align="right">
-        <q-btn
-          color="negative"
-          icon="delete"
-          flat
-          @click="deleteImage(image.filename)"
-        />
-      </q-card-actions>
-    </q-card>
+        <q-card-section
+          class="q-pt-md q-pb-md row items-center justify-between"
+        >
+          <small
+            ><div class="text-caption ellipsis" v-text="image.filename"></div
+          ></small>
+          <q-btn
+            dense
+            flat
+            size="sm"
+            icon="content_copy"
+            @click="copyText(image.url)"
+            :title="$t('copy')"
+            ><q-tooltip>Copy image link</q-tooltip></q-btn
+          >
+          <q-btn
+            color="negative"
+            icon="delete"
+            flat
+            size="sm"
+            @click="deleteImage(image.filename)"
+            ><q-tooltip>Delete image</q-tooltip></q-btn
+          >
+        </q-card-section>
+      </q-card>
+    </div>
   </div>
-
-  <!-- Empty state -->
-  <div v-else>
-    <q-card class="q-pa-md">
-      <div class="text-subtitle2 text-grey">No images uploaded yet.</div>
-    </q-card>
+  <div v-if="library_images.length === 0" class="q-pa-xl">
+    <div class="text-subtitle2 text-grey">No images uploaded yet.</div>
   </div>
 </q-tab-panel>

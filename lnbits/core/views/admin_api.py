@@ -2,7 +2,6 @@ import glob
 import imghdr
 import os
 import time
-import uuid
 from http import HTTPStatus
 from io import BytesIO
 from shutil import make_archive
@@ -10,6 +9,7 @@ from subprocess import Popen
 from typing import Optional
 from urllib.parse import urlparse
 
+import shortuuid
 from fastapi import APIRouter, Depends, File, HTTPException, Path, UploadFile
 from fastapi.responses import FileResponse
 
@@ -195,7 +195,7 @@ async def upload_image(file: UploadFile = file_upload):
         raise HTTPException(status_code=400, detail="Invalid image file")
     contents.seek(0)
 
-    filename = f"{uuid.uuid4()}.{ext}"
+    filename = f"{shortuuid.uuid()[:5]}.{ext}"
     image_folder = os.path.join(settings.lnbits_data_folder, "images")
     os.makedirs(image_folder, exist_ok=True)
     file_path = os.path.join(image_folder, filename)
@@ -203,7 +203,7 @@ async def upload_image(file: UploadFile = file_upload):
     with open(file_path, "wb") as f:
         f.write(contents.read())
 
-    return {"filename": filename, "url": f"/static/images/{filename}"}
+    return {"filename": filename, "url": f"{settings.lnbits_baseurl}library/{filename}"}
 
 
 @admin_router.get(
@@ -222,8 +222,12 @@ async def list_uploaded_images():
     for file_path in files:
         if os.path.isfile(file_path):
             filename = os.path.basename(file_path)
-            images.append({"filename": filename, "url": f"/static/images/{filename}"})
-
+            images.append(
+                {
+                    "filename": filename,
+                    "url": f"{settings.lnbits_baseurl}library/{filename}",
+                }
+            )
     return images
 
 
@@ -238,7 +242,7 @@ async def delete_uploaded_image(
     image_folder = os.path.join(settings.lnbits_data_folder, "images")
     file_path = os.path.join(image_folder, filename)
 
-    # Prevent directory traversal attack (e.g., filename = "../../etc/passwd")
+    # Prevent dir traversal attack
     if not os.path.abspath(file_path).startswith(os.path.abspath(image_folder)):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
