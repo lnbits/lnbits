@@ -27,6 +27,7 @@ window.localisation.en = {
   close_channel: 'Close Channel',
   close: 'Close',
   restart: 'Restart server',
+  image_library: 'Image Library',
   save: 'Save',
   save_tooltip: 'Save your changes',
   credit_debit: 'Credit / Debit',

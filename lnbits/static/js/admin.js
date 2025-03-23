@@ -4,7 +4,7 @@ window.AdminPageLogic = {
     return {
       settings: {},
       logs: [],
-      images: [],
+      library_images: [],
       serverlogEnabled: false,
       lnbits_theme_options: [
         'classic',
@@ -582,7 +582,7 @@ window.AdminPageLogic = {
           '/admin/api/v1/images',
           this.g.user.wallets[0].adminkey
         )
-        this.images = response.data
+        this.library_images = response.data
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }
