@@ -141,6 +141,7 @@ window.AdminPageLogic = {
   async created() {
     await this.getSettings()
     await this.getAudit()
+    await this.getUploadedImages()
     this.balance = +'{{ balance|safe }}'
     const hash = window.location.hash.replace('#', '')
     if (hash === 'exchange_providers') {
@@ -552,6 +553,12 @@ window.AdminPageLogic = {
             })
             .catch(LNbits.utils.notifyApiError)
         })
+    },
+    onImageInput(e) {
+      const file = e.target.files[0]
+      if (file) {
+        this.uploadImage(file)
+      }
     },
     async uploadImage(file) {
       const formData = new FormData()
