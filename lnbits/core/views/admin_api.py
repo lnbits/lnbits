@@ -31,6 +31,7 @@ from .. import core_app_extra
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
 
 admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
+file_upload = File(...)
 
 
 @admin_router.get(
@@ -170,7 +171,7 @@ async def api_download_backup() -> FileResponse:
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_super_user)],
 )
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(file: UploadFile = file_upload):
     if not file or not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
 
