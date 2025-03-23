@@ -73,6 +73,9 @@ async def api_get_users(
     "/user/{user_id}",
     name="Get user",
     summary="Get user by Id",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
 )
 async def api_get_user(user_id: str) -> User:
     user = await get_user(user_id)
@@ -81,7 +84,13 @@ async def api_get_user(user_id: str) -> User:
     return user
 
 
-@users_router.post("/user", name="Create user")
+@users_router.post(
+    "/user",
+    name="Create user",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
+)
 async def api_create_user(data: CreateUser) -> CreateUser:
     if not data.username and data.password:
         raise HTTPException(
@@ -112,7 +121,13 @@ async def api_create_user(data: CreateUser) -> CreateUser:
     return data
 
 
-@users_router.put("/user/{user_id}", name="Update user")
+@users_router.put(
+    "/user/{user_id}",
+    name="Update user",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
+)
 async def api_update_user(user_id: str, data: CreateUser) -> CreateUser:
     if user_id != data.id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "User Id missmatch.")
@@ -139,6 +154,9 @@ async def api_update_user(user_id: str, data: CreateUser) -> CreateUser:
     "/user/{user_id}",
     status_code=HTTPStatus.OK,
     name="Delete user by Id",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
 )
 async def api_users_delete_user(
     user_id: str, user: User = Depends(check_admin)
@@ -169,6 +187,9 @@ async def api_users_delete_user(
     "/user/{user_id}/reset_password",
     dependencies=[Depends(check_super_user)],
     name="Reset user password",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
 )
 async def api_users_reset_password(user_id: str) -> str:
     if user_id == settings.super_user:
@@ -189,6 +210,9 @@ async def api_users_reset_password(user_id: str) -> str:
     "/user/{user_id}/admin",
     dependencies=[Depends(check_super_user)],
     name="Give or revoke admin permsisions to a user",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
 )
 async def api_users_toggle_admin(user_id: str) -> SimpleStatus:
     if user_id == settings.super_user:
@@ -208,12 +232,24 @@ async def api_users_toggle_admin(user_id: str) -> SimpleStatus:
     )
 
 
-@users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
+@users_router.get(
+    "/user/{user_id}/wallet",
+    name="Get wallets for user",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
+)
 async def api_users_get_user_wallet(user_id: str) -> List[Wallet]:
     return await get_wallets(user_id)
 
 
-@users_router.post("/user/{user_id}/wallet", name="Create a new wallet for user")
+@users_router.post(
+    "/user/{user_id}/wallet",
+    name="Create a new wallet for user",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
+)
 async def api_users_create_user_wallet(
     user_id: str, name: Optional[str] = Body(None), currency: Optional[str] = Body(None)
 ):
@@ -230,7 +266,11 @@ async def api_users_create_user_wallet(
 
 
 @users_router.put(
-    "/user/{user_id}/wallet/{wallet}/undelete", name="Reactivate deleted wallet"
+    "/user/{user_id}/wallet/{wallet}/undelete",
+    name="Reactivate deleted wallet",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
 )
 async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> SimpleStatus:
     wal = await get_wallet(wallet)
@@ -257,6 +297,9 @@ async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> SimpleSta
     name="Delete wallet by id",
     summary="First time it is called it does a soft delete (only sets a flag)."
     "The second time it is called will delete the entry from the DB",
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
 )
 async def api_users_delete_user_wallet(user_id: str, wallet: str) -> SimpleStatus:
     wal = await get_wallet(wallet)
@@ -276,6 +319,9 @@ async def api_users_delete_user_wallet(user_id: str, wallet: str) -> SimpleStatu
     name="UpdateBalance",
     summary="Update balance for a particular wallet.",
     dependencies=[Depends(check_super_user)],
+    openapi_extra={
+        "security": [{"BearerAuth": []}],
+    },
 )
 async def api_update_balance(data: UpdateBalance) -> SimpleStatus:
     wallet = await get_wallet(data.id)

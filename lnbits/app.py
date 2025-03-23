@@ -10,6 +10,7 @@ from typing import Callable, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from slowapi import Limiter
@@ -142,9 +143,33 @@ async def lifespan(app: FastAPI):
     await shutdown()
 
 
+class LNbitsFastAPI(FastAPI):
+    def openapi(self):
+        if self.openapi_schema:
+            return self.openapi_schema
+
+        openapi_schema = get_openapi(
+            title=self.title,
+            version=self.version,
+            description=self.description,
+            routes=self.routes,
+        )
+
+        openapi_schema.setdefault("components", {}).setdefault("securitySchemes", {})[
+            "BearerAuth"
+        ] = {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+
+        self.openapi_schema = openapi_schema
+        return self.openapi_schema
+
+
 def create_app() -> FastAPI:
     configure_logger()
-    app = FastAPI(
+    app = LNbitsFastAPI(
         title=settings.lnbits_title,
         description=(
             "API for LNbits, the free and open source bitcoin wallet and "
