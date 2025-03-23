@@ -1,0 +1,31 @@
+<q-tab-panel name="library">
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none q-mb-sm">
+      <span v-text="$t('library')"></span>
+    </h6>
+    <q-btn
+      color="primary"
+      label="Add Image"
+      @click="$refs.imageInput.click()"
+      class="q-mb-md"
+    />
+    <input
+      type="file"
+      ref="imageInput"
+      accept="image/png, image/jpeg, image/gif"
+      style="display: none"
+      @change="e => uploadImage(e.target.files[0])"
+    />
+  </q-card-section>
+  <q-card v-for="image in images" :key="image.filename" class="q-mb-sm">
+    <q-img :src="image.url" style="height: 150px" />
+    <q-card-actions align="right">
+      <q-btn
+        color="negative"
+        icon="delete"
+        flat
+        @click="deleteImage(image.filename)"
+      />
+    </q-card-actions>
+  </q-card>
+</q-tab-panel>
