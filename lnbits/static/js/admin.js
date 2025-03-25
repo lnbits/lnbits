@@ -567,7 +567,7 @@ window.AdminPageLogic = {
       try {
         const response = await LNbits.api.request(
           'POST',
-          '/admin/api/v1/upload',
+          '/admin/api/v1/images',
           this.g.user.wallets[0].adminkey,
           formData,
           {headers: {'Content-Type': 'multipart/form-data'}}
@@ -587,9 +587,8 @@ window.AdminPageLogic = {
         const response = await LNbits.api.request(
           'GET',
           '/admin/api/v1/images',
-          this.g.user.wallets[0].adminkey
+          this.g.user.wallets[0].inkey
         )
-        console.log(response.data)
         this.library_images = response.data
       } catch (error) {
         LNbits.utils.notifyApiError(error)

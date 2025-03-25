@@ -167,9 +167,9 @@ async def api_download_backup() -> FileResponse:
 
 
 @admin_router.post(
-    "/api/v1/upload",
+    "/api/v1/images",
     status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_super_user)],
+    dependencies=[Depends(check_admin)],
 )
 async def upload_image(file: UploadFile = file_upload):
     if not file or not file.filename:
@@ -181,11 +181,13 @@ async def upload_image(file: UploadFile = file_upload):
 
     contents = BytesIO()
     total_size = 0
-
+    max_size = 500000
     while chunk := await file.read(1024 * 1024):
         total_size += len(chunk)
-        if total_size > 2 * 1024 * 1024:
-            raise HTTPException(status_code=413, detail="File too large")
+        if total_size > max_size:
+            raise HTTPException(
+                status_code=413, detail=f"File too large ({max_size / 1000} KB max)"
+            )
         contents.write(chunk)
 
     contents.seek(0)
@@ -197,7 +199,6 @@ async def upload_image(file: UploadFile = file_upload):
 
     filename = f"{shortuuid.uuid()[:5]}.{ext}"
     image_folder = os.path.join(settings.lnbits_data_folder, "images")
-    os.makedirs(image_folder, exist_ok=True)
     file_path = os.path.join(image_folder, filename)
 
     with open(file_path, "wb") as f:
@@ -209,7 +210,7 @@ async def upload_image(file: UploadFile = file_upload):
 @admin_router.get(
     "/api/v1/images",
     status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_super_user)],
+    dependencies=[Depends(check_admin)],
 )
 async def list_uploaded_images():
     image_folder = os.path.join(settings.lnbits_data_folder, "images")
@@ -234,7 +235,7 @@ async def list_uploaded_images():
 @admin_router.delete(
     "/api/v1/images/{filename}",
     status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_super_user)],
+    dependencies=[Depends(check_admin)],
 )
 async def delete_uploaded_image(
     filename: str = Path(..., description="Name of the image file to delete")
