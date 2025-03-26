@@ -5,7 +5,7 @@ import jwt
 from fastapi import Cookie, Depends, Query, Request, Security
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
-from fastapi.security import APIKeyHeader, APIKeyQuery, OAuth2PasswordBearer
+from fastapi.security import APIKeyHeader, APIKeyQuery, HTTPBearer, OAuth2PasswordBearer
 from fastapi.security.base import SecurityBase
 from loguru import logger
 from pydantic.types import UUID4
@@ -32,6 +32,8 @@ from lnbits.helpers import path_segments
 from lnbits.settings import AuthMethods, settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth", auto_error=False)
+http_bearer = HTTPBearer(auto_error=False)
+
 
 api_key_header = APIKeyHeader(
     name="X-API-KEY",
@@ -132,8 +134,9 @@ async def require_invoice_key(
 async def check_access_token(
     header_access_token: Annotated[Union[str, None], Depends(oauth2_scheme)],
     cookie_access_token: Annotated[Union[str, None], Cookie()] = None,
+    bearer_access_token: Annotated[Union[str, None], Depends(http_bearer)] = None,
 ) -> Optional[str]:
-    return header_access_token or cookie_access_token
+    return header_access_token or cookie_access_token or bearer_access_token
 
 
 async def check_user_exists(
