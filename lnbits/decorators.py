@@ -31,10 +31,15 @@ from lnbits.db import Connection, Filter, Filters, TFilterModel
 from lnbits.helpers import path_segments
 from lnbits.settings import AuthMethods, settings
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth", auto_error=False)
-http_bearer = HTTPBearer(auto_error=False)
-
-
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="api/v1/auth",
+    auto_error=False,
+    description="OAuth2 access token for authentication with username and password.",
+)
+http_bearer = HTTPBearer(
+    auto_error=False,
+    description="Bearer Token for custom ACL based access control",
+)
 api_key_header = APIKeyHeader(
     name="X-API-KEY",
     auto_error=False,
