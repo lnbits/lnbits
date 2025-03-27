@@ -355,4 +355,6 @@ def safe_upload_file_path(filename: str, directory: str = "images") -> Path:
     # Prevent dir traversal attack
     if image_folder.resolve() not in file_path.resolve().parents:
         raise ValueError("Unsafe filename.")
-    return file_path
+    # Prevent filename with subdirectories
+    file_path = image_folder / filename.split("/")[-1]
+    return file_path.resolve()
