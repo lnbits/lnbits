@@ -164,6 +164,7 @@ def create_app() -> FastAPI:
 
     # register static files
     app.mount("/static", StaticFiles(directory=Path("lnbits", "static")), name="static")
+    Path(settings.lnbits_data_folder, "images").mkdir(parents=True, exist_ok=True)
     app.mount(
         "/library",
         StaticFiles(directory=Path(settings.lnbits_data_folder, "images")),
