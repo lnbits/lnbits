@@ -347,3 +347,12 @@ def path_segments(path: str) -> list[str]:
 def normalize_path(path: Optional[str]) -> str:
     path = path or ""
     return "/" + "/".join(path_segments(path))
+
+
+def safe_upload_file_path(filename: str, directory: str = "images") -> Path:
+    image_folder = Path(settings.lnbits_data_folder, directory)
+    file_path = image_folder / filename
+    # Prevent dir traversal attack
+    if image_folder.resolve() not in file_path.resolve().parents:
+        raise ValueError("Unsafe filename.")
+    return file_path

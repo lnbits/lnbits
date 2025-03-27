@@ -46,3 +46,8 @@ class SimpleItem(BaseModel):
 class DbVersion(BaseModel):
     db: str
     version: int
+
+
+class Image(BaseModel):
+    filename: str
+    directory: str = "images"

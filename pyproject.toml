@@ -63,6 +63,8 @@ breez-sdk = {version = "0.6.6", optional = true}
 jsonpath-ng = "^1.7.0"
 pynostr = "^0.6.2"
 python-multipart = "^0.0.20"
+filetype = "^1.2.0"
+
 [tool.poetry.extras]
 breez = ["breez-sdk"]
 liquid = ["wallycore"]
