@@ -1,12 +1,16 @@
+import glob
+import imghdr
 import os
 import time
 from http import HTTPStatus
+from io import BytesIO
 from shutil import make_archive
 from subprocess import Popen
 from typing import Optional
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends
+import shortuuid
+from fastapi import APIRouter, Depends, File, HTTPException, Path, UploadFile
 from fastapi.responses import FileResponse
 
 from lnbits.core.models import User
@@ -27,6 +31,7 @@ from .. import core_app_extra
 from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
 
 admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
+file_upload = File(...)
 
 
 @admin_router.get(
@@ -159,3 +164,91 @@ async def api_download_backup() -> FileResponse:
     return FileResponse(
         path=f"{last_filename}.zip", filename=filename, media_type="application/zip"
     )
+
+
+@admin_router.post(
+    "/api/v1/images",
+    status_code=HTTPStatus.OK,
+    dependencies=[Depends(check_admin)],
+)
+async def upload_image(file: UploadFile = file_upload):
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    ext = file.filename.split(".")[-1].lower()
+    if ext not in {"png", "jpg", "jpeg", "gif"}:
+        raise HTTPException(status_code=400, detail="Unsupported file type")
+
+    contents = BytesIO()
+    total_size = 0
+    max_size = 500000
+    while chunk := await file.read(1024 * 1024):
+        total_size += len(chunk)
+        if total_size > max_size:
+            raise HTTPException(
+                status_code=413, detail=f"File too large ({max_size / 1000} KB max)"
+            )
+        contents.write(chunk)
+
+    contents.seek(0)
+
+    kind = imghdr.what(None, h=contents.read(512))
+    if kind not in {"png", "jpeg", "gif"}:
+        raise HTTPException(status_code=400, detail="Invalid image file")
+    contents.seek(0)
+
+    filename = f"{shortuuid.uuid()[:5]}.{ext}"
+    image_folder = os.path.join(settings.lnbits_data_folder, "images")
+    file_path = os.path.join(image_folder, filename)
+
+    with open(file_path, "wb") as f:
+        f.write(contents.read())
+
+    return {"filename": filename, "url": f"{settings.lnbits_baseurl}library/{filename}"}
+
+
+@admin_router.get(
+    "/api/v1/images",
+    status_code=HTTPStatus.OK,
+    dependencies=[Depends(check_admin)],
+)
+async def list_uploaded_images():
+    image_folder = os.path.join(settings.lnbits_data_folder, "images")
+    if not os.path.exists(image_folder):
+        return []
+
+    files = glob.glob(os.path.join(image_folder, "*"))
+    images = []
+
+    for file_path in files:
+        if os.path.isfile(file_path):
+            filename = os.path.basename(file_path)
+            images.append(
+                {
+                    "filename": filename,
+                    "url": f"{settings.lnbits_baseurl}library/{filename}",
+                }
+            )
+    return images
+
+
+@admin_router.delete(
+    "/api/v1/images/{filename}",
+    status_code=HTTPStatus.OK,
+    dependencies=[Depends(check_admin)],
+)
+async def delete_uploaded_image(
+    filename: str = Path(..., description="Name of the image file to delete")
+):
+    image_folder = os.path.join(settings.lnbits_data_folder, "images")
+    file_path = os.path.join(image_folder, filename)
+
+    # Prevent dir traversal attack
+    if not os.path.abspath(file_path).startswith(os.path.abspath(image_folder)):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    os.remove(file_path)
+    return {"status": "success", "message": f"{filename} deleted"}

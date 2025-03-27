@@ -167,6 +167,10 @@ def create_app() -> FastAPI:
     static = StaticFiles(directory=static_path)
     app.mount("/static", static, name="static")
 
+    images_path = os.path.abspath(os.path.join(settings.lnbits_data_folder, "images"))
+    os.makedirs(images_path, exist_ok=True)
+    app.mount("/library", StaticFiles(directory=images_path), name="library")
+
     g().base_url = f"http://{settings.host}:{settings.port}"
 
     app.add_middleware(

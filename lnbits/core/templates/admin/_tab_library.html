@@ -1,0 +1,60 @@
+<q-tab-panel name="library">
+  <q-card-section class="q-pa-none">
+    <h6 class="q-my-none q-mb-sm">
+      <span v-text="$t('image_library')"></span>
+    </h6>
+    <q-btn
+      color="primary"
+      label="Add Image"
+      @click="$refs.imageInput.click()"
+      class="q-mb-md"
+    />
+    <input
+      type="file"
+      ref="imageInput"
+      accept="image/png, image/jpeg, image/gif"
+      style="display: none"
+      @change="onImageInput"
+    />
+  </q-card-section>
+  <div class="row q-col-gutter-sm q-pa-sm">
+    <div
+      v-for="image in library_images"
+      :key="image.filename"
+      class="col-6 col-sm-4 col-md-3 col-lg-2"
+      style="max-width: 200px"
+    >
+      <q-card class="q-mb-sm">
+        <q-img :src="image.url" style="height: 150px" />
+
+        <q-card-section
+          class="q-pt-md q-pb-md row items-center justify-between"
+        >
+          <small
+            ><div class="text-caption ellipsis" v-text="image.filename"></div
+          ></small>
+          <q-btn
+            dense
+            flat
+            size="sm"
+            icon="content_copy"
+            @click="copyText(image.url)"
+            :title="$t('copy')"
+            ><q-tooltip>Copy image link</q-tooltip></q-btn
+          >
+          <q-btn
+            color="negative"
+            icon="delete"
+            flat
+            size="sm"
+            @click="deleteImage(image.filename)"
+            ><q-tooltip>Delete image</q-tooltip></q-btn
+          >
+        </q-card-section>
+      </q-card>
+    </div>
+  </div>
+  <div v-if="library_images.length === 0" class="q-pa-xl">
+    <div class="text-subtitle2 text-grey">No images uploaded yet.</div>
+  </div>
+</q-tab-panel>
