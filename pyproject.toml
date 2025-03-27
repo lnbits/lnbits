@@ -147,6 +147,7 @@ module = [
   "fastapi_sso.sso.*",
   "json5.*",
   "jsonpath_ng.*",
+  "filetype.*",
 ]
 ignore_missing_imports = "True"
 
