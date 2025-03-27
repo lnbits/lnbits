@@ -50,4 +50,4 @@ class DbVersion(BaseModel):
 
 class Image(BaseModel):
     filename: str
-    directory: str = "images"
+    directory: str = "library"
