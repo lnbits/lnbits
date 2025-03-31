@@ -1,5 +1,5 @@
 from time import time
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
 from lnbits.core.db import db
@@ -110,7 +110,7 @@ async def get_payments_paginated(
       - complete | pending | failed | outgoing | incoming.
     """
 
-    values: dict = {
+    values: dict[str, Any] = {
         "time": since,
     }
     clause: list[str] = []

@@ -180,8 +180,11 @@ window.app.component('payment-list', {
         })
         .catch(err => {
           this.paymentsTable.loading = false
-          this.fetchPaymentsAsAdmin(this.currentWallet.id, params)
-          LNbits.utils.notifyApiError(err)
+          if (g.user.admin) {
+            this.fetchPaymentsAsAdmin(this.currentWallet.id, params)
+          } else {
+            LNbits.utils.notifyApiError(err)
+          }
         })
     },
     fetchPaymentsAsAdmin(walletId, params) {
