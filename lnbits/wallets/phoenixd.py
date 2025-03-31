@@ -275,6 +275,7 @@ class PhoenixdWallet(Wallet):
             else:
                 # otherwise something unexpected happened, and we keep it pending
                 logger.error(f"Error getting payment status: {r.text}, keeping pending")
+                return PaymentPendingStatus()
         try:
             data = r.json()
         except json.JSONDecodeError:
