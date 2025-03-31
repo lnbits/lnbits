@@ -111,7 +111,6 @@ async def get_payments_paginated(
     """
 
     values: dict = {
-        "wallet_id": wallet_id,
         "time": since,
     }
     clause: list[str] = []
@@ -120,6 +119,7 @@ async def get_payments_paginated(
         clause.append(f"time > {db.timestamp_placeholder('time')}")
 
     if wallet_id:
+        values["wallet_id"] = wallet_id
         clause.append("wallet_id = :wallet_id")
 
     if complete and pending:

@@ -180,6 +180,23 @@ window.app.component('payment-list', {
         })
         .catch(err => {
           this.paymentsTable.loading = false
+          this.fetchPaymentsAsAdmin(this.currentWallet.id, params)
+          LNbits.utils.notifyApiError(err)
+        })
+    },
+    fetchPaymentsAsAdmin(walletId, params) {
+      params = (params || '') + '&wallet_id=' + walletId
+      return LNbits.api
+        .request('GET', '/api/v1/payments/all/paginated?' + params)
+        .then(response => {
+          this.paymentsTable.loading = false
+          this.paymentsTable.pagination.rowsNumber = response.data.total
+          this.payments = response.data.data.map(obj => {
+            return LNbits.map.payment(obj)
+          })
+        })
+        .catch(err => {
+          this.paymentsTable.loading = false
           LNbits.utils.notifyApiError(err)
         })
     },
