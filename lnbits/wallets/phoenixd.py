@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator
 from typing import Any, Optional
 
 import httpx
+from httpx import HTTPError
 from loguru import logger
 from websockets.legacy.client import connect
 
@@ -15,6 +16,7 @@ from lnbits.settings import settings
 
 from .base import (
     InvoiceResponse,
+    PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
@@ -163,6 +165,8 @@ class PhoenixdWallet(Wallet):
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        # PhoenixD returns 200 even if the payment fails anything else we consider
+        # an error and expect phoenix to not create a payment
         try:
             r = await self.client.post(
                 "/payinvoice",
@@ -171,8 +175,15 @@ class PhoenixdWallet(Wallet):
                 },
                 timeout=40,
             )
-
             r.raise_for_status()
+        except HTTPError as exc:
+            # HTTPError includes all 4xx and 5xx responses and timeout,
+            msg = f"Unable to connect to {self.endpoint}."
+            logger.error(msg)
+            logger.error(exc)
+            return PaymentResponse(ok=False, error_message=msg)
+
+        try:
             data = r.json()
 
             if "routingFeeSat" not in data and "reason" in data:
@@ -193,54 +204,89 @@ class PhoenixdWallet(Wallet):
             )
 
         except json.JSONDecodeError:
+            # phoenixd should never return invalid json,
+            # but just in case we keep it pending
+            logger.error(f"Phoenixd: invalid json response: {r.text}, keeping pending")
             return PaymentResponse(
                 error_message="Server error: 'invalid json response'"
             )
-        except KeyError:
+
+        if "reason" in data:
+            # if reason is present, the payment failed and
+            # it was not created by phoenixd
             return PaymentResponse(
                 error_message="Server error: 'missing required fields'"
             )
-        except Exception as exc:
-            logger.info(f"Failed to pay invoice {bolt11}")
-            logger.warning(exc)
+
+        # missing fields, should not happen, but just in case we keep it pending
+        if (
+            "routingFeeSat" not in data
+            or "paymentPreimage" not in data
+            or "paymentHash" not in data
+        ):
+            logger.error(f"Phoenixd: missing required fields: {data}, keeping pending")
             return PaymentResponse(
                 error_message=f"Unable to connect to {self.endpoint}."
             )
+        checking_id = data["paymentHash"]
+        fee_msat = -int(data["routingFeeSat"])
+        preimage = data["paymentPreimage"]
+        return PaymentResponse(True, checking_id, fee_msat, preimage)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        try:
-            r = await self.client.get(f"/payments/incoming/{checking_id}")
-            if r.is_error:
+        r = await self.client.get(f"/payments/incoming/{checking_id}")
+        if r.is_error:
+            if r.status_code == 404:
+                # invoice does not exist in phoenixd, so it was never paid
+                return PaymentFailedStatus()
+            else:
+                # otherwise something unexpected happened, and we keep it pending
+                logger.error(f"Error getting invoice status: {r.text}, keeping pending")
                 return PaymentPendingStatus()
+        try:
             data = r.json()
-
-            if data["isPaid"]:
-                fee_msat = data["fees"]
-                preimage = data["preimage"]
-                return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
-
+        except json.JSONDecodeError:
+            # should never return invalid json, but just in case we keep it pending
+            logger.error(f"Phoenixd: invalid json response: {r.text}, keeping pending")
             return PaymentPendingStatus()
-        except Exception as e:
-            logger.error(f"Error getting invoice status: {e}")
+
+        if "isPaid" in data and "fees" in data and "preimage" in data:
+            # should never return missing fields, but just in case we keep it pending
             return PaymentPendingStatus()
+
+        if data["isPaid"] is True:
+            fee_msat = data["fees"]
+            preimage = data["preimage"]
+            return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
+
+        return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        # TODO: how can we detect a failed payment?
+        r = await self.client.get(f"/payments/outgoing/{checking_id}")
+        if r.is_error:
+            if r.status_code == 404:
+                # payment does not exist in phoenixd, so it was never paid
+                return PaymentFailedStatus()
+            else:
+                # otherwise something unexpected happened, and we keep it pending
+                logger.error(f"Error getting payment status: {r.text}, keeping pending")
         try:
-            r = await self.client.get(f"/payments/outgoing/{checking_id}")
-            if r.is_error:
-                return PaymentPendingStatus()
             data = r.json()
-
-            if data["isPaid"]:
-                fee_msat = data["fees"]
-                preimage = data["preimage"]
-                return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
-
+        except json.JSONDecodeError:
+            # should never return invalid json, but just in case we keep it pending
+            logger.error(f"Phoenixd: invalid json response: {r.text}, keeping pending")
             return PaymentPendingStatus()
-        except Exception as e:
-            logger.error(f"Error getting invoice status: {e}")
+
+        if "isPaid" not in data or "fees" not in data or "preimage" not in data:
+            # should never happen, but just in case we keep it pending
+            logger.error(f"Phoenixd: missing required fields: {data}, keeping pending")
             return PaymentPendingStatus()
+
+        if data["isPaid"] is True:
+            fee_msat = data["fees"]
+            preimage = data["preimage"]
+            return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
+        return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:
