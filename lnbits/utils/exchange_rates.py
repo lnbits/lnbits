@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional
 
 import httpx
@@ -212,7 +213,7 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
         try:
             headers = {"User-Agent": settings.user_agent}
             async with httpx.AsyncClient(headers=headers) as client:
-                r = await client.get(url, timeout=0.5)
+                r = await client.get(url, timeout=3)
                 r.raise_for_status()
 
                 if not provider.path:
@@ -230,11 +231,10 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
 
         return None
 
-    # OK to be in squence: fetch_price times out after 0.5 seconds
-    results = [
-        await fetch_price(provider)
-        for provider in settings.lnbits_exchange_rate_providers
+    calls = [
+        fetch_price(provider) for provider in settings.lnbits_exchange_rate_providers
     ]
+    results = await asyncio.gather(*calls)
 
     return [r for r in results if r is not None]
 
