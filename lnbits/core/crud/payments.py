@@ -1,5 +1,5 @@
 from time import time
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
 from lnbits.core.db import db
@@ -110,8 +110,7 @@ async def get_payments_paginated(
       - complete | pending | failed | outgoing | incoming.
     """
 
-    values: dict = {
-        "wallet_id": wallet_id,
+    values: dict[str, Any] = {
         "time": since,
     }
     clause: list[str] = []
@@ -120,6 +119,7 @@ async def get_payments_paginated(
         clause.append(f"time > {db.timestamp_placeholder('time')}")
 
     if wallet_id:
+        values["wallet_id"] = wallet_id
         clause.append("wallet_id = :wallet_id")
 
     if complete and pending:
