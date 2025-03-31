@@ -7,7 +7,7 @@ from collections.abc import AsyncGenerator
 from typing import Any, Optional
 
 import httpx
-from httpx import HTTPError
+from httpx import HTTPError, TimeoutException
 from loguru import logger
 from websockets.legacy.client import connect
 
@@ -176,8 +176,13 @@ class PhoenixdWallet(Wallet):
                 timeout=40,
             )
             r.raise_for_status()
+        except TimeoutException:
+            # be safe and return pending on timeouts
+            msg = f"Timeout connecting to {self.endpoint}."
+            logger.error(msg)
+            return PaymentResponse(ok=None, error_message=msg)
         except HTTPError as exc:
-            # HTTPError includes all 4xx and 5xx responses and timeout,
+            # HTTPError includes all 4xx and 5xx responses
             msg = f"Unable to connect to {self.endpoint}."
             logger.error(msg)
             logger.error(exc)
