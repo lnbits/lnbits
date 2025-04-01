@@ -110,9 +110,17 @@ async def api_create_user(data: CreateUser) -> CreateUser:
 
 
 @users_router.put("/user/{user_id}", name="Update user")
-async def api_update_user(user_id: str, data: CreateUser) -> CreateUser:
+async def api_update_user(
+    user_id: str, data: CreateUser, user: User = Depends(check_admin)
+) -> CreateUser:
     if user_id != data.id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "User Id missmatch.")
+
+    if user_id == settings.super_user and user.id != settings.super_user:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Action only allowed for super user.",
+        )
 
     if data.password or data.password_repeat:
         raise HTTPException(
