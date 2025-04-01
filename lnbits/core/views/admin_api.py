@@ -1,19 +1,19 @@
-import glob
-import imghdr
 import os
 import time
 from http import HTTPStatus
-from io import BytesIO
-from shutil import make_archive
+from pathlib import Path
+from shutil import make_archive, move
 from subprocess import Popen
-from typing import Optional
+from tempfile import NamedTemporaryFile
+from typing import IO, Optional
 from urllib.parse import urlparse
 
-import shortuuid
-from fastapi import APIRouter, Depends, File, HTTPException, Path, UploadFile
+import filetype
+from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from lnbits.core.models import User
+from lnbits.core.models.misc import Image, SimpleStatus
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services import (
     enqueue_notification,
@@ -23,6 +23,7 @@ from lnbits.core.services import (
 from lnbits.core.services.notifications import send_email_notification
 from lnbits.core.services.settings import dict_to_settings
 from lnbits.decorators import check_admin, check_super_user
+from lnbits.helpers import safe_upload_file_path
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
 from lnbits.tasks import invoice_listeners
@@ -171,40 +172,53 @@ async def api_download_backup() -> FileResponse:
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_admin)],
 )
-async def upload_image(file: UploadFile = file_upload):
-    if not file or not file.filename:
-        raise HTTPException(status_code=400, detail="No file provided")
+async def upload_image(
+    file: UploadFile = file_upload,
+    content_length: int = Header(..., le=settings.lnbits_upload_size_bytes),
+) -> Image:
+    if not file.filename:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="No filename provided."
+        )
 
-    ext = file.filename.split(".")[-1].lower()
-    if ext not in {"png", "jpg", "jpeg", "gif"}:
-        raise HTTPException(status_code=400, detail="Unsupported file type")
+    # validate file types
+    file_info = filetype.guess(file.file)
+    if file_info is None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            detail="Unable to determine file type",
+        )
+    detected_content_type = file_info.extension.lower()
+    if (
+        file.content_type not in settings.lnbits_upload_allowed_types
+        or detected_content_type not in settings.lnbits_upload_allowed_types
+    ):
+        raise HTTPException(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported file type")
 
-    contents = BytesIO()
-    total_size = 0
-    max_size = 500000
-    while chunk := await file.read(1024 * 1024):
-        total_size += len(chunk)
-        if total_size > max_size:
+    # validate file name
+    try:
+        file_path = safe_upload_file_path(file.filename)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail=f"The requested filename '{file.filename}' is forbidden.",
+        ) from e
+
+    # validate file size
+    real_file_size = 0
+    temp: IO = NamedTemporaryFile(delete=False)
+    for chunk in file.file:
+        real_file_size += len(chunk)
+        if real_file_size > content_length:
             raise HTTPException(
-                status_code=413, detail=f"File too large ({max_size / 1000} KB max)"
+                status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File too large ({content_length / 1000} KB max)",
             )
-        contents.write(chunk)
+        temp.write(chunk)
+    temp.close()
 
-    contents.seek(0)
-
-    kind = imghdr.what(None, h=contents.read(512))
-    if kind not in {"png", "jpeg", "gif"}:
-        raise HTTPException(status_code=400, detail="Invalid image file")
-    contents.seek(0)
-
-    filename = f"{shortuuid.uuid()[:5]}.{ext}"
-    image_folder = os.path.join(settings.lnbits_data_folder, "images")
-    file_path = os.path.join(image_folder, filename)
-
-    with open(file_path, "wb") as f:
-        f.write(contents.read())
-
-    return {"filename": filename, "url": f"{settings.lnbits_baseurl}library/{filename}"}
+    move(temp.name, file_path)
+    return Image(filename=file.filename)
 
 
 @admin_router.get(
@@ -212,23 +226,13 @@ async def upload_image(file: UploadFile = file_upload):
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_admin)],
 )
-async def list_uploaded_images():
-    image_folder = os.path.join(settings.lnbits_data_folder, "images")
-    if not os.path.exists(image_folder):
-        return []
-
-    files = glob.glob(os.path.join(image_folder, "*"))
+async def list_uploaded_images() -> list[Image]:
+    image_folder = Path(settings.lnbits_data_folder, "images")
+    files = image_folder.glob("*")
     images = []
-
-    for file_path in files:
-        if os.path.isfile(file_path):
-            filename = os.path.basename(file_path)
-            images.append(
-                {
-                    "filename": filename,
-                    "url": f"{settings.lnbits_baseurl}library/{filename}",
-                }
-            )
+    for file in files:
+        if file.is_file():
+            images.append(Image(filename=file.name))
     return images
 
 
@@ -237,18 +241,17 @@ async def list_uploaded_images():
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_admin)],
 )
-async def delete_uploaded_image(
-    filename: str = Path(..., description="Name of the image file to delete")
-):
-    image_folder = os.path.join(settings.lnbits_data_folder, "images")
-    file_path = os.path.join(image_folder, filename)
+async def delete_uploaded_image(filename: str) -> SimpleStatus:
+    try:
+        file_path = safe_upload_file_path(filename)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail=f"The requested filename '{filename}' is forbidden.",
+        ) from e
 
-    # Prevent dir traversal attack
-    if not os.path.abspath(file_path).startswith(os.path.abspath(image_folder)):
-        raise HTTPException(status_code=400, detail="Invalid filename")
+    if not file_path.exists():
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Image not found.")
 
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Image not found")
-
-    os.remove(file_path)
-    return {"status": "success", "message": f"{filename} deleted"}
+    file_path.unlink()
+    return SimpleStatus(success=True, message=f"{filename} deleted")

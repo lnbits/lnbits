@@ -560,59 +560,57 @@ window.AdminPageLogic = {
         this.uploadImage(file)
       }
     },
-    async uploadImage(file) {
+    uploadImage(file) {
       const formData = new FormData()
       formData.append('file', file)
-
-      try {
-        const response = await LNbits.api.request(
+      LNbits.api
+        .request(
           'POST',
           '/admin/api/v1/images',
           this.g.user.wallets[0].adminkey,
           formData,
           {headers: {'Content-Type': 'multipart/form-data'}}
         )
-        this.$q.notify({
-          type: 'positive',
-          message: 'Image uploaded!',
-          icon: null
+        .then(() => {
+          this.$q.notify({
+            type: 'positive',
+            message: 'Image uploaded!',
+            icon: null
+          })
+          this.getUploadedImages()
         })
-        await this.getUploadedImages()
-      } catch (error) {
-        LNbits.utils.notifyApiError(error)
-      }
+        .catch(LNbits.utils.notifyApiError)
     },
-    async getUploadedImages() {
-      try {
-        const response = await LNbits.api.request(
-          'GET',
-          '/admin/api/v1/images',
-          this.g.user.wallets[0].inkey
-        )
-        this.library_images = response.data
-      } catch (error) {
-        LNbits.utils.notifyApiError(error)
-      }
+    getUploadedImages() {
+      LNbits.api
+        .request('GET', '/admin/api/v1/images', this.g.user.wallets[0].inkey)
+        .then(response => {
+          this.library_images = response.data.map(image => ({
+            ...image,
+            url: `${window.origin}/${image.directory}/${image.filename}`
+          }))
+        })
+        .catch(LNbits.utils.notifyApiError)
     },
-    async deleteImage(filename) {
+    deleteImage(filename) {
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this image?')
-        .onOk(async () => {
-          try {
-            await LNbits.api.request(
+        .onOk(() => {
+          LNbits.api
+            .request(
               'DELETE',
               `/admin/api/v1/images/${filename}`,
               this.g.user.wallets[0].adminkey
             )
-            this.$q.notify({
-              type: 'positive',
-              message: 'Image deleted!',
-              icon: null
+            .then(() => {
+              this.$q.notify({
+                type: 'positive',
+                message: 'Image deleted!',
+                icon: null
+              })
+              this.getUploadedImages()
             })
-            await this.getUploadedImages()
-          } catch (error) {
-            LNbits.utils.notifyApiError(error)
-          }
+            .catch(LNbits.utils.notifyApiError)
         })
     },
     downloadBackup() {

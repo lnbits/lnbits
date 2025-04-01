@@ -31,7 +31,12 @@
           class="q-pt-md q-pb-md row items-center justify-between"
         >
           <small
-            ><div class="text-caption ellipsis" v-text="image.filename"></div
+            ><div
+              class="text-caption ellipsis"
+              style="max-width: 100px"
+              :title="image.filename"
+              v-text="image.filename"
+            ></div
           ></small>
           <q-btn
             dense
@@ -43,11 +48,13 @@
             ><q-tooltip>Copy image link</q-tooltip></q-btn
           >
           <q-btn
-            color="negative"
-            icon="delete"
+            dense
             flat
             size="sm"
+            icon="delete"
+            color="negative"
             @click="deleteImage(image.filename)"
+            :title="$t('delete')"
             ><q-tooltip>Delete image</q-tooltip></q-btn
           >
         </q-card-section>
