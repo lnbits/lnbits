@@ -127,7 +127,17 @@
                   :label="props.row.wallet_count"
                   @click="fetchWallets(props.row.id)"
                 >
-                  <q-tooltip>Show Wallets</q-tooltip>
+                </q-btn>
+                <q-btn
+                  v-if="(users.length == 1) && searchData.wallet_id"
+                  round
+                  icon="menu"
+                  size="sm"
+                  color="secondary"
+                  class="q-ml-sm"
+                  @click="showWalletPayments(searchData.wallet_id)"
+                >
+                  <q-tooltip>Show Payments</q-tooltip>
                 </q-btn>
               </q-td>
 

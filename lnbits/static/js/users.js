@@ -329,7 +329,7 @@ window.UsersPageLogic = {
         .catch(LNbits.utils.notifyApiError)
     },
     fetchWallets(userId) {
-      LNbits.api
+      return LNbits.api
         .request('GET', `/users/api/v1/user/${userId}/wallet`)
         .then(res => {
           this.wallets = res.data
@@ -378,8 +378,13 @@ window.UsersPageLogic = {
         this.activeUser.show = false
       }
     },
-    showPayments(wallet_id) {
-      this.paymentsWallet = this.wallets.find(wallet => wallet.id === wallet_id)
+    async showWalletPayments(walletId) {
+      this.activeUser.show = false
+      await this.fetchWallets(this.users[0].id)
+      await this.showPayments(walletId)
+    },
+    showPayments(walletId) {
+      this.paymentsWallet = this.wallets.find(wallet => wallet.id === walletId)
       this.paymentPage.show = true
     },
     searchUserBy(fieldName) {
