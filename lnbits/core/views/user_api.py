@@ -110,9 +110,17 @@ async def api_create_user(data: CreateUser) -> CreateUser:
 
 
 @users_router.put("/user/{user_id}", name="Update user")
-async def api_update_user(user_id: str, data: CreateUser) -> CreateUser:
+async def api_update_user(
+    user_id: str, data: CreateUser, user: User = Depends(check_admin)
+) -> CreateUser:
     if user_id != data.id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "User Id missmatch.")
+
+    if user_id == settings.super_user and user.id != settings.super_user:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Action only allowed for super user.",
+        )
 
     if data.password or data.password_repeat:
         raise HTTPException(
@@ -255,13 +263,22 @@ async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> SimpleSta
     summary="First time it is called it does a soft delete (only sets a flag)."
     "The second time it is called will delete the entry from the DB",
 )
-async def api_users_delete_user_wallet(user_id: str, wallet: str) -> SimpleStatus:
+async def api_users_delete_user_wallet(
+    user_id: str, wallet: str, user: User = Depends(check_admin)
+) -> SimpleStatus:
     wal = await get_wallet(wallet)
     if not wal:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Wallet does not exist.",
         )
+
+    if user_id == settings.super_user and user.id != settings.super_user:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Action only allowed for super user.",
+        )
+
     if wal.deleted:
         await force_delete_wallet(wallet)
     await delete_wallet(user_id=user_id, wallet_id=wallet)
