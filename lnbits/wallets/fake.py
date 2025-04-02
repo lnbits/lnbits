@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 from hashlib import sha256
 from os import urandom
-from typing import AsyncGenerator, Dict, Optional, Set
+from typing import AsyncGenerator, Optional
 
 from bolt11 import (
     Bolt11,
@@ -34,8 +34,8 @@ class FakeWallet(Wallet):
 
     def __init__(self) -> None:
         self.queue: asyncio.Queue = asyncio.Queue(0)
-        self.payment_secrets: Dict[str, str] = {}
-        self.paid_invoices: Set[str] = set()
+        self.payment_secrets: dict[str, str] = {}
+        self.paid_invoices: set[str] = set()
         self.secret = settings.fake_wallet_secret
         self.privkey = fake_privkey(self.secret)
 
@@ -80,11 +80,12 @@ class FakeWallet(Wallet):
             secret = urandom(32).hex()
         tags.add(TagChar.payment_secret, secret)
 
-        payment_hash = sha256(secret.encode()).hexdigest()
+        preimage = urandom(32)
+        payment_hash = sha256(preimage).hexdigest()
 
         tags.add(TagChar.payment_hash, payment_hash)
 
-        self.payment_secrets[payment_hash] = secret
+        self.payment_secrets[payment_hash] = preimage.hex()
 
         bolt11 = Bolt11(
             currency="bc",
@@ -96,7 +97,10 @@ class FakeWallet(Wallet):
         payment_request = encode(bolt11, self.privkey)
 
         return InvoiceResponse(
-            ok=True, checking_id=payment_hash, payment_request=payment_request
+            ok=True,
+            checking_id=payment_hash,
+            payment_request=payment_request,
+            # preimage=preimage.hex(),
         )
 
     async def pay_invoice(self, bolt11: str, _: int) -> PaymentResponse:
