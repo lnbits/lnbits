@@ -7,7 +7,7 @@ from collections.abc import AsyncGenerator
 from typing import Any, Optional
 
 import httpx
-from httpx import HTTPError, TimeoutException
+from httpx import RequestError, TimeoutException
 from loguru import logger
 from websockets.legacy.client import connect
 
@@ -178,15 +178,20 @@ class PhoenixdWallet(Wallet):
             r.raise_for_status()
         except TimeoutException:
             # be safe and return pending on timeouts
-            msg = f"Timeout connecting to {self.endpoint}."
+            msg = f"Timeout connecting to {self.endpoint}. keep pending..."
             logger.error(msg)
             return PaymentResponse(ok=None, error_message=msg)
-        except HTTPError as exc:
-            # HTTPError includes all 4xx and 5xx responses
+        except RequestError as exc:
+            # RequestError is raised when the request never hit the destination server
             msg = f"Unable to connect to {self.endpoint}."
             logger.error(msg)
             logger.error(exc)
             return PaymentResponse(ok=False, error_message=msg)
+        except Exception as exc:
+            logger.error(exc)
+            return PaymentResponse(
+                ok=None, error_message="Server error, keep pending...'"
+            )
 
         try:
             data = r.json()
