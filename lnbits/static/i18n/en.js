@@ -338,6 +338,7 @@ window.localisation.en = {
   invalid_username: 'Invalid Username',
   auth_provider: 'Auth Provider',
   my_account: 'My Account',
+  existing_account_question: 'Already have an account?',
   background_image: 'Background Image',
   back: 'Back',
   logout: 'Logout',
