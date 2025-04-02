@@ -215,7 +215,7 @@ class NWCWallet(Wallet):
                     "preimage", None
                 )
                 if not settled:
-                    return PaymentResponse(checking_id=payment_hash)
+                    return PaymentResponse(ok=None, checking_id=payment_hash)
                 else:
                     fee_msat = payment_data.get("fees_paid", None)
                     return PaymentResponse(
@@ -228,7 +228,7 @@ class NWCWallet(Wallet):
                 # Workaround: some nwc service providers might not store the invoice
                 # right away, so this call may raise an exception.
                 # We will assume the payment is pending anyway
-                return PaymentResponse(checking_id=payment_hash)
+                return PaymentResponse(ok=None, checking_id=payment_hash)
         except NWCError as e:
             logger.error("Error paying invoice: " + str(e))
             failure_codes = [
@@ -251,7 +251,7 @@ class NWCWallet(Wallet):
             msg = "Error paying invoice: " + str(e)
             logger.error(msg)
             # assume pending
-            return PaymentResponse(error_message=msg)
+            return PaymentResponse(ok=None, error_message=msg)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)
@@ -625,9 +625,10 @@ class NWCConnection:
                     ):  # receive messages until the connection is shutting down
                         try:
                             reply = await ws.recv()
-                            reply_str = ""
-                            if isinstance(reply, bytes):
+                            if isinstance(reply, (bytes, bytearray)):
                                 reply_str = reply.decode("utf-8")
+                            elif isinstance(reply, memoryview):
+                                reply_str = reply.tobytes().decode("utf-8")
                             else:
                                 reply_str = reply
                             await self._on_message(ws, reply_str)
