@@ -1,7 +1,7 @@
 import asyncio
 import hashlib
 import json
-from typing import AsyncGenerator, Dict, Optional
+from typing import AsyncGenerator, Optional
 
 import httpx
 from loguru import logger
@@ -72,10 +72,10 @@ class AlbyWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
         # https://api.getalby.com/invoices
-        data: Dict = {"amount": f"{amount}"}
+        data: dict = {"amount": f"{amount}"}
         if description_hash:
             data["description_hash"] = description_hash.hex()
         elif unhashed_description:
@@ -95,25 +95,29 @@ class AlbyWallet(Wallet):
 
             if r.is_error:
                 error_message = data["message"] if "message" in data else r.text
-                return InvoiceResponse(False, None, None, error_message)
+                return InvoiceResponse(ok=False, error_message=error_message)
 
             checking_id = data["payment_hash"]
             payment_request = data["payment_request"]
-            return InvoiceResponse(True, checking_id, payment_request, None)
+            return InvoiceResponse(
+                ok=True,
+                checking_id=checking_id,
+                payment_request=payment_request,
+            )
         except KeyError as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, "Server error: 'missing required fields'"
+                ok=False, error_message="Server error: 'missing required fields'"
             )
         except json.JSONDecodeError as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, "Server error: 'invalid json response'"
+                ok=False, error_message="Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, f"Unable to connect to {self.endpoint}."
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -129,30 +133,31 @@ class AlbyWallet(Wallet):
 
             if r.is_error:
                 error_message = data["message"] if "message" in data else r.text
-                return PaymentResponse(None, None, None, None, error_message)
+                return PaymentResponse(error_message=error_message)
 
             checking_id = data["payment_hash"]
             # todo: confirm with bitkarrot that having the minus is fine
             # other funding sources return a positive fee value
             fee_msat = -data["fee"]
             preimage = data["payment_preimage"]
-
-            return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+            return PaymentResponse(
+                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            )
         except KeyError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                None, None, None, None, "Server error: 'missing required fields'"
+                error_message="Server error: 'missing required fields'"
             )
         except json.JSONDecodeError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                None, None, None, None, "Server error: 'invalid json response'"
+                error_message="Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.endpoint}."
+                error_message=f"Unable to connect to {self.endpoint}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

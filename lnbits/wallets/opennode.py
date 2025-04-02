@@ -72,7 +72,7 @@ class OpenNodeWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
         if description_hash or unhashed_description:
             raise UnsupportedError("description_hash")
@@ -88,13 +88,15 @@ class OpenNodeWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponse(ok=False, error_message=error_message)
 
         data = r.json()["data"]
         checking_id = data["id"]
         payment_request = data["lightning_invoice"]["payreq"]
         self.pending_invoices.append(checking_id)
-        return InvoiceResponse(True, checking_id, payment_request, None)
+        return InvoiceResponse(
+            ok=True, checking_id=checking_id, payment_request=payment_request
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(
@@ -105,16 +107,15 @@ class OpenNodeWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponse(ok=False, error_message=error_message)
 
         data = r.json()["data"]
         checking_id = data["id"]
         fee_msat = -data["fee"] * 1000
-
+        # pending
         if data["status"] != "paid":
-            return PaymentResponse(None, checking_id, fee_msat, None, "payment failed")
-
-        return PaymentResponse(True, checking_id, fee_msat, None, None)
+            return PaymentResponse(ok=None, checking_id=checking_id, fee_msat=fee_msat)
+        return PaymentResponse(ok=True, checking_id=checking_id, fee_msat=fee_msat)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"/v1/charge/{checking_id}")

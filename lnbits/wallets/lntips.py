@@ -70,7 +70,7 @@ class LnTipsWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
         data: Dict = {"amount": amount, "description_hash": "", "memo": memo or ""}
         if description_hash:
@@ -91,11 +91,13 @@ class LnTipsWallet(Wallet):
             except Exception:
                 error_message = r.text
 
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponse(ok=False, error_message=error_message)
 
         data = r.json()
         return InvoiceResponse(
-            True, data["payment_hash"], data["payment_request"], None
+            ok=True,
+            checking_id=data["payment_hash"],
+            payment_request=data["payment_request"],
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -105,7 +107,7 @@ class LnTipsWallet(Wallet):
             timeout=None,
         )
         if r.is_error:
-            return PaymentResponse(False, None, 0, None, r.text)
+            return PaymentResponse(ok=False, error_message=r.text)
 
         if "error" in r.json():
             try:
@@ -113,13 +115,15 @@ class LnTipsWallet(Wallet):
                 error_message = data["error"]
             except Exception:
                 error_message = r.text
-            return PaymentResponse(False, None, 0, None, error_message)
+            return PaymentResponse(ok=False, error_message=error_message)
 
         data = r.json()["details"]
         checking_id = data["payment_hash"]
         fee_msat = -data["fee"]
         preimage = data["preimage"]
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponse(
+            ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
