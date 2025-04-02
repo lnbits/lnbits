@@ -322,6 +322,7 @@ window.localisation.en = {
   update_pubkey: 'Update Public Key',
   set_password: 'Set Password',
   invalid_password: 'Password must have at least 8 characters',
+  invalid_password_repeat: 'Passwords do not match',
   login: 'Login',
   register: 'Register',
   username: 'Username',
