@@ -320,7 +320,26 @@
     <q-item v-if="payment.preimage">
       <q-item-section>
         <q-item-label v-text="$t('payment_proof')"></q-item-label>
-        <q-item-label caption v-text="payment.preimage"></q-item-label>
+        <q-item-label
+          caption
+          v-text="
+            `${payment.preimage.slice(0, 12)}...${payment.preimage.slice(-12)}`
+          "
+        ></q-item-label>
+      </q-item-section>
+      <q-item-section side>
+        <q-item-label>
+          <q-icon
+            name="content_copy"
+            @click="copyText(payment.preimage)"
+            size="1em"
+            color="grey"
+            class="cursor-pointer"
+          />
+        </q-item-label>
+        <q-tooltip>
+          <span v-text="payment.preimage"></span>
+        </q-tooltip>
       </q-item-section>
     </q-item>
 
