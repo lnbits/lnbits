@@ -29,7 +29,9 @@ NOTIFICATION_TEMPLATES = {
         *In/Out payments*: `{in_payments_count}`/`{out_payments_count}`.
         *Pending payments*: `{pending_payments_count}`.
         *Failed payments*: `{failed_payments_count}`.
-        *LNbits balance*: `{lnbits_balance_sats}` sats.""",
+        *LNbits balance*: `{lnbits_balance_sats}` sats.
+        *Node balance*: `{node_balance_sats}` sats.""",
+
     "server_start_stop": """*SERVER*
         {message}
         *Time*: `{up_time}` seconds.
