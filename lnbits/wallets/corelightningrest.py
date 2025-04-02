@@ -160,6 +160,7 @@ class CoreLightningRestWallet(Wallet):
                 ok=True,
                 checking_id=data["payment_hash"],
                 payment_request=data["bolt11"],
+                preimage=data.get("preimage"),
             )
         except json.JSONDecodeError:
             return InvoiceResponse(

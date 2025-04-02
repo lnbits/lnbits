@@ -98,6 +98,7 @@ class LnTipsWallet(Wallet):
             ok=True,
             checking_id=data["payment_hash"],
             payment_request=data["payment_request"],
+            preimage=data.get("preimage"),
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
