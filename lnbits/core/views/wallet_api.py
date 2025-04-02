@@ -27,7 +27,12 @@ from ..crud import (
 wallet_router = APIRouter(prefix="/api/v1/wallet", tags=["Wallet"])
 
 
-@wallet_router.get("")
+@wallet_router.get(
+    "",
+    name="Get Wallet",
+    summary="get wallet info",
+    response_description="JSON with the name and balance of the wallet",
+)
 async def api_wallet(key_info: WalletTypeInfo = Depends(require_invoice_key)):
     res = {
         "name": key_info.wallet.name,
