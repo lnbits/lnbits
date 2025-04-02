@@ -3,7 +3,7 @@ import base64
 import hashlib
 import json
 import urllib.parse
-from typing import Any, AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Optional
 
 import httpx
 from loguru import logger
@@ -85,7 +85,7 @@ class EclairWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "amountMsat": amount * 1000,
         }
         if kwargs.get("expiry"):
@@ -105,30 +105,35 @@ class EclairWallet(Wallet):
             data = r.json()
 
             if len(data) == 0:
-                return InvoiceResponse(False, None, None, "no data")
+                return InvoiceResponse(ok=False, error_message="no data")
 
             if "error" in data:
                 return InvoiceResponse(
-                    False, None, None, f"""Server error: '{data["error"]}'"""
+                    ok=False, error_message=f"""Server error: '{data["error"]}'"""
                 )
 
             if r.is_error:
-                return InvoiceResponse(False, None, None, f"Server error: '{r.text}'")
-
-            return InvoiceResponse(True, data["paymentHash"], data["serialized"], None)
+                return InvoiceResponse(
+                    ok=False, error_message=f"Server error: '{r.text}'"
+                )
+            return InvoiceResponse(
+                ok=True,
+                checking_id=data["paymentHash"],
+                payment_request=data["serialized"],
+            )
         except json.JSONDecodeError:
             return InvoiceResponse(
-                False, None, None, "Server error: 'invalid json response'"
+                ok=False, error_message="Server error: 'invalid json response'"
             )
         except KeyError as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, "Server error: 'missing required fields'"
+                ok=False, error_message="Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, f"Unable to connect to {self.url}."
+                ok=False, error_message=f"Unable to connect to {self.url}."
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -142,35 +147,36 @@ class EclairWallet(Wallet):
             data = r.json()
 
             if "error" in data:
-                return PaymentResponse(None, None, None, None, data["error"])
+                return PaymentResponse(error_message=data["error"])
             if r.is_error:
-                return PaymentResponse(None, None, None, None, r.text)
+                return PaymentResponse(error_message=r.text)
 
             if data["type"] == "payment-failed":
-                return PaymentResponse(False, None, None, None, "payment failed")
+                return PaymentResponse(ok=False, error_message="payment failed")
 
             checking_id = data["paymentHash"]
             preimage = data["paymentPreimage"]
 
         except json.JSONDecodeError:
             return PaymentResponse(
-                None, None, None, None, "Server error: 'invalid json response'"
+                error_message="Server error: 'invalid json response'"
             )
         except KeyError:
             return PaymentResponse(
-                None, None, None, None, "Server error: 'missing required fields'"
+                error_message="Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
-            return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.url}."
-            )
+            return PaymentResponse(error_message=f"Unable to connect to {self.url}.")
 
         payment_status: PaymentStatus = await self.get_payment_status(checking_id)
         success = True if payment_status.success else None
         return PaymentResponse(
-            success, checking_id, payment_status.fee_msat, preimage, None
+            ok=success,
+            checking_id=checking_id,
+            fee_msat=payment_status.fee_msat,
+            preimage=preimage,
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

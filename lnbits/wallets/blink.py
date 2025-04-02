@@ -135,7 +135,7 @@ class BlinkWallet(Wallet):
             )
             if len(errors) > 0:
                 error_message = errors[0].get("message")
-                return InvoiceResponse(False, None, None, error_message)
+                return InvoiceResponse(ok=False, error_message=error_message)
 
             payment_request = (
                 response.get("data", {})
@@ -150,15 +150,18 @@ class BlinkWallet(Wallet):
                 .get("paymentHash", None)
             )
 
-            return InvoiceResponse(True, checking_id, payment_request, None)
+            # TODO: add preimage to response
+            return InvoiceResponse(
+                ok=True, checking_id=checking_id, payment_request=payment_request
+            )
         except json.JSONDecodeError:
             return InvoiceResponse(
-                False, None, None, "Server error: 'invalid json response'"
+                ok=False, error_message="Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, f"Unable to connect to {self.endpoint}."
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
     async def pay_invoice(
@@ -185,19 +188,21 @@ class BlinkWallet(Wallet):
             )
             if len(errors) > 0:
                 error_message = errors[0].get("message")
-                return PaymentResponse(False, None, None, None, error_message)
+                return PaymentResponse(ok=False, error_message=error_message)
 
             checking_id = bolt11.decode(bolt11_invoice).payment_hash
 
             payment_status = await self.get_payment_status(checking_id)
             fee_msat = payment_status.fee_msat
             preimage = payment_status.preimage
-            return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+            return PaymentResponse(
+                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11_invoice}")
             logger.warning(exc)
             return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.endpoint}."
+                error_message=f"Unable to connect to {self.endpoint}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

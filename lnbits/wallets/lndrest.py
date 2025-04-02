@@ -132,34 +132,40 @@ class LndRestWallet(Wallet):
             data = r.json()
 
             if len(data) == 0:
-                return InvoiceResponse(False, None, None, "no data")
+                return InvoiceResponse(ok=False, error_message="no data")
 
             if "error" in data:
                 return InvoiceResponse(
-                    False, None, None, f"""Server error: '{data["error"]}'"""
+                    ok=False, error_message=f"""Server error: '{data["error"]}'"""
                 )
 
             if r.is_error:
-                return InvoiceResponse(False, None, None, f"Server error: '{r.text}'")
+                return InvoiceResponse(
+                    ok=False, error_message=f"Server error: '{r.text}'"
+                )
 
             if "payment_request" not in data or "r_hash" not in data:
                 return InvoiceResponse(
-                    False, None, None, "Server error: 'missing required fields'"
+                    ok=False, error_message="Server error: 'missing required fields'"
                 )
 
             payment_request = data["payment_request"]
             payment_hash = base64.b64decode(data["r_hash"]).hex()
             checking_id = payment_hash
+            return InvoiceResponse(
+                ok=True,
+                checking_id=checking_id,
+                payment_request=payment_request,
+            )
 
-            return InvoiceResponse(True, checking_id, payment_request, None)
         except json.JSONDecodeError:
             return InvoiceResponse(
-                False, None, None, "Server error: 'invalid json response'"
+                ok=False, error_message="Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, f"Unable to connect to {self.endpoint}."
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -185,25 +191,27 @@ class LndRestWallet(Wallet):
             payment_error = data.get("payment_error")
             if payment_error:
                 logger.warning(f"LndRestWallet payment_error: {payment_error}.")
-                return PaymentResponse(False, None, None, None, payment_error)
+                return PaymentResponse(ok=False, error_message=payment_error)
 
             checking_id = base64.b64decode(data["payment_hash"]).hex()
             fee_msat = int(data["payment_route"]["total_fees_msat"])
             preimage = base64.b64decode(data["payment_preimage"]).hex()
-            return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+            return PaymentResponse(
+                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            )
         except KeyError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                None, None, None, None, "Server error: 'missing required fields'"
+                error_message="Server error: 'missing required fields'"
             )
         except json.JSONDecodeError:
             return PaymentResponse(
-                None, None, None, None, "Server error: 'invalid json response'"
+                error_message="Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
             return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.endpoint}."
+                error_message=f"Unable to connect to {self.endpoint}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

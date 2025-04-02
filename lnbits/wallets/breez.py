@@ -182,15 +182,16 @@ else:
                     )
                 )
 
+                # TODO: add preimage
                 return InvoiceResponse(
-                    True,
-                    breez_invoice.ln_invoice.payment_hash,
-                    breez_invoice.ln_invoice.bolt11,
-                    None,
+                    ok=True,
+                    checking_id=breez_invoice.ln_invoice.payment_hash,
+                    payment_request=breez_invoice.ln_invoice.bolt11,
+                    # preimage=breez_invoice.ln_invoice.payment_preimage,
                 )
             except Exception as e:
                 logger.warning(e)
-                return InvoiceResponse(False, None, None, str(e))
+                return InvoiceResponse(ok=False, error_message=str(e))
 
         async def pay_invoice(
             self, bolt11: str, fee_limit_msat: int
@@ -217,22 +218,19 @@ else:
                 except Exception as ex:
                     logger.info(ex)
                 # assume that payment failed?
-                return PaymentResponse(
-                    False, None, None, None, f"payment failed: {exc}"
-                )
+                return PaymentResponse(ok=False, error_message=f"payment failed: {exc}")
 
             if payment.status != breez_sdk.PaymentStatus.COMPLETE:
-                return PaymentResponse(False, None, None, None, "payment is pending")
+                return PaymentResponse(ok=False, error_message="payment is pending")
 
             # let's use the payment_hash as the checking_id
             checking_id = invoice.payment_hash
 
             return PaymentResponse(
-                True,
-                checking_id,
-                payment.fee_msat,
-                payment.details.data.payment_preimage,
-                None,
+                ok=True,
+                checking_id=checking_id,
+                fee_msat=payment.fee_msat,
+                preimage=payment.details.data.payment_preimage,
             )
 
         async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

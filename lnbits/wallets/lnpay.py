@@ -91,20 +91,17 @@ class LNPayWallet(Wallet):
             json=data,
             timeout=60,
         )
-        ok, checking_id, payment_request, error_message = (
-            r.status_code == 201,
-            None,
-            None,
-            r.text,
-        )
-
-        if ok:
+        if r.status_code == 201:
             data = r.json()
-            checking_id, payment_request = data["id"], data["payment_request"]
-
-            self.pending_invoices.append(checking_id)
-
-        return InvoiceResponse(ok, checking_id, payment_request, error_message)
+            self.pending_invoices.append(data["id"])
+            return InvoiceResponse(
+                ok=True,
+                payment_request=data["payment_request"],
+            )
+        return InvoiceResponse(
+            ok=False,
+            error_message=r.text,
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         r = await self.client.post(
@@ -116,17 +113,17 @@ class LNPayWallet(Wallet):
         try:
             data = r.json()
         except Exception:
-            return PaymentResponse(
-                False, None, 0, None, f"Got invalid JSON: {r.text[:200]}"
-            )
+            return PaymentResponse(ok=False, error_message="Got invalid JSON.")
 
         if r.is_error:
-            return PaymentResponse(False, None, None, None, data["message"])
+            return PaymentResponse(ok=False, error_message=data["message"])
 
         checking_id = data["lnTx"]["id"]
         fee_msat = 0
         preimage = data["lnTx"]["payment_preimage"]
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponse(
+            ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)

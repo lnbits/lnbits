@@ -54,7 +54,7 @@ class ClicheWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
         if unhashed_description or description_hash:
             description_hash_str = (
@@ -79,12 +79,13 @@ class ClicheWallet(Wallet):
         data = json.loads(r)
         checking_id = None
         payment_request = None
-        error_message = None
 
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
             error_message = data["error"]["message"]
-            return InvoiceResponse(False, checking_id, payment_request, error_message)
+            return InvoiceResponse(
+                ok=False, checking_id=checking_id, error_message=error_message
+            )
 
         if data.get("result") is not None:
             checking_id, payment_request = (
@@ -92,15 +93,18 @@ class ClicheWallet(Wallet):
                 data["result"]["invoice"],
             )
         else:
-            return InvoiceResponse(False, None, None, "Could not get payment hash")
+            return InvoiceResponse(ok=False, error_message="Could not get payment hash")
 
-        return InvoiceResponse(True, checking_id, payment_request, error_message)
+        return InvoiceResponse(
+            ok=True,
+            checking_id=checking_id,
+            payment_request=payment_request,
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         ws = create_connection(self.endpoint)
         ws.send(f"pay-invoice --invoice {bolt11}")
-        checking_id, fee_msat, preimage, error_message, payment_ok = (
-            None,
+        checking_id, fee_msat, preimage, payment_ok = (
             None,
             None,
             None,
@@ -109,8 +113,7 @@ class ClicheWallet(Wallet):
         for _ in range(2):
             r = ws.recv()
             data = json.loads(r)
-            checking_id, fee_msat, preimage, error_message, payment_ok = (
-                None,
+            checking_id, fee_msat, preimage, payment_ok = (
                 None,
                 None,
                 None,
@@ -119,7 +122,7 @@ class ClicheWallet(Wallet):
 
             if data.get("error") is not None:
                 error_message = data["error"].get("message")
-                return PaymentResponse(False, None, None, None, error_message)
+                return PaymentResponse(ok=False, error_message=error_message)
 
             if data.get("method") == "payment_succeeded":
                 payment_ok = True
@@ -129,10 +132,10 @@ class ClicheWallet(Wallet):
                 continue
 
             if data.get("result") is None:
-                return PaymentResponse(None)
+                return PaymentResponse(error_message="result is None")
 
         return PaymentResponse(
-            payment_ok, checking_id, fee_msat, preimage, error_message
+            ok=payment_ok, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
