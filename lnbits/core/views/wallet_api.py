@@ -73,7 +73,13 @@ async def api_reset_wallet_keys(
     return wallet
 
 
-@wallet_router.patch("")
+@wallet_router.patch(
+    "",
+    name="Update Wallet",
+    summary="update the details of the wallet",
+    response_description="wallet with the updated details",
+    response_model=Wallet,
+)
 async def api_update_wallet(
     name: Optional[str] = Body(None),
     icon: Optional[str] = Body(None),
