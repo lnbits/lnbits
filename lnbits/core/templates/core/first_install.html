@@ -38,7 +38,7 @@
                   :type="loginData.isPwdRepeat ? 'password' : 'text'"
                   autocomplete="off"
                   :label="$t('password_repeat')"
-                  :rules="[(val) => !val || val.length >= 8 || $t('invalid_password'), (val) => val === loginData.password || 'invalid_password_repeat']"
+                  :rules="[(val) => !val || val.length >= 8 || $t('invalid_password'), (val) => val === loginData.password || $t('invalid_password_repeat')]"
                   ><template v-slot:append>
                     <q-icon
                       :name="loginData.isPwdRepeat ? 'visibility_off' : 'visibility'"
