@@ -1170,7 +1170,7 @@
             "pending": false,
             "failed": false,
             "checking_id": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
-            "fee_msat": 50,
+            "fee_msat": 30000,
             "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
           },
           "mocks": {
@@ -1187,8 +1187,8 @@
                   "response": {
                     "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
                     "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000",
-                    "msatoshi": 21000,
-                    "msatoshi_sent": 21050,
+                    "msatoshi": 210000,
+                    "msatoshi_sent": 240000,
                     "status": "paid"
                   }
                 }
@@ -1206,7 +1206,7 @@
                   "response": {
                     "payment_hash": "41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",
                     "payment_route": {
-                      "total_fees_msat": 50
+                      "total_fees_msat": 30000
                     },
                     "payment_preimage": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
                   }
@@ -1224,7 +1224,7 @@
                   "response_type": "json",
                   "response": {
                     "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
-                    "fee": 50,
+                    "fee": 30000,
                     "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
                   }
                 }
@@ -1257,7 +1257,7 @@
                     {
                       "status": {
                         "type": "sent",
-                        "feesPaid": -50,
+                        "feesPaid": -30000,
                         "paymentPreimage": "0000000000000000000000000000000000000000000000000000000000000000"
                       }
                     }
@@ -1287,7 +1287,7 @@
                     "paid": true,
                     "preimage": "0000000000000000000000000000000000000000000000000000000000000000",
                     "details": {
-                      "fee": 50
+                      "fee": 30000
                     }
                   }
                 }
@@ -1303,7 +1303,7 @@
                   "response_type": "json",
                   "response": {
                     "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
-                    "routingFeeSat": -50,
+                    "routingFeeSat": -30,
                     "paymentPreimage": "0000000000000000000000000000000000000000000000000000000000000000"
                   }
                 }
@@ -1690,7 +1690,7 @@
                   "response_type": "json",
                   "response": {
                     "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
-                    "routingFeeSat": -50
+                    "routingFeeSat": -30
                   }
                 }
               ]
