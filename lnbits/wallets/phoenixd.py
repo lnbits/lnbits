@@ -239,7 +239,9 @@ class PhoenixdWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, preimage)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(f"/payments/incoming/{checking_id}")
+        r = await self.client.get(
+            f"/payments/incoming/{checking_id}?all=true&limit=1000"
+        )
         if r.is_error:
             if r.status_code == 404:
                 # invoice does not exist in phoenixd, so it was never paid
@@ -267,7 +269,9 @@ class PhoenixdWallet(Wallet):
         return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(f"/payments/outgoing/{checking_id}")
+        r = await self.client.get(
+            f"/payments/outgoing/{checking_id}?all=true&limit=1000"
+        )
         if r.is_error:
             if r.status_code == 404:
                 # payment does not exist in phoenixd, so it was never paid
