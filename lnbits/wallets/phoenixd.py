@@ -138,10 +138,12 @@ class PhoenixdWallet(Wallet):
 
             checking_id = data["paymentHash"]
             payment_request = data["serialized"]
+            preimage = data.get("preimage", None)
             return InvoiceResponse(
                 ok=True,
                 checking_id=checking_id,
                 payment_request=payment_request,
+                preimage=preimage,
             )
         except json.JSONDecodeError:
             return InvoiceResponse(

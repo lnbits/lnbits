@@ -139,22 +139,24 @@ class LndWallet(Wallet):
         if description_hash:
             data["description_hash"] = description_hash
         elif unhashed_description:
-            data["description_hash"] = hashlib.sha256(
-                unhashed_description
-            ).digest()  # as bytes directly
+            data["description_hash"] = hashlib.sha256(unhashed_description).digest()
 
         try:
             req = ln.Invoice(**data)
             resp = await self.rpc.AddInvoice(req)
         except Exception as exc:
             logger.warning(exc)
-            error_message = str(exc)
-            return InvoiceResponse(ok=False, error_message=error_message)
+            return InvoiceResponse(ok=False, error_message=str(exc))
 
         checking_id = bytes_to_hex(resp.r_hash)
         payment_request = str(resp.payment_request)
+        # TODO: add preimage
+        preimage = None
         return InvoiceResponse(
-            ok=True, checking_id=checking_id, payment_request=payment_request
+            ok=True,
+            checking_id=checking_id,
+            payment_request=payment_request,
+            preimage=preimage,
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -197,16 +199,18 @@ class LndWallet(Wallet):
             fee_msat = -resp.htlcs[-1].route.total_fees_msat
             preimage = resp.payment_preimage
             checking_id = resp.payment_hash
+            return PaymentResponse(
+                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            )
         elif statuses[resp.status] is False:
             error_message = failure_reasons[resp.failure_reason]
-
-        return PaymentResponse(
-            ok=statuses[resp.status],
-            checking_id=checking_id,
-            fee_msat=fee_msat,
-            preimage=preimage,
-            error_message=error_message,
-        )
+            return PaymentResponse(ok=False, error_message=error_message)
+        else:
+            return PaymentResponse(
+                ok=None,
+                checking_id=checking_id,
+                error_message="Payment in flight or non-existant.",
+            )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

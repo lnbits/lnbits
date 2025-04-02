@@ -99,6 +99,7 @@ class ClicheWallet(Wallet):
             ok=True,
             checking_id=checking_id,
             payment_request=payment_request,
+            preimage=data["result"].get("preimage"),
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:

@@ -152,10 +152,12 @@ class LndRestWallet(Wallet):
             payment_request = data["payment_request"]
             payment_hash = base64.b64decode(data["r_hash"]).hex()
             checking_id = payment_hash
+            preimage = data.get("r_preimage")
             return InvoiceResponse(
                 ok=True,
                 checking_id=checking_id,
                 payment_request=payment_request,
+                preimage=preimage,
             )
 
         except json.JSONDecodeError:
