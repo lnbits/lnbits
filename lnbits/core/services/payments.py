@@ -487,6 +487,9 @@ async def _pay_internal_invoice(
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError("Insufficient balance.", status="failed")
 
+    # release the preimage
+    create_payment_model.preimage = internal_invoice.preimage
+
     internal_id = f"internal_{create_payment_model.payment_hash}"
     logger.debug(f"creating temporary internal payment with id {internal_id}")
     payment = await create_payment(
