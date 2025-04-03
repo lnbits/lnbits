@@ -17,6 +17,8 @@ async def test_create_invoice(from_wallet):
         amount=1000,
         memo=description,
     )
+    assert payment.preimage
+
     invoice = decode(payment.bolt11)
     assert invoice.payment_hash == payment.payment_hash
     assert invoice.amount_msat == 1000000
@@ -33,6 +35,8 @@ async def test_create_internal_invoice(from_wallet):
     payment = await create_invoice(
         wallet_id=from_wallet.id, amount=1000, memo=description, internal=True
     )
+    assert payment.preimage
+
     invoice = decode(payment.bolt11)
     assert invoice.payment_hash == payment.payment_hash
     assert invoice.amount_msat == 1000000

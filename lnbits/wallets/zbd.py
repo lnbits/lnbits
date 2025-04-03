@@ -94,10 +94,12 @@ class ZBDWallet(Wallet):
         data = r.json()["data"]
         checking_id = data["id"]  # this is a zbd id
         payment_request = data["invoice"]["request"]
+        preimage = data["invoice"].get("preimage")
         return InvoiceResponse(
             ok=True,
             checking_id=checking_id,
             payment_request=payment_request,
+            preimage=preimage,
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:

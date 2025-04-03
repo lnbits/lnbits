@@ -119,6 +119,7 @@ class CoreLightningWallet(Wallet):
                 ok=True,
                 checking_id=r["payment_hash"],
                 payment_request=r["bolt11"],
+                preimage=r.get("payment_preimage"),
             )
         except RpcError as exc:
             logger.warning(exc)
