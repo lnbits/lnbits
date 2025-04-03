@@ -3,7 +3,7 @@ name: release-rc
 on:
   push:
     tags:
-      - "*-rc[0-9]"
+      - "*-rc[0-9]+"
 
 permissions:
   contents: write
