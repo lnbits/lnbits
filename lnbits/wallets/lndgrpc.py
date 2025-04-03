@@ -1,7 +1,7 @@
 import asyncio
 import base64
-import hashlib
-from os import environ
+from hashlib import sha256
+from os import environ, urandom
 from typing import AsyncGenerator, Dict, Optional
 
 import grpc
@@ -139,24 +139,33 @@ class LndWallet(Wallet):
         if description_hash:
             data["description_hash"] = description_hash
         elif unhashed_description:
-            data["description_hash"] = hashlib.sha256(unhashed_description).digest()
+            data["description_hash"] = sha256(unhashed_description).digest()
 
+        preimage = urandom(32)
+
+        data["r_hash"] = sha256(preimage).digest()
+        data["r_preimage"] = preimage
         try:
             req = ln.Invoice(**data)
             resp = await self.rpc.AddInvoice(req)
+            # response model
+            # {
+            #    "r_hash": <bytes>,
+            #    "payment_request": <string>,
+            #    "add_index": <uint64>,
+            #    "payment_addr": <bytes>,
+            # }
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=str(exc))
 
         checking_id = bytes_to_hex(resp.r_hash)
         payment_request = str(resp.payment_request)
-        # TODO: add preimage
-        preimage = None
         return InvoiceResponse(
             ok=True,
             checking_id=checking_id,
             payment_request=payment_request,
-            preimage=preimage,
+            preimage=preimage.hex(),
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
