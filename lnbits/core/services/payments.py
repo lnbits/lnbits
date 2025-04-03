@@ -145,7 +145,7 @@ async def create_invoice(
         or not payment_response.checking_id
     ):
         raise InvoiceError(
-            payment_response.error_message or "unexpected backend error.",
+            message=payment_response.error_message or "unexpected backend error.",
             status="pending",
         )
 
