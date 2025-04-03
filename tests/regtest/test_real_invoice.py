@@ -101,7 +101,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         balance = await get_node_balance_sats()
         assert balance - prev_balance == create_invoice.amount
 
-        assert response.get("preimage") is not None
+        assert payment_status.get("preimage") is not None
 
         # exit out of infinite loop
         raise FakeError()
