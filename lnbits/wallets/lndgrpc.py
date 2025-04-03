@@ -230,10 +230,8 @@ class LndWallet(Wallet):
                 raise ValueError
 
             resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
-
-            # todo: where is the FAILED status
             if resp.settled:
-                return PaymentSuccessStatus()
+                return PaymentSuccessStatus(preimage=resp.r_preimage.hex())
 
             return PaymentPendingStatus()
         except grpc.RpcError as exc:
