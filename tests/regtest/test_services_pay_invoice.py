@@ -19,6 +19,7 @@ async def test_services_pay_invoice(to_wallet, real_invoice):
     assert payment
     assert payment.status == PaymentState.SUCCESS
     assert payment.memo == description
+    assert payment.preimage
 
 
 @pytest.mark.anyio
