@@ -1,5 +1,6 @@
 import asyncio
 import json
+import secrets
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -16,7 +17,7 @@ from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
-from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
+from lnbits.exceptions import InvoiceError, OfferError, PaymentError, UnsupportedError
 from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
@@ -42,8 +43,19 @@ from ..crud import (
     is_internal_status_success,
     update_payment,
 )
+from ..crud import (
+    create_offer as crud_create_offer,
+)
+from ..crud import (
+    disable_offer as crud_disable_offer,
+)
+from ..crud import (
+    enable_offer as crud_enable_offer,
+)
 from ..models import (
+    CreateOffer,
     CreatePayment,
+    Offer,
     Payment,
     PaymentState,
     Wallet,
@@ -52,6 +64,155 @@ from .notifications import send_payment_notification
 
 payment_lock = asyncio.Lock()
 wallets_payments_lock: dict[str, asyncio.Lock] = {}
+
+
+async def create_offer(
+    *,
+    wallet_id: str,
+    amount_sat: int,
+    memo: str,
+    absolute_expiry: Optional[int] = None,
+    single_use: Optional[bool] = None,
+    extra: Optional[dict] = None,
+    webhook: Optional[str] = None,
+    conn: Optional[Connection] = None,
+) -> Offer:
+    if amount_sat < 0:
+        raise OfferError("Offers with negative amounts are not valid.", status="failed")
+
+    user_wallet = await get_wallet(wallet_id, conn=conn)
+    if not user_wallet:
+        raise OfferError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+
+    offer_memo = memo[:640]
+
+    funding_source = get_funding_source()
+
+    # How should this be handled with offers?
+    if amount_sat > settings.lnbits_max_incoming_payment_amount_sats:
+        raise OfferError(
+            f"Offer amount {amount_sat} sats is too high. Max allowed: "
+            f"{settings.lnbits_max_incoming_payment_amount_sats} sats.",
+            status="failed",
+        )
+    if settings.is_wallet_max_balance_exceeded(
+        user_wallet.balance_msat / 1000 + amount_sat
+    ):
+        raise OfferError(
+            f"Wallet balance cannot exceed "
+            f"{settings.lnbits_wallet_limit_max_balance} sats.",
+            status="failed",
+        )
+
+    while True:
+        offer_resp = await funding_source.create_offer(
+            amount=amount_sat,
+            issuer=secrets.token_hex(8),
+            memo=offer_memo,
+            absolute_expiry=absolute_expiry,
+            single_use=single_use,
+        )
+
+        if not offer_resp.ok or not offer_resp.invoice_offer or not offer_resp.offer_id:
+            raise OfferError(
+                offer_resp.error_message or "unexpected backend error.",
+                status="pending",
+            )
+
+        if offer_resp.created:
+            break
+
+    create_offer_model = CreateOffer(
+        wallet_id=wallet_id,
+        bolt12=offer_resp.invoice_offer,
+        amount_msat=amount_sat * 1000,
+        memo=memo,
+        extra=extra,
+        expiry=absolute_expiry,
+        webhook=webhook,
+    )
+
+    offer = await crud_create_offer(
+        offer_id=offer_resp.offer_id,
+        data=create_offer_model,
+        active=offer_resp.active,
+        single_use=offer_resp.single_use,
+        conn=conn,
+    )
+
+    return offer
+
+
+async def enable_offer(
+    *,
+    wallet_id: str,
+    offer_id: str,
+    conn: Optional[Connection] = None,
+) -> bool:
+
+    user_wallet = await get_wallet(wallet_id, conn=conn)
+    if not user_wallet:
+        raise OfferError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+
+    funding_source = get_funding_source()
+
+    offer_resp = await funding_source.enable_offer(offer_id=offer_id)
+
+    if not offer_resp.ok:
+        raise OfferError(
+            offer_resp.error_message or "unexpected backend error.", status="pending"
+        )
+
+    if offer_resp.created:
+
+        if (
+            not offer_resp.invoice_offer
+            or not offer_resp.offer_id == offer_id
+            or not offer_resp.active
+        ):
+            raise OfferError(
+                offer_resp.error_message or "unexpected backend state.", status="error"
+            )
+
+        await crud_enable_offer(offer_resp.offer_id)
+
+    return True
+
+
+async def disable_offer(
+    *,
+    wallet_id: str,
+    offer_id: str,
+    conn: Optional[Connection] = None,
+) -> bool:
+
+    user_wallet = await get_wallet(wallet_id, conn=conn)
+    if not user_wallet:
+        raise OfferError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+
+    funding_source = get_funding_source()
+
+    offer_resp = await funding_source.disable_offer(offer_id=offer_id)
+
+    if not offer_resp.ok:
+        raise OfferError(
+            offer_resp.error_message or "unexpected backend error.", status="pending"
+        )
+
+    if offer_resp.created:
+
+        if (
+            not offer_resp.invoice_offer
+            or not offer_resp.offer_id == offer_id
+            or offer_resp.active
+        ):
+            raise OfferError(
+                offer_resp.error_message or "unexpected backend state.", status="error"
+            )
+
+        await crud_disable_offer(offer_resp.offer_id)
+
+    return False
 
 
 async def pay_invoice(

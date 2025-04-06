@@ -1,4 +1,5 @@
 import asyncio
+import random
 from collections.abc import AsyncGenerator
 from secrets import token_urlsafe
 from typing import Any, Optional
@@ -15,7 +16,12 @@ from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
     Feature,
+    FetchInvoiceResponse,
+    InvoiceMainData,
     InvoiceResponse,
+    OfferErrorStatus,
+    OfferResponse,
+    OfferStatus,
     PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
@@ -88,6 +94,218 @@ class CoreLightningWallet(Wallet):
         except Exception as exc:
             logger.warning(f"Failed to connect, got: '{exc}'")
             return StatusResponse(f"Unable to connect, got: '{exc}'", 0)
+
+    async def create_offer(
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        issuer: Optional[str] = None,
+        absolute_expiry: Optional[int] = None,
+        single_use: Optional[bool] = None,
+        **kwargs,
+    ) -> OfferResponse:
+        label = kwargs.get("label", f"lbl{random.random()}")  # noqa: S311
+        try:
+            payload = {
+                "amount": int(amount * 1000) if amount > 0 else "any",
+                "description": memo,
+                "issuer": issuer,
+                "label": label,
+                "absolute_expiry": absolute_expiry,
+                "single_use": single_use,
+            }
+            r: dict = self.ln.call("offer", payload)
+
+            if r.get("code") and r.get("code") < 0:  # type: ignore
+                raise Exception(r.get("message"))
+
+            return OfferResponse(
+                True,
+                r["offer_id"],
+                r["active"],
+                r["single_use"],
+                r["bolt12"],
+                r["used"],
+                r["created"],
+                r["label"],
+                None,
+            )
+        except RpcError as exc:
+            logger.warning(exc)
+            error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
+            return OfferResponse(
+                False, None, None, None, None, None, None, None, error_message
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return OfferResponse(
+                False,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "Server error: 'missing required fields'",
+            )
+        except Exception as e:
+            logger.warning(e)
+            return OfferResponse(
+                False, None, None, None, None, None, None, None, str(e)
+            )
+
+    async def enable_offer(
+        self,
+        offer_id: str,
+    ) -> OfferResponse:
+        try:
+            payload = {
+                "offer_id": offer_id,
+            }
+            r: dict = self.ln.call("enableoffer", payload)
+
+            if r.get("code"):
+
+                if r.get("code") == 1006:
+                    return OfferResponse(
+                        True, None, None, None, None, None, False, None, None
+                    )
+
+                else:  # type: ignore
+                    raise Exception(r.get("message"))
+
+            return OfferResponse(
+                True,
+                r["offer_id"],
+                r["active"],
+                r["single_use"],
+                r["bolt12"],
+                r["used"],
+                True,
+                r["label"],
+                None,
+            )
+        except RpcError as exc:
+            logger.warning(exc)
+            error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
+            return OfferResponse(
+                False, None, None, None, None, None, None, None, error_message
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return OfferResponse(
+                False, None, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as e:
+            logger.warning(e)
+            return OfferResponse(
+                False, None, None, None, None, None, None, None, str(e)
+            )
+
+    async def disable_offer(
+        self,
+        offer_id: str,
+    ) -> OfferResponse:
+        try:
+            payload = {
+                "offer_id": offer_id,
+            }
+            r: dict = self.ln.call("disableoffer", payload)
+
+            if r.get("code"):
+
+                if r.get("code") == 1001:
+                    return OfferResponse(
+                        True, None, None, None, None, None, False, None, None
+                    )
+
+                else:  # type: ignore
+                    raise Exception(r.get("message"))
+
+            return OfferResponse(
+                True,
+                r["offer_id"],
+                r["active"],
+                r["single_use"],
+                r["bolt12"],
+                r["used"],
+                True,
+                r["label"],
+                None,
+            )
+        except RpcError as exc:
+            logger.warning(exc)
+            error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
+            return OfferResponse(
+                False, None, None, None, None, None, None, None, error_message
+            )
+        except KeyError as exc:
+            logger.warning(exc)
+            return OfferResponse(
+                False, None, None, None, "Server error: 'missing required fields'"
+            )
+        except Exception as e:
+            logger.warning(e)
+            return OfferResponse(
+                False, None, None, None, None, None, None, None, str(e)
+            )
+
+    async def get_offer_status(
+        self, offer_id: str, active_only: bool = False
+    ) -> OfferStatus:
+        try:
+            payload = {
+                "offer_id": offer_id,
+                "active_only": active_only,
+            }
+            r: dict = self.ln.call("listoffers", payload)
+
+            if not r["offers"]:
+                return OfferErrorStatus()
+
+            offer_resp = r["offers"][-1]
+
+            if offer_resp["offer_id"] == offer_id:
+                return OfferStatus(offer_resp["active"], offer_resp["used"])
+            else:
+                logger.warning(f"supplied an invalid offer_id: {offer_id}")
+            return OfferErrorStatus()
+        except RpcError as exc:
+            logger.warning(exc)
+            return OfferErrorStatus()
+        except Exception as exc:
+            logger.warning(exc)
+            return OfferErrorStatus()
+
+    async def fetch_invoice(
+        self,
+        offer_id: str,
+        amount: Optional[int] = None,
+    ) -> FetchInvoiceResponse:
+        try:
+            payload = {
+                "offer": offer_id,
+                "amount_msat": int(amount * 1000) if amount else None,
+            }
+            r: dict = self.ln.call("fetchinvoice", payload)
+
+            if r.get("code") and r.get("code") < 0:  # type: ignore
+                raise Exception(r.get("message"))
+
+            return FetchInvoiceResponse(True, r["invoice"], None)
+        except RpcError as exc:
+            logger.warning(exc)
+            error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
+            return FetchInvoiceResponse(False, None, error_message)
+        except KeyError as exc:
+            logger.warning(exc)
+            return FetchInvoiceResponse(
+                False, None, "Server error: 'missing required fields'"
+            )
+        except Exception as e:
+            logger.warning(e)
+            return FetchInvoiceResponse(False, None, str(e))
 
     async def create_invoice(
         self,
@@ -204,6 +422,70 @@ class CoreLightningWallet(Wallet):
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
+
+    async def get_bolt12_invoice_main_data(
+        self, checking_id: str
+    ) -> Optional[InvoiceMainData]:
+        try:
+            r: dict = self.ln.listinvoices(payment_hash=checking_id)
+
+            if not r["invoices"]:
+                raise Exception(f"Invoice with checking_id {checking_id}")
+
+            invoice_resp = r["invoices"][-1]
+            logger.debug(f"Returned invoice response is {invoice_resp}")
+
+            if invoice_resp["payment_hash"] != checking_id:
+                raise Exception(f"Supplied an invalid checking_id: {checking_id}")
+
+            if not invoice_resp["bolt12"]:
+                raise Exception("Invoice does not contain bolt12 data")
+
+            payload = {"string": invoice_resp["bolt12"]}
+            r2: dict = self.ln.call("decode", payload)
+
+            logger.debug(f"Returned decoded bolt12 invoice is {r2}")
+
+            if not r2["type"] == "bolt12 invoice":
+                raise Exception("Provided string is not a bolt12 invoice")
+
+            if r2["valid"] is False:
+                raise Exception("Provided bolt12 invoice is invalid")
+
+            if invoice_resp["status"] == "paid":
+                return InvoiceMainData(
+                    paid=True,
+                    payment_hash=invoice_resp["payment_hash"],
+                    description=invoice_resp.get("description"),
+                    payer_note=r.get("invreq_payer_note"),
+                    amount_msat=invoice_resp["amount_msat"],
+                    offer_id=invoice_resp["local_offer_id"],
+                    expires_at=invoice_resp["expires_at"],
+                    created_at=r["invoice_created_at"],
+                    paid_at=invoice_resp["paid_at"],
+                    payment_preimage=invoice_resp["payment_preimage"],
+                )
+
+            else:
+                return InvoiceMainData(
+                    paid=None if invoice_resp["status"] == "unpaid" else False,
+                    payment_hash=invoice_resp["payment_hash"],
+                    description=invoice_resp.get("description"),
+                    payer_note=r.get("invreq_payer_note"),
+                    amount_msat=invoice_resp["amount_msat"],
+                    offer_id=invoice_resp["local_offer_id"],
+                    expires_at=invoice_resp["expires_at"],
+                    created_at=r["invoice_created_at"],
+                    paid_at=None,
+                    payment_preimage=None,
+                )
+
+        except RpcError as exc:
+            logger.warning(exc)
+            return None
+        except Exception as exc:
+            logger.warning(exc)
+            return None
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

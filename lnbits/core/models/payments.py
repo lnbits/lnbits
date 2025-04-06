@@ -52,10 +52,14 @@ class CreatePayment(BaseModel):
     payment_hash: str
     bolt11: str
     amount_msat: int
+    offer_id: str | None = None
     memo: str
+    payer_note: str | None = None
     extra: dict | None = {}
     preimage: str | None = None
     expiry: datetime | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     webhook: str | None = None
     fee: int = 0
 
@@ -70,7 +74,9 @@ class Payment(BaseModel):
     # payment_request: str | None
     fiat_provider: str | None = None
     status: str = PaymentState.PENDING
+    offer_id: str | None = None
     memo: str | None = None
+    payer_note: str | None = None
     expiry: datetime | None = None
     webhook: str | None = None
     webhook_status: str | None = None

@@ -14,7 +14,9 @@ from lnbits.core.crud import (
     update_payment,
 )
 from lnbits.core.models import Payment, PaymentState
-from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
+from lnbits.core.services.fiat_providers import (
+    handle_fiat_payment_confirmation,
+)
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
@@ -191,3 +193,66 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     for name, send_chan in invoice_listeners.items():
         logger.trace(f"invoice listeners: sending to `{name}`")
         await send_chan.put(payment)
+
+    # if payment:
+    #     if payment.is_in:
+    #         status = await payment.check_status()
+    #         payment.fee = status.fee_msat or 0
+    #         payment.preimage = status.preimage
+    #         payment.status = PaymentState.SUCCESS
+    #         await update_payment(payment)
+    #         internal = "internal" if is_internal else ""
+    #         logger.success(f"{internal} invoice {checking_id} settled")
+    #         for name, send_chan in invoice_listeners.items():
+    #             logger.trace(f"invoice listeners: sending to `{name}`")
+    #             await send_chan.put(payment)
+    # else:
+    #     funding_source = get_funding_source()
+    #     data = await funding_source.get_bolt12_invoice_main_data(checking_id)
+    #     logger.debug(f"Returned main invoice data is {data}")
+
+    #     if data and data.success:
+    #         logger.success(f"Bolt12
+    #                        data successfully recovered for invoice {checking_id}")
+    #         offer = await get_standalone_offer(data.offer_id)
+
+    #         if offer:
+    #             logger.success(f"Offer {data.offer_id} was found in db")
+    #             description = data.description or f"Offer {data.offer_id} payment"
+    #             invoice = Bolt11(
+    #                 currency="bc",
+    #                 amount_msat=data.amount_msat,
+    #                 date=data.created_at,
+    #                 tags=Tags.from_dict(
+    #                     {
+    #                         "payment_hash": data.payment_hash,
+    #                         "payment_secret": data.payment_preimage,
+    #                         "description": description,
+    #                         "expire_time": data.expires_at-data.created_at,
+    #                     }                    ),
+    #             )
+    #             privkey = fake_privkey(settings.fake_wallet_secret)
+    #             bolt11 = bolt11_encode(invoice, privkey)
+
+    #             create_payment_model = CreatePayment(
+    #                 wallet_id=offer.wallet_id,
+    #                 bolt11=bolt11,
+    #                 payment_hash=data.payment_hash,
+    #                 preimage=data.payment_preimage,
+    #                 amount_msat=data.amount_msat,
+    #                 offer_id=data.offer_id,
+    #                 expiry=data.expires_at,
+    #                 created_at=data.created_at,
+    #                 updated_at=data.paid_at,
+    #                 memo=description,
+    #             )
+
+    #             payment = await create_payment(
+    #                 checking_id=checking_id,
+    #                 data=create_payment_model,
+    #                 status = PaymentState.SUCCESS
+    #             )
+    #             logger.success(f"invoice {checking_id} settled")
+    #             for name, send_chan in invoice_listeners.items():
+    #                 logger.trace(f"invoice listeners: sending to `{name}`")
+    #                 await send_chan.put(payment)
