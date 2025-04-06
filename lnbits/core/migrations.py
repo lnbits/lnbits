@@ -711,3 +711,32 @@ async def m031_add_color_and_icon_to_wallets(db: Connection):
     Adds icon and color columns to wallets.
     """
     await db.execute("ALTER TABLE wallets ADD COLUMN extra TEXT")
+
+
+async def m032_create_offer_table(db: Connection):
+    await db.execute("ALTER TABLE apipayments ADD COLUMN payer_note TEXT")
+    await db.execute("ALTER TABLE apipayments ADD COLUMN offer_id TEXT")
+    await db.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS apioffers (
+            offer_id TEXT NOT NULL,
+            amount INT NOT NULL,
+            wallet_id TEXT NOT NULL,
+            memo TEXT,
+            bolt12 TEXT,
+            extra TEXT,
+            webhook TEXT,
+            webhook_status TEXT,
+            expiry TIMESTAMP,
+            active INT NOT NULL DEFAULT 0 CHECK(ABS(active)<=1), 
+            single_use INT NOT NULL DEFAULT 0 CHECK(ABS(single_use)<=1), 
+            tag TEXT,
+            extension TEXT,
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP,
+            UNIQUE (wallet_id, offer_id)
+        )
+        """
+    )
+    await db.execute("CREATE INDEX by_offer ON apioffers (offer_id)")
+

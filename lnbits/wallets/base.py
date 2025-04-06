@@ -15,6 +15,92 @@ class StatusResponse(NamedTuple):
     balance_msat: int
 
 
+class OfferResponse(NamedTuple):
+    ok: bool
+    offer_id: str | None = None 
+    active: bool | None = None
+    single_use: bool | None = None
+    invoice_offer: str | None = None
+    used: bool | None = None
+    created: bool | None = None
+    label: str | None = None
+    error_message: str | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is not True
+
+
+class OfferStatus(NamedTuple):
+    active: bool | None = None
+    used: bool | None = None
+
+    @property
+    def active(self) -> bool:
+        return self.active is True
+
+    @property
+    def used(self) -> bool:
+        return self.used is True
+
+    @property
+    def error(self) -> bool:
+        return self.active is None
+
+
+class OfferErrorStatus(OfferStatus):
+    active = None
+    used = None
+
+
+class FetchInvoiceResponse(NamedTuple):
+    ok: bool
+    payment_request: str | None = None
+    error_message: str | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.ok is True
+
+    @property
+    def pending(self) -> bool:
+        return self.ok is None
+
+    @property
+    def failed(self) -> bool:
+        return self.ok is False
+
+
+class InvoiceMainData(NamedTuple):
+    paid: bool | None = None
+    payment_hash: str | None = None
+    description: str | None = None
+    payer_note: str | None = None
+    amount_msat: int | None = None
+    offer_id: str | None = None
+    expires_at: int | None = None
+    created_at: int | None = None
+    paid_at: int | None = None
+    payment_preimage: str | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.paid is True
+
+    @property
+    def pending(self) -> bool:
+        return self.paid is None
+
+    @property
+    def failed(self) -> bool:
+        return self.paid is False
+
+
+
 class InvoiceResponse(NamedTuple):
     ok: bool
     checking_id: str | None = None  # payment_hash, rpc_id
@@ -135,6 +221,9 @@ class Wallet(ABC):
         self, checking_id: str
     ) -> Coroutine[None, None, PaymentStatus]:
         pass
+
+    async def get_bolt12_invoice_main_data(self, checking_id: str) -> Optional[InvoiceMainData]:
+        return None
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
