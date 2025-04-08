@@ -322,6 +322,7 @@ window.localisation.en = {
   update_pubkey: 'Update Public Key',
   set_password: 'Set Password',
   invalid_password: 'Password must have at least 8 characters',
+  invalid_password_repeat: 'Passwords do not match',
   login: 'Login',
   register: 'Register',
   username: 'Username',
@@ -337,6 +338,7 @@ window.localisation.en = {
   invalid_username: 'Invalid Username',
   auth_provider: 'Auth Provider',
   my_account: 'My Account',
+  existing_account_question: 'Already have an account?',
   background_image: 'Background Image',
   back: 'Back',
   logout: 'Logout',
@@ -568,5 +570,6 @@ window.localisation.en = {
   view_list: 'View wallets as list',
   view_column: 'View wallets as rows',
   filter_payments: 'Filter payments',
-  filter_date: 'Filter by date'
+  filter_date: 'Filter by date',
+  websocket_example: 'Websocket example'
 }

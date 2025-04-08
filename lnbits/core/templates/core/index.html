@@ -184,12 +184,13 @@
                     </p>
 
                     <p v-else-if="authAction === 'register'" class="q-mb-none">
-                      Aready have an account?
+                      <span v-text="$t('existing_account_question')"></span>
+
                       <span
                         class="text-secondary cursor-pointer"
                         @click="showLogin('username-password')"
-                        >Login</span
-                      >
+                        v-text="$t('login')"
+                      ></span>
                     </p>
                   </div>
                 </username-password>

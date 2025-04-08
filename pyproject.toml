@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "1.0.0-rc9"
+version = "1.0.0-rc10"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 readme = "README.md"
@@ -63,6 +63,8 @@ breez-sdk = {version = "0.6.6", optional = true}
 jsonpath-ng = "^1.7.0"
 pynostr = "^0.6.2"
 python-multipart = "^0.0.20"
+filetype = "^1.2.0"
+
 [tool.poetry.extras]
 breez = ["breez-sdk"]
 liquid = ["wallycore"]
@@ -145,6 +147,7 @@ module = [
   "fastapi_sso.sso.*",
   "json5.*",
   "jsonpath_ng.*",
+  "filetype.*",
 ]
 ignore_missing_imports = "True"
 

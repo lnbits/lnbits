@@ -59,9 +59,11 @@
                   <div class="col-7">
                     <div class="row">
                       <div class="col-auto">
-                        <div class="text-h3 q-my-none text-no-wrap">
+                        <div class="text-h3 q-my-none full-width">
                           <strong
                             v-text="walletFormatBalance(this.g.wallet.sat)"
+                            class="text-no-wrap"
+                            :style="{fontSize: 'clamp(0.75rem, 10vw, 3rem)', display: 'inline-block', maxWidth: '100%'}"
                           ></strong>
                         </div>
                       </div>

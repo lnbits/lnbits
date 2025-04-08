@@ -163,13 +163,13 @@ def create_app() -> FastAPI:
     core_app_extra.register_new_ratelimiter = register_new_ratelimiter(app)
 
     # register static files
-    static_path = Path("lnbits", "static")
-    static = StaticFiles(directory=static_path)
-    app.mount("/static", static, name="static")
-
-    images_path = os.path.abspath(os.path.join(settings.lnbits_data_folder, "images"))
-    os.makedirs(images_path, exist_ok=True)
-    app.mount("/library", StaticFiles(directory=images_path), name="library")
+    app.mount("/static", StaticFiles(directory=Path("lnbits", "static")), name="static")
+    Path(settings.lnbits_data_folder, "images").mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/library",
+        StaticFiles(directory=Path(settings.lnbits_data_folder, "images")),
+        name="library",
+    )
 
     g().base_url = f"http://{settings.host}:{settings.port}"
 

@@ -271,6 +271,23 @@ class ThemesSettings(LNbitsSettings):
 class OpsSettings(LNbitsSettings):
     lnbits_baseurl: str = Field(default="http://127.0.0.1:5000/")
     lnbits_hide_api: bool = Field(default=False)
+    lnbits_upload_size_bytes: int = Field(default=512_000, ge=0)  # 500kb
+    lnbits_upload_allowed_types: list[str] = Field(
+        default=[
+            "image/png",
+            "image/jpeg",
+            "image/jpg",
+            "image/heic",
+            "image/heif",
+            "image/heics",
+            "png",
+            "jpeg",
+            "jpg",
+            "heic",
+            "heif",
+            "heics",
+        ]
+    )
 
 
 class FeeSettings(LNbitsSettings):
