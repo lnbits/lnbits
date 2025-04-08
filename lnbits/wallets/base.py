@@ -5,7 +5,9 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple
 
 from bolt11 import Bolt11, Tags
+from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
+from bolt11.exceptions import Bolt11Bech32InvalidException
 
 from loguru import logger
 
@@ -254,7 +256,25 @@ class Wallet(ABC):
         return None
 
     async def decode_invoice(self, invoice_string: str) -> Optional[InvoiceData]:
-        return None
+        try:
+            invoice = bolt11_decode(invoice_string)
+            return InvoiceData(payment_hash = invoice.payment_hash,
+                               description = invoice.description,
+                               description_hash = invoice.description_hash,
+                               payment_secret = invoice.payment_secret,
+                               amount_msat = invoice.amount_msat,
+                               offer_issuer_id = invoice.payee,
+                               invoice_node_id = invoice.payee,
+                               invoice_created_at = invoice.date,
+                               invoice_relative_expiry = invoice.expiry,
+                               bolt11 = invoice_string,
+                               bolt11_is_fake = False)
+
+        except Bolt11Bech32InvalidException as exc:
+            return None
+        except Exception as exc:
+            logger.warning(exc)
+            return None
 
     async def get_invoice_extended_status(self, checking_id: str) -> Optional[InvoiceExtendedStatus]:
         return None

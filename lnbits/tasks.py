@@ -233,11 +233,11 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                     data = await funding_source.decode_invoice(invoice_status.string)
 
                     if not data:
-                        logger.warning(f"Invoice {checking_id} could not be decoded")
+                        logger.error(f"Invoice {checking_id} could not be decoded")
                     elif not data.offer_id:
-                        logger.warning(f"Decoded invoice {checking_id} does not have an offer_id")
+                        logger.error(f"Decoded invoice {checking_id} does not have an offer_id")
                     elif data.offer_id != invoice_status.offer_id:
-                        logger.warning(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
+                        logger.error(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
                     else:
                         description = data.description or f"Offer {data.offer_id} payment" if data.offer_id else f"Payment for invoice {data.payment_hash}"
                         create_payment_model = CreatePayment(
