@@ -12,8 +12,10 @@ from lnbits.settings import settings
 
 from .base import (
     FetchInvoiceResponse,
-    InvoiceMainData,
+    OfferData,
+    InvoiceData,
     InvoiceResponse,
+    InvoiceExtendedStatus,
     OfferResponse,
     OfferErrorStatus,
     OfferStatus,
@@ -218,11 +220,13 @@ class CoreLightningWallet(Wallet):
         self,
         offer_id: str,
         amount: Optional[int] = None,
+        payer_note: Optional[str] = None,
     ) -> FetchInvoiceResponse:
         try:
             payload = {
                 "offer": offer,
                 "amount_msat": int(amount * 1000) if amount else None,
+                "payer_note": payer_note,
             }
             r: dict = self.ln.call("fetchinvoice", payload)
 
@@ -350,7 +354,97 @@ class CoreLightningWallet(Wallet):
             return PaymentResponse(None, None, None, None, f"Payment failed: '{exc}'.")
 
 
-    async def get_bolt12_invoice_main_data(self, checking_id: str) -> Optional[InvoiceMainData]:
+    async def decode_offer(self, bolt12_offer: str) -> Optional[OfferData]:
+        try:
+            payload = {
+                    "string": bolt12_offer
+                    }
+            r: dict = self.ln.call("decode", payload)
+
+            logger.debug(f"Returned decoded bolt12 invoice is {r}")
+
+            if not r["type"] == "bolt12 offer":
+                raise Exception("Provided string is not a bolt12 offer")
+
+            if not r["valid"] == True:
+                raise Exception("Provided bolt12 offer is invalid")
+
+            if r.get("offer_currency") and r.get("offer_amount"):
+
+                if not r.get("currency_minor_unit"):
+                    raise Exception("Offer does contain an offer amount but no currency minor unit")
+
+                currency_amount = r.get("offer_amount") / pow(10, r.get("offer_minor_unit"))
+
+                return OfferData(offer_id = r["offer_id"],
+                                 currency = r.get("offer_currency"),
+                                 currency_amount = currency_amount,
+                                 description = r.get("offer_description"),
+                                 issuer = r.get("offer_issuer"),
+                                 absolute_expiry = r.get("offer_absolute_expiry"),
+                                 offer_issuer_id = r.get("offer_issuer_id"))
+
+            else:
+                return OfferData(offer_id = r["offer_id"],
+                                 amount_msat = r.get("offer_amount_msat"),
+                                 description = r.get("offer_description"),
+                                 issuer = r.get("offer_issuer"),
+                                 absolute_expiry = r.get("offer_absolute_expiry"),
+                                 offer_issuer_id = r.get("offer_issuer_id"))
+
+        except RpcError as exc:
+            logger.warning(exc)
+            return None
+        except Exception as exc:
+            logger.warning(exc)
+            return None
+
+
+    async def decode_invoice(self, invoice_string: str) -> Optional[InvoiceData]:
+        try:
+            payload = {
+                    "string": invoice_string
+                    }
+            r: dict = self.ln.call("decode", payload)
+
+            logger.debug(f"Returned decoded bolt12 invoice is {r}")
+
+            if not r["valid"] == True:
+                raise Exception("Provided bolt12 invoice is invalid")
+
+            if r["type"] == "bolt12 invoice":
+                return InvoiceData(payment_hash = r["invoice_payment_hash"],
+                                   description = r.get("offer_description"),
+                                   payer_note = r.get("invreq_payer_note"),
+                                   amount_msat = r.get("invoice_amount_msat"),
+                                   offer_id = r["offer_id"],
+                                   offer_issuer_id = r.get("offer_issuer_id"),
+                                   invoice_node_id = r.get("invoice_node_id"),
+                                   offer_absolute_expiry = r.get("offer_absolute_expiry"),
+                                   invoice_created_at = r["invoice_created_at"],
+                                   invoice_relative_expiry = r.get("invoice_relative_expiry"))
+
+            elif r["type"] == "bolt11 invoice":
+                return InvoiceData(payment_hash = r["payment_hash"],
+                                   description = r.get("description"),
+                                   description_hash = r.get("description_hash"),
+                                   amount_msat = r.get("amount_msat"),
+                                   offer_issuer_id = r["payee"],
+                                   invoice_node_id = r["payee"],
+                                   invoice_created_at = r["created_at"],
+                                   invoice_relative_expiry = r["expiry"])
+
+            else:
+                raise Exception("Provided string is not a bolt11 or bolt12 invoice")
+
+        except RpcError as exc:
+            logger.warning(exc)
+            return None
+        except Exception as exc:
+            logger.warning(exc)
+            return None
+
+    async def get_invoice_extended_status(self, checking_id: str) -> Optional[InvoiceExtendedStatus]:
         try:
             r: dict = self.ln.listinvoices(payment_hash=checking_id)
 
@@ -358,50 +452,23 @@ class CoreLightningWallet(Wallet):
                 raise Exception(f"Invoice with checking_id {checking_id}")
 
             invoice_resp = r["invoices"][-1]
-            logger.debug(f"Returned invoice response is {invoice_resp}")
 
             if invoice_resp["payment_hash"] != checking_id:
                 raise Exception(f"Supplied an invalid checking_id: {checking_id}")
 
-            if not invoice_resp["bolt12"]:
-                raise Exception("Invoice does not contain bolt12 data")
-
-            payload = {
-                    "string": invoice_resp["bolt12"]
-                    }
-            r: dict = self.ln.call("decode", payload)
-
-            logger.debug(f"Returned decoded bolt12 invoice is {r}")
-
-            if not r["type"] == "bolt12 invoice":
-                raise Exception("Provided string is not a bolt12 invoice")
-
-            if not r["valid"] == True:
-                raise Exception("Provided bolt12 invoice is invalid")
+            if not invoice_resp.get("bolt11") and not invoice_resp.get("bolt12"):
+                raise Exception("Invoice contains neither bolt11 nor bolt12 data")
 
             if invoice_resp["status"] == "paid":
-                return InvoiceMainData(paid = True, 
-                                       payment_hash = invoice_resp["payment_hash"],
-                                       description = invoice_resp.get("description"),
-                                       payer_note = r.get("invreq_payer_note"),
-                                       amount_msat = invoice_resp["amount_msat"],
-                                       offer_id = invoice_resp["local_offer_id"],
-                                       expires_at = invoice_resp["expires_at"],
-                                       created_at = r["invoice_created_at"],
-                                       paid_at = invoice_resp["paid_at"],
-                                       payment_preimage = invoice_resp["payment_preimage"])
+                return InvoiceExtendedStatus(paid = True,
+                                             string = invoice_resp.get("bolt12") or invoice_resp.get("bolt11"),
+                                             offer_id = invoice_resp.get("local_offer_id"),
+                                             paid_at = invoice_resp["paid_at"],
+                                             payment_preimage = invoice_resp["payment_preimage"]
+                                            )
 
             else:
-                return InvoiceMainData(paid = None if invoice_resp["status"] == "unpaid" else False, 
-                                       payment_hash = invoice_resp["payment_hash"],
-                                       description = invoice_resp.get("description"),
-                                       payer_note = r.get("invreq_payer_note"),
-                                       amount_msat = invoice_resp["amount_msat"],
-                                       offer_id = invoice_resp["local_offer_id"],
-                                       expires_at = invoice_resp["expires_at"],
-                                       created_at = r["invoice_created_at"],
-                                       paid_at = None,
-                                       payment_preimage = None)
+                return InvoiceExtendedStatus(paid = False if invoice_resp["status"] == "unpaid" else None)
 
         except RpcError as exc:
             logger.warning(exc)

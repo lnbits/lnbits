@@ -27,8 +27,6 @@ from lnbits.settings import settings
 from lnbits.utils.crypto import fake_privkey
 from lnbits.wallets import get_funding_source
 
-from lnbits.wallets.base import InvoiceMainData
-
 tasks: List[asyncio.Task] = []
 unique_tasks: Dict[str, asyncio.Task] = {}
 
@@ -222,50 +220,68 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                 await send_chan.put(payment)
     else:
         funding_source = get_funding_source()
-        data = await funding_source.get_bolt12_invoice_main_data(checking_id)
-        logger.debug(f"Returned main invoice data is {data}")
+        invoice_status = await funding_source.get_invoice_extended_status(checking_id)
+        logger.debug(f"Returned extended invoice status is {invoice_status}")
 
-        if data and data.success:
-            logger.success(f"Bolt12 data successfully recovered for invoice {checking_id}") 
-            offer = await get_standalone_offer(data.offer_id)
+        if invoice_status and invoice_status.success:
+            logger.info(f"Invoice status successfully recovered for invoice {checking_id}") 
 
-            if offer:
-                logger.success(f"Offer {data.offer_id} was found in db") 
-                description = data.description or f"Offer {data.offer_id} payment"
-                invoice = Bolt11(
-                    currency="bc",
-                    amount_msat=data.amount_msat,
-                    date=data.created_at,
-                    tags=Tags.from_dict(
-                        {
-                            "payment_hash": data.payment_hash,
-                            "payment_secret": data.payment_preimage,
-                            "description": description,
-                            "expire_time": data.expires_at-data.created_at,
-                        }                    ),
-                )
-                privkey = fake_privkey(settings.fake_wallet_secret)
-                bolt11 = bolt11_encode(invoice, privkey)
+            if invoice_status.offer_id:
+                offer = await get_standalone_offer(invoice_status.offer_id)
 
-                create_payment_model = CreatePayment(
-                    wallet_id=offer.wallet_id,
-                    bolt11=bolt11,
-                    payment_hash=data.payment_hash,
-                    preimage=data.payment_preimage,
-                    amount_msat=data.amount_msat,
-                    offer_id=data.offer_id,
-                    expiry=data.expires_at,
-                    created_at=data.created_at,
-                    updated_at=data.paid_at,
-                    memo=description,
-                )
+                if offer:
+                    logger.info(f"Offer {invoice_status.offer_id} was found in db") 
+                    data = await funding_source.decode_invoice(invoice_status.string)
 
-                payment = await create_payment(
-                    checking_id=checking_id,
-                    data=create_payment_model,
-                    status = PaymentState.SUCCESS
-                )
-                logger.success(f"invoice {checking_id} settled")
-                for name, send_chan in invoice_listeners.items():
-                    logger.trace(f"invoice listeners: sending to `{name}`")
-                    await send_chan.put(payment)
+                    if not data:
+                        logger.warning(f"Invoice {checking_id} could not be decoded")
+                    elif not data.offer_id:
+                        logger.warning(f"Decoded invoice {checking_id} does not have an offer_id")
+                    elif data.offer_id != invoice_status.offer_id:
+                        logger.warning(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
+                    else:
+                        description = data.description or f"Offer {data.offer_id} payment"
+                        bolt11_invoice = Bolt11(
+                            currency="bc",
+                            amount_msat=data.amount_msat,
+                            date=data.invoice_created_at,
+                            tags=Tags.from_dict(
+                                {
+                                    "payment_hash": data.payment_hash,
+                                    "payment_secret": invoice_status.payment_preimage,
+                                    "description": description,
+                                    "expire_time": data.invoice_relative_expiry,
+                                }
+                                if data.invoice_relative_expiry else                   
+                                {
+                                    "payment_hash": data.payment_hash,
+                                    "payment_secret": invoice_status.payment_preimage,
+                                    "description": description,
+                                }
+                            ),
+                        )
+                        privkey = fake_privkey(settings.fake_wallet_secret)
+                        bolt11 = bolt11_encode(bolt11_invoice, privkey)
+        
+                        create_payment_model = CreatePayment(
+                            wallet_id=offer.wallet_id,
+                            bolt11=bolt11,
+                            payment_hash=data.payment_hash,
+                            preimage=invoice_status.payment_preimage,
+                            amount_msat=data.amount_msat,
+                            offer_id=data.offer_id,
+                            expiry=data.invoice_created_at+data.invoice_relative_expiry if data.invoice_relative_expiry else None,
+                            created_at=data.invoice_created_at,
+                            updated_at=invoice_status.paid_at,
+                            memo=description,
+                        )
+
+                        payment = await create_payment(
+                            checking_id=checking_id,
+                            data=create_payment_model,
+                            status = PaymentState.SUCCESS
+                        )
+                        logger.success(f"invoice {checking_id} settled")
+                        for name, send_chan in invoice_listeners.items():
+                            logger.trace(f"invoice listeners: sending to `{name}`")
+                            await send_chan.put(payment)

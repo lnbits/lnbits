@@ -75,30 +75,29 @@ class FetchInvoiceResponse(NamedTuple):
         return self.ok is False
 
 
-class InvoiceMainData(NamedTuple):
-    paid: bool | None = None
+class OfferData(NamedTuple):
+    offer_id: str
+    currency: str | None = None
+    currency_amount: float | None = None
+    amount_msat: int | None = None
+    description: str | None = None
+    issuer: str | None = None
+    absolute_expiry: int | None = None
+    offer_issuer_id: str | None = None
+
+
+class InvoiceData(NamedTuple):
     payment_hash: str | None = None
     description: str | None = None
+    description_hash: str | None = None
     payer_note: str | None = None
     amount_msat: int | None = None
     offer_id: str | None = None
-    expires_at: int | None = None
-    created_at: int | None = None
-    paid_at: int | None = None
-    payment_preimage: str | None = None
-
-    @property
-    def success(self) -> bool:
-        return self.paid is True
-
-    @property
-    def pending(self) -> bool:
-        return self.paid is None
-
-    @property
-    def failed(self) -> bool:
-        return self.paid is False
-
+    offer_issuer_id: str | None = None
+    invoice_node_id: str | None = None
+    offer_absolute_expiry: int | None = None
+    invoice_created_at: int | None = None
+    invoice_relative_expiry: int | None = None
 
 
 class InvoiceResponse(NamedTuple):
@@ -118,6 +117,26 @@ class InvoiceResponse(NamedTuple):
     @property
     def failed(self) -> bool:
         return self.ok is False
+
+
+class InvoiceExtendedStatus(NamedTuple):
+    paid: bool | None = None
+    string: str | None = None
+    offer_id: str | None = None
+    paid_at: int | None = None
+    payment_preimage: str | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.paid is True
+
+    @property
+    def pending(self) -> bool:
+        return self.paid is None
+
+    @property
+    def failed(self) -> bool:
+        return self.paid is False
 
 
 class PaymentResponse(NamedTuple):
@@ -222,7 +241,13 @@ class Wallet(ABC):
     ) -> Coroutine[None, None, PaymentStatus]:
         pass
 
-    async def get_bolt12_invoice_main_data(self, checking_id: str) -> Optional[InvoiceMainData]:
+    async def decode_offer(self, bolt12_offer: str) -> Optional[OfferData]:
+        return None
+
+    async def decode_invoice(self, invoice_string: str) -> Optional[InvoiceData]:
+        return None
+
+    async def get_invoice_extended_status(self, checking_id: str) -> Optional[InvoiceExtendedStatus]:
         return None
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
