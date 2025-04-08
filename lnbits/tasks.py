@@ -224,7 +224,7 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
         logger.debug(f"Returned extended invoice status is {invoice_status}")
 
         if invoice_status and invoice_status.success:
-            logger.info(f"Invoice status successfully recovered for invoice {checking_id}") 
+            logger.info(f"Invoice extended status successfully recovered for invoice {checking_id}")
 
             if invoice_status.offer_id:
                 offer = await get_standalone_offer(invoice_status.offer_id)
