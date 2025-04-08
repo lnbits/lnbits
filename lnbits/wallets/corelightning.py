@@ -2,7 +2,7 @@ import asyncio
 import random
 from typing import Any, AsyncGenerator, Optional
 
-from bolt11.decode import decode as bolt11_decode
+from bolt11 import decode as bolt11_decode
 from bolt11.exceptions import Bolt11Exception
 from loguru import logger
 from pyln.client import LightningRpc, RpcError
@@ -413,26 +413,38 @@ class CoreLightningWallet(Wallet):
                 raise Exception("Provided bolt12 invoice is invalid")
 
             if r["type"] == "bolt12 invoice":
+                offer_id = r.get("offer_id")
+                description = r.get("offer_description") or f"Offer {offer_id} payment" if offer_id else f"Payment for invoice {r.invoice_payment_hash}"
+                bolt11 = self.generate_fake_bolt11(amount_msat = r.get("invoice_amount_msat"),
+                                                   description = description,
+                                                   created_at = r["invoice_created_at"],
+                                                   expire_time = r.get("invoice_relative_expiry"))
+
                 return InvoiceData(payment_hash = r["invoice_payment_hash"],
                                    description = r.get("offer_description"),
                                    payer_note = r.get("invreq_payer_note"),
                                    amount_msat = r.get("invoice_amount_msat"),
-                                   offer_id = r["offer_id"],
+                                   offer_id = offer_id,
                                    offer_issuer_id = r.get("offer_issuer_id"),
                                    invoice_node_id = r.get("invoice_node_id"),
                                    offer_absolute_expiry = r.get("offer_absolute_expiry"),
                                    invoice_created_at = r["invoice_created_at"],
-                                   invoice_relative_expiry = r.get("invoice_relative_expiry"))
+                                   invoice_relative_expiry = r.get("invoice_relative_expiry"),
+                                   bolt11 = bolt11,
+                                   bolt11_is_fake = True)
 
             elif r["type"] == "bolt11 invoice":
                 return InvoiceData(payment_hash = r["payment_hash"],
                                    description = r.get("description"),
                                    description_hash = r.get("description_hash"),
+                                   payment_secret = r.get("payment_secret"),
                                    amount_msat = r.get("amount_msat"),
                                    offer_issuer_id = r["payee"],
                                    invoice_node_id = r["payee"],
                                    invoice_created_at = r["created_at"],
-                                   invoice_relative_expiry = r["expiry"])
+                                   invoice_relative_expiry = r["expiry"],
+                                   bolt11 = invoice_string,
+                                   bolt11_is_fake = True)
 
             else:
                 raise Exception("Provided string is not a bolt11 or bolt12 invoice")
