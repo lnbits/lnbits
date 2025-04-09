@@ -5,6 +5,7 @@ import time
 from functools import wraps
 from pathlib import Path
 from typing import Optional
+from uuid import uuid4
 
 import click
 import httpx
@@ -27,13 +28,13 @@ from lnbits.core.crud import (
     update_payment,
 )
 from lnbits.core.helpers import is_valid_url, migrate_databases
-from lnbits.core.models import Payment, PaymentState
+from lnbits.core.models import Account, Payment, PaymentState
 from lnbits.core.models.extensions import (
     CreateExtension,
     ExtensionRelease,
     InstallableExtension,
 )
-from lnbits.core.services import check_admin_settings
+from lnbits.core.services import check_admin_settings, create_user_account_no_ckeck
 from lnbits.core.views.extension_api import (
     api_install_extension,
     api_uninstall_extension,
@@ -61,6 +62,13 @@ def lnbits_cli():
 def db():
     """
     Database related commands
+    """
+
+
+@lnbits_cli.group()
+def users():
+    """
+    Users related commands
     """
 
 
@@ -109,7 +117,7 @@ async def delete_settings():
     """Deletes the settings"""
 
     async with core_db.connect() as conn:
-        await conn.execute("DELETE from settings")
+        await conn.execute("DELETE from system_settings")
 
 
 @db.command("migrate")
@@ -178,17 +186,6 @@ async def database_revert_payment(checking_id: str):
         payment.status = PaymentState.PENDING
         await update_payment(payment, conn=conn)
         click.echo(f"Payment '{checking_id}' marked as pending.")
-
-
-@db.command("cleanup-accounts")
-@click.argument("days", type=int, required=False)
-@coro
-async def database_cleanup_accounts(days: Optional[int] = None):
-    """Delete all accounts that have no wallets"""
-    async with core_db.connect() as conn:
-        delta = days or settings.cleanup_wallets_days
-        delta = delta * 24 * 60 * 60
-        await delete_accounts_no_wallets(delta, conn)
 
 
 @db.command("check-payments")
@@ -269,6 +266,32 @@ async def check_invalid_payments(
     for w in invalid_wallets:
         data = invalid_wallets[f"{w}"]
         click.echo(" ".join([w, str(data[0]), str(data[1] / 1000).ljust(10)]))
+
+
+@users.command("new")
+@click.option("-u", "--username", required=True, help="Username.")
+@click.option("-p", "--password", required=True, help="Password.")
+@coro
+async def create_user(username: str, password: str):
+    """Create a new user bypassing the system 'new_accounts_allowed' rules"""
+    account = Account(
+        id=uuid4().hex,
+        username=username,
+    )
+    account.hash_password(password)
+    account = await create_user_account_no_ckeck(account)
+    click.echo(f"User '{account.username}' created. Id: '{account.id}'")
+
+
+@users.command("cleanup-accounts")
+@click.argument("days", type=int, required=False)
+@coro
+async def database_cleanup_accounts(days: Optional[int] = None):
+    """Delete all accounts that have no wallets"""
+    async with core_db.connect() as conn:
+        delta = days or settings.cleanup_wallets_days
+        delta = delta * 24 * 60 * 60
+        await delete_accounts_no_wallets(delta, conn)
 
 
 @extensions.command("list")
