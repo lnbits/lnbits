@@ -720,7 +720,7 @@ async def m032_create_offer_table(db: Connection):
         f"""
         CREATE TABLE IF NOT EXISTS apioffers (
             offer_id TEXT NOT NULL,
-            amount INT NOT NULL,
+            amount INT,
             wallet_id TEXT NOT NULL,
             memo TEXT,
             bolt12 TEXT,

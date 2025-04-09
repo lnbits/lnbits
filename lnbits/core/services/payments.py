@@ -58,16 +58,16 @@ from .notifications import send_payment_notification
 async def create_offer(
     *,
     wallet_id: str,
-    amount_sat: int,
     memo: str,
+    amount_sat: Optional[int] = None,,
     absolute_expiry: Optional[int] = None,
     single_use: Optional[bool] = None,
     extra: Optional[dict] = None,
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Offer:
-    if amount_sat < 0:
-        raise OfferError("Offers with negative amounts are not valid.", status="failed")
+    if amount_sat <= 0:
+        raise OfferError("Offers with negative or zero amounts are not valid.", status="failed")
 
     user_wallet = await get_wallet(wallet_id, conn=conn)
     if not user_wallet:
@@ -78,20 +78,21 @@ async def create_offer(
     funding_source = get_funding_source()
 
     #How should this be handled with offers?
-    if amount_sat > settings.lnbits_max_incoming_payment_amount_sats:
-        raise OfferError(
-            f"Offer amount {amount_sat} sats is too high. Max allowed: "
-            f"{settings.lnbits_max_incoming_payment_amount_sats} sats.",
-            status="failed",
-        )
-    if settings.is_wallet_max_balance_exceeded(
-        user_wallet.balance_msat / 1000 + amount_sat
-    ):
-        raise OfferError(
-            f"Wallet balance cannot exceed "
-            f"{settings.lnbits_wallet_limit_max_balance} sats.",
-            status="failed",
-        )
+    if amount_sat:
+        if amount_sat > settings.lnbits_max_incoming_payment_amount_sats:
+            raise OfferError(
+                f"Offer amount {amount_sat} sats is too high. Max allowed: "
+                f"{settings.lnbits_max_incoming_payment_amount_sats} sats.",
+                status="failed",
+            )
+        if settings.is_wallet_max_balance_exceeded(
+            user_wallet.balance_msat / 1000 + amount_sat
+        ):
+            raise OfferError(
+                f"Wallet balance cannot exceed "
+                f"{settings.lnbits_wallet_limit_max_balance} sats.",
+                status="failed",
+            )
 
     while True:
         offer_resp = await funding_source.create_offer(
@@ -113,7 +114,7 @@ async def create_offer(
     create_offer_model = CreateOffer(
         wallet_id=wallet_id,
         bolt12=offer_resp.invoice_offer,
-        amount_msat=amount_sat * 1000,
+        amount_msat=amount_sat * 1000 if amount_sat else None,
         memo=memo,
         extra=extra,
         expiry=absolute_expiry,
