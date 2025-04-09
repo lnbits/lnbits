@@ -59,7 +59,7 @@ async def create_offer(
     *,
     wallet_id: str,
     memo: str,
-    amount_sat: Optional[int] = None,,
+    amount_sat: Optional[int] = None,
     absolute_expiry: Optional[int] = None,
     single_use: Optional[bool] = None,
     extra: Optional[dict] = None,
