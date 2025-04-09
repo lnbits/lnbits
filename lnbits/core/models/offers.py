@@ -26,7 +26,7 @@ class OfferState(int, Enum):
 class CreateOffer(BaseModel):
     wallet_id: str
     bolt12: str
-    amount_msat: int
+    amount_msat: int | None = None
     memo: str
     extra: dict | None = {}
     expiry: datetime | None = None
@@ -36,7 +36,7 @@ class CreateOffer(BaseModel):
 class Offer(BaseModel):
     offer_id: str
     wallet_id: str
-    amount: int
+    amount: int | None = None
     active: int
     single_use: int
     bolt12: str

@@ -293,6 +293,8 @@ async def create_payment(
         webhook=data.webhook,
         fee=-abs(data.fee),
         tag=extra.get("tag", None),
+        created_at=data.created_at,
+        updated_at=data.updated_at,
         extra=extra,
         labels=data.labels or [],
     )

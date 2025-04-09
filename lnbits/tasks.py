@@ -18,7 +18,6 @@ from lnbits.core.crud import (
 from lnbits.core.models import Payment, PaymentState, CreatePayment
 from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
 from lnbits.settings import settings
-from lnbits.utils.crypto import fake_privkey
 from lnbits.wallets import get_funding_source
 
 tasks: list[asyncio.Task] = []
@@ -202,7 +201,7 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
         logger.debug(f"Returned extended invoice status is {invoice_status}")
 
         if invoice_status and invoice_status.success:
-            logger.info(f"Invoice status successfully recovered for invoice {checking_id}") 
+            logger.info(f"Invoice extended status successfully recovered for invoice {checking_id}")
 
             if invoice_status.offer_id:
                 offer = await get_standalone_offer(invoice_status.offer_id)
@@ -212,38 +211,16 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                     data = await funding_source.decode_invoice(invoice_status.string)
 
                     if not data:
-                        logger.warning(f"Invoice {checking_id} could not be decoded")
+                        logger.error(f"Invoice {checking_id} could not be decoded")
                     elif not data.offer_id:
-                        logger.warning(f"Decoded invoice {checking_id} does not have an offer_id")
+                        logger.error(f"Decoded invoice {checking_id} does not have an offer_id")
                     elif data.offer_id != invoice_status.offer_id:
-                        logger.warning(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
+                        logger.error(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
                     else:
-                        description = data.description or f"Offer {data.offer_id} payment"
-                        bolt11_invoice = Bolt11(
-                            currency="bc",
-                            amount_msat=data.amount_msat,
-                            date=data.invoice_created_at,
-                            tags=Tags.from_dict(
-                                {
-                                    "payment_hash": data.payment_hash,
-                                    "payment_secret": invoice_status.payment_preimage,
-                                    "description": description,
-                                    "expire_time": data.invoice_relative_expiry,
-                                }
-                                if data.invoice_relative_expiry else                   
-                                {
-                                    "payment_hash": data.payment_hash,
-                                    "payment_secret": invoice_status.payment_preimage,
-                                    "description": description,
-                                }
-                            ),
-                        )
-                        privkey = fake_privkey(settings.fake_wallet_secret)
-                        bolt11 = bolt11_encode(bolt11_invoice, privkey)
-        
+                        description = data.description or f"Offer {data.offer_id} payment" if data.offer_id else f"Payment for invoice {data.payment_hash}"
                         create_payment_model = CreatePayment(
                             wallet_id=offer.wallet_id,
-                            bolt11=bolt11,
+                            bolt11=data.bolt11,
                             payment_hash=data.payment_hash,
                             preimage=invoice_status.payment_preimage,
                             amount_msat=data.amount_msat,
