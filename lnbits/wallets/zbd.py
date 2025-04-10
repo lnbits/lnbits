@@ -3,9 +3,9 @@ import hashlib
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 
-from lnbits import bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -61,7 +61,7 @@ class ZBDWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
         # https://api.zebedee.io/v0/charges
 
@@ -89,21 +89,23 @@ class ZBDWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponse(ok=False, error_message=error_message)
 
         data = r.json()["data"]
         checking_id = data["id"]  # this is a zbd id
         payment_request = data["invoice"]["request"]
-        return InvoiceResponse(True, checking_id, payment_request, None)
+        return InvoiceResponse(
+            ok=True,
+            checking_id=checking_id,
+            payment_request=payment_request,
+        )
 
-    async def pay_invoice(
-        self, bolt11_invoice: str, fee_limit_msat: int
-    ) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # https://api.zebedee.io/v0/payments
         r = await self.client.post(
             "payments",
             json={
-                "invoice": bolt11_invoice,
+                "invoice": bolt11,
                 "description": "",
                 "amount": "",
                 "internalId": "",
@@ -114,15 +116,17 @@ class ZBDWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponse(ok=False, error_message=error_message)
 
         data = r.json()
 
-        checking_id = bolt11.decode(bolt11_invoice).payment_hash
+        checking_id = bolt11_decode(bolt11).payment_hash
         fee_msat = -int(data["data"]["fee"])
         preimage = data["data"]["preimage"]
 
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        return PaymentResponse(
+            ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"charges/{checking_id}")
@@ -137,7 +141,7 @@ class ZBDWallet(Wallet):
             "expired": False,
             "completed": True,
         }
-        return PaymentStatus(statuses[data.get("status")])
+        return PaymentStatus(paid=statuses[data.get("status")])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(f"payments/{checking_id}")
@@ -155,7 +159,7 @@ class ZBDWallet(Wallet):
             "failed": False,
         }
 
-        return PaymentStatus(statuses[data.get("status")], fee_msat=None, preimage=None)
+        return PaymentStatus(paid=statuses[data.get("status")])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

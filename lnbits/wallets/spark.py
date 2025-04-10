@@ -115,8 +115,6 @@ class SparkWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         label = f"lbs{random.random()}"
-        checking_id = label
-
         try:
             if description_hash:
                 r = await self.invoicewithdescriptionhash(
@@ -138,11 +136,13 @@ class SparkWallet(Wallet):
                     exposeprivatechannels=True,
                     expiry=kwargs.get("expiry"),
                 )
-            ok, payment_request, error_message = True, r["bolt11"], ""
+            return InvoiceResponse(
+                ok=True,
+                payment_request=r["bolt11"],
+                checking_id=label,
+            )
         except (SparkError, UnknownError) as e:
-            ok, payment_request, error_message = False, None, str(e)
-
-        return InvoiceResponse(ok, checking_id, payment_request, error_message)
+            return InvoiceResponse(ok=False, error_message=str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
@@ -152,17 +152,22 @@ class SparkWallet(Wallet):
             )
             fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
             preimage = r["payment_preimage"]
-            return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
+            return PaymentResponse(
+                ok=True,
+                checking_id=r["payment_hash"],
+                fee_msat=fee_msat,
+                preimage=preimage,
+            )
 
         except (SparkError, UnknownError) as exc:
             listpays = await self.listpays(bolt11)
             if not listpays:
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponse(ok=False, error_message=str(exc))
 
             pays = listpays["pays"]
 
             if len(pays) == 0:
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponse(ok=False, error_message=str(exc))
 
             pay = pays[0]
             payment_hash = pay["payment_hash"]
@@ -174,10 +179,10 @@ class SparkWallet(Wallet):
                 ) from exc
 
             if pay["status"] == "failed":
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponse(ok=False, error_message=str(exc))
 
             if pay["status"] == "pending":
-                return PaymentResponse(None, payment_hash, None, None, None)
+                return PaymentResponse(ok=None, checking_id=payment_hash)
 
             if pay["status"] == "complete":
                 r = pay
@@ -190,10 +195,13 @@ class SparkWallet(Wallet):
                 fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
                 preimage = r["payment_preimage"]
                 return PaymentResponse(
-                    True, r["payment_hash"], fee_msat, preimage, None
+                    ok=True,
+                    checking_id=r["payment_hash"],
+                    fee_msat=fee_msat,
+                    preimage=preimage,
                 )
             else:
-                return PaymentResponse(False, None, None, None, str(exc))
+                return PaymentResponse(ok=False, error_message=str(exc))
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
