@@ -581,9 +581,10 @@ window.windowMixin = {
           query: {wal: this.g.wallet.id}
         })
       } else {
-        const url = new URL(window.location.href)
-        url.searchParams.set('wal', this.g.wallet.id)
-        window.history.replaceState({}, '', url.toString())
+        this.$router.replace({
+          path: '/wallet',
+          query: {wal: this.g.wallet.id}
+        })
       }
     },
     formatBalance(amount) {

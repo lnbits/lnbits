@@ -1120,7 +1120,6 @@ window.WalletPageLogic = {
       }
     },
     'g.updatePayments'(newVal, oldVal) {
-      console.log('updatePayments changed:', {newVal, oldVal})
       this.parse.show = false
       if (this.receive.paymentHash === this.g.updatePaymentsHash) {
         this.receive.show = false
@@ -1146,8 +1145,12 @@ window.WalletPageLogic = {
       }
     },
     'g.wallet': {
-      handler(newWallet) {
-        this.createdTasks()
+      handler() {
+        try {
+          this.createdTasks()
+        } catch (error) {
+          console.warn(`Chart creation failed: ${error}`)
+        }
       },
       deep: true
     }
