@@ -8,6 +8,13 @@ from .misc import (
     DbVersion,
     SimpleStatus,
 )
+from .offers import (
+    CreateOffer,
+    Offer,
+    OfferFilters,
+    OffersStatusCount,
+    OfferState,
+)
 from .payments import (
     CreateInvoice,
     CreatePayment,

@@ -10,14 +10,19 @@ from typing import (
     Optional,
 )
 
+from bolt11 import Bolt11, Tags
+from bolt11 import encode as bolt11_encode
+
 from loguru import logger
 
 from lnbits.core.crud import (
+    get_standalone_offer,
+    create_payment,
     get_payments,
     get_standalone_payment,
     update_payment,
 )
-from lnbits.core.models import Payment, PaymentState
+from lnbits.core.models import Payment, PaymentState, CreatePayment
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
@@ -200,14 +205,60 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     invoice_listeners from core and extensions.
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
-    if payment and payment.is_in:
-        status = await payment.check_status()
-        payment.fee = status.fee_msat or 0
-        payment.preimage = status.preimage
-        payment.status = PaymentState.SUCCESS
-        await update_payment(payment)
-        internal = "internal" if is_internal else ""
-        logger.success(f"{internal} invoice {checking_id} settled")
-        for name, send_chan in invoice_listeners.items():
-            logger.trace(f"invoice listeners: sending to `{name}`")
-            await send_chan.put(payment)
+    if payment:
+        if payment.is_in:
+            status = await payment.check_status()
+            payment.fee = status.fee_msat or 0
+            payment.preimage = status.preimage
+            payment.status = PaymentState.SUCCESS
+            await update_payment(payment)
+            internal = "internal" if is_internal else ""
+            logger.success(f"{internal} invoice {checking_id} settled")
+            for name, send_chan in invoice_listeners.items():
+                logger.trace(f"invoice listeners: sending to `{name}`")
+                await send_chan.put(payment)
+    else:
+        funding_source = get_funding_source()
+        invoice_status = await funding_source.get_invoice_extended_status(checking_id)
+        logger.debug(f"Returned extended invoice status is {invoice_status}")
+
+        if invoice_status and invoice_status.success:
+            logger.info(f"Invoice extended status successfully recovered for invoice {checking_id}")
+
+            if invoice_status.offer_id:
+                offer = await get_standalone_offer(invoice_status.offer_id)
+
+                if offer:
+                    logger.info(f"Offer {invoice_status.offer_id} was found in db") 
+                    data = await funding_source.decode_invoice(invoice_status.string)
+
+                    if not data:
+                        logger.error(f"Invoice {checking_id} could not be decoded")
+                    elif not data.offer_id:
+                        logger.error(f"Decoded invoice {checking_id} does not have an offer_id")
+                    elif data.offer_id != invoice_status.offer_id:
+                        logger.error(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
+                    else:
+                        description = data.description or f"Offer {data.offer_id} payment" if data.offer_id else f"Payment for invoice {data.payment_hash}"
+                        create_payment_model = CreatePayment(
+                            wallet_id=offer.wallet_id,
+                            bolt11=data.bolt11,
+                            payment_hash=data.payment_hash,
+                            preimage=invoice_status.payment_preimage,
+                            amount_msat=data.amount_msat,
+                            offer_id=data.offer_id,
+                            expiry=data.invoice_created_at+data.invoice_relative_expiry if data.invoice_relative_expiry else None,
+                            created_at=data.invoice_created_at,
+                            updated_at=invoice_status.paid_at,
+                            memo=description,
+                        )
+
+                        payment = await create_payment(
+                            checking_id=checking_id,
+                            data=create_payment_model,
+                            status = PaymentState.SUCCESS
+                        )
+                        logger.success(f"invoice {checking_id} settled")
+                        for name, send_chan in invoice_listeners.items():
+                            logger.trace(f"invoice listeners: sending to `{name}`")
+                            await send_chan.put(payment)

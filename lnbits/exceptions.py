@@ -13,6 +13,12 @@ from lnbits.settings import settings
 from .helpers import path_segments, template_renderer
 
 
+class OfferError(Exception):
+    def __init__(self, message: str, status: str = "pending"):
+        self.message = message
+        self.status = status
+
+
 class PaymentError(Exception):
     def __init__(self, message: str, status: str = "pending"):
         self.message = message
