@@ -554,8 +554,10 @@ class Filters(BaseModel, Generic[TFilterModel]):
             for page_filter in self.filters:
                 where_stmts.append(page_filter.statement)
         if self.search and self.model and self.model.__search_fields__:
-            # Use COALESCE to handle NULL values and || for cross-database compatible string concatenation
-            search_expr = " || ".join(f"COALESCE({field}, '')" for field in self.model.__search_fields__)
+            # Use `COALESCE` to handle `NULL` values and `||`
+            # for cross-database compatible string concatenation
+            _fields = self.model.__search_fields__
+            search_expr = " || ".join(f"COALESCE({field}, '')" for field in _fields)
             where_stmts.append(f"lower({search_expr}) LIKE :search")
 
         if where_stmts:
