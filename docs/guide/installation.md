@@ -97,7 +97,6 @@ Now visit `0.0.0.0:5000` to make a super-user account.
 
 `./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `poetry run lnbits` (see previous option).
 
-
 ## Option 3: Nix
 
 ```sh
