@@ -420,8 +420,12 @@ async def get_payments_daily_stats(
     delta = timedelta(days=1)
     while start_date <= end_date:
 
-        data_in_point = next((x for x in data_in if x.date == start_date), _none)
-        data_out_point = next((x for x in data_out if x.date == start_date), _none)
+        data_in_point = next(
+            (x for x in data_in if x.date.replace(tzinfo=None) == start_date), _none
+        )
+        data_out_point = next(
+            (x for x in data_out if x.date.replace(tzinfo=None) == start_date), _none
+        )
 
         balance_total += data_in_point.balance + data_out_point.balance
         data.append(
