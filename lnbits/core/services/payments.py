@@ -409,8 +409,14 @@ async def get_payments_daily_stats(
 
     data: list[PaymentDailyStats] = []
 
-    start_date = min(data_in[0].date, data_out[0].date)
-    end_date = max(data_in[-1].date, data_out[-1].date)
+    start_date = min(
+        data_in[0].date.replace(tzinfo=timezone.utc),
+        data_out[0].date.replace(tzinfo=timezone.utc),
+    )
+    end_date = max(
+        data_in[-1].date.replace(tzinfo=timezone.utc),
+        data_out[-1].date.replace(tzinfo=timezone.utc),
+    )
     delta = timedelta(days=1)
     while start_date <= end_date:
 
