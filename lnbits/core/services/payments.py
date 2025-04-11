@@ -1,6 +1,6 @@
 import asyncio
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Optional
 
 from bolt11 import Bolt11, MilliSatoshi, Tags
@@ -399,7 +399,7 @@ async def get_payments_daily_stats(
     data_in, data_out = await get_daily_stats(filters)
     balance_total: float = 0
 
-    _none = PaymentDailyStats(date=datetime.now(timezone.utc))
+    _none = PaymentDailyStats(date=datetime.now(None))
     if len(data_in) == 0 and len(data_out) == 0:
         return []
     if len(data_in) == 0:
@@ -410,12 +410,12 @@ async def get_payments_daily_stats(
     data: list[PaymentDailyStats] = []
 
     start_date = min(
-        data_in[0].date.replace(tzinfo=timezone.utc),
-        data_out[0].date.replace(tzinfo=timezone.utc),
+        data_in[0].date.replace(tzinfo=None),
+        data_out[0].date.replace(tzinfo=None),
     )
     end_date = max(
-        data_in[-1].date.replace(tzinfo=timezone.utc),
-        data_out[-1].date.replace(tzinfo=timezone.utc),
+        data_in[-1].date.replace(tzinfo=None),
+        data_out[-1].date.replace(tzinfo=None),
     )
     delta = timedelta(days=1)
     while start_date <= end_date:
