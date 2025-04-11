@@ -148,7 +148,7 @@ window.PaymentsPageLogic = {
           if (p.extra && p.extra.tag) {
             p.tag = p.extra.tag
           }
-          p.timeFrom = moment(p.created_at).fromNow()
+          p.timeFrom = moment.utc(p.created_at).fromNow()
           p.outgoing = p.amount < 0
           p.amount =
             new Intl.NumberFormat(window.LOCALE).format(p.amount / 1000) +
