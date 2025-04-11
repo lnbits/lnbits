@@ -399,7 +399,7 @@ async def get_payments_daily_stats(
     data_in, data_out = await get_daily_stats(filters)
     balance_total: float = 0
 
-    _none = PaymentDailyStats(date=datetime.now(None))
+    _none = PaymentDailyStats(date=datetime.now(timezone.utc))
     if len(data_in) == 0 and len(data_out) == 0:
         return []
     if len(data_in) == 0:
