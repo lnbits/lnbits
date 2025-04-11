@@ -253,12 +253,12 @@ window.LNbits = {
       }
 
       obj.date = Quasar.date.formatDate(new Date(obj.time), window.dateFormat)
-      obj.dateFrom = moment(obj.date).fromNow()
+      obj.dateFrom = moment.utc(obj.date).fromNow()
       obj.expirydate = Quasar.date.formatDate(
         new Date(obj.expiry),
         window.dateFormat
       )
-      obj.expirydateFrom = moment(obj.expirydate).fromNow()
+      obj.expirydateFrom = moment.utc(obj.expirydate).fromNow()
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
       obj.tag = obj.extra?.tag
