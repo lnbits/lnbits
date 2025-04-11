@@ -1,6 +1,6 @@
 import asyncio
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from bolt11 import Bolt11, MilliSatoshi, Tags
@@ -410,7 +410,7 @@ async def get_payments_daily_stats(
     data: list[PaymentDailyStats] = []
 
     def _tz(dt: datetime) -> datetime:
-        return dt.replace(tzinfo=None)
+        return dt.replace(tzinfo=timezone.utc)
 
     start_date = min(_tz(data_in[0].date), _tz(data_out[0].date))
     end_date = max(_tz(data_in[-1].date), _tz(data_out[-1].date))
