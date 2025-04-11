@@ -1112,13 +1112,6 @@ window.WalletPageLogic = {
     }
   },
   watch: {
-    'g.wallet.id'(newVal, oldVal) {
-      try {
-        this.fetchChartData()
-      } catch (error) {
-        console.warn(`Chart creation failed: ${error}`)
-      }
-    },
     'g.updatePayments'(newVal, oldVal) {
       this.parse.show = false
       if (this.receive.paymentHash === this.g.updatePaymentsHash) {
