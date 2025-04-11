@@ -188,7 +188,7 @@ window.UsersPageLogic = {
         .then(res => {
           LNbits.utils
             .confirmDialog(
-              'A reset key has been generated. Click OK to copy the rest key to your clipboard.'
+              this.$t('reset_key_generated') + ' ' + this.$t('reset_key_copy')
             )
             .onOk(() => {
               const url = window.location.origin + '?reset_key=' + res.data
