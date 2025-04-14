@@ -79,7 +79,6 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         "LNBITS_CUSTOM_IMAGE": settings.lnbits_custom_image,
         "LNBITS_CUSTOM_BADGE": settings.lnbits_custom_badge,
         "LNBITS_CUSTOM_BADGE_COLOR": settings.lnbits_custom_badge_color,
-        "LNBITS_DENOMINATION": settings.lnbits_denomination if settings.lnbits_denomination == "FakeWallet" else "sats"
         "LNBITS_EXTENSIONS_DEACTIVATE_ALL": settings.lnbits_extensions_deactivate_all,
         "LNBITS_NEW_ACCOUNTS_ALLOWED": settings.new_accounts_allowed,
         "LNBITS_NODE_UI": settings.lnbits_node_ui and get_node_class() is not None,
@@ -90,7 +89,7 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         "LNBITS_SERVICE_FEE_WALLET": settings.lnbits_service_fee_wallet,
         "LNBITS_SHOW_HOME_PAGE_ELEMENTS": settings.lnbits_show_home_page_elements,
         "LNBITS_THEME_OPTIONS": settings.lnbits_theme_options,
-        "LNBITS_VERSION": = settings.version,
+        "LNBITS_VERSION": settings.version,
         "USE_CUSTOM_LOGO": settings.lnbits_custom_logo,
         "USE_DEFAULT_REACTION": settings.lnbits_default_reaction,
         "USE_DEFAULT_THEME": settings.lnbits_default_theme,
@@ -99,6 +98,11 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         "USE_DEFAULT_BGIMAGE": settings.lnbits_default_bgimage,
         "VOIDWALLET": settings.lnbits_backend_wallet_class == "VoidWallet",
         "WEBPUSH_PUBKEY": settings.lnbits_webpush_pubkey,
+        "LNBITS_DENOMINATION": (
+            settings.lnbits_denomination
+            if settings.lnbits_denomination == "FakeWallet"
+            else "sats"
+        ),
     }
 
     t.env.globals["WINDOW_SETTINGS"] = window_settings
