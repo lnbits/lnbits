@@ -266,11 +266,12 @@ class LndRestWallet(Wallet):
                     if payment is not None and payment.get("status"):
                         return PaymentStatus(
                             paid=statuses[payment["status"]],
+                            # API returns fee_msat as string, explicitly convert to int
                             fee_msat=(
                                 int(payment["fee_msat"])
                                 if payment.get("fee_msat")
                                 else None
-                            ),  # LND REST API returns fee_msat as a string, explicitly convert to int
+                            ),
                             preimage=payment.get("payment_preimage"),
                         )
                     else:
