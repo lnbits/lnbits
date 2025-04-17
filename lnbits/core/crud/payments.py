@@ -508,7 +508,7 @@ async def is_internal_status_success(
     return payment.status == PaymentState.SUCCESS.value
 
 
-async def mark_webhook_sent(payment_hash: str, status: int) -> None:
+async def mark_webhook_sent(payment_hash: str, status: str) -> None:
     await db.execute(
         """
         UPDATE apipayments SET webhook_status = :status

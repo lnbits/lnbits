@@ -64,7 +64,7 @@ class Payment(BaseModel):
     memo: str | None = None
     expiry: datetime | None = None
     webhook: str | None = None
-    webhook_status: int | None = None
+    webhook_status: str | None = None
     preimage: str | None = None
     tag: str | None = None
     extension: str | None = None
