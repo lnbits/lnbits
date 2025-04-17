@@ -1,7 +1,7 @@
 import asyncio
 import json
 import random
-from typing import AsyncGenerator, Dict, Optional
+from typing import AsyncGenerator, Optional
 
 import httpx
 from bolt11 import Bolt11Exception
@@ -109,7 +109,7 @@ class CoreLightningRestWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         label = kwargs.get("label", f"lbl{random.random()}")
-        data: Dict = {
+        data: dict = {
             "amount": amount * 1000,
             "description": memo,
             "label": label,
@@ -139,41 +139,47 @@ class CoreLightningRestWallet(Wallet):
             data = r.json()
 
             if len(data) == 0:
-                return InvoiceResponse(False, None, None, "no data")
+                return InvoiceResponse(ok=False, error_message="no data")
 
             if "error" in data:
                 return InvoiceResponse(
-                    False, None, None, f"""Server error: '{data["error"]}'"""
+                    ok=False, error_message=f"""Server error: '{data["error"]}'"""
                 )
 
             if r.is_error:
-                return InvoiceResponse(False, None, None, f"Server error: '{r.text}'")
+                return InvoiceResponse(
+                    ok=False, error_message=f"Server error: '{r.text}'"
+                )
 
             if "payment_hash" not in data or "bolt11" not in data:
                 return InvoiceResponse(
-                    False, None, None, "Server error: 'missing required fields'"
+                    ok=False, error_message="Server error: 'missing required fields'"
                 )
 
-            return InvoiceResponse(True, data["payment_hash"], data["bolt11"], None)
+            return InvoiceResponse(
+                ok=True,
+                checking_id=data["payment_hash"],
+                payment_request=data["bolt11"],
+            )
         except json.JSONDecodeError:
             return InvoiceResponse(
-                False, None, None, "Server error: 'invalid json response'"
+                ok=False, error_message="Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, f"Unable to connect to {self.url}."
+                ok=False, error_message=f"Unable to connect to {self.url}."
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
-            return PaymentResponse(False, None, None, None, str(exc))
+            return PaymentResponse(ok=False, error_message=str(exc))
 
         if not invoice.amount_msat or invoice.amount_msat <= 0:
             error_message = "0 amount invoices are not allowed"
-            return PaymentResponse(False, None, None, None, error_message)
+            return PaymentResponse(ok=False, error_message=error_message)
         try:
             r = await self.client.post(
                 f"{self.url}/v1/pay",
@@ -190,18 +196,16 @@ class CoreLightningRestWallet(Wallet):
             status = self.statuses.get(data["status"])
             if "payment_preimage" not in data:
                 return PaymentResponse(
-                    status,
-                    None,
-                    None,
-                    None,
-                    data.get("error"),
+                    ok=status, error_message=data.get("error") or "unknown error"
                 )
 
             checking_id = data["payment_hash"]
             preimage = data["payment_preimage"]
             fee_msat = data["msatoshi_sent"] - data["msatoshi"]
 
-            return PaymentResponse(status, checking_id, fee_msat, preimage, None)
+            return PaymentResponse(
+                ok=status, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            )
         except httpx.HTTPStatusError as exc:
             try:
                 logger.debug(exc)
@@ -209,28 +213,26 @@ class CoreLightningRestWallet(Wallet):
                 error_code = int(data["error"]["code"])
                 if error_code in self.pay_failure_error_codes:
                     error_message = f"Payment failed: {data['error']['message']}"
-                    return PaymentResponse(False, None, None, None, error_message)
+                    return PaymentResponse(ok=False, error_message=error_message)
                 error_message = f"REST failed with {data['error']['message']}."
-                return PaymentResponse(None, None, None, None, error_message)
+                return PaymentResponse(error_message=error_message)
             except Exception as exc:
                 error_message = f"Unable to connect to {self.url}."
-                return PaymentResponse(None, None, None, None, error_message)
+                return PaymentResponse(error_message=error_message)
 
         except json.JSONDecodeError:
             return PaymentResponse(
-                None, None, None, None, "Server error: 'invalid json response'"
+                error_message="Server error: 'invalid json response'"
             )
         except KeyError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                None, None, None, None, "Server error: 'missing required fields'"
+                error_message="Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
-            return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.url}."
-            )
+            return PaymentResponse(error_message=f"Unable to connect to {self.url}.")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(
