@@ -600,7 +600,7 @@ window.app.component('lnbits-date', {
       return LNbits.utils.formatDate(this.ts)
     },
     dateFrom() {
-      return moment(this.date).fromNow()
+      return moment.utc(this.date).fromNow()
     }
   },
   template: `
