@@ -961,8 +961,8 @@
                     dense
                     v-model.number="parse.data.amount"
                     :label="$t('amount') + ' (' + parse.data.unit + ') *'"
-                    :mask="parse.data.unit != 'sat' ? '#.##' : '#'"
-                    :step="parse.data.unit != 'sat' ? '0.01' : '1'"
+                    :mask="parse.data.unit == 'sat' ? '#' : ''"
+                    :step="parse.data.unit == 'sat' ? '1': '0.01'"
                     fill-mask="0"
                     reverse-fill-mask
                     :min="parse.lnurlpay.minSendable / 1000"
