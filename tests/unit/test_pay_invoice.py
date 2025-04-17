@@ -9,6 +9,7 @@ from bolt11.types import MilliSatoshi
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import get_standalone_payment, get_wallet
+from lnbits.core.crud.payments import get_payment
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.exceptions import InvoiceError, PaymentError
@@ -179,7 +180,12 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
     invoice_queue: asyncio.Queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, test_name)
 
-    payment = await create_invoice(wallet_id=to_wallet.id, amount=123, memo=test_name)
+    payment = await create_invoice(
+        wallet_id=to_wallet.id,
+        amount=123,
+        memo=test_name,
+        webhook="http://test.404.lnbits.com",
+    )
     await pay_invoice(
         wallet_id=to_wallet.id, payment_request=payment.bolt11, extra={"tag": "lnurlp"}
     )
@@ -192,6 +198,9 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
             assert _payment.status == PaymentState.SUCCESS.value
             assert _payment.bolt11 == payment.bolt11
             assert _payment.amount == 123_000
+            updated_payment = await get_payment(_payment.checking_id)
+            assert updated_payment.webhook_status == "404"
+
             break  # we found our payment, success
 
 
