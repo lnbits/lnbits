@@ -42,6 +42,8 @@ lnbits/static/bundle.min.css.old
 lnbits/static/bundle-components.min.js.old
 lnbits/upgrades
 docker
+generated
+openapi.json*
 
 # Nix
 *result*
