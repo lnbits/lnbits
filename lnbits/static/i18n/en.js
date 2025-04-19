@@ -323,6 +323,8 @@ window.localisation.en = {
   set_password: 'Set Password',
   invalid_password: 'Password must have at least 8 characters',
   invalid_password_repeat: 'Passwords do not match',
+  reset_key_generated: 'A reset key has been generated.',
+  reset_key_copy: 'Click OK to copy the reset URL to your clipboard.',
   login: 'Login',
   register: 'Register',
   username: 'Username',

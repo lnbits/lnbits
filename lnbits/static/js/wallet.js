@@ -449,8 +449,8 @@ window.WalletPageLogic = {
               createdDate,
               'YYYY-MM-DDTHH:mm:ss.SSSZ'
             )
-            cleanInvoice.expireDateFrom = moment(expireDate).fromNow()
-            cleanInvoice.createdDateFrom = moment(createdDate).fromNow()
+            cleanInvoice.expireDateFrom = moment.utc(expireDate).fromNow()
+            cleanInvoice.createdDateFrom = moment.utc(createdDate).fromNow()
 
             cleanInvoice.expired = false // TODO
           }
@@ -1112,15 +1112,7 @@ window.WalletPageLogic = {
     }
   },
   watch: {
-    'g.wallet.id'(newVal, oldVal) {
-      try {
-        this.fetchChartData()
-      } catch (error) {
-        console.warn(`Chart creation failed: ${error}`)
-      }
-    },
     'g.updatePayments'(newVal, oldVal) {
-      console.log('updatePayments changed:', {newVal, oldVal})
       this.parse.show = false
       if (this.receive.paymentHash === this.g.updatePaymentsHash) {
         this.receive.show = false
@@ -1146,8 +1138,12 @@ window.WalletPageLogic = {
       }
     },
     'g.wallet': {
-      handler(newWallet) {
-        this.createdTasks()
+      handler() {
+        try {
+          this.createdTasks()
+        } catch (error) {
+          console.warn(`Chart creation failed: ${error}`)
+        }
       },
       deep: true
     }

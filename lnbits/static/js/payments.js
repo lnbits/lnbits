@@ -148,7 +148,7 @@ window.PaymentsPageLogic = {
           if (p.extra && p.extra.tag) {
             p.tag = p.extra.tag
           }
-          p.timeFrom = moment(p.created_at).fromNow()
+          p.timeFrom = moment.utc(p.created_at).fromNow()
           p.outgoing = p.amount < 0
           p.amount =
             new Intl.NumberFormat(window.LOCALE).format(p.amount / 1000) +
@@ -229,11 +229,10 @@ window.PaymentsPageLogic = {
           'GET',
           `/api/v1/payments/stats/count?${params}&count_by=status`
         )
-        data.sort((a, b) => a.field - b.field)
-        this.searchOptions.status = data
-          .map(s => s.field)
-          .sort()
-          .reverse()
+
+        data.sort((a, b) => a.field - b.field).reverse()
+
+        this.searchOptions.status = data.map(s => s.field)
         this.paymentsStatusChart.data.datasets[0].data = data.map(s => s.total)
         this.paymentsStatusChart.data.labels = [...this.searchOptions.status]
 
@@ -419,11 +418,8 @@ window.PaymentsPageLogic = {
                 data: [],
                 backgroundColor: [
                   'rgb(0, 205, 86)',
-                  'rgb(54, 162, 235)',
-                  'rgb(255, 99, 132)',
-                  'rgb(255, 5, 86)',
-                  'rgb(25, 205, 86)',
-                  'rgb(255, 205, 250)'
+                  'rgb(64, 72, 78)',
+                  'rgb(255, 99, 132)'
                 ],
                 hoverOffset: 4
               }
