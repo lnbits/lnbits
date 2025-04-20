@@ -40,6 +40,13 @@ class PayInvoice(BaseModel):
     extra: dict | None = {}
 
 
+class FetchInvoice(BaseModel):
+    offer: str
+    amount: float | None = None
+    currency: str | None = None
+    payer_note: str | None = None
+
+
 class CreatePayment(BaseModel):
     wallet_id: str
     payment_hash: str

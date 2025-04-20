@@ -24,10 +24,8 @@ class OfferState(int, Enum):
 
 
 class CreateOffer(BaseModel):
-    wallet_id: str
-    bolt12: str
-    amount_msat: int | None = None
     memo: str
+    amount_msat: int | None = None
     extra: dict | None = {}
     expiry: datetime | None = None
     webhook: str | None = None
@@ -72,7 +70,7 @@ class Offer(BaseModel):
 
     @property
     def sat(self) -> int:
-        return self.amount // 1000
+        return self.amount / 1000
 
     @property
     def is_expired(self) -> bool:
@@ -96,6 +94,11 @@ class OfferFilters(FilterModel):
     amount: int
     memo: str | None
     wallet_id: str | None
+
+
+class DecodeOffer(BaseModel):
+    data: str
+    filter_fields: list[str] | None = []
 
 
 class OffersStatusCount(BaseModel):

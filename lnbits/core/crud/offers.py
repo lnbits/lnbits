@@ -67,7 +67,7 @@ async def get_offers_paginated(
     clause: list[str] = []
 
     if since is not None:
-        clause.append(f"time > {db.timestamp_placeholder('time')}")
+        clause.append(f"created_at > {db.timestamp_placeholder('time')}")
 
     if wallet_id:
         clause.append("wallet_id = :wallet_id")
@@ -104,7 +104,7 @@ async def get_offers(
 
     filters = filters or Filters()
 
-    filters.sortby = filters.sortby or "time"
+    filters.sortby = filters.sortby or "created_at"
     filters.direction = filters.direction or "desc"
     filters.limit = limit or filters.limit
     filters.offset = offset or filters.offset
@@ -147,6 +147,8 @@ async def delete_expired_offers(
 
 async def create_offer(
     offer_id: str,
+    wallet_id: str,
+    bolt12: str,
     data: CreateOffer,
     active: OfferState,
     single_use: OfferState,
@@ -160,11 +162,11 @@ async def create_offer(
 
     offer = Offer(
         offer_id=offer_id,
-        wallet_id=data.wallet_id,
+        wallet_id=wallet_id,
         amount=data.amount_msat,
         active=active,
         single_use=single_use,
-        bolt12=data.bolt12,
+        bolt12=bolt12,
         memo=data.memo,
         expiry=data.expiry,
         webhook=data.webhook,

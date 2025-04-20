@@ -11,6 +11,7 @@ from .payments import (
     create_offer,
     enable_offer,
     disable_offer,
+    fetch_invoice,
     create_invoice,
     fee_reserve,
     fee_reserve_total,

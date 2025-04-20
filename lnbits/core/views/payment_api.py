@@ -22,6 +22,7 @@ from lnbits.core.crud.payments import (
     get_wallets_stats,
 )
 from lnbits.core.models import (
+    FetchInvoice,
     CreateInvoice,
     CreateLnurl,
     DecodePayment,
@@ -68,6 +69,7 @@ from ..crud import (
     get_wallet_for_key,
 )
 from ..services import (
+    fetch_invoice,
     create_invoice,
     fee_reserve_total,
     pay_invoice,
@@ -75,6 +77,33 @@ from ..services import (
 )
 
 payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
+
+
+@payment_router.post(
+    "/fetch_invoice",
+    summary="Fetch an invoice",
+    description="""
+        This endpoint can be used to fetch an invoice.
+        The offer field is mandatory.
+    """,
+    status_code=HTTPStatus.CREATED,
+    responses={
+        520: {"description": "Fetch invoice error."},
+    },
+)
+async def api_payments_fetch_invoice(
+        fetchinvoice: FetchInvoice,
+        key_info: WalletTypeInfo = Depends(require_invoice_key),
+        ) -> str:
+
+    invoice = await fetch_invoice(
+            wallet_id=key_info.wallet.id,
+            offer=fetchinvoice.offer,
+            amount=fetchinvoice.amount,
+            payer_note=fetchinvoice.payer_note,
+            currency=fetchinvoice.currency,
+            )
+    return invoice
 
 
 @payment_router.get(
