@@ -248,14 +248,14 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                             amount_msat=data.amount_msat,
                             offer_id=data.offer_id,
                             expiry=data.invoice_created_at+data.invoice_relative_expiry if data.invoice_relative_expiry else None,
-                            created_at=data.invoice_created_at,
-                            updated_at=invoice_status.paid_at,
                             memo=description,
                         )
 
                         payment = await create_payment(
                             checking_id=checking_id,
                             data=create_payment_model,
+                            created_at=data.invoice_created_at,
+                            updated_at=invoice_status.paid_at,
                             status = PaymentState.SUCCESS
                         )
                         logger.success(f"invoice {checking_id} settled")

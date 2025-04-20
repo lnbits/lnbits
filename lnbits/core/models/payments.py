@@ -58,8 +58,6 @@ class CreatePayment(BaseModel):
     extra: dict | None = {}
     preimage: str | None = None
     expiry: datetime | None = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     webhook: str | None = None
     fee: int = 0
 
