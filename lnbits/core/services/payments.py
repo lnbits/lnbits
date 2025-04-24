@@ -195,7 +195,6 @@ async def update_pending_payment(payment: Payment) -> bool:
 
 
 def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
-    amount_msat = abs(amount_msat)
     return fee_reserve(amount_msat, internal) + service_fee(amount_msat, internal)
 
 
