@@ -67,7 +67,7 @@ async def get_offers_paginated(
     clause: list[str] = []
 
     if since is not None:
-        clause.append(f"created_at > {db.timestamp_placeholder('time')}")
+        clause.append(f"created_at > {db.timestamp_placeholder('created_at')}")
 
     if wallet_id:
         clause.append("wallet_id = :wallet_id")
