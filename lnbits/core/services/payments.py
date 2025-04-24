@@ -28,6 +28,7 @@ from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
     OfferErrorStatus,
     OfferStatus,
+    InvoiceData,
     FetchInvoiceResponse,
     InvoiceResponse,
     PaymentPendingStatus,
@@ -41,6 +42,7 @@ from ..crud import (
     create_offer as crud_create_offer,
     enable_offer as crud_enable_offer,
     disable_offer as crud_disable_offer,
+    get_standalone_offer,
     create_payment,
     get_payments,
     get_standalone_payment,
@@ -75,8 +77,6 @@ async def create_offer(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Offer:
-    if amount_sat <= 0:
-        raise OfferError("Offers with negative or zero amounts are not valid.", status="failed")
 
     user_wallet = await get_wallet(wallet_id, conn=conn)
     if not user_wallet:
@@ -88,6 +88,8 @@ async def create_offer(
 
     #How should this be handled with offers?
     if amount_sat:
+        if amount_sat <= 0:
+            raise OfferError("Offers with negative or zero amounts are not valid.", status="failed")
         if amount_sat > settings.lnbits_max_incoming_payment_amount_sats:
             raise OfferError(
                 f"Offer amount {amount_sat} sats is too high. Max allowed: "
@@ -121,8 +123,6 @@ async def create_offer(
             break
 
     create_offer_model = CreateOffer(
-        wallet_id=wallet_id,
-        bolt12=offer_resp.invoice_offer,
         amount_msat=amount_sat * 1000 if amount_sat else None,
         memo=memo,
         extra=extra,
@@ -132,6 +132,8 @@ async def create_offer(
 
     offer = await crud_create_offer(
         offer_id=offer_resp.offer_id,
+        wallet_id=wallet_id,
+        bolt12=offer_resp.invoice_offer,
         data=create_offer_model,
         active=offer_resp.active,
         single_use=offer_resp.single_use,
@@ -148,9 +150,15 @@ async def enable_offer(
     conn: Optional[Connection] = None,
 ) -> bool:
 
-    user_wallet = await get_wallet(wallet_id, conn=conn)
-    if not user_wallet:
-        raise OfferError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+    offer = await get_standalone_offer(offer_id=offer_id, wallet_id=wallet_id)
+
+    if not offer:
+        raise OfferError(
+            "Could not find offer", status="error"
+        )
+
+    if offer.active is True:
+        return True
 
     funding_source = get_funding_source()
 
@@ -182,9 +190,15 @@ async def disable_offer(
     conn: Optional[Connection] = None,
 ) -> bool:
 
-    user_wallet = await get_wallet(wallet_id, conn=conn)
-    if not user_wallet:
-        raise OfferError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+    offer = await get_standalone_offer(offer_id=offer_id, wallet_id=wallet_id)
+
+    if offer.active is False:
+        return False
+
+    if not offer:
+        raise OfferError(
+            "Could not find offer", status="error"
+        )
 
     funding_source = get_funding_source()
 
@@ -209,6 +223,49 @@ async def disable_offer(
     return False
 
 
+async def fetch_invoice(
+    *,
+    wallet_id: str,
+    offer: str,
+    amount: Optional[float] = None,
+    payer_note: Optional[str] = None,
+    currency: Optional[str] = "sat",
+    extra: Optional[dict] = None,
+    conn: Optional[Connection] = None,
+    ) -> str:
+
+    if settings.lnbits_only_allow_incoming_payments:
+        raise PaymentError("Only incoming payments allowed.", status="failed")
+
+    user_wallet = await get_wallet(wallet_id, conn=conn)
+    if not user_wallet:
+        raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+
+    amount_sat = None
+
+    if amount:
+
+        if currency:
+            amount_sat, extra = await calculate_fiat_amounts(
+                amount, user_wallet, currency, extra
+            )
+        else:
+            amount_sat = amount
+
+    funding_source = get_funding_source()
+
+    invoice_response = await funding_source.fetch_invoice(
+            offer=offer,
+            amount=amount_sat,
+            payer_note=payer_note
+            )
+
+    if invoice_response.ok is not True:
+        raise InvoiceError(invoice_response.error_message, status="failed")
+
+    return invoice_response.payment_request
+
+
 async def pay_invoice(
     *,
     wallet_id: str,
@@ -222,7 +279,7 @@ async def pay_invoice(
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
-    invoice = _validate_payment_request(payment_request, max_sat)
+    invoice = await _validate_payment_request(payment_request, max_sat)
 
     if not invoice.amount_msat:
         raise ValueError("Missig invoice amount.")
@@ -244,10 +301,12 @@ async def pay_invoice(
 
         create_payment_model = CreatePayment(
             wallet_id=wallet.source_wallet_id,
-            bolt11=payment_request,
+            bolt11=invoice.bolt11,
             payment_hash=invoice.payment_hash,
             amount_msat=-amount_msat,
-            expiry=invoice.expiry_date,
+            offer_id = invoice.offer_id,
+            payer_note = invoice.payer_note,
+            expiry=(invoice.invoice_created_at + invoice.invoice_relative_expiry),
             memo=description or invoice.description or "",
             extra=extra,
             labels=labels,
@@ -255,7 +314,7 @@ async def pay_invoice(
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         payment = await _pay_invoice(
-            wallet.source_wallet_id, create_payment_model, conn=new_conn
+            wallet.source_wallet_id, payment_request, create_payment_model, conn=new_conn
         )
 
         await _credit_service_fee_wallet(wallet, payment, conn=new_conn)
@@ -827,6 +886,7 @@ async def get_payments_daily_stats(
 
 async def _pay_invoice(
     wallet_id: str,
+    payment_request: str,
     create_payment_model: CreatePayment,
     conn: Connection | None = None,
 ):
@@ -844,7 +904,7 @@ async def _pay_invoice(
 
         payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
         if not payment:
-            payment = await _pay_external_invoice(wallet, create_payment_model, conn)
+            payment = await _pay_external_invoice(wallet, payment_request, create_payment_model, conn)
         return payment
 
 
@@ -921,6 +981,7 @@ async def _pay_internal_invoice(
 
 async def _pay_external_invoice(
     wallet: Wallet,
+    payment_request: str,
     create_payment_model: CreatePayment,
     conn: Connection | None = None,
 ) -> Payment:
@@ -952,7 +1013,7 @@ async def _pay_external_invoice(
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
 
     task = create_task(
-        _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)
+        _fundingsource_pay_invoice(checking_id, payment_request, fee_reserve_msat)
     )
 
     # make sure a hold invoice or deferred payment is not blocking the server
@@ -1063,11 +1124,13 @@ async def _check_wallet_for_payment(
 
 def _validate_payment_request(
     payment_request: str, max_sat: int | None = None
-) -> Bolt11:
+) -> InvoiceData:
     try:
-        invoice = bolt11_decode(payment_request)
+        funding_source = get_funding_source()
+
+        invoice = await funding_source.decode_invoice(payment_request)
     except Exception as exc:
-        raise PaymentError("Bolt11 decoding failed.", status="failed") from exc
+        raise PaymentError("Invoice decoding failed.", status="failed") from exc
 
     if not invoice.amount_msat or not invoice.amount_msat > 0:
         raise PaymentError("Amountless invoices not supported.", status="failed")

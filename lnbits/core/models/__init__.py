@@ -10,6 +10,7 @@ from .misc import (
 )
 from .offers import (
     CreateOffer,
+    DecodeOffer,
     Offer,
     OfferFilters,
     OffersStatusCount,
@@ -17,6 +18,7 @@ from .offers import (
 )
 from .payments import (
     CancelInvoice,
+    FetchInvoice,
     CreateInvoice,
     CreatePayment,
     DecodePayment,

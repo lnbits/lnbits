@@ -13,6 +13,7 @@ from .payments import (
     create_offer,
     enable_offer,
     disable_offer,
+    fetch_invoice,
     create_invoice,
     create_payment_request,
     create_wallet_invoice,

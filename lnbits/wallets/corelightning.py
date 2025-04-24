@@ -98,7 +98,7 @@ class CoreLightningWallet(Wallet):
 
     async def create_offer(
         self,
-        amount: int,
+        amount: Optional[int] = None,
         memo: Optional[str] = None,
         issuer: Optional[str] = None,
         absolute_expiry: Optional[int] = None,
@@ -108,7 +108,7 @@ class CoreLightningWallet(Wallet):
         label = kwargs.get("label", f"lbl{random.random()}")
         try:
             payload = {
-                "amount": int(amount * 1000) if amount>0 else "any",
+                "amount": int(amount * 1000) if amount else "any",
                 "description": memo,
                 "issuer": issuer,
                 "label": label,
@@ -144,15 +144,7 @@ class CoreLightningWallet(Wallet):
             }
             r: dict = self.ln.call("enableoffer", payload)
 
-            if r.get("code"):
-
-                if r.get("code")==1006:
-                    return OfferResponse(True, None, None, None, None, None, False, None, None)
-
-                else:  # type: ignore
-                    raise Exception(r.get("message"))
-
-            return OfferResponse(True, r["offer_id"], r["active"], r["single_use"], r["bolt12"], r["used"], True, r["label"], None)
+            return OfferResponse(True, r["offer_id"], r["active"], r["single_use"], r["bolt12"], r["used"], True, r.get("label"), None)
         except RpcError as exc:
             logger.warning(exc)
             error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
@@ -176,15 +168,7 @@ class CoreLightningWallet(Wallet):
             }
             r: dict = self.ln.call("disableoffer", payload)
 
-            if r.get("code"):
-
-                if r.get("code")==1001:
-                    return OfferResponse(True, None, None, None, None, None, False, None, None)
-
-                else:  # type: ignore
-                    raise Exception(r.get("message"))
-
-            return OfferResponse(True, r["offer_id"], r["active"], r["single_use"], r["bolt12"], r["used"], True, r["label"], None)
+            return OfferResponse(True, r["offer_id"], r["active"], r["single_use"], r["bolt12"], r["used"], True, r.get("label"), None)
         except RpcError as exc:
             logger.warning(exc)
             error_message = f"RPC '{exc.method}' failed with '{exc.error}'."
@@ -225,7 +209,7 @@ class CoreLightningWallet(Wallet):
 
     async def fetch_invoice(
         self,
-        offer_id: str,
+        offer: str,
         amount: Optional[int] = None,
         payer_note: Optional[str] = None,
     ) -> FetchInvoiceResponse:
@@ -314,8 +298,8 @@ class CoreLightningWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
-            invoice = bolt11_decode(bolt11)
-        except Bolt11Exception as exc:
+            invoice = await self.decode_invoice(bolt11)
+        except Exception as exc:
             return PaymentResponse(ok=False, error_message=str(exc))
 
         try:
@@ -424,10 +408,10 @@ class CoreLightningWallet(Wallet):
                     }
             r: dict = self.ln.call("decode", payload)
 
-            logger.debug(f"Returned decoded bolt12 invoice is {r}")
+            logger.debug(f"Returned decoded invoice is {r}")
 
             if not r["valid"] == True:
-                raise Exception("Provided bolt12 invoice is invalid")
+                raise Exception("Provided invoice is invalid")
 
             if r["type"] == "bolt12 invoice":
                 offer_id = r.get("offer_id")
