@@ -149,11 +149,13 @@ class LndWallet(Wallet):
         except Exception as exc:
             logger.warning(exc)
             error_message = str(exc)
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponse(ok=False, error_message=error_message)
 
         checking_id = bytes_to_hex(resp.r_hash)
         payment_request = str(resp.payment_request)
-        return InvoiceResponse(True, checking_id, payment_request, None)
+        return InvoiceResponse(
+            ok=True, checking_id=checking_id, payment_request=payment_request
+        )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
@@ -167,7 +169,7 @@ class LndWallet(Wallet):
             resp = await self.routerpc.SendPaymentV2(req).read()
         except Exception as exc:
             logger.warning(exc)
-            return PaymentResponse(None, None, None, None, str(exc))
+            return PaymentResponse(error_message=str(exc))
 
         # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
         statuses = {
@@ -199,7 +201,11 @@ class LndWallet(Wallet):
             error_message = failure_reasons[resp.failure_reason]
 
         return PaymentResponse(
-            statuses[resp.status], checking_id, fee_msat, preimage, error_message
+            ok=statuses[resp.status],
+            checking_id=checking_id,
+            fee_msat=fee_msat,
+            preimage=preimage,
+            error_message=error_message,
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
