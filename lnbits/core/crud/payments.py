@@ -1,4 +1,5 @@
 from time import time
+from datetime import datetime, timezone
 from typing import Any, Optional, Tuple
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet
@@ -244,6 +245,8 @@ async def delete_expired_invoices(
 async def create_payment(
     checking_id: str,
     data: CreatePayment,
+    created_at: datetime = datetime.now(timezone.utc),
+    updated_at: datetime = datetime.now(timezone.utc),
     status: PaymentState = PaymentState.PENDING,
     conn: Optional[Connection] = None,
 ) -> Payment:
@@ -260,12 +263,16 @@ async def create_payment(
         payment_hash=data.payment_hash,
         bolt11=data.bolt11,
         amount=data.amount_msat,
+        offer_id = data.offer_id,
         memo=data.memo,
+        payer_note=data.payer_note,
         preimage=data.preimage,
         expiry=data.expiry,
         webhook=data.webhook,
         fee=data.fee,
         tag=extra.get("tag", None),
+        created_at=created_at,
+        updated_at=updated_at,
         extra=extra,
     )
 
