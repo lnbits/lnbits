@@ -123,13 +123,12 @@ async def get_payments_paginated(
         values["wallet_id"] = wallet_id
         clause.append("wallet_id = :wallet_id")
     elif user_id:
-        wallet_ids = await get_wallets_ids(user_id=user_id, conn=conn)
-        wallet_id_clause = []
-        for i, wallet_id_value in enumerate(wallet_ids):
-            wallet_id_key = f"wallet_id_clause__{i}"
-            wallet_id_clause.append(f"wallet_id = :{wallet_id_key}")
-            values[wallet_id_key] = wallet_id_value
-        clause.append(" OR ".join(wallet_id_clause))
+        wallet_ids = await get_wallets_ids(user_id=user_id, conn=conn) or [
+            "no-wallets-for-user"
+        ]
+        # wallet ids are safe to use in sql queries
+        wallet_ids_str = [f"'{w}'" for w in wallet_ids]
+        clause.append(f""" wallet_id IN ({", ".join(wallet_ids_str)}) """)
 
     if complete and pending:
         clause.append(

@@ -640,3 +640,11 @@ async def test_get_payments_for_user(to_wallet: Wallet):
     total_after = all_payments.total
 
     assert total_after == total_before + 5, "Total payments should be updated."
+
+
+@pytest.mark.anyio
+async def test_get_payments_for_non_user():
+    user_payments = await get_payments_paginated(user_id="nonexistent")
+    assert (
+        user_payments.total == 0
+    ), "No payments should be found for non-existent user."
