@@ -199,6 +199,7 @@ def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
 
 
 def fee_reserve(amount_msat: int, internal: bool = False) -> int:
+    amount_msat = abs(amount_msat)
     return settings.fee_reserve(amount_msat, internal)
 
 
@@ -479,7 +480,7 @@ async def _pay_internal_invoice(
     ):
         raise PaymentError("Invalid invoice. Bolt11 changed.", status="failed")
 
-    fee_reserve_total_msat = fee_reserve_total(abs(amount_msat), internal=True)
+    fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=True)
     create_payment_model.fee = abs(fee_reserve_total_msat)
 
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
