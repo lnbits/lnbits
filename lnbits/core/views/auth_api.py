@@ -499,9 +499,12 @@ def _auth_success_response(
         sub=username or "", usr=user_id, email=email, auth_time=int(time())
     )
     access_token = create_access_token(data=payload.dict())
+    max_age = settings.auth_token_expire_minutes * 60
     response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
-    response.set_cookie("cookie_access_token", access_token, httponly=True)
-    response.set_cookie("is_lnbits_user_authorized", "true")
+    response.set_cookie(
+        "cookie_access_token", access_token, httponly=True, max_age=max_age
+    )
+    response.set_cookie("is_lnbits_user_authorized", "true", max_age=max_age)
     response.delete_cookie("is_access_token_expired")
 
     return response
@@ -521,9 +524,12 @@ def _auth_api_token_response(
 def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
     payload = AccessTokenPayload(sub="" or "", email=email, auth_time=int(time()))
     access_token = create_access_token(data=payload.dict())
+    max_age = settings.auth_token_expire_minutes * 60
     response = RedirectResponse(path)
-    response.set_cookie("cookie_access_token", access_token, httponly=True)
-    response.set_cookie("is_lnbits_user_authorized", "true")
+    response.set_cookie(
+        "cookie_access_token", access_token, httponly=True, max_age=max_age
+    )
+    response.set_cookie("is_lnbits_user_authorized", "true", max_age=max_age)
     response.delete_cookie("is_access_token_expired")
     return response
 
