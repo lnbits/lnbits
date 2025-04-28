@@ -556,6 +556,11 @@ class BoltzFundingSource(LNbitsSettings):
     boltz_client_cert: str | None = Field(default=None)
 
 
+class StrikeFundingSource(LNbitsSettings):
+    strike_api_endpoint: str | None = Field(default="https://api.strike.me/v1", env="STRIKE_API_ENDPOINT")
+    strike_api_key: str | None = Field(default=None, env="STRIKE_API_KEY")
+    
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
@@ -580,6 +585,7 @@ class FundingSourcesSettings(
     LnTipsFundingSource,
     NWCFundingSource,
     BreezSdkFundingSource,
+    StrikeFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
     # How long to wait for the payment to be confirmed before returning a pending status
@@ -863,6 +869,7 @@ class SuperUserSettings(LNbitsSettings):
             "VoidWallet",
             "ZBDWallet",
             "NWCWallet",
+            "StrikeWallet",
         ]
     )
 
