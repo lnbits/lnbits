@@ -132,6 +132,7 @@ async def create_invoice(
             status="failed",
         )
 
+    print("### create_invoice 303 funding_source", funding_source)
     payment_response = await funding_source.create_invoice(
         amount=amount_sat,
         memo=invoice_memo,
@@ -144,7 +145,7 @@ async def create_invoice(
         or not payment_response.payment_request
         or not payment_response.checking_id
     ):
-        print("### create_invoice 300", payment_response)
+        print("### create_invoice 305", payment_response)
         raise InvoiceError(
             message=payment_response.error_message or "unexpected backend error.",
             status="pending",
