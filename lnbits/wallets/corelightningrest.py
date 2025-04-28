@@ -156,6 +156,7 @@ class CoreLightningRestWallet(Wallet):
                     ok=False, error_message="Server error: 'missing required fields'"
                 )
 
+            print("### create_invoice corelightningrest", data)
             return InvoiceResponse(
                 ok=True,
                 checking_id=data["payment_hash"],
