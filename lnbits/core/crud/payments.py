@@ -1,7 +1,7 @@
 from time import time
 from typing import Any, Optional, Tuple
 
-from lnbits.core.crud.wallets import get_total_balance, get_wallet
+from lnbits.core.crud.wallets import get_total_balance, get_wallet, get_wallets_ids
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
 from lnbits.db import Connection, DateTrunc, Filters, Page
@@ -95,7 +95,7 @@ async def get_latest_payments_by_extension(
 async def get_payments_paginated(
     *,
     wallet_id: Optional[str] = None,
-    wallet_ids: Optional[list[str]] = None,
+    user_id: Optional[str] = None,
     complete: bool = False,
     pending: bool = False,
     failed: bool = False,
@@ -122,7 +122,8 @@ async def get_payments_paginated(
     if wallet_id:
         values["wallet_id"] = wallet_id
         clause.append("wallet_id = :wallet_id")
-    elif wallet_ids:
+    elif user_id:
+        wallet_ids = await get_wallets_ids(user_id=user_id, conn=conn)
         wallet_id_clause = []
         for i, wallet_id_value in enumerate(wallet_ids):
             wallet_id_key = f"wallet_id_clause__{i}"

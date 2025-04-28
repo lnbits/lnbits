@@ -8,10 +8,10 @@ from bolt11 import encode as bolt11_encode
 from bolt11.types import MilliSatoshi
 from pytest_mock.plugin import MockerFixture
 
-from lnbits.core.crud import get_standalone_payment, get_wallet
-from lnbits.core.crud.payments import get_payment
+from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
+from lnbits.core.crud.payments import get_payment, get_payments_paginated
 from lnbits.core.models import Payment, PaymentState, Wallet
-from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.core.services import create_invoice, create_user_account, pay_invoice
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
 from lnbits.tasks import (
@@ -596,3 +596,47 @@ async def test_service_fee(
     assert service_fee_payment.amount == 422_400
     assert service_fee_payment.bolt11 == external_invoice.payment_request
     assert service_fee_payment.preimage is None
+
+
+@pytest.mark.anyio
+async def test_get_payments_for_user(to_wallet: Wallet):
+    all_payments = await get_payments_paginated()
+    total_before = all_payments.total
+
+    user = await create_user_account()
+    wallet_one = await create_wallet(user_id=user.id, wallet_name="first wallet")
+    wallet_two = await create_wallet(user_id=user.id, wallet_name="second wallet")
+
+    user_payments = await get_payments_paginated(user_id=user.id)
+    assert user_payments.total == 0
+
+    payment = await create_invoice(wallet_id=wallet_one.id, amount=100, memo="one")
+    user_payments = await get_payments_paginated(user_id=user.id)
+    assert user_payments.total == 1
+    # this will create a payment in the to_wallet that we need to count for at the end
+    await pay_invoice(
+        wallet_id=to_wallet.id,
+        payment_request=payment.bolt11,
+    )
+    user_payments = await get_payments_paginated(user_id=user.id)
+    assert user_payments.total == 1
+
+    payment = await create_invoice(wallet_id=wallet_one.id, amount=3, memo="two")
+    user_payments = await get_payments_paginated(user_id=user.id)
+    assert user_payments.total == 2
+
+    payment = await create_invoice(wallet_id=wallet_two.id, amount=3, memo="three")
+    user_payments = await get_payments_paginated(user_id=user.id)
+    assert user_payments.total == 3
+
+    await pay_invoice(
+        wallet_id=wallet_one.id,
+        payment_request=payment.bolt11,
+    )
+    user_payments = await get_payments_paginated(user_id=user.id)
+    assert user_payments.total == 4
+
+    all_payments = await get_payments_paginated()
+    total_after = all_payments.total
+
+    assert total_after == total_before + 5, "Total payments should be updated."

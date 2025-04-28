@@ -271,14 +271,14 @@ async def api_all_payments_paginated(
 ):
     if user.admin:
         # admin user can see payments from all wallets
-        wallet_ids = None
+        for_user_id = None
     else:
         # regular user can only see payments from their wallets
-        wallet_ids = user.wallet_ids
+        for_user_id = user.id
 
     return await get_payments_paginated(
         filters=filters,
-        wallet_ids=wallet_ids,
+        user_id=for_user_id,
     )
 
 
