@@ -139,7 +139,7 @@ async def get_wallets_ids(
     user_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
 ) -> list[str]:
     where = "AND deleted = :deleted" if deleted is not None else ""
-    result = await (conn or db).fetchall(
+    result: list[dict] = await (conn or db).fetchall(
         f"""
         SELECT id FROM wallets
         WHERE "user" = :user {where}
