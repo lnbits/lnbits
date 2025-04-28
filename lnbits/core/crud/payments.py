@@ -95,6 +95,7 @@ async def get_latest_payments_by_extension(
 async def get_payments_paginated(
     *,
     wallet_id: Optional[str] = None,
+    wallet_ids: Optional[list[str]] = None,
     complete: bool = False,
     pending: bool = False,
     failed: bool = False,
@@ -121,6 +122,13 @@ async def get_payments_paginated(
     if wallet_id:
         values["wallet_id"] = wallet_id
         clause.append("wallet_id = :wallet_id")
+    elif wallet_ids:
+        wallet_id_clause = []
+        for i, wallet_id_value in enumerate(wallet_ids):
+            wallet_id_key = f"wallet_id_clause__{i}"
+            wallet_id_clause.append(f"wallet_id = :{wallet_id_key}")
+            values[wallet_id_key] = wallet_id_value
+        clause.append(" OR ".join(wallet_id_clause))
 
     if complete and pending:
         clause.append(
