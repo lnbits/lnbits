@@ -100,7 +100,7 @@ class FakeWallet(Wallet):
             ok=True,
             checking_id=payment_hash,
             payment_request=payment_request,
-            # preimage=preimage.hex(),
+            preimage=preimage.hex(),
         )
 
     async def pay_invoice(self, bolt11: str, _: int) -> PaymentResponse:
