@@ -145,6 +145,7 @@ class LndWallet(Wallet):
 
         data["r_hash"] = sha256(preimage).digest()
         data["r_preimage"] = preimage
+        print("### create_invoice preimage 200", preimage.hex())
         try:
             req = ln.Invoice(**data)
             resp = await self.rpc.AddInvoice(req)
@@ -156,11 +157,13 @@ class LndWallet(Wallet):
             #    "payment_addr": <bytes>,
             # }
         except Exception as exc:
+            print("### create_invoice exc 201", exc)
             logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=str(exc))
 
         checking_id = bytes_to_hex(resp.r_hash)
         payment_request = str(resp.payment_request)
+        print("### create_invoice preimage 210", preimage.hex())
         return InvoiceResponse(
             ok=True,
             checking_id=checking_id,

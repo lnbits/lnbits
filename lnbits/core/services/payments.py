@@ -144,23 +144,24 @@ async def create_invoice(
         or not payment_response.payment_request
         or not payment_response.checking_id
     ):
+        print("### create_invoice 300", payment_response)
         raise InvoiceError(
             message=payment_response.error_message or "unexpected backend error.",
             status="pending",
         )
-
+    print("### create_invoice 310", payment_response.preimage)
     invoice = bolt11_decode(payment_response.payment_request)
 
     create_payment_model = CreatePayment(
         wallet_id=wallet_id,
         bolt11=payment_response.payment_request,
         payment_hash=invoice.payment_hash,
+        preimage=payment_response.preimage,
         amount_msat=amount_sat * 1000,
         expiry=invoice.expiry_date,
         memo=memo,
         extra=extra,
         webhook=webhook,
-        preimage=payment_response.preimage,
     )
 
     payment = await create_payment(
