@@ -138,7 +138,7 @@ class PhoenixdWallet(Wallet):
 
             checking_id = data["paymentHash"]
             payment_request = data["serialized"]
-            preimage = data.get("preimage", None)
+            preimage = data.get("paymentPreimage", None)  # if available
             return InvoiceResponse(
                 ok=True,
                 checking_id=checking_id,
