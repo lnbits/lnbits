@@ -99,7 +99,7 @@ class LNbitsWallet(Wallet):
                 ok=True,
                 checking_id=data["checking_id"],
                 payment_request=payment_str,
-                preimage=data["preimage"],
+                preimage=data.get("preimage"),
             )
         except json.JSONDecodeError:
             return InvoiceResponse(
