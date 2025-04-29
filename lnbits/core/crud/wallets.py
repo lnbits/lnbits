@@ -135,6 +135,20 @@ async def get_wallets(
     )
 
 
+async def get_wallets_ids(
+    user_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
+) -> list[str]:
+    where = "AND deleted = :deleted" if deleted is not None else ""
+    result: list[dict] = await (conn or db).fetchall(
+        f"""
+        SELECT id FROM wallets
+        WHERE "user" = :user {where}
+        """,
+        {"user": user_id, "deleted": deleted},
+    )
+    return [row["id"] for row in result]
+
+
 async def get_wallets_count():
     result = await db.execute("SELECT COUNT(*) as count FROM wallets")
     row = result.mappings().first()

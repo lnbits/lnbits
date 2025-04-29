@@ -264,13 +264,21 @@ async def _api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
     response_description="list of payments",
     response_model=Page[Payment],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
-    dependencies=[Depends(check_admin)],
 )
 async def api_all_payments_paginated(
     filters: Filters = Depends(parse_filters(PaymentFilters)),
+    user: User = Depends(check_user_exists),
 ):
+    if user.admin:
+        # admin user can see payments from all wallets
+        for_user_id = None
+    else:
+        # regular user can only see payments from their wallets
+        for_user_id = user.id
+
     return await get_payments_paginated(
         filters=filters,
+        user_id=for_user_id,
     )
 
 
