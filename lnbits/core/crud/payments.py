@@ -261,8 +261,6 @@ async def create_payment(
     assert previous_payment is None, "Payment already exists"
     extra = data.extra or {}
 
-    print("### create_payment 100", data.preimage)
-
     payment = Payment(
         checking_id=checking_id,
         status=status,
