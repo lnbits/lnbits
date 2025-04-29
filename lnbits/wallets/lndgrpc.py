@@ -142,8 +142,7 @@ class LndWallet(Wallet):
             data["description_hash"] = sha256(unhashed_description).digest()
 
         preimage, payment_hash = random_secret_and_hash()
-
-        data["r_hash"] = payment_hash
+        data["r_hash"] = bytes.fromhex(payment_hash)
         data["r_preimage"] = bytes.fromhex(preimage)
         try:
             req = ln.Invoice(**data)
