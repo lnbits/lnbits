@@ -103,7 +103,10 @@ class CoreLightningWallet(Wallet):
             if unhashed_description and not self.supports_description_hash:
                 raise UnsupportedError("unhashed_description")
 
-            preimage, _ = random_secret_and_hash()
+            preimage = kwargs.get("preimage")
+            if not preimage:
+                preimage, _ = random_secret_and_hash()
+
             r: dict = self.ln.invoice(  # type: ignore
                 amount_msat=msat,
                 label=label,
