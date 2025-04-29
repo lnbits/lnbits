@@ -1,7 +1,8 @@
 import asyncio
 import json
 import random
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 import httpx
 from bolt11 import Bolt11Exception
@@ -9,6 +10,7 @@ from bolt11.decode import decode
 from loguru import logger
 
 from lnbits.settings import settings
+from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
@@ -126,8 +128,10 @@ class CoreLightningRestWallet(Wallet):
         if kwargs.get("expiry"):
             data["expiry"] = kwargs["expiry"]
 
-        if kwargs.get("preimage"):
-            data["preimage"] = kwargs["preimage"]
+        preimage, _ = random_secret_and_hash()
+
+        # https://github.com/Ride-The-Lightning/c-lightning-REST/blob/master/controllers/invoice.js#L52C17-L52C25
+        data["preimage"] = preimage
 
         try:
             r = await self.client.post(
@@ -156,12 +160,11 @@ class CoreLightningRestWallet(Wallet):
                     ok=False, error_message="Server error: 'missing required fields'"
                 )
 
-            print("### create_invoice corelightningrest", data)
             return InvoiceResponse(
                 ok=True,
                 checking_id=data["payment_hash"],
                 payment_request=data["bolt11"],
-                preimage=data.get("preimage"),
+                preimage=preimage,
             )
         except json.JSONDecodeError:
             return InvoiceResponse(
