@@ -96,7 +96,10 @@ class LNbitsWallet(Wallet):
                 )
 
             return InvoiceResponse(
-                ok=True, checking_id=data["checking_id"], payment_request=payment_str
+                ok=True,
+                checking_id=data["checking_id"],
+                payment_request=payment_str,
+                preimage=data["preimage"],
             )
         except json.JSONDecodeError:
             return InvoiceResponse(
