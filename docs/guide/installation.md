@@ -564,3 +564,12 @@ docker run --detach --publish 5000:5000 --name lnbits -e "LNBITS_BACKEND_WALLET_
 ```
 
 Finally you can access your lnbits on your machine at port 5000.
+
+### FreeBSD notes
+
+Currently there is an issue with secp256k1 0.14.0 on FreeBSD. Thanks to @GitKalle
+
+1. Install package `py311-secp256k1` with `pkg install py311-secp256k1`
+2. Change version in `pyproject.toml` from 0.14.0 to 0.13.2
+3. Rewrite `poetry.lock` file with command `poetry lock`
+4. Follow install instruction with Poetry
