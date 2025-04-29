@@ -1,7 +1,7 @@
 import asyncio
 import base64
 from hashlib import sha256
-from os import environ, urandom
+from os import environ
 from typing import AsyncGenerator, Dict, Optional
 
 import grpc
@@ -12,7 +12,7 @@ import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 import lnbits.wallets.lnd_grpc_files.router_pb2 as router
 import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
 from lnbits.settings import settings
-from lnbits.utils.crypto import AESCipher
+from lnbits.utils.crypto import AESCipher, random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
@@ -141,11 +141,10 @@ class LndWallet(Wallet):
         elif unhashed_description:
             data["description_hash"] = sha256(unhashed_description).digest()
 
-        preimage = urandom(32)
+        preimage, payment_hash = random_secret_and_hash()
 
-        data["r_hash"] = sha256(preimage).digest()
-        data["r_preimage"] = preimage
-        print("### create_invoice preimage 200", preimage.hex())
+        data["r_hash"] = payment_hash
+        data["r_preimage"] = bytes.fromhex(preimage)
         try:
             req = ln.Invoice(**data)
             resp = await self.rpc.AddInvoice(req)
@@ -157,18 +156,16 @@ class LndWallet(Wallet):
             #    "payment_addr": <bytes>,
             # }
         except Exception as exc:
-            print("### create_invoice exc 201", exc)
             logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=str(exc))
 
         checking_id = bytes_to_hex(resp.r_hash)
         payment_request = str(resp.payment_request)
-        print("### create_invoice preimage 210", preimage.hex())
         return InvoiceResponse(
             ok=True,
             checking_id=checking_id,
             payment_request=payment_request,
-            preimage=preimage.hex(),
+            preimage=preimage,
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
