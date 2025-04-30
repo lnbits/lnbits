@@ -132,29 +132,29 @@ async def create_invoice(
             status="failed",
         )
 
-    (
-        ok,
-        checking_id,
-        payment_request,
-        error_message,
-    ) = await funding_source.create_invoice(
+    payment_response = await funding_source.create_invoice(
         amount=amount_sat,
         memo=invoice_memo,
         description_hash=description_hash,
         unhashed_description=unhashed_description,
         expiry=expiry or settings.lightning_invoice_expiry,
     )
-    if not ok or not payment_request or not checking_id:
+    if (
+        not payment_response.ok
+        or not payment_response.payment_request
+        or not payment_response.checking_id
+    ):
         raise InvoiceError(
-            error_message or "unexpected backend error.", status="pending"
+            message=payment_response.error_message or "unexpected backend error.",
+            status="pending",
         )
-
-    invoice = bolt11_decode(payment_request)
+    invoice = bolt11_decode(payment_response.payment_request)
 
     create_payment_model = CreatePayment(
         wallet_id=wallet_id,
-        bolt11=payment_request,
+        bolt11=payment_response.payment_request,
         payment_hash=invoice.payment_hash,
+        preimage=payment_response.preimage,
         amount_msat=amount_sat * 1000,
         expiry=invoice.expiry_date,
         memo=memo,
@@ -163,7 +163,7 @@ async def create_invoice(
     )
 
     payment = await create_payment(
-        checking_id=checking_id,
+        checking_id=payment_response.checking_id,
         data=create_payment_model,
         conn=conn,
     )
@@ -485,6 +485,9 @@ async def _pay_internal_invoice(
 
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError("Insufficient balance.", status="failed")
+
+    # release the preimage
+    create_payment_model.preimage = internal_invoice.preimage
 
     internal_id = f"internal_{create_payment_model.payment_hash}"
     logger.debug(f"creating temporary internal payment with id {internal_id}")

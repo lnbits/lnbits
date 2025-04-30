@@ -10,6 +10,7 @@ from loguru import logger
 from websockets.client import connect
 
 from lnbits.settings import settings
+from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
@@ -99,6 +100,9 @@ class EclairWallet(Wallet):
         else:
             data["description"] = memo
 
+        preimage, _ = random_secret_and_hash()
+        data["paymentPreimage"] = preimage
+
         try:
             r = await self.client.post("/createinvoice", data=data, timeout=40)
             r.raise_for_status()
@@ -120,6 +124,7 @@ class EclairWallet(Wallet):
                 ok=True,
                 checking_id=data["paymentHash"],
                 payment_request=data["serialized"],
+                preimage=preimage,
             )
         except json.JSONDecodeError:
             return InvoiceResponse(

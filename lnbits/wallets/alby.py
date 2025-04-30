@@ -99,10 +99,12 @@ class AlbyWallet(Wallet):
 
             checking_id = data["payment_hash"]
             payment_request = data["payment_request"]
+            preimage = data.get("payment_preimage")
             return InvoiceResponse(
                 ok=True,
                 checking_id=checking_id,
                 payment_request=payment_request,
+                preimage=preimage,
             )
         except KeyError as exc:
             logger.warning(exc)

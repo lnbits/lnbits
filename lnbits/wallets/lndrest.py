@@ -9,7 +9,7 @@ from loguru import logger
 
 from lnbits.nodes.lndrest import LndRestNode
 from lnbits.settings import settings
-from lnbits.utils.crypto import AESCipher
+from lnbits.utils.crypto import AESCipher, random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
@@ -110,24 +110,28 @@ class LndRestWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {
+        _data: Dict = {
             "value": amount,
             "private": settings.lnd_rest_route_hints,
             "memo": memo or "",
         }
         if kwargs.get("expiry"):
-            data["expiry"] = kwargs["expiry"]
+            _data["expiry"] = kwargs["expiry"]
         if description_hash:
-            data["description_hash"] = base64.b64encode(description_hash).decode(
+            _data["description_hash"] = base64.b64encode(description_hash).decode(
                 "ascii"
             )
         elif unhashed_description:
-            data["description_hash"] = base64.b64encode(
+            _data["description_hash"] = base64.b64encode(
                 hashlib.sha256(unhashed_description).digest()
             ).decode("ascii")
 
+        preimage, _payment_hash = random_secret_and_hash()
+        _data["r_hash"] = base64.b64encode(bytes.fromhex(_payment_hash)).decode()
+        _data["r_preimage"] = base64.b64encode(bytes.fromhex(preimage)).decode()
+
         try:
-            r = await self.client.post(url="/v1/invoices", json=data)
+            r = await self.client.post(url="/v1/invoices", json=_data)
             r.raise_for_status()
             data = r.json()
 
@@ -156,6 +160,7 @@ class LndRestWallet(Wallet):
                 ok=True,
                 checking_id=checking_id,
                 payment_request=payment_request,
+                preimage=preimage,
             )
 
         except json.JSONDecodeError:

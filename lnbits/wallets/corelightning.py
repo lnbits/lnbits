@@ -1,6 +1,7 @@
 import asyncio
 import random
-from typing import Any, AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Any, Optional
 
 from bolt11.decode import decode as bolt11_decode
 from bolt11.exceptions import Bolt11Exception
@@ -9,6 +10,7 @@ from pyln.client import LightningRpc, RpcError
 
 from lnbits.nodes.cln import CoreLightningNode
 from lnbits.settings import settings
+from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
@@ -100,6 +102,11 @@ class CoreLightningWallet(Wallet):
                 )
             if unhashed_description and not self.supports_description_hash:
                 raise UnsupportedError("unhashed_description")
+
+            preimage = kwargs.get("preimage")
+            if not preimage:
+                preimage, _ = random_secret_and_hash()
+
             r: dict = self.ln.invoice(  # type: ignore
                 amount_msat=msat,
                 label=label,
@@ -107,6 +114,7 @@ class CoreLightningWallet(Wallet):
                     unhashed_description.decode() if unhashed_description else memo
                 ),
                 exposeprivatechannels=True,
+                preimage=preimage,
                 deschashonly=(
                     True if unhashed_description else False
                 ),  # we can't pass None here
@@ -119,6 +127,7 @@ class CoreLightningWallet(Wallet):
                 ok=True,
                 checking_id=r["payment_hash"],
                 payment_request=r["bolt11"],
+                preimage=preimage,
             )
         except RpcError as exc:
             logger.warning(exc)

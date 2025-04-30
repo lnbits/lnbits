@@ -203,7 +203,8 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     if payment and payment.is_in:
         status = await payment.check_status()
         payment.fee = status.fee_msat or 0
-        payment.preimage = status.preimage
+        # only overwrite preimage if status.preimage provides it
+        payment.preimage = status.preimage or payment.preimage
         payment.status = PaymentState.SUCCESS
         await update_payment(payment)
         internal = "internal" if is_internal else ""

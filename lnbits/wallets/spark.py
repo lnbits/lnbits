@@ -140,6 +140,7 @@ class SparkWallet(Wallet):
                 ok=True,
                 payment_request=r["bolt11"],
                 checking_id=label,
+                preimage=r.get("preimage"),
             )
         except (SparkError, UnknownError) as e:
             return InvoiceResponse(ok=False, error_message=str(e))
