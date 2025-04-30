@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from uuid import UUID
 
-import bcrypt
 from fastapi import Query
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field
@@ -15,15 +13,6 @@ from lnbits.helpers import is_valid_email_address, is_valid_pubkey, is_valid_use
 from lnbits.settings import settings
 
 from .wallets import Wallet
-
-
-@dataclass
-class SolveBugBcryptWarning:
-    __version__: str = bcrypt.__version__
-
-
-# fix annoying warning in the logs
-bcrypt.__about__ = SolveBugBcryptWarning()
 
 
 class UserExtra(BaseModel):
