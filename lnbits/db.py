@@ -580,7 +580,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
                     for key, value in page_filter.values.items():
                         values[key] = value
         if self.search and self.model:
-            values["search"] = f"%{self.search}%"
+            values["search"] = f"%{self.search.lower()}%"
         return values
 
 

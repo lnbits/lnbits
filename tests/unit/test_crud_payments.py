@@ -1,8 +1,18 @@
 import pytest
 
-from lnbits.core.crud import create_wallet, get_payments, update_payment
-from lnbits.core.models import PaymentState
-from lnbits.core.services import create_user_account, update_wallet_balance
+from lnbits.core.crud import (
+    create_wallet,
+    get_payments,
+    get_payments_paginated,
+    update_payment,
+)
+from lnbits.core.models import PaymentFilters, PaymentState
+from lnbits.core.services import (
+    create_invoice,
+    create_user_account,
+    update_wallet_balance,
+)
+from lnbits.db import Filters
 
 
 async def update_payments(payments):
@@ -64,3 +74,62 @@ async def test_crud_get_payments(app):
     # both false should return failed payments
     # payments = await get_payments(wallet_id=wallet.id, complete=False, pending=False)
     # assert len(payments) == 2, "should return 2 failed payment"
+
+
+@pytest.mark.anyio
+async def test_crud_search_payments():
+
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id)
+    filters: Filters = Filters(
+        search="",
+        model=PaymentFilters,
+    )
+    # no memo
+    await create_invoice(wallet_id=wallet.id, amount=30, memo="")
+    await create_invoice(wallet_id=wallet.id, amount=30, memo="Invoice A")
+    filters.search = "Invoice A"
+    page = await get_payments_paginated(
+        wallet_id=wallet.id,
+        filters=filters,
+    )
+    assert page.total == 1, "should return only Invoice A"
+
+    filters.search = "Invoice B"
+    page = await get_payments_paginated(
+        wallet_id=wallet.id,
+        filters=filters,
+    )
+    assert page.total == 0, "no Invoice B yet"
+
+    for i in range(15):
+        await create_invoice(wallet_id=wallet.id, amount=30 + i, memo="Invoice A")
+        await create_invoice(wallet_id=wallet.id, amount=30 + i, memo="Invoice B")
+
+    filters.search = None
+    page = await get_payments_paginated(
+        wallet_id=wallet.id,
+        filters=filters,
+    )
+    assert page.total == 32, "should return all payments"
+
+    filters.search = "Invoice A"
+    page = await get_payments_paginated(
+        wallet_id=wallet.id,
+        filters=filters,
+    )
+    assert page.total == 16
+
+    filters.search = "Invoice B"
+    page = await get_payments_paginated(
+        wallet_id=wallet.id,
+        filters=filters,
+    )
+    assert page.total == 15
+
+    filters.search = "Invoice"
+    page = await get_payments_paginated(
+        wallet_id=wallet.id,
+        filters=filters,
+    )
+    assert page.total == 31
