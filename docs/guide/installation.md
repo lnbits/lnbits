@@ -84,13 +84,15 @@ cd lnbits
 # Update LNbits
 git pull --rebase
 
-# To keep your poetry up to date, use
+# Check your poetry version with
+poetry env list
+# If version is less 3.12, update it by running
 poetry env use python3.12
 poetry env remove python3.9
 poetry env list
-poetry install --only main
 
-# Start LNbits with
+# Run install and start LNbits with
+poetry install --only main
 poetry run lnbits
 
 # use LNbits admin UI Extensions page function "Update All" do get extensions onto proper level
