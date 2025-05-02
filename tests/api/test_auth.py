@@ -102,7 +102,7 @@ async def test_login_usr_not_allowed_for_admin_without_credentials(
     # Attempt to login with user ID for admin
     response = await http_client.post("/api/v1/auth/usr", json=login_data.dict())
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert (
         response.json().get("detail") == "Admin users cannot login with user id only."
     )
@@ -135,7 +135,7 @@ async def test_login_usr_not_allowed(
 
     response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
 
-    assert response.status_code == 401, "Login method not allowed."
+    assert response.status_code == 403, "Login method not allowed."
     assert response.json().get("detail") == "Login by 'User ID' not allowed."
 
     settings.auth_allowed_methods = AuthMethods.all()
@@ -217,7 +217,7 @@ async def test_login_username_password_not_allowed(
         "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
     )
 
-    assert response.status_code == 401, "Login method not allowed."
+    assert response.status_code == 403, "Login method not allowed."
     assert (
         response.json().get("detail") == "Login by 'Username and Password' not allowed."
     )
@@ -597,7 +597,7 @@ async def test_register_nostr_not_allowed(http_client: AsyncClient, settings: Se
         json={},
     )
 
-    assert response.status_code == 401, "User not authenticated."
+    assert response.status_code == 403, "User not authenticated."
     assert response.json().get("detail") == "Login with Nostr Auth not allowed."
 
     settings.auth_allowed_methods = AuthMethods.all()
@@ -607,7 +607,7 @@ async def test_register_nostr_not_allowed(http_client: AsyncClient, settings: Se
 async def test_register_nostr_bad_header(http_client: AsyncClient):
     response = await http_client.post("/api/v1/auth/nostr")
 
-    assert response.status_code == 401, "Missing header."
+    assert response.status_code == 400, "Missing header."
     assert response.json().get("detail") == "Nostr Auth header missing."
 
     response = await http_client.post(
@@ -615,7 +615,7 @@ async def test_register_nostr_bad_header(http_client: AsyncClient):
         headers={"Authorization": "Bearer xyz"},
     )
 
-    assert response.status_code == 401, "Non nostr header."
+    assert response.status_code == 400, "Non nostr header."
     assert response.json().get("detail") == "Invalid Authorization scheme."
 
     response = await http_client.post(
@@ -1028,7 +1028,7 @@ async def test_reset_username_password_not_allowed(
     )
     settings.auth_allowed_methods = AuthMethods.all()
 
-    assert response.status_code == 401, "Login method not allowed."
+    assert response.status_code == 403, "Login method not allowed."
     assert (
         response.json().get("detail") == "Auth by 'Username and Password' not allowed."
     )

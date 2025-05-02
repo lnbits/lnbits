@@ -7,7 +7,7 @@ from lnbits.settings import Settings
 @pytest.mark.anyio
 async def test_admin_get_settings_permission_denied(client, from_user):
     response = await client.get(f"/admin/api/v1/settings?usr={from_user.id}")
-    assert response.status_code == 401
+    assert response.status_code == 403
 
 
 @pytest.mark.anyio
