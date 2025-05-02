@@ -554,9 +554,13 @@ class Filters(BaseModel, Generic[TFilterModel]):
             for page_filter in self.filters:
                 where_stmts.append(page_filter.statement)
         if self.search and self.model and self.model.__search_fields__:
-            where_stmts.append(
-                f"lower(concat({', '.join(self.model.__search_fields__)})) LIKE :search"
+            # Use `COALESCE` to handle `NULL` values and `||`
+            # for cross-database compatible string concatenation
+            _fields = self.model.__search_fields__
+            search_expr = " || ".join(
+                f"COALESCE(CAST({field} AS TEXT), '')" for field in _fields
             )
+            where_stmts.append(f"lower({search_expr}) LIKE :search")
 
         if where_stmts:
             return "WHERE " + " AND ".join(where_stmts)
@@ -576,7 +580,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
                     for key, value in page_filter.values.items():
                         values[key] = value
         if self.search and self.model:
-            values["search"] = f"%{self.search}%"
+            values["search"] = f"%{self.search.lower()}%"
         return values
 
 
