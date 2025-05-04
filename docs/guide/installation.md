@@ -78,11 +78,24 @@ poetry run lnbits-cli --help
 
 ```sh
 cd lnbits
-# Stop LNbits with `ctrl + x`
-git pull
-# Keep your poetry install up to date, this can be done with `poetry self update`
+# Stop LNbits with `ctrl + x` or with service manager
+# sudo systemctl stop lnbits
+
+# Update LNbits
+git pull --rebase
+
+# Check your poetry version with
+poetry env list
+# If version is less 3.12, update it by running
+poetry env use python3.12
+poetry env remove python3.9
+poetry env list
+
+# Run install and start LNbits with
 poetry install --only main
-# Start LNbits with `poetry run lnbits`
+poetry run lnbits
+
+# use LNbits admin UI Extensions page function "Update All" do get extensions onto proper level
 ```
 
 ## Option 2: Install script (on Debian/Ubuntu)
