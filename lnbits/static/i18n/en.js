@@ -446,7 +446,7 @@ window.localisation.en = {
   fee_reserve_percent: 'Fee Reserve Percent',
   fee_reserve_msats: 'Reserve fee in msats',
   reserve_fee_in_percent: 'Reserve fee in percent',
-  payment_wait_time: 'Payment Wait Time',
+  payment_wait_time: 'Payment Wait Time (sec)',
   payment_wait_time_desc:
     'How long to wait when making a payment before marking it as pending. Set higher values for HODL invoices, Boltz, etc.',
   server_management: 'Server Management',
