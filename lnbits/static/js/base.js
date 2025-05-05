@@ -495,6 +495,7 @@ window.windowMixin = {
         ? this.$q.localStorage.getItem('lnbits.backgroundImage')
         : USE_DEFAULT_BGIMAGE,
       isUserAuthorized: false,
+      isSatDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
       walletEventListeners: [],
       backgroundImage: '',
       ...WINDOW_SETTINGS
