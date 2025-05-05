@@ -639,7 +639,7 @@
               >
                 <span
                   v-if="receive.lnurl"
-                  v-text="$t('withdraw_from') + receive.lnurl.domain"
+                  v-text="`${$t('withdraw_from')} ${receive.lnurl.domain}`"
                 ></span>
                 <span v-else v-text="$t('create_invoice')"></span>
               </q-btn>
