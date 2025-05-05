@@ -99,9 +99,13 @@ openapi:
 	curl -s http://0.0.0.0:5003/openapi.json | poetry run openapi-spec-validator --errors=all -
 	# kill -9 %1
 
-bak:
-	# LNBITS_DATABASE_URL=postgres://postgres:postgres@0.0.0.0:5432/postgres
-	#
+generate:
+	rm -rf generated
+	mkdir generated
+	rm -f openapi.json
+	wget localhost:5000/openapi.json
+	npm run generate
+	rm openapi.json
 
 sass:
 	npm run sass
