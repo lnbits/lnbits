@@ -155,7 +155,7 @@ async def api_payments_daily_stats(
 
     if not user.admin:
         exc = HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
+            status_code=HTTPStatus.FORBIDDEN,
             detail="Missing wallet id.",
         )
         wallet_filter = next(
@@ -322,7 +322,7 @@ async def api_payments_create(
         return await _api_payments_create_invoice(invoice_data, wallet.wallet)
     else:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
+            status_code=HTTPStatus.FORBIDDEN,
             detail="Invoice (or Admin) key required.",
         )
 

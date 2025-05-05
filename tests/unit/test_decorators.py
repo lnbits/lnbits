@@ -76,7 +76,7 @@ async def test_check_user_exists_with_user_not_allowed(user_alan: User):
     settings.lnbits_allowed_users = ["only_this_user_id"]
     with pytest.raises(HTTPException) as exc_info:
         await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
-    assert exc_info.value.status_code == 401
+    assert exc_info.value.status_code == 403
     assert exc_info.value.detail == "User not allowed."
 
 
