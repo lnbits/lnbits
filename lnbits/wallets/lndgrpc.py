@@ -16,6 +16,7 @@ from lnbits.utils.crypto import AESCipher, random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
+    PaymentFailedStatus,
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
@@ -236,6 +237,9 @@ class LndWallet(Wallet):
             resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
             if resp.settled:
                 return PaymentSuccessStatus(preimage=resp.r_preimage.hex())
+
+            if "state" in resp and resp.state == "CANCELED":
+                return PaymentFailedStatus()
 
             return PaymentPendingStatus()
         except grpc.RpcError as exc:
