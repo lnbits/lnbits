@@ -279,6 +279,7 @@ window.ExtensionsPageLogic = {
     },
 
     showManageExtension: async function (extension) {
+      if (!this.g.user.admin) return
       this.selectedExtension = extension
       this.selectedRelease = null
       this.selectedExtensionRepos = null
