@@ -101,9 +101,10 @@ window.app = Vue.createApp({
     }
   },
   created() {
-    this.description = SITE_DESCRIPTION
+    this.description = this.SITE_DESCRIPTION
+    this.allowedRegister = this.LNBITS_NEW_ACCOUNTS_ALLOWED
     this.authAction =
-      !LNBITS_NEW_ACCOUNTS_ALLOWED ||
+      !this.allowedRegister ||
       Quasar.LocalStorage.getItem('lnbits.disclaimerShown')
         ? 'login'
         : 'register'
