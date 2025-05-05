@@ -238,7 +238,7 @@ class LndWallet(Wallet):
             if resp.settled:
                 return PaymentSuccessStatus(preimage=resp.r_preimage.hex())
 
-            if "state" in resp and resp.state == "CANCELED":
+            if resp.state == "CANCELED":
                 return PaymentFailedStatus()
 
             return PaymentPendingStatus()
