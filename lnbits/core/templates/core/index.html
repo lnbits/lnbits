@@ -147,6 +147,8 @@
                 {%else%}
                 <username-password
                   v-if="authMethod != 'user-id-only'"
+                  :allowed_new_users="LNBITS_NEW_ACCOUNTS_ALLOWED"
+                  :auth-methods="LNBITS_AUTH_METHODS"
                   :auth-action="authAction"
                   v-model:user-name="username"
                   v-model:password_1="password"
