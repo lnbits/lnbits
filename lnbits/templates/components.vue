@@ -1213,7 +1213,7 @@
             <q-icon name="account_circle" size="xs"></q-icon>
             <span v-text="$t('login_with_user_id')"></span> </strong
         ></q-badge>
-        <div v-if="LNBITS_NEW_ACCOUNTS_ALLOWED" class="inline-block">
+        <div v-if="allowed_new_users" class="inline-block">
           <span v-text="$t('or')" class="q-mx-sm text-grey"></span>
           <q-badge
             @click="showRegister('user-id-only')"
@@ -1233,7 +1233,7 @@
 </template>
 
 <template id="username-password">
-  <div v-if="LNBITS_AUTH_METHODS.includes('username-password')">
+  <div v-if="authMethods.includes('username-password')">
     <q-card-section class="q-pb-none">
       <div class="text-center text-h6 q-mb-sm q-mt-none q-pt-none">
         <span
@@ -1280,13 +1280,8 @@
       </q-form>
     </q-card-section>
     <!-- REGISTER -->
-    <q-card-section v-if="authAction === 'register'">
-      <h5
-        v-if="!LNBITS_NEW_ACCOUNTS_ALLOWED"
-        class="text-center"
-        v-text="$t('new_user_not_allowed')"
-      ></h5>
-      <q-form v-else @submit="register" class="q-gutter-sm">
+    <q-card-section v-if="allowed_new_users && authAction === 'register'">
+      <q-form @submit="register" class="q-gutter-sm">
         <q-input
           dense
           filled
@@ -1327,6 +1322,9 @@
           ></q-btn>
         </div>
       </q-form>
+    </q-card-section>
+    <q-card-section v-else-if="!allowed_new_users && authAction === 'register'">
+      <h5 class="text-center" v-text="$t('new_user_not_allowed')"></h5>
     </q-card-section>
     <slot></slot>
     <!-- RESET -->
@@ -1376,7 +1374,7 @@
   </div>
   <!-- OAUTH -->
   <q-card-section v-if="showOauth">
-    <div v-if="LNBITS_AUTH_METHODS.includes('username-password')">
+    <div v-if="authMethods.includes('username-password')">
       <separator-text :text="$t('signin_with_oauth_or')"></separator-text>
     </div>
     <q-card-section v-else class="q-pb-none">
@@ -1386,7 +1384,7 @@
     </q-card-section>
     <div class="flex justify-center q-mt-md" style="gap: 1rem">
       <q-btn
-        v-if="LNBITS_AUTH_METHODS.includes('nostr-auth-nip98')"
+        v-if="authMethods.includes('nostr-auth-nip98')"
         @click="signInWithNostr()"
         outline
         no-caps
@@ -1406,7 +1404,7 @@
         </q-tooltip>
       </q-btn>
       <q-btn
-        v-if="LNBITS_AUTH_METHODS.includes('github-auth')"
+        v-if="authMethods.includes('github-auth')"
         href="/api/v1/auth/github"
         type="a"
         outline
@@ -1425,7 +1423,7 @@
         <q-tooltip><span v-text="$t('signin_with_github')"></span></q-tooltip>
       </q-btn>
       <q-btn
-        v-if="LNBITS_AUTH_METHODS.includes('google-auth')"
+        v-if="authMethods.includes('google-auth')"
         href="/api/v1/auth/google"
         type="a"
         outline
@@ -1445,7 +1443,7 @@
         </q-tooltip>
       </q-btn>
       <q-btn
-        v-if="LNBITS_AUTH_METHODS.includes('keycloak-auth')"
+        v-if="authMethods.includes('keycloak-auth')"
         href="/api/v1/auth/keycloak"
         type="a"
         outline

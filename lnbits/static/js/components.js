@@ -503,6 +503,7 @@ window.app.component('user-id-only', {
   template: '#user-id-only',
   mixins: [window.windowMixin],
   props: {
+    allowed_new_users: Boolean,
     authAction: String,
     authMethod: String,
     usr: String,
@@ -546,6 +547,8 @@ window.app.component('username-password', {
   template: '#username-password',
   mixins: [window.windowMixin],
   props: {
+    allowed_new_users: Boolean,
+    authMethods: Array,
     authAction: String,
     username: String,
     password_1: String,
@@ -666,7 +669,7 @@ window.app.component('username-password', {
   },
   computed: {
     showOauth() {
-      return this.oauth.some(m => LNBITS_AUTH_METHODS.includes(m))
+      return this.oauth.some(m => this.authMethods.includes(m))
     }
   },
   created() {}

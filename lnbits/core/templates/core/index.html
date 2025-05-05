@@ -190,6 +190,7 @@
                 </username-password>
                 {% if "user-id-only" in LNBITS_AUTH_METHODS %}
                 <user-id-only
+                  :allowed_new_users="LNBITS_NEW_ACCOUNTS_ALLOWED"
                   v-model:usr="usr"
                   v-model:wallet="walletName"
                   :auth-action="authAction"
