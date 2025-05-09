@@ -150,7 +150,7 @@ SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/ln
 
 ## Option 4: Docker
 
-use latest version from docker hub
+Use latest version from Docker Hub.
 
 ```sh
 docker pull lnbits/lnbits
@@ -159,7 +159,7 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
 ```
 
-build the image yourself
+Build the image yourself.
 
 ```sh
 git clone https://github.com/lnbits/lnbits.git
@@ -168,6 +168,12 @@ docker build -t lnbits/lnbits .
 cp .env.example .env
 mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
+```
+
+You can optionally override the arguments that are passed to `poetry install` during the build process by setting the Docker build argument named `POETRY_INSTALL_ARGS`. For example, to enable the Breez funding source, build the Docker image with the command:
+
+```sh
+docker build --build-arg POETRY_INSTALL_ARGS="-E breez" -t lnbits/lnbits .
 ```
 
 ## Option 5: Fly.io
