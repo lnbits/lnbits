@@ -324,8 +324,14 @@ class StrikeWallet(Wallet):
             return PaymentResponse(None, payment_id, None, None, None)  # Return pending payment response.
 
         except httpx.HTTPStatusError as e:
-            msg = e.response.json().get("message", e.response.text)  # Get error message from response.
-            return PaymentResponse(False, None, None, None, f"Strike API error: {msg}")  # Return payment response with error.
+            error_message = e.response.json().get("message", e.response.text)  # Get error message from response.
+            return PaymentResponse(
+                ok=False,
+                checking_id=None,
+                fee_msat=None,
+                preimage=None,
+                error_message=f"Strike API error: {error_message}",
+            )  # Return payment response with error.
         except Exception:
             logger.exception("Error in pay_invoice()")
             return PaymentResponse(False, None, None, None, "Connection error")
