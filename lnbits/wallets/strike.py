@@ -315,11 +315,13 @@ class StrikeWallet(Wallet):
                 preimage = data.get("preimage") or data.get("preImage")  # Get payment preimage.
                 return PaymentResponse(True, payment_id, fee_msat, preimage, None)  # Return successful payment response.
 
-            # Strike often returns 202/PENDING immediately; treat as “still working”.
-            if state in {"PENDING", "QUEUED", "READY_TO_SETTLE", ""}:  # If payment is still pending.
-                return PaymentResponse(None, payment_id, None, None, None)  # Return pending payment response.
+            # Explicitly check for known failure states.
+            failed_states = {"CANCELED", "FAILED", "TIMED_OUT"}  # Add any other known failure states here.
+            if state in failed_states:
+                return PaymentResponse(False, payment_id, None, None, f"State: {state}")  # Return failed payment response with state.
 
-            return PaymentResponse(False, payment_id, None, None, f"State: {state}")  # Return failed payment response with state.
+            # Treat all other states as pending (including unknown states).
+            return PaymentResponse(None, payment_id, None, None, None)  # Return pending payment response.
 
         except httpx.HTTPStatusError as e:
             msg = e.response.json().get("message", e.response.text)  # Get error message from response.
