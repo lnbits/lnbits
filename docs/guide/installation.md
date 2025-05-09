@@ -170,6 +170,12 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
 ```
 
+You can optionally override the arguments that are passed to `poetry install` during the build process by setting the Docker build argument named `POETRY_INSTALL_ARGS`. For example, to enable the Breez funding source, build the Docker image with the command:
+
+```sh
+docker build --build-arg POETRY_INSTALL_ARGS="-E breez" -t lnbits/lnbits .
+```
+
 ## Option 5: Fly.io
 
 Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.
