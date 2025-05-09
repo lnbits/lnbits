@@ -197,6 +197,14 @@ window.app.component('lnbits-funding-sources', {
             breez_greenlight_device_cert: 'Greenlight Device Cert',
             breez_greenlight_invite_code: 'Greenlight Invite Code'
           }
+        ],
+        [
+          'StrikeWallet',
+          'Strike',
+          {
+            strike_api_endpoint: 'API Endpoint',
+            strike_api_key: 'API Key'
+          }
         ]
       ]
     }
