@@ -28,7 +28,7 @@ def verify_preimage(preimage: str, payment_hash: str) -> bool:
 
 class AESCipher:
     """
-    AES-256-CBC encryption/decryption.
+    AES-256-CBC encryption/decryption with salt and base64 encoding.
 
     This class is compatible with crypto-js/aes.js
     Encrypt and decrypt in Javascript using:
@@ -67,7 +67,7 @@ class AESCipher:
         return iv_key[32:], iv_key[:32]
 
     def decrypt(self, encrypted: str, urlsafe: bool = False) -> str:
-        """Decrypts a salted string using AES-256-CBC."""
+        """Decrypts a salted base64 encoded string using AES-256-CBC."""
         if urlsafe:
             decoded = urlsafe_b64decode(encrypted)
         else:
@@ -89,6 +89,9 @@ class AESCipher:
             raise ValueError("Decryption error") from exc
 
     def encrypt(self, message: str, urlsafe: bool = False) -> str:
+        """
+        Encrypts a string using AES-256-CBC and returns a salted base64 encoded string.
+        """
         salt = Random.new().read(8)
         iv, key = self.derive_iv_and_key(salt, 32 + 16)
         aes = AES.new(key, AES.MODE_CBC, iv)
