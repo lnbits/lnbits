@@ -499,7 +499,7 @@ async def extensions_uninstall(
 @encrypt.command("macaroon")
 def encrypt_macaroon():
     """Encrypts a macaroon (LND wallets)"""
-    _macaroon = input("Enter macaroon: ")
+    _macaroon = getpass("Enter macaroon: ")
     try:
         macaroon = load_macaroon(_macaroon)
     except Exception as ex:
