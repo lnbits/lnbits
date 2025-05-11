@@ -17,7 +17,7 @@ def load_macaroon(
     if encrypted_macaroon:
         # if the macaroon is encrypted, decrypt it
         # and return the hex version
-        key = getpass("Enter the macaroon encryption key: ")
+        key = getpass("Enter the macaroon decryption key: ")
         aes = AESCipher(key.encode())
         return aes.decrypt(encrypted_macaroon).hex()
 

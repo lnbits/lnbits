@@ -40,7 +40,9 @@ from lnbits.core.views.extension_api import (
     api_uninstall_extension,
 )
 from lnbits.settings import settings
+from lnbits.utils.crypto import AESCipher
 from lnbits.wallets.base import Wallet
+from lnbits.wallets.macaroon import load_macaroon
 
 
 def coro(f):
@@ -76,6 +78,13 @@ def users():
 def extensions():
     """
     Extensions related commands
+    """
+
+
+@lnbits_cli.group()
+def encrypt():
+    """
+    Encryption commands
     """
 
 
@@ -477,6 +486,41 @@ async def extensions_uninstall(
     except Exception as ex:
         click.echo(f"Failed to uninstall '{extension}': {ex!s}.")
         return False, str(ex)
+
+
+@encrypt.command("macaroon")
+def encrypt_macaroon():
+    """Encrypts a macaroon (LND wallets)"""
+    _macaroon = input("Enter macaroon: ")
+    try:
+        macaroon = load_macaroon(_macaroon)
+    except Exception as ex:
+        click.echo(f"Error loading macaroon: {ex}")
+        return
+    key = input("Enter encryption key: ")
+    aes = AESCipher(key.encode())
+    try:
+        encrypted_macaroon = aes.encrypt(macaroon.encode())
+    except Exception as ex:
+        click.echo(f"Error encrypting macaroon: {ex}")
+        return
+    click.echo("Encrypted macaroon: ")
+    click.echo(encrypted_macaroon)
+
+
+@encrypt.command("aes")
+def encrypt_aes():
+    """AES encrypts a payload"""
+    payload = input("Enter payload: ")
+    key = input("Enter encryption key: ")
+    aes = AESCipher(key.encode())
+    try:
+        encrypted = aes.encrypt(payload.encode())
+    except Exception as ex:
+        click.echo(f"Error encrypting payload: {ex}")
+        return
+    click.echo("Encrypted payload: ")
+    click.echo(encrypted)
 
 
 def main():
