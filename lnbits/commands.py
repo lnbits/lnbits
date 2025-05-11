@@ -88,6 +88,13 @@ def encrypt():
     """
 
 
+@lnbits_cli.group()
+def decrypt():
+    """
+    Decryption commands
+    """
+
+
 def get_super_user() -> Optional[str]:
     """Get the superuser"""
     superuser_file = Path(settings.lnbits_data_folder, ".super_user")
@@ -509,11 +516,16 @@ def encrypt_macaroon():
 
 
 @encrypt.command("aes")
-def encrypt_aes():
+@click.option("-p", "--payload", required=True, help="Payload to encrypt.")
+def encrypt_aes(payload: str):
     """AES encrypts a payload"""
-    payload = input("Enter payload: ")
-    key = input("Enter encryption key: ")
-    aes = AESCipher(key.encode())
+    key = input("Enter encryption key in hex: ")
+    try:
+        hex_key = bytes.fromhex(key)
+    except ValueError as ex:
+        click.echo(f"Error converting key to hex: {ex}")
+        return
+    aes = AESCipher(hex_key)
     try:
         encrypted = aes.encrypt(payload.encode())
     except Exception as ex:
@@ -521,6 +533,26 @@ def encrypt_aes():
         return
     click.echo("Encrypted payload: ")
     click.echo(encrypted)
+
+
+@decrypt.command("aes")
+@click.option("-p", "--payload", required=True, help="Payload to decrypt.")
+def decrypt_aes(payload: str):
+    """AES decrypts a payload"""
+    key = input("Enter encryption key in hex: ")
+    try:
+        hex_key = bytes.fromhex(key)
+    except ValueError as ex:
+        click.echo(f"Error converting key to hex: {ex}")
+        return
+    aes = AESCipher(hex_key)
+    try:
+        decrypted = aes.decrypt(payload)
+    except Exception as ex:
+        click.echo(f"Error decrypting payload: {ex}")
+        return
+    click.echo("Decrypted payload: ")
+    click.echo(decrypted.decode())
 
 
 def main():
