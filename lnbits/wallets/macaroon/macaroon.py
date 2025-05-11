@@ -41,5 +41,7 @@ def load_macaroon(
     try:
         macaroon = base64.b64decode(macaroon).hex()
         return macaroon
-    except Exception as exc:
-        raise ValueError("macaroon must be a hex string or a base64 string") from exc
+    except Exception:
+        pass
+
+    return macaroon
