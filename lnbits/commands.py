@@ -507,7 +507,7 @@ def encrypt_macaroon():
     key = input("Enter encryption key: ")
     aes = AESCipher(key.encode())
     try:
-        encrypted_macaroon = aes.encrypt(macaroon.encode())
+        encrypted_macaroon = aes.encrypt(macaroon)
     except Exception as ex:
         click.echo(f"Error encrypting macaroon: {ex}")
         return
@@ -527,7 +527,7 @@ def encrypt_aes(payload: str):
         return
     aes = AESCipher(hex_key)
     try:
-        encrypted = aes.encrypt(payload.encode())
+        encrypted = aes.encrypt(payload)
     except Exception as ex:
         click.echo(f"Error encrypting payload: {ex}")
         return
@@ -552,7 +552,7 @@ def decrypt_aes(payload: str):
         click.echo(f"Error decrypting payload: {ex}")
         return
     click.echo("Decrypted payload: ")
-    click.echo(decrypted.decode())
+    click.echo(decrypted)
 
 
 def main():

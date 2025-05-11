@@ -57,7 +57,7 @@ class AESCipher:
         iv_key = final_key[:output_len]
         return iv_key[32:], iv_key[:32]
 
-    def decrypt(self, encrypted: str, urlsafe: bool = False) -> bytes:
+    def decrypt(self, encrypted: str, urlsafe: bool = False) -> str:
         """Decrypts a salted string using AES-256-CBC."""
         if urlsafe:
             decoded = urlsafe_b64decode(encrypted)
@@ -75,15 +75,15 @@ class AESCipher:
 
         try:
             decrypted_bytes = aes.decrypt(encrypted_bytes)
-            return self.unpad(decrypted_bytes)
+            return self.unpad(decrypted_bytes).decode()
         except Exception as exc:
             raise ValueError("Decryption error") from exc
 
-    def encrypt(self, message: bytes, urlsafe: bool = False) -> str:
+    def encrypt(self, message: str, urlsafe: bool = False) -> str:
         salt = Random.new().read(8)
         iv, key = self.derive_iv_and_key(salt, 32 + 16)
         aes = AES.new(key, AES.MODE_CBC, iv)
-        msg = self.pad(message)
+        msg = self.pad(message.encode())
         encrypted = aes.encrypt(msg)
         salted = b"Salted__" + salt + encrypted
         encoded = urlsafe_b64encode(salted) if urlsafe else b64encode(salted)

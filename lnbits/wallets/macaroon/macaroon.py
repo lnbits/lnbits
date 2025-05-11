@@ -19,7 +19,7 @@ def load_macaroon(
         # and return the hex version
         key = getpass("Enter the macaroon decryption key: ")
         aes = AESCipher(key.encode())
-        return aes.decrypt(encrypted_macaroon).hex()
+        return aes.decrypt(encrypted_macaroon)
 
     assert macaroon, "macaroon must be set here"
 
