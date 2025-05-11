@@ -1,5 +1,6 @@
 from base64 import b64decode, b64encode, urlsafe_b64decode, urlsafe_b64encode
 from hashlib import md5, pbkdf2_hmac, sha256
+from typing import Union
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
@@ -29,6 +30,7 @@ def verify_preimage(preimage: str, payment_hash: str) -> bool:
 class AESCipher:
     """
     AES-256-CBC encryption/decryption with salt and base64 encoding.
+    :param key: The key to use for en-/decryption. It can be bytes, a hex or a string.
 
     This class is compatible with crypto-js/aes.js
     Encrypt and decrypt in Javascript using:
@@ -38,9 +40,16 @@ class AESCipher:
     AES.decrypt(encrypted, password).toString(Utf8);
     """
 
-    def __init__(self, key: bytes, block_size: int = 16):
-        self.key = key
+    def __init__(self, key: Union[bytes, str], block_size: int = 16):
         self.block_size = block_size
+        if isinstance(key, bytes):
+            self.key = key
+            return
+        try:
+            self.key = bytes.fromhex(key)
+        except ValueError:
+            pass
+        self.key = key.encode()
 
     def pad(self, data: bytes) -> bytes:
         length = self.block_size - (len(data) % self.block_size)
