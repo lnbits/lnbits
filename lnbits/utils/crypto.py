@@ -27,7 +27,16 @@ def verify_preimage(preimage: str, payment_hash: str) -> bool:
 
 
 class AESCipher:
-    """AES-256-CBC encryption/decryption."""
+    """
+    AES-256-CBC encryption/decryption.
+
+    This class is compatible with crypto-js/aes.js
+    Encrypt and decrypt in Javascript using:
+    import AES from "crypto-js/aes.js";
+    import Utf8 from "crypto-js/enc-utf8.js";
+    AES.encrypt(decrypted, password).toString()
+    AES.decrypt(encrypted, password).toString(Utf8);
+    """
 
     def __init__(self, key: bytes, block_size: int = 16):
         self.key = key
