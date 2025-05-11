@@ -3,6 +3,7 @@ import importlib
 import sys
 import time
 from functools import wraps
+from getpass import getpass
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -504,7 +505,7 @@ def encrypt_macaroon():
     except Exception as ex:
         click.echo(f"Error loading macaroon: {ex}")
         return
-    key = input("Enter encryption key: ")
+    key = getpass("Enter encryption key: ")
     aes = AESCipher(key.encode())
     try:
         encrypted_macaroon = aes.encrypt(macaroon)
@@ -519,13 +520,8 @@ def encrypt_macaroon():
 @click.option("-p", "--payload", required=True, help="Payload to encrypt.")
 def encrypt_aes(payload: str):
     """AES encrypts a payload"""
-    key = input("Enter encryption key in hex: ")
-    try:
-        hex_key = bytes.fromhex(key)
-    except ValueError as ex:
-        click.echo(f"Error converting key to hex: {ex}")
-        return
-    aes = AESCipher(hex_key)
+    key = getpass("Enter encryption key: ")
+    aes = AESCipher(key.encode())
     try:
         encrypted = aes.encrypt(payload)
     except Exception as ex:
@@ -539,13 +535,8 @@ def encrypt_aes(payload: str):
 @click.option("-p", "--payload", required=True, help="Payload to decrypt.")
 def decrypt_aes(payload: str):
     """AES decrypts a payload"""
-    key = input("Enter encryption key in hex: ")
-    try:
-        hex_key = bytes.fromhex(key)
-    except ValueError as ex:
-        click.echo(f"Error converting key to hex: {ex}")
-        return
-    aes = AESCipher(hex_key)
+    key = getpass("Enter encryption key: ")
+    aes = AESCipher(key.encode())
     try:
         decrypted = aes.decrypt(payload)
     except Exception as ex:
