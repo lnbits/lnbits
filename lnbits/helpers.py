@@ -225,8 +225,7 @@ def encrypt_internal_message(
     """
     if not m:
         return None
-    key = bytes.fromhex(settings.auth_secret_key)
-    return AESCipher(key=key).encrypt(m, urlsafe=urlsafe)
+    return AESCipher(key=settings.auth_secret_key).encrypt(m.encode(), urlsafe=urlsafe)
 
 
 def decrypt_internal_message(
@@ -241,8 +240,7 @@ def decrypt_internal_message(
     """
     if not m:
         return None
-    key = bytes.fromhex(settings.auth_secret_key)
-    return AESCipher(key=key).decrypt(m, urlsafe=urlsafe)
+    return AESCipher(key=settings.auth_secret_key).decrypt(m, urlsafe=urlsafe)
 
 
 def filter_dict_keys(data: dict, filter_keys: Optional[list[str]]) -> dict:

@@ -97,14 +97,14 @@ class AESCipher:
         except Exception as exc:
             raise ValueError("Decryption error") from exc
 
-    def encrypt(self, message: str, urlsafe: bool = False) -> str:
+    def encrypt(self, message: bytes, urlsafe: bool = False) -> str:
         """
         Encrypts a string using AES-256-CBC and returns a salted base64 encoded string.
         """
         salt = Random.new().read(8)
         iv, key = self.derive_iv_and_key(salt, 32 + 16)
         aes = AES.new(key, AES.MODE_CBC, iv)
-        msg = self.pad(message.encode())
+        msg = self.pad(message)
         encrypted = aes.encrypt(msg)
         salted = b"Salted__" + salt + encrypted
         encoded = urlsafe_b64encode(salted) if urlsafe else b64encode(salted)
