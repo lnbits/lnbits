@@ -15,8 +15,7 @@ def load_macaroon(
         raise ValueError("Either macaroon or encrypted_macaroon must be provided.")
 
     if encrypted_macaroon:
-        # if the macaroon is encrypted, decrypt it
-        # and return the hex version
+        # if the macaroon is encrypted, decrypt it and return the hex version
         key = getpass("Enter the macaroon decryption key: ")
         aes = AESCipher(key.encode())
         return aes.decrypt(encrypted_macaroon)
@@ -29,8 +28,7 @@ def load_macaroon(
             macaroon_bytes = f.read()
             return macaroon_bytes.hex()
 
-    # if macaroon is a provided string
-    # check if it is hex, if so, return
+    # if macaroon is a provided string check if it is hex, if so, return
     try:
         bytes.fromhex(macaroon)
         return macaroon
