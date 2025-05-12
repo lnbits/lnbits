@@ -342,12 +342,17 @@ class StrikeWallet(Wallet):
             r = await self._get(f"/receive-requests/{checking_id}/receives")  # Get receive requests for the invoice.
             for itm in r.json().get("items", []):  # Iterate through received items.
                 if itm.get("state") == "COMPLETED":  # If an item is completed.
-                    return PaymentSuccessStatus(fee_msat=0)  # Return successful payment status.
+                    # Extract preimage from lightning object if available
+                    preimage = None
+                    lightning_data = itm.get("lightning")
+                    if lightning_data:
+                        preimage = lightning_data.get("preimage")
+                    return PaymentSuccessStatus(fee_msat=0, preimage=preimage)  # Return successful payment status with preimage.
             return PaymentPendingStatus()  # Return pending payment status if no completed items.
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:  # If invoice not found.
                 try:
-                    r2 = await self._get(f"/invoices/{checking_id}")  # Try getting invoice from the old endpoint.
+                    r2 = await self._get(f"/v1/invoices/{checking_id}")  # Try getting invoice from the old endpoint with correct path.
                     st = r2.json().get("state", "")  # Get invoice state.
                     if st == "PAID":  # If invoice is paid.
                         return PaymentSuccessStatus(fee_msat=0)  # Return successful payment status.
