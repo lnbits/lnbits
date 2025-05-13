@@ -9,68 +9,68 @@ on:
 
 jobs:
 
-  # lint:
-  #   uses: ./.github/workflows/lint.yml
+  lint:
+    uses: ./.github/workflows/lint.yml
 
-  # test-api:
-  #   needs: [ lint ]
-  #   strategy:
-  #     matrix:
-  #       python-version: ["3.10", "3.11", "3.12"]
-  #       db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
-  #   uses: ./.github/workflows/tests.yml
-  #   with:
-  #     custom-pytest: "poetry run pytest tests/api"
-  #     python-version: ${{ matrix.python-version }}
-  #     db-url: ${{ matrix.db-url }}
-  #   secrets:
-  #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  test-api:
+    needs: [ lint ]
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
+    uses: ./.github/workflows/tests.yml
+    with:
+      custom-pytest: "poetry run pytest tests/api"
+      python-version: ${{ matrix.python-version }}
+      db-url: ${{ matrix.db-url }}
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  # test-wallets:
-  #   needs: [ lint ]
-  #   strategy:
-  #     matrix:
-  #       python-version: ["3.10", "3.11", "3.12"]
-  #       db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
-  #   uses: ./.github/workflows/tests.yml
-  #   with:
-  #     custom-pytest: "poetry run pytest tests/wallets"
-  #     python-version: ${{ matrix.python-version }}
-  #     db-url: ${{ matrix.db-url }}
-  #   secrets:
-  #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  test-wallets:
+    needs: [ lint ]
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
+    uses: ./.github/workflows/tests.yml
+    with:
+      custom-pytest: "poetry run pytest tests/wallets"
+      python-version: ${{ matrix.python-version }}
+      db-url: ${{ matrix.db-url }}
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  # test-unit:
-  #   needs: [ lint ]
-  #   strategy:
-  #     matrix:
-  #       python-version: ["3.10", "3.11", "3.12"]
-  #       db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
-  #   uses: ./.github/workflows/tests.yml
-  #   with:
-  #     custom-pytest: "poetry run pytest tests/unit"
-  #     python-version: ${{ matrix.python-version }}
-  #     db-url: ${{ matrix.db-url }}
-  #   secrets:
-  #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  test-unit:
+    needs: [ lint ]
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
+    uses: ./.github/workflows/tests.yml
+    with:
+      custom-pytest: "poetry run pytest tests/unit"
+      python-version: ${{ matrix.python-version }}
+      db-url: ${{ matrix.db-url }}
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  # migration:
-  #   needs: [ lint ]
-  #   strategy:
-  #     matrix:
-  #       python-version: ["3.10", "3.11", "3.12"]
-  #   uses: ./.github/workflows/migration.yml
-  #   with:
-  #     python-version: ${{ matrix.python-version }}
+  migration:
+    needs: [ lint ]
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    uses: ./.github/workflows/migration.yml
+    with:
+      python-version: ${{ matrix.python-version }}
 
-  # openapi:
-  #   needs: [ lint ]
-  #   uses: ./.github/workflows/make.yml
-  #   with:
-  #     make: openapi
+  openapi:
+    needs: [ lint ]
+    uses: ./.github/workflows/make.yml
+    with:
+      make: openapi
 
   regtest:
-    # needs: [ lint ]
+    needs: [ lint ]
     uses: ./.github/workflows/regtest.yml
     strategy:
       matrix:
@@ -83,13 +83,13 @@ jobs:
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  # jmeter:
-  #   needs: [ lint ]
-  #   strategy:
-  #     matrix:
-  #       python-version: ["3.10"]
-  #       poetry-version: ["1.5.1"]
-  #   uses: ./.github/workflows/jmeter.yml
-  #   with:
-  #     python-version: ${{ matrix.python-version }}
-  #     poetry-version: ${{ matrix.poetry-version }}
+  jmeter:
+    needs: [ lint ]
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+        poetry-version: ["1.5.1"]
+    uses: ./.github/workflows/jmeter.yml
+    with:
+      python-version: ${{ matrix.python-version }}
+      poetry-version: ${{ matrix.poetry-version }}

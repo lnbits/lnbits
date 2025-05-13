@@ -166,7 +166,7 @@ async def test_pay_real_invoices_in_parallel():
     # more to cover routing feems
     await update_wallet_balance(wallet, 1100)
 
-    # these should be external invoices
+    # these must be external invoices
     real_invoice_one = get_real_invoice(1000)
     real_invoice_two = get_real_invoice(1000)
 
