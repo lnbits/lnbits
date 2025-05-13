@@ -44,6 +44,8 @@ from ..models import (
 )
 from .notifications import send_payment_notification
 
+outgoing_payments_processing: list[str] = []
+
 
 async def pay_invoice(
     *,
@@ -84,7 +86,7 @@ async def pay_invoice(
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         await _credit_service_fee_wallet(payment, new_conn)
 
-        return payment
+    return payment
 
 
 async def create_invoice(
