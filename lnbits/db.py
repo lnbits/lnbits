@@ -648,7 +648,7 @@ def model_to_dict(model: BaseModel) -> dict:
 def dict_to_submodel(model: type[TModel], value: dict | str) -> TModel | None:
     """convert a dictionary or JSON string to a Pydantic model"""
     if isinstance(value, str):
-        if value == "null":
+        if value == "null" or value == "":
             return None
         _subdict = _safe_load_json(value)
     elif isinstance(value, dict):
@@ -709,5 +709,6 @@ def _safe_load_json(value: str) -> dict:
     try:
         return json.loads(value)
     except json.JSONDecodeError:
-        logger.error(f"Failed to decode JSON: {value}")
+        # DB is corrupted if it gets here
+        logger.error(f"Failed to decode JSON: '{value}'")
         return {}
