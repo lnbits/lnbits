@@ -164,7 +164,7 @@ async def test_pay_real_invoices_in_parallel():
     wallet = await create_wallet(user_id=user.id)
 
     # more to cover routing feems
-    await update_wallet_balance(wallet, 1000)
+    await update_wallet_balance(wallet, 1100)
 
     # these should be external invoices
     real_invoice_one = get_real_invoice(1000)
@@ -187,7 +187,7 @@ async def test_pay_real_invoices_in_parallel():
 
     wallet_after = await get_wallet(wallet.id)
     assert wallet_after
-    assert wallet_after.balance == 0, "One payment should be deducted."
+    assert 0 <= wallet_after.balance <= 100, "One payment should be deducted."
 
 
 @pytest.mark.anyio
