@@ -44,7 +44,8 @@ from ..models import (
 )
 from .notifications import send_payment_notification
 
-outgoing_payments_processing: list[str] = []
+# list of wallet id's that are currently processing a payment
+busy_wallets: list[str] = []
 
 
 async def pay_invoice(
@@ -61,30 +62,49 @@ async def pay_invoice(
         raise PaymentError("Only incoming payments allowed.", status="failed")
     invoice = _validate_payment_request(payment_request, max_sat)
     assert invoice.amount_msat
+    amount_msat = invoice.amount_msat
+
+    if wallet_id in busy_wallets:
+        raise PaymentError("Wallet is processing a payment.")
+
+    busy_wallets.append(wallet_id)
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        amount_msat = invoice.amount_msat
-        wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
-
+        try:
+            wallet = await _check_wallet_for_payment(
+                wallet_id, tag, amount_msat, new_conn
+            )
+        except PaymentError as exc:
+            busy_wallets.remove(wallet_id)
+            raise exc
         if await is_internal_status_success(invoice.payment_hash, new_conn):
+            busy_wallets.remove(wallet_id)
             raise PaymentError("Internal invoice already paid.", status="failed")
 
-        _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
+    _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
 
-        create_payment_model = CreatePayment(
-            wallet_id=wallet_id,
-            bolt11=payment_request,
-            payment_hash=invoice.payment_hash,
-            amount_msat=-amount_msat,
-            expiry=invoice.expiry_date,
-            memo=description or invoice.description or "",
-            extra=extra,
-        )
+    create_payment_model = CreatePayment(
+        wallet_id=wallet_id,
+        bolt11=payment_request,
+        payment_hash=invoice.payment_hash,
+        amount_msat=-amount_msat,
+        expiry=invoice.expiry_date,
+        memo=description or invoice.description or "",
+        extra=extra,
+    )
 
-    payment = await _pay_invoice(wallet, create_payment_model, conn)
+    try:
+        payment = await _pay_invoice(wallet, create_payment_model, conn)
+    except PaymentError as exc:
+        # remove paying fails
+        busy_wallets.remove(wallet_id)
+        raise exc
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         await _credit_service_fee_wallet(payment, new_conn)
+
+    # finally remove it when everything was successful
+    busy_wallets.remove(wallet_id)
 
     return payment
 

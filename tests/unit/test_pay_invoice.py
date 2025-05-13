@@ -12,7 +12,6 @@ from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.crud.payments import get_payment, get_payments_paginated
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, create_user_account, pay_invoice
-from lnbits.core.services.payments import update_wallet_balance
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
 from lnbits.tasks import (
@@ -133,7 +132,7 @@ async def test_pay_twice_fast(to_wallet: Wallet):
             payment_request=payment.bolt11,
         )
 
-    with pytest.raises(PaymentError, match="Payment is already beeing processed."):
+    with pytest.raises(PaymentError, match="Wallet is processing a payment."):
         await asyncio.gather(pay_first(), pay_second())
 
 
@@ -158,45 +157,14 @@ async def test_two_invoices_fast(from_fresh_wallet: Wallet, to_wallet: Wallet):
             payment_request=payment2.bolt11,
         )
 
-    # with pytest.raises(PaymentError, match="Payment is already beeing processed."):
-    await asyncio.gather(pay_first(), pay_second())
+    with pytest.raises(PaymentError, match="Wallet is processing a payment."):
+        await asyncio.gather(pay_first(), pay_second())
 
     wallet = await get_wallet(from_fresh_wallet.id)
     assert wallet, "from wallet has to exist"
 
     assert wallet.balance > 0
 
-
-@pytest.mark.anyio
-async def test_pay_twice_fast_b():
-    user = await create_user_account()
-    wallet_one = await create_wallet(user_id=user.id)
-    wallet_two = await create_wallet(user_id=user.id)
-
-    await update_wallet_balance(wallet_one, 1000)
-    payment_a = await create_invoice(wallet_id=wallet_two.id, amount=1000, memo="AAA")
-    payment_b = await create_invoice(wallet_id=wallet_two.id, amount=1000, memo="BBB")
-
-    async def pay_first():
-        return await pay_invoice(
-            wallet_id=wallet_one.id,
-            payment_request=payment_a.bolt11,
-        )
-
-    async def pay_second():
-        return await pay_invoice(
-            wallet_id=wallet_one.id,
-            payment_request=payment_b.bolt11,
-        )
-
-    payments = await asyncio.gather(pay_first(), pay_second())
-
-    wallet_one_after = await get_wallet(wallet_one.id)
-    assert wallet_one_after
-    print("### wallet_one", wallet_one_after.balance)
-    wallet_two_after = await get_wallet(wallet_two.id)
-    assert wallet_two_after
-    print("### wallet_two", wallet_two_after.balance)
 
 @pytest.mark.anyio
 async def test_fake_wallet_pay_external(
