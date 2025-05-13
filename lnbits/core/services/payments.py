@@ -44,7 +44,8 @@ from ..models import (
 )
 from .notifications import send_payment_notification
 
-internal_payment_lock = asyncio.Lock()
+payment_lock = asyncio.Lock()
+wallets_payments_lock: dict[str, asyncio.Lock] = {}
 
 
 async def pay_invoice(
@@ -448,11 +449,14 @@ async def _pay_invoice(
     create_payment_model: CreatePayment,
     conn: Optional[Connection] = None,
 ):
-    async with internal_payment_lock:
+    async with payment_lock:
+        if wallet.id not in wallets_payments_lock:
+            wallets_payments_lock[wallet.id] = asyncio.Lock()
+    async with wallets_payments_lock[wallet.id]:
         payment = await _pay_internal_invoice(wallet.id, create_payment_model, conn)
-    if not payment:
-        payment = await _pay_external_invoice(wallet, create_payment_model, conn)
-    return payment
+        if not payment:
+            payment = await _pay_external_invoice(wallet, create_payment_model, conn)
+        return payment
 
 
 async def _pay_internal_invoice(
