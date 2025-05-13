@@ -44,8 +44,6 @@ from ..models import (
 )
 from .notifications import send_payment_notification
 
-outgoing_payments_processing: list[str] = []
-
 internal_payment_lock = asyncio.Lock()
 
 
@@ -496,7 +494,7 @@ async def _pay_internal_invoice(
     wallet = await get_wallet(wallet_id, conn=conn)
     if not wallet:
         raise PaymentError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
-    print("### wallet.balance", wallet.balance_msat, wallet.balance)
+
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError("Insufficient balance.", status="failed")
 
