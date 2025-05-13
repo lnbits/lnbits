@@ -164,14 +164,11 @@ async def test_pay_real_invoices_in_parallel():
     wallet = await create_wallet(user_id=user.id)
 
     # more to cover routing feems
-    await update_wallet_balance(wallet, 1100)
+    await update_wallet_balance(wallet, 1000)
 
     # these should be external invoices
     real_invoice_one = get_real_invoice(1000)
     real_invoice_two = get_real_invoice(1000)
-
-    print("### real_invoice_one", real_invoice_one)
-    print("### real_invoice_two", real_invoice_two)
 
     async def pay_first():
         return await pay_invoice(
