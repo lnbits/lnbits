@@ -185,10 +185,7 @@ async def test_pay_real_invoices_in_parallel():
             payment_request=real_invoice_two["payment_request"],
         )
 
-    with pytest.raises(
-        PaymentError,
-        match="You must reserve at least (10  sat) to cover potential routing fees.",
-    ):
+    with pytest.raises(PaymentError, match="Insufficient balance."):
         await asyncio.gather(pay_first(), pay_second())
 
     wallet_after = await get_wallet(wallet.id)

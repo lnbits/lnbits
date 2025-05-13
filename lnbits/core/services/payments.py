@@ -545,6 +545,8 @@ async def _pay_external_invoice(
 
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
 
+    if wallet.balance_msat < abs(amount_msat):
+        raise PaymentError("Insufficient balance.", status="failed")
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError(
             f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
