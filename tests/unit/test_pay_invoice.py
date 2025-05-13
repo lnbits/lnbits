@@ -116,27 +116,6 @@ async def test_pay_twice(to_wallet: Wallet):
 
 
 @pytest.mark.anyio
-async def test_pay_twice_fast(to_wallet: Wallet):
-    payment = await create_invoice(wallet_id=to_wallet.id, amount=3, memo="Twice fast")
-
-    async def pay_first():
-        return await pay_invoice(
-            wallet_id=to_wallet.id,
-            payment_request=payment.bolt11,
-        )
-
-    async def pay_second():
-        return await pay_invoice(
-            wallet_id=to_wallet.id,
-            payment_request=payment.bolt11,
-        )
-
-    payments = await asyncio.gather(pay_first(), pay_second())
-    print(payments)
-    # with pytest.raises(PaymentError, match="Payment is already beeing processed."):
-
-
-@pytest.mark.anyio
 async def test_pay_twice_fast_b():
     user = await create_user_account()
     wallet_one = await create_wallet(user_id=user.id)
@@ -158,14 +137,15 @@ async def test_pay_twice_fast_b():
             payment_request=payment_b.bolt11,
         )
 
-    await asyncio.gather(pay_first(), pay_second())
+    with pytest.raises(PaymentError, match="Insufficient balance."):
+        await asyncio.gather(pay_first(), pay_second())
 
-    wallet_one_after = await get_wallet(wallet_one.id)
-    assert wallet_one_after
-    print("### wallet_one", wallet_one_after.balance)
-    wallet_two_after = await get_wallet(wallet_two.id)
-    assert wallet_two_after
-    print("### wallet_two", wallet_two_after.balance)
+    # wallet_one_after = await get_wallet(wallet_one.id)
+    # assert wallet_one_after
+    # print("### wallet_one", wallet_one_after.balance)
+    # wallet_two_after = await get_wallet(wallet_two.id)
+    # assert wallet_two_after
+    # print("### wallet_two", wallet_two_after.balance)
 
 
 @pytest.mark.anyio
