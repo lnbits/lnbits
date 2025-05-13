@@ -23,6 +23,8 @@ from lnbits.tasks import (
 from lnbits.wallets.base import PaymentResponse
 from lnbits.wallets.fake import FakeWallet
 
+from ..helpers import WALLET_BALANCE
+
 
 @pytest.mark.anyio
 async def test_invalid_bolt11(to_wallet: Wallet):
@@ -131,9 +133,38 @@ async def test_pay_twice_fast(to_wallet: Wallet):
             payment_request=payment.bolt11,
         )
 
-    payments = await asyncio.gather(pay_first(), pay_second())
-    print(payments)
+    with pytest.raises(PaymentError, match="Payment is already beeing processed."):
+        await asyncio.gather(pay_first(), pay_second())
+
+
+@pytest.mark.anyio
+async def test_two_invoices_fast(from_fresh_wallet: Wallet, to_wallet: Wallet):
+    payment = await create_invoice(
+        wallet_id=to_wallet.id, amount=WALLET_BALANCE, memo="Two invoices 1"
+    )
+    payment2 = await create_invoice(
+        wallet_id=to_wallet.id, amount=WALLET_BALANCE, memo="Two invoices 2"
+    )
+
+    async def pay_first() -> Payment:
+        return await pay_invoice(
+            wallet_id=from_fresh_wallet.id,
+            payment_request=payment.bolt11,
+        )
+
+    async def pay_second() -> Payment:
+        return await pay_invoice(
+            wallet_id=from_fresh_wallet.id,
+            payment_request=payment2.bolt11,
+        )
+
     # with pytest.raises(PaymentError, match="Payment is already beeing processed."):
+    await asyncio.gather(pay_first(), pay_second())
+
+    wallet = await get_wallet(from_fresh_wallet.id)
+    assert wallet, "from wallet has to exist"
+
+    assert wallet.balance > 0
 
 
 @pytest.mark.anyio

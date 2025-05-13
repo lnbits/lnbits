@@ -6,6 +6,8 @@ from pydantic import BaseModel
 
 from lnbits.wallets import get_funding_source, set_funding_source
 
+WALLET_BALANCE = 99999
+
 
 class FakeError(Exception):
     pass

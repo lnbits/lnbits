@@ -26,12 +26,11 @@ from lnbits.settings import AuthMethods, Settings
 from lnbits.settings import settings as lnbits_settings
 from lnbits.wallets.fake import FakeWallet
 from tests.helpers import (
+    WALLET_BALANCE,
     get_random_invoice_data,
 )
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
-INVOICE_AMOUNT = 99999
 
 
 @pytest.fixture(scope="session")
@@ -132,7 +131,18 @@ async def from_wallet(from_user):
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_from")
     await update_wallet_balance(
         wallet=wallet,
-        amount=INVOICE_AMOUNT,
+        amount=WALLET_BALANCE,
+    )
+    yield wallet
+
+
+@pytest.fixture(scope="function")
+async def from_fresh_wallet(from_user):
+    user = from_user
+    wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_from")
+    await update_wallet_balance(
+        wallet=wallet,
+        amount=WALLET_BALANCE,
     )
     yield wallet
 
@@ -176,7 +186,7 @@ async def to_wallet(to_user):
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_to")
     await update_wallet_balance(
         wallet=wallet,
-        amount=INVOICE_AMOUNT,
+        amount=WALLET_BALANCE,
     )
     yield wallet
 
