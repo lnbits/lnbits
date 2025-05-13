@@ -5,8 +5,12 @@ import pytest
 
 from lnbits import bolt11
 from lnbits.core.crud import get_standalone_payment, update_payment
+from lnbits.core.crud.wallets import create_wallet, get_wallet
 from lnbits.core.models import CreateInvoice, Payment, PaymentState
 from lnbits.core.services import fee_reserve_total, get_balance_delta
+from lnbits.core.services.payments import pay_invoice, update_wallet_balance
+from lnbits.core.services.users import create_user_account
+from lnbits.exceptions import PaymentError
 from lnbits.tasks import create_task, wait_for_paid_invoices
 from lnbits.wallets import get_funding_source
 
@@ -151,6 +155,41 @@ async def test_pay_real_invoice_set_pending_and_check_state(
     payment = await get_standalone_payment(invoice["payment_hash"])
     assert payment
     assert payment.success
+
+
+@pytest.mark.anyio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_pay_real_invoices_in_parallel():
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id)
+
+    await update_wallet_balance(wallet, 1000)
+
+    # these should be external invoices
+    real_invoice_one = get_real_invoice(1000)
+    real_invoice_two = get_real_invoice(1000)
+
+    print("### real_invoice_one", real_invoice_one)
+    print("### real_invoice_two", real_invoice_two)
+
+    async def pay_first():
+        return await pay_invoice(
+            wallet_id=wallet.id,
+            payment_request=real_invoice_one["bolt11"],
+        )
+
+    async def pay_second():
+        return await pay_invoice(
+            wallet_id=wallet.id,
+            payment_request=real_invoice_two["bolt11"],
+        )
+
+    with pytest.raises(PaymentError, match="Insufficient balance."):
+        await asyncio.gather(pay_first(), pay_second())
+
+    wallet_after = await get_wallet(wallet.id)
+    assert wallet_after
+    assert wallet_after.balance == 0, "One payment should be deducted."
 
 
 @pytest.mark.anyio
