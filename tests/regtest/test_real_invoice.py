@@ -175,13 +175,13 @@ async def test_pay_real_invoices_in_parallel():
     async def pay_first():
         return await pay_invoice(
             wallet_id=wallet.id,
-            payment_request=real_invoice_one["bolt11"],
+            payment_request=real_invoice_one["payment_request"],
         )
 
     async def pay_second():
         return await pay_invoice(
             wallet_id=wallet.id,
-            payment_request=real_invoice_two["bolt11"],
+            payment_request=real_invoice_two["payment_request"],
         )
 
     with pytest.raises(PaymentError, match="Insufficient balance."):
