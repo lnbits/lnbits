@@ -71,13 +71,10 @@ async def reset_core_settings() -> None:
     await db.execute(
         """
         DELETE FROM system_settings WHERE tag = 'core'
-        AND (
-            tag != 'core'
-            OR id NOT IN (
-                'super_user',
-                'lnbits_webpush_pubkey',
-                'lnbits_webpush_privkey'
-            )
+        AND id NOT IN (
+            'super_user',
+            'lnbits_webpush_pubkey',
+            'lnbits_webpush_privkey'
         )
         """,
     )
