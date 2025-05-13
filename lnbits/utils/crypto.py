@@ -23,6 +23,12 @@ def fake_privkey(secret: str) -> str:
     ).hex()
 
 
+def verify_preimage(preimage: str, payment_hash: str) -> bool:
+    preimage_bytes = bytes.fromhex(preimage)
+    calculated_hash = sha256(preimage_bytes).hexdigest()
+    return calculated_hash == payment_hash
+
+
 class AESCipher:
     """This class is compatible with crypto-js/aes.js
 
