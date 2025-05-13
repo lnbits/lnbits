@@ -150,6 +150,28 @@ async def test_pay_twice_fast():
 
 
 @pytest.mark.anyio
+async def test_pay_twice_fast_same_invoice(to_wallet: Wallet):
+    payment = await create_invoice(
+        wallet_id=to_wallet.id, amount=3, memo="Twice fast same invoice"
+    )
+
+    async def pay_first():
+        return await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=payment.bolt11,
+        )
+
+    async def pay_second():
+        return await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=payment.bolt11,
+        )
+
+    with pytest.raises(PaymentError, match="Payment already paid."):
+        await asyncio.gather(pay_first(), pay_second())
+
+
+@pytest.mark.anyio
 async def test_fake_wallet_pay_external(
     to_wallet: Wallet, external_funding_source: FakeWallet
 ):
