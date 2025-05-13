@@ -1,15 +1,13 @@
-import base64
-import getpass
+from base64 import b64decode, b64encode, urlsafe_b64decode, urlsafe_b64encode
 from hashlib import md5, pbkdf2_hmac, sha256
+from typing import Union
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
-BLOCK_SIZE = 16
 
-
-def random_secret_and_hash() -> tuple[str, str]:
-    secret = Random.new().read(32)
+def random_secret_and_hash(length: int = 32) -> tuple[str, str]:
+    secret = Random.new().read(length)
     return secret.hex(), sha256(secret).hexdigest()
 
 
@@ -30,73 +28,84 @@ def verify_preimage(preimage: str, payment_hash: str) -> bool:
 
 
 class AESCipher:
-    """This class is compatible with crypto-js/aes.js
+    """
+    AES-256-CBC encryption/decryption with salt and base64 encoding.
+    :param key: The key to use for en-/decryption. It can be bytes, a hex or a string.
 
+    This class is compatible with crypto-js/aes.js
     Encrypt and decrypt in Javascript using:
-        import AES from "crypto-js/aes.js";
-        import Utf8 from "crypto-js/enc-utf8.js";
-        AES.encrypt(decrypted, password).toString()
-        AES.decrypt(encrypted, password).toString(Utf8);
-
+    import AES from "crypto-js/aes.js";
+    import Utf8 from "crypto-js/enc-utf8.js";
+    AES.encrypt(decrypted, password).toString()
+    AES.decrypt(encrypted, password).toString(Utf8);
     """
 
-    def __init__(self, key=None, description=""):
-        self.key = key
-        self.description = description + " "
+    def __init__(self, key: Union[bytes, str], block_size: int = 16):
+        self.block_size = block_size
+        if isinstance(key, bytes):
+            self.key = key
+            return
+        try:
+            self.key = bytes.fromhex(key)
+        except ValueError:
+            pass
+        self.key = key.encode()
 
-    def pad(self, data):
-        length = BLOCK_SIZE - (len(data) % BLOCK_SIZE)
+    def pad(self, data: bytes) -> bytes:
+        length = self.block_size - (len(data) % self.block_size)
         return data + (chr(length) * length).encode()
 
-    def unpad(self, data):
-        return data[: -(data[-1] if isinstance(data[-1], int) else ord(data[-1]))]
+    def unpad(self, data: bytes) -> bytes:
+        _last = data[-1]
+        if isinstance(_last, int):
+            return data[:-_last]
+        return data[: -ord(_last)]
 
-    @property
-    def passphrase(self):
-        passphrase = self.key if self.key is not None else None
-        if passphrase is None:
-            passphrase = getpass.getpass(f"Enter {self.description}password:")
-        return passphrase
-
-    def bytes_to_key(self, data, salt, output=48):
+    def derive_iv_and_key(
+        self, salt: bytes, output_len: int = 32 + 16
+    ) -> tuple[bytes, bytes]:
         # extended from https://gist.github.com/gsakkis/4546068
-        assert len(salt) == 8, len(salt)
-        data += salt
+        assert len(salt) == 8, "Salt must be 8 bytes"
+        data = self.key + salt
         key = md5(data).digest()
         final_key = key
-        while len(final_key) < output:
+        while len(final_key) < output_len:
             key = md5(key + data).digest()
             final_key += key
-        return final_key[:output]
+        iv_key = final_key[:output_len]
+        return iv_key[32:], iv_key[:32]
 
     def decrypt(self, encrypted: str, urlsafe: bool = False) -> str:
-        """Decrypts a string using AES-256-CBC."""
-        passphrase = self.passphrase
-
+        """Decrypts a salted base64 encoded string using AES-256-CBC."""
         if urlsafe:
-            encrypted_bytes = base64.urlsafe_b64decode(encrypted)
+            decoded = urlsafe_b64decode(encrypted)
         else:
-            encrypted_bytes = base64.b64decode(encrypted)
+            decoded = b64decode(encrypted)
 
-        assert encrypted_bytes[0:8] == b"Salted__"
-        salt = encrypted_bytes[8:16]
-        key_iv = self.bytes_to_key(passphrase.encode(), salt, 32 + 16)
-        key = key_iv[:32]
-        iv = key_iv[32:]
+        if decoded[0:8] != b"Salted__":
+            raise ValueError("Invalid salt.")
+
+        salt = decoded[8:16]
+        encrypted_bytes = decoded[16:]
+
+        iv, key = self.derive_iv_and_key(salt, 32 + 16)
         aes = AES.new(key, AES.MODE_CBC, iv)
+
         try:
-            return self.unpad(aes.decrypt(encrypted_bytes[16:])).decode()
-        except UnicodeDecodeError as exc:
-            raise ValueError("Wrong passphrase") from exc
+            decrypted_bytes = aes.decrypt(encrypted_bytes)
+            return self.unpad(decrypted_bytes).decode()
+        except Exception as exc:
+            raise ValueError("Decryption error") from exc
 
     def encrypt(self, message: bytes, urlsafe: bool = False) -> str:
-        passphrase = self.passphrase
+        """
+        Encrypts a string using AES-256-CBC and returns a salted base64 encoded string.
+        """
         salt = Random.new().read(8)
-        key_iv = self.bytes_to_key(passphrase.encode(), salt, 32 + 16)
-        key = key_iv[:32]
-        iv = key_iv[32:]
+        iv, key = self.derive_iv_and_key(salt, 32 + 16)
         aes = AES.new(key, AES.MODE_CBC, iv)
-        encoded = b"Salted__" + salt + aes.encrypt(self.pad(message))
-        return (
-            base64.urlsafe_b64encode(encoded) if urlsafe else base64.b64encode(encoded)
-        ).decode()
+        msg = self.pad(message)
+        encrypted = aes.encrypt(msg)
+        salted = b"Salted__" + salt + encrypted
+        encoded = urlsafe_b64encode(salted) if urlsafe else b64encode(salted)
+        return encoded.decode()

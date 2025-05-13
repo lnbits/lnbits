@@ -3,6 +3,7 @@ import importlib
 import sys
 import time
 from functools import wraps
+from getpass import getpass
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -40,7 +41,9 @@ from lnbits.core.views.extension_api import (
     api_uninstall_extension,
 )
 from lnbits.settings import settings
+from lnbits.utils.crypto import AESCipher
 from lnbits.wallets.base import Wallet
+from lnbits.wallets.macaroon import load_macaroon
 
 
 def coro(f):
@@ -76,6 +79,20 @@ def users():
 def extensions():
     """
     Extensions related commands
+    """
+
+
+@lnbits_cli.group()
+def encrypt():
+    """
+    Encryption commands
+    """
+
+
+@lnbits_cli.group()
+def decrypt():
+    """
+    Decryption commands
     """
 
 
@@ -477,6 +494,56 @@ async def extensions_uninstall(
     except Exception as ex:
         click.echo(f"Failed to uninstall '{extension}': {ex!s}.")
         return False, str(ex)
+
+
+@encrypt.command("macaroon")
+def encrypt_macaroon():
+    """Encrypts a macaroon (LND wallets)"""
+    _macaroon = getpass("Enter macaroon: ")
+    try:
+        macaroon = load_macaroon(_macaroon)
+    except Exception as ex:
+        click.echo(f"Error loading macaroon: {ex}")
+        return
+    key = getpass("Enter encryption key: ")
+    aes = AESCipher(key.encode())
+    try:
+        encrypted_macaroon = aes.encrypt(bytes.fromhex(macaroon))
+    except Exception as ex:
+        click.echo(f"Error encrypting macaroon: {ex}")
+        return
+    click.echo("Encrypted macaroon: ")
+    click.echo(encrypted_macaroon)
+
+
+@encrypt.command("aes")
+@click.option("-p", "--payload", required=True, help="Payload to encrypt.")
+def encrypt_aes(payload: str):
+    """AES encrypts a payload"""
+    key = getpass("Enter encryption key: ")
+    aes = AESCipher(key.encode())
+    try:
+        encrypted = aes.encrypt(payload.encode())
+    except Exception as ex:
+        click.echo(f"Error encrypting payload: {ex}")
+        return
+    click.echo("Encrypted payload: ")
+    click.echo(encrypted)
+
+
+@decrypt.command("aes")
+@click.option("-p", "--payload", required=True, help="Payload to decrypt.")
+def decrypt_aes(payload: str):
+    """AES decrypts a payload"""
+    key = getpass("Enter encryption key: ")
+    aes = AESCipher(key.encode())
+    try:
+        decrypted = aes.decrypt(payload)
+    except Exception as ex:
+        click.echo(f"Error decrypting payload: {ex}")
+        return
+    click.echo("Decrypted payload: ")
+    click.echo(decrypted)
 
 
 def main():

@@ -9,7 +9,7 @@ from loguru import logger
 
 from lnbits.nodes.lndrest import LndRestNode
 from lnbits.settings import settings
-from lnbits.utils.crypto import AESCipher, random_secret_and_hash
+from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
@@ -35,26 +35,6 @@ class LndRestWallet(Wallet):
                 "cannot initialize LndRestWallet: missing lnd_rest_endpoint"
             )
 
-        macaroon = (
-            settings.lnd_rest_macaroon
-            or settings.lnd_admin_macaroon
-            or settings.lnd_rest_admin_macaroon
-            or settings.lnd_invoice_macaroon
-            or settings.lnd_rest_invoice_macaroon
-        )
-        encrypted_macaroon = settings.lnd_rest_macaroon_encrypted
-        if encrypted_macaroon:
-            macaroon = AESCipher(description="macaroon decryption").decrypt(
-                encrypted_macaroon
-            )
-        if not macaroon:
-            raise ValueError(
-                "cannot initialize LndRestWallet: "
-                "missing lnd_rest_macaroon or lnd_admin_macaroon or "
-                "lnd_rest_admin_macaroon or lnd_invoice_macaroon or "
-                "lnd_rest_invoice_macaroon or lnd_rest_macaroon_encrypted"
-            )
-
         if not settings.lnd_rest_cert:
             logger.warning(
                 "No certificate for LndRestWallet provided! "
@@ -68,7 +48,21 @@ class LndRestWallet(Wallet):
         # even on startup
         cert = settings.lnd_rest_cert or True
 
-        macaroon = load_macaroon(macaroon)
+        macaroon = (
+            settings.lnd_rest_macaroon
+            or settings.lnd_admin_macaroon
+            or settings.lnd_rest_admin_macaroon
+            or settings.lnd_invoice_macaroon
+            or settings.lnd_rest_invoice_macaroon
+        )
+        encrypted_macaroon = settings.lnd_rest_macaroon_encrypted
+        try:
+            macaroon = load_macaroon(macaroon, encrypted_macaroon)
+        except ValueError as exc:
+            raise ValueError(
+                f"cannot load macaroon for LndRestWallet: {exc!s}"
+            ) from exc
+
         headers = {
             "Grpc-Metadata-macaroon": macaroon,
             "User-Agent": settings.user_agent,

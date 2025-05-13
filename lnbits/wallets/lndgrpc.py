@@ -12,7 +12,7 @@ import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 import lnbits.wallets.lnd_grpc_files.router_pb2 as router
 import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
 from lnbits.settings import settings
-from lnbits.utils.crypto import AESCipher, random_secret_and_hash
+from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
@@ -72,6 +72,11 @@ class LndWallet(Wallet):
                 "cannot initialize LndWallet: missing lnd_grpc_cert or lnd_cert"
             )
 
+        self.endpoint = self.normalize_endpoint(
+            settings.lnd_grpc_endpoint, add_proto=False
+        )
+        self.port = int(settings.lnd_grpc_port)
+
         macaroon = (
             settings.lnd_grpc_macaroon
             or settings.lnd_grpc_admin_macaroon
@@ -80,23 +85,11 @@ class LndWallet(Wallet):
             or settings.lnd_invoice_macaroon
         )
         encrypted_macaroon = settings.lnd_grpc_macaroon_encrypted
-        if encrypted_macaroon:
-            macaroon = AESCipher(description="macaroon decryption").decrypt(
-                encrypted_macaroon
-            )
-        if not macaroon:
-            raise ValueError(
-                "cannot initialize LndWallet: "
-                "missing lnd_grpc_macaroon or lnd_grpc_admin_macaroon or "
-                "lnd_admin_macaroon or lnd_grpc_invoice_macaroon or "
-                "lnd_invoice_macaroon or lnd_grpc_macaroon_encrypted"
-            )
+        try:
+            self.macaroon = load_macaroon(macaroon, encrypted_macaroon)
+        except ValueError as exc:
+            raise ValueError(f"cannot load macaroon for LndWallet: {exc!s}") from exc
 
-        self.endpoint = self.normalize_endpoint(
-            settings.lnd_grpc_endpoint, add_proto=False
-        )
-        self.port = int(settings.lnd_grpc_port)
-        self.macaroon = load_macaroon(macaroon)
         cert = open(cert_path, "rb").read()
         creds = grpc.ssl_channel_credentials(cert)
         auth_creds = grpc.metadata_call_credentials(self.metadata_callback)

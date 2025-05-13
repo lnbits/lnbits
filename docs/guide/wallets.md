@@ -51,7 +51,7 @@ You can also use an AES-encrypted macaroon (more info) instead by using
 
 - `LND_GRPC_MACAROON_ENCRYPTED`: eNcRyPtEdMaCaRoOn
 
-To encrypt your macaroon, run `poetry run python lnbits/wallets/macaroon/macaroon.py`.
+To encrypt your macaroon, run `poetry run lnbits-cli encrypt macaroon`.
 
 ### LNbits
 
