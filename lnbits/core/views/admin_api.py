@@ -29,7 +29,7 @@ from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
 from lnbits.tasks import invoice_listeners
 
 from .. import core_app_extra
-from ..crud import delete_admin_settings, get_admin_settings, update_admin_settings
+from ..crud import get_admin_settings, reset_core_settings, update_admin_settings
 
 admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
 file_upload = File(...)
@@ -113,7 +113,7 @@ async def api_reset_settings(field_name: str):
 @admin_router.delete("/api/v1/settings", status_code=HTTPStatus.OK)
 async def api_delete_settings(user: User = Depends(check_super_user)) -> None:
     enqueue_notification(NotificationType.settings_update, {"username": user.username})
-    await delete_admin_settings()
+    await reset_core_settings()
     server_restart.set()
 
 
