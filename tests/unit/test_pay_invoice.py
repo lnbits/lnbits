@@ -158,7 +158,7 @@ async def test_pay_twice_fast_b():
             payment_request=payment_b.bolt11,
         )
 
-    payments = await asyncio.gather(pay_first(), pay_second())
+    await asyncio.gather(pay_first(), pay_second())
 
     wallet_one_after = await get_wallet(wallet_one.id)
     assert wallet_one_after
@@ -166,6 +166,7 @@ async def test_pay_twice_fast_b():
     wallet_two_after = await get_wallet(wallet_two.id)
     assert wallet_two_after
     print("### wallet_two", wallet_two_after.balance)
+
 
 @pytest.mark.anyio
 async def test_fake_wallet_pay_external(

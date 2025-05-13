@@ -46,6 +46,8 @@ from .notifications import send_payment_notification
 
 outgoing_payments_processing: list[str] = []
 
+internal_payment_lock = asyncio.Lock()
+
 
 async def pay_invoice(
     *,
@@ -443,15 +445,20 @@ async def get_payments_daily_stats(
     return data
 
 
-async def _pay_invoice(wallet, create_payment_model, conn):
-    payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
+async def _pay_invoice(
+    wallet: Wallet,
+    create_payment_model: CreatePayment,
+    conn: Optional[Connection] = None,
+):
+    async with internal_payment_lock:
+        payment = await _pay_internal_invoice(wallet.id, create_payment_model, conn)
     if not payment:
         payment = await _pay_external_invoice(wallet, create_payment_model, conn)
     return payment
 
 
 async def _pay_internal_invoice(
-    wallet: Wallet,
+    wallet_id: str,
     create_payment_model: CreatePayment,
     conn: Optional[Connection] = None,
 ) -> Optional[Payment]:
@@ -485,6 +492,11 @@ async def _pay_internal_invoice(
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=True)
     create_payment_model.fee = abs(fee_reserve_total_msat)
 
+    # get the wallet again to make sure we have the latest balance
+    wallet = await get_wallet(wallet_id, conn=conn)
+    if not wallet:
+        raise PaymentError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
+    print("### wallet.balance", wallet.balance_msat, wallet.balance)
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError("Insufficient balance.", status="failed")
 
