@@ -12,6 +12,7 @@ from lnbits.core.crud import create_wallet, get_standalone_payment, get_wallet
 from lnbits.core.crud.payments import get_payment, get_payments_paginated
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, create_user_account, pay_invoice
+from lnbits.core.services.payments import update_wallet_balance
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
 from lnbits.tasks import (
@@ -112,6 +113,62 @@ async def test_pay_twice(to_wallet: Wallet):
             wallet_id=to_wallet.id,
             payment_request=payment.bolt11,
         )
+
+
+@pytest.mark.anyio
+async def test_pay_twice_fast():
+    user = await create_user_account()
+    wallet_one = await create_wallet(user_id=user.id)
+    wallet_two = await create_wallet(user_id=user.id)
+
+    await update_wallet_balance(wallet_one, 1000)
+    payment_a = await create_invoice(wallet_id=wallet_two.id, amount=1000, memo="AAA")
+    payment_b = await create_invoice(wallet_id=wallet_two.id, amount=1000, memo="BBB")
+
+    async def pay_first():
+        return await pay_invoice(
+            wallet_id=wallet_one.id,
+            payment_request=payment_a.bolt11,
+        )
+
+    async def pay_second():
+        return await pay_invoice(
+            wallet_id=wallet_one.id,
+            payment_request=payment_b.bolt11,
+        )
+
+    with pytest.raises(PaymentError, match="Insufficient balance."):
+        await asyncio.gather(pay_first(), pay_second())
+
+    wallet_one_after = await get_wallet(wallet_one.id)
+    assert wallet_one_after
+    assert wallet_one_after.balance == 0, "One payment should be deducted."
+
+    wallet_two_after = await get_wallet(wallet_two.id)
+    assert wallet_two_after
+    assert wallet_two_after.balance == 1000, "One payment received."
+
+
+@pytest.mark.anyio
+async def test_pay_twice_fast_same_invoice(to_wallet: Wallet):
+    payment = await create_invoice(
+        wallet_id=to_wallet.id, amount=3, memo="Twice fast same invoice"
+    )
+
+    async def pay_first():
+        return await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=payment.bolt11,
+        )
+
+    async def pay_second():
+        return await pay_invoice(
+            wallet_id=to_wallet.id,
+            payment_request=payment.bolt11,
+        )
+
+    with pytest.raises(PaymentError, match="Payment already paid."):
+        await asyncio.gather(pay_first(), pay_second())
 
 
 @pytest.mark.anyio

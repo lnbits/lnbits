@@ -44,6 +44,9 @@ from ..models import (
 )
 from .notifications import send_payment_notification
 
+payment_lock = asyncio.Lock()
+wallets_payments_lock: dict[str, asyncio.Lock] = {}
+
 
 async def pay_invoice(
     *,
@@ -79,12 +82,12 @@ async def pay_invoice(
             extra=extra,
         )
 
-    payment = await _pay_invoice(wallet, create_payment_model, conn)
+    payment = await _pay_invoice(wallet.id, create_payment_model, conn)
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         await _credit_service_fee_wallet(payment, new_conn)
 
-        return payment
+    return payment
 
 
 async def create_invoice(
@@ -441,11 +444,27 @@ async def get_payments_daily_stats(
     return data
 
 
-async def _pay_invoice(wallet, create_payment_model, conn):
-    payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
-    if not payment:
-        payment = await _pay_external_invoice(wallet, create_payment_model, conn)
-    return payment
+async def _pay_invoice(
+    wallet_id: str,
+    create_payment_model: CreatePayment,
+    conn: Optional[Connection] = None,
+):
+    async with payment_lock:
+        if wallet_id not in wallets_payments_lock:
+            wallets_payments_lock[wallet_id] = asyncio.Lock()
+
+    async with wallets_payments_lock[wallet_id]:
+        # get the wallet again to make sure we have the latest balance
+        wallet = await get_wallet(wallet_id, conn=conn)
+        if not wallet:
+            raise PaymentError(
+                f"Could not fetch wallet '{wallet_id}'.", status="failed"
+            )
+
+        payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
+        if not payment:
+            payment = await _pay_external_invoice(wallet, create_payment_model, conn)
+        return payment
 
 
 async def _pay_internal_invoice(
@@ -526,6 +545,8 @@ async def _pay_external_invoice(
 
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
 
+    if wallet.balance_msat < abs(amount_msat):
+        raise PaymentError("Insufficient balance.", status="failed")
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError(
             f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
