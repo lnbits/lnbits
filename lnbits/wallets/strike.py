@@ -49,7 +49,7 @@ class TokenBucket:
             elapsed = now - self.last_refill
 
             if elapsed > 0:
-                new_tokens = (elapsed / self.period) * self.rate
+                new_tokens = int((elapsed / self.period) * self.rate)
                 self.tokens = min(self.rate, self.tokens + new_tokens)
                 self.last_refill = now
 
