@@ -276,28 +276,26 @@ class StrikeWallet(Wallet):
                 json=payload,
                 headers={**self.client.headers, "idempotency-key": idem},
             )
-            resp = r.json()  # Parse JSON response.
-            invoice_id = resp.get("receiveRequestId")  # Get the receive request ID.
-            bolt11 = resp.get("bolt11", {}).get("invoice")  # Get the bolt11 invoice.
-            if (
-                not invoice_id or not bolt11
-            ):  # Check if both invoice ID and bolt11 are present.
-                return InvoiceResponse(False, None, None, "Invalid invoice response")
+            resp = r.json()
+            invoice_id = resp.get("receiveRequestId")
+            bolt11 = resp.get("bolt11", {}).get("invoice")
+            if not invoice_id or not bolt11:
+                return InvoiceResponse(
+                    ok=False, error_message="Invalid invoice response"
+                )
 
-            self.pending_invoices.append(
-                invoice_id
-            )  # Add invoice ID to pending invoices.
+            self.pending_invoices.append(invoice_id)
             return InvoiceResponse(
-                True, invoice_id, bolt11, None
-            )  # Return successful invoice response.
+                ok=True, checking_id=invoice_id, payment_request=bolt11
+            )
         except httpx.HTTPStatusError as e:
             msg = e.response.json().get(
                 "message", e.response.text
             )  # Get error message from response.
-            return InvoiceResponse(False, None, None, f"Strike API error: {msg}")
+            return InvoiceResponse(ok=False, error_message=f"Strike API error: {msg}")
         except Exception:
             logger.exception("Error in create_invoice()")
-            return InvoiceResponse(False, None, None, "Connection error")
+            return InvoiceResponse(ok=False, error_message="Connection error")
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
@@ -529,23 +527,3 @@ class StrikeWallet(Wallet):
         except Exception:
             logger.exception("Error in get_invoices()")
             return {"error": "unable to fetch invoices"}
-
-    async def cancel_invoice(self, invoice_id: str) -> Dict[str, Any]:
-        try:
-            r = await self._patch(
-                f"/invoices/{invoice_id}/cancel"
-            )  # Cancel invoice on Strike.
-            return r.json()
-        except Exception:
-            logger.exception("Error in cancel_invoice()")
-            return {"error": "unable to cancel invoice"}
-
-    async def get_account_profile_by_handle(self, handle: str) -> Dict[str, Any]:
-        try:
-            r = await self._get(
-                f"/accounts/handle/{handle}"
-            )  # Get account profile by handle from Strike API.
-            return r.json()
-        except Exception:
-            logger.exception("Error in get_account_profile_by_handle()")
-            return {"error": "unable to fetch profile"}
