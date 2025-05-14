@@ -126,7 +126,7 @@ class StrikeWallet(Wallet):
         try:
             await self.client.aclose()
         except Exception:
-            logger.exception("Error closing Strike client")
+            logger.error("Error closing Strike client")
 
     # --------------------------------------------------------------------- #
     # low-level request helpers                                             #
@@ -240,7 +240,7 @@ class StrikeWallet(Wallet):
             logger.error(f"Strike API error: {e.response.text}")
             return StatusResponse(f"Strike API error: {e.response.text}", 0)
         except Exception:
-            logger.exception("Unexpected error in status()")
+            logger.error("Unexpected error in status()")
             return StatusResponse("Connection error", 0)
 
     async def create_invoice(
@@ -263,7 +263,7 @@ class StrikeWallet(Wallet):
                     "amount": {
                         "currency": "BTC",
                         "amount": str(btc_amt),
-                    },  # Set amount in BTC.
+                    },
                     "description": memo or "",
                 },
                 "targetCurrency": "BTC",
@@ -289,12 +289,13 @@ class StrikeWallet(Wallet):
                 ok=True, checking_id=invoice_id, payment_request=bolt11
             )
         except httpx.HTTPStatusError as e:
+            logger.error(e)
             msg = e.response.json().get(
                 "message", e.response.text
             )  # Get error message from response.
             return InvoiceResponse(ok=False, error_message=f"Strike API error: {msg}")
-        except Exception:
-            logger.exception("Error in create_invoice()")
+        except Exception as e:
+            logger.error(e)
             return InvoiceResponse(ok=False, error_message="Connection error")
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -306,147 +307,121 @@ class StrikeWallet(Wallet):
                 json={"lnInvoice": bolt11},
                 headers={**self.client.headers, "idempotency-key": idem},
             )
-            quote_id = q.json().get("paymentQuoteId")  # Get the payment quote ID.
-            if not quote_id:  # Check if the quote ID is present.
+            quote_id = q.json().get("paymentQuoteId")
+            if not quote_id:
                 return PaymentResponse(
-                    False, None, None, None, "Strike: missing paymentQuoteId"
+                    ok=False, error_message="Strike: missing paymentQuoteId"
                 )
 
             # 2) Execute the payment quote.
             e = await self._patch(f"/payment-quotes/{quote_id}/execute")
-            data = (
-                e.json() if e.content else {}
-            )  # Parse JSON response or use an empty dictionary.
-            payment_id = data.get("paymentId")  # Get the payment ID.
-            state = data.get(
-                "state", ""
-            ).upper()  # Get the payment state and convert it to uppercase.
+            data = e.json() if e.content else {}
+            payment_id = data.get("paymentId")
+            state = data.get("state", "").upper()
 
             # Network fee → msat.
-            fee_obj = (
-                data.get("lightningNetworkFee") or data.get("totalFee") or {}
-            )  # Get fee object.
-            fee_btc = Decimal(fee_obj.get("amount", "0"))  # Get fee amount in BTC.
-            fee_msat = int(
-                fee_btc * Decimal(1e11)
-            )  # Convert fee from BTC to millisatoshis.
+            fee_obj = data.get("lightningNetworkFee") or data.get("totalFee") or {}
+            fee_btc = Decimal(fee_obj.get("amount", "0"))
+            fee_msat = int(fee_btc * Decimal(1e11))  # millisatoshis.
 
             # Store mapping for later polling.
             if payment_id:  # If payment ID is present.
                 self.pending_payments[payment_id] = quote_id
 
-            if state in {"SUCCEEDED", "COMPLETED"}:  # If payment succeeded.
-                preimage = data.get("preimage") or data.get(
-                    "preImage"
-                )  # Get payment preimage.
+            if state in {"SUCCEEDED", "COMPLETED"}:
+                preimage = data.get("preimage") or data.get("preImage")
                 return PaymentResponse(
-                    True, payment_id, fee_msat, preimage, None
-                )  # Return successful payment response.
+                    ok=True,
+                    checking_id=payment_id,
+                    fee_msat=fee_msat,
+                    preimage=preimage,
+                )
 
-            # Explicitly check for known failure states.
             failed_states = {
                 "CANCELED",
                 "FAILED",
                 "TIMED_OUT",
-            }  # Add any other known failure states here.
+            }
             if state in failed_states:
                 return PaymentResponse(
-                    False, payment_id, None, None, f"State: {state}"
-                )  # Return failed payment response with state.
+                    ok=False, checking_id=payment_id, error_message=f"State: {state}"
+                )
 
             # Treat all other states as pending (including unknown states).
-            return PaymentResponse(
-                None, payment_id, None, None, None
-            )  # Return pending payment response.
+            return PaymentResponse(ok=None, checking_id=payment_id)
 
         except httpx.HTTPStatusError as e:
-            error_message = e.response.json().get(
-                "message", e.response.text
-            )  # Get error message from response.
+            error_message = e.response.json().get("message", e.response.text)
+            # Keep pending. Not sure if the payment went trough or not.
             return PaymentResponse(
-                ok=False,
-                checking_id=None,
-                fee_msat=None,
-                preimage=None,
+                ok=None,
                 error_message=f"Strike API error: {error_message}",
-            )  # Return payment response with error.
-        except Exception:
-            logger.exception("Error in pay_invoice()")
-            return PaymentResponse(False, None, None, None, "Connection error")
+            )
+        except Exception as e:
+            logger.error(e)
+            # Keep pending. Not sure if the payment went trough or not.
+            return PaymentResponse(ok=None, error_message="Connection error")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
-            r = await self._get(
-                f"/receive-requests/{checking_id}/receives"
-            )  # Get receive requests for the invoice.
-            for itm in r.json().get("items", []):  # Iterate through received items.
-                if itm.get("state") == "COMPLETED":  # If an item is completed.
+            r = await self._get(f"/receive-requests/{checking_id}/receives")
+            for itm in r.json().get("items", []):
+                if itm.get("state") == "COMPLETED":
                     # Extract preimage from lightning object if available
                     preimage = None
                     lightning_data = itm.get("lightning")
                     if lightning_data:
                         preimage = lightning_data.get("preimage")
-                    return PaymentSuccessStatus(
-                        fee_msat=0, preimage=preimage
-                    )  # Return successful payment status with preimage.
-            return (
-                PaymentPendingStatus()
-            )  # Return pending payment status if no completed items.
+                    return PaymentSuccessStatus(fee_msat=0, preimage=preimage)
+            return PaymentPendingStatus()
+
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:  # If invoice not found.
                 try:
-                    r2 = await self._get(
-                        f"/v1/invoices/{checking_id}"
-                    )  # Try getting invoice from the old endpoint with correct path.
-                    st = r2.json().get("state", "")  # Get invoice state.
-                    if st == "PAID":  # If invoice is paid.
-                        return PaymentSuccessStatus(
-                            fee_msat=0
-                        )  # Return successful payment status.
-                    if st == "CANCELLED":  # If invoice is cancelled.
-                        return PaymentStatus(False)  # Return failed payment status.
+                    # Try getting invoice from the old endpoint with correct path.
+                    r2 = await self._get(f"/v1/invoices/{checking_id}")
+                    st = r2.json().get("state", "")
+                    if st == "PAID":
+                        return PaymentSuccessStatus(fee_msat=0)
+                    if st == "CANCELLED":
+                        return PaymentFailedStatus(False)
                 except Exception:
                     pass  # Ignore exceptions from the old endpoint.
-            return PaymentPendingStatus()  # Return pending payment status.
-        except Exception:  # Handle other exceptions.
-            logger.exception("Error in get_invoice_status()")
+            return PaymentPendingStatus()
+        except Exception as e:
+            logger.error(e)
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         quote_id = self.pending_payments.get(checking_id)
-        if not quote_id:  # Payment not found in pending list.
+        if not quote_id:
             if checking_id in self.failed_payments:
-                return PaymentFailedStatus(
-                    paid=False
-                )  # Payment is known to have failed.
+                return PaymentFailedStatus()
             return PaymentPendingStatus()
-        try:  # Try to get payment quote.
-            r = await self._get(
-                f"/payment-quotes/{quote_id}"
-            )  # Get payment quote from Strike API.
+        try:
+            r = await self._get(f"/payment-quotes/{quote_id}")
             r.raise_for_status()
-            data = r.json()  # Parse JSON response.
-            state = data.get("state")  # Get payment state.
-            preimage = data.get("preimage") or data.get(
-                "preImage"
-            )  # Get payment preimage.
-            if state in ("SUCCEEDED", "COMPLETED"):  # If payment succeeded.
-                return PaymentSuccessStatus(
-                    fee_msat=0, preimage=preimage
-                )  # Return successful payment status.
-            if state == "PENDING":  # If payment is pending.
-                return PaymentPendingStatus()  # Return pending payment status.
-            return PaymentStatus(False)  # Return failed payment status.
+            data = r.json()
+            state = data.get("state")
+            preimage = data.get("preimage") or data.get("preImage")
+            if state in {"SUCCEEDED", "COMPLETED"}:
+                return PaymentSuccessStatus(fee_msat=0, preimage=preimage)
+            # todo: check for FAILED status and default to pending
+            if state == "PENDING":
+                return PaymentPendingStatus()
+            return PaymentStatus(False)
         except httpx.HTTPStatusError as e:
+            # todo: better handle this inside the try block
+            # todo: right before r.raise_for_status()
             if e.response.status_code == 404:
                 # Quote not found, likely expired or payment failed.
                 self.pending_payments.pop(checking_id, None)
                 self.failed_payments[checking_id] = quote_id
-                return PaymentFailedStatus(paid=False)
+                return PaymentFailedStatus()
             raise  # Re-raise other HTTP errors
-        except Exception:  # Handle exceptions.
-            logger.exception(f"Error in get_payment_status() for payment {checking_id}")
-            return PaymentPendingStatus()  # Treat as pending for now.
+        except Exception as e:  # Handle exceptions.
+            logger.error(e)
+            return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         """
@@ -525,5 +500,5 @@ class StrikeWallet(Wallet):
             )  # Get invoices from Strike API.
             return r.json()
         except Exception:
-            logger.exception("Error in get_invoices()")
+            logger.error("Error in get_invoices()")
             return {"error": "unable to fetch invoices"}
