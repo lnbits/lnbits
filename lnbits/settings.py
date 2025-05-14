@@ -557,9 +557,11 @@ class BoltzFundingSource(LNbitsSettings):
 
 
 class StrikeFundingSource(LNbitsSettings):
-    strike_api_endpoint: str | None = Field(default="https://api.strike.me/v1", env="STRIKE_API_ENDPOINT")
+    strike_api_endpoint: str | None = Field(
+        default="https://api.strike.me/v1", env="STRIKE_API_ENDPOINT"
+    )
     strike_api_key: str | None = Field(default=None, env="STRIKE_API_KEY")
-    
+
 
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
