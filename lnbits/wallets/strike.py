@@ -445,21 +445,19 @@ class StrikeWallet(Wallet):
             )  # Calculate request budget based on sleep time.
             processed = 0
 
-            for inv in list(self.pending_invoices):  # Iterate through pending invoices.
+            for inv in list(self.pending_invoices):
                 if processed >= req_budget:  # If request budget is exhausted.
                     break
-                status = await self.get_invoice_status(inv)  # Get invoice status.
-                processed += 1  # Increment processed count.
+                status = await self.get_invoice_status(inv)
+                processed += 1
 
                 if (
                     status.success or status.failed
-                ):  # If invoice is either successful or failed.
-                    self.pending_invoices.remove(
-                        inv
-                    )  # Remove invoice from pending list.
-                    if status.success:  # If invoice is successful.
-                        had_activity = True  # Set activity flag.
-                        yield inv  # Yield the invoice.
+                ):
+                    self.pending_invoices.remove(inv)
+                    if status.success:
+                        had_activity = True
+                        yield inv
 
             # Dynamic adjustment of polling frequency based on activity.
             sleep_s = (
