@@ -325,7 +325,7 @@ class StrikeWallet(Wallet):
             fee_msat = int(fee_btc * Decimal(1e11))  # millisatoshis.
 
             # Store mapping for later polling.
-            if payment_id:  # If payment ID is present.
+            if payment_id:
                 self.pending_payments[payment_id] = quote_id
 
             if state in {"SUCCEEDED", "COMPLETED"}:
@@ -371,11 +371,14 @@ class StrikeWallet(Wallet):
                     preimage = None
                     lightning_data = itm.get("lightning")
                     if lightning_data:
+                        # todo: shouldn't "preImage" be checked too?
                         preimage = lightning_data.get("preimage")
                     return PaymentSuccessStatus(fee_msat=0, preimage=preimage)
             return PaymentPendingStatus()
 
         except httpx.HTTPStatusError as e:
+            # todo: there is no `raise_for_satus` in the try block.
+            # todo: Will this ever be hit?
             if e.response.status_code == 404:  # If invoice not found.
                 try:
                     # Try getting invoice from the old endpoint with correct path.
@@ -419,7 +422,7 @@ class StrikeWallet(Wallet):
                 self.failed_payments[checking_id] = quote_id
                 return PaymentFailedStatus()
             raise  # Re-raise other HTTP errors
-        except Exception as e:  # Handle exceptions.
+        except Exception as e:
             logger.error(e)
             return PaymentPendingStatus()
 
@@ -451,9 +454,7 @@ class StrikeWallet(Wallet):
                 status = await self.get_invoice_status(inv)
                 processed += 1
 
-                if (
-                    status.success or status.failed
-                ):
+                if status.success or status.failed:
                     self.pending_invoices.remove(inv)
                     if status.success:
                         had_activity = True
