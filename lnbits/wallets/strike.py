@@ -1,4 +1,3 @@
-
 import asyncio
 import random
 import time
@@ -253,9 +252,6 @@ class StrikeWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         try:
-            idem = kwargs.get("idempotency_key") or str(
-                uuid.uuid4()
-            )  # Use provided idempotency key or generate a new one.
             btc_amt = (Decimal(amount) / Decimal(1e8)).quantize(
                 Decimal("0.00000001")
             )  # Convert amount from millisatoshis to BTC.
@@ -275,7 +271,6 @@ class StrikeWallet(Wallet):
             r = await self._post(
                 "/receive-requests",  # Create a receive request (invoice) on Strike.
                 json=payload,
-                headers={**self.client.headers, "idempotency-key": idem},
             )
             resp = r.json()  # Parse JSON response.
             invoice_id = resp.get("receiveRequestId")  # Get the receive request ID.
@@ -302,12 +297,10 @@ class StrikeWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
-            idem = str(uuid.uuid4())
             # 1) Create a payment quote.
             q = await self._post(
                 "/payment-quotes/lightning",
                 json={"lnInvoice": bolt11},
-                headers={**self.client.headers, "idempotency-key": idem},
             )
             quote_id = q.json().get("paymentQuoteId")  # Get the payment quote ID.
             if not quote_id:  # Check if the quote ID is present.
