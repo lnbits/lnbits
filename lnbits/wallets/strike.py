@@ -1,3 +1,4 @@
+
 import asyncio
 import random
 import time
@@ -436,9 +437,10 @@ class StrikeWallet(Wallet):
                 return PaymentSuccessStatus(
                     fee_msat=0, preimage=preimage
                 )  # Return successful payment status.
-            if state == "PENDING":  # If payment is pending.
-                return PaymentPendingStatus()  # Return pending payment status.
-            return PaymentStatus(False)  # Return failed payment status.
+            if state == "FAILED":  # Explicitly check for FAILED state
+                return PaymentStatus(False)  # Return failed payment status.
+            # Default to pending for PENDING and any other states
+            return PaymentPendingStatus()  # Return pending payment status.
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 # Quote not found, likely expired or payment failed.
