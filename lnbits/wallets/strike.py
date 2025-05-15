@@ -1,3 +1,4 @@
+
 import asyncio
 import random
 import time
@@ -53,14 +54,19 @@ class TokenBucket:
                 self.tokens = min(self.rate, self.tokens + new_tokens)
                 self.last_refill = now
 
-            # If no tokens available, calculate wait time
+            # If no tokens available, calculate wait time and wait for a token
             if self.tokens < 1:
+                # Calculate time needed for one token
                 wait_time = (self.period / self.rate) * (1 - self.tokens)
                 await asyncio.sleep(wait_time)
-                self.tokens = 0  # Reset after waiting
+                
+                # After waiting, update time and add one token
+                self.last_refill = time.monotonic()
+                self.tokens = 1  # We now have exactly one token available
 
-            # Consume a token
+            # Consume a token (will be 0 or more after consumption)
             self.tokens -= 1
+
 
 
 class StrikeWallet(Wallet):
