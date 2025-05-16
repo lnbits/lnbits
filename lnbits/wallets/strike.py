@@ -351,13 +351,6 @@ class StrikeWallet(Wallet):
             # Treat all other states as pending (including unknown states).
             return PaymentResponse(ok=None, checking_id=payment_id)
 
-        except httpx.HTTPStatusError as e:
-            error_message = e.response.json().get("message", e.response.text)
-            # Keep pending. Not sure if the payment went trough or not.
-            return PaymentResponse(
-                ok=None,
-                error_message=f"Strike API error: {error_message}",
-            )
         except Exception as e:
             logger.warning(e)
             # Keep pending. Not sure if the payment went trough or not.
