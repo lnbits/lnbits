@@ -304,14 +304,17 @@ class StrikeWallet(Wallet):
                 "/payment-quotes/lightning",
                 json={"lnInvoice": bolt11},
             )
+            q.raise_for_status()
             quote_id = q.json().get("paymentQuoteId")
             if not quote_id:
                 return PaymentResponse(
-                    ok=False, error_message="Strike: missing paymentQuoteId"
+                    ok=False, error_message="Strike: missing payment quote Id"
                 )
 
             # 2) Execute the payment quote.
             e = await self._patch(f"/payment-quotes/{quote_id}/execute")
+            e.raise_for_status()
+
             data = e.json() if e.content else {}
             payment_id = data.get("paymentId")
             state = data.get("state", "").upper()
