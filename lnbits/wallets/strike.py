@@ -362,6 +362,16 @@ class StrikeWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self._get(f"/receive-requests/{checking_id}/receives")
+            if r.status_code == 404:
+                # Try getting invoice from the old endpoint with correct path.
+                r2 = await self._get(f"/v1/invoices/{checking_id}")
+                st = r2.json().get("state", "")
+                if st == "PAID":
+                    return PaymentSuccessStatus(fee_msat=0)
+                if st == "CANCELLED":
+                    return PaymentFailedStatus(False)
+                return PaymentPendingStatus()
+
             r.raise_for_status()
             for itm in r.json().get("items", []):
                 if itm.get("state") == "COMPLETED":
@@ -373,19 +383,6 @@ class StrikeWallet(Wallet):
                     return PaymentSuccessStatus(fee_msat=0, preimage=preimage)
             return PaymentPendingStatus()
 
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:  # If invoice not found.
-                try:
-                    # Try getting invoice from the old endpoint with correct path.
-                    r2 = await self._get(f"/v1/invoices/{checking_id}")
-                    st = r2.json().get("state", "")
-                    if st == "PAID":
-                        return PaymentSuccessStatus(fee_msat=0)
-                    if st == "CANCELLED":
-                        return PaymentFailedStatus(False)
-                except Exception as e:
-                    logger.warning(e)
-            return PaymentPendingStatus()
         except Exception as e:
             logger.warning(e)
             return PaymentPendingStatus()
@@ -395,6 +392,8 @@ class StrikeWallet(Wallet):
         if not quote_id:
             if checking_id in self.failed_payments:
                 return PaymentFailedStatus()
+            # todo: it will stop here for all payments
+            # todo: after a server restart
             return PaymentPendingStatus()
         try:
             r = await self._get(f"/payment-quotes/{quote_id}")
