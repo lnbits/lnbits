@@ -321,10 +321,6 @@ class StrikeWallet(Wallet):
             fee_btc = Decimal(fee_obj.get("amount", "0"))
             fee_msat = int(fee_btc * Decimal(1e11))  # millisatoshis.
 
-            # Store mapping for later polling.
-            if payment_id:
-                self.pending_payments[payment_id] = quote_id
-
             if state in {"SUCCEEDED", "COMPLETED"}:
                 preimage = data.get("preimage") or data.get("preImage")
                 return PaymentResponse(
@@ -343,6 +339,11 @@ class StrikeWallet(Wallet):
                 return PaymentResponse(
                     ok=False, checking_id=payment_id, error_message=f"State: {state}"
                 )
+
+            # Store mapping for later polling.
+            if payment_id:
+                # todo: this will be lost on server restart
+                self.pending_payments[payment_id] = quote_id
 
             # Treat all other states as pending (including unknown states).
             return PaymentResponse(ok=None, checking_id=payment_id)
