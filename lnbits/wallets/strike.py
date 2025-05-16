@@ -61,7 +61,7 @@ class TokenBucket:
 
                 # After waiting, update time and add one token
                 self.last_refill = time.monotonic()
-                self.tokens = 1  # We now have exactly one token available
+                self.tokens = 1
 
             # Consume a token (will be 0 or more after consumption)
             self.tokens -= 1
