@@ -175,6 +175,7 @@ class StrikeWallet(Wallet):
 
         try:
             r = await self._get("/balances")
+            r.raise_for_status()
             data = r.json()
             balances = data.get("data", []) if isinstance(data, dict) else data
             btc = next((b for b in balances if b.get("currency") == "BTC"), None)
@@ -309,6 +310,7 @@ class StrikeWallet(Wallet):
             if r.status_code == 404:
                 # Try getting invoice from the old endpoint with correct path.
                 r2 = await self._get(f"/v1/invoices/{checking_id}")
+                r2.raise_for_status()
                 st = r2.json().get("state", "")
                 if st == "PAID":
                     return PaymentSuccessStatus(fee_msat=0)
@@ -431,6 +433,7 @@ class StrikeWallet(Wallet):
             r = await self._get(
                 "/invoices", params=params
             )  # Get invoices from Strike API.
+            r.raise_for_status()
             return r.json()
         except Exception:
             logger.warning("Error in get_invoices()")
