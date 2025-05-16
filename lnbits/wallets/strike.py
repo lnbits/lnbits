@@ -308,7 +308,7 @@ class StrikeWallet(Wallet):
             r = await self._get(f"/receive-requests/{checking_id}/receives")
             if r.status_code == 404:
                 # Try getting invoice from the old endpoint with correct path.
-                r2 = await self._get(f"/v1/invoices/{checking_id}")
+                r2 = await self._get(f"/invoices/{checking_id}")
                 r2.raise_for_status()
                 st = r2.json().get("state", "")
                 if st == "PAID":
