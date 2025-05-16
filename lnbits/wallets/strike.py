@@ -306,29 +306,50 @@ class StrikeWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self._get(f"/receive-requests/{checking_id}/receives")
-            if r.status_code == 404:
-                # Try getting invoice from the old endpoint with correct path.
-                r2 = await self._get(f"/invoices/{checking_id}")
-                r2.raise_for_status()
-                st = r2.json().get("state", "")
-                if st == "PAID":
-                    return PaymentSuccessStatus(fee_msat=0)
-                if st == "CANCELLED":
-                    return PaymentFailedStatus(False)
+
+            if r.status_code == 200:
+                data = r.json()
+                items = data.get("items", [])
+
+                if not items:
+                    # Still pending.
+                    return PaymentPendingStatus()
+
+                for item in items:
+                    if item.get("state") == "COMPLETED":
+                        preimage = None
+                        lightning_data = item.get("lightning")
+                        if lightning_data:
+                            preimage = lightning_data.get("preimage") or lightning_data.get("preImage")
+                         
+                        return PaymentSuccessStatus(fee_msat=0, preimage=preimage)
+                    
+                # implicitly "PENDING"
                 return PaymentPendingStatus()
 
-            r.raise_for_status()
-            for itm in r.json().get("items", []):
-                if itm.get("state") == "COMPLETED":
-                    preimage = None
-                    data = itm.get("lightning")
-                    if data:
-                        preimage = data.get("preimage") or data.get("preImage")
-                    return PaymentSuccessStatus(fee_msat=0, preimage=preimage)
-            return PaymentPendingStatus()
+            elif r.status_code == 404:
+                logger.warning(
+                    f"Receive request {checking_id} not found (404) when querying for its receives. "
+                    f"Marking as failed."
+                )
+                
+                return PaymentFailedStatus(False)
+            else:
+                logger.warning(
+                    f"Received HTTP {r.status_code} for {r.request.url}. Content: {r.text}"
+                )
+                r.raise_for_status()
+                return PaymentPendingStatus()
 
+        except httpx.HTTPStatusError as e:
+            logger.warning(
+                f"HTTPStatusError in get_invoice_status for checking_id {checking_id} "
+                f"on URL {e.request.url}: {e.response.status_code} - {e.response.text}"
+            )
+            # Default to Pending to allow retries by paid_invoices_stream.
+            return PaymentPendingStatus()
         except Exception as e:
-            logger.warning(e)
+            logger.warning(f"Unexpected error in get_invoice_status for {checking_id}: {e}")
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
