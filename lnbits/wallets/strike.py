@@ -362,15 +362,14 @@ class StrikeWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self._get(f"/receive-requests/{checking_id}/receives")
-            r.raise_for_status
+            r.raise_for_status()
             for itm in r.json().get("items", []):
                 if itm.get("state") == "COMPLETED":
                     # Extract preimage from lightning object if available
                     preimage = None
-                    lightning_data = itm.get("lightning")
-                    if lightning_data:
-                        # todo: shouldn't "preImage" be checked too?
-                        preimage = lightning_data.get("preimage")
+                    data = itm.get("lightning")
+                    if data:
+                        preimage = data.get("preimage") or data.get("preImage")
                     return PaymentSuccessStatus(fee_msat=0, preimage=preimage)
             return PaymentPendingStatus()
 
