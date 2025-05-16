@@ -129,7 +129,7 @@ class StrikeWallet(Wallet):
         try:
             await self.client.aclose()
         except Exception:
-            logger.error("Error closing Strike client")
+            logger.warning("Error closing Strike client")
 
     # --------------------------------------------------------------------- #
     # low-level request helpers                                             #
@@ -240,10 +240,10 @@ class StrikeWallet(Wallet):
             # No BTC balance found.
             return StatusResponse(None, 0)
         except httpx.HTTPStatusError as e:
-            logger.error(f"Strike API error: {e.response.text}")
+            logger.warning(f"Strike API error: {e.response.text}")
             return StatusResponse(f"Strike API error: {e.response.text}", 0)
         except Exception:
-            logger.error("Unexpected error in status()")
+            logger.warning("Unexpected error in status()")
             return StatusResponse("Connection error", 0)
 
     async def create_invoice(
@@ -288,13 +288,13 @@ class StrikeWallet(Wallet):
                 ok=True, checking_id=invoice_id, payment_request=bolt11
             )
         except httpx.HTTPStatusError as e:
-            logger.error(e)
+            logger.warning(e)
             msg = e.response.json().get(
                 "message", e.response.text
             )  # Get error message from response.
             return InvoiceResponse(ok=False, error_message=f"Strike API error: {msg}")
         except Exception as e:
-            logger.error(e)
+            logger.warning(e)
             return InvoiceResponse(ok=False, error_message="Connection error")
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -355,7 +355,7 @@ class StrikeWallet(Wallet):
                 error_message=f"Strike API error: {error_message}",
             )
         except Exception as e:
-            logger.error(e)
+            logger.warning(e)
             # Keep pending. Not sure if the payment went trough or not.
             return PaymentResponse(ok=None, error_message="Connection error")
 
@@ -385,11 +385,11 @@ class StrikeWallet(Wallet):
                         return PaymentSuccessStatus(fee_msat=0)
                     if st == "CANCELLED":
                         return PaymentFailedStatus(False)
-                except Exception:
-                    pass  # Ignore exceptions from the old endpoint.
+                except Exception as e:
+                    logger.warning(e)
             return PaymentPendingStatus()
         except Exception as e:
-            logger.error(e)
+            logger.warning(e)
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
@@ -420,7 +420,7 @@ class StrikeWallet(Wallet):
                 return PaymentFailedStatus()
             raise  # Re-raise other HTTP errors
         except Exception as e:
-            logger.error(e)
+            logger.warning(e)
             return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
@@ -496,5 +496,5 @@ class StrikeWallet(Wallet):
             )  # Get invoices from Strike API.
             return r.json()
         except Exception:
-            logger.error("Error in get_invoices()")
+            logger.warning("Error in get_invoices()")
             return {"error": "unable to fetch invoices"}
