@@ -375,7 +375,6 @@ class StrikeWallet(Wallet):
             r.raise_for_status()
             for itm in r.json().get("items", []):
                 if itm.get("state") == "COMPLETED":
-                    # Extract preimage from lightning object if available
                     preimage = None
                     data = itm.get("lightning")
                     if data:
