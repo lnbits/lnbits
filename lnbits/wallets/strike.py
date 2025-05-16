@@ -2,7 +2,6 @@
 import asyncio
 import random
 import time
-import uuid
 from decimal import Decimal
 from typing import Any, AsyncGenerator, Dict, Optional
 
