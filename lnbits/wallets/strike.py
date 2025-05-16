@@ -398,7 +398,13 @@ class StrikeWallet(Wallet):
             return PaymentPendingStatus()
         try:
             r = await self._get(f"/payment-quotes/{quote_id}")
+            if r.status_code == 404:
+                # Quote not found, likely expired or payment failed.
+                self.pending_payments.pop(checking_id, None)
+                self.failed_payments[checking_id] = quote_id
+                return PaymentFailedStatus()
             r.raise_for_status()
+
             data = r.json()
             state = data.get("state")
             preimage = data.get("preimage") or data.get("preImage")
@@ -408,15 +414,6 @@ class StrikeWallet(Wallet):
                 return PaymentFailedStatus()
             # Default to pending for PENDING and any other states
             return PaymentPendingStatus()
-        except httpx.HTTPStatusError as e:
-            # todo: better handle this inside the try block
-            # todo: right before r.raise_for_status()
-            if e.response.status_code == 404:
-                # Quote not found, likely expired or payment failed.
-                self.pending_payments.pop(checking_id, None)
-                self.failed_payments[checking_id] = quote_id
-                return PaymentFailedStatus()
-            raise  # Re-raise other HTTP errors
         except Exception as e:
             logger.warning(e)
             return PaymentPendingStatus()
