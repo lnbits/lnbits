@@ -174,33 +174,23 @@ class StrikeWallet(Wallet):
             return StatusResponse(None, self._cached_balance)
 
         try:
-            r = await self._get("/balances")  # Get balances from Strike API.
-            data = r.json()  # Parse JSON response.
-            balances = (
-                data.get("data", []) if isinstance(data, dict) else data
-            )  # Extract balances or use an empty list.
-            btc = next(
-                (b for b in balances if b.get("currency") == "BTC"), None
-            )  # Find BTC balance.
-            if (
-                btc and "available" in btc
-            ):  # Check if BTC balance and available amount exist.
+            r = await self._get("/balances")
+            data = r.json()
+            balances = data.get("data", []) if isinstance(data, dict) else data
+            btc = next((b for b in balances if b.get("currency") == "BTC"), None)
+            if btc and "available" in btc:
                 available_btc = Decimal(btc["available"])  # Get available BTC amount.
                 msats = int(
                     available_btc * Decimal(1e11)
                 )  # Convert BTC to millisatoshis.
-                self._cached_balance = msats  # Update cached balance.
-                self._cached_balance_ts = now  # Update cache timestamp.
-                return StatusResponse(
-                    None, msats
-                )  # Return successful status with balance.
-            # No BTC balance found.
+                self._cached_balance = msats
+                self._cached_balance_ts = now
+                return StatusResponse(None, msats)
+
             return StatusResponse(None, 0)
-        except httpx.HTTPStatusError as e:
-            logger.warning(f"Strike API error: {e.response.text}")
-            return StatusResponse(f"Strike API error: {e.response.text}", 0)
-        except Exception:
-            logger.warning("Unexpected error in status()")
+
+        except Exception as e:
+            logger.warning(e)
             return StatusResponse("Connection error", 0)
 
     async def create_invoice(
