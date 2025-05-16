@@ -409,9 +409,9 @@ class StrikeWallet(Wallet):
             preimage = data.get("preimage") or data.get("preImage")
             if state in {"SUCCEEDED", "COMPLETED"}:
                 return PaymentSuccessStatus(fee_msat=0, preimage=preimage)
-            # todo: check for FAILED status and default to pending
             if state == "FAILED":
                 return PaymentFailedStatus()
+            # Default to pending for PENDING and any other states
             return PaymentPendingStatus()
         except httpx.HTTPStatusError as e:
             # todo: better handle this inside the try block
