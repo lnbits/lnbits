@@ -220,9 +220,10 @@ class StrikeWallet(Wallet):
                 payload["bolt11"]["descriptionHash"] = description_hash.hex()
 
             r = await self._post(
-                "/receive-requests",  # Create a receive request (invoice) on Strike.
+                "/receive-requests",
                 json=payload,
             )
+            r.raise_for_status()
             resp = r.json()
             invoice_id = resp.get("receiveRequestId")
             bolt11 = resp.get("bolt11", {}).get("invoice")
@@ -237,9 +238,7 @@ class StrikeWallet(Wallet):
             )
         except httpx.HTTPStatusError as e:
             logger.warning(e)
-            msg = e.response.json().get(
-                "message", e.response.text
-            )  # Get error message from response.
+            msg = e.response.json().get("message", e.response.text)
             return InvoiceResponse(ok=False, error_message=f"Strike API error: {msg}")
         except Exception as e:
             logger.warning(e)
