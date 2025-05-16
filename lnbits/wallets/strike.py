@@ -1,4 +1,3 @@
-
 import asyncio
 import random
 import time
@@ -65,7 +64,6 @@ class TokenBucket:
 
             # Consume a token (will be 0 or more after consumption)
             self.tokens -= 1
-
 
 
 class StrikeWallet(Wallet):
