@@ -362,6 +362,7 @@ class StrikeWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self._get(f"/receive-requests/{checking_id}/receives")
+            r.raise_for_status
             for itm in r.json().get("items", []):
                 if itm.get("state") == "COMPLETED":
                     # Extract preimage from lightning object if available
@@ -374,8 +375,6 @@ class StrikeWallet(Wallet):
             return PaymentPendingStatus()
 
         except httpx.HTTPStatusError as e:
-            # todo: there is no `raise_for_satus` in the try block.
-            # todo: Will this ever be hit?
             if e.response.status_code == 404:  # If invoice not found.
                 try:
                     # Try getting invoice from the old endpoint with correct path.
