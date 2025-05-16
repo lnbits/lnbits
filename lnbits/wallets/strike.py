@@ -1,5 +1,4 @@
 import asyncio
-import random
 import time
 from decimal import Decimal
 from typing import Any, AsyncGenerator, Dict, Optional
@@ -84,14 +83,8 @@ class StrikeWallet(Wallet):
 
         super().__init__()
 
-        # tuneables
-        self._MAX_PARALLEL_REQUESTS = 20
-        self._MAX_RETRIES = 3
-        self._RETRY_STATUS = {429, 500, 502, 503, 504}
-        self._RETRY_BACKOFF_BASE = 2  # seconds (exponential)
-
         # throttle
-        self._sem = asyncio.Semaphore(self._MAX_PARALLEL_REQUESTS)
+        self._sem = asyncio.Semaphore(value=20)
 
         # Rate limiters for different API endpoints
         # Invoice/payment operations: 250 requests / 1 minute
@@ -153,43 +146,7 @@ class StrikeWallet(Wallet):
             await self._general_limiter.consume()
 
         async with self._sem:
-            start = time.perf_counter()
-
-            for attempt in range(self._MAX_RETRIES + 1):
-                try:
-                    resp = await self.client.request(method, path, **kw)
-                    resp.raise_for_status()
-                    logger.trace(
-                        f"Strike {method.upper()} {path} - {resp.status_code} "
-                        f"in {(time.perf_counter() - start) * 1000:.1f} ms"
-                    )
-                    return resp
-
-                except httpx.HTTPStatusError as e:
-                    if (  # Only retry on specific status codes.
-                        e.response.status_code not in self._RETRY_STATUS
-                        or attempt == self._MAX_RETRIES
-                    ):
-                        raise
-                    logger.warning(
-                        f"Strike {method.upper()} {path} -> {e.response.status_code}; "
-                        f"retry {attempt + 1}/{self._MAX_RETRIES}"
-                    )
-
-                except httpx.TransportError as e:
-                    if attempt == self._MAX_RETRIES:  # No more retries left.
-                        raise
-                    logger.warning(
-                        f"Transport error contacting Strike ({e}); "
-                        f"retry {attempt + 1}/{self._MAX_RETRIES}"
-                    )
-
-                delay = (self._RETRY_BACKOFF_BASE**attempt) + (
-                    0.1 * random.random()
-                )  # Exponential backoff with jitter.
-                await asyncio.sleep(delay)
-
-        raise RuntimeError("exceeded retry budget in _req")
+            return await self.client.request(method, path, **kw)
 
     # Typed wrappers - so call-sites stay tidy.
     async def _get(self, path: str, **kw) -> httpx.Response:  # GET request.
