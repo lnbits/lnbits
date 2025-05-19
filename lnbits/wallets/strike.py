@@ -320,10 +320,12 @@ class StrikeWallet(Wallet):
                         preimage = None
                         lightning_data = item.get("lightning")
                         if lightning_data:
-                            preimage = lightning_data.get("preimage") or lightning_data.get("preImage")
-                         
+                            preimage = lightning_data.get(
+                                "preimage"
+                            ) or lightning_data.get("preImage")
+
                         return PaymentSuccessStatus(fee_msat=0, preimage=preimage)
-                    
+
                 # implicitly "PENDING"
                 return PaymentPendingStatus()
 
@@ -332,7 +334,7 @@ class StrikeWallet(Wallet):
                     f"Receive request {checking_id} not found (404) when querying for its receives. "
                     f"Marking as failed."
                 )
-                
+
                 return PaymentFailedStatus(False)
             else:
                 logger.warning(
@@ -349,7 +351,9 @@ class StrikeWallet(Wallet):
             # Default to Pending to allow retries by paid_invoices_stream.
             return PaymentPendingStatus()
         except Exception as e:
-            logger.warning(f"Unexpected error in get_invoice_status for {checking_id}: {e}")
+            logger.warning(
+                f"Unexpected error in get_invoice_status for {checking_id}: {e}"
+            )
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
@@ -358,62 +362,30 @@ class StrikeWallet(Wallet):
 
         # Attempt 1: Use quote_id if available (from in-memory store)
         if quote_id:
-            try:
-                r_quote = await self._get(f"/payment-quotes/{quote_id}")
-
-                if r_quote.status_code == 200:
-                    data = r_quote.json()
-                    state = data.get("state", "").upper()
-                    preimage = data.get("preimage") or data.get("preImage")
-                    
-                    fee_msat = 0
-                    fee_obj = data.get("lightningNetworkFee") or data.get("totalFee")
-                    if fee_obj and fee_obj.get("amount") and fee_obj.get("currency"):
-                        amount_str = fee_obj.get("amount")
-                        currency_str = fee_obj.get("currency").upper()
-                        try:
-                            if currency_str == "BTC":
-                                fee_btc_decimal = Decimal(amount_str)
-                                fee_msat = int(fee_btc_decimal * Decimal(1e11))
-                            elif currency_str == "SAT":
-                                fee_sat_decimal = Decimal(amount_str)
-                                fee_msat = int(fee_sat_decimal * 1000)
-                        except Exception as fee_exc:
-                            logger.warning(f"Could not parse fee from quote {quote_id} for payment {checking_id}: {fee_obj}. Error: {fee_exc}")
-                            fee_msat = 0
-
-                    if state in {"SUCCEEDED", "COMPLETED"}:
-                        self.pending_payments.pop(checking_id, None)
-                        return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
-                    if state == "FAILED":
-                        self.pending_payments.pop(checking_id, None)
-                        return PaymentFailedStatus()
-                    
-                elif r_quote.status_code == 404:
-                    logger.warning(f"Payment quote {quote_id} for payment {checking_id} not found (404). Will attempt to fetch by paymentId.")
-                else:
-                    logger.warning(f"Error {r_quote.status_code} fetching payment quote {quote_id} for payment {checking_id}. Will attempt to fetch by paymentId.")
-
-            except Exception as e:
-                logger.warning(f"Error checking payment status via quote_id {quote_id} for payment {checking_id}: {e}. Attempting to fetch by paymentId.")
-
+            status = await self._get_payment_status_by_quote_id(checking_id, quote_id)
+            if status:
+                return status
         # Attempt 2: Fallback - Use paymentId (checking_id) directly via GET /v1/payments/{paymentId}
         # Needed to ensure that pending_payments isn't empty after a server restart
         try:
-            logger.info(f"Attempting to fetch payment status for {checking_id} directly via /payments/{checking_id} endpoint.")
-            r_payment = await self._get(f"/payments/{checking_id}") 
+            logger.info(
+                f"Attempting to fetch payment status for {checking_id} directly via /payments/{checking_id} endpoint."
+            )
+            r_payment = await self._get(f"/payments/{checking_id}")
 
             if r_payment.status_code == 200:
                 data = r_payment.json()
                 state = data.get("state", "").upper()
-                preimage = None 
-                fee_msat = 0 
-                
+                preimage = None
+                fee_msat = 0
+
                 fee_obj_raw = data.get("lightningNetworkFee")
                 if fee_obj_raw:
                     raw_fee_amount = fee_obj_raw.get("amount", "N/A")
                     raw_fee_currency = fee_obj_raw.get("currency", "N/A")
-                    logger.info(f"Raw fee details from GET /payments/{checking_id}: Amount={raw_fee_amount}, Currency={raw_fee_currency}. Reporting fee_msat=0 for this status check path.")
+                    logger.info(
+                        f"Raw fee details from GET /payments/{checking_id}: Amount={raw_fee_amount}, Currency={raw_fee_currency}. Reporting fee_msat=0 for this status check path."
+                    )
 
                 if state in {"SUCCEEDED", "COMPLETED"}:
                     self.pending_payments.pop(checking_id, None)
@@ -421,7 +393,7 @@ class StrikeWallet(Wallet):
                 if state == "FAILED":
                     self.pending_payments.pop(checking_id, None)
                     return PaymentFailedStatus()
-                
+
                 return PaymentPendingStatus()
 
             elif r_payment.status_code == 400:
@@ -430,13 +402,21 @@ class StrikeWallet(Wallet):
                     error_data = r_payment.json()
                     # Check for Strike's specific validation error structure for paymentId format
                     if error_data.get("data", {}).get("code") == "INVALID_DATA":
-                        validation_errors = error_data.get("data", {}).get("validationErrors", {})
+                        validation_errors = error_data.get("data", {}).get(
+                            "validationErrors", {}
+                        )
                         if "paymentId" in validation_errors:
                             for err_detail in validation_errors["paymentId"]:
-                                if err_detail.get("code") == "INVALID_DATA" and "is not valid." in err_detail.get("message", ""):
+                                if err_detail.get(
+                                    "code"
+                                ) == "INVALID_DATA" and "is not valid." in err_detail.get(
+                                    "message", ""
+                                ):
                                     is_invalid_payment_id_format_error = True
                                     break
-                except Exception: # If parsing error_data fails, proceed with generic handling
+                except (
+                    Exception
+                ):  # If parsing error_data fails, proceed with generic handling
                     pass
 
                 if is_invalid_payment_id_format_error:
@@ -444,27 +424,76 @@ class StrikeWallet(Wallet):
                         f"The checking_id '{checking_id}' is not a valid Strike paymentId format for GET /payments/ endpoint. "
                         f"This payment cannot be tracked via this method. Marking as permanently failed. Response: {r_payment.text}"
                     )
-                    self.pending_payments.pop(checking_id, None) 
-                    return PaymentFailedStatus() # This checking_id will never resolve via this Strike API endpoint
+                    self.pending_payments.pop(checking_id, None)
+                    return (
+                        PaymentFailedStatus()
+                    )  # This checking_id will never resolve via this Strike API endpoint
                 else:
                     # Other types of 400 Bad Request
-                    logger.warning(f"Error fetching payment {checking_id} directly (400 Bad Request): {r_payment.text}")
-                    return PaymentPendingStatus() # Or PaymentFailedStatus, depending on how other 400s should be treated
+                    logger.warning(
+                        f"Error fetching payment {checking_id} directly (400 Bad Request): {r_payment.text}"
+                    )
+                    return (
+                        PaymentPendingStatus()
+                    )  # Or PaymentFailedStatus, depending on how other 400s should be treated
 
             elif r_payment.status_code == 404:
-                logger.warning(f"Payment {checking_id} not found via GET /payments/{checking_id} (404). Marking as failed.")
+                logger.warning(
+                    f"Payment {checking_id} not found via GET /payments/{checking_id} (404). Marking as failed."
+                )
                 self.pending_payments.pop(checking_id, None)
                 return PaymentFailedStatus()
             else:
-                logger.warning(f"Error fetching payment {checking_id} directly: {r_payment.status_code} - {r_payment.text}")
+                logger.warning(
+                    f"Error fetching payment {checking_id} directly: {r_payment.status_code} - {r_payment.text}"
+                )
                 return PaymentPendingStatus()
 
-        except httpx.HTTPStatusError as hse:
-            logger.warning(f"HTTPStatusError while fetching payment {checking_id} directly: {hse.request.url} - {hse.response.status_code} - {hse.response.text}")
-            return PaymentPendingStatus()
         except Exception as e:
-            logger.warning(f"Unexpected error while fetching payment {checking_id} directly: {e.__class__.__name__} - {e}")
+            logger.warning(e)
+            logger.debug(f"Error while fetching payment {checking_id}.")
             return PaymentPendingStatus()
+
+    async def _get_payment_status_by_quote_id(
+        self, checking_id: str, quote_id: str
+    ) -> Optional[PaymentStatus]:
+        try:
+            resp = await self._get(f"/payment-quotes/{quote_id}")
+            resp.raise_for_status()
+
+            data = resp.json()
+            state = data.get("state", "").upper()
+            preimage = data.get("preimage") or data.get("preImage")
+
+            fee_msat = 0
+            fee_obj = data.get("lightningNetworkFee") or data.get("totalFee")
+            if fee_obj and fee_obj.get("amount") and fee_obj.get("currency"):
+                amount_str = fee_obj.get("amount")
+                currency_str = fee_obj.get("currency").upper()
+                try:
+                    if currency_str == "BTC":
+                        fee_btc_decimal = Decimal(amount_str)
+                        fee_msat = int(fee_btc_decimal * Decimal(1e11))
+                    elif currency_str == "SAT":
+                        fee_sat_decimal = Decimal(amount_str)
+                        fee_msat = int(fee_sat_decimal * 1000)
+                except Exception as e:
+                    logger.warning(e)
+                    logger.warning(
+                        f"Fee parse error. Quote: '{quote_id}'. "
+                        f"Payment '{checking_id}'."
+                    )
+                    fee_msat = 0
+
+            if state in {"SUCCEEDED", "COMPLETED"}:
+                self.pending_payments.pop(checking_id, None)
+                return PaymentSuccessStatus(fee_msat=fee_msat, preimage=preimage)
+            if state == "FAILED":
+                self.pending_payments.pop(checking_id, None)
+                return PaymentFailedStatus()
+
+        except Exception as e:
+            logger.warning(e)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         """
