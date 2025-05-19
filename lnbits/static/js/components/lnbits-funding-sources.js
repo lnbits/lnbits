@@ -200,7 +200,7 @@ window.app.component('lnbits-funding-sources', {
         ],
         [
           'StrikeWallet',
-          'Strike',
+          'Strike (alpha)',
           {
             strike_api_endpoint: 'API Endpoint',
             strike_api_key: 'API Key'
