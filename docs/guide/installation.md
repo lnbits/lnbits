@@ -18,7 +18,7 @@ Go to [releases](https://github.com/lnbits/lnbits/releases) and pull latest AppI
 sudo apt-get install libfuse2
 wget $(curl -s https://api.github.com/repos/lnbits/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
 chmod +x LNbits-latest.AppImage
-LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 ./LNbits-latest.AppImage # most system setting are now in the admin UI, but pass additional .env variables here
+LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 ./LNbits-latest.AppImage # most system settings are now in the admin UI, but pass additional .env variables here
 ```
 
 LNbits will create a folder for db and extension files in the folder the AppImage runs from.
