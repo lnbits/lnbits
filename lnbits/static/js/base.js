@@ -252,15 +252,10 @@ window.LNbits = {
         fiat_currency: data.fiat_currency
       }
 
-      console.log("#### payment obj", obj)
-      console.log("#### payment data", data)
-      console.log("### from now", moment.utc(data.created_at).fromNow())
-      obj.date = Quasar.date.formatDate(new Date(obj.time), window.dateFormat)
+      obj.date = moment.utc(data.created_at).local().format(window.dateFormat)
       obj.dateFrom = moment.utc(data.created_at).fromNow()
-      obj.expirydate = Quasar.date.formatDate(
-        new Date(obj.expiry),
-        window.dateFormat
-      )
+
+      obj.expirydate = moment.utc(obj.expiry).local().format(window.dateFormat)
       obj.expirydateFrom = moment.utc(obj.expiry).fromNow()
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
