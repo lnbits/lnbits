@@ -987,7 +987,7 @@
               </div>
             </q-card-section>
             <q-card-section>
-              <div class="row">
+              <div class="row q-gutter-x-sm">
                 <q-btn
                   v-if="
                     props.row.isIn && props.row.isPending && props.row.bolt11
