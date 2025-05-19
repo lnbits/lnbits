@@ -55,4 +55,4 @@ ENV LNBITS_HOST="0.0.0.0"
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "poetry run lnbits --port $LNBITS_PORT --host $LNBITS_HOST"]
+CMD ["sh", "-c", "poetry run lnbits --port $LNBITS_PORT --host $LNBITS_HOST --forwarded-allow-ips='*'"]
