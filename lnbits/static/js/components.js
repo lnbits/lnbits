@@ -210,7 +210,7 @@ window.app.component('lnbits-qrcode', {
   data() {
     return {
       custom: {
-        margin: 1,
+        margin: 3,
         width: 350,
         size: 350,
         logo: LNBITS_QR_LOGO
