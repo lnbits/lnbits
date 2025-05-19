@@ -354,7 +354,6 @@ class StrikeWallet(Wallet):
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        # checking_id is the paymentId for outgoing payments
         quote_id = self.pending_payments.get(checking_id)
 
         try:
@@ -365,7 +364,11 @@ class StrikeWallet(Wallet):
                 )
                 if status:
                     return status
+        except Exception as e:
+            logger.warning(e)
+            logger.debug(f"Error while fetching payment by quote id {checking_id}.")
 
+        try:
             # Attempt 2: Fallback - Use paymentId (checking_id) directly.
             return await self._get_payment_status_by_checking_id(checking_id)
         except Exception as e:
