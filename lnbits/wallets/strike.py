@@ -328,17 +328,12 @@ class StrikeWallet(Wallet):
 
                 return PaymentPendingStatus()
 
-            elif r.status_code == 404:
-                logger.warning(f"Payment {checking_id} not. Marking as failed.")
-
+            if r.status_code == 404:
+                logger.warning(f"Payment '{checking_id}' not found. Marking as failed.")
                 return PaymentFailedStatus(False)
-            else:
-                logger.warning(
-                    f"Received HTTP {r.status_code} for {r.request.url}. "
-                    f"Content: {r.text}"
-                )
-                r.raise_for_status()
-                return PaymentPendingStatus()
+
+            r.raise_for_status()
+            return PaymentPendingStatus()
 
         except httpx.HTTPStatusError as e:
             logger.warning(
@@ -348,9 +343,7 @@ class StrikeWallet(Wallet):
             # Default to Pending to allow retries by paid_invoices_stream.
             return PaymentPendingStatus()
         except Exception as e:
-            logger.warning(
-                f"Unexpected error in get_invoice_status for {checking_id}: {e}"
-            )
+            logger.warning(e)
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
@@ -513,7 +506,6 @@ class StrikeWallet(Wallet):
             return PaymentPendingStatus()
 
         if r_payment.status_code == 400:
-            is_invalid_payment_id_format_error = False
             try:
                 error_data = r_payment.json()
                 # Check for Strike's specific validation
@@ -524,25 +516,22 @@ class StrikeWallet(Wallet):
                     )
                     if "paymentId" in validation_errors:
                         for err_detail in validation_errors["paymentId"]:
-                            if err_detail.get(
+                            is_invalid = err_detail.get(
                                 "code"
                             ) == "INVALID_DATA" and "is not valid." in err_detail.get(
                                 "message", ""
-                            ):
-                                is_invalid_payment_id_format_error = True
-                                break
+                            )
+                            if not is_invalid:
+                                continue
+                            logger.error(
+                                f"Payment '{checking_id}' not a valid Strike payment. "
+                                f"Marked as failed. Response: {r_payment.text}"
+                            )
+                            self.pending_payments.pop(checking_id, None)
+                            return PaymentFailedStatus()
             except Exception as e:
                 logger.warning(e)
 
-            if is_invalid_payment_id_format_error:
-                logger.error(
-                    f"Payment '{checking_id}' is not a valid Strike paymentId. "
-                    f"Marking as permanently failed. Response: {r_payment.text}"
-                )
-                self.pending_payments.pop(checking_id, None)
-                return PaymentFailedStatus()
-
-            logger.warning(f"Error fetching payment {checking_id}: {r_payment.text}")
             return PaymentPendingStatus()
 
         if r_payment.status_code == 404:
@@ -550,7 +539,7 @@ class StrikeWallet(Wallet):
             self.pending_payments.pop(checking_id, None)
             return PaymentFailedStatus()
 
-        logger.warning(
+        logger.debug(
             f"Error fetching payment {checking_id} directly: "
             f"{r_payment.status_code} - {r_payment.text}"
         )
