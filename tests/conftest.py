@@ -130,7 +130,7 @@ async def from_wallet(from_user):
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_from")
     await update_wallet_balance(
         wallet=wallet,
-        amount=999999999,
+        amount=999999,
     )
     yield wallet
 
@@ -174,7 +174,7 @@ async def to_wallet(to_user):
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_to")
     await update_wallet_balance(
         wallet=wallet,
-        amount=999999999,
+        amount=999999,
     )
     yield wallet
 
