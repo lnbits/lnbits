@@ -152,6 +152,10 @@ async def test_set_channel_fees(node_client):
 
 
 @pytest.mark.anyio
+@pytest.mark.skipif(
+    funding_source.__class__.__name__ == "LndRestWallet",
+    reason="Lndrest is slow / async with channel commands",
+)
 async def test_channel_management(node_client):
     async def get_channels():
         # lndrest is slow / async with channel commands
