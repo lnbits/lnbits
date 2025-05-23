@@ -89,7 +89,7 @@ class WalletTypeInfo:
 class WalletsFilters(FilterModel):
     __search_fields__ = ["id", "name", "currency"]
 
-    __sort_fields__ = ["id", "name", "currency"]
+    __sort_fields__ = ["id", "name", "currency", "created_at", "updated_at"]
 
     id: str | None
     name: str | None

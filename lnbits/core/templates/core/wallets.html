@@ -28,10 +28,39 @@
 </div>
 
 <div>
-  <div v-if="user">
-    <div class="row">
-      <div v-if="tab==='wallets'" class="col">wwwallets 1</div>
-      <div v-else class="col">pppayyemtns 2</div>
+  <div>
+    <div>
+      <div v-if="tab==='wallets'">
+        <q-table
+          grid
+          grid-header
+          flat
+          bordered
+          :rows="wallets"
+          :columns="walletsTable.columns"
+          v-model:pagination="walletsTable.pagination"
+          :loading="walletsTable.loading"
+          @request="getUserWallets"
+          row-key="id"
+          :filter="filter"
+          hide-header
+        >
+          <template v-slot:top-right>
+            <q-input
+              borderless
+              dense
+              debounce="300"
+              v-model="filter"
+              placeholder="Search"
+            >
+              <template v-slot:append>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+          </template>
+        </q-table>
+      </div>
+      <div v-else>pppayyemtns 2</div>
     </div>
   </div>
 </div>
