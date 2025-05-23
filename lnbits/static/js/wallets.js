@@ -133,6 +133,16 @@ window.WalletsPageLogic = {
       }
 
       this.apiAcl.showNewAclDialog = false
+    },
+
+    goToWallet(walletId) {
+      window.location = `/wallet?wal=${walletId}`
+    },
+    formattedFiatAmount(amount, currency) {
+      return LNbits.utils.formatCurrency(Number(amount).toFixed(2), currency)
+    },
+    formattedSatAmount(amount) {
+      return LNbits.utils.formatMsat(amount) + ' sat'
     }
   },
   async created() {

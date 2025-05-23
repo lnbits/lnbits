@@ -58,6 +58,35 @@
               </template>
             </q-input>
           </template>
+          <template v-slot:item="props">
+            <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
+              <q-card
+                class="q-ma-sm cursor-pointer"
+                @click="goToWallet(props.row.id)"
+              >
+                <q-card-section class="text-center">
+                  <strong> <span v-text="props.row.name"></span></strong>
+                  <br />
+                  <span
+                    v-text="formattedSatAmount(props.row.balance_msat / 1000)"
+                  ></span>
+                </q-card-section>
+                <q-separator />
+
+                <q-card-section class="text-left">
+                  <small>
+                    <strong>Currency: </strong>
+                    <span v-text="props.row.currency || 'sat'"></span>
+                  </small>
+                  <br />
+                  <small>
+                    <strong>Id: </strong>
+                    <span v-text="props.row.id"></span>
+                  </small>
+                </q-card-section>
+              </q-card>
+            </div>
+          </template>
         </q-table>
       </div>
       <div v-else>pppayyemtns 2</div>
