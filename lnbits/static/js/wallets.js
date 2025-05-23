@@ -31,10 +31,15 @@ window.WalletsPageLogic = {
       }
     },
 
-    async getApiACLs() {
+    async getUserWallets() {
       try {
-        const {data} = await LNbits.api.request('GET', '/api/v1/auth/acl', null)
-        this.apiAcl.data = data.access_control_list
+        const {data} = await LNbits.api.request(
+          'GET',
+          '/api/v1/wallet/paginated',
+          null
+        )
+        console.log('### data', data)
+        this.wallets = data.data
       } catch (e) {
         LNbits.utils.notifyApiError(e)
       }
@@ -82,6 +87,6 @@ window.WalletsPageLogic = {
     }
   },
   async created() {
-    // await this.getApiACLs()
+    await this.getUserWallets()
   }
 }
