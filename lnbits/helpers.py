@@ -11,6 +11,7 @@ import jinja2
 import jwt
 import shortuuid
 from fastapi.routing import APIRoute
+from loguru import logger
 from packaging import version
 from pydantic.schema import field_schema
 
@@ -279,12 +280,21 @@ def is_lnbits_version_ok(
 
 
 def check_callback_url(url: str):
-    netloc = urlparse(url).netloc
+    if not settings.lnbits_callback_url_rules:
+        # no rules, all urls are allowed
+        return
+    u = urlparse(url)
     for rule in settings.lnbits_callback_url_rules:
-        if re.match(rule, netloc) is None:
-            raise ValueError(
-                f"Callback not allowed. URL: {url}. Netloc: {netloc}. Rule: {rule}"
-            )
+        try:
+            if re.match(rule, f"{u.scheme}://{u.netloc}") is not None:
+                return
+        except re.error:
+            logger.debug(f"Invalid regex rule: '{rule}'. ")
+            continue
+    raise ValueError(
+        f"Callback not allowed. URL: {url}. Netloc: {u.netloc}. "
+        f"Please check your admin settings."
+    )
 
 
 def download_url(url, save_path):
