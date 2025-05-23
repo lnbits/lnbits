@@ -4,7 +4,8 @@ from typing import Optional
 from uuid import uuid4
 
 from lnbits.core.db import db
-from lnbits.db import Connection
+from lnbits.core.models.wallets import WalletsFilters
+from lnbits.db import Connection, Filters, Page
 from lnbits.settings import settings
 
 from ..models import Wallet
@@ -132,6 +133,28 @@ async def get_wallets(
         """,
         {"user": user_id, "deleted": deleted},
         Wallet,
+    )
+
+
+async def get_wallets_paginated(
+    user_id: str,
+    deleted: Optional[bool] = None,
+    filters: Optional[Filters[WalletsFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> Page[Wallet]:
+    if deleted is None:
+        deleted = False
+
+    return await (conn or db).fetch_page(
+        """
+            SELECT *, COALESCE((
+                SELECT balance FROM balances WHERE wallet_id = wallets.id
+            ), 0) AS balance_msat FROM wallets
+            WHERE "user" = :user AND deleted = :deleted
+        """,
+        values={"user": user_id, "deleted": deleted},
+        filters=filters,
+        model=Wallet,
     )
 
 
