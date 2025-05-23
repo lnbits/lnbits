@@ -194,6 +194,15 @@ const routes = [
     }
   },
   {
+    path: '/wallets',
+    name: 'Wallets',
+    component: DynamicComponent,
+    props: {
+      fetchUrl: '/wallets',
+      scripts: ['/static/js/wallets.js']
+    }
+  },
+  {
     path: '/node',
     name: 'Node',
     component: DynamicComponent,
