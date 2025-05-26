@@ -63,15 +63,32 @@
           <template v-slot:item="props">
             <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
               <q-card
-                class="q-ma-sm cursor-pointer"
+                class="q-ma-sm cursor-pointer wallet-list-card"
+                style="text-decoration: none"
                 @click="goToWallet(props.row.id)"
               >
-                <q-card-section class="text-center">
-                  <strong> <span v-text="props.row.name"></span></strong>
-                  <br />
-                  <span
-                    v-text="formattedSatAmount(props.row.balance_msat / 1000)"
-                  ></span>
+                <q-card-section>
+                  <div class="row items-center">
+                    <q-avatar
+                      size="lg"
+                      :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+                      :color="props.row.extra.color"
+                      :icon="props.row.extra.icon"
+                    >
+                    </q-avatar>
+                    <div
+                      class="text-h6 q-pl-md ellipsis"
+                      class="text-bold"
+                      v-text="props.row.name"
+                    ></div>
+                  </div>
+                  <div class="row items-center q-pt-sm">
+                    <h6 class="q-my-none ellipsis full-width">
+                      <strong
+                        v-text="formatBalance(props.row.balance_msat / 1000)"
+                      ></strong>
+                    </h6>
+                  </div>
                 </q-card-section>
                 <q-separator />
 
