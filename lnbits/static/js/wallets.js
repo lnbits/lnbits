@@ -17,23 +17,16 @@ window.WalletsPageLogic = {
           },
           {
             name: 'currency',
-            align: 'left',
+            align: 'center',
             label: 'Currency',
             field: 'currency',
             sortable: true
           },
           {
-            name: 'balance_msat',
-            align: 'left',
-            label: 'Balance',
-            field: 'balance_msat',
-            sortable: false
-          },
-          {
-            name: 'id',
-            align: 'left',
-            label: 'Id',
-            field: 'id',
+            name: 'updated_at',
+            align: 'right',
+            label: 'Last Updated',
+            field: 'updated_at',
             sortable: true
           }
         ],
