@@ -206,6 +206,9 @@ window.LNbits = {
           return mapWallet(obj)
         })
         .sort((a, b) => {
+          if (a.extra.pinned !== b.extra.pinned) {
+            return a.extra.pinned ? -1 : 1
+          }
           return a.name.localeCompare(b.name)
         })
       obj.walletOptions = obj.wallets.map(obj => {
