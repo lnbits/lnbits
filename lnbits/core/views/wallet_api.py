@@ -99,6 +99,7 @@ async def api_update_wallet(
     icon: Optional[str] = Body(None),
     color: Optional[str] = Body(None),
     currency: Optional[str] = Body(None),
+    pinned: Optional[bool] = Body(None),
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
     wallet = await get_wallet(key_info.wallet.id)
@@ -107,6 +108,7 @@ async def api_update_wallet(
     wallet.name = name or wallet.name
     wallet.extra.icon = icon or wallet.extra.icon
     wallet.extra.color = color or wallet.extra.color
+    wallet.extra.pinned = pinned if pinned is not None else wallet.extra.pinned
     wallet.currency = currency if currency is not None else wallet.currency
     await update_wallet(wallet)
     return wallet

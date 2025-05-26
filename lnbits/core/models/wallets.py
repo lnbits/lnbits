@@ -26,6 +26,7 @@ class BaseWallet(BaseModel):
 class WalletExtra(BaseModel):
     icon: str = "flash_on"
     color: str = "primary"
+    pinned: bool = False
 
 
 class Wallet(BaseModel):

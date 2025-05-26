@@ -242,6 +242,19 @@
                   {{ SITE_TITLE }} Wallet:
                   <strong><em v-text="g.wallet.name"></em></strong>
                 </div>
+                <q-space></q-space>
+                <div class="float-right">
+                  <q-btn
+                    @click="updateWallet({ pinned: !g.wallet.extra.pinned })"
+                    round
+                    class="float-right"
+                    :color="g.wallet.extra.pinned ? 'primary' : 'grey-5'"
+                    text-color="black"
+                    size="sm"
+                    icon="push_pin"
+                    style="transform: rotate(30deg)"
+                  ></q-btn>
+                </div>
               </div>
             </q-card-section>
             <q-card-section class="q-pa-none">
