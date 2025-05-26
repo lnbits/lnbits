@@ -197,7 +197,8 @@ window.LNbits = {
         email: data.email,
         extensions: data.extensions,
         wallets: data.wallets,
-        super_user: data.super_user
+        super_user: data.super_user,
+        extra: data.extra ?? {}
       }
       const mapWallet = this.wallet
       obj.wallets = obj.wallets

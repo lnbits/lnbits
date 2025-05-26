@@ -284,7 +284,7 @@
                   </q-card-section>
                 </q-card>
                 <q-card
-                  v-for="wallet in g.user.wallets"
+                  v-for="wallet in g.user.wallets.slice(0, g.user.extra.visible_wallet_count || 10)"
                   :key="wallet.id"
                   clickable
                   @click="selectWallet(wallet)"

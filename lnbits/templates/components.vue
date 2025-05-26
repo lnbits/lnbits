@@ -5,7 +5,10 @@
     class="lnbits-drawer__q-list"
   >
     <q-item
-      v-for="walletRec in g.user.wallets"
+      v-for="walletRec in g.user.wallets.slice(
+        0,
+        g.user.extra.visible_wallet_count || 10
+      )"
       :key="walletRec.id"
       clickable
       :active="g.wallet && g.wallet.id === walletRec.id"

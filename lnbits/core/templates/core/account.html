@@ -337,6 +337,22 @@
                 </div>
                 <div class="row q-mb-md">
                   <div class="col-4">
+                    <span v-text="$t('visible_wallet_count')"></span>
+                  </div>
+                  <div class="col-8">
+                    <q-input
+                      v-model="user.extra.visible_wallet_count"
+                      :label="$t('visible_wallet_count')"
+                      filled
+                      dense
+                      type="number"
+                      class="q-mb-md"
+                    ></q-input>
+                  </div>
+                </div>
+
+                <div class="row q-mb-md">
+                  <div class="col-4">
                     <span v-text="$t('color_scheme')"></span>
                   </div>
                   <div class="col-8">

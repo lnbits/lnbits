@@ -356,6 +356,7 @@ window.localisation.en = {
   gradient_background: 'Gradient Background',
   language: 'Language',
   color_scheme: 'Color Scheme',
+  visible_wallet_count: 'Visible Wallet Count',
   admin_settings: 'Admin Settings',
   extension_cost: 'This release requires a payment of minimum {cost} sats.',
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
