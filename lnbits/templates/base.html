@@ -336,7 +336,10 @@
                     </div>
                   </q-card-section>
                 </q-card>
-                <q-card class="wallet-list-card">
+                <q-card
+                  v-if="g.user.hiddenWalletsCount"
+                  class="wallet-list-card"
+                >
                   <q-card-section
                     class="flex flex-center column full-height text-center"
                   >
