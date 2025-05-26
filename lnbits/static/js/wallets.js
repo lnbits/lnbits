@@ -5,6 +5,7 @@ window.WalletsPageLogic = {
       user: null,
       tab: 'wallets',
       wallets: [],
+      showAddWalletDialog: {show: false},
       walletsTable: {
         columns: [
           {
