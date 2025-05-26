@@ -179,12 +179,12 @@
         >
           <q-scroll-area style="height: 100%">
             <q-item>
-              <q-item-section>
+              <q-item-section class="cursor-pointer" @click="goToWallets()">
                 <q-item-label
                   :style="$q.dark.isActive ? 'color:rgba(255, 255, 255, 0.64)' : ''"
                   class="q-item__label q-item__label--header q-pa-none"
                   header
-                  v-text="$t('wallets')"
+                  v-text="$t('wallets') + ' (' + g.user.wallets.length + ')'"
                 ></q-item-label>
               </q-item-section>
               <q-item-section side>

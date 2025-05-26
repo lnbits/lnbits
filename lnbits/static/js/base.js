@@ -508,6 +508,9 @@ window.windowMixin = {
       }
       this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
     },
+    goToWallets() {
+      window.location = '/wallets'
+    },
     submitAddWallet() {
       if (
         this.showAddWalletDialog.name &&
