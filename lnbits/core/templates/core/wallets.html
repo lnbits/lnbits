@@ -77,12 +77,25 @@
                       :icon="props.row.extra.icon"
                     >
                     </q-avatar>
+
                     <div
                       class="text-h6 q-pl-md ellipsis"
                       class="text-bold"
                       v-text="props.row.name"
                     ></div>
+                    <q-space> </q-space>
+                    <q-btn
+                      v-if="props.row.extra.pinned"
+                      round
+                      color="primary"
+                      text-color="black"
+                      size="xs"
+                      icon="push_pin"
+                      class="float-right"
+                      style="transform: rotate(30deg)"
+                    ></q-btn>
                   </div>
+
                   <div class="row items-center q-pt-sm">
                     <h6 class="q-my-none ellipsis full-width">
                       <strong
@@ -90,6 +103,8 @@
                       ></strong>
                     </h6>
                   </div>
+
+                  <!-- style="position: relative; left: -15px; bottom: -10px" -->
                 </q-card-section>
                 <q-separator />
 
@@ -137,7 +152,7 @@
       <q-btn flat label="Cancel" v-close-popup></q-btn>
       <q-btn
         flat
-        label="Add wallet"
+        :label="$t('add_wallet')"
         v-close-popup
         @click="submitAddWallet()"
       ></q-btn>

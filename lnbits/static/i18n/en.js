@@ -50,7 +50,8 @@ window.localisation.en = {
   access_wallet_on_mobile: 'Mobile Access',
   wallet: 'Wallet: ',
   wallets: 'Wallets',
-  add_wallet: 'Add a new wallet',
+  add_wallet: 'Add wallet',
+  add_new_wallet: 'Add a new wallet',
   delete_wallet: 'Delete wallet',
   delete_wallet_desc:
     'This whole wallet will be deleted, the funds will be UNRECOVERABLE.',

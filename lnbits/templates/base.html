@@ -247,7 +247,7 @@
                         @click="showAddWalletDialog.show = true"
                       >
                         <q-tooltip
-                          ><span v-text="$t('add_wallet')"></span
+                          ><span v-text="$t('add_new_wallet')"></span
                         ></q-tooltip>
                       </q-btn>
                       <q-dialog
@@ -273,7 +273,7 @@
                             <q-btn flat label="Cancel" v-close-popup></q-btn>
                             <q-btn
                               flat
-                              label="Add wallet"
+                              :label="$t('add_wallet')"
                               v-close-popup
                               @click="submitAddWallet()"
                             ></q-btn>

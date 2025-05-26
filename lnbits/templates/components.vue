@@ -74,7 +74,7 @@
         <q-item-label
           lines="1"
           class="text-caption"
-          v-text="$t('add_wallet')"
+          v-text="$t('add_new_wallet')"
         ></q-item-label>
       </q-item-section>
     </q-item>
@@ -1204,7 +1204,7 @@
             color="primary"
             :disable="walletName == ''"
             type="submit"
-            :label="$t('add_wallet')"
+            :label="$t('add_new_wallet')"
             class="full-width q-mb-sm"
           ></q-btn>
           <q-btn
