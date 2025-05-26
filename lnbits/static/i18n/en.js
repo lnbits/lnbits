@@ -125,6 +125,7 @@ window.localisation.en = {
   no_extensions: "You don't have any extensions installed :(",
   created: 'Created',
   search_extensions: 'Search extensions',
+  search_wallets: 'Search wallets',
   extension_sources: 'Extension Sources',
   ext_sources_hint: 'Repositories from where the extensions can be downloaded',
   ext_sources_label:

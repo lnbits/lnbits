@@ -4,6 +4,7 @@ window.WalletsPageLogic = {
     return {
       user: null,
       tab: 'wallets',
+      searchTerm: '',
       wallets: [],
       walletsTable: {
         columns: [

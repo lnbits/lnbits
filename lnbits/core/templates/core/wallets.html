@@ -15,11 +15,26 @@
               :label="$t('wallets')"
               @update="val => tab = val.name"
             ></q-tab>
-            <q-tab
-              name="payments"
-              :label="$t('payments')"
-              @update="val => tab = val.name"
-            ></q-tab>
+            <q-space></q-space>
+            <q-input
+              :label="$t('search_wallets')"
+              :dense="dense"
+              class="float-right q-pr-xl"
+              v-model="searchTerm"
+            >
+              <template v-slot:before>
+                <q-icon name="search"> </q-icon>
+              </template>
+              <template v-slot:append>
+                <q-icon
+                  v-if="searchTerm !== ''"
+                  name="close"
+                  @click="searchTerm = ''"
+                  class="cursor-pointer"
+                >
+                </q-icon>
+              </template>
+            </q-input>
           </q-tabs>
         </div>
       </div>
@@ -27,6 +42,17 @@
   </div>
 </div>
 
+<!-- <q-input
+borderless
+dense
+debounce="300"
+v-model="filter"
+placeholder="Search"
+>
+<template v-slot:append>
+  <q-icon name="search" />
+</template>
+</q-input> -->
 <div>
   <div>
     <div>
@@ -45,19 +71,6 @@
           :filter="filter"
           hide-header
         >
-          <template v-slot:top-right>
-            <q-input
-              borderless
-              dense
-              debounce="300"
-              v-model="filter"
-              placeholder="Search"
-            >
-              <template v-slot:append>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-          </template>
           <template v-slot:item="props">
             <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
               <q-card
@@ -89,7 +102,7 @@
           </template>
         </q-table>
       </div>
-      <div v-else>pppayyemtns 2</div>
+      <div v-else>not wallets</div>
     </div>
   </div>
 </div>
