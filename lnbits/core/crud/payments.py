@@ -123,12 +123,8 @@ async def get_payments_paginated(
         values["wallet_id"] = wallet_id
         clause.append("wallet_id = :wallet_id")
     elif user_id:
-        wallet_ids = await get_wallets_ids(user_id=user_id, conn=conn) or [
-            "no-wallets-for-user"
-        ]
-        # wallet ids are safe to use in sql queries
-        wallet_ids_str = [f"'{w}'" for w in wallet_ids]
-        clause.append(f""" wallet_id IN ({", ".join(wallet_ids_str)}) """)
+        only_user_wallets = await _only_user_wallets_statement(user_id, conn=conn)
+        clause.append(only_user_wallets)
 
     if complete and pending:
         clause.append(
@@ -375,12 +371,8 @@ async def get_payment_count_stats(
     extra_stmts = []
 
     if user_id:
-        wallet_ids = await get_wallets_ids(user_id=user_id, conn=conn) or [
-            "no-wallets-for-user"
-        ]
-        # wallet ids are safe to use in sql queries
-        wallet_ids_str = [f"'{w}'" for w in wallet_ids]
-        extra_stmts.append(f""" wallet_id IN ({", ".join(wallet_ids_str)}) """)
+        only_user_wallets = await _only_user_wallets_statement(user_id, conn=conn)
+        extra_stmts.append(only_user_wallets)
 
     clause = filters.where(extra_stmts)
     data = await (conn or db).fetchall(
@@ -413,14 +405,9 @@ async def get_daily_stats(
     ]
 
     if user_id:
-        wallet_ids = await get_wallets_ids(user_id=user_id, conn=conn) or [
-            "no-wallets-for-user"
-        ]
-        # wallet ids are safe to use in sql queries
-        wallet_ids_str = [f"'{w}'" for w in wallet_ids]
-        wallets_stmt = f""" wallet_id IN ({", ".join(wallet_ids_str)}) """
-        in_where_stmts.append(wallets_stmt)
-        out_where_stmts.append(wallets_stmt)
+        only_user_wallets = await _only_user_wallets_statement(user_id, conn=conn)
+        in_where_stmts.append(only_user_wallets)
+        out_where_stmts.append(only_user_wallets)
 
     in_clause = filters.where(in_where_stmts)
     out_clause = filters.where(out_where_stmts)
@@ -475,12 +462,8 @@ async def get_wallets_stats(
         """,
     ]
     if user_id:
-        wallet_ids = await get_wallets_ids(user_id=user_id, conn=conn) or [
-            "no-wallets-for-user"
-        ]
-        # wallet ids are safe to use in sql queries
-        wallet_ids_str = [f"'{w}'" for w in wallet_ids]
-        where_stmts.append(f""" wallet_id IN ({", ".join(wallet_ids_str)}) """)
+        only_user_wallets = await _only_user_wallets_statement(user_id, conn=conn)
+        where_stmts.append(only_user_wallets)
 
     clauses = filters.where(where_stmts)
 
@@ -557,3 +540,14 @@ async def mark_webhook_sent(payment_hash: str, status: str) -> None:
         """,
         {"status": status, "hash": payment_hash},
     )
+
+
+async def _only_user_wallets_statement(
+    user_id: str, conn: Optional[Connection] = None
+) -> str:
+    wallet_ids = await get_wallets_ids(user_id=user_id, conn=conn) or [
+        "no-wallets-for-user"
+    ]
+    # wallet ids are safe to use in sql queries
+    wallet_ids_str = [f"'{w}'" for w in wallet_ids]
+    return f""" wallet_id IN ({", ".join(wallet_ids_str)}) """
