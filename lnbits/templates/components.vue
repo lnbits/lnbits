@@ -46,6 +46,18 @@
       <q-item-section side v-show="g.wallet && g.wallet.id === walletRec.id">
       </q-item-section>
     </q-item>
+    <q-item v-if="moreWalletsCount > 0" clickable @click="goToWallets()">
+      <q-item-section side>
+        <q-icon name="more_horiz" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label
+          lines="1"
+          class="text-caption"
+          v-text="$t('more_count', {count: moreWalletsCount})"
+        ></q-item-label>
+      </q-item-section>
+    </q-item>
     <q-item clickable @click="showForm = !showForm">
       <q-item-section side>
         <q-icon
