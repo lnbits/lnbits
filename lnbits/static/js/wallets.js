@@ -71,8 +71,6 @@ window.WalletsPageLogic = {
           `/api/v1/wallet/paginated?${params}`,
           null
         )
-        console.log('### data', data)
-        console.log('### total', data.total)
         this.wallets = data.data
         this.walletsTable.pagination.rowsNumber = data.total
       } catch (e) {
