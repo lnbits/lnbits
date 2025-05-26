@@ -52,6 +52,7 @@ window.localisation.en = {
   wallets: 'Wallets',
   add_wallet: 'Add wallet',
   add_new_wallet: 'Add a new wallet',
+  pin_wallet: 'Pin wallet',
   delete_wallet: 'Delete wallet',
   delete_wallet_desc:
     'This whole wallet will be deleted, the funds will be UNRECOVERABLE.',
