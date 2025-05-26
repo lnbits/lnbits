@@ -330,6 +330,26 @@
                     </div>
                   </q-card-section>
                 </q-card>
+                <q-card class="wallet-list-card">
+                  <q-card-section
+                    class="flex flex-center column full-height text-center"
+                  >
+                    <div>
+                      <q-btn
+                        round
+                        color="primary"
+                        icon="more_horiz"
+                        @click="goToWallets()"
+                      >
+                        <q-tooltip
+                          ><span
+                            v-text="$t('more_count', {count: g.user.hiddenWalletsCount})"
+                          ></span
+                        ></q-tooltip>
+                      </q-btn>
+                    </div>
+                  </q-card-section>
+                </q-card>
               </div>
             </q-scroll-area>
 

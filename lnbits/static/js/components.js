@@ -31,7 +31,6 @@ window.app.component('lnbits-wallet-list', {
       balance: 0,
       showForm: false,
       walletName: '',
-      moreWalletsCount: 0,
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
     }
   },
@@ -42,10 +41,6 @@ window.app.component('lnbits-wallet-list', {
   },
   created() {
     document.addEventListener('updateWalletBalance', this.updateWalletBalance)
-    this.moreWalletsCount = Math.max(
-      0,
-      this.g.user.wallets.length - this.g.user.extra.visible_wallet_count
-    )
   }
 })
 

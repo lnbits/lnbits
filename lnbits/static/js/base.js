@@ -214,6 +214,10 @@ window.LNbits = {
           value: obj.id
         }
       })
+      obj.hiddenWalletsCount = Math.max(
+        0,
+        data.wallets.length - data.extra.visible_wallet_count
+      )
       return obj
     },
     wallet(data) {
