@@ -381,7 +381,7 @@ class SecuritySettings(LNbitsSettings):
     lnbits_allowed_ips: list[str] = Field(default=[])
     lnbits_blocked_ips: list[str] = Field(default=[])
     lnbits_callback_url_rules: list[str] = Field(
-        default=["^(?!\\d+\\.\\d+\\.\\d+\\.\\d+$)(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$"]
+        default=["https?://([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})(:\\d+)?"]
     )
 
     lnbits_wallet_limit_max_balance: int = Field(default=0, ge=0)
