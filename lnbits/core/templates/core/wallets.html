@@ -20,16 +20,16 @@
               :label="$t('search_wallets')"
               :dense="dense"
               class="float-right q-pr-xl"
-              v-model="searchTerm"
+              v-model="walletsTable.search"
             >
               <template v-slot:before>
                 <q-icon name="search"> </q-icon>
               </template>
               <template v-slot:append>
                 <q-icon
-                  v-if="searchTerm !== ''"
+                  v-if="walletsTable.search !== ''"
                   name="close"
-                  @click="searchTerm = ''"
+                  @click="walletsTable.search = ''"
                   class="cursor-pointer"
                 >
                 </q-icon>
@@ -42,17 +42,6 @@
   </div>
 </div>
 
-<!-- <q-input
-borderless
-dense
-debounce="300"
-v-model="filter"
-placeholder="Search"
->
-<template v-slot:append>
-  <q-icon name="search" />
-</template>
-</q-input> -->
 <div>
   <div>
     <div>

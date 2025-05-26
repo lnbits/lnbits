@@ -145,13 +145,14 @@ async def get_wallets_paginated(
     if deleted is None:
         deleted = False
 
+    where: list[str] = [""" "user" = :user AND deleted = :deleted """]
     return await (conn or db).fetch_page(
         """
             SELECT *, COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0) AS balance_msat FROM wallets
-            WHERE "user" = :user AND deleted = :deleted
         """,
+        where=where,
         values={"user": user_id, "deleted": deleted},
         filters=filters,
         model=Wallet,
