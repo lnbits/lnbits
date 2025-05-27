@@ -84,8 +84,12 @@ async def pay_invoice(
 
     payment = await _pay_invoice(wallet.id, create_payment_model, conn)
 
+    service_fee_memo = f"""
+        Service fee for payment of {abs(payment.sat)} sats.
+        Wallet: '{wallet.name}' ({wallet.id})."""
+
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        await _credit_service_fee_wallet(payment, new_conn)
+        await _credit_service_fee_wallet(payment, service_fee_memo, new_conn)
 
     return payment
 
@@ -704,7 +708,7 @@ def _validate_payment_request(
 
 
 async def _credit_service_fee_wallet(
-    payment: Payment, conn: Optional[Connection] = None
+    payment: Payment, memo: str, conn: Optional[Connection] = None
 ):
     service_fee_msat = service_fee(payment.amount, internal=payment.is_internal)
     if not settings.lnbits_service_fee_wallet or not service_fee_msat:
@@ -715,7 +719,7 @@ async def _credit_service_fee_wallet(
         bolt11=payment.bolt11,
         payment_hash=payment.payment_hash,
         amount_msat=abs(service_fee_msat),
-        memo="Service fee",
+        memo=memo,
     )
     await create_payment(
         checking_id=f"service_fee_{payment.payment_hash}",
