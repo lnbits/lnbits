@@ -308,6 +308,9 @@ window.localisation.en = {
   login_with_user_id: 'Login with user ID',
   or: 'or',
   create_new_wallet: 'Create New Wallet',
+  delete_all_wallets: 'Delete All Wallets',
+  confirm_delete_all_wallets:
+    'Are you sure you want to delete ALL wallets for this user?',
   login_to_account: 'Login to your account',
   create_account: 'Create account',
   account_settings: 'Account Settings',

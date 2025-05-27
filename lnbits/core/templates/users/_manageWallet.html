@@ -15,19 +15,36 @@
   </q-card>
 </div>
 <div v-else-if="activeWallet.show">
-  <div class="row q-mb-lg">
-    <div class="col">
-      <q-btn
-        icon="arrow_back_ios"
-        @click="backToUsersPage()"
-        :label="$t('back')"
-      ></q-btn>
-      <q-btn
-        @click="createWalletDialog.show = true"
-        :label="$t('create_new_wallet')"
-        color="primary"
-        class="q-ml-md"
-      ></q-btn>
+  <div class="row q-col-gutter-md q-mb-md">
+    <div class="col-12">
+      <q-card>
+        <div class="q-pa-sm">
+          <div class="row">
+            <div class="q-pa-xs">
+              <q-btn
+                icon="arrow_back_ios"
+                @click="backToUsersPage()"
+                :label="$t('back')"
+              ></q-btn>
+            </div>
+            <div class="q-pa-xs">
+              <q-btn
+                @click="createWalletDialog.show = true"
+                :label="$t('create_new_wallet')"
+                color="primary"
+              ></q-btn>
+            </div>
+            <div class="q-pa-xs">
+              <q-btn
+                @click="deleteAllUserWallets(activeWallet.userId)"
+                :label="$t('delete_all_wallets')"
+                icon="delete"
+                color="negative"
+              ></q-btn>
+            </div>
+          </div>
+        </div>
+      </q-card>
     </div>
   </div>
   <q-card class="q-pa-md">
