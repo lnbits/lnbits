@@ -56,10 +56,11 @@ class AESCipher:
         return data + (chr(length) * length).encode()
 
     def unpad(self, data: bytes) -> bytes:
-        _last = data[-1]
-        if isinstance(_last, int):
-            return data[:-_last]
-        return data[: -ord(_last)]
+        padding = data[-1]
+        # Ensure padding is within valid range else there is no padding
+        if padding <= 0 or padding >= self.block_size:
+            return data
+        return data[:-padding]
 
     def derive_iv_and_key(
         self, salt: bytes, output_len: int = 32 + 16
@@ -94,13 +95,16 @@ class AESCipher:
         try:
             decrypted_bytes = aes.decrypt(encrypted_bytes)
         except Exception as exc:
-            raise ValueError("Decryption error: could not decrypt") from exc
+            raise ValueError("Could not decrypt payload") from exc
 
         unpadded = self.unpad(decrypted_bytes)
         if len(unpadded) == 0:
-            raise ValueError("Decryption error: unpadding failed")
+            raise ValueError("Unpadding resulted in empty data.")
 
-        return unpadded.decode()
+        try:
+            return unpadded.decode()
+        except UnicodeDecodeError as exc:
+            raise ValueError("Decryption resulted in invalid UTF-8 data.") from exc
 
     def encrypt(self, message: bytes, urlsafe: bool = False) -> str:
         """
