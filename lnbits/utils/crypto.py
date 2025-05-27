@@ -93,9 +93,14 @@ class AESCipher:
 
         try:
             decrypted_bytes = aes.decrypt(encrypted_bytes)
-            return self.unpad(decrypted_bytes).decode()
         except Exception as exc:
-            raise ValueError("Decryption error") from exc
+            raise ValueError("Decryption error: could not decrypt") from exc
+
+        unpadded = self.unpad(decrypted_bytes)
+        if len(unpadded) == 0:
+            raise ValueError("Decryption error: unpadding failed")
+
+        return unpadded.decode()
 
     def encrypt(self, message: bytes, urlsafe: bool = False) -> str:
         """

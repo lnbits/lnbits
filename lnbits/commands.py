@@ -518,12 +518,15 @@ def encrypt_macaroon():
 
 @encrypt.command("aes")
 @click.option("-p", "--payload", required=True, help="Payload to encrypt.")
-def encrypt_aes(payload: str):
+@click.option(
+    "-u", "--urlsafe", is_flag=True, required=False, help="Urlsafe b64encode."
+)
+def encrypt_aes(payload: str, urlsafe: bool = False):
     """AES encrypts a payload"""
     key = getpass("Enter encryption key: ")
     aes = AESCipher(key.encode())
     try:
-        encrypted = aes.encrypt(payload.encode())
+        encrypted = aes.encrypt(payload.encode(), urlsafe=urlsafe)
     except Exception as ex:
         click.echo(f"Error encrypting payload: {ex}")
         return
@@ -533,12 +536,15 @@ def encrypt_aes(payload: str):
 
 @decrypt.command("aes")
 @click.option("-p", "--payload", required=True, help="Payload to decrypt.")
-def decrypt_aes(payload: str):
+@click.option(
+    "-u", "--urlsafe", is_flag=True, required=False, help="Urlsafe b64decode."
+)
+def decrypt_aes(payload: str, urlsafe: bool = False):
     """AES decrypts a payload"""
     key = getpass("Enter encryption key: ")
     aes = AESCipher(key.encode())
     try:
-        decrypted = aes.decrypt(payload)
+        decrypted = aes.decrypt(payload, urlsafe=urlsafe)
     except Exception as ex:
         click.echo(f"Error decrypting payload: {ex}")
         return
