@@ -148,7 +148,7 @@ async def api_update_user(
 async def api_users_delete_user(
     user_id: str, user: User = Depends(check_admin)
 ) -> SimpleStatus:
-    wallets = await get_wallets(user_id)
+    wallets = await get_wallets(user_id, deleted=False)
     if len(wallets) > 0:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
