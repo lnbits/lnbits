@@ -399,8 +399,9 @@ async def check_transaction_status(
 
 async def get_payments_daily_stats(
     filters: Filters[PaymentFilters],
+    user_id: Optional[str] = None,
 ) -> list[PaymentDailyStats]:
-    data_in, data_out = await get_daily_stats(filters)
+    data_in, data_out = await get_daily_stats(filters, user_id=user_id)
     balance_total: float = 0
 
     _none = PaymentDailyStats(date=datetime.now(timezone.utc))

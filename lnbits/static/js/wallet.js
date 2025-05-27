@@ -662,7 +662,7 @@ window.WalletPageLogic = {
             }
           }
           Quasar.Notify.create({
-            message: 'Wallet and user updated.',
+            message: 'Wallet updated.',
             type: 'positive',
             timeout: 3500
           })

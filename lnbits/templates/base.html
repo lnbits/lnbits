@@ -179,12 +179,12 @@
         >
           <q-scroll-area style="height: 100%">
             <q-item>
-              <q-item-section>
+              <q-item-section class="cursor-pointer" @click="goToWallets()">
                 <q-item-label
                   :style="$q.dark.isActive ? 'color:rgba(255, 255, 255, 0.64)' : ''"
                   class="q-item__label q-item__label--header q-pa-none"
                   header
-                  v-text="$t('wallets')"
+                  v-text="$t('wallets') + ' (' + g.user.wallets.length + ')'"
                 ></q-item-label>
               </q-item-section>
               <q-item-section side>
@@ -211,7 +211,6 @@
               :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
               :show-users="'{{LNBITS_ADMIN_UI}}' == 'True'"
               :show-audit="'{{LNBITS_AUDIT_ENABLED}}' == 'True'"
-              :show-payments="'{{LNBITS_ADMIN_UI}}' == 'True'"
               :show-node="'{{LNBITS_NODE_UI}}' == 'True'"
               :show-extensions="'{{LNBITS_EXTENSIONS_DEACTIVATE_ALL}}' == 'False'"
             ></lnbits-manage>
@@ -248,7 +247,7 @@
                         @click="showAddWalletDialog.show = true"
                       >
                         <q-tooltip
-                          ><span v-text="$t('add_wallet')"></span
+                          ><span v-text="$t('add_new_wallet')"></span
                         ></q-tooltip>
                       </q-btn>
                       <q-dialog
@@ -258,7 +257,9 @@
                       >
                         <q-card style="min-width: 350px">
                           <q-card-section>
-                            <div class="text-h6">Wallet name</div>
+                            <div class="text-h6">
+                              <span v-text="$t('wallet_name')"></span>
+                            </div>
                           </q-card-section>
 
                           <q-card-section class="q-pt-none">
@@ -271,10 +272,14 @@
                           </q-card-section>
 
                           <q-card-actions align="right" class="text-primary">
-                            <q-btn flat label="Cancel" v-close-popup></q-btn>
                             <q-btn
                               flat
-                              label="Add wallet"
+                              :label="$t('cancel')"
+                              v-close-popup
+                            ></q-btn>
+                            <q-btn
+                              flat
+                              :label="$t('add_wallet')"
                               v-close-popup
                               @click="submitAddWallet()"
                             ></q-btn>
@@ -285,7 +290,7 @@
                   </q-card-section>
                 </q-card>
                 <q-card
-                  v-for="wallet in g.user.wallets"
+                  v-for="wallet in g.user.wallets.slice(0, g.user.extra.visible_wallet_count || 10)"
                   :key="wallet.id"
                   clickable
                   @click="selectWallet(wallet)"
@@ -328,6 +333,29 @@
                       <h6 class="q-my-none ellipsis full-width">
                         <strong v-text="formatBalance(wallet.sat)"></strong>
                       </h6>
+                    </div>
+                  </q-card-section>
+                </q-card>
+                <q-card
+                  v-if="g.user.hiddenWalletsCount"
+                  class="wallet-list-card"
+                >
+                  <q-card-section
+                    class="flex flex-center column full-height text-center"
+                  >
+                    <div>
+                      <q-btn
+                        round
+                        color="primary"
+                        icon="more_horiz"
+                        @click="goToWallets()"
+                      >
+                        <q-tooltip
+                          ><span
+                            v-text="$t('more_count', {count: g.user.hiddenWalletsCount})"
+                          ></span
+                        ></q-tooltip>
+                      </q-btn>
                     </div>
                   </q-card-section>
                 </q-card>

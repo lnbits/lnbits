@@ -197,7 +197,8 @@ window.LNbits = {
         email: data.email,
         extensions: data.extensions,
         wallets: data.wallets,
-        super_user: data.super_user
+        super_user: data.super_user,
+        extra: data.extra ?? {}
       }
       const mapWallet = this.wallet
       obj.wallets = obj.wallets
@@ -205,6 +206,9 @@ window.LNbits = {
           return mapWallet(obj)
         })
         .sort((a, b) => {
+          if (a.extra.pinned !== b.extra.pinned) {
+            return a.extra.pinned ? -1 : 1
+          }
           return a.name.localeCompare(b.name)
         })
       obj.walletOptions = obj.wallets.map(obj => {
@@ -213,6 +217,10 @@ window.LNbits = {
           value: obj.id
         }
       })
+      obj.hiddenWalletsCount = Math.max(
+        0,
+        data.wallets.length - data.extra.visible_wallet_count
+      )
       return obj
     },
     wallet(data) {
@@ -507,6 +515,9 @@ window.windowMixin = {
         this.g.visibleDrawer = false
       }
       this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
+    },
+    goToWallets() {
+      window.location = '/wallets'
     },
     submitAddWallet() {
       if (
