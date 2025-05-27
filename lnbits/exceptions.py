@@ -73,10 +73,10 @@ def register_exception_handlers(app: FastAPI):
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, exc, tb)
         exception_id = uuid()
-        logger.error(f"Exception Id: {exception_id}\n{exc!s}")
+        logger.error(f"Exception ID: {exception_id}\n{exc!s}")
         return render_html_error(request, exc) or JSONResponse(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            content={"detail": f"Unexpected error, ID: {exception_id}"},
+            content={"detail": f"Unexpected error! ID: {exception_id}"},
         )
 
     @app.exception_handler(AssertionError)
