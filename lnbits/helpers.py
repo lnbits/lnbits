@@ -77,6 +77,8 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         "LNBITS_ADMIN_UI": settings.lnbits_admin_ui,
         "LNBITS_AUDIT_ENABLED": settings.lnbits_audit_enabled,
         "LNBITS_AUTH_METHODS": settings.auth_allowed_methods,
+        "LNBITS_AUTH_KEYCLOAK_ORG": settings.keycloak_client_custom_org,
+        "LNBITS_AUTH_KEYCLOAK_ICON": settings.keycloak_client_custom_icon,
         "LNBITS_CUSTOM_IMAGE": settings.lnbits_custom_image,
         "LNBITS_CUSTOM_BADGE": settings.lnbits_custom_badge,
         "LNBITS_CUSTOM_BADGE_COLOR": settings.lnbits_custom_badge_color,
