@@ -319,7 +319,7 @@ window.localisation.en = {
   signin_with_nostr: 'Continue with Nostr',
   signin_with_google: 'Sign in with Google',
   signin_with_github: 'Sign in with GitHub',
-  signin_with_keycloak: 'Sign in with Keycloak',
+  signin_with_keycloak: 'Sign in with {custom_org}',
   username_or_email: 'Username or Email',
   password: 'Password',
   password_config: 'Password Config',
@@ -482,6 +482,8 @@ window.localisation.en = {
   auth_keycloak_ci_hint:
     'Make sure thant the authorization callback URL is set to https://{domain}/api/v1/auth/keycloak/token',
   auth_keycloak_cs_label: 'Keycloak Client Secret',
+  auth_keycloak_custom_org_label: 'Keycloak Custom Organization',
+  auth_keycloak_custom_icon_label: 'Keycloak Custom Icon (URL)',
   currency_settings: 'Currency Settings',
   allowed_currencies: 'Allowed Currencies',
   allowed_currencies_hint: 'Limit the number of available fiat currencies',

@@ -1472,10 +1472,22 @@
       >
         <q-avatar size="32px" class="q-mr-md">
           <q-img
-            :src="`{{ static_url_for('static', 'images/keycloak-logo.png') }}`"
+            :src="
+              keycloakIcon
+                ? keycloakIcon
+                : `{{ static_url_for('static', 'images/keycloak-logo.png') }}`
+            "
           ></q-img>
         </q-avatar>
-        <div><span v-text="$t('signin_with_keycloak')"></span></div>
+        <div>
+          <span
+            v-text="
+              $t('signin_with_keycloak', {
+                custom_org: keycloakOrg
+              })
+            "
+          ></span>
+        </div>
       </q-btn>
     </div>
   </q-card-section>
