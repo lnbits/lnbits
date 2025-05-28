@@ -14,6 +14,7 @@ from .views.payment_api import payment_router
 from .views.tinyurl_api import tinyurl_router
 from .views.user_api import users_router
 from .views.wallet_api import wallet_router
+from .views.webhook_api import webhook_router
 from .views.webpush_api import webpush_router
 from .views.websocket_api import websocket_router
 
@@ -34,6 +35,7 @@ def init_core_routers(app: FastAPI):
     app.include_router(wallet_router)
     app.include_router(api_router)
     app.include_router(websocket_router)
+    app.include_router(webhook_router)
     app.include_router(tinyurl_router)
     app.include_router(webpush_router)
     app.include_router(users_router)
