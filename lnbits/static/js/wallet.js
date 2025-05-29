@@ -35,6 +35,7 @@ window.WalletPageLogic = {
         lnurl: null,
         units: ['sat'],
         unit: 'sat',
+        fiatProvider: '',
         data: {
           amount: null,
           memo: ''
