@@ -608,6 +608,15 @@ class FundingSourcesSettings(
 
 class FiatFundingSourcesSettings(StripeFundingSource):
 
+    def is_fiat_provider_enabled(self, provider: str) -> bool:
+        """
+        Checks if a specific fiat provider is enabled.
+        """
+        if provider == "stripe":
+            return self.stripe_enabled
+        # Add checks for other fiat providers here as needed
+        return False
+
     def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
         """
         Returns a list of fiat payment methods allowed for the user.

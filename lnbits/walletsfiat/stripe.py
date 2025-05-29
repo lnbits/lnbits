@@ -2,6 +2,7 @@ import asyncio
 import json
 from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, Optional
+from urllib.parse import urlencode
 
 import httpx
 from loguru import logger
@@ -29,9 +30,11 @@ class StripeWallet(FiatWallet):
 
         if not settings.stripe_secret_key:
             raise ValueError("Cannot initialize LNbitsWallet: missing secret key.")
-        self.endpoint = self.normalize_endpoint(settings.lnbits_endpoint)
+        self.endpoint = self.normalize_endpoint(
+            settings.stripe_endpoint
+        )  # todo: move to helpers
         self.headers = {
-            "Authorization": settings.stripe_secret_key,
+            "Authorization": f"Bearer {settings.stripe_secret_key}",
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
@@ -61,36 +64,33 @@ class StripeWallet(FiatWallet):
 
     async def create_invoice(
         self,
-        amount: int,
+        amount: float,
         payment_hash: str,
-        currency: Optional[str] = None,
+        currency: str,
         memo: Optional[str] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        currency = str(
-            currency or settings.lnbits_default_accounting_currency or "usd"
-        ).lower()
-
-        data: dict = {
-            "mode": "payment",
-            "success_url": settings.stripe_success_url or "https://lnbits.com",
-            "metadata": {
-                "payment_hash": payment_hash,
-            },
-            "items": [
-                {
-                    "quantity": 1,
-                    "price_data": {
-                        "currency": currency,
-                        "unit_amount": amount,
-                        "product_data": {"name": memo or "LNbits Invoice"},
-                    },
-                }
-            ],
-        }
+        form_data = [
+            ("mode", "payment"),
+            ("success_url", settings.stripe_success_url or "https://lnbits.com"),
+            ("metadata[payment_hash]", payment_hash),
+            # line_items[0]
+            ("line_items[0][price_data][currency]", currency.lower()),
+            ("line_items[0][price_data][product_data][name]", memo or "LNbits Invoice"),
+            (
+                "line_items[0][price_data][unit_amount]",
+                int(amount * 100),
+            ),  # Convert to cents
+            ("line_items[0][quantity]", "1"),
+        ]
+        encoded_data = urlencode(form_data)
 
         try:
-            r = await self.client.post(url="/v1/checkout/sessions", data=data)
+            headers = self.headers.copy()
+            headers["Content-Type"] = "application/x-www-form-urlencoded"
+            r = await self.client.post(
+                url="/v1/checkout/sessions", headers=headers, content=encoded_data
+            )
             r.raise_for_status()
             data = r.json()
 
