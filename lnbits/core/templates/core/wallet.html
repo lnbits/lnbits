@@ -649,13 +649,60 @@
               v-model.trim="receive.data.memo"
               :label="$t('memo')"
             ></q-input>
+            <div class="q-mt-md">
+              <q-list bordered class="rounded-borders">
+                <q-item-label dense header>
+                  <span v-text="$t('select_payment_provider')"></span>
+                </q-item-label>
+                <q-separator></q-separator>
+                <q-item
+                  :active="!receive.fiatProvider"
+                  @click="receive.fiatProvider = ''"
+                  active-class="bg-teal-1 text-grey-8 text-weight-bold"
+                  clickable
+                  v-ripple
+                >
+                  <q-item-section avatar>
+                    <q-avatar square>
+                      <img
+                        :src="'{{ static_url_for('static', 'images/logos/lnbits.png') }}'"
+                      />
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <span
+                      v-text="$t('pay_with', {provider: 'Lightning Network'})"
+                    ></span>
+                  </q-item-section>
+                </q-item>
+                <q-separator></q-separator>
+                <q-item
+                  :active="receive.fiatProvider === 'stripe'"
+                  @click="receive.fiatProvider = 'stripe'"
+                  active-class="bg-teal-1 text-grey-8 text-weight-bold"
+                  clickable
+                  v-ripple
+                >
+                  <q-item-section avatar>
+                    <q-avatar>
+                      <img
+                        :src="'{{ static_url_for('static', 'images/stripe.ico') }}'"
+                      />
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <span v-text="$t('pay_with', {provider: 'Stripe'})"></span>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+
             <div v-if="receive.status == 'pending'" class="row q-mt-lg">
               <q-btn
                 unelevated
                 color="primary"
                 :disable="receive.data.amount == null || receive.data.amount <= 0"
                 type="submit"
-                class="full-width"
               >
                 <span
                   v-if="receive.lnurl"
@@ -663,36 +710,11 @@
                 ></span>
                 <span v-else v-text="$t('create_invoice')"></span>
               </q-btn>
-            </div>
-
-            <div
-              v-if="receive.status == 'pending'"
-              class="full-width text-center"
-            >
-              <span v-text="$t('or')" class="text-grey"></span>
-            </div>
-            <div v-if="receive.status == 'pending'" class="row">
-              <q-btn
-                unelevated
-                color="primary"
-                :disable="receive.data.amount == null || receive.data.amount <= 0"
-                type="submit"
-                class="full-width"
-              >
-                <span v-text="$t('pay_with')" class="q-mr-md"></span> Stripe
-                <!-- <q-avatar height="64px" class="q-mr-md">
-                  <q-img
-                    :src="'{{ static_url_for('static', 'images/stripe-logo.png') }}'"
-                  ></q-img>
-                </q-avatar> -->
-              </q-btn>
-            </div>
-            <div v-if="receive.status == 'pending'" class="row q-mt-lg">
               <q-btn
                 v-close-popup
-                outline
+                flat
                 color="grey"
-                class="full-width"
+                class="q-ml-auto"
                 :label="$t('cancel')"
               ></q-btn>
             </div>

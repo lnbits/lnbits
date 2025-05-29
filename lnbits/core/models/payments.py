@@ -206,6 +206,7 @@ class CreateInvoice(BaseModel):
     webhook: str | None = None
     bolt11: str | None = None
     lnurl_callback: str | None = None
+    fiat_provider: str | None = None
 
     @validator("unit")
     @classmethod
