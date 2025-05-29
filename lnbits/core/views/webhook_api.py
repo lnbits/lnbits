@@ -7,7 +7,8 @@ webhook_router = APIRouter(prefix="/api/v1/webhook", tags=["Webhooks"])
 async def api_generic_webhook_handler(provider_name: str, request: Request):
     print("### Received webhook request ###", provider_name)
     print(f"Headers: {request.headers}")
-    print(f"Body: {await request.body()}")
+    body = await request.body()
+    print(f"Body: {body.decode('utf-8')}")
     return {
         "status": "success",
         "message": f"Webhook received successfully from '{provider_name}'.",
