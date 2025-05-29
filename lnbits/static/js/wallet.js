@@ -254,7 +254,8 @@ window.WalletPageLogic = {
           this.receive.data.amount,
           this.receive.data.memo,
           this.receive.unit,
-          this.receive.lnurl && this.receive.lnurl.callback
+          this.receive.lnurl && this.receive.lnurl.callback,
+          this.receive.fiatProvider
         )
         .then(response => {
           this.g.updatePayments = !this.g.updatePayments
