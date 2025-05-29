@@ -10,6 +10,8 @@ LNbits can run on top of many Lightning Network funding sources with more being 
 
 A backend wallet can be configured using the following LNbits environment variables:
 
+You can [compare the LNbits compatible Lightning Network funding sources here](wallets.md).
+
 ### CoreLightning
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningWallet**
