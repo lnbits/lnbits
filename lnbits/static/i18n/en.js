@@ -374,6 +374,7 @@ window.localisation.en = {
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
+  pay_with: 'Pay with',
   wallet_required: 'Wallet *',
   show_qr: 'Show QR',
   retry_install: 'Retry Install',
