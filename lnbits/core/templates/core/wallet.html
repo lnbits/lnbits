@@ -644,6 +644,8 @@
             <q-input
               filled
               dense
+              type="textarea"
+              rows="2"
               v-model.trim="receive.data.memo"
               :label="$t('memo')"
             ></q-input>
@@ -653,6 +655,7 @@
                 color="primary"
                 :disable="receive.data.amount == null || receive.data.amount <= 0"
                 type="submit"
+                class="full-width"
               >
                 <span
                   v-if="receive.lnurl"
@@ -660,11 +663,36 @@
                 ></span>
                 <span v-else v-text="$t('create_invoice')"></span>
               </q-btn>
+            </div>
+
+            <div
+              v-if="receive.status == 'pending'"
+              class="full-width text-center"
+            >
+              <span v-text="$t('or')" class="text-grey"></span>
+            </div>
+            <div v-if="receive.status == 'pending'" class="row">
+              <q-btn
+                unelevated
+                color="primary"
+                :disable="receive.data.amount == null || receive.data.amount <= 0"
+                type="submit"
+                class="full-width"
+              >
+                <span v-text="$t('pay_with')" class="q-mr-md"></span> Stripe
+                <!-- <q-avatar height="64px" class="q-mr-md">
+                  <q-img
+                    :src="'{{ static_url_for('static', 'images/stripe-logo.png') }}'"
+                  ></q-img>
+                </q-avatar> -->
+              </q-btn>
+            </div>
+            <div v-if="receive.status == 'pending'" class="row q-mt-lg">
               <q-btn
                 v-close-popup
-                flat
+                outline
                 color="grey"
-                class="q-ml-auto"
+                class="full-width"
                 :label="$t('cancel')"
               ></q-btn>
             </div>
