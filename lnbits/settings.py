@@ -566,6 +566,7 @@ class StrikeFundingSource(LNbitsSettings):
 
 
 class StripeFundingSource(LNbitsSettings):
+    stripe_enabled: bool = Field(default=False)
     stripe_endpoint: str = Field(default="https://api.stripe.com")
     stripe_secret_key: str | None = Field(default=None)
     # empty list means all users are allowed to receive payments via Stripe
@@ -606,7 +607,17 @@ class FundingSourcesSettings(
 
 
 class FiatFundingSourcesSettings(StripeFundingSource):
-    pass
+
+    def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
+        """
+        Returns a list of fiat payment methods allowed for the user.
+        """
+        allowed_providers = []
+        if not self.stripe_allowed_users or user_id in self.stripe_allowed_users:
+            allowed_providers.append("stripe")
+
+        # Add other fiat providers here as needed
+        return allowed_providers
 
 
 class WebPushSettings(LNbitsSettings):

@@ -178,7 +178,7 @@ async def test_login_alan_username_password_ok(
     assert user.email == "alan@lnbits.com", "Email check."
     assert not user.pubkey, "No pubkey."
     assert not user.admin, "Not admin."
-    assert not user.super_user, "Not superuser."
+    assert not user.super_user, "Not superuser."  # todo: add test for fiat providers
     assert user.has_password, "Password configured."
     assert (
         len(user.wallets) == 1

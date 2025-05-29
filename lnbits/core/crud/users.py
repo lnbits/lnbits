@@ -195,6 +195,7 @@ async def get_user_from_account(
         wallets=wallets,
         admin=account.is_admin,
         super_user=account.is_super_user,
+        fiat_providers=account.fiat_providers,
         has_password=account.password_hash is not None,
     )
 
