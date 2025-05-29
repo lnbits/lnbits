@@ -565,6 +565,14 @@ class StrikeFundingSource(LNbitsSettings):
     strike_api_key: str | None = Field(default=None, env="STRIKE_API_KEY")
 
 
+class StripeFundingSource(LNbitsSettings):
+    stripe_endpoint: str = Field(default="https://api.stripe.com")
+    stripe_secret_key: str | None = Field(default=None)
+    # empty list means all users are allowed to receive payments via Stripe
+    stripe_allowed_users: list[str] = Field(default=[])
+    stripe_success_url: str = Field(default="https://lnbits.com")
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
@@ -595,6 +603,10 @@ class FundingSourcesSettings(
     # How long to wait for the payment to be confirmed before returning a pending status
     # It will not fail the payment, it will make it return pending after the timeout
     lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
+
+
+class FiatFundingSourcesSettings(StripeFundingSource):
+    pass
 
 
 class WebPushSettings(LNbitsSettings):
@@ -769,6 +781,7 @@ class EditableSettings(
     SecuritySettings,
     NotificationsSettings,
     FundingSourcesSettings,
+    FiatFundingSourcesSettings,
     LightningSettings,
     WebPushSettings,
     NodeUISettings,
