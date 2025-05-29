@@ -57,6 +57,7 @@ from lnbits.helpers import (
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from lnbits.walletsfiat.stripe import StripeWallet
 
 from ..crud import (
     DateTrunc,
@@ -321,9 +322,37 @@ async def api_payments_create(
         )
         return payment
 
-    elif not invoice_data.out:
-        # invoice key
-        return await _api_payments_create_invoice(invoice_data, wallet.wallet)
+    if not invoice_data.out:
+        if not invoice_data.fiat_provider:
+            return await _api_payments_create_invoice(invoice_data, wallet.wallet)
+
+        if invoice_data.unit == "sat":
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                "Fiat provider cannot be used with satoshis.",
+            )
+        if not settings.is_fiat_provider_enabled(invoice_data.fiat_provider):
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                f"Fiat provider {invoice_data.fiat_provider} is not enabled.",
+            )
+
+        # todo: extract
+        invoice_data.internal = True
+        internal_invoice = await _api_payments_create_invoice(
+            invoice_data, wallet.wallet
+        )
+        fiat_provider = StripeWallet()
+        fiat_invoice = await fiat_provider.create_invoice(
+            amount=invoice_data.amount,
+            payment_hash=internal_invoice.payment_hash,
+            currency=invoice_data.unit,
+            memo=invoice_data.memo,
+        )
+        print("### fiat_invoice", fiat_invoice)
+
+        return internal_invoice
+
     else:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,

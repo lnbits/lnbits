@@ -104,7 +104,7 @@ class FiatWallet(ABC):
         self,
         amount: int,
         payment_hash: str,
-        currency: str | None = None,
+        currency: str,
         memo: str | None = None,
         **kwargs,
     ) -> Coroutine[None, None, InvoiceResponse]:

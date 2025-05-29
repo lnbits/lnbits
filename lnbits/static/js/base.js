@@ -19,14 +19,16 @@ window.LNbits = {
       amount,
       memo,
       unit = 'sat',
-      lnurlCallback = null
+      lnurlCallback = null,
+      fiatProvider = null
     ) {
       return this.request('post', '/api/v1/payments', wallet.inkey, {
         out: false,
         amount: amount,
         memo: memo,
         lnurl_callback: lnurlCallback,
-        unit: unit
+        unit: unit,
+        fiat_provider: fiatProvider
       })
     },
     payInvoice(wallet, bolt11) {
