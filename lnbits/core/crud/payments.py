@@ -155,7 +155,9 @@ async def get_payments_paginated(
 
     if exclude_uncheckable:  # checkable means it has a checking_id that isn't internal
         clause.append("checking_id NOT LIKE 'temp_%'")
-        clause.append("checking_id NOT LIKE 'internal_%'")
+        clause.append(
+            "checking_id NOT LIKE 'internal_%' OR checking_id LIKE 'internal_fiat_%'"
+        )
 
     return await (conn or db).fetch_page(
         "SELECT * FROM apipayments",
