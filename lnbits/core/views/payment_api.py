@@ -357,6 +357,7 @@ async def api_payments_create(
         #     internal_payment.checking_id = fiat_invoice.checking_id
         internal_payment.extra["is_fiat_payment"] = True
         internal_payment.extra["fiat_provider"] = "stripe"
+        internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
         internal_payment.extra["fiat_payment_request"] = fiat_invoice.payment_request
         new_checking_id = (
             f"internal_{fiat_invoice.checking_id or internal_payment.checking_id}"
