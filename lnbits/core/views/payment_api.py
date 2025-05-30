@@ -353,13 +353,13 @@ async def api_payments_create(
             memo=invoice_data.memo,
         )
         print("### fiat_invoice", fiat_invoice)
-        fiat_provider = "stripe"
+        fiat_provider_name = "stripe"
         internal_payment.extra["is_fiat_payment"] = True
-        internal_payment.extra["fiat_provider"] = fiat_provider
+        internal_payment.extra["fiat_provider"] = fiat_provider_name
         internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
         internal_payment.extra["fiat_payment_request"] = fiat_invoice.payment_request
         new_checking_id = (
-            f"internal_fiat_{fiat_provider}_"
+            f"internal_fiat_{fiat_provider_name}_"
             f"_{fiat_invoice.checking_id or internal_payment.checking_id}"
         )
         await update_payment(internal_payment, new_checking_id)
