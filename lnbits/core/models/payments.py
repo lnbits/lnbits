@@ -123,9 +123,9 @@ class Payment(BaseModel):
                     return PaymentPendingStatus()
 
                 fiat_provider = StripeWallet()
-                status = await fiat_provider.get_invoice_status(checking_id)
-                print("### status", status)
-                return PaymentStatus(paid=status.paid)
+                fiat_status = await fiat_provider.get_invoice_status(checking_id)
+                print("### status", fiat_status)
+                return PaymentStatus(paid=fiat_status.paid)
             return PaymentPendingStatus()
         funding_source = get_funding_source()
         if self.is_out:
