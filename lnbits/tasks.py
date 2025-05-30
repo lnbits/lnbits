@@ -209,12 +209,6 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
         return
 
     status = await payment.check_status()
-    if not status.success:
-        logger.warning(
-            f"Invoice '{checking_id}' is not settled yet, status: {status}. "
-            "Should never got here!"
-        )
-        return
     payment.fee = status.fee_msat or 0
     # only overwrite preimage if status.preimage provides it
     payment.preimage = status.preimage or payment.preimage
