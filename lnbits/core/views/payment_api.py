@@ -20,6 +20,7 @@ from lnbits import bolt11
 from lnbits.core.crud.payments import (
     get_payment_count_stats,
     get_wallets_stats,
+    update_payment,
 )
 from lnbits.core.models import (
     CreateInvoice,
@@ -338,20 +339,31 @@ async def api_payments_create(
             )
 
         # todo: extract
+        # todo: this should work, maybe Fake wallet creates a new wallet.
+        # todo: test with LNbits wallet
         invoice_data.internal = True
-        internal_invoice = await _api_payments_create_invoice(
+        internal_payment = await _api_payments_create_invoice(
             invoice_data, wallet.wallet
         )
         fiat_provider = StripeWallet()
         fiat_invoice = await fiat_provider.create_invoice(
             amount=invoice_data.amount,
-            payment_hash=internal_invoice.payment_hash,
+            payment_hash=internal_payment.payment_hash,
             currency=invoice_data.unit,
             memo=invoice_data.memo,
         )
         print("### fiat_invoice", fiat_invoice)
-
-        return internal_invoice
+        # if fiat_invoice.checking_id:
+        #     internal_payment.checking_id = fiat_invoice.checking_id
+        internal_payment.extra["is_fiat_payment"] = True
+        internal_payment.extra["fiat_provider"] = "stripe"
+        internal_payment.extra["fiat_payment_request"] = fiat_invoice.payment_request
+        new_checking_id = (
+            f"internal_{fiat_invoice.checking_id or internal_payment.checking_id}"
+        )
+        await update_payment(internal_payment, new_checking_id)
+        internal_payment.checking_id = new_checking_id
+        return internal_payment
 
     else:
         raise HTTPException(

@@ -998,11 +998,23 @@
                 v-if="props.row.isIn && props.row.isPending && props.row.bolt11"
                 class="text-center q-my-lg"
               >
-                <a :href="'lightning:' + props.row.bolt11">
-                  <lnbits-qrcode
-                    :value="'lightning:' + props.row.bolt11.toUpperCase()"
-                  ></lnbits-qrcode>
-                </a>
+                <div v-if="props.row.extra.fiat_payment_request">
+                  <a
+                    :href="props.row.extra.fiat_payment_request"
+                    target="_blank"
+                  >
+                    <lnbits-qrcode
+                      :value="props.row.extra.fiat_payment_request"
+                    ></lnbits-qrcode>
+                  </a>
+                </div>
+                <div v-else>
+                  <a :href="'lightning:' + props.row.bolt11">
+                    <lnbits-qrcode
+                      :value="'lightning:' + props.row.bolt11.toUpperCase()"
+                    ></lnbits-qrcode>
+                  </a>
+                </div>
               </div>
             </q-card-section>
             <q-card-section>
@@ -1013,7 +1025,11 @@
                   "
                   outline
                   color="grey"
-                  @click="copyText(props.row.bolt11)"
+                  @click="
+                    copyText(
+                      props.row.extra.fiat_payment_request || props.row.bolt11
+                    )
+                  "
                   :label="$t('copy_invoice')"
                 ></q-btn>
                 <q-btn
