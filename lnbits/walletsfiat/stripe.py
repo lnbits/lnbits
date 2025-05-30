@@ -70,6 +70,7 @@ class StripeWallet(FiatWallet):
         memo: Optional[str] = None,
         **kwargs,
     ) -> InvoiceResponse:
+        amount_cents = int(amount * 100)
         form_data = [
             ("mode", "payment"),
             ("success_url", settings.stripe_success_url or "https://lnbits.com"),
@@ -77,10 +78,7 @@ class StripeWallet(FiatWallet):
             # line_items[0]
             ("line_items[0][price_data][currency]", currency.lower()),
             ("line_items[0][price_data][product_data][name]", memo or "LNbits Invoice"),
-            (
-                "line_items[0][price_data][unit_amount]",
-                int(amount * 100),
-            ),  # Convert to cents
+            ("line_items[0][price_data][unit_amount]", amount_cents),
             ("line_items[0][quantity]", "1"),
         ]
         encoded_data = urlencode(form_data)
