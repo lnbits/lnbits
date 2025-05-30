@@ -29,7 +29,7 @@ class StripeWallet(FiatWallet):
             raise ValueError("Cannot initialize StripeWallet: missing endpoint.")
 
         if not settings.stripe_secret_key:
-            raise ValueError("Cannot initialize LNbitsWallet: missing secret key.")
+            raise ValueError("Cannot initialize StripeWallet: missing secret key.")
         self.endpoint = self.normalize_endpoint(
             settings.stripe_endpoint
         )  # todo: move to helpers
