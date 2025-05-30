@@ -20,6 +20,7 @@ from lnbits import bolt11
 from lnbits.core.crud.payments import (
     get_payment_count_stats,
     get_wallets_stats,
+    update_payment,
 )
 from lnbits.core.models import (
     CreateInvoice,
@@ -57,6 +58,7 @@ from lnbits.helpers import (
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from lnbits.walletsfiat.stripe import StripeWallet
 
 from ..crud import (
     DateTrunc,
@@ -321,9 +323,49 @@ async def api_payments_create(
         )
         return payment
 
-    elif not invoice_data.out:
-        # invoice key
-        return await _api_payments_create_invoice(invoice_data, wallet.wallet)
+    if not invoice_data.out:
+        if not invoice_data.fiat_provider:
+            return await _api_payments_create_invoice(invoice_data, wallet.wallet)
+
+        if invoice_data.unit == "sat":
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                "Fiat provider cannot be used with satoshis.",
+            )
+        if not settings.is_fiat_provider_enabled(invoice_data.fiat_provider):
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                f"Fiat provider {invoice_data.fiat_provider} is not enabled.",
+            )
+
+        # todo: extract
+        # todo: this should work, maybe Fake wallet creates a new wallet.
+        # todo: test with LNbits wallet
+        invoice_data.internal = True
+        internal_payment = await _api_payments_create_invoice(
+            invoice_data, wallet.wallet
+        )
+        fiat_provider = StripeWallet()
+        fiat_invoice = await fiat_provider.create_invoice(
+            amount=invoice_data.amount,
+            payment_hash=internal_payment.payment_hash,
+            currency=invoice_data.unit,
+            memo=invoice_data.memo,
+        )
+        print("### fiat_invoice", fiat_invoice)
+        fiat_provider_name = "stripe"
+        internal_payment.extra["is_fiat_payment"] = True
+        internal_payment.extra["fiat_provider"] = fiat_provider_name
+        internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
+        internal_payment.extra["fiat_payment_request"] = fiat_invoice.payment_request
+        new_checking_id = (
+            f"internal_fiat_{fiat_provider_name}_"
+            f"_{fiat_invoice.checking_id or internal_payment.checking_id}"
+        )
+        await update_payment(internal_payment, new_checking_id)
+        internal_payment.checking_id = new_checking_id
+        return internal_payment
+
     else:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,

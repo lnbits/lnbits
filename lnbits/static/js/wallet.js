@@ -35,6 +35,7 @@ window.WalletPageLogic = {
         lnurl: null,
         units: ['sat'],
         unit: 'sat',
+        fiatProvider: '',
         data: {
           amount: null,
           memo: ''
@@ -253,12 +254,15 @@ window.WalletPageLogic = {
           this.receive.data.amount,
           this.receive.data.memo,
           this.receive.unit,
-          this.receive.lnurl && this.receive.lnurl.callback
+          this.receive.lnurl && this.receive.lnurl.callback,
+          this.receive.fiatProvider
         )
         .then(response => {
           this.g.updatePayments = !this.g.updatePayments
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.bolt11
+          this.receive.fiatPaymentReq =
+            response.data.extra?.fiat_payment_request
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
           if (!this.receive.lnurl) {
