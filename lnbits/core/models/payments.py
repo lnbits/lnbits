@@ -110,22 +110,16 @@ class Payment(BaseModel):
     def is_internal(self) -> bool:
         return self.checking_id.startswith("internal_")
 
-    async def check_status(self) -> PaymentStatus:
+    async def check_status(
+        self, skip_internal_payment_notifications: bool | None = False
+    ) -> PaymentStatus:
         if self.is_internal:
             if self.success:
                 return PaymentSuccessStatus()
             if self.failed:
                 return PaymentFailedStatus()
             if not self.is_out and self.extra.get("fiat_provider"):
-                # todo: make more generic
-                checking_id = self.extra.get("fiat_checking_id")
-                if not checking_id:
-                    return PaymentPendingStatus()
-
-                fiat_provider = StripeWallet()
-                fiat_status = await fiat_provider.get_invoice_status(checking_id)
-                print("### status", fiat_status)
-                return PaymentStatus(paid=fiat_status.paid)
+                return await self.check_fiat_status(skip_internal_payment_notifications)
             return PaymentPendingStatus()
         funding_source = get_funding_source()
         if self.is_out:
@@ -133,6 +127,36 @@ class Payment(BaseModel):
         else:
             status = await funding_source.get_invoice_status(self.checking_id)
         return status
+
+    async def check_fiat_status(
+        self, skip_internal_payment_notifications: bool | None = False
+    ) -> PaymentStatus:
+        if not self.is_internal:
+            return PaymentPendingStatus()
+        if self.success:
+            return PaymentSuccessStatus()
+        if self.failed:
+            return PaymentFailedStatus()
+
+        checking_id = self.extra.get("fiat_checking_id")
+        if not checking_id:
+            return PaymentPendingStatus()
+
+        fiat_provider = StripeWallet()  # todo: singleton
+        fiat_status = await fiat_provider.get_invoice_status(checking_id)
+        print("### fiat_status", fiat_status)
+        payment_status = PaymentStatus(paid=fiat_status.paid)
+
+        if skip_internal_payment_notifications:
+            return payment_status
+
+        if fiat_status.success:
+            # notify receivers asynchronously
+            from lnbits.tasks import internal_invoice_queue
+
+            await internal_invoice_queue.put(self.checking_id)
+
+        return payment_status
 
 
 class PaymentFilters(FilterModel):
