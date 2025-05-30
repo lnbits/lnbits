@@ -211,7 +211,12 @@
         </q-card>
         <div id="hiddenQrCodeContainer" style="display: none">
           <lnbits-qrcode
-            :value="'lightning:' + this.receive.paymentReq"
+            v-if="receive.fiatPaymentReq"
+            :value="receive.fiatPaymentReq"
+          ></lnbits-qrcode>
+          <lnbits-qrcode
+            v-else
+            :value="'lightning:' + (this.receive.paymentReq || '').toUpperCase()"
           ></lnbits-qrcode>
         </div>
       </div>
@@ -730,7 +735,14 @@
           class="q-pa-lg q-pt-xl lnbits__dialog-card"
         >
           <div class="text-center q-mb-lg">
-            <a :href="'lightning:' + receive.paymentReq">
+            <a
+              v-if="receive.fiatPaymentReq"
+              :href="receive.fiatPaymentReq"
+              target="_blank"
+            >
+              <div v-html="invoiceQrCode"></div>
+            </a>
+            <a v-else :href="'lightning:' + receive.paymentReq">
               <div v-html="invoiceQrCode"></div>
             </a>
           </div>
@@ -741,25 +753,27 @@
             <h5 v-if="receive.unit != 'sat'" class="q-mt-none q-mb-sm">
               <span v-text="formattedSatAmount"></span>
             </h5>
-            <q-chip v-if="hasNfc" outline square color="positive">
-              <q-avatar
-                icon="nfc"
-                color="positive"
-                text-color="white"
-              ></q-avatar>
-              <span v-text="$t('nfc_supported')"></span>
-            </q-chip>
-            <span
-              v-else
-              class="text-caption text-grey"
-              v-text="$t('nfc_not_supported')"
-            ></span>
+            <div v-if="!receive.fiatPaymentReq">
+              <q-chip v-if="hasNfc" outline square color="positive">
+                <q-avatar
+                  icon="nfc"
+                  color="positive"
+                  text-color="white"
+                ></q-avatar>
+                <span v-text="$t('nfc_supported')"></span>
+              </q-chip>
+              <span
+                v-else
+                class="text-caption text-grey"
+                v-text="$t('nfc_not_supported')"
+              ></span>
+            </div>
           </div>
           <div class="row q-mt-lg">
             <q-btn
               outline
               color="grey"
-              @click="copyText(receive.paymentReq)"
+              @click="copyText(receive.fiatPaymentReq || receive.paymentReq)"
               :label="$t('copy_invoice')"
             ></q-btn>
             <q-btn

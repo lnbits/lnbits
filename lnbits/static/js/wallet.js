@@ -261,6 +261,8 @@ window.WalletPageLogic = {
           this.g.updatePayments = !this.g.updatePayments
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.bolt11
+          this.receive.fiatPaymentReq =
+            response.data.extra?.fiat_payment_request
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
           if (!this.receive.lnurl) {
