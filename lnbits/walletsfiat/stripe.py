@@ -122,7 +122,7 @@ class StripeWallet(FiatWallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r = await self.client.get(
-                url=f"/api/v1/payments/{checking_id}",
+                url=f"/v1/checkout/sessions/{checking_id}",
             )
             r.raise_for_status()
 
@@ -136,7 +136,7 @@ class StripeWallet(FiatWallet):
 
             expires_at = data.get("expires_at")
             _24_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
-            if expires_at and expires_at < _24_hours_ago:
+            if expires_at and expires_at < _24_hours_ago.timestamp():
                 # be defensive: add a 24 hour buffer
                 return PaymentFailedStatus()
 

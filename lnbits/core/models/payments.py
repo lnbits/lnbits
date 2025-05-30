@@ -16,6 +16,7 @@ from lnbits.wallets.base import (
     PaymentStatus,
     PaymentSuccessStatus,
 )
+from lnbits.walletsfiat.stripe import StripeWallet
 
 
 class PaymentState(str, Enum):
@@ -115,6 +116,16 @@ class Payment(BaseModel):
                 return PaymentSuccessStatus()
             if self.failed:
                 return PaymentFailedStatus()
+            if not self.is_out and self.extra.get("fiat_provider"):
+                # todo: make more generic
+                checking_id = self.extra.get("fiat_checking_id")
+                if not checking_id:
+                    return PaymentPendingStatus()
+
+                fiat_provider = StripeWallet()
+                status = await fiat_provider.get_invoice_status(checking_id)
+                print("### status", status)
+                return PaymentStatus(paid=status.paid)
             return PaymentPendingStatus()
         funding_source = get_funding_source()
         if self.is_out:
