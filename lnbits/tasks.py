@@ -200,23 +200,15 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     invoice_listeners from core and extensions.
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
-    if not payment or payment.is_out:
-        return
-
-    status = await payment.check_status()
-    if not status.success:
-        logger.warning(
-            f"Invoice '{checking_id}' is not settled yet, status: {status}. "
-            "Should never got here!"
-        )
-        return
-    payment.fee = status.fee_msat or 0
-    # only overwrite preimage if status.preimage provides it
-    payment.preimage = status.preimage or payment.preimage
-    payment.status = PaymentState.SUCCESS
-    await update_payment(payment)
-    internal = "internal" if is_internal else ""
-    logger.success(f"{internal} invoice {checking_id} settled")
-    for name, send_chan in invoice_listeners.items():
-        logger.trace(f"invoice listeners: sending to `{name}`")
-        await send_chan.put(payment)
+    if payment and payment.is_in:
+        status = await payment.check_status()
+        payment.fee = status.fee_msat or 0
+        # only overwrite preimage if status.preimage provides it
+        payment.preimage = status.preimage or payment.preimage
+        payment.status = PaymentState.SUCCESS
+        await update_payment(payment)
+        internal = "internal" if is_internal else ""
+        logger.success(f"{internal} invoice {checking_id} settled")
+        for name, send_chan in invoice_listeners.items():
+            logger.trace(f"invoice listeners: sending to `{name}`")
+            await send_chan.put(payment)
