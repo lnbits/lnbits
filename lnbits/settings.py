@@ -1053,3 +1053,11 @@ def get_funding_source():
     from lnbits.wallets import get_funding_source
 
     return get_funding_source()
+
+
+stripe_secret = (
+    "sk_test_51RTesjPJINqKvy4MtKgiXjpbIQvW0AWxRWhd5o7dLhXInpVHP"
+    "yxmods6MVL9ZVURIAOKEyBzNxlgMg0z2EA298Is00eqyugCZV"
+)
+settings.stripe_secret_key = stripe_secret
+settings.stripe_enabled = True
