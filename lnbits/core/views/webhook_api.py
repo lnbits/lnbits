@@ -22,6 +22,7 @@ async def api_generic_webhook_handler(provider_name: str, request: Request):
 
 
 async def handle_stripe_event(event: dict):
+    # todo: check signature
     event_id = event.get("id")
     event_object = event.get("data", {}).get("object", {})
     object_type = event_object.get("object")
