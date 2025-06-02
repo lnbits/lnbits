@@ -1,6 +1,12 @@
 <q-tab-panel name="fiat_providers">
   <h6 class="q-my-none q-mb-sm">
     <span v-text="$t('fiat_providers')"></span>
+    <q-btn
+      round
+      flat
+      @click="hideInputsToggle()"
+      :icon="hideInputToggle ? 'visibility_off' : 'visibility'"
+    ></q-btn>
   </h6>
 
   <div class="row">
@@ -19,16 +25,92 @@
             <q-item-section> Stripe </q-item-section>
 
             <q-item-section side>
-              <div class="row items-center">Toggle Enabled</div>
+              <div class="row items-center">
+                <q-toggle
+                  size="md"
+                  :label="$t('enabled')"
+                  v-model="formData.stripe_enabled"
+                  color="green"
+                  unchecked-icon="clear"
+                />
+              </div>
             </q-item-section>
           </template>
 
           <q-card>
             <q-card-section>
-              Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quidem,
-              eius reprehenderit eos corrupti commodi magni quaerat ex numquam,
-              dolorum officiis modi facere maiores architecto suscipit iste
-              eveniet doloribus ullam aliquid.
+              <p><span v-text="$t('api')"></span></p>
+              <q-input
+                filled
+                type="text"
+                v-model="formData.stripe_endpoint"
+                :label="$t('endpoint')"
+              ></q-input>
+              <q-input
+                filled
+                class="q-mt-md"
+                :type="hideInputToggle ? 'password' : 'text'"
+                v-model="formData.stripe_secret_key"
+                :label="$t('secret_key')"
+              ></q-input>
+              <q-input
+                filled
+                class="q-mt-md"
+                type="text"
+                v-model="formData.stripe_success_url"
+                :label="$t('callback_success_url')"
+                :hint="$t('callback_success_url_hint')"
+              ></q-input>
+            </q-card-section>
+            <q-card-section>
+              <p><span v-text="$t('webhook')"></span></p>
+              <q-input
+                filled
+                class="q-mt-md"
+                type="text"
+                v-model="formData.stripe_webhook_url"
+                :label="$t('webhook_url')"
+                :hint="$t('webhook_url_hint')"
+              ></q-input>
+              <q-input
+                filled
+                class="q-mt-md"
+                :type="hideInputToggle ? 'password' : 'text'"
+                v-model="formData.stripe_signing_secret"
+                :label="$t('signing_secret')"
+                :hint="$t('signing_secret_hint')"
+              ></q-input>
+            </q-card-section>
+            <q-card-section>
+              <p><span v-text="$t('allowed_users')"></span></p>
+              <q-input
+                filled
+                v-model="formAddStripeUser"
+                @keydown.enter="addAllowedUser"
+                type="text"
+                :label="$t('allowed_users_label')"
+                :hint="$t('allowed_users_hint_feature', {feature: 'Stripe'})"
+              >
+                <q-btn
+                  @click="addStripeAllowedUser"
+                  dense
+                  flat
+                  icon="add"
+                ></q-btn>
+              </q-input>
+              <div>
+                <q-chip
+                  v-for="user in formData.stripe_allowed_users"
+                  :key="user"
+                  removable
+                  @remove="removeStripeAllowedUser(user)"
+                  color="primary"
+                  text-color="white"
+                  :label="user"
+                  class="ellipsis"
+                >
+                </q-chip>
+              </div>
             </q-card-section>
           </q-card>
         </q-expansion-item>
@@ -48,7 +130,7 @@
             <q-item-section> Square </q-item-section>
 
             <q-item-section side>
-              <div class="row items-center">Toggle Disabled</div>
+              <div class="row items-center">Disabled</div>
             </q-item-section>
           </template>
 
