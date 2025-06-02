@@ -38,144 +38,149 @@
           </template>
 
           <q-card class="q-pb-xl">
-            <q-card-section>
-              <p><strong v-text="$t('api')"></strong></p>
-              <q-input
-                filled
-                type="text"
-                v-model="formData.stripe_api_endpoint"
-                :label="$t('endpoint')"
-              ></q-input>
-              <q-input
-                filled
-                class="q-mt-md"
-                :type="hideInputToggle ? 'password' : 'text'"
-                v-model="formData.stripe_api_secret_key"
-                :label="$t('secret_key')"
-              ></q-input>
-              <q-input
-                filled
-                class="q-mt-md"
-                type="text"
-                v-model="formData.stripe_payment_success_url"
-                :label="$t('callback_success_url')"
-                :hint="$t('callback_success_url_hint')"
-              ></q-input>
-            </q-card-section>
-            <q-card-section>
-              <p><strong v-text="$t('webhook')"></strong></p>
-              <q-input
-                filled
-                class="q-mt-md"
-                type="text"
-                v-model="formData.stripe_payment_webhook_url"
-                :label="$t('webhook_url')"
-                :hint="$t('webhook_url_hint')"
-              ></q-input>
-              <q-input
-                filled
-                class="q-mt-md"
-                :type="hideInputToggle ? 'password' : 'text'"
-                v-model="formData.stripe_webhook_signing_secret"
-                :label="$t('signing_secret')"
-                :hint="$t('signing_secret_hint')"
-              ></q-input>
-            </q-card-section>
-            <q-card-section>
-              <p><strong v-text="$t('service_fee')"></strong></p>
-              <div class="row">
-                <div class="col-md-4 col-sm-12">
-                  <q-input
-                    filled
-                    class="q-ma-sm"
-                    type="number"
-                    min="0"
-                    v-model="formData.stripe_service_fee_sats"
-                    :label="$t('service_fee_label')"
-                    :hint="$t('service_fee_hint')"
-                  ></q-input>
+            <q-expansion-item :label="$t('api')" default-opened>
+              <q-card-section class="q-pa-md">
+                <q-input
+                  filled
+                  type="text"
+                  v-model="formData.stripe_api_endpoint"
+                  :label="$t('endpoint')"
+                ></q-input>
+                <q-input
+                  filled
+                  class="q-mt-md"
+                  :type="hideInputToggle ? 'password' : 'text'"
+                  v-model="formData.stripe_api_secret_key"
+                  :label="$t('secret_key')"
+                ></q-input>
+                <q-input
+                  filled
+                  class="q-mt-md"
+                  type="text"
+                  v-model="formData.stripe_payment_success_url"
+                  :label="$t('callback_success_url')"
+                  :hint="$t('callback_success_url_hint')"
+                ></q-input>
+              </q-card-section>
+            </q-expansion-item>
+            <q-expansion-item :label="$t('webhook')" default-opened>
+              <q-card-section>
+                <q-input
+                  filled
+                  class="q-mt-md"
+                  type="text"
+                  v-model="formData.stripe_payment_webhook_url"
+                  :label="$t('webhook_url')"
+                  :hint="$t('webhook_url_hint')"
+                ></q-input>
+                <q-input
+                  filled
+                  class="q-mt-md"
+                  :type="hideInputToggle ? 'password' : 'text'"
+                  v-model="formData.stripe_webhook_signing_secret"
+                  :label="$t('signing_secret')"
+                  :hint="$t('signing_secret_hint')"
+                ></q-input>
+              </q-card-section>
+            </q-expansion-item>
+            <q-expansion-item :label="$t('service_fee')">
+              <q-card-section>
+                <div class="row">
+                  <div class="col-md-4 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="number"
+                      min="0"
+                      v-model="formData.stripe_service_fee_sats"
+                      :label="$t('service_fee_label')"
+                      :hint="$t('service_fee_hint')"
+                    ></q-input>
+                  </div>
+                  <div class="col-md-4 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="number"
+                      min="0"
+                      v-model="formData.stripe_service_fee_percent"
+                      :label="$t('service_fee_max')"
+                      :hint="$t('service_fee_max_hint')"
+                    ></q-input>
+                  </div>
+                  <div class="col-md-4 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="text"
+                      v-model="formData.stripe_service_fee_wallet"
+                      :label="$t('fee_wallet_label')"
+                      :hint="$t('fee_wallet_hint')"
+                    ></q-input>
+                  </div>
                 </div>
-                <div class="col-md-4 col-sm-12">
-                  <q-input
-                    filled
-                    class="q-ma-sm"
-                    type="number"
-                    min="0"
-                    v-model="formData.stripe_service_fee_percent"
-                    :label="$t('service_fee_max')"
-                    :hint="$t('service_fee_max_hint')"
-                  ></q-input>
+              </q-card-section>
+            </q-expansion-item>
+            <q-expansion-item :label="$t('amount_limits')">
+              <q-card-section>
+                <div class="row">
+                  <div class="col-md-6 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="number"
+                      min="0"
+                      v-model="formData.stripe_service_min_amount_sats"
+                      :label="$t('min_incoming_payment_amount')"
+                      :hint="$t('min_incoming_payment_amount_desc')"
+                    ></q-input>
+                  </div>
+                  <div class="col-md-6 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="number"
+                      min="0"
+                      v-model="formData.stripe_service_max_amount_sats"
+                      :label="$t('max_incoming_payment_amount')"
+                      :hint="$t('max_incoming_payment_amount_desc')"
+                    ></q-input>
+                  </div>
                 </div>
-                <div class="col-md-4 col-sm-12">
-                  <q-input
-                    filled
-                    class="q-ma-sm"
-                    type="text"
-                    v-model="formData.stripe_service_fee_wallet"
-                    :label="$t('fee_wallet_label')"
-                    :hint="$t('fee_wallet_hint')"
-                  ></q-input>
-                </div>
-              </div>
-            </q-card-section>
-            <q-card-section>
-              <p><strong v-text="$t('amount_limits')"></strong></p>
-              <div class="row">
-                <div class="col-md-6 col-sm-12">
-                  <q-input
-                    filled
-                    class="q-ma-sm"
-                    type="number"
-                    min="0"
-                    v-model="formData.stripe_service_min_amount_sats"
-                    :label="$t('min_incoming_payment_amount')"
-                    :hint="$t('min_incoming_payment_amount_desc')"
-                  ></q-input>
-                </div>
-                <div class="col-md-6 col-sm-12">
-                  <q-input
-                    filled
-                    class="q-ma-sm"
-                    type="number"
-                    min="0"
-                    v-model="formData.stripe_service_max_amount_sats"
-                    :label="$t('max_incoming_payment_amount')"
-                    :hint="$t('max_incoming_payment_amount_desc')"
-                  ></q-input>
-                </div>
-              </div>
-            </q-card-section>
-            <q-card-section>
-              <p><strong v-text="$t('allowed_users')"></strong></p>
-              <q-input
-                filled
-                v-model="formAddStripeUser"
-                @keydown.enter="addAllowedUser"
-                type="text"
-                :label="$t('allowed_users_label')"
-                :hint="$t('allowed_users_hint_feature', {feature: 'Stripe'})"
-              >
-                <q-btn
-                  @click="addStripeAllowedUser"
-                  dense
-                  flat
-                  icon="add"
-                ></q-btn>
-              </q-input>
-              <div>
-                <q-chip
-                  v-for="user in formData.stripe_allowed_users"
-                  :key="user"
-                  removable
-                  @remove="removeStripeAllowedUser(user)"
-                  color="primary"
-                  text-color="white"
-                  :label="user"
-                  class="ellipsis"
+              </q-card-section>
+            </q-expansion-item>
+            <q-expansion-item :label="$t('allowed_users')">
+              <q-card-section>
+                <q-input
+                  filled
+                  v-model="formAddStripeUser"
+                  @keydown.enter="addAllowedUser"
+                  type="text"
+                  :label="$t('allowed_users_label')"
+                  :hint="$t('allowed_users_hint_feature', {feature: 'Stripe'})"
                 >
-                </q-chip>
-              </div>
-            </q-card-section>
+                  <q-btn
+                    @click="addStripeAllowedUser"
+                    dense
+                    flat
+                    icon="add"
+                  ></q-btn>
+                </q-input>
+                <div>
+                  <q-chip
+                    v-for="user in formData.stripe_allowed_users"
+                    :key="user"
+                    removable
+                    @remove="removeStripeAllowedUser(user)"
+                    color="primary"
+                    text-color="white"
+                    :label="user"
+                    class="ellipsis"
+                  >
+                  </q-chip>
+                </div>
+              </q-card-section>
+            </q-expansion-item>
           </q-card>
         </q-expansion-item>
 
