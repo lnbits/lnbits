@@ -565,7 +565,7 @@ class StrikeFundingSource(LNbitsSettings):
     strike_api_key: str | None = Field(default=None, env="STRIKE_API_KEY")
 
 
-class StripeFundingSource(LNbitsSettings):
+class StripeFiatProvider(LNbitsSettings):
     stripe_enabled: bool = Field(default=False)
     stripe_endpoint: str = Field(default="https://api.stripe.com")
     stripe_secret_key: str | None = Field(default=None)
@@ -606,7 +606,7 @@ class FundingSourcesSettings(
     lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
 
 
-class FiatFundingSourcesSettings(StripeFundingSource):
+class FiatProvidersSettings(StripeFiatProvider):
 
     def is_fiat_provider_enabled(self, provider: str) -> bool:
         """
@@ -801,7 +801,7 @@ class EditableSettings(
     SecuritySettings,
     NotificationsSettings,
     FundingSourcesSettings,
-    FiatFundingSourcesSettings,
+    FiatProvidersSettings,
     LightningSettings,
     WebPushSettings,
     NodeUISettings,
@@ -1054,10 +1054,3 @@ def get_funding_source():
 
     return get_funding_source()
 
-
-stripe_secret = (
-    "sk_test_51RTesjPJINqKvy4MtKgiXjpbIQvW0AWxRWhd5o7dLhXInpVHP"
-    "yxmods6MVL9ZVURIAOKEyBzNxlgMg0z2EA298Is00eqyugCZV"
-)
-settings.stripe_secret_key = stripe_secret
-settings.stripe_enabled = True
