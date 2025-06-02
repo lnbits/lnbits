@@ -173,6 +173,7 @@ window.localisation.en = {
   payment_hash: 'Payment Hash',
   fee: 'Fee',
   amount: 'Amount',
+  amount_limits: 'Amount Limits',
   amount_sats: 'Amount (sats)',
   tag: 'Tag',
   unit: 'Unit',
@@ -501,7 +502,9 @@ window.localisation.en = {
   allowed_currencies_hint: 'Limit the number of available fiat currencies',
   default_account_currency: 'Default Account Currency',
   default_account_currency_hint: 'Default currency for accounting',
-
+  min_incoming_payment_amount: 'Min Incoming Payment Amount',
+  min_incoming_payment_amount_desc:
+    'Minimum amount allowed for generating an invoice',
   max_incoming_payment_amount: 'Max Incoming Payment Amount',
   max_incoming_payment_amount_desc:
     'Maximum amount allowed for generating an invoice',

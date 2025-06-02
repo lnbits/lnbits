@@ -37,9 +37,9 @@
             </q-item-section>
           </template>
 
-          <q-card>
+          <q-card class="q-pb-xl">
             <q-card-section>
-              <p><span v-text="$t('api')"></span></p>
+              <p><strong v-text="$t('api')"></strong></p>
               <q-input
                 filled
                 type="text"
@@ -63,7 +63,7 @@
               ></q-input>
             </q-card-section>
             <q-card-section>
-              <p><span v-text="$t('webhook')"></span></p>
+              <p><strong v-text="$t('webhook')"></strong></p>
               <q-input
                 filled
                 class="q-mt-md"
@@ -82,7 +82,71 @@
               ></q-input>
             </q-card-section>
             <q-card-section>
-              <p><span v-text="$t('allowed_users')"></span></p>
+              <p><strong v-text="$t('service_fee')"></strong></p>
+              <div class="row">
+                <div class="col-md-4 col-sm-12">
+                  <q-input
+                    filled
+                    class="q-ma-sm"
+                    type="number"
+                    min="0"
+                    v-model="formData.stripe_service_fee_sats"
+                    :label="$t('service_fee_label')"
+                    :hint="$t('service_fee_hint')"
+                  ></q-input>
+                </div>
+                <div class="col-md-4 col-sm-12">
+                  <q-input
+                    filled
+                    class="q-ma-sm"
+                    type="number"
+                    min="0"
+                    v-model="formData.stripe_service_fee_percent"
+                    :label="$t('service_fee_max')"
+                    :hint="$t('service_fee_max_hint')"
+                  ></q-input>
+                </div>
+                <div class="col-md-4 col-sm-12">
+                  <q-input
+                    filled
+                    class="q-ma-sm"
+                    type="text"
+                    v-model="formData.stripe_service_fee_wallet"
+                    :label="$t('fee_wallet_label')"
+                    :hint="$t('fee_wallet_hint')"
+                  ></q-input>
+                </div>
+              </div>
+            </q-card-section>
+            <q-card-section>
+              <p><strong v-text="$t('amount_limits')"></strong></p>
+              <div class="row">
+                <div class="col-md-6 col-sm-12">
+                  <q-input
+                    filled
+                    class="q-ma-sm"
+                    type="number"
+                    min="0"
+                    v-model="formData.stripe_service_min_amount_sats"
+                    :label="$t('min_incoming_payment_amount')"
+                    :hint="$t('min_incoming_payment_amount_desc')"
+                  ></q-input>
+                </div>
+                <div class="col-md-6 col-sm-12">
+                  <q-input
+                    filled
+                    class="q-ma-sm"
+                    type="number"
+                    min="0"
+                    v-model="formData.stripe_service_max_amount_sats"
+                    :label="$t('max_incoming_payment_amount')"
+                    :hint="$t('max_incoming_payment_amount_desc')"
+                  ></q-input>
+                </div>
+              </div>
+            </q-card-section>
+            <q-card-section>
+              <p><strong v-text="$t('allowed_users')"></strong></p>
               <q-input
                 filled
                 v-model="formAddStripeUser"
