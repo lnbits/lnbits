@@ -4,7 +4,59 @@
   </h6>
 
   <div class="row">
-    <div class="col-md-8 col-sm-12"></div>
-    <div class="col-md-4 col-sm-12"></div>
+    <div class="col">
+      <q-list bordered class="rounded-borders">
+        <q-expansion-item header-class="text-primary text-bold">
+          <template v-slot:header>
+            <q-item-section avatar>
+              <q-avatar>
+                <img
+                  :src="'{{ static_url_for('static', 'images/stripe_logo.ico') }}'"
+                />
+              </q-avatar>
+            </q-item-section>
+
+            <q-item-section> Stripe </q-item-section>
+
+            <q-item-section side>
+              <div class="row items-center">Toggle Enabled</div>
+            </q-item-section>
+          </template>
+
+          <q-card>
+            <q-card-section>
+              Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quidem,
+              eius reprehenderit eos corrupti commodi magni quaerat ex numquam,
+              dolorum officiis modi facere maiores architecto suscipit iste
+              eveniet doloribus ullam aliquid.
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
+
+        <q-separator />
+
+        <q-expansion-item header-class="text-primary text-bold">
+          <template v-slot:header>
+            <q-item-section avatar>
+              <q-avatar>
+                <img
+                  :src="'{{ static_url_for('static', 'images/square_logo.png') }}'"
+                />
+              </q-avatar>
+            </q-item-section>
+
+            <q-item-section> Square </q-item-section>
+
+            <q-item-section side>
+              <div class="row items-center">Toggle Disabled</div>
+            </q-item-section>
+          </template>
+
+          <q-card>
+            <q-card-section> Comming Soon </q-card-section>
+          </q-card>
+        </q-expansion-item>
+      </q-list>
+    </div>
   </div>
 </q-tab-panel>
