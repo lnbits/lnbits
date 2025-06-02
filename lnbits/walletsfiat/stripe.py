@@ -25,16 +25,16 @@ class StripeWallet(FiatWallet):
     """https://docs.stripe.com/api"""
 
     def __init__(self):
-        if not settings.stripe_endpoint:
+        if not settings.stripe_api_endpoint:
             raise ValueError("Cannot initialize StripeWallet: missing endpoint.")
 
-        if not settings.stripe_secret_key:
+        if not settings.stripe_api_secret_key:
             raise ValueError("Cannot initialize StripeWallet: missing secret key.")
         self.endpoint = self.normalize_endpoint(
-            settings.stripe_endpoint
+            settings.stripe_api_endpoint
         )  # todo: move to helpers
         self.headers = {
-            "Authorization": f"Bearer {settings.stripe_secret_key}",
+            "Authorization": f"Bearer {settings.stripe_api_secret_key}",
             "User-Agent": settings.user_agent,
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
@@ -73,7 +73,10 @@ class StripeWallet(FiatWallet):
         amount_cents = int(amount * 100)
         form_data = [
             ("mode", "payment"),
-            ("success_url", settings.stripe_success_url or "https://lnbits.com"),
+            (
+                "success_url",
+                settings.stripe_payment_success_url or "https://lnbits.com",
+            ),
             ("metadata[payment_hash]", payment_hash),
             # line_items[0]
             ("line_items[0][price_data][currency]", currency.lower()),
