@@ -3,6 +3,7 @@ from loguru import logger
 
 from lnbits.core.crud.payments import get_standalone_payment
 
+# todo: rename to callbacks_api.py
 webhook_router = APIRouter(prefix="/api/v1/webhook", tags=["Webhooks"])
 
 
