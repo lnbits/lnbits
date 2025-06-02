@@ -622,7 +622,9 @@ class FiatProvidersSettings(StripeFiatProvider):
         Returns a list of fiat payment methods allowed for the user.
         """
         allowed_providers = []
-        if not self.stripe_allowed_users or user_id in self.stripe_allowed_users:
+        if self.stripe_enabled and (
+            not self.stripe_allowed_users or user_id in self.stripe_allowed_users
+        ):
             allowed_providers.append("stripe")
 
         # Add other fiat providers here as needed
@@ -1053,4 +1055,3 @@ def get_funding_source():
     from lnbits.wallets import get_funding_source
 
     return get_funding_source()
-
