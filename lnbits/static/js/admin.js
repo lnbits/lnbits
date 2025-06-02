@@ -54,6 +54,7 @@ window.AdminPageLogic = {
       chartReady: false,
       formAddAdmin: '',
       formAddUser: '',
+      formAddStripeUser: '',
       hideInputToggle: true,
       formAddExtensionsManifest: '',
       nostrNotificationIdentifier: '',
@@ -186,6 +187,23 @@ window.AdminPageLogic = {
     removeAllowedUser(user) {
       let allowed_users = this.formData.lnbits_allowed_users
       this.formData.lnbits_allowed_users = allowed_users.filter(u => u !== user)
+    },
+    addStripeAllowedUser() {
+      const addUser = this.formAddStripeUser || ''
+      if (
+        addUser.length &&
+        !this.formData.stripe_allowed_users.includes(addUser)
+      ) {
+        this.formData.stripe_allowed_users = [
+          ...this.formData.stripe_allowed_users,
+          addUser
+        ]
+        this.formAddStripeUser = ''
+      }
+    },
+    removeStripeAllowedUser(user) {
+      this.formData.stripe_allowed_users =
+        this.formData.stripe_allowed_users.filter(u => u !== user)
     },
     addIncludePath() {
       if (!this.formAddIncludePath) {

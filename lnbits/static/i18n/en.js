@@ -142,6 +142,7 @@ window.localisation.en = {
   uninstall: 'Uninstall',
   drop_db: 'Remove Data',
   enable: 'Enable',
+  enabled: 'Enabled',
   pay_to_enable: 'Pay To Enable',
   enable_extension_details: 'Enable extension for current user',
   disable: 'Disable',
@@ -178,6 +179,9 @@ window.localisation.en = {
   description: 'Description',
   expiry: 'Expiry',
   webhook: 'Webhook',
+  webhook_url: 'Webhook URL',
+  webhook_url_hint:
+    'Webhook URL to send the payment details to. It will be called when the payment is completed.',
   payment_proof: 'Payment Proof',
   update: 'Update',
   update_available: 'Update {version} available!',
@@ -358,6 +362,8 @@ window.localisation.en = {
   back: 'Back',
   logout: 'Logout',
   look_and_feel: 'Look and Feel',
+  endpoint: 'Endpoint',
+  api: 'API',
   api_token: 'API Token',
   api_tokens: 'API Tokens',
   access_control_list: 'Access Control List',
@@ -557,6 +563,7 @@ window.localisation.en = {
   admin_users_label: 'User ID',
   allowed_users: 'Allowed Users',
   allowed_users_hint: 'Only these users can use LNbits',
+  allowed_users_hint_feature: 'Only these users can use {feature}',
   allowed_users_label: 'User ID',
   allow_creation_user: 'Allow creation of new users',
   allow_creation_user_desc: 'Allow creation of new users on the index page',
@@ -591,5 +598,11 @@ window.localisation.en = {
   view_column: 'View wallets as rows',
   filter_payments: 'Filter payments',
   filter_date: 'Filter by date',
-  websocket_example: 'Websocket example'
+  websocket_example: 'Websocket example',
+  secret_key: 'Secret Key',
+  signing_secret: 'Signing Secret',
+  signing_secret_hint: 'Signing secret for the webhook. Messages will be signed with this secret.',
+  callback_success_url: 'Callback Success URL',
+  callback_success_url_hint:
+    'The user will be redirected to this URL after the payment is successful'
 }
