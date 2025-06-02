@@ -567,15 +567,15 @@ class StrikeFundingSource(LNbitsSettings):
 
 class StripeFiatProvider(LNbitsSettings):
     stripe_enabled: bool = Field(default=False)
-    stripe_endpoint: str = Field(default="https://api.stripe.com")
-    stripe_secret_key: str | None = Field(default=None)
-    stripe_success_url: str = Field(default="https://lnbits.com")
+    stripe_api_endpoint: str = Field(default="https://api.stripe.com")
+    stripe_api_secret_key: str | None = Field(default=None)
+    stripe_payment_success_url: str = Field(default="https://lnbits.com")
 
-    stripe_webhook_url: str = Field(
-        default="https://your-domain-here.com/api/v1/webhook/stripe"
+    stripe_payment_webhook_url: str = Field(
+        default="https://your-lnbits-domain-here.com/api/v1/webhook/stripe"
     )
     # Use this secret to verify that events come from Stripe.
-    stripe_signing_secret: str | None = Field(default=None)
+    stripe_webhook_signing_secret: str | None = Field(default=None)
 
     # empty list means all users are allowed to receive payments via Stripe
     stripe_allowed_users: list[str] = Field(default=[])

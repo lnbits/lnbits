@@ -43,21 +43,21 @@
               <q-input
                 filled
                 type="text"
-                v-model="formData.stripe_endpoint"
+                v-model="formData.stripe_api_endpoint"
                 :label="$t('endpoint')"
               ></q-input>
               <q-input
                 filled
                 class="q-mt-md"
                 :type="hideInputToggle ? 'password' : 'text'"
-                v-model="formData.stripe_secret_key"
+                v-model="formData.stripe_api_secret_key"
                 :label="$t('secret_key')"
               ></q-input>
               <q-input
                 filled
                 class="q-mt-md"
                 type="text"
-                v-model="formData.stripe_success_url"
+                v-model="formData.stripe_payment_success_url"
                 :label="$t('callback_success_url')"
                 :hint="$t('callback_success_url_hint')"
               ></q-input>
@@ -68,7 +68,7 @@
                 filled
                 class="q-mt-md"
                 type="text"
-                v-model="formData.stripe_webhook_url"
+                v-model="formData.stripe_payment_webhook_url"
                 :label="$t('webhook_url')"
                 :hint="$t('webhook_url_hint')"
               ></q-input>
@@ -76,7 +76,7 @@
                 filled
                 class="q-mt-md"
                 :type="hideInputToggle ? 'password' : 'text'"
-                v-model="formData.stripe_signing_secret"
+                v-model="formData.stripe_webhook_signing_secret"
                 :label="$t('signing_secret')"
                 :hint="$t('signing_secret_hint')"
               ></q-input>

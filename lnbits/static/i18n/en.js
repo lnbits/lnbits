@@ -601,7 +601,8 @@ window.localisation.en = {
   websocket_example: 'Websocket example',
   secret_key: 'Secret Key',
   signing_secret: 'Signing Secret',
-  signing_secret_hint: 'Signing secret for the webhook. Messages will be signed with this secret.',
+  signing_secret_hint:
+    'Signing secret for the webhook. Messages will be signed with this secret.',
   callback_success_url: 'Callback Success URL',
   callback_success_url_hint:
     'The user will be redirected to this URL after the payment is successful'
