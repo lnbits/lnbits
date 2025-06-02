@@ -580,6 +580,13 @@ class StripeFiatProvider(LNbitsSettings):
     # empty list means all users are allowed to receive payments via Stripe
     stripe_allowed_users: list[str] = Field(default=[])
 
+    stripe_service_fee_sats: float = Field(default=0)
+    stripe_service_fee_percent: float = Field(default=0)
+    stripe_service_fee_wallet: str = Field(default="")
+
+    stripe_service_min_amount_sats: int = Field(default=0)
+    stripe_service_max_amount_sats: int = Field(default=0)
+
 
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
