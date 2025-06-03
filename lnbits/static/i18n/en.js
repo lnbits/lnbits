@@ -22,6 +22,7 @@ window.localisation.en = {
   active_channels: 'Active Channels',
   connect_peer: 'Connect Peer',
   connect: 'Connect',
+  reconnect: 'Reconnect',
   open_channel: 'Open Channel',
   open: 'Open',
   close_channel: 'Close Channel',
