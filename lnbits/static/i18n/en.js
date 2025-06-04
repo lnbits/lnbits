@@ -319,7 +319,7 @@ window.localisation.en = {
   signin_with_nostr: 'Continue with Nostr',
   signin_with_google: 'Sign in with Google',
   signin_with_github: 'Sign in with GitHub',
-  signin_with_keycloak: 'Sign in with {custom_org}',
+  signin_with_custom_org: 'Sign in with {custom_org}',
   username_or_email: 'Username or Email',
   password: 'Password',
   password_config: 'Password Config',
