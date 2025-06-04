@@ -667,9 +667,7 @@ window.app.component('username-password', {
       return this.oauth.some(m => this.authMethods.includes(m))
     }
   },
-  created() {
-    console.log(this.keycloakIcon)
-  }
+  created() {}
 })
 
 window.app.component('separator-text', {
