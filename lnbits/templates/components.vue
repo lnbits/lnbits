@@ -1482,7 +1482,7 @@
         <div>
           <span
             v-text="
-              $t('signin_with_keycloak', {
+              $t('signin_with_custom_org', {
                 custom_org: keycloakOrg
               })
             "
