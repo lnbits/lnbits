@@ -61,6 +61,8 @@ class Payment(BaseModel):
     amount: int
     fee: int
     bolt11: str
+    # payment_request: str | None
+    # fiat_provider: str | None
     status: str = PaymentState.PENDING
     memo: str | None = None
     expiry: datetime | None = None

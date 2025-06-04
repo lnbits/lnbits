@@ -7,9 +7,10 @@ if TYPE_CHECKING:
     pass
 
 
-class StatusResponse(NamedTuple):
-    error_message: str | None
-    balance_msat: int
+class FiatStatusResponse(NamedTuple):
+    error_message: str | None = None
+    balance: float = 0
+    currency: str = "usd"
 
 
 class InvoiceResponse(NamedTuple):
@@ -96,7 +97,7 @@ class FiatWallet(ABC):
         pass
 
     @abstractmethod
-    def status(self) -> Coroutine[None, None, StatusResponse]:
+    def status(self) -> Coroutine[None, None, FiatStatusResponse]:
         pass
 
     @abstractmethod

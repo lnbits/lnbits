@@ -631,6 +631,21 @@ window.AdminPageLogic = {
             .catch(LNbits.utils.notifyApiError)
         })
     },
+    checkFiatProvider(providerName) {
+      LNbits.api
+        .request('PUT', `/api/v1/fiat/check/${providerName}`)
+        .then(response => {
+          response
+          console.log('### response', response)
+          const data = response.data
+          Quasar.Notify.create({
+            type: data.success ? 'positive' : 'warning',
+            message: data.message,
+            icon: null
+          })
+        })
+        .catch(LNbits.utils.notifyApiError)
+    },
     downloadBackup() {
       window.open('/admin/api/v1/backup', '_blank')
     },
