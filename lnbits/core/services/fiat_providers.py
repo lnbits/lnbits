@@ -2,7 +2,6 @@ from loguru import logger
 
 from lnbits.core.crud.payments import get_standalone_payment
 from lnbits.core.models.misc import SimpleStatus
-from lnbits.settings import settings
 from lnbits.walletsfiat import get_fiat_provider
 
 
@@ -27,23 +26,21 @@ async def handle_stripe_event(event: dict):
     await payment.check_fiat_status()
 
 
-async def test_stripe_connection() -> SimpleStatus:
+async def test_connection(provider: str) -> SimpleStatus:
     """
     Test the connection to Stripe by checking if the API key is valid.
     This function should be called when setting up or testing the Stripe integration.
     """
-    if not settings.stripe_enabled:
+    stripe_provider = get_fiat_provider(provider)
+    status = await stripe_provider.status()
+    if status.error_message:
         return SimpleStatus(
             success=False,
-            message="Stripe connection not enabled.",
+            message=f"Cconnection test failed: {status.error_message}",
         )
-    stripe_provider = get_fiat_provider("stripe")
-    if not stripe_provider:
-        return SimpleStatus(
-            success=False,
-            message="Stripe provider not initialized.",
-        )
+
     return SimpleStatus(
         success=True,
-        message="Stripe connection test successful.",
+        message="Connection test successful."
+        f" Balance: {status.balance} {status.currency}.",
     )

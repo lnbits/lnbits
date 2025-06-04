@@ -20,7 +20,6 @@ from lnbits.core.services import (
     get_balance_delta,
     update_cached_settings,
 )
-from lnbits.core.services.fiat_providers import test_stripe_connection
 from lnbits.core.services.notifications import send_email_notification
 from lnbits.core.services.settings import dict_to_settings
 from lnbits.decorators import check_admin, check_super_user
@@ -256,17 +255,3 @@ async def delete_uploaded_image(filename: str) -> SimpleStatus:
 
     file_path.unlink()
     return SimpleStatus(success=True, message=f"{filename} deleted")
-
-
-@admin_router.put(
-    "/api/v1/test/fiat/{provider}",
-    status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_admin)],
-)
-async def api_test_fiat_provider(provider: str) -> SimpleStatus:
-    if provider == "stripe":
-        return await test_stripe_connection()
-    return SimpleStatus(
-        success=False,
-        message=f"Provider '{provider}' not supported.",
-    )

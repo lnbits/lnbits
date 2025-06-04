@@ -10,6 +10,7 @@ from loguru import logger
 from lnbits.settings import settings
 
 from .base import (
+    FiatStatusResponse,
     FiatWallet,
     InvoiceResponse,
     PaymentFailedStatus,
@@ -17,7 +18,6 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     PaymentSuccessStatus,
-    StatusResponse,
 )
 
 
@@ -25,19 +25,7 @@ class StripeWallet(FiatWallet):
     """https://docs.stripe.com/api"""
 
     def __init__(self):
-        if not settings.stripe_api_endpoint:
-            raise ValueError("Cannot initialize StripeWallet: missing endpoint.")
-
-        if not settings.stripe_api_secret_key:
-            raise ValueError("Cannot initialize StripeWallet: missing secret key.")
-        self.endpoint = self.normalize_endpoint(
-            settings.stripe_api_endpoint
-        )  # todo: move to helpers
-        self.headers = {
-            "Authorization": f"Bearer {settings.stripe_api_secret_key}",
-            "User-Agent": settings.user_agent,
-        }
-        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+        self._init_connection()
 
     async def cleanup(self):
         try:
@@ -45,22 +33,21 @@ class StripeWallet(FiatWallet):
         except RuntimeError as e:
             logger.warning(f"Error closing stripe wallet connection: {e}")
 
-    async def status(self) -> StatusResponse:
+    async def status(self) -> FiatStatusResponse:
         try:
             r = await self.client.get(url="/v1/balance", timeout=15)
             r.raise_for_status()
             data = r.json()
 
-            available_balance = data.get("available", {}).get("amount", 0)
-            pending_balance = data.get("pending", {}).get("amount", 0)
+            available_balance = data.get("available", [{}])[0].get("amount", 0)
+            # pending_balance = data.get("pending", {}).get("amount", 0)
 
-            # todo: handle currency vs msats
-            return StatusResponse(None, available_balance + pending_balance)
+            return FiatStatusResponse(balance=available_balance)
         except json.JSONDecodeError:
-            return StatusResponse("Server error: 'invalid json response'", 0)
+            return FiatStatusResponse("Server error: 'invalid json response'", 0)
         except Exception as exc:
             logger.warning(exc)
-            return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
+            return FiatStatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
     async def create_invoice(
         self,
@@ -159,3 +146,18 @@ class StripeWallet(FiatWallet):
         while settings.lnbits_running:
             value = await mock_queue.get()
             yield value
+
+    def _init_connection(self):
+        if not settings.stripe_api_endpoint:
+            raise ValueError("Cannot initialize StripeWallet: missing endpoint.")
+
+        if not settings.stripe_api_secret_key:
+            raise ValueError("Cannot initialize StripeWallet: missing secret key.")
+        self.endpoint = self.normalize_endpoint(
+            settings.stripe_api_endpoint
+        )  # todo: move to helpers
+        self.headers = {
+            "Authorization": f"Bearer {settings.stripe_api_secret_key}",
+            "User-Agent": settings.user_agent,
+        }
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
