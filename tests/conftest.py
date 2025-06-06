@@ -19,8 +19,8 @@ from lnbits.core.crud import (
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
 from lnbits.core.models.users import UpdateSuperuserPassword
 from lnbits.core.services import create_user_account, update_wallet_balance
+from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.views.auth_api import first_install
-from lnbits.core.views.payment_api import _api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import AuthMethods, Settings
 from lnbits.settings import settings as lnbits_settings
@@ -255,7 +255,7 @@ async def adminkey_headers_to(to_wallet):
 async def invoice(to_wallet):
     data = await get_random_invoice_data()
     invoice_data = CreateInvoice(**data)
-    invoice = await _api_payments_create_invoice(invoice_data, to_wallet)
+    invoice = await create_wallet_invoice(invoice_data, to_wallet.id)
     yield invoice
     del invoice
 

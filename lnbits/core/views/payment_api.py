@@ -20,7 +20,6 @@ from lnbits import bolt11
 from lnbits.core.crud.payments import (
     get_payment_count_stats,
     get_wallets_stats,
-    update_payment,
 )
 from lnbits.core.models import (
     CreateInvoice,
@@ -37,10 +36,6 @@ from lnbits.core.models import (
     PaymentWalletStats,
 )
 from lnbits.core.models.users import User
-from lnbits.core.services.payments import (
-    get_payments_daily_stats,
-    update_pending_payment,
-)
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -57,7 +52,6 @@ from lnbits.helpers import (
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
-from lnbits.walletsfiat.stripe import StripeWallet
 
 from ..crud import (
     DateTrunc,
@@ -68,9 +62,12 @@ from ..crud import (
     get_wallet_for_key,
 )
 from ..services import (
-    create_invoice,
+    create_wallet_fiat_invoice,
+    create_wallet_invoice,
     fee_reserve_total,
+    get_payments_daily_stats,
     pay_invoice,
+    update_pending_payment,
     update_pending_payments,
 )
 
@@ -266,11 +263,11 @@ async def api_payments_create(
             detail="Invoice (or Admin) key required.",
         )
 
-    # If the invoice is not outgoing, we can create a new invoice.
+    # If the payment is not outgoing, we can create a new invoice.
     if invoice_data.fiat_provider:
-        return await _api_payments_create_fiat_invoice(invoice_data, wallet_id)
+        return await create_wallet_fiat_invoice(invoice_data, wallet_id)
 
-    return await _api_payments_create_invoice(invoice_data, wallet_id)
+    return await create_wallet_invoice(invoice_data, wallet_id)
 
 
 @payment_router.get("/fee-reserve")
@@ -470,109 +467,3 @@ async def api_payment_pay_with_nfc(
 
         except Exception as e:
             return JSONResponse({"success": False, "detail": f"Unexpected error: {e}"})
-
-
-async def _api_payments_create_fiat_invoice(
-    invoice_data: CreateInvoice, wallet_id: str
-):
-    if invoice_data.unit == "sat":
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            "Fiat provider cannot be used with satoshis.",
-        )
-
-    fiat_provider_name = invoice_data.fiat_provider
-    if not settings.is_fiat_provider_enabled(fiat_provider_name):
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            f"Fiat provider '{fiat_provider_name}' is not enabled.",
-        )
-
-    # todo: extract
-    # todo: this should work, maybe Fake wallet creates a new wallet.
-    # todo: test with LNbits wallet
-    invoice_data.internal = True
-    internal_payment = await _api_payments_create_invoice(invoice_data, wallet_id)
-    fiat_provider = StripeWallet()
-    fiat_invoice = await fiat_provider.create_invoice(
-        amount=invoice_data.amount,
-        payment_hash=internal_payment.payment_hash,
-        currency=invoice_data.unit,
-        memo=invoice_data.memo,
-    )
-    print("### fiat_invoice", fiat_invoice)
-
-    internal_payment.extra["is_fiat_payment"] = True
-    internal_payment.extra["fiat_provider"] = fiat_provider_name
-    internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
-    internal_payment.extra["fiat_payment_request"] = fiat_invoice.payment_request
-    new_checking_id = (
-        f"internal_fiat_{fiat_provider_name}_"
-        f"_{fiat_invoice.checking_id or internal_payment.checking_id}"
-    )
-    await update_payment(internal_payment, new_checking_id)
-    internal_payment.checking_id = new_checking_id
-    return internal_payment
-
-
-async def _api_payments_create_invoice(data: CreateInvoice, wallet_id: str) -> Payment:
-    description_hash = b""
-    unhashed_description = b""
-    memo = data.memo or settings.lnbits_site_title
-    if data.description_hash or data.unhashed_description:
-        if data.description_hash:
-            try:
-                description_hash = bytes.fromhex(data.description_hash)
-            except ValueError as exc:
-                raise HTTPException(
-                    status_code=HTTPStatus.BAD_REQUEST,
-                    detail="'description_hash' must be a valid hex string",
-                ) from exc
-        if data.unhashed_description:
-            try:
-                unhashed_description = bytes.fromhex(data.unhashed_description)
-            except ValueError as exc:
-                raise HTTPException(
-                    status_code=HTTPStatus.BAD_REQUEST,
-                    detail="'unhashed_description' must be a valid hex string",
-                ) from exc
-        # do not save memo if description_hash or unhashed_description is set
-        memo = ""
-
-    payment = await create_invoice(
-        wallet_id=wallet_id,
-        amount=data.amount,
-        memo=memo,
-        currency=data.unit,
-        description_hash=description_hash,
-        unhashed_description=unhashed_description,
-        expiry=data.expiry,
-        extra=data.extra,
-        webhook=data.webhook,
-        internal=data.internal,
-    )
-
-    # lnurl_response is not saved in the database
-    if data.lnurl_callback:
-        headers = {"User-Agent": settings.user_agent}
-        async with httpx.AsyncClient(headers=headers) as client:
-            try:
-                check_callback_url(data.lnurl_callback)
-                r = await client.get(
-                    data.lnurl_callback,
-                    params={"pr": payment.bolt11},
-                    timeout=10,
-                )
-                if r.is_error:
-                    payment.extra["lnurl_response"] = r.text
-                else:
-                    resp = json.loads(r.text)
-                    if resp["status"] != "OK":
-                        payment.extra["lnurl_response"] = resp["reason"]
-                    else:
-                        payment.extra["lnurl_response"] = True
-            except (httpx.ConnectError, httpx.RequestError) as ex:
-                logger.error(ex)
-                payment.extra["lnurl_response"] = False
-
-    return payment
