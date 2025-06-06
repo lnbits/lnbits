@@ -199,6 +199,7 @@ window.LNbits = {
         email: data.email,
         extensions: data.extensions,
         wallets: data.wallets,
+        fiat_providers: data.fiat_providers || [],
         super_user: data.super_user,
         extra: data.extra ?? {}
       }

@@ -824,6 +824,9 @@ window.WalletPageLogic = {
     },
     swapBalancePriority() {
       this.isFiatPriority = !this.isFiatPriority
+      this.receive.unit = this.isFiatPriority
+        ? this.g.wallet.currency || 'sat'
+        : 'sat'
       this.$q.localStorage.setItem('lnbits.isFiatPriority', this.isFiatPriority)
     },
     handleFiatTracking() {
