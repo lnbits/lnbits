@@ -35,7 +35,6 @@ from lnbits.core.models import (
     PaymentFilters,
     PaymentHistoryPoint,
     PaymentWalletStats,
-    Wallet,
 )
 from lnbits.core.models.users import User
 from lnbits.core.services.payments import (
@@ -247,6 +246,7 @@ async def api_payments_create(
     invoice_data: CreateInvoice,
     wallet: WalletTypeInfo = Depends(require_invoice_key),
 ) -> Payment:
+    wallet_id = wallet.wallet.id
     if invoice_data.out is True and wallet.key_type == KeyType.admin:
         if not invoice_data.bolt11:
             raise HTTPException(
@@ -254,7 +254,7 @@ async def api_payments_create(
                 detail="Missing BOLT11 invoice",
             )
         payment = await pay_invoice(
-            wallet_id=wallet.wallet.id,
+            wallet_id=wallet_id,
             payment_request=invoice_data.bolt11,
             extra=invoice_data.extra,
         )
@@ -268,9 +268,9 @@ async def api_payments_create(
 
     # If the invoice is not outgoing, we can create a new invoice.
     if invoice_data.fiat_provider:
-        return await _api_payments_create_fiat_invoice(invoice_data, wallet.wallet)
+        return await _api_payments_create_fiat_invoice(invoice_data, wallet_id)
 
-    return await _api_payments_create_invoice(invoice_data, wallet.wallet)
+    return await _api_payments_create_invoice(invoice_data, wallet_id)
 
 
 @payment_router.get("/fee-reserve")
@@ -473,24 +473,26 @@ async def api_payment_pay_with_nfc(
 
 
 async def _api_payments_create_fiat_invoice(
-    invoice_data: CreateInvoice, wallet: Wallet
+    invoice_data: CreateInvoice, wallet_id: str
 ):
     if invoice_data.unit == "sat":
         raise HTTPException(
             HTTPStatus.BAD_REQUEST,
             "Fiat provider cannot be used with satoshis.",
         )
-    if not settings.is_fiat_provider_enabled(invoice_data.fiat_provider):
+
+    fiat_provider_name = invoice_data.fiat_provider
+    if not settings.is_fiat_provider_enabled(fiat_provider_name):
         raise HTTPException(
             HTTPStatus.BAD_REQUEST,
-            f"Fiat provider {invoice_data.fiat_provider} is not enabled.",
+            f"Fiat provider '{fiat_provider_name}' is not enabled.",
         )
 
     # todo: extract
     # todo: this should work, maybe Fake wallet creates a new wallet.
     # todo: test with LNbits wallet
     invoice_data.internal = True
-    internal_payment = await _api_payments_create_invoice(invoice_data, wallet)
+    internal_payment = await _api_payments_create_invoice(invoice_data, wallet_id)
     fiat_provider = StripeWallet()
     fiat_invoice = await fiat_provider.create_invoice(
         amount=invoice_data.amount,
@@ -499,7 +501,7 @@ async def _api_payments_create_fiat_invoice(
         memo=invoice_data.memo,
     )
     print("### fiat_invoice", fiat_invoice)
-    fiat_provider_name = "stripe"
+
     internal_payment.extra["is_fiat_payment"] = True
     internal_payment.extra["fiat_provider"] = fiat_provider_name
     internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
@@ -513,7 +515,7 @@ async def _api_payments_create_fiat_invoice(
     return internal_payment
 
 
-async def _api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
+async def _api_payments_create_invoice(data: CreateInvoice, wallet_id: str) -> Payment:
     description_hash = b""
     unhashed_description = b""
     memo = data.memo or settings.lnbits_site_title
@@ -538,7 +540,7 @@ async def _api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
         memo = ""
 
     payment = await create_invoice(
-        wallet_id=wallet.id,
+        wallet_id=wallet_id,
         amount=data.amount,
         memo=memo,
         currency=data.unit,
