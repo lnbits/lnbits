@@ -15,9 +15,17 @@ class FiatProvider(Enum):
     stripe = "StripeWallet"
 
 
-def get_fiat_provider(name: str) -> FiatWallet:
+async def get_fiat_provider(name: str) -> FiatWallet:
     if name not in FiatProvider.__members__:
         raise ValueError(f"Fiat provider '{name}' is not supported.")
+
+    fiat_provider = fiat_providers.get(name)
+    if fiat_provider:
+        if fiat_provider.has_stale_connection():
+            await fiat_provider.cleanup()
+            del fiat_providers[name]
+        else:
+            return fiat_provider
     fiat_providers[name] = _init_fiat_provider(FiatProvider[name])
     return fiat_providers[name]
 
