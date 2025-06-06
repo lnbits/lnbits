@@ -563,6 +563,30 @@ class StrikeFundingSource(LNbitsSettings):
     strike_api_key: str | None = Field(default=None, env="STRIKE_API_KEY")
 
 
+class StripeFiatProvider(LNbitsSettings):
+    stripe_enabled: bool = Field(default=False)
+    stripe_api_endpoint: str = Field(default="https://api.stripe.com")
+    stripe_api_secret_key: str | None = Field(default=None)
+    stripe_payment_success_url: str = Field(default="https://lnbits.com")
+
+    stripe_payment_webhook_url: str = Field(
+        default="https://your-lnbits-domain-here.com/api/v1/webhook/stripe"
+    )
+    # Use this secret to verify that events come from Stripe.
+    stripe_webhook_signing_secret: str | None = Field(default=None)
+
+    # empty list means all users are allowed to receive payments via Stripe
+    stripe_allowed_users: list[str] = Field(default=[])
+
+    stripe_service_fee_sats: float = Field(default=0)
+    stripe_service_fee_percent: float = Field(default=0)
+    stripe_service_fee_wallet: str = Field(default="")
+
+    stripe_service_min_amount_sats: int = Field(default=0)
+    stripe_service_max_amount_sats: int = Field(default=0)
+    stripe_service_faucet_wallet_id: str | None = Field(default="")
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
@@ -593,6 +617,33 @@ class FundingSourcesSettings(
     # How long to wait for the payment to be confirmed before returning a pending status
     # It will not fail the payment, it will make it return pending after the timeout
     lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
+
+
+class FiatProvidersSettings(StripeFiatProvider):
+
+    def is_fiat_provider_enabled(self, provider: str | None) -> bool:
+        """
+        Checks if a specific fiat provider is enabled.
+        """
+        if not provider:
+            return False
+        if provider == "stripe":
+            return self.stripe_enabled
+        # Add checks for other fiat providers here as needed
+        return False
+
+    def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
+        """
+        Returns a list of fiat payment methods allowed for the user.
+        """
+        allowed_providers = []
+        if self.stripe_enabled and (
+            not self.stripe_allowed_users or user_id in self.stripe_allowed_users
+        ):
+            allowed_providers.append("stripe")
+
+        # Add other fiat providers here as needed
+        return allowed_providers
 
 
 class WebPushSettings(LNbitsSettings):
@@ -765,6 +816,7 @@ class EditableSettings(
     SecuritySettings,
     NotificationsSettings,
     FundingSourcesSettings,
+    FiatProvidersSettings,
     LightningSettings,
     WebPushSettings,
     NodeUISettings,

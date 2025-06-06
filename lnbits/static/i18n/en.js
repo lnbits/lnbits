@@ -22,6 +22,7 @@ window.localisation.en = {
   active_channels: 'Active Channels',
   connect_peer: 'Connect Peer',
   connect: 'Connect',
+  reconnect: 'Reconnect',
   open_channel: 'Open Channel',
   open: 'Open',
   close_channel: 'Close Channel',
@@ -60,6 +61,7 @@ window.localisation.en = {
   rename_wallet: 'Rename wallet',
   update_name: 'Update name',
   fiat_tracking: 'Fiat tracking',
+  fiat_providers: 'Fiat providers',
   currency: 'Currency',
   update_currency: 'Update currency',
   press_to_claim: 'Press to claim bitcoin',
@@ -141,6 +143,7 @@ window.localisation.en = {
   uninstall: 'Uninstall',
   drop_db: 'Remove Data',
   enable: 'Enable',
+  enabled: 'Enabled',
   pay_to_enable: 'Pay To Enable',
   enable_extension_details: 'Enable extension for current user',
   disable: 'Disable',
@@ -171,12 +174,28 @@ window.localisation.en = {
   payment_hash: 'Payment Hash',
   fee: 'Fee',
   amount: 'Amount',
+  amount_limits: 'Amount Limits',
   amount_sats: 'Amount (sats)',
+  faucest_wallet: 'Faucet Wallet',
+  faucest_wallet_desc_1:
+    'Each time a payment is confirmed by the {provider} provider funds will be subtracted from this wallet.',
+  faucest_wallet_desc_2:
+    'This helps monitor all {provider} payments and their status.',
+  faucest_wallet_desc_3:
+    'This wallet must be toped up with the amount of sats that the admin is willing to offer in exchange for the fiat currency.',
+  faucest_wallet_desc_4:
+    'If this wallet is configured, but is empty, the {provider} payments will not be processed.',
+  faucest_wallet_id: 'Faucet Wallet ID (optional)',
+  faucest_wallet_id_hint:
+    'Wallet ID to use for the faucet. It will be used to send the funds to the user.',
   tag: 'Tag',
   unit: 'Unit',
   description: 'Description',
   expiry: 'Expiry',
   webhook: 'Webhook',
+  webhook_url: 'Webhook URL',
+  webhook_url_hint:
+    'Webhook URL to send the payment details to. It will be called when the payment is completed.',
   payment_proof: 'Payment Proof',
   update: 'Update',
   update_available: 'Update {version} available!',
@@ -354,6 +373,8 @@ window.localisation.en = {
   back: 'Back',
   logout: 'Logout',
   look_and_feel: 'Look and Feel',
+  endpoint: 'Endpoint',
+  api: 'API',
   api_token: 'API Token',
   api_tokens: 'API Tokens',
   access_control_list: 'Access Control List',
@@ -371,6 +392,8 @@ window.localisation.en = {
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
+  pay_with: 'Pay with {provider}',
+  select_payment_provider: 'Select payment provider',
   wallet_required: 'Wallet *',
   show_qr: 'Show QR',
   retry_install: 'Retry Install',
@@ -383,6 +406,9 @@ window.localisation.en = {
     'The {name} extension requires a payment of minimum {amount} sats to enable.',
   hide_empty_wallets: 'Hide empty wallets',
   recheck: 'Recheck',
+  check: 'Check',
+  check_connection: 'Check Connection',
+  check_webhook: 'Check Webhook',
   contributors: 'Contributors',
   license: 'License',
   reset_key: 'Reset Key',
@@ -487,7 +513,9 @@ window.localisation.en = {
   allowed_currencies_hint: 'Limit the number of available fiat currencies',
   default_account_currency: 'Default Account Currency',
   default_account_currency_hint: 'Default currency for accounting',
-
+  min_incoming_payment_amount: 'Min Incoming Payment Amount',
+  min_incoming_payment_amount_desc:
+    'Minimum amount allowed for generating an invoice',
   max_incoming_payment_amount: 'Max Incoming Payment Amount',
   max_incoming_payment_amount_desc:
     'Maximum amount allowed for generating an invoice',
@@ -549,6 +577,7 @@ window.localisation.en = {
   admin_users_label: 'User ID',
   allowed_users: 'Allowed Users',
   allowed_users_hint: 'Only these users can use LNbits',
+  allowed_users_hint_feature: 'Only these users can use {feature}',
   allowed_users_label: 'User ID',
   allow_creation_user: 'Allow creation of new users',
   allow_creation_user_desc: 'Allow creation of new users on the index page',
@@ -583,5 +612,12 @@ window.localisation.en = {
   view_column: 'View wallets as rows',
   filter_payments: 'Filter payments',
   filter_date: 'Filter by date',
-  websocket_example: 'Websocket example'
+  websocket_example: 'Websocket example',
+  secret_key: 'Secret Key',
+  signing_secret: 'Signing Secret',
+  signing_secret_hint:
+    'Signing secret for the webhook. Messages will be signed with this secret.',
+  callback_success_url: 'Callback Success URL',
+  callback_success_url_hint:
+    'The user will be redirected to this URL after the payment is successful'
 }
