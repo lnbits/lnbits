@@ -147,12 +147,11 @@ class Payment(BaseModel):
         fiat_provider_name = self.extra.get("fiat_provider")
         if not fiat_provider_name:
             return PaymentPendingStatus()
-        fiat_provider = get_fiat_provider(fiat_provider_name)
+        fiat_provider = await get_fiat_provider(fiat_provider_name)
         if not fiat_provider:
             return PaymentPendingStatus()
         fiat_status = await fiat_provider.get_invoice_status(checking_id)
 
-        print("### fiat_status", fiat_status)
         payment_status = PaymentStatus(paid=fiat_status.paid)
 
         if skip_internal_payment_notifications:
