@@ -623,10 +623,12 @@ class FundingSourcesSettings(
 
 class FiatProvidersSettings(StripeFiatProvider):
 
-    def is_fiat_provider_enabled(self, provider: str) -> bool:
+    def is_fiat_provider_enabled(self, provider: str | None) -> bool:
         """
         Checks if a specific fiat provider is enabled.
         """
+        if not provider:
+            return False
         if provider == "stripe":
             return self.stripe_enabled
         # Add checks for other fiat providers here as needed
