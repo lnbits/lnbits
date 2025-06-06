@@ -667,6 +667,8 @@ class KeycloakAuthSettings(LNbitsSettings):
     keycloak_discovery_url: str = Field(default="")
     keycloak_client_id: str = Field(default="")
     keycloak_client_secret: str = Field(default="")
+    keycloak_client_custom_org: str | None = Field(default=None)
+    keycloak_client_custom_icon: str | None = Field(default=None)
 
 
 class AuditSettings(LNbitsSettings):

@@ -559,7 +559,9 @@ window.app.component('username-password', {
       username: this.userName,
       password: this.password_1,
       passwordRepeat: this.password_2,
-      reset_key: this.resetKey
+      reset_key: this.resetKey,
+      keycloakOrg: LNBITS_AUTH_KEYCLOAK_ORG || 'Keycloak',
+      keycloakIcon: LNBITS_AUTH_KEYCLOAK_ICON
     }
   },
   methods: {
