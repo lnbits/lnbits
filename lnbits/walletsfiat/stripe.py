@@ -25,13 +25,32 @@ class StripeWallet(FiatWallet):
     """https://docs.stripe.com/api"""
 
     def __init__(self):
-        self._init_connection()
+        logger.info("### Initializing StripeWallet")
+        self._settings_fields = self._settings_connection_fields()
+        if not settings.stripe_api_endpoint:
+            raise ValueError("Cannot initialize StripeWallet: missing endpoint.")
+
+        if not settings.stripe_api_secret_key:
+            raise ValueError("Cannot initialize StripeWallet: missing secret key.")
+        self.endpoint = self.normalize_endpoint(
+            settings.stripe_api_endpoint
+        )  # todo: move to helpers
+        self.headers = {
+            "Authorization": f"Bearer {settings.stripe_api_secret_key}",
+            "User-Agent": settings.user_agent,
+        }
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+        logger.info("StripeWallet initialized.")
 
     async def cleanup(self):
         try:
             await self.client.aclose()
         except RuntimeError as e:
             logger.warning(f"Error closing stripe wallet connection: {e}")
+
+    def has_stale_connection(self) -> bool:
+        _settings_fields = self._settings_connection_fields()
+        return _settings_fields != self._settings_fields
 
     async def status(self) -> FiatStatusResponse:
         try:
@@ -147,17 +166,7 @@ class StripeWallet(FiatWallet):
             value = await mock_queue.get()
             yield value
 
-    def _init_connection(self):
-        if not settings.stripe_api_endpoint:
-            raise ValueError("Cannot initialize StripeWallet: missing endpoint.")
-
-        if not settings.stripe_api_secret_key:
-            raise ValueError("Cannot initialize StripeWallet: missing secret key.")
-        self.endpoint = self.normalize_endpoint(
-            settings.stripe_api_endpoint
-        )  # todo: move to helpers
-        self.headers = {
-            "Authorization": f"Bearer {settings.stripe_api_secret_key}",
-            "User-Agent": settings.user_agent,
-        }
-        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+    def _settings_connection_fields(self) -> str:
+        return "-".join(
+            [str(settings.stripe_api_endpoint), str(settings.stripe_api_secret_key)]
+        )

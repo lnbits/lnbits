@@ -31,8 +31,8 @@ async def test_connection(provider: str) -> SimpleStatus:
     Test the connection to Stripe by checking if the API key is valid.
     This function should be called when setting up or testing the Stripe integration.
     """
-    stripe_provider = get_fiat_provider(provider)
-    status = await stripe_provider.status()
+    fiat_provider = await get_fiat_provider(provider)
+    status = await fiat_provider.status()
     if status.error_message:
         return SimpleStatus(
             success=False,

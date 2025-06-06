@@ -101,6 +101,13 @@ class FiatWallet(ABC):
         pass
 
     @abstractmethod
+    def has_stale_connection(self) -> bool:
+        """
+        Check if the wallet connection settings have changed.
+        """
+        pass
+
+    @abstractmethod
     def create_invoice(
         self,
         amount: int,
