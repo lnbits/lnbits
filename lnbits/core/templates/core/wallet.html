@@ -624,14 +624,30 @@
               :readonly="receive.lnurl && receive.lnurl.fixed"
             ></q-input>
             {% else %}
-            <q-select
-              filled
-              dense
-              v-model="receive.unit"
-              type="text"
-              :label="$t('unit')"
-              :options="receive.units"
-            ></q-select>
+            <div class="row">
+              <div class="col-10">
+                <q-select
+                  filled
+                  dense
+                  v-model="receive.unit"
+                  type="text"
+                  :label="$t('unit')"
+                  :options="receive.units"
+                ></q-select>
+              </div>
+              <div class="col-2">
+                <q-btn
+                  v-if="g.fiatTracking"
+                  @click="swapBalancePriority"
+                  class="float-right"
+                  color="primary"
+                  flat
+                  dense
+                  icon="swap_vert"
+                ></q-btn>
+              </div>
+            </div>
+
             <q-input
               ref="setAmount"
               filled
@@ -654,7 +670,7 @@
               v-model.trim="receive.data.memo"
               :label="$t('memo')"
             ></q-input>
-            <div class="q-mt-md">
+            <div v-if="g.user.fiat_providers?.length" class="q-mt-md">
               <q-list bordered class="rounded-borders">
                 <q-item-label dense header>
                   <span v-text="$t('select_payment_provider')"></span>
