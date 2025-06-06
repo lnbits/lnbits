@@ -149,7 +149,7 @@
             <q-expansion-item :label="$t('amount_limits')">
               <q-card-section>
                 <div class="row">
-                  <div class="col-md-6 col-sm-12">
+                  <div class="col-md-4 col-sm-12">
                     <q-input
                       filled
                       class="q-ma-sm"
@@ -160,7 +160,7 @@
                       :hint="$t('min_incoming_payment_amount_desc')"
                     ></q-input>
                   </div>
-                  <div class="col-md-6 col-sm-12">
+                  <div class="col-md-4 col-sm-12">
                     <q-input
                       filled
                       class="q-ma-sm"
@@ -171,7 +171,48 @@
                       :hint="$t('max_incoming_payment_amount_desc')"
                     ></q-input>
                   </div>
+                  <div class="col-md-4 col-sm-12">
+                    <q-input
+                      filled
+                      class="q-ma-sm"
+                      type="number"
+                      min="0"
+                      v-model="formData.stripe_service_faucet_wallet_id"
+                      :label="$t('faucest_wallet_id')"
+                      :hint="$t('faucest_wallet_id_hint')"
+                    ></q-input>
+                  </div>
                 </div>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label v-text="$t('faucest_wallet')"></q-item-label>
+                    <q-item-label caption>
+                      <ul>
+                        <li>
+                          <span
+                            v-text="$t('faucest_wallet_desc_1', {provider: 'stripe'})"
+                          ></span>
+                        </li>
+                        <li>
+                          <span
+                            v-text="$t('faucest_wallet_desc_2', {provider: 'stripe'})"
+                          ></span>
+                        </li>
+                        <li>
+                          <span
+                            v-text="$t('faucest_wallet_desc_3', {provider: 'stripe'})"
+                          ></span>
+                        </li>
+                        <li>
+                          <span
+                            v-text="$t('faucest_wallet_desc_4', {provider: 'stripe'})"
+                          ></span>
+                        </li>
+                      </ul>
+                      <br />
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
               </q-card-section>
             </q-expansion-item>
             <q-expansion-item :label="$t('allowed_users')">

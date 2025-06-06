@@ -586,6 +586,7 @@ class StripeFiatProvider(LNbitsSettings):
 
     stripe_service_min_amount_sats: int = Field(default=0)
     stripe_service_max_amount_sats: int = Field(default=0)
+    stripe_service_faucet_wallet_id: str | None = Field(default="")
 
 
 class LightningSettings(LNbitsSettings):

@@ -176,6 +176,18 @@ window.localisation.en = {
   amount: 'Amount',
   amount_limits: 'Amount Limits',
   amount_sats: 'Amount (sats)',
+  faucest_wallet: 'Faucet Wallet',
+  faucest_wallet_desc_1:
+    'Each time a payment is confirmed by the {provider} provider funds will be subtracted from this wallet.',
+  faucest_wallet_desc_2:
+    'This helps monitor all {provider} payments and their status.',
+  faucest_wallet_desc_3:
+    'This wallet must be toped up with the amount of sats that the admin is willing to offer in exchange for the fiat currency.',
+  faucest_wallet_desc_4:
+    'If this wallet is empty, the {provider} payments will not be processed.',
+  faucest_wallet_id: 'Faucet Wallet ID (optional)',
+  faucest_wallet_id_hint:
+    'Wallet ID to use for the faucet. It will be used to send the funds to the user.',
   tag: 'Tag',
   unit: 'Unit',
   description: 'Description',
