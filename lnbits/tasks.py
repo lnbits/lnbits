@@ -17,6 +17,7 @@ from loguru import logger
 
 from lnbits.core.crud import (
     get_standalone_offer,
+    update_offer_used,
     create_payment,
     get_payments,
     get_standalone_payment,
@@ -258,6 +259,10 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                             updated_at=invoice_status.paid_at,
                             status = PaymentState.SUCCESS
                         )
+
+                        if offer.is_unused:
+                            await update_offer_used(data.offer_id, True)
+
                         logger.success(f"invoice {checking_id} settled")
                         for name, send_chan in invoice_listeners.items():
                             logger.trace(f"invoice listeners: sending to `{name}`")

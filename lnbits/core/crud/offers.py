@@ -2,7 +2,6 @@ from time import time
 from typing import Optional, Tuple
 
 from lnbits.core.db import db
-from lnbits.core.models import OfferState
 from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
@@ -51,17 +50,21 @@ async def get_offers_paginated(
     wallet_id: Optional[str] = None,
     active: Optional[bool] = None,
     single_use: Optional[bool] = None,
+    used: Optional[bool] = None,
     since: Optional[int] = None,
     filters: Optional[Filters[OfferFilters]] = None,
     conn: Optional[Connection] = None,
 ) -> Page[Offer]:
     """
     Filters offers to be returned by:
-      - active | single_use.
+      - active | single_use | used.
     """
 
     values: dict = {
         "wallet_id": wallet_id,
+        "active": active,
+        "single_use": single_use,
+        "used": used,
         "created_at": since,
     }
     clause: list[str] = []
@@ -78,6 +81,9 @@ async def get_offers_paginated(
     if single_use is not None:
         clause.append("single_use = :single_use")
 
+    if used is not None:
+        clause.append("used = :used")
+
     return await (conn or db).fetch_page(
         "SELECT * FROM apioffers",
         clause,
@@ -92,6 +98,7 @@ async def get_offers(
     wallet_id: Optional[str] = None,
     active: Optional[bool] = None,
     single_use: Optional[bool] = None,
+    used: Optional[bool] = None,
     since: Optional[int] = None,
     filters: Optional[Filters[OfferFilters]] = None,
     conn: Optional[Connection] = None,
@@ -99,7 +106,7 @@ async def get_offers(
     offset: Optional[int] = None,
 ) -> list[Offer]:
     """
-    Filters offers to be returned by active | single_use.
+    Filters offers to be returned by active | single_use | used.
     """
 
     filters = filters or Filters()
@@ -113,6 +120,7 @@ async def get_offers(
         wallet_id=wallet_id,
         active=active,
         single_use=single_use,
+        used=used,
         since=since,
         filters=filters,
         conn=conn,
@@ -125,10 +133,12 @@ async def get_offers_status_count() -> OffersStatusCount:
     empty_page: Filters = Filters(limit=0)
     active_offers = await get_offers_paginated(active=True, filters=empty_page)
     single_use_offers = await get_offers_paginated(single_use=True, filters=empty_page)
+    used_offers = await get_offers_paginated(used=True, filters=empty_page)
 
     return OffersStatusCount(
         active=active_offers.total,
         single_use=single_use_offers.total,
+        used=used_offers.total,
     )
 
 
@@ -150,8 +160,9 @@ async def create_offer(
     wallet_id: str,
     bolt12: str,
     data: CreateOffer,
-    active: OfferState,
-    single_use: OfferState,
+    active: bool,
+    single_use: bool,
+    used: bool,
     conn: Optional[Connection] = None,
 ) -> Offer:
     # we don't allow the creation of the same offer twice
@@ -166,6 +177,7 @@ async def create_offer(
         amount=data.amount_msat,
         active=active,
         single_use=single_use,
+        used=used,
         bolt12=bolt12,
         memo=data.memo,
         expiry=data.expiry,
@@ -178,6 +190,19 @@ async def create_offer(
     await (conn or db).insert("apioffers", offer)
 
     return offer
+
+
+async def update_offer_used(
+    offer_id: str,
+    used: bool,
+    conn: Optional[Connection] = None,
+) -> None:
+    await (conn or db).execute(
+        f"""
+        UPDATE apioffers SET used = :used, updated_at = {db.timestamp_placeholder("now")} WHERE offer_id = :offer_id
+        """,
+        {"now": time(), "offer_id": offer_id, "used": used},
+    )
 
 
 async def update_offer(
@@ -204,7 +229,7 @@ async def enable_offer(offer_id: str) -> None:
         UPDATE apioffers SET active = :active, updated_at = {db.timestamp_placeholder("now")}
         WHERE offer_id = :offer_id
         """,
-        {"now": time(), "offer_id": offer_id, "active": OfferState.TRUE},
+        {"now": time(), "offer_id": offer_id, "active": True},
     )
 
 
@@ -214,7 +239,7 @@ async def disable_offer(offer_id: str) -> None:
         UPDATE apioffers SET active = :active, updated_at = {db.timestamp_placeholder("now")}
         WHERE offer_id = :offer_id
         """,
-        {"now": time(), "offer_id": offer_id, "active": OfferState.FALSE},
+        {"now": time(), "offer_id": offer_id, "active": False},
     )
 
 

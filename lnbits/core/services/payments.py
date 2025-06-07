@@ -48,7 +48,6 @@ from ..crud import (
 from ..models import (
     CreateOffer,
     Offer,
-    OfferState,
     CreatePayment,
     Payment,
     PaymentState,
@@ -128,6 +127,7 @@ async def create_offer(
         data=create_offer_model,
         active=offer_resp.active,
         single_use=offer_resp.single_use,
+        used=offer_resp.used,
         conn=conn,
     )
 

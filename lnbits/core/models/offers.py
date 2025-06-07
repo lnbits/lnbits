@@ -15,14 +15,6 @@ from lnbits.wallets.base import (
 )
 
 
-class OfferState(int, Enum):
-    TRUE = 1
-    FALSE = 0
-
-    def __int__(self) -> int:
-        return self.value
-
-
 class CreateOffer(BaseModel):
     memo: str
     amount_msat: int | None = None
@@ -35,8 +27,9 @@ class Offer(BaseModel):
     offer_id: str
     wallet_id: str
     amount: int | None = None
-    active: int
-    single_use: int
+    active: bool
+    single_use: bool
+    used: bool
     bolt12: str
     memo: str | None = None
     expiry: datetime | None = None
@@ -50,19 +43,27 @@ class Offer(BaseModel):
 
     @property
     def is_active(self) -> bool:
-        return not self.active == OfferState.FALSE.value
+        return not self.active == False
 
     @property
     def is_inactive(self) -> bool:
-        return self.active == OfferState.FALSE.value
+        return self.active == False
 
     @property
     def is_single_use(self) -> bool:
-        return not self.single_use == OfferState.FALSE.value
+        return not self.single_use == False
 
     @property
     def is_multiple_use(self) -> bool:
-        return self.single_use == OfferState.FALSE.value
+        return self.single_use == False
+
+    @property
+    def is_used(self) -> bool:
+        return self.used == True
+
+    @property
+    def is_unused(self) -> bool:
+        return not self.used == True
 
     @property
     def msat(self) -> int:
@@ -83,12 +84,13 @@ class Offer(BaseModel):
 
 
 class OfferFilters(FilterModel):
-    __search_fields__ = ["memo", "amount", "wallet_id", "tag", "active", "single_use"]
+    __search_fields__ = ["memo", "amount", "wallet_id", "tag", "active", "single_use", "used"]
 
     __sort_fields__ = ["created_at", "amount", "fee", "memo", "tag"]
 
-    active: int | None
-    single_use: int | None
+    active: bool | None
+    single_use: bool | None
+    used: bool | None
     tag: str | None
     offer_id: str | None
     amount: int
@@ -104,3 +106,4 @@ class DecodeOffer(BaseModel):
 class OffersStatusCount(BaseModel):
     active: int = 0
     single_use: int = 0
+    used: int = 0

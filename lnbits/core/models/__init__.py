@@ -14,7 +14,6 @@ from .offers import (
     Offer,
     OfferFilters,
     OffersStatusCount,
-    OfferState,
 )
 from .payments import (
     FetchInvoice,

@@ -30,6 +30,7 @@ from .offers import (
     get_offers_paginated,
     get_standalone_offer,
     mark_webhook_offer_sent,
+    update_offer_used,
     update_offer,
 )
 from .payments import (
