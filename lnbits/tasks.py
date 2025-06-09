@@ -1,5 +1,6 @@
 import asyncio
 import time
+from datetime import datetime, timezone
 import traceback
 import uuid
 from typing import (
@@ -223,7 +224,9 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
         invoice_status = await funding_source.get_invoice_extended_status(checking_id)
         logger.debug(f"Returned extended invoice status is {invoice_status}")
 
-        if invoice_status and invoice_status.success:
+        # If the invoice has been found and has been either successfully externally paid, or'
+        # it is a pending internal invoice
+        if invoice_status and (invoice_status.success or (invoice_status.pending and is_internal)):
             logger.info(f"Invoice extended status successfully recovered for invoice {checking_id}")
 
             if invoice_status.offer_id:
@@ -252,18 +255,19 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                             memo=description,
                         )
 
+                        if offer.is_unused:
+                            await update_offer_used(data.offer_id, True)
+
                         payment = await create_payment(
                             checking_id=checking_id,
                             data=create_payment_model,
                             created_at=data.invoice_created_at,
-                            updated_at=invoice_status.paid_at,
+                            updated_at=invoice_status.paid_at or datetime.now(timezone.utc),
                             status = PaymentState.SUCCESS
                         )
 
-                        if offer.is_unused:
-                            await update_offer_used(data.offer_id, True)
-
-                        logger.success(f"invoice {checking_id} settled")
+                        internal = "internal" if is_internal else ""
+                        logger.success(f"{internal} invoice {checking_id} settled")
                         for name, send_chan in invoice_listeners.items():
                             logger.trace(f"invoice listeners: sending to `{name}`")
                             await send_chan.put(payment)

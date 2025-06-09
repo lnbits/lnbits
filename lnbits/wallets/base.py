@@ -143,11 +143,11 @@ class InvoiceExtendedStatus(NamedTuple):
 
     @property
     def pending(self) -> bool:
-        return self.paid is None
+        return self.paid is False
 
     @property
     def failed(self) -> bool:
-        return self.paid is False
+        return self.paid is None
 
 
 class PaymentResponse(NamedTuple):
@@ -276,7 +276,11 @@ class Wallet(ABC):
             logger.warning(exc)
             return None
 
-    async def get_invoice_extended_status(self, checking_id: str) -> Optional[InvoiceExtendedStatus]:
+    async def get_invoice_extended_status(
+            self,
+            checking_id: str,
+            offer_id: Optional[str] = None
+            ) -> Optional[InvoiceExtendedStatus]:
         return None
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
