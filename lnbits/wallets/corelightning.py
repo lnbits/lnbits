@@ -3,7 +3,7 @@ from collections.abc import AsyncGenerator
 from secrets import token_urlsafe
 from typing import Any
 
-from bolt11 import decode as bolt11_decode
+from bolt11.decode import decode as bolt11_decode
 from bolt11.exceptions import Bolt11Exception
 from loguru import logger
 from pyln.client import LightningRpc, RpcError
@@ -457,7 +457,11 @@ class CoreLightningWallet(Wallet):
             logger.warning(exc)
             return None
 
-    async def get_invoice_extended_status(self, checking_id: str) -> Optional[InvoiceExtendedStatus]:
+    async def get_invoice_extended_status(
+            self,
+            checking_id: str,
+            offer_id: Optional[str] = None
+            ) -> Optional[InvoiceExtendedStatus]:
         try:
             r: dict = self.ln.listinvoices(payment_hash=checking_id)
 
@@ -472,6 +476,9 @@ class CoreLightningWallet(Wallet):
             if not invoice_resp.get("bolt11") and not invoice_resp.get("bolt12"):
                 raise Exception("Invoice contains neither bolt11 nor bolt12 data")
 
+            if offer_id and invoice_resp.get("local_offer_id") != offer_id:
+                raise Exception("Invoice's offer_id does not match")
+
             if invoice_resp["status"] == "paid":
                 return InvoiceExtendedStatus(paid = True,
                                              string = invoice_resp.get("bolt12") or invoice_resp.get("bolt11"),
@@ -481,7 +488,10 @@ class CoreLightningWallet(Wallet):
                                             )
 
             else:
-                return InvoiceExtendedStatus(paid = False if invoice_resp["status"] == "unpaid" else None)
+                return InvoiceExtendedStatus(paid = False if invoice_resp["status"] == "unpaid" else None,
+                                             string = invoice_resp.get("bolt12") or invoice_resp.get("bolt11"),
+                                             offer_id = invoice_resp.get("local_offer_id")
+                                            )
 
         except RpcError as exc:
             logger.warning(exc)

@@ -42,6 +42,7 @@ from ..crud import (
     create_offer as crud_create_offer,
     enable_offer as crud_enable_offer,
     disable_offer as crud_disable_offer,
+    get_offer,
     get_standalone_offer,
     create_payment,
     get_payments,
@@ -54,7 +55,6 @@ from ..crud import (
 from ..models import (
     CreateOffer,
     Offer,
-    OfferState,
     CreatePayment,
     Payment,
     PaymentState,
@@ -137,6 +137,7 @@ async def create_offer(
         data=create_offer_model,
         active=offer_resp.active,
         single_use=offer_resp.single_use,
+        used=offer_resp.used,
         conn=conn,
     )
 
@@ -902,7 +903,7 @@ async def _pay_invoice(
                 f"Could not fetch wallet '{wallet_id}'.", status="failed"
             )
 
-        payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
+        payment = await _pay_internal_invoice(wallet, payment_request, create_payment_model, conn)
         if not payment:
             payment = await _pay_external_invoice(wallet, payment_request, create_payment_model, conn)
         return payment
@@ -910,6 +911,7 @@ async def _pay_invoice(
 
 async def _pay_internal_invoice(
     wallet: Wallet,
+    payment_request: str,
     create_payment_model: CreatePayment,
     conn: Connection | None = None,
 ) -> Payment | None:
@@ -917,30 +919,50 @@ async def _pay_internal_invoice(
     Pay an internal payment.
     returns None if the payment is not internal.
     """
-    # check_internal() returns the payment of the invoice we're waiting for
-    # (pending only)
-    internal_payment = await check_internal(
-        create_payment_model.payment_hash, conn=conn
-    )
+    #If bolt11 payment
+    if not create_payment_model.offer_id:
+        # check_internal() returns the payment of the invoice we're waiting for
+        # (pending only)
+        internal_payment = await check_internal(
+            create_payment_model.payment_hash, conn=conn
+        )
+        if not internal_payment:
+            return None
+    
+        # perform additional checks on the internal payment
+        # the payment hash is not enough to make sure that this is the same invoice
+        internal_invoice = await get_standalone_payment(
+            internal_payment.checking_id, incoming=True, conn=conn
+        )
 
-    if not internal_payment:
-        return None
+        if not internal_invoice:
+            raise PaymentError("Internal payment not found.", status="failed")
+    
+        amount_msat = create_payment_model.amount_msat
+        if (
+            internal_invoice.amount != abs(amount_msat)
+            or internal_invoice.bolt11 != create_payment_model.bolt11.lower()
+        ):
+            raise PaymentError("Invalid invoice. Bolt11 changed.", status="failed")
+    
+    #Else if bolt12 payment
+    else:
+        #First check if offer ID is internal
+        internal_offer = await get_offer(offer_id=create_payment_model.offer_id)
 
-    # perform additional checks on the internal payment
-    # the payment hash is not enough to make sure that this is the same invoice
-    internal_invoice = await get_standalone_payment(
-        internal_payment.checking_id, incoming=True, conn=conn
-    )
+        if not internal_offer:
+            return None
+        #Then check if the funding source knows about an internal invoice with a matching payment hash and offer ID
+        funding_source = get_funding_source()
+        internal_invoice_extended_status = await funding_source.get_invoice_extended_status(create_payment_model.payment_hash, create_payment_model.offer_id)
 
-    if not internal_invoice:
-        raise PaymentError("Internal payment not found.", status="failed")
-
-    amount_msat = create_payment_model.amount_msat
-    if (
-        internal_invoice.amount != abs(amount_msat)
-        or internal_invoice.bolt11 != create_payment_model.bolt11.lower()
-    ):
-        raise PaymentError("Invalid invoice. Bolt11 changed.", status="failed")
+        if not internal_invoice_extended_status:
+            return None
+    
+        #Reject the internal payment if the bolt12 string does not match
+        if (internal_invoice_extended_status.string != payment_request.lower()):
+            raise PaymentError("Invalid invoice. Bolt12 changed.", status="failed")
+        amount_msat = create_payment_model.amount_msat
 
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=True)
     create_payment_model.fee = abs(fee_reserve_total_msat)
@@ -961,20 +983,25 @@ async def _pay_internal_invoice(
         conn=conn,
     )
 
+    #If an internal bolt11 payment, the internal invoice entry for the other
+    #side was created along with the invoice, so it can be updated here.
+    #For an internal bolt12 payment, the internal invoice entry for the other
+    #side has yet to be created, and the task is left to invoice_callback_dispatcher
     # mark the invoice from the other side as not pending anymore
     # so the other side only has access to his new money when we are sure
     # the payer has enough to deduct from
-    internal_payment.status = PaymentState.SUCCESS
-    await update_payment(internal_payment, conn=conn)
-    logger.success(f"internal payment successful {internal_payment.checking_id}")
+    if not create_payment_model.offer_id:
+        internal_payment.status = PaymentState.SUCCESS
+        await update_payment(internal_payment, conn=conn)
+        logger.success(f"internal payment successful {internal_payment.checking_id}")
 
     send_payment_notification_in_background(wallet, payment)
 
     # notify receiver asynchronously
     from lnbits.tasks import internal_invoice_queue
 
-    logger.debug(f"enqueuing internal invoice {internal_payment.checking_id}")
-    await internal_invoice_queue.put(internal_payment.checking_id)
+    logger.debug(f"enqueuing internal invoice {create_payment_model.payment_hash}")
+    await internal_invoice_queue.put(create_payment_model.payment_hash)
 
     return payment
 
