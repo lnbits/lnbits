@@ -80,18 +80,19 @@ async def test_pay_real_invoice_noroute(
     response = await client.post(
         "/api/v1/payments", json=real_invoice_noroute, headers=adminkey_headers_from
     )
-    assert response.status_code < 300
+    assert response.status_code == 520
     invoice = response.json()
 
-    assert invoice.status == "failed"
+    assert invoice["status"] == "failed"
 
     # check the payment status
     response = await client.get(
-        f'/api/v1/payments/{invoice["payment_hash"]}', headers=inkey_headers_from
+        f'/api/v1/payments/{real_invoice_noroute["payment_hash"]}',
+        headers=inkey_headers_from,
     )
     assert response.status_code < 300
-    payment_status = response.json()
-    assert payment_status["paid"] is False
+    payment = response.json()
+    assert payment["paid"] is False
 
 
 @pytest.mark.anyio
