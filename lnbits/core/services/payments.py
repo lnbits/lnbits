@@ -682,9 +682,9 @@ async def _pay_invoice(
                 f"Could not fetch wallet '{wallet_id}'.", status="failed"
             )
 
-        payment = await _pay_internal_invoice(wallet, payment_request,, create_payment_model, conn)
+        payment = await _pay_internal_invoice(wallet, payment_request, create_payment_model, conn)
         if not payment:
-            payment = await _pay_external_invoice(wallet, payment_request,, create_payment_model, conn)
+            payment = await _pay_external_invoice(wallet, payment_request, create_payment_model, conn)
         return payment
 
 
