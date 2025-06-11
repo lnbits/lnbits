@@ -726,28 +726,12 @@ async def _pay_external_invoice(
         logger.debug(f"payment timeout, {checking_id} is still pending")
         return payment
 
-    if payment_response.checking_id and payment_response.checking_id != checking_id:
-        logger.warning(
-            f"backend sent unexpected checking_id (expected: {checking_id} got:"
-            f" {payment_response.checking_id})"
-        )
-    if payment_response.checking_id and payment_response.ok is not False:
-        # payment.ok can be True (paid) or None (pending)!
-        logger.debug(f"updating payment {checking_id}")
-        payment.status = (
-            PaymentState.SUCCESS
-            if payment_response.ok is True
-            else PaymentState.PENDING
-        )
-        payment.fee = -(abs(payment_response.fee_msat or 0) + abs(service_fee_msat))
-        payment.preimage = payment_response.preimage
-        await update_payment(payment, payment_response.checking_id, conn=conn)
-        payment.checking_id = payment_response.checking_id
-        if payment.success:
-            await send_payment_notification(wallet, payment)
-        logger.success(f"payment successful {payment_response.checking_id}")
-    elif payment_response.checking_id is None and payment_response.ok is False:
-        # payment failed
+    # payment failed
+    if (
+        payment_response.checking_id is None
+        or payment_response.ok is False
+        or payment_response.checking_id != checking_id
+    ):
         logger.debug(f"payment failed {checking_id}, {payment_response.error_message}")
         payment.status = PaymentState.FAILED
         await update_payment(payment, conn=conn)
@@ -756,11 +740,18 @@ async def _pay_external_invoice(
             or "Payment failed, but backend didn't give us an error message.",
             status="failed",
         )
-    else:
-        logger.warning(
-            "didn't receive checking_id from backend, payment may be stuck in"
-            f" database: {checking_id}"
-        )
+
+    # payment.ok can be True (paid) or None (pending)!
+    payment.status = (
+        PaymentState.SUCCESS if payment_response.ok is True else PaymentState.PENDING
+    )
+    payment.fee = -(abs(payment_response.fee_msat or 0) + abs(service_fee_msat))
+    payment.preimage = payment_response.preimage
+    await update_payment(payment, payment_response.checking_id, conn=conn)
+    payment.checking_id = payment_response.checking_id
+    if payment.success:
+        await send_payment_notification(wallet, payment)
+    logger.success(f"payment successful {payment_response.checking_id}")
 
     return payment
 
