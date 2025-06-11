@@ -132,7 +132,7 @@ class NWCWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
+        **_,
     ) -> InvoiceResponse:
         desc = ""
         desc_hash = None
@@ -148,10 +148,8 @@ class NWCWallet(Wallet):
             info = await self.conn.get_info()
             if "make_invoice" not in info["supported_methods"]:
                 return InvoiceResponse(
-                    False,
-                    None,
-                    None,
-                    "make_invoice is not supported by this NWC service.",
+                    ok=False,
+                    error_message="make_invoice is not supported by this NWC service.",
                 )
             resp = await self.conn.call(
                 "make_invoice",
@@ -175,7 +173,9 @@ class NWCWallet(Wallet):
                         "expired": False,
                     }
                 )
-            return InvoiceResponse(True, checking_id, payment_request, None)
+            return InvoiceResponse(
+                ok=True, checking_id=checking_id, payment_request=payment_request
+            )
         except Exception as e:
             return InvoiceResponse(ok=False, error_message=str(e))
 
@@ -203,7 +203,9 @@ class NWCWallet(Wallet):
 
             if "lookup_invoice" not in info["supported_methods"]:
                 # if not supported, we assume it succeeded
-                return PaymentResponse(True, payment_hash, None, preimage, None)
+                return PaymentResponse(
+                    ok=True, checking_id=payment_hash, preimage=preimage, fee_msat=0
+                )
 
             try:
                 payment_data = await self.conn.call(
@@ -213,15 +215,20 @@ class NWCWallet(Wallet):
                     "preimage", None
                 )
                 if not settled:
-                    return PaymentResponse(None, payment_hash, None, None, None)
+                    return PaymentResponse(checking_id=payment_hash)
                 else:
                     fee_msat = payment_data.get("fees_paid", None)
-                    return PaymentResponse(True, payment_hash, fee_msat, preimage, None)
+                    return PaymentResponse(
+                        ok=True,
+                        checking_id=payment_hash,
+                        fee_msat=fee_msat,
+                        preimage=preimage,
+                    )
             except Exception:
                 # Workaround: some nwc service providers might not store the invoice
                 # right away, so this call may raise an exception.
                 # We will assume the payment is pending anyway
-                return PaymentResponse(None, payment_hash, None, None, None)
+                return PaymentResponse(checking_id=payment_hash)
         except NWCError as e:
             logger.error("Error paying invoice: " + str(e))
             failure_codes = [
@@ -237,13 +244,14 @@ class NWCWallet(Wallet):
             ]
             failed = e.code in failure_codes
             return PaymentResponse(
-                None if not failed else False,
+                ok=None if not failed else False,
                 error_message=e.message if failed else None,
             )
         except Exception as e:
-            logger.error("Error paying invoice: " + str(e))
+            msg = "Error paying invoice: " + str(e)
+            logger.error(msg)
             # assume pending
-            return PaymentResponse(None)
+            return PaymentResponse(error_message=msg)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return await self.get_payment_status(checking_id)
@@ -300,6 +308,7 @@ class NWCConnection:
         self.account_private_key = secp256k1.PrivateKey(bytes.fromhex(secret))
         self.account_private_key_hex = secret
         self.account_public_key = self.account_private_key.pubkey
+        assert self.account_public_key
         self.account_public_key_hex = self.account_public_key.serialize().hex()[2:]
 
         # Extract service key (used for encryption to identify the nwc service provider)

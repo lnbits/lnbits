@@ -9,7 +9,7 @@ from loguru import logger
 
 from lnbits.nodes.lndrest import LndRestNode
 from lnbits.settings import settings
-from lnbits.utils.crypto import AESCipher
+from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
@@ -35,26 +35,6 @@ class LndRestWallet(Wallet):
                 "cannot initialize LndRestWallet: missing lnd_rest_endpoint"
             )
 
-        macaroon = (
-            settings.lnd_rest_macaroon
-            or settings.lnd_admin_macaroon
-            or settings.lnd_rest_admin_macaroon
-            or settings.lnd_invoice_macaroon
-            or settings.lnd_rest_invoice_macaroon
-        )
-        encrypted_macaroon = settings.lnd_rest_macaroon_encrypted
-        if encrypted_macaroon:
-            macaroon = AESCipher(description="macaroon decryption").decrypt(
-                encrypted_macaroon
-            )
-        if not macaroon:
-            raise ValueError(
-                "cannot initialize LndRestWallet: "
-                "missing lnd_rest_macaroon or lnd_admin_macaroon or "
-                "lnd_rest_admin_macaroon or lnd_invoice_macaroon or "
-                "lnd_rest_invoice_macaroon or lnd_rest_macaroon_encrypted"
-            )
-
         if not settings.lnd_rest_cert:
             logger.warning(
                 "No certificate for LndRestWallet provided! "
@@ -68,7 +48,21 @@ class LndRestWallet(Wallet):
         # even on startup
         cert = settings.lnd_rest_cert or True
 
-        macaroon = load_macaroon(macaroon)
+        macaroon = (
+            settings.lnd_rest_macaroon
+            or settings.lnd_admin_macaroon
+            or settings.lnd_rest_admin_macaroon
+            or settings.lnd_invoice_macaroon
+            or settings.lnd_rest_invoice_macaroon
+        )
+        encrypted_macaroon = settings.lnd_rest_macaroon_encrypted
+        try:
+            macaroon = load_macaroon(macaroon, encrypted_macaroon)
+        except ValueError as exc:
+            raise ValueError(
+                f"cannot load macaroon for LndRestWallet: {exc!s}"
+            ) from exc
+
         headers = {
             "Grpc-Metadata-macaroon": macaroon,
             "User-Agent": settings.user_agent,
@@ -110,56 +104,67 @@ class LndRestWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {
+        _data: Dict = {
             "value": amount,
             "private": settings.lnd_rest_route_hints,
             "memo": memo or "",
         }
         if kwargs.get("expiry"):
-            data["expiry"] = kwargs["expiry"]
+            _data["expiry"] = kwargs["expiry"]
         if description_hash:
-            data["description_hash"] = base64.b64encode(description_hash).decode(
+            _data["description_hash"] = base64.b64encode(description_hash).decode(
                 "ascii"
             )
         elif unhashed_description:
-            data["description_hash"] = base64.b64encode(
+            _data["description_hash"] = base64.b64encode(
                 hashlib.sha256(unhashed_description).digest()
             ).decode("ascii")
 
+        preimage, _payment_hash = random_secret_and_hash()
+        _data["r_hash"] = base64.b64encode(bytes.fromhex(_payment_hash)).decode()
+        _data["r_preimage"] = base64.b64encode(bytes.fromhex(preimage)).decode()
+
         try:
-            r = await self.client.post(url="/v1/invoices", json=data)
+            r = await self.client.post(url="/v1/invoices", json=_data)
             r.raise_for_status()
             data = r.json()
 
             if len(data) == 0:
-                return InvoiceResponse(False, None, None, "no data")
+                return InvoiceResponse(ok=False, error_message="no data")
 
             if "error" in data:
                 return InvoiceResponse(
-                    False, None, None, f"""Server error: '{data["error"]}'"""
+                    ok=False, error_message=f"""Server error: '{data["error"]}'"""
                 )
 
             if r.is_error:
-                return InvoiceResponse(False, None, None, f"Server error: '{r.text}'")
+                return InvoiceResponse(
+                    ok=False, error_message=f"Server error: '{r.text}'"
+                )
 
             if "payment_request" not in data or "r_hash" not in data:
                 return InvoiceResponse(
-                    False, None, None, "Server error: 'missing required fields'"
+                    ok=False, error_message="Server error: 'missing required fields'"
                 )
 
             payment_request = data["payment_request"]
             payment_hash = base64.b64decode(data["r_hash"]).hex()
             checking_id = payment_hash
+            return InvoiceResponse(
+                ok=True,
+                checking_id=checking_id,
+                payment_request=payment_request,
+                preimage=preimage,
+            )
 
-            return InvoiceResponse(True, checking_id, payment_request, None)
         except json.JSONDecodeError:
             return InvoiceResponse(
-                False, None, None, "Server error: 'invalid json response'"
+                ok=False, error_message="Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, f"Unable to connect to {self.endpoint}."
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -185,25 +190,27 @@ class LndRestWallet(Wallet):
             payment_error = data.get("payment_error")
             if payment_error:
                 logger.warning(f"LndRestWallet payment_error: {payment_error}.")
-                return PaymentResponse(False, None, None, None, payment_error)
+                return PaymentResponse(ok=False, error_message=payment_error)
 
             checking_id = base64.b64decode(data["payment_hash"]).hex()
             fee_msat = int(data["payment_route"]["total_fees_msat"])
             preimage = base64.b64decode(data["payment_preimage"]).hex()
-            return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+            return PaymentResponse(
+                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            )
         except KeyError as exc:
             logger.warning(exc)
             return PaymentResponse(
-                None, None, None, None, "Server error: 'missing required fields'"
+                error_message="Server error: 'missing required fields'"
             )
         except json.JSONDecodeError:
             return PaymentResponse(
-                None, None, None, None, "Server error: 'invalid json response'"
+                error_message="Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.warning(f"LndRestWallet pay_invoice POST error: {exc}.")
             return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.endpoint}."
+                error_message=f"Unable to connect to {self.endpoint}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -212,15 +219,22 @@ class LndRestWallet(Wallet):
         try:
             r.raise_for_status()
             data = r.json()
-
-            if r.is_error or not data.get("settled"):
-                # this must also work when checking_id is not a hex recognizable by lnd
-                # it will return an error and no "settled" attribute on the object
-                return PaymentPendingStatus()
         except Exception as e:
             logger.error(f"Error getting invoice status: {e}")
             return PaymentPendingStatus()
-        return PaymentSuccessStatus()
+
+        if r.is_error or data.get("settled") is None:
+            # this must also work when checking_id is not a hex recognizable by lnd
+            # it will return an error and no "settled" attribute on the object
+            return PaymentPendingStatus()
+
+        if data.get("settled") is True:
+            return PaymentSuccessStatus()
+
+        if data.get("state") == "CANCELED":
+            return PaymentFailedStatus()
+
+        return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """

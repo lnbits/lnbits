@@ -216,6 +216,25 @@ async def account(
     )
 
 
+@generic_router.get(
+    "/wallets",
+    response_class=HTMLResponse,
+    description="show wallets page",
+)
+async def wallets(
+    request: Request,
+    user: User = Depends(check_user_exists),
+):
+    return template_renderer().TemplateResponse(
+        request,
+        "core/wallets.html",
+        {
+            "user": user.json(),
+            "ajax": _is_ajax_request(request),
+        },
+    )
+
+
 @generic_router.get("/service-worker.js")
 async def service_worker(request: Request):
     return template_renderer().TemplateResponse(
@@ -402,7 +421,7 @@ async def audit_index(request: Request, user: User = Depends(check_admin)):
 
 
 @generic_router.get("/payments", response_class=HTMLResponse)
-async def payments_index(request: Request, user: User = Depends(check_admin)):
+async def payments_index(request: Request, user: User = Depends(check_user_exists)):
     return template_renderer().TemplateResponse(
         "payments/index.html",
         {

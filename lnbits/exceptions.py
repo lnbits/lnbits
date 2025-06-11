@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from loguru import logger
+from shortuuid import uuid
 
 from lnbits.settings import settings
 
@@ -77,10 +78,11 @@ def register_exception_handlers(app: FastAPI):
     async def exception_handler(request: Request, exc: Exception):
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, exc, tb)
-        logger.error(f"Exception: {exc!s}")
+        exception_id = uuid()
+        logger.error(f"Exception ID: {exception_id}\n{exc!s}")
         return render_html_error(request, exc) or JSONResponse(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            content={"detail": str(exc)},
+            content={"detail": f"Unexpected error! ID: {exception_id}"},
         )
 
     @app.exception_handler(AssertionError)

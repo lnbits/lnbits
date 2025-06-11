@@ -18,7 +18,7 @@ Go to [releases](https://github.com/lnbits/lnbits/releases) and pull latest AppI
 sudo apt-get install libfuse2
 wget $(curl -s https://api.github.com/repos/lnbits/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
 chmod +x LNbits-latest.AppImage
-./LNbits-latest.AppImage --host 0.0.0.0 --port 5000
+LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 ./LNbits-latest.AppImage # most system settings are now in the admin UI, but pass additional .env variables here
 ```
 
 LNbits will create a folder for db and extension files in the folder the AppImage runs from.
@@ -78,11 +78,24 @@ poetry run lnbits-cli --help
 
 ```sh
 cd lnbits
-# Stop LNbits with `ctrl + x`
-git pull
-# Keep your poetry install up to date, this can be done with `poetry self update`
+# Stop LNbits with `ctrl + x` or with service manager
+# sudo systemctl stop lnbits
+
+# Update LNbits
+git pull --rebase
+
+# Check your poetry version with
+poetry env list
+# If version is less 3.12, update it by running
+poetry env use python3.12
+poetry env remove python3.9
+poetry env list
+
+# Run install and start LNbits with
 poetry install --only main
-# Start LNbits with `poetry run lnbits`
+poetry run lnbits
+
+# use LNbits admin UI Extensions page function "Update All" do get extensions onto proper level
 ```
 
 ## Option 2: Install script (on Debian/Ubuntu)
@@ -137,7 +150,7 @@ SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/ln
 
 ## Option 4: Docker
 
-use latest version from docker hub
+Use latest version from Docker Hub.
 
 ```sh
 docker pull lnbits/lnbits
@@ -146,7 +159,7 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
 ```
 
-build the image yourself
+Build the image yourself.
 
 ```sh
 git clone https://github.com/lnbits/lnbits.git
@@ -155,6 +168,12 @@ docker build -t lnbits/lnbits .
 cp .env.example .env
 mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
+```
+
+You can optionally override the arguments that are passed to `poetry install` during the build process by setting the Docker build argument named `POETRY_INSTALL_ARGS`. For example, to enable the Breez funding source, build the Docker image with the command:
+
+```sh
+docker build --build-arg POETRY_INSTALL_ARGS="-E breez" -t lnbits/lnbits .
 ```
 
 ## Option 5: Fly.io
@@ -564,3 +583,12 @@ docker run --detach --publish 5000:5000 --name lnbits -e "LNBITS_BACKEND_WALLET_
 ```
 
 Finally you can access your lnbits on your machine at port 5000.
+
+### FreeBSD notes
+
+Currently there is an issue with secp256k1 0.14.0 on FreeBSD. Thanks to @GitKalle
+
+1. Install package `py311-secp256k1` with `pkg install py311-secp256k1`
+2. Change version in `pyproject.toml` from 0.14.0 to 0.13.2
+3. Rewrite `poetry.lock` file with command `poetry lock`
+4. Follow install instruction with Poetry

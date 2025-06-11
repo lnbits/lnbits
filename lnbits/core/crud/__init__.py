@@ -57,6 +57,7 @@ from .settings import (
     delete_admin_settings,
     get_admin_settings,
     get_super_settings,
+    reset_core_settings,
     update_admin_settings,
     update_super_user,
 )
@@ -143,6 +144,7 @@ __all__ = [
     "get_super_settings",
     "update_admin_settings",
     "update_super_user",
+    "reset_core_settings",
     # tinyurl
     "create_tinyurl",
     "delete_tinyurl",

@@ -4,7 +4,8 @@ from typing import Optional
 from uuid import uuid4
 
 from lnbits.core.db import db
-from lnbits.db import Connection
+from lnbits.core.models.wallets import WalletsFilters
+from lnbits.db import Connection, Filters, Page
 from lnbits.settings import settings
 
 from ..models import Wallet
@@ -133,6 +134,43 @@ async def get_wallets(
         {"user": user_id, "deleted": deleted},
         Wallet,
     )
+
+
+async def get_wallets_paginated(
+    user_id: str,
+    deleted: Optional[bool] = None,
+    filters: Optional[Filters[WalletsFilters]] = None,
+    conn: Optional[Connection] = None,
+) -> Page[Wallet]:
+    if deleted is None:
+        deleted = False
+
+    where: list[str] = [""" "user" = :user AND deleted = :deleted """]
+    return await (conn or db).fetch_page(
+        """
+            SELECT *, COALESCE((
+                SELECT balance FROM balances WHERE wallet_id = wallets.id
+            ), 0) AS balance_msat FROM wallets
+        """,
+        where=where,
+        values={"user": user_id, "deleted": deleted},
+        filters=filters,
+        model=Wallet,
+    )
+
+
+async def get_wallets_ids(
+    user_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
+) -> list[str]:
+    where = "AND deleted = :deleted" if deleted is not None else ""
+    result: list[dict] = await (conn or db).fetchall(
+        f"""
+        SELECT id FROM wallets
+        WHERE "user" = :user {where}
+        """,
+        {"user": user_id, "deleted": deleted},
+    )
+    return [row["id"] for row in result]
 
 
 async def get_wallets_count():

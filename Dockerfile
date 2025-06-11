@@ -19,7 +19,8 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_CREATE=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-RUN poetry install --only main
+ARG POETRY_INSTALL_ARGS="--only main"
+RUN poetry install ${POETRY_INSTALL_ARGS}
 
 FROM python:3.12-slim-bookworm
 
@@ -46,11 +47,12 @@ WORKDIR /app
 COPY . .
 COPY --from=builder /app/.venv .venv
 
-RUN poetry install --only main
+ARG POETRY_INSTALL_ARGS="--only main"
+RUN poetry install ${POETRY_INSTALL_ARGS}
 
 ENV LNBITS_PORT="5000"
 ENV LNBITS_HOST="0.0.0.0"
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "poetry run lnbits --port $LNBITS_PORT --host $LNBITS_HOST"]
+CMD ["sh", "-c", "poetry run lnbits --port $LNBITS_PORT --host $LNBITS_HOST --forwarded-allow-ips='*'"]

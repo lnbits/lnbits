@@ -212,7 +212,10 @@ async def api_get_1ml_stats(node: Node = Depends(require_node)) -> Optional[Node
         r = await client.get(url=f"https://1ml.com/node/{node_id}/json", timeout=15)
         try:
             r.raise_for_status()
-            return r.json()["noderank"]
+            data = r.json()
+            if "noderank" not in data:
+                return None
+            return data["noderank"]
         except httpx.HTTPStatusError as exc:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail="Node not found on 1ml.com"

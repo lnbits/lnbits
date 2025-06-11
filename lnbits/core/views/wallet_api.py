@@ -9,13 +9,18 @@ from fastapi import (
     HTTPException,
 )
 
+from lnbits.core.crud.wallets import get_wallets_paginated
 from lnbits.core.models import CreateWallet, KeyType, User, Wallet
+from lnbits.core.models.wallets import WalletsFilters
+from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_user_exists,
+    parse_filters,
     require_admin_key,
     require_invoice_key,
 )
+from lnbits.helpers import generate_filter_params_openapi
 
 from ..crud import (
     create_wallet,
@@ -36,6 +41,26 @@ async def api_wallet(key_info: WalletTypeInfo = Depends(require_invoice_key)):
     if key_info.key_type == KeyType.admin:
         res["id"] = key_info.wallet.id
     return res
+
+
+@wallet_router.get(
+    "/paginated",
+    name="Wallet List",
+    summary="get paginated list of user wallets",
+    response_description="list of user wallets",
+    response_model=Page[Wallet],
+    openapi_extra=generate_filter_params_openapi(WalletsFilters),
+)
+async def api_wallets_paginated(
+    user: User = Depends(check_user_exists),
+    filters: Filters = Depends(parse_filters(WalletsFilters)),
+):
+    page = await get_wallets_paginated(
+        user_id=user.id,
+        filters=filters,
+    )
+
+    return page
 
 
 @wallet_router.put("/{new_name}")
@@ -74,6 +99,7 @@ async def api_update_wallet(
     icon: Optional[str] = Body(None),
     color: Optional[str] = Body(None),
     currency: Optional[str] = Body(None),
+    pinned: Optional[bool] = Body(None),
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
     wallet = await get_wallet(key_info.wallet.id)
@@ -82,6 +108,7 @@ async def api_update_wallet(
     wallet.name = name or wallet.name
     wallet.extra.icon = icon or wallet.extra.icon
     wallet.extra.color = color or wallet.extra.color
+    wallet.extra.pinned = pinned if pinned is not None else wallet.extra.pinned
     wallet.currency = currency if currency is not None else wallet.currency
     await update_wallet(wallet)
     return wallet

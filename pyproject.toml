@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "1.0.0"
+version = "1.1.0"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 readme = "README.md"
@@ -25,7 +25,7 @@ pyqrcode = "1.2.1"
 shortuuid = "1.0.13"
 sse-starlette = "1.8.2"
 typing-extensions = "4.12.2"
-uvicorn = "0.30.6"
+uvicorn = "0.34.2"
 sqlalchemy = "1.4.54"
 aiosqlite = "0.20.0"
 asyncpg = "0.30.0"

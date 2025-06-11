@@ -74,7 +74,7 @@ async def get_auth_user(user: User = Depends(check_user_exists)) -> User:
 async def login(data: LoginUsernamePassword) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
-            HTTPStatus.UNAUTHORIZED, "Login by 'Username and Password' not allowed."
+            HTTPStatus.FORBIDDEN, "Login by 'Username and Password' not allowed."
         )
     account = await get_account_by_username_or_email(data.username)
     if not account or not account.verify_password(data.password):
@@ -85,9 +85,7 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
 @auth_router.post("/nostr", description="Login via Nostr")
 async def nostr_login(request: Request) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.nostr_auth_nip98):
-        raise HTTPException(
-            HTTPStatus.UNAUTHORIZED, "Login with Nostr Auth not allowed."
-        )
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Login with Nostr Auth not allowed.")
     event = _nostr_nip98_event(request)
     account = await get_account_by_pubkey(event["pubkey"])
     if not account:
@@ -104,7 +102,7 @@ async def nostr_login(request: Request) -> JSONResponse:
 async def login_usr(data: LoginUsr) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.user_id_only):
         raise HTTPException(
-            HTTPStatus.UNAUTHORIZED,
+            HTTPStatus.FORBIDDEN,
             "Login by 'User ID' not allowed.",
         )
     account = await get_account(data.usr)
@@ -112,7 +110,7 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User ID does not exist.")
     if account.is_admin:
         raise HTTPException(
-            HTTPStatus.UNAUTHORIZED, "Admin users cannot login with user id only."
+            HTTPStatus.FORBIDDEN, "Admin users cannot login with user id only."
         )
     return _auth_success_response(account.username, account.id, account.email)
 
@@ -242,7 +240,7 @@ async def login_with_sso_provider(
     provider_sso = _new_sso(provider)
     if not provider_sso:
         raise HTTPException(
-            HTTPStatus.UNAUTHORIZED,
+            HTTPStatus.FORBIDDEN,
             f"Login by '{provider}' not allowed.",
         )
 
@@ -257,7 +255,7 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
     provider_sso = _new_sso(provider)
     if not provider_sso:
         raise HTTPException(
-            HTTPStatus.UNAUTHORIZED,
+            HTTPStatus.FORBIDDEN,
             f"Login by '{provider}' not allowed.",
         )
 
@@ -285,7 +283,7 @@ async def logout() -> JSONResponse:
 async def register(data: RegisterUser) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
-            HTTPStatus.UNAUTHORIZED,
+            HTTPStatus.FORBIDDEN,
             "Register by 'Username and Password' not allowed.",
         )
 
@@ -375,7 +373,7 @@ async def update_password(
 async def reset_password(data: ResetUserPassword) -> JSONResponse:
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
-            HTTPStatus.UNAUTHORIZED, "Auth by 'Username and Password' not allowed."
+            HTTPStatus.FORBIDDEN, "Auth by 'Username and Password' not allowed."
         )
 
     assert data.password == data.password_repeat, "Passwords do not match."
@@ -449,7 +447,7 @@ async def update(
 @auth_router.put("/first_install")
 async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     if not settings.first_install:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "This is not your first install")
+        raise HTTPException(HTTPStatus.FORBIDDEN, "This is not your first install")
     account = await get_account(settings.super_user)
     if not account:
         raise HTTPException(HTTPStatus.INTERNAL_SERVER_ERROR, "Superuser not found.")
@@ -472,10 +470,10 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = 
 
     if verified_user_id:
         if account:
-            raise HTTPException(HTTPStatus.UNAUTHORIZED, "Email already used.")
+            raise HTTPException(HTTPStatus.FORBIDDEN, "Email already used.")
         account = await get_account(verified_user_id)
         if not account:
-            raise HTTPException(HTTPStatus.UNAUTHORIZED, "Cannot verify user email.")
+            raise HTTPException(HTTPStatus.FORBIDDEN, "Cannot verify user email.")
         redirect_path = "/account"
 
     if account:
@@ -499,9 +497,12 @@ def _auth_success_response(
         sub=username or "", usr=user_id, email=email, auth_time=int(time())
     )
     access_token = create_access_token(data=payload.dict())
+    max_age = settings.auth_token_expire_minutes * 60
     response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
-    response.set_cookie("cookie_access_token", access_token, httponly=True)
-    response.set_cookie("is_lnbits_user_authorized", "true")
+    response.set_cookie(
+        "cookie_access_token", access_token, httponly=True, max_age=max_age
+    )
+    response.set_cookie("is_lnbits_user_authorized", "true", max_age=max_age)
     response.delete_cookie("is_access_token_expired")
 
     return response
@@ -521,9 +522,12 @@ def _auth_api_token_response(
 def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
     payload = AccessTokenPayload(sub="" or "", email=email, auth_time=int(time()))
     access_token = create_access_token(data=payload.dict())
+    max_age = settings.auth_token_expire_minutes * 60
     response = RedirectResponse(path)
-    response.set_cookie("cookie_access_token", access_token, httponly=True)
-    response.set_cookie("is_lnbits_user_authorized", "true")
+    response.set_cookie(
+        "cookie_access_token", access_token, httponly=True, max_age=max_age
+    )
+    response.set_cookie("is_lnbits_user_authorized", "true", max_age=max_age)
     response.delete_cookie("is_access_token_expired")
     return response
 
@@ -574,10 +578,10 @@ def _find_auth_provider_class(provider: str) -> Callable:
 def _nostr_nip98_event(request: Request) -> dict:
     auth_header = request.headers.get("Authorization")
     if not auth_header:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Nostr Auth header missing.")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Nostr Auth header missing.")
     scheme, token = auth_header.split()
     if scheme.lower() != "nostr":
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid Authorization scheme.")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid Authorization scheme.")
     event = None
     try:
         event_json = base64.b64decode(token.encode("ascii"))

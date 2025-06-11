@@ -171,23 +171,26 @@ import window_vars with context %} {% block scripts %} {{ window_vars(user) }}
 
         <template v-slot:after>
           <q-form name="settings_form" id="settings_form">
-            <q-tab-panels
-              v-model="tab"
-              animated
-              swipeable
-              vertical
-              transition-prev="jump-up"
-              transition-next="jump-up"
-            >
-              {% include "admin/_tab_funding.html" %} {% include
-              "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %}
-              {% include "admin/_tab_exchange_providers.html" %} {% include
-              "admin/_tab_extensions.html" %} {% include
-              "admin/_tab_notifications.html" %} {% include
-              "admin/_tab_security.html" %} {% include "admin/_tab_theme.html"
-              %}{% include "admin/_tab_audit.html"%}{% include
-              "admin/_tab_library.html"%}
-            </q-tab-panels>
+            <q-scroll-area style="height: 100vh">
+              <q-tab-panels
+                v-model="tab"
+                animated
+                swipeable
+                vertical
+                scroll
+                transition-prev="jump-up"
+                transition-next="jump-up"
+              >
+                {% include "admin/_tab_funding.html" %} {% include
+                "admin/_tab_users.html" %} {% include "admin/_tab_server.html"
+                %} {% include "admin/_tab_exchange_providers.html" %} {% include
+                "admin/_tab_extensions.html" %} {% include
+                "admin/_tab_notifications.html" %} {% include
+                "admin/_tab_security.html" %} {% include "admin/_tab_theme.html"
+                %}{% include "admin/_tab_audit.html"%}{% include
+                "admin/_tab_library.html"%}
+              </q-tab-panels>
+            </q-scroll-area>
           </q-form>
         </template>
       </q-splitter>

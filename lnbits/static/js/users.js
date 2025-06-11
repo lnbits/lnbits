@@ -312,6 +312,23 @@ window.UsersPageLogic = {
           .catch(LNbits.utils.notifyApiError)
       })
     },
+    deleteAllUserWallets(userId) {
+      LNbits.utils
+        .confirmDialog(this.$t('confirm_delete_all_wallets'))
+        .onOk(() => {
+          LNbits.api
+            .request('DELETE', `/users/api/v1/user/${userId}/wallets`)
+            .then(response => {
+              Quasar.Notify.create({
+                type: 'positive',
+                message: response.data.message,
+                icon: null
+              })
+              this.fetchWallets(userId)
+            })
+            .catch(LNbits.utils.notifyApiError)
+        })
+    },
     copyWalletLink(walletId) {
       const url = `${window.location.origin}/wallet?usr=${this.activeWallet.userId}&wal=${walletId}`
       this.copyText(url)

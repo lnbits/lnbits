@@ -205,24 +205,23 @@ async def dispatch_webhook(payment: Payment):
     logger.debug("sending webhook", payment.webhook)
 
     if not payment.webhook:
-        return await mark_webhook_sent(payment.payment_hash, -1)
+        return await mark_webhook_sent(payment.payment_hash, "-1")
 
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
-        data = payment.dict()
         try:
             check_callback_url(payment.webhook)
-            r = await client.post(payment.webhook, json=data, timeout=40)
+            r = await client.post(payment.webhook, json=payment.json(), timeout=40)
             r.raise_for_status()
-            await mark_webhook_sent(payment.payment_hash, r.status_code)
+            await mark_webhook_sent(payment.payment_hash, str(r.status_code))
         except httpx.HTTPStatusError as exc:
-            await mark_webhook_sent(payment.payment_hash, exc.response.status_code)
+            await mark_webhook_sent(payment.payment_hash, str(exc.response.status_code))
             logger.warning(
                 f"webhook returned a bad status_code: {exc.response.status_code} "
                 f"while requesting {exc.request.url!r}."
             )
         except httpx.RequestError:
-            await mark_webhook_sent(payment.payment_hash, -1)
+            await mark_webhook_sent(payment.payment_hash, "-1")
             logger.warning(f"Could not send webhook to {payment.webhook}")
 
 
@@ -230,18 +229,21 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
     try:
         await send_ws_payment_notification(wallet, payment)
     except Exception as e:
-        logger.error("Error sending websocket payment notification", e)
+        logger.error(f"Error sending websocket payment notification {e!s}")
     try:
         send_chat_payment_notification(wallet, payment)
     except Exception as e:
-        logger.error("Error sending chat payment notification", e)
+        logger.error(f"Error sending chat payment notification {e!s}")
     try:
         await send_payment_push_notification(wallet, payment)
     except Exception as e:
-        logger.error("Error sending push payment notification", e)
+        logger.error(f"Error sending push payment notification {e!s}")
 
-    if payment.webhook and not payment.webhook_status:
-        await dispatch_webhook(payment)
+    try:
+        if payment.webhook and not payment.webhook_status:
+            await dispatch_webhook(payment)
+    except Exception as e:
+        logger.error(f"Error dispatching webhook: {e!s}")
 
 
 async def send_ws_payment_notification(wallet: Wallet, payment: Payment):

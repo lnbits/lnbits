@@ -2,7 +2,7 @@ from time import time
 from datetime import datetime, timezone
 from typing import Any, Optional, Tuple
 
-from lnbits.core.crud.wallets import get_total_balance, get_wallet
+from lnbits.core.crud.wallets import get_total_balance, get_wallet, get_wallets_ids
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
 from lnbits.db import Connection, DateTrunc, Filters, Page
@@ -96,6 +96,7 @@ async def get_latest_payments_by_extension(
 async def get_payments_paginated(
     *,
     wallet_id: Optional[str] = None,
+    user_id: Optional[str] = None,
     complete: bool = False,
     pending: bool = False,
     failed: bool = False,
@@ -122,6 +123,9 @@ async def get_payments_paginated(
     if wallet_id:
         values["wallet_id"] = wallet_id
         clause.append("wallet_id = :wallet_id")
+    elif user_id:
+        only_user_wallets = await _only_user_wallets_statement(user_id, conn=conn)
+        clause.append(only_user_wallets)
 
     if complete and pending:
         clause.append(
@@ -365,12 +369,19 @@ async def get_payments_history(
 async def get_payment_count_stats(
     field: PaymentCountField,
     filters: Optional[Filters[PaymentFilters]] = None,
+    user_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> list[PaymentCountStat]:
 
     if not filters:
         filters = Filters()
-    clause = filters.where()
+    extra_stmts = []
+
+    if user_id:
+        only_user_wallets = await _only_user_wallets_statement(user_id, conn=conn)
+        extra_stmts.append(only_user_wallets)
+
+    clause = filters.where(extra_stmts)
     data = await (conn or db).fetchall(
         query=f"""
             SELECT {field} as field, count(*) as total
@@ -388,18 +399,26 @@ async def get_payment_count_stats(
 
 async def get_daily_stats(
     filters: Optional[Filters[PaymentFilters]] = None,
+    user_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
 
     if not filters:
         filters = Filters()
 
-    in_clause = filters.where(
-        ["(apipayments.status = 'success' AND apipayments.amount > 0)"]
-    )
-    out_clause = filters.where(
-        ["(apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)"]
-    )
+    in_where_stmts = ["(apipayments.status = 'success' AND apipayments.amount > 0)"]
+    out_where_stmts = [
+        "(apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)"
+    ]
+
+    if user_id:
+        only_user_wallets = await _only_user_wallets_statement(user_id, conn=conn)
+        in_where_stmts.append(only_user_wallets)
+        out_where_stmts.append(only_user_wallets)
+
+    in_clause = filters.where(in_where_stmts)
+    out_clause = filters.where(out_where_stmts)
+
     date_trunc = db.datetime_grouping("day")
     query = """
         SELECT {date_trunc} date,
@@ -430,6 +449,7 @@ async def get_daily_stats(
 
 async def get_wallets_stats(
     filters: Optional[Filters[PaymentFilters]] = None,
+    user_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> list[PaymentWalletStats]:
 
@@ -448,6 +468,10 @@ async def get_wallets_stats(
         )
         """,
     ]
+    if user_id:
+        only_user_wallets = await _only_user_wallets_statement(user_id, conn=conn)
+        where_stmts.append(only_user_wallets)
+
     clauses = filters.where(where_stmts)
 
     data = await (conn or db).fetchall(
@@ -515,7 +539,7 @@ async def is_internal_status_success(
     return payment.status == PaymentState.SUCCESS.value
 
 
-async def mark_webhook_sent(payment_hash: str, status: int) -> None:
+async def mark_webhook_sent(payment_hash: str, status: str) -> None:
     await db.execute(
         """
         UPDATE apipayments SET webhook_status = :status
@@ -523,3 +547,14 @@ async def mark_webhook_sent(payment_hash: str, status: int) -> None:
         """,
         {"status": status, "hash": payment_hash},
     )
+
+
+async def _only_user_wallets_statement(
+    user_id: str, conn: Optional[Connection] = None
+) -> str:
+    wallet_ids = await get_wallets_ids(user_id=user_id, conn=conn) or [
+        "no-wallets-for-user"
+    ]
+    # wallet ids are safe to use in sql queries
+    wallet_ids_str = [f"'{w}'" for w in wallet_ids]
+    return f""" wallet_id IN ({", ".join(wallet_ids_str)}) """

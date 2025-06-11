@@ -116,6 +116,7 @@ class InvoiceResponse(NamedTuple):
     checking_id: str | None = None  # payment_hash, rpc_id
     payment_request: str | None = None
     error_message: str | None = None
+    preimage: str | None = None
 
     @property
     def success(self) -> bool:

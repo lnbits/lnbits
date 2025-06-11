@@ -6,7 +6,7 @@
   >
     {% block page %}
     <div class="text-center q-pa-md flex flex-center">
-      <div>
+      <div v-if="statusCode">
         <div class="error-code" v-text="statusCode"></div>
 
         <div class="error-message" v-text="message"></div>
@@ -65,19 +65,15 @@
       goToExtension() {
         window.location.href = `/extensions#${this.extension}`
       },
-      logOut() {
-        LNbits.utils
-          .confirmDialog(
-            'Do you really want to logout?'
-          )
-          .onOk( async () => {
-            try {
-              await LNbits.api.logout()
-              window.location = '/'
-            } catch (e) {
-              LNbits.utils.notifyApiError(e)
-            }
-          })
+      async logOut() {
+
+        try {
+          await LNbits.api.logout()
+          window.location = '/'
+        } catch (e) {
+          LNbits.utils.notifyApiError(e)
+        }
+
     },
     },
     computed: {
@@ -86,10 +82,17 @@
         if (this.message.startsWith('Extension ')) return true
       }
     },
-    created() {
+    async created() {
       this.err = '{{ err }}'
-      this.statusCode = '{{ status_code }}' || 404
+      const statusCode = '{{ status_code }}' || 404
       this.message = String({{ message | tojson }}) || 'Page not found'
+      if (statusCode == 401) {
+        console.warn(`Unauthorized: ${this.message}`)
+        this.logOut()
+        return
+      }
+      this.statusCode = statusCode
+
       if (this.isExtension) {
         this.extension = this.message.match(/'([^']+)'/)[1]
       }

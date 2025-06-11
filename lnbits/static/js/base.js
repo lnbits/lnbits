@@ -197,7 +197,8 @@ window.LNbits = {
         email: data.email,
         extensions: data.extensions,
         wallets: data.wallets,
-        super_user: data.super_user
+        super_user: data.super_user,
+        extra: data.extra ?? {}
       }
       const mapWallet = this.wallet
       obj.wallets = obj.wallets
@@ -205,6 +206,9 @@ window.LNbits = {
           return mapWallet(obj)
         })
         .sort((a, b) => {
+          if (a.extra.pinned !== b.extra.pinned) {
+            return a.extra.pinned ? -1 : 1
+          }
           return a.name.localeCompare(b.name)
         })
       obj.walletOptions = obj.wallets.map(obj => {
@@ -213,6 +217,10 @@ window.LNbits = {
           value: obj.id
         }
       })
+      obj.hiddenWalletsCount = Math.max(
+        0,
+        data.wallets.length - data.extra.visible_wallet_count
+      )
       return obj
     },
     wallet(data) {
@@ -252,13 +260,11 @@ window.LNbits = {
         fiat_currency: data.fiat_currency
       }
 
-      obj.date = Quasar.date.formatDate(new Date(obj.time), window.dateFormat)
-      obj.dateFrom = moment.utc(obj.date).fromNow()
-      obj.expirydate = Quasar.date.formatDate(
-        new Date(obj.expiry),
-        window.dateFormat
-      )
-      obj.expirydateFrom = moment.utc(obj.expirydate).fromNow()
+      obj.date = moment.utc(data.created_at).local().format(window.dateFormat)
+      obj.dateFrom = moment.utc(data.created_at).fromNow()
+
+      obj.expirydate = moment.utc(obj.expiry).local().format(window.dateFormat)
+      obj.expirydateFrom = moment.utc(obj.expiry).fromNow()
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
       obj.tag = obj.extra?.tag
@@ -495,8 +501,10 @@ window.windowMixin = {
         ? this.$q.localStorage.getItem('lnbits.backgroundImage')
         : USE_DEFAULT_BGIMAGE,
       isUserAuthorized: false,
+      isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
       walletEventListeners: [],
-      backgroundImage: ''
+      backgroundImage: '',
+      ...WINDOW_SETTINGS
     }
   },
 
@@ -507,6 +515,9 @@ window.windowMixin = {
         this.g.visibleDrawer = false
       }
       this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
+    },
+    goToWallets() {
+      window.location = '/wallets'
     },
     submitAddWallet() {
       if (

@@ -44,23 +44,20 @@
       </q-layout>
     </div>
 
+    <script type="text/javascript">
+      const WINDOW_SETTINGS = {{ WINDOW_SETTINGS | tojson }}
+      Object.keys(WINDOW_SETTINGS).forEach(key => {
+        window[key] = WINDOW_SETTINGS[key]
+      })
+      if (LNBITS_THEME_OPTIONS && LNBITS_THEME_OPTIONS.length) {
+        window.allowedThemes = LNBITS_THEME_OPTIONS.map(str => str.trim())
+      }
+    </script>
     {% include('components.vue') %}{% block vue_templates %}{% endblock %} {%
     for url in INCLUDED_JS %}
     <script src="{{ static_url_for('static', url) }}"></script>
-    {% endfor %}
-    <script>
-      const SITE_DESCRIPTION = {{ SITE_DESCRIPTION | tojson}}
-      const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
-      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
-      const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
-      const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
-      const USE_DEFAULT_REACTION = {{ USE_DEFAULT_REACTION | tojson }}
-      const USE_DEFAULT_THEME = {{ USE_DEFAULT_THEME | tojson }}
-      const USE_DEFAULT_BORDER = {{ USE_DEFAULT_BORDER | tojson }}
-      const USE_DEFAULT_GRADIENT = {{ USE_DEFAULT_GRADIENT | lower | tojson }}
-      const USE_DEFAULT_BGIMAGE = "{{ USE_DEFAULT_BGIMAGE or None | tojson }}"
-    </script>
-    {% block scripts %}{% endblock %} {% for url in INCLUDED_COMPONENTS %}
+    {% endfor %} {% block scripts %}{% endblock %} {% for url in
+    INCLUDED_COMPONENTS %}
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
   </body>

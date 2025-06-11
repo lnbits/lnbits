@@ -132,8 +132,8 @@
   >
     <strong class="q-my-none q-mb-sm">Keycloak Auth</strong>
 
-    <div class="row">
-      <div class="col-md-4 col-sm-12 q-pr-sm">
+    <div class="row q-col-gutter-sm q-col-gutter-y-md">
+      <div class="col-md-4 col-sm-12">
         <q-input
           filled
           v-model="formData.keycloak_discovery_url"
@@ -141,7 +141,7 @@
         >
         </q-input>
       </div>
-      <div class="col-md-4 col-sm-12 q-pr-sm">
+      <div class="col-md-4 col-sm-12">
         <q-input
           filled
           v-model="formData.keycloak_client_id"
@@ -156,6 +156,22 @@
           v-model="formData.keycloak_client_secret"
           type="password"
           :label="$t('auth_keycloak_cs_label')"
+        >
+        </q-input>
+      </div>
+      <div class="col-md-4 col-sm-12">
+        <q-input
+          filled
+          v-model="formData.keycloak_client_custom_org"
+          :label="$t('auth_keycloak_custom_org_label')"
+        >
+        </q-input>
+      </div>
+      <div class="col-md-8 col-sm-12">
+        <q-input
+          filled
+          v-model="formData.keycloak_client_custom_icon"
+          :label="$t('auth_keycloak_custom_icon_label')"
         >
         </q-input>
       </div>

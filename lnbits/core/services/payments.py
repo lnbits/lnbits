@@ -56,6 +56,9 @@ from ..models import (
 )
 from .notifications import send_payment_notification
 
+payment_lock = asyncio.Lock()
+wallets_payments_lock: dict[str, asyncio.Lock] = {}
+
 
 async def create_offer(
     *,
@@ -294,12 +297,16 @@ async def pay_invoice(
             extra=extra,
         )
 
-    payment = await _pay_invoice(wallet, payment_request, create_payment_model, conn)
+    payment = await _pay_invoice(wallet.id, payment_request, create_payment_model, conn)
+
+    service_fee_memo = f"""
+        Service fee for payment of {abs(payment.sat)} sats.
+        Wallet: '{wallet.name}' ({wallet.id})."""
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        await _credit_service_fee_wallet(payment, new_conn)
+        await _credit_service_fee_wallet(payment, service_fee_memo, new_conn)
 
-        return payment
+    return payment
 
 
 async def create_invoice(
@@ -347,29 +354,29 @@ async def create_invoice(
             status="failed",
         )
 
-    (
-        ok,
-        checking_id,
-        payment_request,
-        error_message,
-    ) = await funding_source.create_invoice(
+    payment_response = await funding_source.create_invoice(
         amount=amount_sat,
         memo=invoice_memo,
         description_hash=description_hash,
         unhashed_description=unhashed_description,
         expiry=expiry or settings.lightning_invoice_expiry,
     )
-    if not ok or not payment_request or not checking_id:
+    if (
+        not payment_response.ok
+        or not payment_response.payment_request
+        or not payment_response.checking_id
+    ):
         raise InvoiceError(
-            error_message or "unexpected backend error.", status="pending"
+            message=payment_response.error_message or "unexpected backend error.",
+            status="pending",
         )
-
-    invoice = bolt11_decode(payment_request)
+    invoice = bolt11_decode(payment_response.payment_request)
 
     create_payment_model = CreatePayment(
         wallet_id=wallet_id,
-        bolt11=payment_request,
+        bolt11=payment_response.payment_request,
         payment_hash=invoice.payment_hash,
+        preimage=payment_response.preimage,
         amount_msat=amount_sat * 1000,
         expiry=invoice.expiry_date,
         memo=memo,
@@ -378,7 +385,7 @@ async def create_invoice(
     )
 
     payment = await create_payment(
-        checking_id=checking_id,
+        checking_id=payment_response.checking_id,
         data=create_payment_model,
         conn=conn,
     )
@@ -414,6 +421,7 @@ def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
 
 
 def fee_reserve(amount_msat: int, internal: bool = False) -> int:
+    amount_msat = abs(amount_msat)
     return settings.fee_reserve(amount_msat, internal)
 
 
@@ -610,8 +618,9 @@ async def check_transaction_status(
 
 async def get_payments_daily_stats(
     filters: Filters[PaymentFilters],
+    user_id: Optional[str] = None,
 ) -> list[PaymentDailyStats]:
-    data_in, data_out = await get_daily_stats(filters)
+    data_in, data_out = await get_daily_stats(filters, user_id=user_id)
     balance_total: float = 0
 
     _none = PaymentDailyStats(date=datetime.now(timezone.utc))
@@ -655,11 +664,28 @@ async def get_payments_daily_stats(
     return data
 
 
-async def _pay_invoice(wallet, payment_request, create_payment_model, conn):
-    payment = await _pay_internal_invoice(wallet, payment_request, create_payment_model, conn)
-    if not payment:
-        payment = await _pay_external_invoice(wallet, payment_request, create_payment_model, conn)
-    return payment
+async def _pay_invoice(
+    wallet_id: str,
+    payment_request: str,
+    create_payment_model: CreatePayment,
+    conn: Optional[Connection] = None,
+):
+    async with payment_lock:
+        if wallet_id not in wallets_payments_lock:
+            wallets_payments_lock[wallet_id] = asyncio.Lock()
+
+    async with wallets_payments_lock[wallet_id]:
+        # get the wallet again to make sure we have the latest balance
+        wallet = await get_wallet(wallet_id, conn=conn)
+        if not wallet:
+            raise PaymentError(
+                f"Could not fetch wallet '{wallet_id}'.", status="failed"
+            )
+
+        payment = await _pay_internal_invoice(wallet, payment_request,, create_payment_model, conn)
+        if not payment:
+            payment = await _pay_external_invoice(wallet, payment_request,, create_payment_model, conn)
+        return payment
 
 
 async def _pay_internal_invoice(
@@ -716,11 +742,14 @@ async def _pay_internal_invoice(
             raise PaymentError("Invalid invoice. Bolt12 changed.", status="failed")
         amount_msat = create_payment_model.amount_msat
 
-    fee_reserve_total_msat = fee_reserve_total(abs(amount_msat), internal=True)
+    fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=True)
     create_payment_model.fee = abs(fee_reserve_total_msat)
 
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError("Insufficient balance.", status="failed")
+
+    # release the preimage
+    create_payment_model.preimage = internal_invoice.preimage
 
     internal_id = f"internal_{create_payment_model.payment_hash}"
     logger.debug(f"creating temporary internal payment with id {internal_id}")
@@ -765,6 +794,8 @@ async def _pay_external_invoice(
 
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=False)
 
+    if wallet.balance_msat < abs(amount_msat):
+        raise PaymentError("Insufficient balance.", status="failed")
     if wallet.balance_msat < abs(amount_msat) + fee_reserve_total_msat:
         raise PaymentError(
             f"You must reserve at least ({round(fee_reserve_total_msat/1000)}"
@@ -924,7 +955,7 @@ async def _validate_payment_request(
 
 
 async def _credit_service_fee_wallet(
-    payment: Payment, conn: Optional[Connection] = None
+    payment: Payment, memo: str, conn: Optional[Connection] = None
 ):
     service_fee_msat = service_fee(payment.amount, internal=payment.is_internal)
     if not settings.lnbits_service_fee_wallet or not service_fee_msat:
@@ -935,7 +966,7 @@ async def _credit_service_fee_wallet(
         bolt11=payment.bolt11,
         payment_hash=payment.payment_hash,
         amount_msat=abs(service_fee_msat),
-        memo="Service fee",
+        memo=memo,
     )
     await create_payment(
         checking_id=f"service_fee_{payment.payment_hash}",

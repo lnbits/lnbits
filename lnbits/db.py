@@ -554,9 +554,13 @@ class Filters(BaseModel, Generic[TFilterModel]):
             for page_filter in self.filters:
                 where_stmts.append(page_filter.statement)
         if self.search and self.model and self.model.__search_fields__:
-            where_stmts.append(
-                f"lower(concat({', '.join(self.model.__search_fields__)})) LIKE :search"
+            # Use `COALESCE` to handle `NULL` values and `||`
+            # for cross-database compatible string concatenation
+            _fields = self.model.__search_fields__
+            search_expr = " || ".join(
+                f"COALESCE(CAST({field} AS TEXT), '')" for field in _fields
             )
+            where_stmts.append(f"lower({search_expr}) LIKE :search")
 
         if where_stmts:
             return "WHERE " + " AND ".join(where_stmts)
@@ -576,7 +580,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
                     for key, value in page_filter.values.items():
                         values[key] = value
         if self.search and self.model:
-            values["search"] = f"%{self.search}%"
+            values["search"] = f"%{self.search.lower()}%"
         return values
 
 
@@ -644,9 +648,9 @@ def model_to_dict(model: BaseModel) -> dict:
 def dict_to_submodel(model: type[TModel], value: dict | str) -> TModel | None:
     """convert a dictionary or JSON string to a Pydantic model"""
     if isinstance(value, str):
-        if value == "null":
+        if value == "null" or value == "":
             return None
-        _subdict = json.loads(value)
+        _subdict = _safe_load_json(value)
     elif isinstance(value, dict):
         _subdict = value
 
@@ -670,7 +674,7 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
         type_ = model.__fields__[key].type_
         outertype_ = model.__fields__[key].outer_type_
         if get_origin(outertype_) is list:
-            _items = json.loads(value) if isinstance(value, str) else value
+            _items = _safe_load_json(value) if isinstance(value, str) else value
             _dict[key] = [
                 dict_to_submodel(type_, v) if issubclass(type_, BaseModel) else v
                 for v in _items
@@ -691,7 +695,7 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
         # TODO: remove this when all sub models are migrated to Pydantic
         # NOTE: this is for type dict on BaseModel, (used in Payment class)
         if type_ is dict and value:
-            _dict[key] = json.loads(value)
+            _dict[key] = _safe_load_json(value)
             continue
         _dict[key] = value
         continue
@@ -699,3 +703,12 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
     if isinstance(_model, BaseModel):
         _model.__init__(**_dict)  # type: ignore
     return _model
+
+
+def _safe_load_json(value: str) -> dict:
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        # DB is corrupted if it gets here
+        logger.error(f"Failed to decode JSON: '{value}'")
+        return {}

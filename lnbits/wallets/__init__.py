@@ -28,6 +28,7 @@ from .nwc import NWCWallet
 from .opennode import OpenNodeWallet
 from .phoenixd import PhoenixdWallet
 from .spark import SparkWallet
+from .strike import StrikeWallet
 from .void import VoidWallet
 from .zbd import ZBDWallet
 
@@ -72,6 +73,7 @@ __all__ = [
     "OpenNodeWallet",
     "PhoenixdWallet",
     "SparkWallet",
+    "StrikeWallet",
     "VoidWallet",
     "ZBDWallet",
 ]

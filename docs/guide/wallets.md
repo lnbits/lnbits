@@ -10,6 +10,8 @@ LNbits can run on top of many Lightning Network funding sources with more being 
 
 A backend wallet can be configured using the following LNbits environment variables:
 
+You can [compare the LNbits compatible Lightning Network funding sources here](wallets.md).
+
 ### CoreLightning
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningWallet**
@@ -51,7 +53,7 @@ You can also use an AES-encrypted macaroon (more info) instead by using
 
 - `LND_GRPC_MACAROON_ENCRYPTED`: eNcRyPtEdMaCaRoOn
 
-To encrypt your macaroon, run `poetry run python lnbits/wallets/macaroon/macaroon.py`.
+To encrypt your macaroon, run `poetry run lnbits-cli encrypt macaroon`.
 
 ### LNbits
 

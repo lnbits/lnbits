@@ -148,7 +148,7 @@ async def api_update_user(
 async def api_users_delete_user(
     user_id: str, user: User = Depends(check_admin)
 ) -> SimpleStatus:
-    wallets = await get_wallets(user_id)
+    wallets = await get_wallets(user_id, deleted=False)
     if len(wallets) > 0:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -255,6 +255,28 @@ async def api_users_undelete_user_wallet(user_id: str, wallet: str) -> SimpleSta
         return SimpleStatus(success=True, message="Wallet undeleted.")
 
     return SimpleStatus(success=True, message="Wallet is already active.")
+
+
+@users_router.delete(
+    "/user/{user_id}/wallets",
+    name="Delete all wallets for user",
+    summary="Soft delete (only sets a flag) all user wallets.",
+)
+async def api_users_delete_all_user_wallet(user_id: str) -> SimpleStatus:
+    if user_id == settings.super_user:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Action not allowed.",
+        )
+
+    wallets = await get_wallets(user_id, deleted=False)
+    for wallet in wallets:
+        await delete_wallet(user_id=user_id, wallet_id=wallet.id)
+
+    return SimpleStatus(
+        success=True,
+        message=f"Deleted '{len(wallets)}' wallets. ",
+    )
 
 
 @users_router.delete(

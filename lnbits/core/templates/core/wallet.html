@@ -5,7 +5,7 @@
 {% block scripts %} {{ window_vars(user, wallet) }}{% endblock %} {% block page
 %}
 <div class="row q-col-gutter-md">
-  {% if HIDE_API and AD_SPACE %}
+  {% if HIDE_API and AD_SPACE_ENABLED and AD_SPACE %}
   <div class="col-12 col-md-8 q-gutter-y-md">
     {% elif HIDE_API %}
     <div class="col-12 q-gutter-y-md">
@@ -31,7 +31,7 @@
           <q-card-section style="height: 130px">
             <div class="row q-gutter-md">
               <div
-                v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
+                v-if="isSatsDenomination"
                 class="col-1"
                 style="max-width: 30px"
               >
@@ -241,6 +241,23 @@
                 <div class="text-subtitle1 q-mt-none q-mb-none">
                   {{ SITE_TITLE }} Wallet:
                   <strong><em v-text="g.wallet.name"></em></strong>
+                </div>
+                <q-space></q-space>
+                <div class="float-right">
+                  <q-btn
+                    @click="updateWallet({ pinned: !g.wallet.extra.pinned })"
+                    round
+                    class="float-right"
+                    :color="g.wallet.extra.pinned ? 'primary' : 'grey-5'"
+                    text-color="black"
+                    size="sm"
+                    icon="push_pin"
+                    style="transform: rotate(30deg)"
+                  >
+                    <q-tooltip
+                      ><span v-text="$t('pin_wallet')"></span
+                    ></q-tooltip>
+                  </q-btn>
                 </div>
               </div>
             </q-card-section>
@@ -468,7 +485,7 @@
               </q-list>
             </q-card-section>
           </q-card>
-          {% endif %} {% if AD_SPACE %}
+          {% endif %} {% if AD_SPACE_ENABLED and AD_SPACE %}
           <q-card>
             <q-card-section>
               <h6 class="text-subtitle1 q-mt-none q-mb-sm">
@@ -639,7 +656,7 @@
               >
                 <span
                   v-if="receive.lnurl"
-                  v-text="$t('withdraw_from') + receive.lnurl.domain"
+                  v-text="`${$t('withdraw_from')} ${receive.lnurl.domain}`"
                 ></span>
                 <span v-else v-text="$t('create_invoice')"></span>
               </q-btn>

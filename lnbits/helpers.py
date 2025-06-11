@@ -11,6 +11,7 @@ import jinja2
 import jwt
 import shortuuid
 from fastapi.routing import APIRoute
+from loguru import logger
 from packaging import version
 from pydantic.schema import field_schema
 
@@ -64,63 +65,52 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
     t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
     t.env.globals["static_url_for"] = static_url_for
 
-    if settings.lnbits_ad_space_enabled:
-        t.env.globals["AD_SPACE"] = settings.lnbits_ad_space.split(",")
-        t.env.globals["AD_SPACE_TITLE"] = settings.lnbits_ad_space_title
+    window_settings = {
+        "AD_SPACE": settings.lnbits_ad_space.split(","),
+        "AD_SPACE_ENABLED": settings.lnbits_ad_space_enabled,
+        "AD_SPACE_TITLE": settings.lnbits_ad_space_title,
+        "EXTENSIONS": list(settings.lnbits_installed_extensions_ids),
+        "HIDE_API": settings.lnbits_hide_api,
+        "SITE_TITLE": settings.lnbits_site_title,
+        "SITE_TAGLINE": settings.lnbits_site_tagline,
+        "SITE_DESCRIPTION": settings.lnbits_site_description,
+        "LNBITS_ADMIN_UI": settings.lnbits_admin_ui,
+        "LNBITS_AUDIT_ENABLED": settings.lnbits_audit_enabled,
+        "LNBITS_AUTH_METHODS": settings.auth_allowed_methods,
+        "LNBITS_AUTH_KEYCLOAK_ORG": settings.keycloak_client_custom_org,
+        "LNBITS_AUTH_KEYCLOAK_ICON": settings.keycloak_client_custom_icon,
+        "LNBITS_CUSTOM_IMAGE": settings.lnbits_custom_image,
+        "LNBITS_CUSTOM_BADGE": settings.lnbits_custom_badge,
+        "LNBITS_CUSTOM_BADGE_COLOR": settings.lnbits_custom_badge_color,
+        "LNBITS_EXTENSIONS_DEACTIVATE_ALL": settings.lnbits_extensions_deactivate_all,
+        "LNBITS_NEW_ACCOUNTS_ALLOWED": settings.new_accounts_allowed,
+        "LNBITS_NODE_UI": settings.lnbits_node_ui and get_node_class() is not None,
+        "LNBITS_NODE_UI_AVAILABLE": get_node_class() is not None,
+        "LNBITS_QR_LOGO": settings.lnbits_qr_logo,
+        "LNBITS_SERVICE_FEE": settings.lnbits_service_fee,
+        "LNBITS_SERVICE_FEE_MAX": settings.lnbits_service_fee_max,
+        "LNBITS_SERVICE_FEE_WALLET": settings.lnbits_service_fee_wallet,
+        "LNBITS_SHOW_HOME_PAGE_ELEMENTS": settings.lnbits_show_home_page_elements,
+        "LNBITS_THEME_OPTIONS": settings.lnbits_theme_options,
+        "LNBITS_VERSION": settings.version,
+        "USE_CUSTOM_LOGO": settings.lnbits_custom_logo,
+        "USE_DEFAULT_REACTION": settings.lnbits_default_reaction,
+        "USE_DEFAULT_THEME": settings.lnbits_default_theme,
+        "USE_DEFAULT_BORDER": settings.lnbits_default_border,
+        "USE_DEFAULT_GRADIENT": settings.lnbits_default_gradient,
+        "USE_DEFAULT_BGIMAGE": settings.lnbits_default_bgimage,
+        "VOIDWALLET": settings.lnbits_backend_wallet_class == "VoidWallet",
+        "WEBPUSH_PUBKEY": settings.lnbits_webpush_pubkey,
+        "LNBITS_DENOMINATION": (
+            settings.lnbits_denomination
+            if settings.lnbits_denomination == "FakeWallet"
+            else "sats"
+        ),
+    }
 
-    t.env.globals["VOIDWALLET"] = settings.lnbits_backend_wallet_class == "VoidWallet"
-    t.env.globals["HIDE_API"] = settings.lnbits_hide_api
-    t.env.globals["SITE_TITLE"] = settings.lnbits_site_title
-    t.env.globals["LNBITS_DENOMINATION"] = (
-        settings.lnbits_denomination
-        if settings.lnbits_backend_wallet_class == "FakeWallet"
-        else "sats"
-    )
-    t.env.globals["SITE_TAGLINE"] = settings.lnbits_site_tagline
-    t.env.globals["SITE_DESCRIPTION"] = settings.lnbits_site_description
-    t.env.globals["LNBITS_SHOW_HOME_PAGE_ELEMENTS"] = (
-        settings.lnbits_show_home_page_elements
-    )
-    t.env.globals["LNBITS_CUSTOM_IMAGE"] = settings.lnbits_custom_image
-    t.env.globals["LNBITS_CUSTOM_BADGE"] = settings.lnbits_custom_badge
-    t.env.globals["LNBITS_CUSTOM_BADGE_COLOR"] = settings.lnbits_custom_badge_color
-    t.env.globals["LNBITS_THEME_OPTIONS"] = settings.lnbits_theme_options
-    t.env.globals["LNBITS_QR_LOGO"] = settings.lnbits_qr_logo
-    t.env.globals["LNBITS_VERSION"] = settings.version
-    t.env.globals["LNBITS_NEW_ACCOUNTS_ALLOWED"] = settings.new_accounts_allowed
-    t.env.globals["LNBITS_AUTH_METHODS"] = settings.auth_allowed_methods
-    t.env.globals["LNBITS_ADMIN_UI"] = settings.lnbits_admin_ui
-    t.env.globals["LNBITS_EXTENSIONS_DEACTIVATE_ALL"] = (
-        settings.lnbits_extensions_deactivate_all
-    )
-    t.env.globals["LNBITS_AUDIT_ENABLED"] = settings.lnbits_audit_enabled
-
-    t.env.globals["LNBITS_SERVICE_FEE"] = settings.lnbits_service_fee
-    t.env.globals["LNBITS_SERVICE_FEE_MAX"] = settings.lnbits_service_fee_max
-    t.env.globals["LNBITS_SERVICE_FEE_WALLET"] = settings.lnbits_service_fee_wallet
-    t.env.globals["LNBITS_NODE_UI"] = (
-        settings.lnbits_node_ui and get_node_class() is not None
-    )
-    t.env.globals["LNBITS_NODE_UI_AVAILABLE"] = get_node_class() is not None
-    t.env.globals["EXTENSIONS"] = list(settings.lnbits_installed_extensions_ids)
-
-    if settings.lnbits_custom_logo:
-        t.env.globals["USE_CUSTOM_LOGO"] = settings.lnbits_custom_logo
-
-    if settings.lnbits_default_reaction:
-        t.env.globals["USE_DEFAULT_REACTION"] = settings.lnbits_default_reaction
-
-    if settings.lnbits_default_theme:
-        t.env.globals["USE_DEFAULT_THEME"] = settings.lnbits_default_theme
-
-    if settings.lnbits_default_border:
-        t.env.globals["USE_DEFAULT_BORDER"] = settings.lnbits_default_border
-
-    if settings.lnbits_default_gradient:
-        t.env.globals["USE_DEFAULT_GRADIENT"] = settings.lnbits_default_gradient
-
-    if settings.lnbits_default_bgimage:
-        t.env.globals["USE_DEFAULT_BGIMAGE"] = settings.lnbits_default_bgimage
+    t.env.globals["WINDOW_SETTINGS"] = window_settings
+    for key, value in window_settings.items():
+        t.env.globals[key] = value
 
     if settings.bundle_assets:
         t.env.globals["INCLUDED_JS"] = ["bundle.min.js"]
@@ -133,8 +123,6 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
             t.env.globals["INCLUDED_JS"] = vendor_files["js"]
             t.env.globals["INCLUDED_CSS"] = vendor_files["css"]
             t.env.globals["INCLUDED_COMPONENTS"] = vendor_files["components"]
-
-    t.env.globals["WEBPUSH_PUBKEY"] = settings.lnbits_webpush_pubkey
 
     return t
 
@@ -294,12 +282,21 @@ def is_lnbits_version_ok(
 
 
 def check_callback_url(url: str):
-    netloc = urlparse(url).netloc
+    if not settings.lnbits_callback_url_rules:
+        # no rules, all urls are allowed
+        return
+    u = urlparse(url)
     for rule in settings.lnbits_callback_url_rules:
-        if re.match(rule, netloc) is None:
-            raise ValueError(
-                f"Callback not allowed. URL: {url}. Netloc: {netloc}. Rule: {rule}"
-            )
+        try:
+            if re.match(rule, f"{u.scheme}://{u.netloc}") is not None:
+                return
+        except re.error:
+            logger.debug(f"Invalid regex rule: '{rule}'. ")
+            continue
+    raise ValueError(
+        f"Callback not allowed. URL: {url}. Netloc: {u.netloc}. "
+        f"Please check your admin settings."
+    )
 
 
 def download_url(url, save_path):

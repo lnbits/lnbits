@@ -9,6 +9,7 @@ from enum import Enum
 from ecdsa import SECP256k1, SigningKey
 from pydantic import BaseModel, Field
 
+from lnbits.db import FilterModel
 from lnbits.helpers import url_for
 from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
@@ -25,6 +26,7 @@ class BaseWallet(BaseModel):
 class WalletExtra(BaseModel):
     icon: str = "flash_on"
     color: str = "primary"
+    pinned: bool = False
 
 
 class Wallet(BaseModel):
@@ -83,3 +85,13 @@ class KeyType(Enum):
 class WalletTypeInfo:
     key_type: KeyType
     wallet: Wallet
+
+
+class WalletsFilters(FilterModel):
+    __search_fields__ = ["id", "name", "currency"]
+
+    __sort_fields__ = ["id", "name", "currency", "created_at", "updated_at"]
+
+    id: str | None
+    name: str | None
+    currency: str | None

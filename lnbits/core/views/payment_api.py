@@ -45,7 +45,6 @@ from lnbits.core.services.payments import (
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
-    check_admin,
     check_user_exists,
     parse_filters,
     require_admin_key,
@@ -145,30 +144,44 @@ async def api_payments_history(
 @payment_router.get(
     "/stats/count",
     name="Get payments history for all users",
-    dependencies=[Depends(check_admin)],
     response_model=List[PaymentCountStat],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_counting_stats(
     count_by: PaymentCountField = Query("tag"),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
+    user: User = Depends(check_user_exists),
 ):
 
-    return await get_payment_count_stats(count_by, filters)
+    if user.admin:
+        # admin user can see payments from all wallets
+        for_user_id = None
+    else:
+        # regular user can only see payments from their wallets
+        for_user_id = user.id
+
+    return await get_payment_count_stats(count_by, filters=filters, user_id=for_user_id)
 
 
 @payment_router.get(
     "/stats/wallets",
     name="Get payments history for all users",
-    dependencies=[Depends(check_admin)],
     response_model=List[PaymentWalletStats],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_wallets_stats(
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
+    user: User = Depends(check_user_exists),
 ):
 
-    return await get_wallets_stats(filters)
+    if user.admin:
+        # admin user can see payments from all wallets
+        for_user_id = None
+    else:
+        # regular user can only see payments from their wallets
+        for_user_id = user.id
+
+    return await get_wallets_stats(filters, user_id=for_user_id)
 
 
 @payment_router.get(
@@ -182,22 +195,13 @@ async def api_payments_daily_stats(
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
 
-    if not user.admin:
-        exc = HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Missing wallet id.",
-        )
-        wallet_filter = next(
-            (f for f in filters.filters if f.field == "wallet_id"), None
-        )
-        if not wallet_filter:
-            raise exc
-        wallet_id = list((wallet_filter.values or {}).values())
-        if len(wallet_id) == 0:
-            raise exc
-        if not user.get_wallet(wallet_id[0]):
-            raise exc
-    return await get_payments_daily_stats(filters)
+    if user.admin:
+        # admin user can see payments from all wallets
+        for_user_id = None
+    else:
+        # regular user can only see payments from their wallets
+        for_user_id = user.id
+    return await get_payments_daily_stats(filters, user_id=for_user_id)
 
 
 @payment_router.get(
@@ -293,13 +297,21 @@ async def _api_payments_create_invoice(data: CreateInvoice, wallet: Wallet):
     response_description="list of payments",
     response_model=Page[Payment],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
-    dependencies=[Depends(check_admin)],
 )
 async def api_all_payments_paginated(
     filters: Filters = Depends(parse_filters(PaymentFilters)),
+    user: User = Depends(check_user_exists),
 ):
+    if user.admin:
+        # admin user can see payments from all wallets
+        for_user_id = None
+    else:
+        # regular user can only see payments from their wallets
+        for_user_id = user.id
+
     return await get_payments_paginated(
         filters=filters,
+        user_id=for_user_id,
     )
 
 
@@ -343,7 +355,7 @@ async def api_payments_create(
         return await _api_payments_create_invoice(invoice_data, wallet.wallet)
     else:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
+            status_code=HTTPStatus.FORBIDDEN,
             detail="Invoice (or Admin) key required.",
         )
 

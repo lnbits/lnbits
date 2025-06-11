@@ -27,6 +27,9 @@ class UserExtra(BaseModel):
     # - "google | github | ...": the user was created using an SSO provider
     provider: str | None = "lnbits"  # auth provider
 
+    # how many wallets are shown in the user interface
+    visible_wallet_count: int | None = 10
+
 
 class EndpointAccess(BaseModel):
     path: str

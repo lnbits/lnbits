@@ -261,7 +261,9 @@ window.WalletPageLogic = {
           this.receive.paymentReq = response.data.bolt11
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
-          this.readNfcTag()
+          if (!this.receive.lnurl) {
+            this.readNfcTag()
+          }
           // TODO: lnurl_callback and lnurl_response
           // WITHDRAW
           if (response.data.lnurl_response !== null) {
@@ -660,7 +662,7 @@ window.WalletPageLogic = {
             }
           }
           Quasar.Notify.create({
-            message: 'Wallet and user updated.',
+            message: 'Wallet updated.',
             type: 'positive',
             timeout: 3500
           })

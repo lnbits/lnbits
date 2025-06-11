@@ -381,7 +381,7 @@ class SecuritySettings(LNbitsSettings):
     lnbits_allowed_ips: list[str] = Field(default=[])
     lnbits_blocked_ips: list[str] = Field(default=[])
     lnbits_callback_url_rules: list[str] = Field(
-        default=["^(?!\\d+\\.\\d+\\.\\d+\\.\\d+$)(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$"]
+        default=["https?://([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})(:\\d+)?"]
     )
 
     lnbits_wallet_limit_max_balance: int = Field(default=0, ge=0)
@@ -556,6 +556,13 @@ class BoltzFundingSource(LNbitsSettings):
     boltz_client_cert: str | None = Field(default=None)
 
 
+class StrikeFundingSource(LNbitsSettings):
+    strike_api_endpoint: str | None = Field(
+        default="https://api.strike.me/v1", env="STRIKE_API_ENDPOINT"
+    )
+    strike_api_key: str | None = Field(default=None, env="STRIKE_API_KEY")
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
@@ -580,6 +587,7 @@ class FundingSourcesSettings(
     LnTipsFundingSource,
     NWCFundingSource,
     BreezSdkFundingSource,
+    StrikeFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
     # How long to wait for the payment to be confirmed before returning a pending status
@@ -659,6 +667,8 @@ class KeycloakAuthSettings(LNbitsSettings):
     keycloak_discovery_url: str = Field(default="")
     keycloak_client_id: str = Field(default="")
     keycloak_client_secret: str = Field(default="")
+    keycloak_client_custom_org: str | None = Field(default=None)
+    keycloak_client_custom_icon: str | None = Field(default=None)
 
 
 class AuditSettings(LNbitsSettings):
@@ -863,6 +873,7 @@ class SuperUserSettings(LNbitsSettings):
             "VoidWallet",
             "ZBDWallet",
             "NWCWallet",
+            "StrikeWallet",
         ]
     )
 

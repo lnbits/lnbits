@@ -133,25 +133,31 @@ class PhoenixdWallet(Wallet):
             if r.is_error or "paymentHash" not in data:
                 error_message = data["message"]
                 return InvoiceResponse(
-                    False, None, None, f"Server error: '{error_message}'"
+                    ok=False, error_message=f"Server error: '{error_message}'"
                 )
 
             checking_id = data["paymentHash"]
             payment_request = data["serialized"]
-            return InvoiceResponse(True, checking_id, payment_request, None)
+            preimage = data.get("paymentPreimage", None)  # if available
+            return InvoiceResponse(
+                ok=True,
+                checking_id=checking_id,
+                payment_request=payment_request,
+                preimage=preimage,
+            )
         except json.JSONDecodeError:
             return InvoiceResponse(
-                False, None, None, "Server error: 'invalid json response'"
+                ok=False, error_message="Server error: 'invalid json response'"
             )
         except KeyError as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, "Server error: 'missing required fields'"
+                ok=False, error_message="Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(
-                False, None, None, f"Unable to connect to {self.endpoint}."
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -168,31 +174,35 @@ class PhoenixdWallet(Wallet):
             data = r.json()
 
             if "routingFeeSat" not in data and "reason" in data:
-                return PaymentResponse(None, None, None, None, data["reason"])
+                return PaymentResponse(error_message=data["reason"])
 
             if r.is_error or "paymentHash" not in data:
                 error_message = data["message"] if "message" in data else r.text
-                return PaymentResponse(None, None, None, None, error_message)
+                return PaymentResponse(error_message=error_message)
 
             checking_id = data["paymentHash"]
             fee_msat = -int(data["routingFeeSat"]) * 1000
             preimage = data["paymentPreimage"]
-
-            return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+            return PaymentResponse(
+                ok=True,
+                checking_id=checking_id,
+                fee_msat=fee_msat,
+                preimage=preimage,
+            )
 
         except json.JSONDecodeError:
             return PaymentResponse(
-                None, None, None, None, "Server error: 'invalid json response'"
+                error_message="Server error: 'invalid json response'"
             )
         except KeyError:
             return PaymentResponse(
-                None, None, None, None, "Server error: 'missing required fields'"
+                error_message="Server error: 'missing required fields'"
             )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
             return PaymentResponse(
-                None, None, None, None, f"Unable to connect to {self.endpoint}."
+                error_message=f"Unable to connect to {self.endpoint}."
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

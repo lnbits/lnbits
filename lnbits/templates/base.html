@@ -179,12 +179,12 @@
         >
           <q-scroll-area style="height: 100%">
             <q-item>
-              <q-item-section>
+              <q-item-section class="cursor-pointer" @click="goToWallets()">
                 <q-item-label
                   :style="$q.dark.isActive ? 'color:rgba(255, 255, 255, 0.64)' : ''"
                   class="q-item__label q-item__label--header q-pa-none"
                   header
-                  v-text="$t('wallets')"
+                  v-text="$t('wallets') + ' (' + g.user.wallets.length + ')'"
                 ></q-item-label>
               </q-item-section>
               <q-item-section side>
@@ -211,7 +211,6 @@
               :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
               :show-users="'{{LNBITS_ADMIN_UI}}' == 'True'"
               :show-audit="'{{LNBITS_AUDIT_ENABLED}}' == 'True'"
-              :show-payments="'{{LNBITS_ADMIN_UI}}' == 'True'"
               :show-node="'{{LNBITS_NODE_UI}}' == 'True'"
               :show-extensions="'{{LNBITS_EXTENSIONS_DEACTIVATE_ALL}}' == 'False'"
             ></lnbits-manage>
@@ -248,7 +247,7 @@
                         @click="showAddWalletDialog.show = true"
                       >
                         <q-tooltip
-                          ><span v-text="$t('add_wallet')"></span
+                          ><span v-text="$t('add_new_wallet')"></span
                         ></q-tooltip>
                       </q-btn>
                       <q-dialog
@@ -258,7 +257,9 @@
                       >
                         <q-card style="min-width: 350px">
                           <q-card-section>
-                            <div class="text-h6">Wallet name</div>
+                            <div class="text-h6">
+                              <span v-text="$t('wallet_name')"></span>
+                            </div>
                           </q-card-section>
 
                           <q-card-section class="q-pt-none">
@@ -271,10 +272,14 @@
                           </q-card-section>
 
                           <q-card-actions align="right" class="text-primary">
-                            <q-btn flat label="Cancel" v-close-popup></q-btn>
                             <q-btn
                               flat
-                              label="Add wallet"
+                              :label="$t('cancel')"
+                              v-close-popup
+                            ></q-btn>
+                            <q-btn
+                              flat
+                              :label="$t('add_wallet')"
                               v-close-popup
                               @click="submitAddWallet()"
                             ></q-btn>
@@ -285,7 +290,7 @@
                   </q-card-section>
                 </q-card>
                 <q-card
-                  v-for="wallet in g.user.wallets"
+                  v-for="wallet in g.user.wallets.slice(0, g.user.extra.visible_wallet_count || 10)"
                   :key="wallet.id"
                   clickable
                   @click="selectWallet(wallet)"
@@ -328,6 +333,29 @@
                       <h6 class="q-my-none ellipsis full-width">
                         <strong v-text="formatBalance(wallet.sat)"></strong>
                       </h6>
+                    </div>
+                  </q-card-section>
+                </q-card>
+                <q-card
+                  v-if="g.user.hiddenWalletsCount"
+                  class="wallet-list-card"
+                >
+                  <q-card-section
+                    class="flex flex-center column full-height text-center"
+                  >
+                    <div>
+                      <q-btn
+                        round
+                        color="primary"
+                        icon="more_horiz"
+                        @click="goToWallets()"
+                      >
+                        <q-tooltip
+                          ><span
+                            v-text="$t('more_count', {count: g.user.hiddenWalletsCount})"
+                          ></span
+                        ></q-tooltip>
+                      </q-btn>
                     </div>
                   </q-card-section>
                 </q-card>
@@ -390,42 +418,38 @@
       </q-layout>
     </div>
 
+    <script type="text/javascript">
+      const WINDOW_SETTINGS = {{ WINDOW_SETTINGS | tojson }}
+      Object.keys(WINDOW_SETTINGS).forEach(key => {
+        window[key] = WINDOW_SETTINGS[key]
+      })
+      if (LNBITS_THEME_OPTIONS && LNBITS_THEME_OPTIONS.length) {
+        window.allowedThemes = LNBITS_THEME_OPTIONS.map(str => str.trim())
+      }
+    </script>
     {% include('components.vue') %} {% block vue_templates %}{% endblock %} {%
     for url in INCLUDED_JS %}
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %}
     <script type="text/javascript">
-      const SITE_DESCRIPTION = {{ SITE_DESCRIPTION | tojson}}
-      const themes = {{ LNBITS_THEME_OPTIONS | tojson }}
-      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION | tojson }}
-      const LNBITS_VERSION = {{ LNBITS_VERSION | tojson }}
-      const LNBITS_QR_LOGO = {{ LNBITS_QR_LOGO | tojson }}
-      const USE_DEFAULT_REACTION = {{ USE_DEFAULT_REACTION | tojson }}
-      const USE_DEFAULT_THEME = {{ USE_DEFAULT_THEME | tojson }}
-      const USE_DEFAULT_BORDER = {{ USE_DEFAULT_BORDER | tojson }}
-      const USE_DEFAULT_GRADIENT = {{ USE_DEFAULT_GRADIENT | lower | tojson }}
-      const USE_DEFAULT_BGIMAGE = "{{ USE_DEFAULT_BGIMAGE or None | tojson }}"
-      if (themes && themes.length) {
-        window.allowedThemes = themes.map(str => str.trim())
-      }
       window.langs = [
-        { value: 'en', label: 'English', display: '🇬🇧 EN' },
-        { value: 'de', label: 'Deutsch', display: '🇩🇪 DE' },
-        { value: 'es', label: 'Español', display: '🇪🇸 ES' },
-        { value: 'jp', label: '日本語', display: '🇯🇵 JP' },
-        { value: 'cn', label: '中文', display: '🇨🇳 CN' },
-        { value: 'fr', label: 'Français', display: '🇫🇷 FR' },
-        { value: 'it', label: 'Italiano', display: '🇮🇹 IT' },
-        { value: 'pi', label: 'Pirate', display: '🏴‍☠️ PI' },
-        { value: 'nl', label: 'Nederlands', display: '🇳🇱 NL' },
-        { value: 'we', label: 'Cymraeg', display: '🏴󠁧󠁢󠁷󠁬󠁳󠁿 CY' },
-        { value: 'pl', label: 'Polski', display: '🇵🇱 PL' },
-        { value: 'pt', label: 'Português', display: '🇵🇹 PT' },
-        { value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR' },
-        { value: 'cs', label: 'Česky', display: '🇨🇿 CS' },
-        { value: 'sk', label: 'Slovensky', display: '🇸🇰 SK' },
-        { value: 'kr', label: '한국어', display: '🇰🇷 KR' },
-        { value: 'fi', label: 'Suomi', display: '🇫🇮 FI' }
+        {value: 'en', label: 'English', display: '🇬🇧 EN'},
+        {value: 'de', label: 'Deutsch', display: '🇩🇪 DE'},
+        {value: 'es', label: 'Español', display: '🇪🇸 ES'},
+        {value: 'jp', label: '日本語', display: '🇯🇵 JP'},
+        {value: 'cn', label: '中文', display: '🇨🇳 CN'},
+        {value: 'fr', label: 'Français', display: '🇫🇷 FR'},
+        {value: 'it', label: 'Italiano', display: '🇮🇹 IT'},
+        {value: 'pi', label: 'Pirate', display: '🏴‍☠️ PI'},
+        {value: 'nl', label: 'Nederlands', display: '🇳🇱 NL'},
+        {value: 'we', label: 'Cymraeg', display: '🏴󠁧󠁢󠁷󠁬󠁳󠁿 CY'},
+        {value: 'pl', label: 'Polski', display: '🇵🇱 PL'},
+        {value: 'pt', label: 'Português', display: '🇵🇹 PT'},
+        {value: 'br', label: 'Português do Brasil', display: '🇧🇷 BR'},
+        {value: 'cs', label: 'Česky', display: '🇨🇿 CS'},
+        {value: 'sk', label: 'Slovensky', display: '🇸🇰 SK'},
+        {value: 'kr', label: '한국어', display: '🇰🇷 KR'},
+        {value: 'fi', label: 'Suomi', display: '🇫🇮 FI'}
       ]
       window.LOCALE = 'en'
       window.dateFormat = 'YYYY-MM-DD HH:mm'

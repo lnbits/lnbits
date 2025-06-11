@@ -5,7 +5,10 @@
     class="lnbits-drawer__q-list"
   >
     <q-item
-      v-for="walletRec in g.user.wallets"
+      v-for="walletRec in g.user.wallets.slice(
+        0,
+        g.user.extra.visible_wallet_count || 10
+      )"
       :key="walletRec.id"
       clickable
       :active="g.wallet && g.wallet.id === walletRec.id"
@@ -43,6 +46,22 @@
       <q-item-section side v-show="g.wallet && g.wallet.id === walletRec.id">
       </q-item-section>
     </q-item>
+    <q-item
+      v-if="g.user.hiddenWalletsCount > 0"
+      clickable
+      @click="goToWallets()"
+    >
+      <q-item-section side>
+        <q-icon name="more_horiz" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label
+          lines="1"
+          class="text-caption"
+          v-text="$t('more_count', {count: g.user.hiddenWalletsCount})"
+        ></q-item-label>
+      </q-item-section>
+    </q-item>
     <q-item clickable @click="showForm = !showForm">
       <q-item-section side>
         <q-icon
@@ -55,7 +74,7 @@
         <q-item-label
           lines="1"
           class="text-caption"
-          v-text="$t('add_wallet')"
+          v-text="$t('add_new_wallet')"
         ></q-item-label>
       </q-item-section>
     </q-item>
@@ -178,19 +197,19 @@
           <q-item-label lines="1" v-text="$t('api_watch')"></q-item-label>
         </q-item-section>
       </q-item>
-      <q-item v-if="showPayments" to="/payments">
-        <q-item-section side>
-          <q-icon
-            name="query_stats"
-            :color="isActive('/payments') ? 'primary' : 'grey-5'"
-            size="md"
-          ></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" v-text="$t('payments')"></q-item-label>
-        </q-item-section>
-      </q-item>
     </div>
+    <q-item to="/payments">
+      <q-item-section side>
+        <q-icon
+          name="query_stats"
+          :color="isActive('/payments') ? 'primary' : 'grey-5'"
+          size="md"
+        ></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label lines="1" v-text="$t('payments')"></q-item-label>
+      </q-item-section>
+    </q-item>
     <q-item v-if="showExtensions" to="/extensions">
       <q-item-section side>
         <q-icon
@@ -987,7 +1006,7 @@
               </div>
             </q-card-section>
             <q-card-section>
-              <div class="row">
+              <div class="row q-gutter-x-sm">
                 <q-btn
                   v-if="
                     props.row.isIn && props.row.isPending && props.row.bolt11
@@ -1185,7 +1204,7 @@
             color="primary"
             :disable="walletName == ''"
             type="submit"
-            :label="$t('add_wallet')"
+            :label="$t('add_new_wallet')"
             class="full-width q-mb-sm"
           ></q-btn>
           <q-btn
@@ -1453,10 +1472,22 @@
       >
         <q-avatar size="32px" class="q-mr-md">
           <q-img
-            :src="`{{ static_url_for('static', 'images/keycloak-logo.png') }}`"
+            :src="
+              keycloakIcon
+                ? keycloakIcon
+                : `{{ static_url_for('static', 'images/keycloak-logo.png') }}`
+            "
           ></q-img>
         </q-avatar>
-        <div><span v-text="$t('signin_with_keycloak')"></span></div>
+        <div>
+          <span
+            v-text="
+              $t('signin_with_custom_org', {
+                custom_org: keycloakOrg
+              })
+            "
+          ></span>
+        </div>
       </q-btn>
     </div>
   </q-card-section>

@@ -102,7 +102,7 @@ class KeyChecker(SecurityBase):
         request.scope["user_id"] = wallet.user
         if self.expected_key_type is KeyType.admin and wallet.adminkey != key_value:
             raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED,
+                status_code=HTTPStatus.FORBIDDEN,
                 detail="Invalid adminkey.",
             )
 
@@ -165,7 +165,7 @@ async def check_user_exists(
 
     r.scope["user_id"] = account.id
     if not settings.is_user_allowed(account.id):
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not allowed.")
+        raise HTTPException(HTTPStatus.FORBIDDEN, "User not allowed.")
 
     user = await get_user_from_account(account)
     if not user:
@@ -201,7 +201,7 @@ async def access_token_payload(
 async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User:
     if user.id != settings.super_user and user.id not in settings.lnbits_admin_users:
         raise HTTPException(
-            HTTPStatus.UNAUTHORIZED, "User not authorized. No admin privileges."
+            HTTPStatus.FORBIDDEN, "User not authorized. No admin privileges."
         )
     if not user.has_password:
         raise HTTPException(
@@ -214,7 +214,7 @@ async def check_admin(user: Annotated[User, Depends(check_user_exists)]) -> User
 async def check_super_user(user: Annotated[User, Depends(check_user_exists)]) -> User:
     if user.id != settings.super_user:
         raise HTTPException(
-            HTTPStatus.UNAUTHORIZED, "User not authorized. No super user privileges."
+            HTTPStatus.FORBIDDEN, "User not authorized. No super user privileges."
         )
     if not user.has_password:
         raise HTTPException(
