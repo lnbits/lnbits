@@ -39,6 +39,17 @@ docker_lightning_unconnected_cli = [
 ]
 
 
+docker_lightning_noroute_cli = [
+    "docker",
+    "exec",
+    "lnbits-lnd-4-1",
+    "lncli",
+    "--network",
+    "regtest",
+    "--rpcserver=lnd-4",
+]
+
+
 def run_cmd(cmd: list) -> str:
     timeout = 10
     process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -96,6 +107,12 @@ def cancel_invoice(preimage_hash: str) -> str:
 
 def get_real_invoice(sats: int) -> dict:
     cmd = docker_lightning_cli.copy()
+    cmd.extend(["addinvoice", str(sats)])
+    return run_cmd_json(cmd)
+
+
+def get_real_invoice_noroute(sats: int) -> dict:
+    cmd = docker_lightning_noroute_cli.copy()
     cmd.extend(["addinvoice", str(sats)])
     return run_cmd_json(cmd)
 
