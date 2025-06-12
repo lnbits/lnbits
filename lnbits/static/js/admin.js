@@ -192,18 +192,18 @@ window.AdminPageLogic = {
       const addUser = this.formAddStripeUser || ''
       if (
         addUser.length &&
-        !this.formData.stripe_allowed_users.includes(addUser)
+        !this.formData.stripe_limits.allowed_users.includes(addUser)
       ) {
-        this.formData.stripe_allowed_users = [
-          ...this.formData.stripe_allowed_users,
+        this.formData.stripe_limits.allowed_users = [
+          ...this.formData.stripe_limits.allowed_users,
           addUser
         ]
         this.formAddStripeUser = ''
       }
     },
     removeStripeAllowedUser(user) {
-      this.formData.stripe_allowed_users =
-        this.formData.stripe_allowed_users.filter(u => u !== user)
+      this.formData.stripe_limits.allowed_users =
+        this.formData.stripe_limits.allowed_users.filter(u => u !== user)
     },
     addIncludePath() {
       if (!this.formAddIncludePath) {
