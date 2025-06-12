@@ -255,7 +255,7 @@ async def adminkey_headers_to(to_wallet):
 async def invoice(to_wallet):
     data = await get_random_invoice_data()
     invoice_data = CreateInvoice(**data)
-    invoice = await create_wallet_invoice(invoice_data, to_wallet.id)
+    invoice = await create_wallet_invoice(to_wallet.id, invoice_data)
     yield invoice
     del invoice
 
