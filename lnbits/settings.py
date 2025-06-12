@@ -565,6 +565,19 @@ class StrikeFundingSource(LNbitsSettings):
     strike_api_key: str | None = Field(default=None, env="STRIKE_API_KEY")
 
 
+class FiatProviderLimits(BaseModel):
+    # empty list means all users are allowed to receive payments via Stripe
+    allowed_users: list[str] = Field(default=[])
+
+    service_max_fee_sats: int = Field(default=0)
+    service_fee_percent: float = Field(default=0)
+    service_fee_wallet_id: str = Field(default="")
+
+    service_min_amount_sats: int = Field(default=0)
+    service_max_amount_sats: int = Field(default=0)
+    service_faucet_wallet_id: str | None = Field(default="")
+
+
 class StripeFiatProvider(LNbitsSettings):
     stripe_enabled: bool = Field(default=False)
     stripe_api_endpoint: str = Field(default="https://api.stripe.com")
@@ -577,16 +590,7 @@ class StripeFiatProvider(LNbitsSettings):
     # Use this secret to verify that events come from Stripe.
     stripe_webhook_signing_secret: str | None = Field(default=None)
 
-    # empty list means all users are allowed to receive payments via Stripe
-    stripe_allowed_users: list[str] = Field(default=[])
-
-    stripe_service_fee_sats: float = Field(default=0)
-    stripe_service_fee_percent: float = Field(default=0)
-    stripe_service_fee_wallet: str = Field(default="")
-
-    stripe_service_min_amount_sats: int = Field(default=0)
-    stripe_service_max_amount_sats: int = Field(default=0)
-    stripe_service_faucet_wallet_id: str | None = Field(default="")
+    stripe_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
 
 
 class LightningSettings(LNbitsSettings):
@@ -640,12 +644,19 @@ class FiatProvidersSettings(StripeFiatProvider):
         """
         allowed_providers = []
         if self.stripe_enabled and (
-            not self.stripe_allowed_users or user_id in self.stripe_allowed_users
+            not self.stripe_limits.allowed_users
+            or user_id in self.stripe_limits.allowed_users
         ):
             allowed_providers.append("stripe")
 
         # Add other fiat providers here as needed
         return allowed_providers
+
+    def get_fiat_provider_limits(self, provider_name: str) -> FiatProviderLimits | None:
+        """
+        Returns the limits for a specific fiat provider.
+        """
+        return getattr(self, provider_name + "_limits", None)
 
 
 class WebPushSettings(LNbitsSettings):

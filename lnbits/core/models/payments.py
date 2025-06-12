@@ -62,7 +62,7 @@ class Payment(BaseModel):
     fee: int
     bolt11: str
     # payment_request: str | None
-    # fiat_provider: str | None
+    fiat_provider: str | None
     status: str = PaymentState.PENDING
     memo: str | None = None
     expiry: datetime | None = None
@@ -120,7 +120,7 @@ class Payment(BaseModel):
                 return PaymentSuccessStatus()
             if self.failed:
                 return PaymentFailedStatus()
-            if not self.is_out and self.extra.get("fiat_provider"):
+            if not self.is_out and self.fiat_provider:
                 return await self.check_fiat_status(skip_internal_payment_notifications)
             return PaymentPendingStatus()
         funding_source = get_funding_source()
@@ -144,10 +144,9 @@ class Payment(BaseModel):
         if not checking_id:
             return PaymentPendingStatus()
 
-        fiat_provider_name = self.extra.get("fiat_provider")
-        if not fiat_provider_name:
+        if not self.fiat_provider:
             return PaymentPendingStatus()
-        fiat_provider = await get_fiat_provider(fiat_provider_name)
+        fiat_provider = await get_fiat_provider(self.fiat_provider)
         if not fiat_provider:
             return PaymentPendingStatus()
         fiat_status = await fiat_provider.get_invoice_status(checking_id)
