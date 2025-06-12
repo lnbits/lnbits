@@ -41,6 +41,5 @@ async def test_connection(provider: str) -> SimpleStatus:
 
     return SimpleStatus(
         success=True,
-        message="Connection test successful."
-        f" Balance: {status.balance} {status.currency}.",
+        message="Connection test successful." f" Balance: {status.balance}.",
     )

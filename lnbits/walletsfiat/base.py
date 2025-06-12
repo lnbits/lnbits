@@ -10,7 +10,6 @@ if TYPE_CHECKING:
 class FiatStatusResponse(NamedTuple):
     error_message: str | None = None
     balance: float = 0
-    currency: str = "usd"
 
 
 class FiatInvoiceResponse(NamedTuple):
@@ -94,14 +93,9 @@ class FiatWallet(ABC):
         pass
 
     @abstractmethod
-    def status(self) -> Coroutine[None, None, FiatStatusResponse]:
-        pass
-
-    @abstractmethod
-    def has_stale_connection(self) -> bool:
-        """
-        Check if the wallet connection settings have changed.
-        """
+    def status(
+        self, only_check_settings: bool | None = False
+    ) -> Coroutine[None, None, FiatStatusResponse]:
         pass
 
     @abstractmethod
