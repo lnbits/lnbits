@@ -11,13 +11,13 @@ from lnbits.settings import settings
 
 from .base import (
     FiatInvoiceResponse,
+    FiatPaymentFailedStatus,
+    FiatPaymentPendingStatus,
     FiatPaymentResponse,
     FiatPaymentStatus,
+    FiatPaymentSuccessStatus,
     FiatStatusResponse,
     FiatWallet,
-    PaymentFailedStatus,
-    PaymentPendingStatus,
-    PaymentSuccessStatus,
 )
 
 
@@ -141,21 +141,21 @@ class StripeWallet(FiatWallet):
             data = r.json()
             payment_status = data.get("payment_status")
             if not payment_status:
-                return PaymentPendingStatus()
+                return FiatPaymentPendingStatus()
             if payment_status == "paid":
                 # todo: handle fee and preimage
-                return PaymentSuccessStatus()
+                return FiatPaymentSuccessStatus()
 
             expires_at = data.get("expires_at")
             _24_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
             if expires_at and expires_at < _24_hours_ago.timestamp():
                 # be defensive: add a 24 hour buffer
-                return PaymentFailedStatus()
+                return FiatPaymentFailedStatus()
 
-            return PaymentPendingStatus()
+            return FiatPaymentPendingStatus()
         except Exception as exc:
             logger.debug(f"Error getting invoice status: {exc}")
-            return PaymentPendingStatus()
+            return FiatPaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> FiatPaymentStatus:
         raise NotImplementedError("Stripe does not support outgoinf payments.")

@@ -17,6 +17,12 @@ from lnbits.wallets.base import (
     PaymentSuccessStatus,
 )
 from lnbits.walletsfiat import get_fiat_provider
+from lnbits.walletsfiat.base import (
+    FiatPaymentFailedStatus,
+    FiatPaymentPendingStatus,
+    FiatPaymentStatus,
+    FiatPaymentSuccessStatus,
+)
 
 
 class PaymentState(str, Enum):
@@ -120,8 +126,11 @@ class Payment(BaseModel):
                 return PaymentSuccessStatus()
             if self.failed:
                 return PaymentFailedStatus()
-            if not self.is_out and self.fiat_provider:
-                return await self.check_fiat_status(skip_internal_payment_notifications)
+            if self.is_in and self.fiat_provider:
+                fiat_status = await self.check_fiat_status(
+                    skip_internal_payment_notifications
+                )
+                return PaymentStatus(paid=fiat_status.paid)
             return PaymentPendingStatus()
         funding_source = get_funding_source()
         if self.is_out:
@@ -132,29 +141,27 @@ class Payment(BaseModel):
 
     async def check_fiat_status(
         self, skip_internal_payment_notifications: bool | None = False
-    ) -> PaymentStatus:
+    ) -> FiatPaymentStatus:
         if not self.is_internal:
-            return PaymentPendingStatus()
+            return FiatPaymentPendingStatus()
         if self.success:
-            return PaymentSuccessStatus()
+            return FiatPaymentSuccessStatus()
         if self.failed:
-            return PaymentFailedStatus()
+            return FiatPaymentFailedStatus()
 
         checking_id = self.extra.get("fiat_checking_id")
         if not checking_id:
-            return PaymentPendingStatus()
+            return FiatPaymentPendingStatus()
 
         if not self.fiat_provider:
-            return PaymentPendingStatus()
+            return FiatPaymentPendingStatus()
         fiat_provider = await get_fiat_provider(self.fiat_provider)
         if not fiat_provider:
-            return PaymentPendingStatus()
+            return FiatPaymentPendingStatus()
         fiat_status = await fiat_provider.get_invoice_status(checking_id)
 
-        payment_status = PaymentStatus(paid=fiat_status.paid)
-
         if skip_internal_payment_notifications:
-            return payment_status
+            return fiat_status
 
         if fiat_status.success:
             # notify receivers asynchronously
@@ -162,7 +169,7 @@ class Payment(BaseModel):
 
             await internal_invoice_queue.put(self.checking_id)
 
-        return payment_status
+        return fiat_status
 
 
 class PaymentFilters(FilterModel):

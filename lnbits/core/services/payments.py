@@ -908,7 +908,7 @@ async def _credit_service_fee_wallet(
     )
 
 
-async def _credit_fiat_service_fee_wallet(
+async def credit_fiat_service_fee_wallet(
     internal_payment: Payment, memo: str, conn: Optional[Connection] = None
 ):
     # todo: call this when the payment is successful

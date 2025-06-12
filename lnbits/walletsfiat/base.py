@@ -75,15 +75,15 @@ class FiatPaymentStatus(NamedTuple):
         return "pending"
 
 
-class PaymentSuccessStatus(FiatPaymentStatus):
+class FiatPaymentSuccessStatus(FiatPaymentStatus):
     paid = True
 
 
-class PaymentFailedStatus(FiatPaymentStatus):
+class FiatPaymentFailedStatus(FiatPaymentStatus):
     paid = False
 
 
-class PaymentPendingStatus(FiatPaymentStatus):
+class FiatPaymentPendingStatus(FiatPaymentStatus):
     paid = None
 
 
