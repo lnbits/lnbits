@@ -10,13 +10,13 @@ from loguru import logger
 from lnbits.settings import settings
 
 from .base import (
+    FiatInvoiceResponse,
+    FiatPaymentResponse,
+    FiatPaymentStatus,
     FiatStatusResponse,
     FiatWallet,
-    InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
-    PaymentResponse,
-    PaymentStatus,
     PaymentSuccessStatus,
 )
 
@@ -75,7 +75,7 @@ class StripeWallet(FiatWallet):
         currency: str,
         memo: Optional[str] = None,
         **kwargs,
-    ) -> InvoiceResponse:
+    ) -> FiatInvoiceResponse:
         amount_cents = int(amount * 100)
         form_data = [
             ("mode", "payment"),
@@ -103,32 +103,32 @@ class StripeWallet(FiatWallet):
 
             session_id = data.get("id")
             if not session_id:
-                return InvoiceResponse(
+                return FiatInvoiceResponse(
                     ok=False, error_message="Server error: 'missing session id'"
                 )
             payment_request = data.get("url")
             if not payment_request:
-                return InvoiceResponse(
+                return FiatInvoiceResponse(
                     ok=False, error_message="Server error: 'missing payment URL'"
                 )
 
-            return InvoiceResponse(
+            return FiatInvoiceResponse(
                 ok=True, checking_id=session_id, payment_request=payment_request
             )
         except json.JSONDecodeError:
-            return InvoiceResponse(
+            return FiatInvoiceResponse(
                 ok=False, error_message="Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.warning(exc)
-            return InvoiceResponse(
+            return FiatInvoiceResponse(
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
-    async def pay_invoice(self, payment_request: str) -> PaymentResponse:
+    async def pay_invoice(self, payment_request: str) -> FiatPaymentResponse:
         raise NotImplementedError("Stripe does not support paying invoices directly.")
 
-    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> FiatPaymentStatus:
         try:
             r = await self.client.get(
                 url=f"/v1/checkout/sessions/{checking_id}",
@@ -154,7 +154,7 @@ class StripeWallet(FiatWallet):
             logger.debug(f"Error getting invoice status: {exc}")
             return PaymentPendingStatus()
 
-    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> FiatPaymentStatus:
         raise NotImplementedError("Stripe does not support outgoinf payments.")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
