@@ -110,7 +110,7 @@ class FiatWallet(ABC):
     @abstractmethod
     def create_invoice(
         self,
-        amount: int,
+        amount: float,
         payment_hash: str,
         currency: str,
         memo: str | None = None,

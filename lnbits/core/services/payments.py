@@ -29,7 +29,7 @@ from lnbits.wallets.base import (
     PaymentStatus,
     PaymentSuccessStatus,
 )
-from lnbits.walletsfiat.stripe import StripeWallet
+from lnbits.walletsfiat import get_fiat_provider
 
 from ..crud import (
     check_internal,
@@ -104,6 +104,8 @@ async def create_wallet_fiat_invoice(invoice_data: CreateInvoice, wallet_id: str
         raise ValueError("Fiat provider cannot be used with satoshis.")
 
     fiat_provider_name = invoice_data.fiat_provider
+    if not fiat_provider_name:
+        raise ValueError("Fiat provider is required for fiat invoices.")
     if not settings.is_fiat_provider_enabled(fiat_provider_name):
         raise ValueError(
             f"Fiat provider '{fiat_provider_name}' is not enabled.",
@@ -114,7 +116,7 @@ async def create_wallet_fiat_invoice(invoice_data: CreateInvoice, wallet_id: str
     # todo: test with LNbits wallet
     invoice_data.internal = True
     internal_payment = await create_wallet_invoice(invoice_data, wallet_id)
-    fiat_provider = StripeWallet()
+    fiat_provider = await get_fiat_provider(fiat_provider_name)
     fiat_invoice = await fiat_provider.create_invoice(
         amount=invoice_data.amount,
         payment_hash=internal_payment.payment_hash,
