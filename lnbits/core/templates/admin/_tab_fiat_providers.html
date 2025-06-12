@@ -95,7 +95,16 @@
                   :hint="$t('signing_secret_hint')"
                 ></q-input>
               </q-card-section>
-              <q-card-section class="q-pa-md">
+              <q-card-section>
+                <span v-text="$t('webhook_events_list')"></span>
+                <ul>
+                  <li><code>checkout.session.async_payment_failed</code></li>
+                  <li><code>checkout.session.async_payment_succeeded</code></li>
+                  <li><code>checkout.session.completed</code></li>
+                  <li><code>checkout.session.expired</code></li>
+                </ul>
+              </q-card-section>
+              <!-- <q-card-section class="q-pa-md">
                 <div class="row">
                   <div class="col">
                     <q-btn
@@ -106,7 +115,7 @@
                     ></q-btn>
                   </div>
                 </div>
-              </q-card-section>
+              </q-card-section> -->
             </q-expansion-item>
             <q-expansion-item :label="$t('service_fee')">
               <q-card-section>
