@@ -196,6 +196,7 @@ window.localisation.en = {
   webhook_url: 'Webhook URL',
   webhook_url_hint:
     'Webhook URL to send the payment details to. It will be called when the payment is completed.',
+  webhook_events_list: 'The following events must be supported by the webhook:',
   payment_proof: 'Payment Proof',
   update: 'Update',
   update_available: 'Update {version} available!',
