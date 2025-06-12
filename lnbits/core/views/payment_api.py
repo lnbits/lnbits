@@ -265,9 +265,9 @@ async def api_payments_create(
 
     # If the payment is not outgoing, we can create a new invoice.
     if invoice_data.fiat_provider:
-        return await create_wallet_fiat_invoice(invoice_data, wallet_id)
+        return await create_wallet_fiat_invoice(wallet_id, invoice_data)
 
-    return await create_wallet_invoice(invoice_data, wallet_id)
+    return await create_wallet_invoice(wallet_id, invoice_data)
 
 
 @payment_router.get("/fee-reserve")

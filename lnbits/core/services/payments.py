@@ -99,7 +99,7 @@ async def pay_invoice(
     return payment
 
 
-async def create_wallet_fiat_invoice(invoice_data: CreateInvoice, wallet_id: str):
+async def create_wallet_fiat_invoice(wallet_id: str, invoice_data: CreateInvoice):
     if invoice_data.unit == "sat":
         raise ValueError("Fiat provider cannot be used with satoshis.")
 
@@ -115,7 +115,7 @@ async def create_wallet_fiat_invoice(invoice_data: CreateInvoice, wallet_id: str
     # todo: this should work, maybe Fake wallet creates a new wallet.
     # todo: test with LNbits wallet
     invoice_data.internal = True
-    internal_payment = await create_wallet_invoice(invoice_data, wallet_id)
+    internal_payment = await create_wallet_invoice(wallet_id, invoice_data)
     fiat_provider = await get_fiat_provider(fiat_provider_name)
     fiat_invoice = await fiat_provider.create_invoice(
         amount=invoice_data.amount,
@@ -138,7 +138,7 @@ async def create_wallet_fiat_invoice(invoice_data: CreateInvoice, wallet_id: str
     return internal_payment
 
 
-async def create_wallet_invoice(data: CreateInvoice, wallet_id: str) -> Payment:
+async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
     description_hash = b""
     unhashed_description = b""
     memo = data.memo or settings.lnbits_site_title
