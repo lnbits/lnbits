@@ -13,12 +13,11 @@ class FiatStatusResponse(NamedTuple):
     currency: str = "usd"
 
 
-class InvoiceResponse(NamedTuple):
+class FiatInvoiceResponse(NamedTuple):
     ok: bool
     checking_id: str | None = None  # payment_hash, rpc_id
     payment_request: str | None = None
     error_message: str | None = None
-    preimage: str | None = None
 
     @property
     def success(self) -> bool:
@@ -33,12 +32,11 @@ class InvoiceResponse(NamedTuple):
         return self.ok is False
 
 
-class PaymentResponse(NamedTuple):
+class FiatPaymentResponse(NamedTuple):
     # when ok is None it means we don't know if this succeeded
     ok: bool | None = None
     checking_id: str | None = None  # payment_hash, rcp_id
-    fee_msat: int | None = None
-    preimage: str | None = None
+    fee: float | None = None
     error_message: str | None = None
 
     @property
@@ -54,10 +52,9 @@ class PaymentResponse(NamedTuple):
         return self.ok is False
 
 
-class PaymentStatus(NamedTuple):
+class FiatPaymentStatus(NamedTuple):
     paid: bool | None = None
-    fee_msat: int | None = None
-    preimage: str | None = None
+    fee: float | None = None
 
     @property
     def success(self) -> bool:
@@ -79,15 +76,15 @@ class PaymentStatus(NamedTuple):
         return "pending"
 
 
-class PaymentSuccessStatus(PaymentStatus):
+class PaymentSuccessStatus(FiatPaymentStatus):
     paid = True
 
 
-class PaymentFailedStatus(PaymentStatus):
+class PaymentFailedStatus(FiatPaymentStatus):
     paid = False
 
 
-class PaymentPendingStatus(PaymentStatus):
+class PaymentPendingStatus(FiatPaymentStatus):
     paid = None
 
 
@@ -115,26 +112,26 @@ class FiatWallet(ABC):
         currency: str,
         memo: str | None = None,
         **kwargs,
-    ) -> Coroutine[None, None, InvoiceResponse]:
+    ) -> Coroutine[None, None, FiatInvoiceResponse]:
         pass
 
     @abstractmethod
     def pay_invoice(
         self,
         payment_request: str,
-    ) -> Coroutine[None, None, PaymentResponse]:
+    ) -> Coroutine[None, None, FiatPaymentResponse]:
         pass
 
     @abstractmethod
     def get_invoice_status(
         self, checking_id: str
-    ) -> Coroutine[None, None, PaymentStatus]:
+    ) -> Coroutine[None, None, FiatPaymentStatus]:
         pass
 
     @abstractmethod
     def get_payment_status(
         self, checking_id: str
-    ) -> Coroutine[None, None, PaymentStatus]:
+    ) -> Coroutine[None, None, FiatPaymentStatus]:
         pass
 
     async def paid_invoices_stream(
