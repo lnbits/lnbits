@@ -21,7 +21,8 @@ async def get_fiat_provider(name: str) -> FiatWallet:
 
     fiat_provider = fiat_providers.get(name)
     if fiat_provider:
-        if fiat_provider.has_stale_connection():
+        status = await fiat_provider.status(only_check_settings=True)
+        if status.error_message:
             await fiat_provider.cleanup()
             del fiat_providers[name]
         else:

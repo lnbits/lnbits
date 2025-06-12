@@ -48,11 +48,14 @@ class StripeWallet(FiatWallet):
         except RuntimeError as e:
             logger.warning(f"Error closing stripe wallet connection: {e}")
 
-    def has_stale_connection(self) -> bool:
-        _settings_fields = self._settings_connection_fields()
-        return _settings_fields != self._settings_fields
+    async def status(
+        self, only_check_settings: Optional[bool] = False
+    ) -> FiatStatusResponse:
+        if only_check_settings:
+            if self._settings_fields != self._settings_connection_fields():
+                return FiatStatusResponse("Connection settings have changed.", 0)
+            return FiatStatusResponse(balance=0)
 
-    async def status(self) -> FiatStatusResponse:
         try:
             r = await self.client.get(url="/v1/balance", timeout=15)
             r.raise_for_status()
