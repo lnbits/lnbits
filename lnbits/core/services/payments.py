@@ -19,7 +19,6 @@ from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
-from lnbits.tasks import create_task
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
@@ -627,6 +626,15 @@ async def get_payments_daily_stats(
     return data
 
 
+async def handle_fiat_payment_confirmation(
+    payment: Payment, conn: Optional[Connection] = None
+):
+    try:
+        await _credit_fiat_service_fee_wallet(payment, conn=conn)
+    except Exception as e:
+        logger.warning(e)
+
+
 async def _pay_invoice(
     wallet_id: str,
     create_payment_model: CreatePayment,
@@ -750,6 +758,8 @@ async def _pay_external_invoice(
 
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
     service_fee_msat = service_fee(amount_msat, internal=False)
+
+    from lnbits.tasks import create_task
 
     task = create_task(
         _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)
@@ -908,20 +918,29 @@ async def _credit_service_fee_wallet(
     )
 
 
-async def credit_fiat_service_fee_wallet(
-    internal_payment: Payment, memo: str, conn: Optional[Connection] = None
+async def _credit_fiat_service_fee_wallet(
+    internal_payment: Payment, conn: Optional[Connection] = None
 ):
-    # todo: call this when the payment is successful
-    limits = settings.get_fiat_provider_limits(internal_payment.fiat_provider or "")
-    if not limits:
-        return 0
-
-    service_fee_wallet = limits.service_fee_wallet_id
-    if not service_fee_wallet or not internal_payment.fee:
+    if not internal_payment.fee > 0:
+        return
+    if not internal_payment.fiat_provider:
         return
 
+    limits = settings.get_fiat_provider_limits(internal_payment.fiat_provider)
+    if not limits:
+        return
+
+    if not limits.service_fee_wallet_id:
+        return
+
+    memo = (
+        f"Service fee for fiat payment of "
+        f"{abs(internal_payment.sat)} sats. "
+        f"Provider: {internal_payment.fiat_provider}. "
+        f"Wallet: '{internal_payment.wallet_id}'."
+    )
     create_payment_model = CreatePayment(
-        wallet_id=service_fee_wallet,
+        wallet_id=limits.service_fee_wallet_id,
         bolt11=internal_payment.bolt11,
         payment_hash=internal_payment.payment_hash,
         amount_msat=abs(internal_payment.fee),
