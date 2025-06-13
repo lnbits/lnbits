@@ -161,13 +161,13 @@ async def check_fiat_invoice_limits(
 
     if amount_sat < limits.service_min_amount_sats:
         raise ValueError(
-            f"Fiat provider '{fiat_provider_name}' minimum amount is "
-            f"{limits.service_min_amount_sats} sats.",
+            f"Minimum amount is {limits.service_min_amount_sats} "
+            f"sats for '{fiat_provider_name}'.",
         )
     if amount_sat > limits.service_max_amount_sats:
         raise ValueError(
-            f"Fiat provider '{fiat_provider_name}' maximum amount is "
-            f"{limits.service_max_amount_sats} sats.",
+            f"Maximum amount is {limits.service_max_amount_sats} "
+            f"sats for '{fiat_provider_name}'.",
         )
 
     if limits.service_max_fee_sats > 0 or limits.service_fee_percent > 0:
