@@ -115,6 +115,9 @@ async def create_wallet_fiat_invoice(
     await check_fiat_invoice_limits(amount_sat, fiat_provider_name, conn)
 
     invoice_data.internal = True
+    if not invoice_data.memo:
+        invoice_data.memo = settings.lnbits_site_title + f" ({fiat_provider_name})"
+
     internal_payment = await create_wallet_invoice(wallet_id, invoice_data)
     fiat_provider = await get_fiat_provider(fiat_provider_name)
     fiat_invoice = await fiat_provider.create_invoice(
@@ -131,7 +134,9 @@ async def create_wallet_fiat_invoice(
             f"Cannot create payment request for '{fiat_provider_name}'.",
         )
 
-    internal_payment.fee = -abs(service_fee_fiat(amount_sat, fiat_provider_name))
+    internal_payment.fee = -abs(
+        service_fee_fiat(internal_payment.msat, fiat_provider_name)
+    )
     internal_payment.fiat_provider = fiat_provider_name
 
     internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
@@ -919,14 +924,15 @@ async def _credit_service_fee_wallet(
 
 
 async def _credit_fiat_service_fee_wallet(
-    internal_payment: Payment, conn: Optional[Connection] = None
+    payment: Payment, conn: Optional[Connection] = None
 ):
-    if not internal_payment.fee > 0:
+    fiat_provider_name = payment.fiat_provider
+    if not fiat_provider_name:
         return
-    if not internal_payment.fiat_provider:
+    if payment.fee == 0:
         return
 
-    limits = settings.get_fiat_provider_limits(internal_payment.fiat_provider)
+    limits = settings.get_fiat_provider_limits(fiat_provider_name)
     if not limits:
         return
 
@@ -935,19 +941,19 @@ async def _credit_fiat_service_fee_wallet(
 
     memo = (
         f"Service fee for fiat payment of "
-        f"{abs(internal_payment.sat)} sats. "
-        f"Provider: {internal_payment.fiat_provider}. "
-        f"Wallet: '{internal_payment.wallet_id}'."
+        f"{abs(payment.sat)} sats. "
+        f"Provider: {fiat_provider_name}. "
+        f"Wallet: '{payment.wallet_id}'."
     )
     create_payment_model = CreatePayment(
         wallet_id=limits.service_fee_wallet_id,
-        bolt11=internal_payment.bolt11,
-        payment_hash=internal_payment.payment_hash,
-        amount_msat=abs(internal_payment.fee),
+        bolt11=payment.bolt11,
+        payment_hash=payment.payment_hash,
+        amount_msat=abs(payment.fee),
         memo=memo,
     )
     await create_payment(
-        checking_id=f"service_fee_{internal_payment.payment_hash}",
+        checking_id=f"service_fee_{payment.payment_hash}",
         data=create_payment_model,
         status=PaymentState.SUCCESS,
         conn=conn,
