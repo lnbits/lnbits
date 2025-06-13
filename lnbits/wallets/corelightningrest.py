@@ -218,7 +218,7 @@ class CoreLightningRestWallet(Wallet):
                 data = exc.response.json()
                 error_code = int(data["error"]["code"])
                 if error_code in self.pay_failure_error_codes:
-                    error_message = f"Payment failed: {data['error']['message']}"
+                    error_message = data["error"]["message"]
                     return PaymentResponse(ok=False, error_message=error_message)
                 error_message = f"REST failed with {data['error']['message']}."
                 return PaymentResponse(error_message=error_message)
@@ -264,6 +264,9 @@ class CoreLightningRestWallet(Wallet):
         try:
             r.raise_for_status()
             data = r.json()
+
+            # TODO: remove
+            logger.error(data)
 
             if r.is_error or "error" in data or not data.get("pays"):
                 raise Exception("error in corelightning-rest response")
