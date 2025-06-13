@@ -80,6 +80,15 @@ class BoltzWallet(Wallet):
 
         return StatusResponse(None, response.balance.total * 1000)
 
+    async def create_wallet(self):
+        request = boltzrpc_pb2.CreateWalletRequest(
+            name=settings.boltz_client_wallet,
+            currency=boltzrpc_pb2.LBTC,
+            password=""  # empty string → no password
+        )
+        response = await self.rpc.CreateWallet(request, metadata=self.metadata)
+        return response
+
     async def create_invoice(
         self,
         amount: int,
