@@ -185,6 +185,8 @@ window.localisation.en = {
     'This wallet must be topped up with the amount of sats that the admin is willing to offer in exchange for the fiat currency.',
   faucest_wallet_desc_4:
     'If this wallet is configured, but is empty, the {provider} payments will not be processed.',
+  faucest_wallet_desc_5:
+    'This wallet can eventually get to a negative balance if parallel fiat payments are made.',
   faucest_wallet_id: 'Faucet Wallet ID (optional)',
   faucest_wallet_id_hint:
     'Wallet ID to use for the faucet. It will be used to send the funds to the user.',
