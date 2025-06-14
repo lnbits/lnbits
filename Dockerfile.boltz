@@ -29,7 +29,7 @@ FROM python:3.12-slim-bookworm
 
 # Install PostgreSQL client for backups + netcat for health checks / boltzd wait
 RUN apt-get update && apt-get -y upgrade && \
-    apt-get install -y gnupg2 curl lsb-release netcat && \
+    apt-get install -y gnupg2 curl lsb-release netcat-openbsd && \
     echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
     curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
@@ -65,6 +65,7 @@ ENV BOLTZ_CLIENT_ENDPOINT="127.0.0.1:9002"
 ENV BOLTZ_CLIENT_MACAROON="/root/.boltz/macaroons/admin.macaroon"
 ENV BOLTZ_CLIENT_CERT="/root/.boltz/tls.cert"
 ENV BOLTZ_CLIENT_WALLET="lnbits"
+ENV DOCKER_LNBITS_BOLTZ=true
 
 EXPOSE 5000
 
