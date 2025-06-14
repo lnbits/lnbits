@@ -1141,6 +1141,7 @@
               :type="hideInput ? 'password' : 'text'"
               :label="prop.label"
               :hint="prop.hint"
+              :readonly="fund === 'BoltzWallet' && key === 'boltz_mnemonic'"
             >
             </q-input>
           </div>
