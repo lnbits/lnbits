@@ -81,8 +81,23 @@ class BoltzWallet(Wallet):
         return StatusResponse(None, response.balance.total * 1000)
 
     async def create_wallet(self):
+        wallet_name = "lnbits"
+
+        # Check if the wallet already exists
+        try:
+            request = boltzrpc_pb2.GetWalletRequest(name=wallet_name)
+            response = await self.rpc.GetWallet(request, metadata=self.metadata)
+            logger.info(f"Wallet '{wallet_name}' already exists with ID {response.id}")
+            return response
+        except AioRpcError as exc:
+            if "not found" not in exc.details().lower():
+                logger.error(f"Error checking wallet existence: {exc.details()}")
+                raise
+
+        # If not found, create it
+        logger.info(f"Creating new wallet '{wallet_name}'")
         request = boltzrpc_pb2.CreateWalletRequest(
-            name=settings.boltz_client_wallet,
+            name=wallet_name,
             currency=boltzrpc_pb2.LBTC,
             password=""  # empty string → no password
         )
