@@ -62,7 +62,7 @@ ENV BOLTZ_CLIENT_WALLET="lnbits"
 EXPOSE 5000
 
 # Replace CMD with an entrypoint script
-COPY docker.sh /docker.sh
-RUN chmod +x /docker.sh
+COPY dockerboltz.sh /dockerboltz.sh
+RUN chmod +x /dockerboltz.sh
 
 CMD ["/docker.sh"]
