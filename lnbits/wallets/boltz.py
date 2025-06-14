@@ -108,9 +108,10 @@ class BoltzWallet(Wallet):
 
         # If not found, create it
         logger.info(f"Creating new wallet '{wallet_name}'")
-        request = boltzrpc_pb2.CreateWalletRequest(
+        params = boltzrpc_pb2.WalletParams(
             name=wallet_name, currency=boltzrpc_pb2.LBTC, password=""
         )
+        request = boltzrpc_pb2.CreateWalletRequest(params=params)
         response = await self.rpc.CreateWallet(request, metadata=self.metadata)
         return response
 
