@@ -1134,20 +1134,38 @@
           :key="i"
         >
           <div class="col-12">
-            <q-input
-              v-model="formData[key]"
-              filled
-              class="q-mt-sm"
-              :type="hideInput ? 'password' : 'text'"
-              :label="prop.label"
-              :hint="prop.hint"
-              :readonly="fund === 'BoltzWallet' && key === 'boltz_mnemonic'"
+            <div
+              @click="maybeShowQR(key)"
+              :style="prop.readonly ? 'cursor:pointer;' : ''"
             >
-            </q-input>
+              <q-input
+                v-model="formData[key]"
+                filled
+                class="q-mt-sm"
+                :type="hideInput ? 'password' : 'text'"
+                :label="prop.label"
+                :hint="prop.hint"
+                :readonly="prop.readonly || false"
+              >
+              </q-input>
+            </div>
           </div>
         </div>
       </div>
     </q-list>
+    <q-dialog v-model="showQRDialog">
+      <q-card class="q-pa-md">
+        <q-card-section>
+          <lnbits-qrcode
+            :value="qrValue.toUpperCase()"
+            :size="200"
+          ></lnbits-qrcode>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Close" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
