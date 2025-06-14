@@ -63,6 +63,19 @@ class BoltzWallet(Wallet):
         self.rpc = boltzrpc_pb2_grpc.BoltzStub(channel)
         self.wallet_id: int = 0
 
+        # Auto-create wallet if running in Docker mode
+        try:
+            loop = asyncio.get_event_loop()
+            wallet = loop.run_until_complete(self.create_wallet())
+            if hasattr(wallet, "mnemonic"):
+                settings.boltz_mnemonic = wallet.mnemonic
+                logger.info("✅ Stored Boltz mnemonic in settings")
+            else:
+                logger.warning("⚠️ No mnemonic returned from Boltz")
+        except Exception as e:
+            logger.error(f"❌ Failed to auto-create Boltz wallet: {e}")
+
+
     async def status(self) -> StatusResponse:
         try:
             request = boltzrpc_pb2.GetWalletRequest(name=settings.boltz_client_wallet)
@@ -99,7 +112,7 @@ class BoltzWallet(Wallet):
         request = boltzrpc_pb2.CreateWalletRequest(
             name=wallet_name,
             currency=boltzrpc_pb2.LBTC,
-            password=""  # empty string → no password
+            password=""
         )
         response = await self.rpc.CreateWallet(request, metadata=self.metadata)
         return response

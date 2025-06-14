@@ -65,7 +65,6 @@ ENV BOLTZ_CLIENT_ENDPOINT="127.0.0.1:9002"
 ENV BOLTZ_CLIENT_MACAROON="/root/.boltz/macaroons/admin.macaroon"
 ENV BOLTZ_CLIENT_CERT="/root/.boltz/tls.cert"
 ENV BOLTZ_CLIENT_WALLET="lnbits"
-ENV DOCKER_LNBITS_BOLTZ=true
 
 EXPOSE 5000
 
