@@ -1,15 +1,15 @@
+# Stage 1: LNbits build environment
 FROM python:3.12-slim-bookworm AS builder
 
-RUN apt-get clean
-RUN apt-get update
-RUN apt-get install -y curl pkg-config build-essential libnss-myhostname
+RUN apt-get update && \
+    apt-get install -y curl pkg-config build-essential libnss-myhostname
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
-# Only copy the files required to install the dependencies
+# Copy poetry files only for dependency resolution
 COPY pyproject.toml poetry.lock ./
 RUN touch README.md
 
@@ -23,16 +23,20 @@ ENV POETRY_NO_INTERACTION=1 \
 ARG POETRY_INSTALL_ARGS="--only main"
 RUN poetry install --no-root ${POETRY_INSTALL_ARGS}
 
+# Stage 2: Pull boltzd binary
+FROM boltz/boltz-client:latest AS boltz
+
+# Stage 3: Final runtime image
 FROM python:3.12-slim-bookworm
 
-# needed for backups postgresql-client version 14 (pg_dump)
+# Install PostgreSQL client for backups + netcat for health checks / boltzd wait
 RUN apt-get update && apt-get -y upgrade && \
-    apt-get -y install gnupg2 curl lsb-release && \
-    sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
+    apt-get install -y gnupg2 curl lsb-release netcat && \
+    echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
     curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
     apt-get -y install postgresql-client-14 postgresql-client-common && \
-    apt-get clean all && rm -rf /var/lib/apt/lists/*
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
@@ -45,13 +49,16 @@ ENV POETRY_NO_INTERACTION=1 \
 
 WORKDIR /app
 
+# Copy project files
 COPY . .
 COPY --from=builder /app/.venv .venv
+COPY --from=boltz /bin/boltzd /usr/local/bin/
 
+# Reinstall dependencies just in case (needed for CMD usage)
 ARG POETRY_INSTALL_ARGS="--only main"
 RUN poetry install ${POETRY_INSTALL_ARGS}
 
-COPY --from=boltz /bin/boltzd /usr/local/bin/
+# LNbits + boltzd configuration
 ENV LNBITS_PORT="5000"
 ENV LNBITS_HOST="0.0.0.0"
 ENV LNBITS_BACKEND_WALLET_CLASS="BoltzWallet"
@@ -62,8 +69,8 @@ ENV BOLTZ_CLIENT_WALLET="lnbits"
 
 EXPOSE 5000
 
-# Replace CMD with an entrypoint script
+# Entrypoint to start boltzd and LNbits
 COPY dockerboltz.sh /dockerboltz.sh
 RUN chmod +x /dockerboltz.sh
 
-CMD ["/docker.sh"]
+CMD ["/dockerboltz.sh"]
