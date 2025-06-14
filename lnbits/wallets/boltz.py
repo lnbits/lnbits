@@ -75,7 +75,6 @@ class BoltzWallet(Wallet):
         except Exception as e:
             logger.error(f"❌ Failed to auto-create Boltz wallet: {e}")
 
-
     async def status(self) -> StatusResponse:
         try:
             request = boltzrpc_pb2.GetWalletRequest(name=settings.boltz_client_wallet)
@@ -110,9 +109,7 @@ class BoltzWallet(Wallet):
         # If not found, create it
         logger.info(f"Creating new wallet '{wallet_name}'")
         request = boltzrpc_pb2.CreateWalletRequest(
-            name=wallet_name,
-            currency=boltzrpc_pb2.LBTC,
-            password=""
+            name=wallet_name, currency=boltzrpc_pb2.LBTC, password=""
         )
         response = await self.rpc.CreateWallet(request, metadata=self.metadata)
         return response
