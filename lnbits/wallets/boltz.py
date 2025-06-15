@@ -6,7 +6,6 @@ from grpc.aio import AioRpcError
 from loguru import logger
 
 from lnbits.settings import EditableSettings, settings
-
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2, boltzrpc_pb2_grpc
 from lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc import grpc
 from lnbits.wallets.macaroon.macaroon import load_macaroon
@@ -70,16 +69,19 @@ class BoltzWallet(Wallet):
                 mnemonic = await self.fetch_wallet()
                 if mnemonic:
                     from lnbits.core.crud import update_admin_settings
+
                     settings.boltz_mnemonic = mnemonic
                     update_settings = EditableSettings(boltz_mnemonic=mnemonic)
                     await update_admin_settings(update_settings)
-                    logger.info(f"✅ Stored Boltz mnemonic in settings (and saved to DB)")
+                    logger.info(
+                        "✅ Stored Boltz mnemonic in settings (and saved to DB)"
+                    )
                 else:
                     logger.warning("⚠️ No mnemonic returned from Boltz")
             except Exception as e:
                 logger.error(f"❌ Failed to auto-create Boltz wallet: {e}")
 
-        asyncio.create_task(_init_boltz_wallet())
+        self._init_wallet_task = asyncio.create_task(_init_boltz_wallet())
 
     async def fetch_wallet(self) -> Optional[str]:
         wallet_name = "lnbits"
@@ -98,8 +100,8 @@ class BoltzWallet(Wallet):
         params = boltzrpc_pb2.WalletParams(
             name=wallet_name, currency=boltzrpc_pb2.LBTC, password=""
         )
-        request = boltzrpc_pb2.CreateWalletRequest(params=params)
-        response = await self.rpc.CreateWallet(request, metadata=self.metadata)
+        create_request = boltzrpc_pb2.CreateWalletRequest(params=params)
+        response = await self.rpc.CreateWallet(create_request, metadata=self.metadata)
         return response.mnemonic
 
     async def status(self) -> StatusResponse:
