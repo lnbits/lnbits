@@ -1169,10 +1169,7 @@
     <q-dialog v-model="showQRDialog">
       <q-card class="q-pa-md">
         <q-card-section>
-          <lnbits-qrcode
-            :value="qrValue"
-            :size="200"
-          ></lnbits-qrcode>
+          <lnbits-qrcode :value="qrValue" :size="200"></lnbits-qrcode>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Close" v-close-popup />
