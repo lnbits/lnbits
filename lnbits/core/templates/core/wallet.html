@@ -1156,6 +1156,23 @@
           </div>
         </q-card>
       </q-dialog>
+      <!-- <q-dialog v-model="qrCodeDialog.show" position="top">
+        <q-card class="q-pa-lg">
+          <div class="row q-mt-lg">
+            <lnbits-qrcode :value="qrCodeDialog.data"></lnbits-qrcode>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn
+              v-close-popup
+              flat
+              color="grey"
+              class="q-ml-auto"
+              :label="$t('close')"
+            ></q-btn>
+          </div>
+        </q-card>
+      </q-dialog> -->
+
       {% endblock %}
     </div>
   </div>

@@ -40,6 +40,10 @@ window.WalletPageLogic = {
           memo: ''
         }
       },
+      qrCodeDialog: {
+        show: false,
+        data: ''
+      },
       invoiceQrCode: '',
       disclaimerDialog: {
         show: false,
@@ -1096,6 +1100,12 @@ window.WalletPageLogic = {
     saveChartsPreferences() {
       this.$q.localStorage.set('lnbits.wallets.chartConfig', this.chartConfig)
       this.refreshCharts()
+    },
+    showQrCodeDialog(data) {
+      this.qrCodeDialog.data = data
+      setTimeout(() => {
+        this.qrCodeDialog.show = true
+      }, 0)
     }
   },
   created() {
