@@ -146,6 +146,7 @@ window.app.component('lnbits-funding-sources', {
             boltz_client_macaroon: 'Admin Macaroon path or hex',
             boltz_client_cert: 'Certificate path or hex',
             boltz_client_wallet: 'Wallet Name',
+            boltz_client_password: 'Wallet Password (can be empty)',
             boltz_mnemonic: {
               label: 'Liquid mnemonic (copy into greenwallet)',
               readonly: true,
