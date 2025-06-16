@@ -1,57 +1,11 @@
-# Stage 1: LNbits build environment
-FROM python:3.12-slim-bookworm AS builder
-
-RUN apt-get update && \
-    apt-get install -y curl pkg-config build-essential libnss-myhostname
-
-RUN curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
-ENV PATH="/root/.local/bin:$PATH"
-
-WORKDIR /app
-
-# Copy poetry files only for dependency resolution
-COPY pyproject.toml poetry.lock ./
-RUN mkdir data
-
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache
-
-ARG POETRY_INSTALL_ARGS="--only main"
-RUN poetry install ${POETRY_INSTALL_ARGS}
-
-# Stage 2: Pull boltzd binary
 FROM boltz/boltz-client:latest AS boltz
 
-# Stage 3: Final runtime image
-FROM python:3.12-slim-bookworm
+FROM lnbits/lnbits:latest
 
-# Install PostgreSQL client for backups + netcat for health checks / boltzd wait
-RUN apt-get update && apt-get -y upgrade && \
-    apt-get install -y gnupg2 curl lsb-release netcat-openbsd && \
-    echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
-    curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
-    apt-get update && \
-    apt-get -y install postgresql-client-14 postgresql-client-common && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install poetry again for runtime use
-RUN curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
-ENV PATH="/root/.local/bin:$PATH"
-
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 \
-    VIRTUAL_ENV=/app/.venv \
-    PATH="/app/.venv/bin:$PATH"
-
-WORKDIR /app
-
-# Copy project files
-COPY . .
-COPY --from=builder /app/.venv .venv
 COPY --from=boltz /bin/boltzd /usr/local/bin/
+RUN ls -l /usr/local/bin/boltzd
+RUN apt-get update && apt-get -y upgrade && \
+    apt-get install -y netcat-openbsd
 
 # Reinstall dependencies just in case (needed for CMD usage)
 ARG POETRY_INSTALL_ARGS="--only main"
