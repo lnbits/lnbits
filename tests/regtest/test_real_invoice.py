@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+from math import ceil
 
 import pytest
 
@@ -21,7 +22,6 @@ from .helpers import (
     pay_real_invoice,
     settle_invoice,
 )
-from math import ceil
 
 
 async def get_node_balance_sats():
@@ -108,7 +108,9 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         balance = await get_node_balance_sats()
         print(payment_status)
         assert False is True
-        assert balance - prev_balance == create_invoice.amount + ceil(payment_status["fee_msat"] / 1000)
+        assert balance - prev_balance == create_invoice.amount + ceil(
+            payment_status["fee_msat"] / 1000
+        )
 
         assert payment_status.get("preimage") is not None
 
