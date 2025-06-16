@@ -214,7 +214,7 @@ class BoltzWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
             response: boltzrpc_pb2.GetSwapInfoResponse = await self.rpc.GetSwapInfo(
-                boltzrpc_pb2.GetSwapInfoRequest(id=checking_id), metadata=self.metadata
+                boltzrpc_pb2.GetSwapInfoRequest(payment_hash=bytes.fromhex(checking_id)), metadata=self.metadata
             )
             swap = response.swap
         except AioRpcError:
