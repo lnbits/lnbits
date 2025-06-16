@@ -63,6 +63,7 @@ async def test_pay_real_invoice(
     funding_source = get_funding_source()
     status = await funding_source.get_payment_status(invoice["payment_hash"])
     assert status.paid
+    assert status.fee_msat == 0
 
     await asyncio.sleep(1)
     balance = await get_node_balance_sats()
