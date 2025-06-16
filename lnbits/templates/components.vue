@@ -1170,7 +1170,7 @@
       <q-card class="q-pa-md">
         <q-card-section>
           <lnbits-qrcode
-            :value="qrValue.toUpperCase()"
+            :value="qrValue"
             :size="200"
           ></lnbits-qrcode>
         </q-card-section>
