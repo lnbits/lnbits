@@ -9,15 +9,9 @@ window.app.component('lnbits-funding-sources', {
       )
       return fundingSource ? fundingSource[1] : item
     },
-    maybeShowQR(key) {
-      const current = this.fundingSources.get(
-        this.formData.lnbits_backend_wallet_class
-      )
-      const prop = current?.[key]
-      if (prop?.readonly && this.formData[key]) {
-        this.qrValue = this.formData[key]
-        this.showQRDialog = true
-      }
+    showQRValue(value) {
+      this.qrValue = value
+      this.showQRDialog = true
     }
   },
   computed: {
@@ -154,7 +148,9 @@ window.app.component('lnbits-funding-sources', {
             boltz_client_wallet: 'Wallet Name',
             boltz_mnemonic: {
               label: 'Liquid mnemonic (copy into greenwallet)',
-              readonly: true
+              readonly: true,
+              copy: true,
+              qrcode: true
             }
           }
         ],

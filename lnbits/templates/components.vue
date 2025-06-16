@@ -1134,21 +1134,34 @@
           :key="i"
         >
           <div class="col-12">
-            <div
-              @click="maybeShowQR(key)"
-              :style="prop.readonly ? 'cursor:pointer;' : ''"
+            <q-input
+              v-model="formData[key]"
+              filled
+              class="q-mt-sm"
+              :type="hideInput ? 'password' : 'text'"
+              :label="prop.label"
+              :hint="prop.hint"
+              :readonly="prop.readonly || false"
             >
-              <q-input
-                v-model="formData[key]"
-                filled
-                class="q-mt-sm"
-                :type="hideInput ? 'password' : 'text'"
-                :label="prop.label"
-                :hint="prop.hint"
-                :readonly="prop.readonly || false"
-              >
-              </q-input>
-            </div>
+              <q-btn
+                v-if="prop.copy"
+                @click="copyText(formData[key])"
+                icon="content_copy"
+                class="cursor-pointer"
+                color="grey"
+                flat
+                dense
+              ></q-btn>
+              <q-btn
+                v-if="prop.qrcode"
+                @click="showQRValue(formData[key])"
+                icon="qr_code"
+                class="cursor-pointer"
+                color="grey"
+                flat
+                dense
+              ></q-btn>
+            </q-input>
           </div>
         </div>
       </div>
