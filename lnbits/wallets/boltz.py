@@ -5,7 +5,6 @@ from bolt11.decode import decode
 from grpc.aio import AioRpcError
 from loguru import logger
 
-from lnbits.core.crud.settings import set_settings_field
 from lnbits.settings import settings
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2, boltzrpc_pb2_grpc
 from lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc import grpc
@@ -74,6 +73,9 @@ class BoltzWallet(Wallet):
                         "✅ Mnemonic found for Boltz wallet, saving to settings"
                     )
                     settings.boltz_mnemonic = mnemonic
+
+                    from lnbits.core.crud.settings import set_settings_field
+
                     await set_settings_field("boltz_mnemonic", mnemonic)
                 else:
                     logger.warning("⚠️ No mnemonic returned from Boltz")
