@@ -27,7 +27,8 @@ window.app.component('lnbits-funding-sources', {
         const tmpObj = {}
         if (obj !== null) {
           for (let [k, v] of Object.entries(obj)) {
-            tmpObj[k] = {label: v, value: null}
+            tmpObj[k] =
+              typeof v === 'string' ? {label: v, value: null} : v || {}
           }
         }
         tmp.push([key, tmpObj])
