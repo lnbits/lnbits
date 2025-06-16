@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package boltzrpc;
-option go_package = "github.com/BoltzExchange/boltz-client/boltzrpc";
+option go_package = "github.com/BoltzExchange/boltz-client/v2/pkg/boltzrpc";
 import "google/protobuf/empty.proto";
 
 service Boltz {
@@ -123,6 +123,23 @@ service Boltz {
     rpc GetWallet (GetWalletRequest) returns (Wallet);
 
     /*
+    Calculates the fee for an equivalent `WalletSend` request.
+    If `address` is left empty, a dummy swap address will be used, allowing for a fee estimation of a swap lockup transaction.
+     */
+    rpc GetWalletSendFee (WalletSendRequest) returns (WalletSendFee);
+
+    /*
+    Returns recent transactions from a wallet.
+     */
+    rpc ListWalletTransactions (ListWalletTransactionsRequest) returns (ListWalletTransactionsResponse);
+
+    /*
+    Increase the fee of a transaction using RBF.
+    The transaction has to belong to one of the clients wallets.
+     */
+    rpc BumpTransaction (BumpTransactionRequest) returns (BumpTransactionResponse);
+
+    /*
     Returns the credentials of a wallet. The password will be required if the wallet is encrypted.
      */
     rpc GetWalletCredentials (GetWalletCredentialsRequest) returns (WalletCredentials);
@@ -131,6 +148,16 @@ service Boltz {
     Removes a wallet.
      */
     rpc RemoveWallet (RemoveWalletRequest) returns (RemoveWalletResponse);
+
+    /*
+    Send coins from a wallet. Only the confirmed balance can be spent.
+     */
+    rpc WalletSend (WalletSendRequest) returns (WalletSendResponse);
+
+    /*
+    Get a new address of the wallet.
+     */
+    rpc WalletReceive (WalletReceiveRequest) returns (WalletReceiveResponse);
 
     /*
     Gracefully stops the daemon.
@@ -265,11 +292,12 @@ message SwapInfo {
     repeated ChannelId chan_ids = 14;
     optional string blinding_key = 15;
     int64 created_at = 16;
-    optional uint64 service_fee = 17;
+    optional int64 service_fee = 17;
     optional uint64 onchain_fee = 18;
     // internal wallet which was used to pay the swap
     optional uint64 wallet_id = 20;
     uint64 tenant_id = 21;
+    bool is_auto = 23;
 }
 
 enum SwapType {
@@ -322,7 +350,8 @@ message ReverseSwapInfo {
     string redeem_script = 7;
     string invoice = 8;
     string claim_address = 9;
-    int64 onchain_amount = 10;
+    uint64 onchain_amount = 10;
+    uint64 invoice_amount = 25;
     uint32 timeout_block_height = 11;
     string lockup_transaction_id = 12;
     string claim_transaction_id = 13;
@@ -331,11 +360,12 @@ message ReverseSwapInfo {
     optional string blinding_key = 16;
     int64 created_at = 17;
     optional int64 paid_at = 23; // the time when the invoice was paid
-    optional uint64 service_fee = 18;
+    optional int64 service_fee = 18;
     optional uint64 onchain_fee = 19;
     optional uint64 routing_fee_msat = 20;
     bool external_pay = 21;
     uint64 tenant_id = 22;
+    bool is_auto = 24;
 }
 
 message BlockHeights {
@@ -406,17 +436,44 @@ enum IncludeSwaps {
     AUTO = 2;
 }
 
+message AnySwapInfo {
+    string id = 1;
+    SwapType type = 2;
+    Pair pair = 3;
+    SwapState state = 4;
+    optional string error = 5;
+    string status = 6;
+    // The expected amount to be sent to the lockup address for submarine and chain swaps and
+    // the invoice amount for reverse swaps.
+    uint64 from_amount = 7;
+    // `from_amount` minus the service and network fee.
+    uint64 to_amount = 13;
+    int64 created_at = 8;
+    optional int64 service_fee = 9;
+    // inclues the routing fee for reverse swaps
+    optional uint64 onchain_fee = 10;
+    bool is_auto = 11;
+    uint64 tenant_id = 12;
+}
+
 message ListSwapsRequest {
     optional Currency from = 1;
     optional Currency to = 2;
     optional SwapState state = 4;
     IncludeSwaps include = 5;
+    optional uint64 limit = 6;
+    optional uint64 offset = 7;
+    // wether to return swaps in the shared `all_swaps` list or in the detailed lists.
+    // the `limit` and `offset` are only considered when `unify` is true.
+    optional bool unify = 8;
 }
 message ListSwapsResponse {
     repeated SwapInfo swaps = 1;
-    repeated CombinedChannelSwapInfo channel_creations = 2;
+    repeated CombinedChannelSwapInfo channel_creations = 2 [deprecated = true];
     repeated ReverseSwapInfo reverse_swaps = 3;
     repeated ChainSwapInfo chain_swaps = 4;
+    // populated when `unify` is set to true in the request
+    repeated AnySwapInfo all_swaps = 5;
 }
 
 message GetStatsRequest {
@@ -448,7 +505,12 @@ message ClaimSwapsResponse {
 }
 
 message GetSwapInfoRequest {
-    string id = 1;
+    string id = 1 [deprecated = true];
+    oneof identifier {
+        string swap_id = 2;
+        // Only implemented for submarine swaps
+        bytes payment_hash = 3;
+    }
 }
 message GetSwapInfoResponse {
     SwapInfo swap = 1;
@@ -471,22 +533,29 @@ message DepositResponse {
 }
 
 message CreateSwapRequest {
+    // amount of sats to be received on lightning. 
+    // related: `invoice` field
     uint64 amount = 1;
     Pair pair = 2;
-    // not yet supported
-    // repeated string chan_ids = 3;
 
-    // the daemon will pay the swap using the onchain wallet specified in the `wallet` field or any wallet otherwise.
+    // the daemon will pay the swap using the onchain wallet specified in the `wallet` field 
+    // or the first internal wallet with the correct currency otherwise.
     bool send_from_internal = 4;
     // address where the coins should go if the swap fails. Refunds will go to any of the daemons wallets otherwise.
     optional string refund_address = 5;
     // wallet to pay swap from. only used if `send_from_internal` is set to true
     optional uint64 wallet_id = 6;
-    // invoice to use for the swap. if not set, the daemon will get a new invoice from the lightning node
+    // bolt11 invoice, lnurl, or lnaddress to use for the swap.
+    // required in standalone mode.
+    // when connected to a lightning node, a new invoice for `amount` sats will be fetched
+    // the `amount` field has to be populated in case of a lnurl and lnaddress
     optional string invoice = 7;
-    // Boltz does not accept 0-conf for Liquid transactions with a fee of 0.01 sat/vByte;
-    // when `zero_conf` is enabled, a fee of 0.1 sat/vByte will be used for Liquid lockup transactions
-    optional bool zero_conf = 8;
+    optional bool zero_conf = 8 [deprecated = true];
+    // Fee rate to use when sending from internal wallet
+    optional double sat_per_vbyte = 9;
+    // Rates to accept for the swap. Queries latest from boltz otherwise
+    // The recommended way to use this is to pass a user approved value from a previous `GetPairInfo` call
+    optional PairInfo accepted_pair = 10;
 }
 message CreateSwapResponse {
     string id = 1;
@@ -530,6 +599,16 @@ message CreateReverseSwapRequest {
     optional bool external_pay = 8;
     // Description of the invoice which will be created for the swap
     optional string description = 9;
+    // Description hash of the invoice which will be created for the swap. Takes precedence over `description`
+    optional bytes description_hash = 10;
+    // Expiry of the reverse swap invoice in seconds
+    optional uint64 invoice_expiry = 11;
+    // Rates to accept for the swap. Queries latest from boltz otherwise
+    // The recommended way to use this is to pass a user approved value from a previous `GetPairInfo` call
+    optional PairInfo accepted_pair = 12;
+
+    // The routing fee limit for paying the lightning invoice in ppm (parts per million)
+    optional uint64 routing_fee_limit_ppm = 13;
 }
 message CreateReverseSwapResponse {
     string id = 1;
@@ -545,7 +624,8 @@ message CreateReverseSwapResponse {
 
 message CreateChainSwapRequest {
     // Amount of satoshis to swap. It is the amount expected to be sent to the lockup address.
-    uint64 amount = 1;
+    // If left empty, any amount within the limits will be accepted.
+    optional uint64 amount = 1;
     Pair pair = 2;
     // Address where funds will be swept to if the swap succeeds
     optional string to_address = 3;
@@ -561,9 +641,12 @@ message CreateChainSwapRequest {
     optional bool accept_zero_conf = 7;
     // If set, the daemon will not pay the swap from an internal wallet.
     optional bool external_pay = 8;
-    // Boltz does not accept 0-conf for Liquid transactions with a fee of 0.01 sat/vByte;
-    // when `lockup_zero_conf` is enabled, a fee of 0.1 sat/vByte will be used for Liquid lockup transactions
-    optional bool lockup_zero_conf = 9;
+    optional bool lockup_zero_conf = 9 [deprecated = true];
+    // Fee rate to use when sending from internal wallet
+    optional double sat_per_vbyte = 10;
+    // Rates to accept for the swap. Queries latest from boltz otherwise
+    // The recommended way to use this is to pass a user approved value from a previous `GetPairInfo` call
+    optional PairInfo accepted_pair = 11;
 }
 
 message ChainSwapInfo {
@@ -574,7 +657,7 @@ message ChainSwapInfo {
     string status = 5;
     string preimage = 6;
     bool is_auto = 8;
-    optional uint64 service_fee = 9;
+    optional int64 service_fee = 9;
     double service_fee_percent = 10;
     optional uint64 onchain_fee = 11;
     int64 created_at = 12;
@@ -614,9 +697,9 @@ message LightningChannel {
 }
 
 message SwapStats {
-    uint64 total_fees = 1;
+    int64 total_fees = 1;
     uint64 total_amount = 2;
-    uint64 avg_fees = 3;
+    int64 avg_fees = 3;
     uint64 avg_amount = 4;
     uint64 count = 5;
     uint64 success_count = 6;
@@ -687,6 +770,75 @@ message GetWalletRequest {
     optional uint64 id = 2;
 }
 
+message WalletSendFee {
+    // amount of sats which would be sent
+    uint64 amount = 1;
+    uint64 fee = 2;
+    // the fee rate used for the estimation in sat/vbyte
+    double fee_rate = 3;
+}
+
+message ListWalletTransactionsRequest {
+    uint64 id = 1;
+    optional bool exclude_swap_related = 2;
+    optional uint64 limit = 3;
+    optional uint64 offset = 4;
+}
+
+enum TransactionType {
+    UNKNOWN = 0;
+    LOCKUP = 1;
+    REFUND = 2;
+    CLAIM = 3;
+    CONSOLIDATION = 4;
+}
+
+message WalletTransaction {
+    string id = 1;
+    // balance change of the wallet in satoshis.
+    // its the sum of all output values minus the sum of all input values which are controlled by the wallet.
+    // positive values indicate incoming transactions, negative values outgoing transactions
+    int64 balance_change = 2;
+    int64 timestamp = 3;
+    repeated TransactionOutput outputs = 4;
+    uint32 block_height = 6;
+    // additional informations about the tx (type, related swaps etc.)
+    repeated TransactionInfo infos = 7;
+}
+
+message BumpTransactionRequest {
+    oneof previous {
+        // Id of the transaction to bump. The transaction has to belong to one of the clients wallets
+        string tx_id = 1;
+        // Depending on the state of the swap, the lockup, refund or claim transaction will be bumped
+        string swap_id = 2;
+    }
+    // Fee rate for the new transaction. if not specified, the daemon will query the fee rate from the configured provider
+    // and bump the fee by at least 1 sat/vbyte.
+    optional double sat_per_vbyte = 3;
+}
+
+message BumpTransactionResponse {
+    string tx_id = 1;
+}
+
+message TransactionInfo {
+    // will be populated for LOCKUP, REFUND and CLAIM
+    optional string swap_id = 1;
+    TransactionType type = 2;
+}
+
+message TransactionOutput {
+    string address = 1;
+    uint64 amount = 2;
+    // wether the address is controlled by the wallet
+    bool is_our_address = 3;
+}
+
+message ListWalletTransactionsResponse {
+    repeated WalletTransaction transactions = 1;
+}
+
 message GetWalletCredentialsRequest {
     uint64 id = 1;
     optional string password = 2;
@@ -694,6 +846,31 @@ message GetWalletCredentialsRequest {
 
 message RemoveWalletRequest {
     uint64 id = 1;
+}
+
+message WalletSendRequest {
+    uint64 id = 1;
+    string address = 2;
+    // Amount of satoshis to be sent to 'address`
+    uint64 amount = 3;
+    // Fee rate to use for the transaction
+    optional double sat_per_vbyte = 4;
+    // Sends all available funds to the address. The `amount` field is ignored.
+    optional bool send_all = 5;
+    // whether `address` is the lockup of a swap.
+    optional bool is_swap_address = 6;
+}
+
+message WalletSendResponse {
+    string tx_id = 1;
+}
+
+message WalletReceiveRequest {
+    uint64 id = 1;
+}
+
+message WalletReceiveResponse {
+    string address = 1;
 }
 
 
@@ -720,6 +897,7 @@ message Subaccount {
     Balance balance = 1;
     uint64 pointer = 2;
     string type = 3;
+    repeated string descriptors = 4;
 }
 
 message RemoveWalletResponse {}

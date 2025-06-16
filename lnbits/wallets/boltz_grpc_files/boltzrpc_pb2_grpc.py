@@ -3,36 +3,26 @@
 import grpc
 import warnings
 
+from boltz_grpc_files import boltzrpc_pb2 as boltz__grpc__files_dot_boltzrpc__pb2
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from lnbits.wallets.boltz_grpc_files import (
-    boltzrpc_pb2 as lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2,
-)
 
-GRPC_GENERATED_VERSION = "1.65.4"
+GRPC_GENERATED_VERSION = '1.69.0'
 GRPC_VERSION = grpc.__version__
-EXPECTED_ERROR_RELEASE = "1.66.0"
-SCHEDULED_RELEASE_DATE = "August 6, 2024"
 _version_not_supported = False
 
 try:
     from grpc._utilities import first_version_is_lower
-
-    _version_not_supported = first_version_is_lower(
-        GRPC_VERSION, GRPC_GENERATED_VERSION
-    )
+    _version_not_supported = first_version_is_lower(GRPC_VERSION, GRPC_GENERATED_VERSION)
 except ImportError:
     _version_not_supported = True
 
 if _version_not_supported:
-    warnings.warn(
-        f"The grpc package installed is at version {GRPC_VERSION},"
-        + f" but the generated code in lnbits/wallets/boltz_grpc_files/boltzrpc_pb2_grpc.py depends on"
-        + f" grpcio>={GRPC_GENERATED_VERSION}."
-        + f" Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}"
-        + f" or downgrade your generated code using grpcio-tools<={GRPC_VERSION}."
-        + f" This warning will become an error in {EXPECTED_ERROR_RELEASE},"
-        + f" scheduled for release on {SCHEDULED_RELEASE_DATE}.",
-        RuntimeWarning,
+    raise RuntimeError(
+        f'The grpc package installed is at version {GRPC_VERSION},'
+        + f' but the generated code in boltz_grpc_files/boltzrpc_pb2_grpc.py depends on'
+        + f' grpcio>={GRPC_GENERATED_VERSION}.'
+        + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
+        + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
@@ -46,191 +36,185 @@ class BoltzStub(object):
             channel: A grpc.Channel.
         """
         self.GetInfo = channel.unary_unary(
-            "/boltzrpc.Boltz/GetInfo",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetInfoRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetInfoResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetInfo',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetInfoRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetInfoResponse.FromString,
+                _registered_method=True)
         self.GetServiceInfo = channel.unary_unary(
-            "/boltzrpc.Boltz/GetServiceInfo",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetServiceInfo',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoResponse.FromString,
+                _registered_method=True)
         self.GetPairInfo = channel.unary_unary(
-            "/boltzrpc.Boltz/GetPairInfo",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetPairInfoRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.PairInfo.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetPairInfo',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetPairInfoRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.PairInfo.FromString,
+                _registered_method=True)
         self.GetPairs = channel.unary_unary(
-            "/boltzrpc.Boltz/GetPairs",
-            request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetPairsResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetPairs',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetPairsResponse.FromString,
+                _registered_method=True)
         self.ListSwaps = channel.unary_unary(
-            "/boltzrpc.Boltz/ListSwaps",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/ListSwaps',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsResponse.FromString,
+                _registered_method=True)
         self.GetStats = channel.unary_unary(
-            "/boltzrpc.Boltz/GetStats",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetStatsRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetStatsResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetStats',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetStatsRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetStatsResponse.FromString,
+                _registered_method=True)
         self.RefundSwap = channel.unary_unary(
-            "/boltzrpc.Boltz/RefundSwap",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.RefundSwapRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/RefundSwap',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.RefundSwapRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
+                _registered_method=True)
         self.ClaimSwaps = channel.unary_unary(
-            "/boltzrpc.Boltz/ClaimSwaps",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/ClaimSwaps',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsResponse.FromString,
+                _registered_method=True)
         self.GetSwapInfo = channel.unary_unary(
-            "/boltzrpc.Boltz/GetSwapInfo",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetSwapInfo',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
+                _registered_method=True)
         self.GetSwapInfoStream = channel.unary_stream(
-            "/boltzrpc.Boltz/GetSwapInfoStream",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetSwapInfoStream',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
+                _registered_method=True)
         self.Deposit = channel.unary_unary(
-            "/boltzrpc.Boltz/Deposit",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.DepositRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.DepositResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/Deposit',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.DepositRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.DepositResponse.FromString,
+                _registered_method=True)
         self.CreateSwap = channel.unary_unary(
-            "/boltzrpc.Boltz/CreateSwap",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/CreateSwap',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.FromString,
+                _registered_method=True)
         self.CreateChannel = channel.unary_unary(
-            "/boltzrpc.Boltz/CreateChannel",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateChannelRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/CreateChannel',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateChannelRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.FromString,
+                _registered_method=True)
         self.CreateReverseSwap = channel.unary_unary(
-            "/boltzrpc.Boltz/CreateReverseSwap",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/CreateReverseSwap',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapResponse.FromString,
+                _registered_method=True)
         self.CreateChainSwap = channel.unary_unary(
-            "/boltzrpc.Boltz/CreateChainSwap",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateChainSwapRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ChainSwapInfo.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/CreateChainSwap',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateChainSwapRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ChainSwapInfo.FromString,
+                _registered_method=True)
         self.CreateWallet = channel.unary_unary(
-            "/boltzrpc.Boltz/CreateWallet",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/CreateWallet',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletResponse.FromString,
+                _registered_method=True)
         self.ImportWallet = channel.unary_unary(
-            "/boltzrpc.Boltz/ImportWallet",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ImportWalletRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Wallet.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/ImportWallet',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ImportWalletRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.Wallet.FromString,
+                _registered_method=True)
         self.SetSubaccount = channel.unary_unary(
-            "/boltzrpc.Boltz/SetSubaccount",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.SetSubaccountRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Subaccount.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/SetSubaccount',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.SetSubaccountRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.Subaccount.FromString,
+                _registered_method=True)
         self.GetSubaccounts = channel.unary_unary(
-            "/boltzrpc.Boltz/GetSubaccounts",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetSubaccounts',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsResponse.FromString,
+                _registered_method=True)
         self.GetWallets = channel.unary_unary(
-            "/boltzrpc.Boltz/GetWallets",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetWalletsRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Wallets.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetWallets',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetWalletsRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.Wallets.FromString,
+                _registered_method=True)
         self.GetWallet = channel.unary_unary(
-            "/boltzrpc.Boltz/GetWallet",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetWalletRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Wallet.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetWallet',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetWalletRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.Wallet.FromString,
+                _registered_method=True)
+        self.GetWalletSendFee = channel.unary_unary(
+                '/boltzrpc.Boltz/GetWalletSendFee',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletSendRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletSendFee.FromString,
+                _registered_method=True)
+        self.ListWalletTransactions = channel.unary_unary(
+                '/boltzrpc.Boltz/ListWalletTransactions',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ListWalletTransactionsRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ListWalletTransactionsResponse.FromString,
+                _registered_method=True)
+        self.BumpTransaction = channel.unary_unary(
+                '/boltzrpc.Boltz/BumpTransaction',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.BumpTransactionRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.BumpTransactionResponse.FromString,
+                _registered_method=True)
         self.GetWalletCredentials = channel.unary_unary(
-            "/boltzrpc.Boltz/GetWalletCredentials",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetWalletCredentialsRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.WalletCredentials.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetWalletCredentials',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetWalletCredentialsRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletCredentials.FromString,
+                _registered_method=True)
         self.RemoveWallet = channel.unary_unary(
-            "/boltzrpc.Boltz/RemoveWallet",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/RemoveWallet',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletResponse.FromString,
+                _registered_method=True)
+        self.WalletSend = channel.unary_unary(
+                '/boltzrpc.Boltz/WalletSend',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletSendRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletSendResponse.FromString,
+                _registered_method=True)
+        self.WalletReceive = channel.unary_unary(
+                '/boltzrpc.Boltz/WalletReceive',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletReceiveRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletReceiveResponse.FromString,
+                _registered_method=True)
         self.Stop = channel.unary_unary(
-            "/boltzrpc.Boltz/Stop",
-            request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/Stop',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
         self.Unlock = channel.unary_unary(
-            "/boltzrpc.Boltz/Unlock",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.UnlockRequest.SerializeToString,
-            response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/Unlock',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.UnlockRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
         self.VerifyWalletPassword = channel.unary_unary(
-            "/boltzrpc.Boltz/VerifyWalletPassword",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/VerifyWalletPassword',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordResponse.FromString,
+                _registered_method=True)
         self.ChangeWalletPassword = channel.unary_unary(
-            "/boltzrpc.Boltz/ChangeWalletPassword",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ChangeWalletPasswordRequest.SerializeToString,
-            response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/ChangeWalletPassword',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ChangeWalletPasswordRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
         self.CreateTenant = channel.unary_unary(
-            "/boltzrpc.Boltz/CreateTenant",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateTenantRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Tenant.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/CreateTenant',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateTenantRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.Tenant.FromString,
+                _registered_method=True)
         self.ListTenants = channel.unary_unary(
-            "/boltzrpc.Boltz/ListTenants",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/ListTenants',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsResponse.FromString,
+                _registered_method=True)
         self.GetTenant = channel.unary_unary(
-            "/boltzrpc.Boltz/GetTenant",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetTenantRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Tenant.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/GetTenant',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetTenantRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.Tenant.FromString,
+                _registered_method=True)
         self.BakeMacaroon = channel.unary_unary(
-            "/boltzrpc.Boltz/BakeMacaroon",
-            request_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonRequest.SerializeToString,
-            response_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonResponse.FromString,
-            _registered_method=True,
-        )
+                '/boltzrpc.Boltz/BakeMacaroon',
+                request_serializer=boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonRequest.SerializeToString,
+                response_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonResponse.FromString,
+                _registered_method=True)
 
 
 class BoltzServicer(object):
@@ -242,48 +226,48 @@ class BoltzServicer(object):
         and the IDs of pending swaps.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetServiceInfo(self, request, context):
         """
         Fetches the latest limits and fees from the Boltz backend API it is connected to.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetPairInfo(self, request, context):
         """
         Fetches information about a specific pair for a chain swap.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetPairs(self, request, context):
         """
         Fetches all available pairs for submarine and reverse swaps.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def ListSwaps(self, request, context):
         """
         Returns a list of all swaps, reverse swaps, and chain swaps in the database.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetStats(self, request, context):
         """
         Returns stats of all swaps, reverse swaps, and chain swaps in the database.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def RefundSwap(self, request, context):
         """
@@ -291,8 +275,8 @@ class BoltzServicer(object):
         This is only required when no refund address has been set and the swap does not have an associated wallet.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def ClaimSwaps(self, request, context):
         """
@@ -300,16 +284,16 @@ class BoltzServicer(object):
         This is only required when no claim address has been set and the swap does not have an associated wallet.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetSwapInfo(self, request, context):
         """
         Gets all available information about a swap from the database.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetSwapInfoStream(self, request, context):
         """
@@ -317,8 +301,8 @@ class BoltzServicer(object):
         If the swap id is empty or "*" updates for all swaps will be streamed.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def Deposit(self, request, context):
         """
@@ -328,16 +312,16 @@ class BoltzServicer(object):
         will try to pay it and if that is not possible, create a new channel to make the swap succeed.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def CreateSwap(self, request, context):
         """
         Creates a new swap from onchain to lightning.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def CreateChannel(self, request, context):
         """
@@ -345,8 +329,8 @@ class BoltzServicer(object):
         is coming trough a new channel channel opened by Boltz.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def CreateReverseSwap(self, request, context):
         """
@@ -354,8 +338,8 @@ class BoltzServicer(object):
         will not wait until the lockup transaction from Boltz is confirmed in a block, but will claim it instantly.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def CreateChainSwap(self, request, context):
         """
@@ -363,128 +347,170 @@ class BoltzServicer(object):
         will not wait until the lockup transaction from Boltz is confirmed in a block, but will claim it instantly.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def CreateWallet(self, request, context):
         """
         Creates a new liquid wallet and returns the mnemonic.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def ImportWallet(self, request, context):
         """
         Imports an existing wallet.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def SetSubaccount(self, request, context):
         """
         Sets the subaccount of a wallet. Not supported for readonly wallets.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetSubaccounts(self, request, context):
         """
         Returns all subaccounts for a given wallet. Not supported for readonly wallets.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetWallets(self, request, context):
         """
         Returns all available wallets.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetWallet(self, request, context):
         """
         Returns the current balance and subaccount of a wallet.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetWalletSendFee(self, request, context):
+        """
+        Calculates the fee for an equivalent `WalletSend` request.
+        If `address` is left empty, a dummy swap address will be used, allowing for a fee estimation of a swap lockup transaction.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListWalletTransactions(self, request, context):
+        """
+        Returns recent transactions from a wallet.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BumpTransaction(self, request, context):
+        """
+        Increase the fee of a transaction using RBF.
+        The transaction has to belong to one of the clients wallets.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetWalletCredentials(self, request, context):
         """
         Returns the credentials of a wallet. The password will be required if the wallet is encrypted.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def RemoveWallet(self, request, context):
         """
         Removes a wallet.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def WalletSend(self, request, context):
+        """
+        Send coins from a wallet. Only the confirmed balance can be spent.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def WalletReceive(self, request, context):
+        """
+        Get a new address of the wallet.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def Stop(self, request, context):
         """
         Gracefully stops the daemon.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def Unlock(self, request, context):
         """
         Unlocks the server. This will be required on startup if there are any encrypted wallets.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def VerifyWalletPassword(self, request, context):
         """
         Check if the password is correct.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def ChangeWalletPassword(self, request, context):
         """
         Changes the password for wallet encryption.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def CreateTenant(self, request, context):
         """
         Creates a new tenant which can be used to bake restricted macaroons.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def ListTenants(self, request, context):
         """
         Returns all tenants.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetTenant(self, request, context):
         """
         Get a specifiy tenant.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def BakeMacaroon(self, request, context):
         """
@@ -494,198 +520,220 @@ class BoltzServicer(object):
         - the lightning node connected to the daemon can not be used to pay or create invoices for swaps.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
 
 def add_BoltzServicer_to_server(servicer, server):
     rpc_method_handlers = {
-        "GetInfo": grpc.unary_unary_rpc_method_handler(
-            servicer.GetInfo,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetInfoRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetInfoResponse.SerializeToString,
-        ),
-        "GetServiceInfo": grpc.unary_unary_rpc_method_handler(
-            servicer.GetServiceInfo,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoResponse.SerializeToString,
-        ),
-        "GetPairInfo": grpc.unary_unary_rpc_method_handler(
-            servicer.GetPairInfo,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetPairInfoRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.PairInfo.SerializeToString,
-        ),
-        "GetPairs": grpc.unary_unary_rpc_method_handler(
-            servicer.GetPairs,
-            request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetPairsResponse.SerializeToString,
-        ),
-        "ListSwaps": grpc.unary_unary_rpc_method_handler(
-            servicer.ListSwaps,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsResponse.SerializeToString,
-        ),
-        "GetStats": grpc.unary_unary_rpc_method_handler(
-            servicer.GetStats,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetStatsRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetStatsResponse.SerializeToString,
-        ),
-        "RefundSwap": grpc.unary_unary_rpc_method_handler(
-            servicer.RefundSwap,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.RefundSwapRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.SerializeToString,
-        ),
-        "ClaimSwaps": grpc.unary_unary_rpc_method_handler(
-            servicer.ClaimSwaps,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsResponse.SerializeToString,
-        ),
-        "GetSwapInfo": grpc.unary_unary_rpc_method_handler(
-            servicer.GetSwapInfo,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.SerializeToString,
-        ),
-        "GetSwapInfoStream": grpc.unary_stream_rpc_method_handler(
-            servicer.GetSwapInfoStream,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.SerializeToString,
-        ),
-        "Deposit": grpc.unary_unary_rpc_method_handler(
-            servicer.Deposit,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.DepositRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.DepositResponse.SerializeToString,
-        ),
-        "CreateSwap": grpc.unary_unary_rpc_method_handler(
-            servicer.CreateSwap,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.SerializeToString,
-        ),
-        "CreateChannel": grpc.unary_unary_rpc_method_handler(
-            servicer.CreateChannel,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateChannelRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.SerializeToString,
-        ),
-        "CreateReverseSwap": grpc.unary_unary_rpc_method_handler(
-            servicer.CreateReverseSwap,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapResponse.SerializeToString,
-        ),
-        "CreateChainSwap": grpc.unary_unary_rpc_method_handler(
-            servicer.CreateChainSwap,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateChainSwapRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ChainSwapInfo.SerializeToString,
-        ),
-        "CreateWallet": grpc.unary_unary_rpc_method_handler(
-            servicer.CreateWallet,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletResponse.SerializeToString,
-        ),
-        "ImportWallet": grpc.unary_unary_rpc_method_handler(
-            servicer.ImportWallet,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ImportWalletRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Wallet.SerializeToString,
-        ),
-        "SetSubaccount": grpc.unary_unary_rpc_method_handler(
-            servicer.SetSubaccount,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.SetSubaccountRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Subaccount.SerializeToString,
-        ),
-        "GetSubaccounts": grpc.unary_unary_rpc_method_handler(
-            servicer.GetSubaccounts,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsResponse.SerializeToString,
-        ),
-        "GetWallets": grpc.unary_unary_rpc_method_handler(
-            servicer.GetWallets,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetWalletsRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Wallets.SerializeToString,
-        ),
-        "GetWallet": grpc.unary_unary_rpc_method_handler(
-            servicer.GetWallet,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetWalletRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Wallet.SerializeToString,
-        ),
-        "GetWalletCredentials": grpc.unary_unary_rpc_method_handler(
-            servicer.GetWalletCredentials,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetWalletCredentialsRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.WalletCredentials.SerializeToString,
-        ),
-        "RemoveWallet": grpc.unary_unary_rpc_method_handler(
-            servicer.RemoveWallet,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletResponse.SerializeToString,
-        ),
-        "Stop": grpc.unary_unary_rpc_method_handler(
-            servicer.Stop,
-            request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-        ),
-        "Unlock": grpc.unary_unary_rpc_method_handler(
-            servicer.Unlock,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.UnlockRequest.FromString,
-            response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-        ),
-        "VerifyWalletPassword": grpc.unary_unary_rpc_method_handler(
-            servicer.VerifyWalletPassword,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordResponse.SerializeToString,
-        ),
-        "ChangeWalletPassword": grpc.unary_unary_rpc_method_handler(
-            servicer.ChangeWalletPassword,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ChangeWalletPasswordRequest.FromString,
-            response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-        ),
-        "CreateTenant": grpc.unary_unary_rpc_method_handler(
-            servicer.CreateTenant,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateTenantRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Tenant.SerializeToString,
-        ),
-        "ListTenants": grpc.unary_unary_rpc_method_handler(
-            servicer.ListTenants,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsResponse.SerializeToString,
-        ),
-        "GetTenant": grpc.unary_unary_rpc_method_handler(
-            servicer.GetTenant,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetTenantRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Tenant.SerializeToString,
-        ),
-        "BakeMacaroon": grpc.unary_unary_rpc_method_handler(
-            servicer.BakeMacaroon,
-            request_deserializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonRequest.FromString,
-            response_serializer=lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonResponse.SerializeToString,
-        ),
+            'GetInfo': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetInfo,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetInfoRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetInfoResponse.SerializeToString,
+            ),
+            'GetServiceInfo': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetServiceInfo,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoResponse.SerializeToString,
+            ),
+            'GetPairInfo': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetPairInfo,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetPairInfoRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.PairInfo.SerializeToString,
+            ),
+            'GetPairs': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetPairs,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetPairsResponse.SerializeToString,
+            ),
+            'ListSwaps': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListSwaps,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsResponse.SerializeToString,
+            ),
+            'GetStats': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetStats,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetStatsRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetStatsResponse.SerializeToString,
+            ),
+            'RefundSwap': grpc.unary_unary_rpc_method_handler(
+                    servicer.RefundSwap,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.RefundSwapRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.SerializeToString,
+            ),
+            'ClaimSwaps': grpc.unary_unary_rpc_method_handler(
+                    servicer.ClaimSwaps,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsResponse.SerializeToString,
+            ),
+            'GetSwapInfo': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetSwapInfo,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.SerializeToString,
+            ),
+            'GetSwapInfoStream': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetSwapInfoStream,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.SerializeToString,
+            ),
+            'Deposit': grpc.unary_unary_rpc_method_handler(
+                    servicer.Deposit,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.DepositRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.DepositResponse.SerializeToString,
+            ),
+            'CreateSwap': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateSwap,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.SerializeToString,
+            ),
+            'CreateChannel': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateChannel,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateChannelRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.SerializeToString,
+            ),
+            'CreateReverseSwap': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateReverseSwap,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapResponse.SerializeToString,
+            ),
+            'CreateChainSwap': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateChainSwap,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateChainSwapRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ChainSwapInfo.SerializeToString,
+            ),
+            'CreateWallet': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateWallet,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletResponse.SerializeToString,
+            ),
+            'ImportWallet': grpc.unary_unary_rpc_method_handler(
+                    servicer.ImportWallet,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ImportWalletRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.Wallet.SerializeToString,
+            ),
+            'SetSubaccount': grpc.unary_unary_rpc_method_handler(
+                    servicer.SetSubaccount,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.SetSubaccountRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.Subaccount.SerializeToString,
+            ),
+            'GetSubaccounts': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetSubaccounts,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsResponse.SerializeToString,
+            ),
+            'GetWallets': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetWallets,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetWalletsRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.Wallets.SerializeToString,
+            ),
+            'GetWallet': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetWallet,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetWalletRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.Wallet.SerializeToString,
+            ),
+            'GetWalletSendFee': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetWalletSendFee,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletSendRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletSendFee.SerializeToString,
+            ),
+            'ListWalletTransactions': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListWalletTransactions,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ListWalletTransactionsRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ListWalletTransactionsResponse.SerializeToString,
+            ),
+            'BumpTransaction': grpc.unary_unary_rpc_method_handler(
+                    servicer.BumpTransaction,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.BumpTransactionRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.BumpTransactionResponse.SerializeToString,
+            ),
+            'GetWalletCredentials': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetWalletCredentials,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetWalletCredentialsRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletCredentials.SerializeToString,
+            ),
+            'RemoveWallet': grpc.unary_unary_rpc_method_handler(
+                    servicer.RemoveWallet,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletResponse.SerializeToString,
+            ),
+            'WalletSend': grpc.unary_unary_rpc_method_handler(
+                    servicer.WalletSend,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletSendRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletSendResponse.SerializeToString,
+            ),
+            'WalletReceive': grpc.unary_unary_rpc_method_handler(
+                    servicer.WalletReceive,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletReceiveRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.WalletReceiveResponse.SerializeToString,
+            ),
+            'Stop': grpc.unary_unary_rpc_method_handler(
+                    servicer.Stop,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'Unlock': grpc.unary_unary_rpc_method_handler(
+                    servicer.Unlock,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.UnlockRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'VerifyWalletPassword': grpc.unary_unary_rpc_method_handler(
+                    servicer.VerifyWalletPassword,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordResponse.SerializeToString,
+            ),
+            'ChangeWalletPassword': grpc.unary_unary_rpc_method_handler(
+                    servicer.ChangeWalletPassword,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ChangeWalletPasswordRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'CreateTenant': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateTenant,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.CreateTenantRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.Tenant.SerializeToString,
+            ),
+            'ListTenants': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListTenants,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsResponse.SerializeToString,
+            ),
+            'GetTenant': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetTenant,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.GetTenantRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.Tenant.SerializeToString,
+            ),
+            'BakeMacaroon': grpc.unary_unary_rpc_method_handler(
+                    servicer.BakeMacaroon,
+                    request_deserializer=boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonRequest.FromString,
+                    response_serializer=boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonResponse.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "boltzrpc.Boltz", rpc_method_handlers
-    )
+            'boltzrpc.Boltz', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers("boltzrpc.Boltz", rpc_method_handlers)
+    server.add_registered_method_handlers('boltzrpc.Boltz', rpc_method_handlers)
 
 
-# This class is part of an EXPERIMENTAL API.
+ # This class is part of an EXPERIMENTAL API.
 class Boltz(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def GetInfo(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetInfo(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetInfo",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetInfoRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetInfoResponse.FromString,
+            '/boltzrpc.Boltz/GetInfo',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetInfoRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.GetInfoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -694,28 +742,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetServiceInfo(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetServiceInfo(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetServiceInfo",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoResponse.FromString,
+            '/boltzrpc.Boltz/GetServiceInfo',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.GetServiceInfoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -724,28 +769,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetPairInfo(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetPairInfo(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetPairInfo",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetPairInfoRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.PairInfo.FromString,
+            '/boltzrpc.Boltz/GetPairInfo',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetPairInfoRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.PairInfo.FromString,
             options,
             channel_credentials,
             insecure,
@@ -754,28 +796,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetPairs(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetPairs(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetPairs",
+            '/boltzrpc.Boltz/GetPairs',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetPairsResponse.FromString,
+            boltz__grpc__files_dot_boltzrpc__pb2.GetPairsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -784,28 +823,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def ListSwaps(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def ListSwaps(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/ListSwaps",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsResponse.FromString,
+            '/boltzrpc.Boltz/ListSwaps',
+            boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.ListSwapsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -814,28 +850,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetStats(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetStats(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetStats",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetStatsRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetStatsResponse.FromString,
+            '/boltzrpc.Boltz/GetStats',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetStatsRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.GetStatsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -844,28 +877,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def RefundSwap(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def RefundSwap(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/RefundSwap",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.RefundSwapRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
+            '/boltzrpc.Boltz/RefundSwap',
+            boltz__grpc__files_dot_boltzrpc__pb2.RefundSwapRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -874,28 +904,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def ClaimSwaps(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def ClaimSwaps(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/ClaimSwaps",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsResponse.FromString,
+            '/boltzrpc.Boltz/ClaimSwaps',
+            boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.ClaimSwapsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -904,28 +931,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetSwapInfo(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetSwapInfo(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetSwapInfo",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
+            '/boltzrpc.Boltz/GetSwapInfo',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -934,28 +958,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetSwapInfoStream(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetSwapInfoStream(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_stream(
             request,
             target,
-            "/boltzrpc.Boltz/GetSwapInfoStream",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
+            '/boltzrpc.Boltz/GetSwapInfoStream',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.GetSwapInfoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -964,28 +985,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def Deposit(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def Deposit(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/Deposit",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.DepositRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.DepositResponse.FromString,
+            '/boltzrpc.Boltz/Deposit',
+            boltz__grpc__files_dot_boltzrpc__pb2.DepositRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.DepositResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -994,28 +1012,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def CreateSwap(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def CreateSwap(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/CreateSwap",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.FromString,
+            '/boltzrpc.Boltz/CreateSwap',
+            boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1024,28 +1039,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def CreateChannel(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def CreateChannel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/CreateChannel",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateChannelRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.FromString,
+            '/boltzrpc.Boltz/CreateChannel',
+            boltz__grpc__files_dot_boltzrpc__pb2.CreateChannelRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.CreateSwapResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1054,28 +1066,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def CreateReverseSwap(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def CreateReverseSwap(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/CreateReverseSwap",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapResponse.FromString,
+            '/boltzrpc.Boltz/CreateReverseSwap',
+            boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.CreateReverseSwapResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1084,28 +1093,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def CreateChainSwap(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def CreateChainSwap(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/CreateChainSwap",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateChainSwapRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ChainSwapInfo.FromString,
+            '/boltzrpc.Boltz/CreateChainSwap',
+            boltz__grpc__files_dot_boltzrpc__pb2.CreateChainSwapRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.ChainSwapInfo.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1114,28 +1120,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def CreateWallet(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def CreateWallet(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/CreateWallet",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletResponse.FromString,
+            '/boltzrpc.Boltz/CreateWallet',
+            boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.CreateWalletResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1144,28 +1147,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def ImportWallet(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def ImportWallet(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/ImportWallet",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ImportWalletRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Wallet.FromString,
+            '/boltzrpc.Boltz/ImportWallet',
+            boltz__grpc__files_dot_boltzrpc__pb2.ImportWalletRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.Wallet.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1174,28 +1174,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def SetSubaccount(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def SetSubaccount(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/SetSubaccount",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.SetSubaccountRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Subaccount.FromString,
+            '/boltzrpc.Boltz/SetSubaccount',
+            boltz__grpc__files_dot_boltzrpc__pb2.SetSubaccountRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.Subaccount.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1204,28 +1201,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetSubaccounts(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetSubaccounts(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetSubaccounts",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsResponse.FromString,
+            '/boltzrpc.Boltz/GetSubaccounts',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.GetSubaccountsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1234,28 +1228,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetWallets(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetWallets(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetWallets",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetWalletsRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Wallets.FromString,
+            '/boltzrpc.Boltz/GetWallets',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetWalletsRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.Wallets.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1264,28 +1255,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetWallet(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetWallet(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetWallet",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetWalletRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Wallet.FromString,
+            '/boltzrpc.Boltz/GetWallet',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetWalletRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.Wallet.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1294,28 +1282,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetWalletCredentials(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetWalletSendFee(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetWalletCredentials",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetWalletCredentialsRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.WalletCredentials.FromString,
+            '/boltzrpc.Boltz/GetWalletSendFee',
+            boltz__grpc__files_dot_boltzrpc__pb2.WalletSendRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.WalletSendFee.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1324,28 +1309,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def RemoveWallet(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def ListWalletTransactions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/RemoveWallet",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletResponse.FromString,
+            '/boltzrpc.Boltz/ListWalletTransactions',
+            boltz__grpc__files_dot_boltzrpc__pb2.ListWalletTransactionsRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.ListWalletTransactionsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1354,26 +1336,158 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def Stop(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def BumpTransaction(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/Stop",
+            '/boltzrpc.Boltz/BumpTransaction',
+            boltz__grpc__files_dot_boltzrpc__pb2.BumpTransactionRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.BumpTransactionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetWalletCredentials(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/boltzrpc.Boltz/GetWalletCredentials',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetWalletCredentialsRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.WalletCredentials.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RemoveWallet(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/boltzrpc.Boltz/RemoveWallet',
+            boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.RemoveWalletResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def WalletSend(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/boltzrpc.Boltz/WalletSend',
+            boltz__grpc__files_dot_boltzrpc__pb2.WalletSendRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.WalletSendResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def WalletReceive(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/boltzrpc.Boltz/WalletReceive',
+            boltz__grpc__files_dot_boltzrpc__pb2.WalletReceiveRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.WalletReceiveResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Stop(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/boltzrpc.Boltz/Stop',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
@@ -1384,27 +1498,24 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def Unlock(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def Unlock(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/Unlock",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.UnlockRequest.SerializeToString,
+            '/boltzrpc.Boltz/Unlock',
+            boltz__grpc__files_dot_boltzrpc__pb2.UnlockRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
@@ -1414,28 +1525,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def VerifyWalletPassword(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def VerifyWalletPassword(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/VerifyWalletPassword",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordResponse.FromString,
+            '/boltzrpc.Boltz/VerifyWalletPassword',
+            boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.VerifyWalletPasswordResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1444,27 +1552,24 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def ChangeWalletPassword(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def ChangeWalletPassword(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/ChangeWalletPassword",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ChangeWalletPasswordRequest.SerializeToString,
+            '/boltzrpc.Boltz/ChangeWalletPassword',
+            boltz__grpc__files_dot_boltzrpc__pb2.ChangeWalletPasswordRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
@@ -1474,28 +1579,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def CreateTenant(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def CreateTenant(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/CreateTenant",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.CreateTenantRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Tenant.FromString,
+            '/boltzrpc.Boltz/CreateTenant',
+            boltz__grpc__files_dot_boltzrpc__pb2.CreateTenantRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.Tenant.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1504,28 +1606,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def ListTenants(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def ListTenants(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/ListTenants",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsResponse.FromString,
+            '/boltzrpc.Boltz/ListTenants',
+            boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.ListTenantsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1534,28 +1633,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def GetTenant(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def GetTenant(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/GetTenant",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.GetTenantRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.Tenant.FromString,
+            '/boltzrpc.Boltz/GetTenant',
+            boltz__grpc__files_dot_boltzrpc__pb2.GetTenantRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.Tenant.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1564,28 +1660,25 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
 
     @staticmethod
-    def BakeMacaroon(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
+    def BakeMacaroon(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/boltzrpc.Boltz/BakeMacaroon",
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonRequest.SerializeToString,
-            lnbits_dot_wallets_dot_boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonResponse.FromString,
+            '/boltzrpc.Boltz/BakeMacaroon',
+            boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonRequest.SerializeToString,
+            boltz__grpc__files_dot_boltzrpc__pb2.BakeMacaroonResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1594,5 +1687,4 @@ class Boltz(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
+            _registered_method=True)
