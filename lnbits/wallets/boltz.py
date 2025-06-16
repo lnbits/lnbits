@@ -5,7 +5,8 @@ from bolt11.decode import decode
 from grpc.aio import AioRpcError
 from loguru import logger
 
-from lnbits.settings import EditableSettings, settings
+from lnbits.core.crud.settings import set_settings_field
+from lnbits.settings import settings
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2, boltzrpc_pb2_grpc
 from lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc import grpc
 from lnbits.wallets.macaroon.macaroon import load_macaroon
@@ -66,43 +67,20 @@ class BoltzWallet(Wallet):
         # Auto-create wallet if running in Docker mode
         async def _init_boltz_wallet():
             try:
-                mnemonic = await self.fetch_wallet()
+                wallet_name = settings.boltz_client_wallet or "lnbits"
+                mnemonic = await self._fetch_wallet(wallet_name)
                 if mnemonic:
-                    from lnbits.core.crud import update_admin_settings
-
-                    settings.boltz_mnemonic = mnemonic
-                    update_settings = EditableSettings(boltz_mnemonic=mnemonic)
-                    await update_admin_settings(update_settings)
                     logger.info(
-                        "✅ Stored Boltz mnemonic in settings (and saved to DB)"
+                        "✅ Mnemonic found for Boltz wallet, saving to settings"
                     )
+                    settings.boltz_mnemonic = mnemonic
+                    await set_settings_field("boltz_mnemonic", mnemonic)
                 else:
                     logger.warning("⚠️ No mnemonic returned from Boltz")
             except Exception as e:
                 logger.error(f"❌ Failed to auto-create Boltz wallet: {e}")
 
         self._init_wallet_task = asyncio.create_task(_init_boltz_wallet())
-
-    async def fetch_wallet(self) -> Optional[str]:
-        wallet_name = "lnbits"
-
-        try:
-            request = boltzrpc_pb2.GetWalletRequest(name=wallet_name)
-            response = await self.rpc.GetWallet(request, metadata=self.metadata)
-            logger.info(f"Wallet '{wallet_name}' already exists with ID {response.id}")
-            return settings.boltz_mnemonic
-        except AioRpcError as exc:
-            if "not found" not in exc.details().lower():
-                logger.error(f"Error checking wallet existence: {exc.details()}")
-                raise
-
-        logger.info(f"Creating new wallet '{wallet_name}'")
-        params = boltzrpc_pb2.WalletParams(
-            name=wallet_name, currency=boltzrpc_pb2.LBTC, password=""
-        )
-        create_request = boltzrpc_pb2.CreateWalletRequest(params=params)
-        response = await self.rpc.CreateWallet(create_request, metadata=self.metadata)
-        return response.mnemonic
 
     async def status(self) -> StatusResponse:
         try:
@@ -266,3 +244,25 @@ class BoltzWallet(Wallet):
                     " 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def _fetch_wallet(self, wallet_name: str) -> Optional[str]:
+        try:
+            request = boltzrpc_pb2.GetWalletRequest(name=wallet_name)
+            response = await self.rpc.GetWallet(request, metadata=self.metadata)
+            logger.info(f"Wallet '{wallet_name}' already exists with ID {response.id}")
+            return settings.boltz_mnemonic
+        except AioRpcError as exc:
+            details = exc.details() or "unknown error"
+            if "not found" not in details.lower():
+                logger.error(f"Error checking wallet existence: {details}")
+                raise
+
+        logger.info(f"Creating new wallet '{wallet_name}'")
+        params = boltzrpc_pb2.WalletParams(
+            name=wallet_name,
+            currency=boltzrpc_pb2.LBTC,
+            password=settings.boltz_client_password,
+        )
+        create_request = boltzrpc_pb2.CreateWalletRequest(params=params)
+        response = await self.rpc.CreateWallet(create_request, metadata=self.metadata)
+        return response.mnemonic
