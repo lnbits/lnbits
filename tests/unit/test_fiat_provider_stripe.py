@@ -3,8 +3,9 @@ from unittest.mock import AsyncMock
 import pytest
 from pytest_mock.plugin import MockerFixture
 
+from lnbits.core.crud.payments import get_payments
 from lnbits.core.crud.wallets import create_wallet
-from lnbits.core.models.payments import CreateInvoice
+from lnbits.core.models.payments import CreateInvoice, PaymentState
 from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import payments
 from lnbits.core.services.users import create_user_account
@@ -105,12 +106,12 @@ async def test_create_wallet_fiat_invoice_fiat_limits_fail(
 
 @pytest.mark.anyio
 async def test_create_wallet_fiat_provider_fails(
-    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+    settings: Settings, mocker: MockerFixture
 ):
     settings.stripe_enabled = True
     settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
     invoice_data = CreateInvoice(
-        unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
+        unit="USD", amount=2.0, memo="Test", fiat_provider="stripe"
     )
 
     fiat_mock_response = FiatInvoiceResponse(
@@ -127,8 +128,16 @@ async def test_create_wallet_fiat_provider_fails(
         AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
     )
 
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id)
     with pytest.raises(ValueError, match="Cannot create payment request for 'stripe'."):
-        await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_wallet_fiat_invoice(wallet.id, invoice_data)
+
+    wallet_payments = await get_payments(wallet_id=wallet.id)
+    assert len(wallet_payments) == 1
+    assert wallet_payments[0].status == PaymentState.FAILED
+    assert wallet_payments[0].amount == 2000000
+    assert wallet_payments[0].fee == 0
 
 
 @pytest.mark.anyio
