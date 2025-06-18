@@ -10,7 +10,7 @@ from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import payments
 from lnbits.core.services.users import create_user_account
 from lnbits.settings import Settings
-from lnbits.walletsfiat.base import FiatInvoiceResponse
+from lnbits.walletsfiat.base import FiatInvoiceResponse, FiatPaymentStatus
 
 
 @pytest.mark.anyio
@@ -178,6 +178,19 @@ async def test_create_wallet_fiat_invoice_success(
     )
     assert payment.checking_id.startswith("internal_fiat_stripe_")
     assert payment.fee <= 0
+
+    status = await payment.check_status()
+    assert status.success is False
+    assert status.pending is True
+
+    fiat_mock_status = FiatPaymentStatus(paid=True, fee=123)
+    mocker.patch(
+        "lnbits.walletsfiat.StripeWallet.get_invoice_status",
+        AsyncMock(return_value=fiat_mock_status),
+    )
+    status = await payment.check_status()
+    assert status.paid is True
+    assert status.success is True
 
 
 @pytest.mark.anyio
