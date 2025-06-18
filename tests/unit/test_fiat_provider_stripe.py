@@ -104,10 +104,37 @@ async def test_create_wallet_fiat_invoice_fiat_limits_fail(
 
 
 @pytest.mark.anyio
-async def test_create_wallet_fiat_invoice_success(
+async def test_create_wallet_fiat_provider_fails(
     to_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
     settings.stripe_enabled = True
+    settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
+    )
+
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=False,
+        error_message="Failed to create invoice",
+    )
+
+    mocker.patch(
+        "lnbits.walletsfiat.StripeWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
+    )
+
+    with pytest.raises(ValueError, match="Cannot create payment request for 'stripe'."):
+        await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+
+
+@pytest.mark.anyio
+async def test_create_wallet_fiat_invoice_success(
+    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+):
     settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
     invoice_data = CreateInvoice(
         unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
