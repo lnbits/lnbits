@@ -192,8 +192,8 @@ async def check_fiat_invoice_limits(
         # todo: create outgoing payment to faucet wallet
         if faucet_wallet.balance < amount_sat:
             raise ValueError(
-                f"Fiat provider '{fiat_provider_name}' "
-                "faucet wallet balance is too low.",
+                f"The amount exceeds the '{fiat_provider_name}'"
+                "faucet wallet balance.",
             )
 
 

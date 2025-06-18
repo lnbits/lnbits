@@ -149,12 +149,13 @@ class Payment(BaseModel):
         if self.failed:
             return FiatPaymentFailedStatus()
 
+        if not self.fiat_provider:
+            return FiatPaymentPendingStatus()
+
         checking_id = self.extra.get("fiat_checking_id")
         if not checking_id:
             return FiatPaymentPendingStatus()
 
-        if not self.fiat_provider:
-            return FiatPaymentPendingStatus()
         fiat_provider = await get_fiat_provider(self.fiat_provider)
         if not fiat_provider:
             return FiatPaymentPendingStatus()
