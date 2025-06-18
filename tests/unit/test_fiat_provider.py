@@ -168,6 +168,8 @@ async def test_create_wallet_fiat_invoice_success(
         AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
     )
     payment = await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+    assert payment.status == PaymentState.PENDING
+    assert payment.amount == 1000_000
     assert payment.fiat_provider == "stripe"
     assert payment.extra.get("fiat_checking_id") == "session_123"
     assert (
