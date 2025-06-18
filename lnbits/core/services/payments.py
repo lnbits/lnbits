@@ -112,7 +112,7 @@ async def create_wallet_fiat_invoice(
     if invoice_data.unit == "sat":
         raise ValueError("Fiat provider cannot be used with satoshis.")
     amount_sat = await fiat_amount_as_satoshis(invoice_data.amount, invoice_data.unit)
-    await check_fiat_invoice_limits(amount_sat, fiat_provider_name, conn)
+    await _check_fiat_invoice_limits(amount_sat, fiat_provider_name, conn)
 
     invoice_data.internal = True
     if not invoice_data.memo:
@@ -150,51 +150,6 @@ async def create_wallet_fiat_invoice(
     internal_payment.checking_id = new_checking_id
 
     return internal_payment
-
-
-async def check_fiat_invoice_limits(
-    amount_sat: int, fiat_provider_name: str, conn: Optional[Connection] = None
-):
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
-    if not limits:
-        raise ValueError(
-            f"Fiat provider '{fiat_provider_name}' does not have limits configured.",
-        )
-
-    min_amount_sat = limits.service_min_amount_sats
-    if min_amount_sat and (amount_sat < min_amount_sat):
-        raise ValueError(
-            f"Minimum amount is {min_amount_sat} " f"sats for '{fiat_provider_name}'.",
-        )
-    max_amount_sats = limits.service_max_amount_sats
-    if max_amount_sats and (amount_sat > max_amount_sats):
-        raise ValueError(
-            f"Maximum amount is {max_amount_sats} " f"sats for '{fiat_provider_name}'.",
-        )
-
-    if limits.service_max_fee_sats > 0 or limits.service_fee_percent > 0:
-        if not limits.service_fee_wallet_id:
-            raise ValueError(
-                f"Fiat provider '{fiat_provider_name}' service fee wallet missing.",
-            )
-        fees_wallet = await get_wallet(limits.service_fee_wallet_id, conn=conn)
-        if not fees_wallet:
-            raise ValueError(
-                f"Fiat provider '{fiat_provider_name}' service fee wallet not found.",
-            )
-
-    if limits.service_faucet_wallet_id:
-        faucet_wallet = await get_wallet(limits.service_faucet_wallet_id, conn=conn)
-        if not faucet_wallet:
-            raise ValueError(
-                f"Fiat provider '{fiat_provider_name}' faucet wallet not found.",
-            )
-        # todo: create outgoing payment to faucet wallet
-        if faucet_wallet.balance < amount_sat:
-            raise ValueError(
-                f"The amount exceeds the '{fiat_provider_name}'"
-                "faucet wallet balance.",
-            )
 
 
 async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
@@ -1011,3 +966,47 @@ async def _debit_fiat_service_faucet_wallet(
         status=PaymentState.SUCCESS,
         conn=conn,
     )
+
+
+async def _check_fiat_invoice_limits(
+    amount_sat: int, fiat_provider_name: str, conn: Optional[Connection] = None
+):
+    limits = settings.get_fiat_provider_limits(fiat_provider_name)
+    if not limits:
+        raise ValueError(
+            f"Fiat provider '{fiat_provider_name}' does not have limits configured.",
+        )
+
+    min_amount_sat = limits.service_min_amount_sats
+    if min_amount_sat and (amount_sat < min_amount_sat):
+        raise ValueError(
+            f"Minimum amount is {min_amount_sat} " f"sats for '{fiat_provider_name}'.",
+        )
+    max_amount_sats = limits.service_max_amount_sats
+    if max_amount_sats and (amount_sat > max_amount_sats):
+        raise ValueError(
+            f"Maximum amount is {max_amount_sats} " f"sats for '{fiat_provider_name}'.",
+        )
+
+    if limits.service_max_fee_sats > 0 or limits.service_fee_percent > 0:
+        if not limits.service_fee_wallet_id:
+            raise ValueError(
+                f"Fiat provider '{fiat_provider_name}' service fee wallet missing.",
+            )
+        fees_wallet = await get_wallet(limits.service_fee_wallet_id, conn=conn)
+        if not fees_wallet:
+            raise ValueError(
+                f"Fiat provider '{fiat_provider_name}' service fee wallet not found.",
+            )
+
+    if limits.service_faucet_wallet_id:
+        faucet_wallet = await get_wallet(limits.service_faucet_wallet_id, conn=conn)
+        if not faucet_wallet:
+            raise ValueError(
+                f"Fiat provider '{fiat_provider_name}' faucet wallet not found.",
+            )
+        if faucet_wallet.balance < amount_sat:
+            raise ValueError(
+                f"The amount exceeds the '{fiat_provider_name}'"
+                "faucet wallet balance.",
+            )
