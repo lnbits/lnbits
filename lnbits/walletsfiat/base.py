@@ -53,7 +53,7 @@ class FiatPaymentResponse(NamedTuple):
 
 class FiatPaymentStatus(NamedTuple):
     paid: bool | None = None
-    fee: float | None = None
+    fee: float | None = None  # todo: what fee is this?
 
     @property
     def success(self) -> bool:
