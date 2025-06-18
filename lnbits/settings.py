@@ -571,7 +571,7 @@ class FiatProviderLimits(BaseModel):
 
     service_max_fee_sats: int = Field(default=0)
     service_fee_percent: float = Field(default=0)
-    service_fee_wallet_id: str = Field(default="")
+    service_fee_wallet_id: str | None = Field(default=None)
 
     service_min_amount_sats: int = Field(default=0)
     service_max_amount_sats: int = Field(default=0)
