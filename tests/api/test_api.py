@@ -9,6 +9,7 @@ from lnbits import bolt11
 from lnbits.core.models import CreateInvoice, Payment
 from lnbits.core.views.payment_api import api_payment
 from lnbits.settings import Settings
+from lnbits.walletsfiat.base import FiatInvoiceResponse
 
 from ..helpers import (
     get_random_invoice_data,
@@ -153,6 +154,55 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
     assert extra["fiat_amount"] == data["amount"]
     assert extra["fiat_currency"] == data["unit"]
     assert extra["fiat_rate"]
+
+
+@pytest.mark.anyio
+async def test_create_fiat_invoice(client, inkey_headers_to, mocker: MockerFixture):
+    data = await get_random_invoice_data()
+    data["unit"] = "EUR"
+    data["fiat_provider"] = "stripe"
+
+    fiat_payment_request = "https://stripe.com/pay/session_123"
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=True,
+        checking_id="session_123",
+        payment_request=fiat_payment_request,
+    )
+
+    mocker.patch(
+        "lnbits.walletsfiat.StripeWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),  # 1 BTC = 100 000 EUR, so 1 EUR = 1000 sats
+    )
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=inkey_headers_to
+    )
+    assert response.status_code == 201
+    invoice = response.json()
+    decode = bolt11.decode(invoice["bolt11"])
+    assert decode.amount_msat == 10_000_000
+    assert decode.payment_hash
+    assert invoice["fiat_provider"] == "stripe"
+    assert invoice["status"] == "pending"
+    assert invoice["extra"]["fiat_checking_id"]
+    assert invoice["extra"]["fiat_payment_request"] == fiat_payment_request
+
+    response = await client.get(
+        f"/api/v1/payments/{decode.payment_hash}", headers=inkey_headers_to
+    )
+    assert response.is_success
+    data = response.json()
+    assert data["status"] == "pending"
+    invoice = data["details"]
+
+    assert invoice["fiat_provider"] == "stripe"
+    assert invoice["status"] == "pending"
+    assert invoice["amount"] == 10_000_000
+    assert invoice["extra"]["fiat_checking_id"]
+    assert invoice["extra"]["fiat_payment_request"] == fiat_payment_request
 
 
 @pytest.mark.anyio

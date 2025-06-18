@@ -141,6 +141,7 @@ async def create_wallet_fiat_invoice(
 
     internal_payment.fiat_provider = fiat_provider_name
     internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
+    # todo: move to payent
     internal_payment.extra["fiat_payment_request"] = fiat_invoice.payment_request
     new_checking_id = (
         f"internal_fiat_{fiat_provider_name}_"
