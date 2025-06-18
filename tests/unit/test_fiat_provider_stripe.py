@@ -44,45 +44,6 @@ async def test_create_wallet_fiat_invoice_with_sat_unit(settings: Settings):
 
 
 @pytest.mark.anyio
-async def test_create_wallet_fiat_invoice_success(
-    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
-):
-    settings.stripe_enabled = True
-    settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
-    invoice_data = CreateInvoice(
-        unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
-    )
-
-    settings.stripe_enabled = True
-    settings.stripe_limits.service_min_amount_sats = 0
-    settings.stripe_limits.service_max_amount_sats = 0
-    settings.stripe_limits.service_faucet_wallet_id = None
-    fiat_mock_response = FiatInvoiceResponse(
-        ok=True,
-        checking_id="session_123",
-        payment_request="https://stripe.com/pay/session_123",
-    )
-
-    mocker.patch(
-        "lnbits.walletsfiat.StripeWallet.create_invoice",
-        AsyncMock(return_value=fiat_mock_response),
-    )
-    mocker.patch(
-        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
-        AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
-    )
-    payment = await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
-    assert payment.fiat_provider == "stripe"
-    assert payment.extra.get("fiat_checking_id") == "session_123"
-    assert (
-        payment.extra.get("fiat_payment_request")
-        == "https://stripe.com/pay/session_123"
-    )
-    assert payment.checking_id.startswith("internal_fiat_stripe_")
-    assert payment.fee <= 0
-
-
-@pytest.mark.anyio
 async def test_create_wallet_fiat_invoice_fiat_limits_fail(
     to_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
@@ -140,3 +101,42 @@ async def test_create_wallet_fiat_invoice_fiat_limits_fail(
         ValueError, match="The amount exceeds the 'stripe'faucet wallet balance."
     ):
         await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+
+
+@pytest.mark.anyio
+async def test_create_wallet_fiat_invoice_success(
+    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+):
+    settings.stripe_enabled = True
+    settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
+    )
+
+    settings.stripe_enabled = True
+    settings.stripe_limits.service_min_amount_sats = 0
+    settings.stripe_limits.service_max_amount_sats = 0
+    settings.stripe_limits.service_faucet_wallet_id = None
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=True,
+        checking_id="session_123",
+        payment_request="https://stripe.com/pay/session_123",
+    )
+
+    mocker.patch(
+        "lnbits.walletsfiat.StripeWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
+    )
+    payment = await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+    assert payment.fiat_provider == "stripe"
+    assert payment.extra.get("fiat_checking_id") == "session_123"
+    assert (
+        payment.extra.get("fiat_payment_request")
+        == "https://stripe.com/pay/session_123"
+    )
+    assert payment.checking_id.startswith("internal_fiat_stripe_")
+    assert payment.fee <= 0
