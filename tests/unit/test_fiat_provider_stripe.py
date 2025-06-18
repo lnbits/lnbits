@@ -167,3 +167,35 @@ async def test_create_wallet_fiat_invoice_success(
     )
     assert payment.checking_id.startswith("internal_fiat_stripe_")
     assert payment.fee <= 0
+
+
+@pytest.mark.anyio
+async def test_fiat_service_fee(settings: Settings):
+    # settings.stripe_limits.service_min_amount_sats = 0
+    amount_msats = 100_000
+    fee = payments.service_fee_fiat(amount_msats, "no_such_fiat_provider")
+    assert fee == 0
+
+    settings.stripe_limits.service_fee_wallet_id = None
+    fee = payments.service_fee_fiat(amount_msats, "stripe")
+    assert fee == 0
+
+    settings.stripe_limits.service_fee_wallet_id = "wallet_id"
+    fee = payments.service_fee_fiat(amount_msats, "stripe")
+    assert fee == 0
+
+    settings.stripe_limits.service_max_fee_sats = 5
+    settings.stripe_limits.service_fee_percent = 20
+    fee = payments.service_fee_fiat(amount_msats, "stripe")
+    assert fee == 5000
+
+    fee = payments.service_fee_fiat(-amount_msats, "stripe")
+    assert fee == 5000
+
+    settings.stripe_limits.service_max_fee_sats = 5
+    settings.stripe_limits.service_fee_percent = 3
+    fee = payments.service_fee_fiat(amount_msats, "stripe")
+    assert fee == 3000
+
+    fee = payments.service_fee_fiat(-amount_msats, "stripe")
+    assert fee == 3000
