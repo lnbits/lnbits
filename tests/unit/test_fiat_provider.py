@@ -1,6 +1,8 @@
 from unittest.mock import AsyncMock
 
 import pytest
+from lnbits.core.crud.users import get_user
+from lnbits.core.models.users import User
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud.payments import get_payments
@@ -42,6 +44,39 @@ async def test_create_wallet_fiat_invoice_with_sat_unit(settings: Settings):
     )
     with pytest.raises(ValueError, match="Fiat provider cannot be used with satoshis"):
         await payments.create_wallet_fiat_invoice("wallet_id", invoice_data)
+
+
+@pytest.mark.anyio
+async def test_create_wallet_fiat_invoice_allowed_users(
+    to_user: User, settings: Settings
+):
+
+    settings.stripe_enabled = False
+    settings.stripe_limits.allowed_users = []
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == []
+
+    settings.stripe_enabled = True
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == ["stripe"]
+
+    settings.stripe_limits.allowed_users = ["some_other_user_id"]
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == []
+
+    settings.stripe_limits.allowed_users.append(to_user.id)
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == ["stripe"]
+
+    settings.stripe_enabled = False
+    user = await get_user(to_user.id)
+    assert user
+    assert user.fiat_providers == []
+
 
 
 @pytest.mark.anyio
@@ -223,3 +258,8 @@ async def test_fiat_service_fee(settings: Settings):
 
     fee = payments.service_fee_fiat(-amount_msats, "stripe")
     assert fee == 3000
+
+
+# handle_fiat_payment_confirmation
+# api_payments_create: test fiat provider
+# test alloewd users
