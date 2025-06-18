@@ -1,13 +1,13 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from lnbits.core.crud.users import get_user
-from lnbits.core.models.users import User
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud.payments import get_payments
+from lnbits.core.crud.users import get_user
 from lnbits.core.crud.wallets import create_wallet
 from lnbits.core.models.payments import CreateInvoice, PaymentState
+from lnbits.core.models.users import User
 from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import payments
 from lnbits.core.services.users import create_user_account
@@ -76,7 +76,6 @@ async def test_create_wallet_fiat_invoice_allowed_users(
     user = await get_user(to_user.id)
     assert user
     assert user.fiat_providers == []
-
 
 
 @pytest.mark.anyio
