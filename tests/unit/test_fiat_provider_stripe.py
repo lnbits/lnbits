@@ -46,7 +46,7 @@ async def test_create_wallet_fiat_invoice_success(
     to_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
     settings.stripe_enabled = True
-    settings.stripe_api_secret_key = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"
+    settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
     invoice_data = CreateInvoice(
         unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
     )
