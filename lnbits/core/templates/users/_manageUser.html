@@ -61,7 +61,7 @@
       :label="$t('set_password')"
       v-model="activeUser.setPassword"
     >
-      <q-tooltip>Toggle Admin</q-tooltip>
+      <q-tooltip v-text="$t('set_password_tooltip')"></q-tooltip>
     </q-toggle>
 
     <q-input
@@ -105,11 +105,12 @@
 
     <q-input
       v-model="activeUser.data.pubkey"
-      :label="$t('pubkey')"
+      :label="'Nostr '+ $t('pubkey')"
       filled
       dense
       class="q-mb-md"
     >
+      <q-tooltip v-text="$t('nostr_pubkey_tooltip')"></q-tooltip>
     </q-input>
     <q-input
       v-model="activeUser.data.email"
