@@ -7,6 +7,7 @@ __pycache__
 .mypy_cache
 .vscode
 *-lock.json
+.python-version
 
 *.egg
 *.egg-info
