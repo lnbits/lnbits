@@ -319,7 +319,7 @@ class ExchangeProvidersSettings(LNbitsSettings):
                 name="Binance",
                 api_url="https://api.binance.com/api/v3/ticker/price?symbol=BTC{TO}",
                 path="$.price",
-                exclude_to=["czk"],
+                exclude_to=["czk", "gbp"],
                 ticker_conversion=["USD:USDT"],
             ),
             ExchangeRateProvider(
