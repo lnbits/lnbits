@@ -1,4 +1,5 @@
 import asyncio
+import statistics
 from typing import Optional
 
 import httpx
@@ -187,6 +188,54 @@ def allowed_currencies() -> list[str]:
     return list(currencies.keys())
 
 
+def apply_trimmed_mean_filter(
+    rates: list[tuple[str, float]], threshold_percentage: float = 0.01
+) -> list[tuple[str, float]]:
+    """
+    Apply trimmed mean filtering to remove outliers from exchange rates.
+
+    Args:
+        rates: List of (provider_name, rate_value) tuples
+        threshold_percentage: Percentage threshold for outlier removal (default 1%)
+
+    Returns:
+        Filtered list of rates with outliers removed
+    """
+    if len(rates) < 3:
+        # Need at least 3 rates to apply filtering
+        return rates
+
+    rates_values = [r[1] for r in rates]
+    median_value = statistics.median(rates_values)
+
+    # Filter out values that are more than threshold_percentage away from median
+    filtered_rates = []
+    for rate in rates:
+        provider_name, value = rate
+        deviation = abs(value - median_value) / median_value
+        if deviation <= threshold_percentage:
+            logger.info(
+                f"Keeping {provider_name}: {value} (deviation: {deviation:.4f})"
+            )
+            filtered_rates.append(rate)
+        else:
+            logger.warning(
+                f"Removing outlier {provider_name}: {value} "
+                f"(deviation: {deviation:.4f})"
+            )
+
+    # If we still have at least 2 rates after filtering, use them
+    if len(filtered_rates) >= 2:
+        logger.warning(f"Filtered rates: {filtered_rates}")
+        return filtered_rates
+    else:
+        # Fall back to median if filtering removed too many values
+        logger.warning("Filtering removed too many values, using median instead")
+        # Find the rate closest to median
+        closest_rate = min(rates, key=lambda x: abs(x[1] - median_value))
+        return [closest_rate]
+
+
 async def btc_rates(currency: str) -> list[tuple[str, float]]:
     if currency.upper() not in allowed_currencies():
         raise ValueError(f"Currency '{currency}' not allowed.")
@@ -236,7 +285,9 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
     ]
     results = await asyncio.gather(*calls)
 
-    return [r for r in results if r is not None]
+    all_rates = [r for r in results if r is not None]
+
+    return apply_trimmed_mean_filter(all_rates)
 
 
 async def btc_price(currency: str) -> float:
