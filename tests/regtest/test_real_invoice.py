@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+from math import ceil
 
 import pytest
 
@@ -59,15 +60,17 @@ async def test_pay_real_invoice(
     assert response.status_code < 300
     payment_status = response.json()
     assert payment_status["paid"]
+    print(payment_status)
 
     funding_source = get_funding_source()
     status = await funding_source.get_payment_status(invoice["payment_hash"])
     assert status.paid
+    assert status.fee_msat == 0
+    print(status)
 
     await asyncio.sleep(1)
     balance = await get_node_balance_sats()
-    # TODO: maybe take fee into consideration?
-    assert prev_balance - balance == 100
+    assert prev_balance - balance == 100 - ceil(status.fee_msat / 1000)
 
 
 @pytest.mark.anyio
@@ -103,7 +106,11 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
 
         await asyncio.sleep(1)
         balance = await get_node_balance_sats()
-        assert balance - prev_balance == create_invoice.amount
+        print(payment_status)
+        assert False is True
+        assert balance - prev_balance == create_invoice.amount + ceil(
+            payment_status["fee_msat"] / 1000
+        )
 
         assert payment_status.get("preimage") is not None
 
