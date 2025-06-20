@@ -76,7 +76,11 @@
                 </div>
               </q-card-section>
             </q-expansion-item>
+
             <q-expansion-item :label="$t('webhook')" default-opened>
+              <q-card-section>
+                <span v-text="$t('webhook_stripe_description')"></span>
+              </q-card-section>
               <q-card-section>
                 <q-input
                   filled
