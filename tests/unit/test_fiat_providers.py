@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+import time
 from unittest.mock import AsyncMock
 
 import pytest
@@ -10,6 +13,7 @@ from lnbits.core.models.payments import CreateInvoice, PaymentState
 from lnbits.core.models.users import User
 from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import payments
+from lnbits.core.services.fiat_providers import check_stripe_signature
 from lnbits.core.services.users import create_user_account
 from lnbits.settings import Settings
 from lnbits.walletsfiat.base import FiatInvoiceResponse, FiatPaymentStatus
@@ -329,3 +333,97 @@ async def test_handle_fiat_payment_confirmation(
         == fiat_mock_response.payment_request
     )
     assert faucet_payment.checking_id.startswith("internal_fiat_stripe_")
+
+
+@pytest.mark.parametrize("payload", [b'{"id": "evt_test"}', b"{}", b""])
+def test_check_stripe_signature_success(payload):
+    secret = "whsec_testsecret"
+    sig_header, _, _ = _make_stripe_sig_header(payload, secret)
+    # Should not raise
+    check_stripe_signature(payload, sig_header, secret)
+
+
+@pytest.mark.parametrize("payload", [b'{"id": "evt_test"}'])
+def test_check_stripe_signature_missing_header(payload):
+    secret = "whsec_testsecret"
+    with pytest.raises(ValueError, match="Stripe-Signature header is missing"):
+        check_stripe_signature(payload, None, secret)
+
+
+def test_check_stripe_signature_missing_secret():
+    payload = b'{"id": "evt_test"}'
+    sig_header, _, _ = _make_stripe_sig_header(payload, "whsec_testsecret")
+    with pytest.raises(ValueError, match="Stripe webhook cannot be verified"):
+        check_stripe_signature(payload, sig_header, None)
+
+
+def test_check_stripe_signature_invalid_signature():
+    payload = b'{"id": "evt_test"}'
+    secret = "whsec_testsecret"
+    _, timestamp, _ = _make_stripe_sig_header(payload, secret)
+    # Tamper with signature
+    bad_sig_header = f"t={timestamp},v1=deadbeef"
+    with pytest.raises(ValueError, match="Stripe signature verification failed"):
+        check_stripe_signature(payload, bad_sig_header, secret)
+
+
+def test_check_stripe_signature_old_timestamp():
+    payload = b'{"id": "evt_test"}'
+    secret = "whsec_testsecret"
+    old_timestamp = int(time.time()) - 10000  # way outside default tolerance
+    sig_header, _, _ = _make_stripe_sig_header(payload, secret, timestamp=old_timestamp)
+    with pytest.raises(ValueError, match="Timestamp outside tolerance"):
+        check_stripe_signature(payload, sig_header, secret)
+
+
+def test_check_stripe_signature_future_timestamp():
+    payload = b'{"id": "evt_test"}'
+    secret = "whsec_testsecret"
+    future_timestamp = int(time.time()) + 10000
+    sig_header, _, _ = _make_stripe_sig_header(
+        payload, secret, timestamp=future_timestamp
+    )
+    with pytest.raises(ValueError, match="Timestamp outside tolerance"):
+        check_stripe_signature(payload, sig_header, secret)
+
+
+def test_check_stripe_signature_malformed_header():
+    payload = b'{"id": "evt_test"}'
+    secret = "whsec_testsecret"
+    # Missing v1 part
+    bad_header = "t=1234567890"
+    with pytest.raises(Exception):  # noqa: B017
+        check_stripe_signature(payload, bad_header, secret)
+    # Missing t part
+    bad_header2 = "v1=abcdef"
+    with pytest.raises(Exception):  # noqa: B017
+        check_stripe_signature(payload, bad_header2, secret)
+    # Not split by =
+    bad_header3 = "t1234567890,v1abcdef"
+    with pytest.raises(Exception):  # noqa: B017
+        check_stripe_signature(payload, bad_header3, secret)
+
+
+def test_check_stripe_signature_non_utf8_payload():
+    secret = "whsec_testsecret"
+    payload = b"\xff\xfe\xfd"  # not valid utf-8
+    timestamp = int(time.time())
+    # This will raise UnicodeDecodeError inside check_stripe_signature
+    signed_payload = f"{timestamp}." + payload.decode(errors="ignore")
+    signature = hmac.new(
+        secret.encode(), signed_payload.encode(), hashlib.sha256
+    ).hexdigest()
+    sig_header = f"t={timestamp},v1={signature}"
+    with pytest.raises(UnicodeDecodeError):
+        check_stripe_signature(payload, sig_header, secret)
+
+
+# Helper to generate a valid Stripe signature header
+def _make_stripe_sig_header(payload, secret, timestamp=None):
+    if timestamp is None:
+        timestamp = int(time.time())
+    signed_payload = f"{timestamp}.{payload.decode()}"
+    signature = hmac.new(
+        secret.encode(), signed_payload.encode(), hashlib.sha256
+    ).hexdigest()
+    return f"t={timestamp},v1={signature}", timestamp, signature
