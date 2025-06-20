@@ -517,7 +517,9 @@ window.windowMixin = {
       this.$q.localStorage.set('lnbits.walletFlip', this.walletFlip)
     },
     goToWallets() {
-      window.location = '/wallets'
+      this.$router.push({
+        path: '/wallets'
+      })
     },
     submitAddWallet() {
       if (
