@@ -943,11 +943,6 @@ async def _debit_fiat_service_faucet_wallet(
             f"Fiat provider '{fiat_provider_name}' faucet wallet not found."
         )
 
-    # if faucet_wallet.balance < abs(payment.sat):
-    #     raise ValueError(
-    #         f"Fiat provider '{fiat_provider_name}' faucet wallet balance is too low."
-    #     )
-
     memo = (
         f"Faucet payment of {abs(payment.sat)} sats. "
         f"Provider: {fiat_provider_name}. "
@@ -962,7 +957,8 @@ async def _debit_fiat_service_faucet_wallet(
         extra=payment.extra,
     )
     await create_payment(
-        checking_id=f"internal_{payment.payment_hash}",
+        checking_id=f"internal_fiat_{fiat_provider_name}_"
+        f"_faucet_{payment.payment_hash}",
         data=create_payment_model,
         status=PaymentState.SUCCESS,
         conn=conn,

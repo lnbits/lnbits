@@ -13,6 +13,7 @@ from lnbits.core.services import payments
 from lnbits.core.services.users import create_user_account
 from lnbits.settings import Settings
 from lnbits.walletsfiat.base import FiatInvoiceResponse, FiatPaymentStatus
+from tests.helpers import get_random_string
 
 
 @pytest.mark.anyio
@@ -189,7 +190,7 @@ async def test_create_wallet_fiat_invoice_success(
     settings.stripe_limits.service_faucet_wallet_id = None
     fiat_mock_response = FiatInvoiceResponse(
         ok=True,
-        checking_id="session_123",
+        checking_id=f"session_123_{get_random_string(10)}",
         payment_request="https://stripe.com/pay/session_123",
     )
 
@@ -205,7 +206,7 @@ async def test_create_wallet_fiat_invoice_success(
     assert payment.status == PaymentState.PENDING
     assert payment.amount == 1000_000
     assert payment.fiat_provider == "stripe"
-    assert payment.extra.get("fiat_checking_id") == "session_123"
+    assert payment.extra.get("fiat_checking_id") == fiat_mock_response.checking_id
     assert (
         payment.extra.get("fiat_payment_request")
         == "https://stripe.com/pay/session_123"
@@ -259,6 +260,72 @@ async def test_fiat_service_fee(settings: Settings):
     assert fee == 3000
 
 
-# handle_fiat_payment_confirmation
-# api_payments_create: test fiat provider
-# test alloewd users
+@pytest.mark.anyio
+async def test_handle_fiat_payment_confirmation(
+    to_wallet: Wallet, settings: Settings, mocker: MockerFixture
+):
+    user = await create_user_account()
+    service_fee_wallet = await create_wallet(user_id=user.id)
+    faucet_wallet = await create_wallet(user_id=user.id)
+    await payments.update_wallet_balance(wallet=faucet_wallet, amount=100_000_000)
+
+    settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
+    )
+
+    settings.stripe_enabled = True
+    settings.stripe_limits.service_min_amount_sats = 0
+    settings.stripe_limits.service_max_amount_sats = 0
+
+    settings.stripe_limits.service_fee_percent = 20
+    settings.stripe_limits.service_fee_wallet_id = service_fee_wallet.id
+    settings.stripe_limits.service_faucet_wallet_id = faucet_wallet.id
+
+    fiat_mock_response = FiatInvoiceResponse(
+        ok=True,
+        checking_id=f"session_123_{get_random_string(10)}",
+        payment_request="https://stripe.com/pay/session_123",
+    )
+
+    mocker.patch(
+        "lnbits.walletsfiat.StripeWallet.create_invoice",
+        AsyncMock(return_value=fiat_mock_response),
+    )
+    mocker.patch(
+        "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
+        AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
+    )
+    payment = await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+    assert payment.status == PaymentState.PENDING
+    assert payment.amount == 1000_000
+
+    await payments.handle_fiat_payment_confirmation(payment)
+
+    service_fee_payments = await get_payments(wallet_id=service_fee_wallet.id)
+    assert len(service_fee_payments) == 1
+    assert service_fee_payments[0].amount == 200_000
+    assert service_fee_payments[0].fee == 0
+    assert service_fee_payments[0].status == PaymentState.SUCCESS
+    assert service_fee_payments[0].fiat_provider is None
+
+    faucet_wallet_payments = await get_payments(wallet_id=faucet_wallet.id)
+    # One for the service fee, one for the top-up
+    assert len(faucet_wallet_payments) == 2
+    faucet_payment = (
+        faucet_wallet_payments[0]
+        if faucet_wallet_payments[0].amount < 0
+        else faucet_wallet_payments[1]
+    )
+    assert faucet_payment.amount == -1000_000
+    assert faucet_payment.fee == 0
+    assert faucet_payment.status == PaymentState.SUCCESS
+    assert faucet_payment.fiat_provider is None
+    assert (
+        faucet_payment.extra.get("fiat_checking_id") == fiat_mock_response.checking_id
+    )
+    assert (
+        faucet_payment.extra.get("fiat_payment_request")
+        == fiat_mock_response.payment_request
+    )
+    assert faucet_payment.checking_id.startswith("internal_fiat_stripe_")
