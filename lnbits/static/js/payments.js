@@ -8,8 +8,14 @@ window.PaymentsPageLogic = {
       searchData: {
         wallet_id: null,
         payment_hash: null,
-        status: null,
         memo: null
+      },
+      statusFilters: {
+        success: true,
+        pending: true,
+        failed: true,
+        incoming: true,
+        outgoing: true
       },
       chartData: {
         showPaymentStatus: true,
@@ -131,6 +137,7 @@ window.PaymentsPageLogic = {
       if (this.searchDate.to) {
         filter['time[le]'] = this.searchDate.to + 'T23:59:59'
       }
+
       this.paymentsTable.filter = filter
 
       try {
@@ -198,7 +205,38 @@ window.PaymentsPageLogic = {
 
       this.fetchPayments()
     },
+    handleFilterChanged() {
+      const {success, pending, failed, incoming, outgoing} = this.statusFilters
 
+      delete this.searchData['status[ne]']
+      delete this.searchData['status[eq]']
+      if (success && pending && failed) {
+        // do nothing, all statuses are selected
+      } else if (success && pending) {
+        this.searchData['status[ne]'] = 'failed'
+      } else if (success && failed) {
+        this.searchData['status[ne]'] = 'pending'
+      } else if (failed && pending) {
+        this.searchData['status[ne]'] = 'success'
+      } else if (success) {
+        this.searchData['status[eq]'] = 'success'
+      } else if (pending) {
+        this.searchData['status[eq]'] = 'pending'
+      } else if (failed) {
+        this.searchData['status[eq]'] = 'failed'
+      }
+
+      delete this.searchData['amount[ge]']
+      delete this.searchData['amount[le]']
+      if (incoming && outgoing) {
+        // do nothing
+      } else if (incoming) {
+        this.searchData['amount[ge]'] = '0'
+      } else if (outgoing) {
+        this.searchData['amount[le]'] = '0'
+      }
+      this.fetchPayments()
+    },
     showDetailsToggle(payment) {
       this.paymentDetails = payment
       return (this.showDetails = !this.showDetails)
