@@ -711,3 +711,7 @@ async def m031_add_color_and_icon_to_wallets(db: Connection):
     Adds icon and color columns to wallets.
     """
     await db.execute("ALTER TABLE wallets ADD COLUMN extra TEXT")
+
+
+async def m032_update_payment_table(db: Connection):
+    await db.execute("ALTER TABLE apipayments ADD COLUMN fiat_provider TEXT")

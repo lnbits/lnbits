@@ -5,7 +5,9 @@ from .views.admin_api import admin_router
 from .views.api import api_router
 from .views.audit_api import audit_router
 from .views.auth_api import auth_router
+from .views.callback_api import callback_router
 from .views.extension_api import extension_router
+from .views.fiat_api import fiat_router
 
 # this compat is needed for usermanager extension
 from .views.generic import generic_router
@@ -34,10 +36,12 @@ def init_core_routers(app: FastAPI):
     app.include_router(wallet_router)
     app.include_router(api_router)
     app.include_router(websocket_router)
+    app.include_router(callback_router)
     app.include_router(tinyurl_router)
     app.include_router(webpush_router)
     app.include_router(users_router)
     app.include_router(audit_router)
+    app.include_router(fiat_router)
 
 
 __all__ = ["core_app", "core_app_extra", "db"]

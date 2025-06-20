@@ -116,6 +116,13 @@ import window_vars with context %} {% block scripts %} {{ window_vars(user) }}
                 ><span v-text="$t('exchanges')"></span></q-tooltip
             ></q-tab>
             <q-tab
+              name="fiat_providers"
+              icon="credit_score"
+              :label="$q.screen.gt.sm ? $t('fiat_providers') : null"
+              ><q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('fiat_providers')"></span></q-tooltip
+            ></q-tab>
+            <q-tab
               name="users"
               icon="group"
               :label="$q.screen.gt.sm ? $t('users') : null"
@@ -183,7 +190,8 @@ import window_vars with context %} {% block scripts %} {{ window_vars(user) }}
               >
                 {% include "admin/_tab_funding.html" %} {% include
                 "admin/_tab_users.html" %} {% include "admin/_tab_server.html"
-                %} {% include "admin/_tab_exchange_providers.html" %} {% include
+                %} {% include "admin/_tab_exchange_providers.html" %}{% include
+                "admin/_tab_fiat_providers.html" %} {% include
                 "admin/_tab_extensions.html" %} {% include
                 "admin/_tab_notifications.html" %} {% include
                 "admin/_tab_security.html" %} {% include "admin/_tab_theme.html"
