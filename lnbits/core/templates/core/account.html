@@ -548,6 +548,12 @@
                     </q-select>
                   </div>
                 </div>
+                <q-separator></q-separator>
+                <div class="row q-mb-md q-mt-md">
+                  <q-btn @click="updateAccount" unelevated color="primary">
+                    <span v-text="$t('update_account')"></span>
+                  </q-btn>
+                </div>
               </q-tab-panel>
               <q-tab-panel name="api_acls">
                 <div class="row q-mb-md">
