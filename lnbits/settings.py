@@ -585,7 +585,7 @@ class StripeFiatProvider(LNbitsSettings):
     stripe_payment_success_url: str = Field(default="https://lnbits.com")
 
     stripe_payment_webhook_url: str = Field(
-        default="https://your-lnbits-domain-here.com/api/v1/webhook/stripe"
+        default="https://your-lnbits-domain-here.com/api/v1/callback/stripe"
     )
     # Use this secret to verify that events come from Stripe.
     stripe_webhook_signing_secret: str | None = Field(default=None)

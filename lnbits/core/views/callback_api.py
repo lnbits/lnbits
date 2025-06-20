@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.services.fiat_providers import handle_stripe_event
 
-callback_router = APIRouter(prefix="/api/v1/webhook", tags=["Webhooks"])
+callback_router = APIRouter(prefix="/api/v1/callback", tags=["callback"])
 
 
 @callback_router.post("/{provider_name}")
