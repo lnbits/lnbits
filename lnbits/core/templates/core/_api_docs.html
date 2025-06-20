@@ -48,6 +48,17 @@
               class="cursor-pointer q-ml-sm"
               @click="copyText(wallet.adminkey)"
             ></q-icon>
+            <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
+              <q-popup-proxy>
+                <div class="q-pa-md">
+                  <lnbits-qrcode
+                    :value="wallet.adminkey"
+                    :options="{ width: 250 }"
+                    class="rounded-borders"
+                  ></lnbits-qrcode>
+                </div>
+              </q-popup-proxy>
+            </q-icon>
           </div>
         </q-item-section>
       </q-item>
@@ -70,6 +81,17 @@
               class="cursor-pointer q-ml-sm"
               @click="copyText(wallet.inkey)"
             ></q-icon>
+            <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
+              <q-popup-proxy>
+                <div class="q-pa-md">
+                  <lnbits-qrcode
+                    :value="wallet.inkey"
+                    :options="{ width: 250 }"
+                    class="rounded-borders"
+                  ></lnbits-qrcode>
+                </div>
+              </q-popup-proxy>
+            </q-icon>
           </div>
         </q-item-section>
       </q-item>
