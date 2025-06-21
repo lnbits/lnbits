@@ -72,6 +72,34 @@ async def test_pay_real_invoice(
 
 @pytest.mark.anyio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_pay_real_invoice_noroute(
+    client,
+    real_invoice_noroute,
+    adminkey_headers_from,
+    inkey_headers_from,
+):
+    response = await client.post(
+        "/api/v1/payments", json=real_invoice_noroute, headers=adminkey_headers_from
+    )
+    assert response.status_code == 520
+    invoice = response.json()
+
+    assert invoice["status"] == "failed"
+
+    # check the payment status
+    response = await client.get(
+        f'/api/v1/payments/{real_invoice_noroute["payment_hash"]}',
+        headers=inkey_headers_from,
+    )
+    assert response.status_code < 300
+    payment = response.json()
+    assert payment["paid"] is False
+    assert payment["status"] == "failed"
+    assert payment["preimage"] is None
+
+
+@pytest.mark.anyio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_from):
     prev_balance = await get_node_balance_sats()
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
