@@ -40,12 +40,21 @@ class PayInvoice(BaseModel):
     extra: dict | None = {}
 
 
+class FetchInvoice(BaseModel):
+    offer: str
+    amount: float | None = None
+    currency: str | None = None
+    payer_note: str | None = None
+
+
 class CreatePayment(BaseModel):
     wallet_id: str
     payment_hash: str
     bolt11: str
     amount_msat: int
+    offer_id: str | None = None
     memo: str
+    payer_note: str | None = None
     extra: dict | None = {}
     preimage: str | None = None
     expiry: datetime | None = None
@@ -61,7 +70,9 @@ class Payment(BaseModel):
     fee: int
     bolt11: str
     status: str = PaymentState.PENDING
+    offer_id: str | None = None
     memo: str | None = None
+    payer_note: str | None = None
     expiry: datetime | None = None
     webhook: str | None = None
     webhook_status: str | None = None
