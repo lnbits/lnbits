@@ -553,7 +553,9 @@ class BoltzFundingSource(LNbitsSettings):
     boltz_client_endpoint: str | None = Field(default="127.0.0.1:9002")
     boltz_client_macaroon: str | None = Field(default=None)
     boltz_client_wallet: str | None = Field(default="lnbits")
+    boltz_client_password: str = Field(default="")
     boltz_client_cert: str | None = Field(default=None)
+    boltz_mnemonic: str | None = Field(default=None)
 
 
 class StrikeFundingSource(LNbitsSettings):
