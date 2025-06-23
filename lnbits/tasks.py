@@ -202,6 +202,9 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     payment = await get_standalone_payment(checking_id, incoming=True)
     if payment and payment.is_in:
         status = await payment.check_status()
+        if not status.success:
+            logger.debug(f"payment {checking_id} is not settled yet, skipping")
+            return
         payment.fee = status.fee_msat or 0
         # only overwrite preimage if status.preimage provides it
         payment.preimage = status.preimage or payment.preimage
