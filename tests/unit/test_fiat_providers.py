@@ -301,7 +301,6 @@ async def test_handle_fiat_payment_confirmation(
         AsyncMock(return_value=10000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
     )
     payment = await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
-    print("### fiat payment", payment.json())
     assert payment.status == PaymentState.PENDING
     assert payment.amount == 10_000_000
 
@@ -316,11 +315,9 @@ async def test_handle_fiat_payment_confirmation(
     assert service_fee_payments[0].fiat_provider is None
 
     faucet_wallet_payments = await get_payments(wallet_id=faucet_wallet.id)
-    # One for the service fee, one for the top-up
-    print("### faucet_wallet_payments", len(faucet_wallet_payments))
-    for p in faucet_wallet_payments:
-        print("   ### payment", p.json())
-    # background tasks may create more payments, so we check for at least 2
+
+    # Background tasks may create more payments, so we check for at least 2
+    # One for the service fee, one for the top-up)
     assert len(faucet_wallet_payments) >= 2
     faucet_payment = next(
         (p for p in faucet_wallet_payments if p.payment_hash == payment.payment_hash),
