@@ -32,9 +32,7 @@ class StripeWallet(FiatWallet):
 
         if not settings.stripe_api_secret_key:
             raise ValueError("Cannot initialize StripeWallet: missing API secret key.")
-        self.endpoint = self.normalize_endpoint(
-            settings.stripe_api_endpoint
-        )  # todo: move to helpers
+        self.endpoint = self.normalize_endpoint(settings.stripe_api_endpoint)
         self.headers = {
             "Authorization": f"Bearer {settings.stripe_api_secret_key}",
             "User-Agent": settings.user_agent,
@@ -87,7 +85,6 @@ class StripeWallet(FiatWallet):
                 settings.stripe_payment_success_url or "https://lnbits.com",
             ),
             ("metadata[payment_hash]", payment_hash),
-            # line_items[0]
             ("line_items[0][price_data][currency]", currency.lower()),
             ("line_items[0][price_data][product_data][name]", memo or "LNbits Invoice"),
             ("line_items[0][price_data][unit_amount]", amount_cents),
@@ -143,7 +140,7 @@ class StripeWallet(FiatWallet):
             if not payment_status:
                 return FiatPaymentPendingStatus()
             if payment_status == "paid":
-                # todo: handle fee and preimage
+                # todo: handle fee
                 return FiatPaymentSuccessStatus()
 
             expires_at = data.get("expires_at")
@@ -158,7 +155,7 @@ class StripeWallet(FiatWallet):
             return FiatPaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> FiatPaymentStatus:
-        raise NotImplementedError("Stripe does not support outgoinf payments.")
+        raise NotImplementedError("Stripe does not support outgoing payments.")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         logger.warning(
