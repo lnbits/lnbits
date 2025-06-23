@@ -229,7 +229,7 @@ async def test_pay_for_extension(to_wallet: Wallet, settings: Settings):
         )
 
 
-@pytest.skip
+@pytest.mark.skip
 @pytest.mark.anyio
 async def test_notification_for_internal_payment(to_wallet: Wallet):
     test_name = "test_notification_for_internal_payment"
