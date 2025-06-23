@@ -183,15 +183,15 @@ async def test_create_wallet_fiat_provider_fails(
 async def test_create_wallet_fiat_invoice_success(
     to_wallet: Wallet, settings: Settings, mocker: MockerFixture
 ):
-    settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
-    invoice_data = CreateInvoice(
-        unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
-    )
-
     settings.stripe_enabled = True
+    settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
     settings.stripe_limits.service_min_amount_sats = 0
     settings.stripe_limits.service_max_amount_sats = 0
     settings.stripe_limits.service_faucet_wallet_id = None
+
+    invoice_data = CreateInvoice(
+        unit="USD", amount=1.0, memo="Test", fiat_provider="stripe"
+    )
     fiat_mock_response = FiatInvoiceResponse(
         ok=True,
         checking_id=f"session_123_{get_random_string(10)}",
