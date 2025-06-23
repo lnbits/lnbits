@@ -11,7 +11,6 @@ from lnbits.walletsfiat import get_fiat_provider
 
 
 async def handle_stripe_event(event: dict):
-    # todo: check signature
     event_id = event.get("id")
     event_object = event.get("data", {}).get("object", {})
     object_type = event_object.get("object")
