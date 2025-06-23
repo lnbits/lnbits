@@ -13,6 +13,7 @@ from lnbits.walletsfiat.base import FiatInvoiceResponse
 
 from ..helpers import (
     get_random_invoice_data,
+    get_random_string,
 )
 
 
@@ -165,7 +166,7 @@ async def test_create_fiat_invoice(client, inkey_headers_to, mocker: MockerFixtu
     fiat_payment_request = "https://stripe.com/pay/session_123"
     fiat_mock_response = FiatInvoiceResponse(
         ok=True,
-        checking_id="session_123",
+        checking_id=f"session_123_{get_random_string(10)}",
         payment_request=fiat_payment_request,
     )
 
