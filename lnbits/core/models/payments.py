@@ -116,7 +116,9 @@ class Payment(BaseModel):
 
     @property
     def is_internal(self) -> bool:
-        return self.checking_id.startswith("internal_")
+        return self.checking_id.startswith("internal_") or self.checking_id.startswith(
+            "fiat_"
+        )
 
     async def check_status(
         self, skip_internal_payment_notifications: bool | None = False

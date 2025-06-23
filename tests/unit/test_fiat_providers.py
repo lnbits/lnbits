@@ -215,7 +215,7 @@ async def test_create_wallet_fiat_invoice_success(
         payment.extra.get("fiat_payment_request")
         == "https://stripe.com/pay/session_123"
     )
-    assert payment.checking_id.startswith("internal_fiat_stripe_")
+    assert payment.checking_id.startswith("fiat_stripe_")
     assert payment.fee <= 0
 
     status = await payment.check_status()
