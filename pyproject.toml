@@ -64,6 +64,7 @@ jsonpath-ng = "^1.7.0"
 pynostr = "^0.6.2"
 python-multipart = "^0.0.20"
 filetype = "^1.2.0"
+nostr-sdk = "^0.42.1"
 
 [tool.poetry.extras]
 breez = ["breez-sdk"]
