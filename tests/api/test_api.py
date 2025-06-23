@@ -158,10 +158,15 @@ async def test_create_invoice_fiat_amount(client, inkey_headers_to):
 
 
 @pytest.mark.anyio
-async def test_create_fiat_invoice(client, inkey_headers_to, mocker: MockerFixture):
+async def test_create_fiat_invoice(
+    client, inkey_headers_to, settings: Settings, mocker: MockerFixture
+):
     data = await get_random_invoice_data()
     data["unit"] = "EUR"
     data["fiat_provider"] = "stripe"
+
+    settings.stripe_enabled = True
+    settings.stripe_api_secret_key = "mock_sk_test_4eC39HqLyjWDarjtT1zdp7dc"
 
     fiat_payment_request = "https://stripe.com/pay/session_123"
     fiat_mock_response = FiatInvoiceResponse(
