@@ -318,14 +318,15 @@ async def test_handle_fiat_payment_confirmation(
     faucet_wallet_payments = await get_payments(wallet_id=faucet_wallet.id)
     # One for the service fee, one for the top-up
     print("### faucet_wallet_payments", len(faucet_wallet_payments))
-    for payment in faucet_wallet_payments:
-        print("   ### payment", payment.json())
-    assert len(faucet_wallet_payments) == 2
-    faucet_payment = (
-        faucet_wallet_payments[0]
-        if faucet_wallet_payments[0].amount < 0
-        else faucet_wallet_payments[1]
+    for p in faucet_wallet_payments:
+        print("   ### payment", p.json())
+    # background tasks may create more payments, so we check for at least 2
+    assert len(faucet_wallet_payments) >= 2
+    faucet_payment = next(
+        (p for p in faucet_wallet_payments if p.payment_hash == payment.payment_hash),
+        None,
     )
+    assert faucet_payment
     assert faucet_payment.amount == -10_000_000
     assert faucet_payment.fee == 0
     assert faucet_payment.status == PaymentState.SUCCESS
