@@ -25,7 +25,7 @@ class StripeWallet(FiatWallet):
     """https://docs.stripe.com/api"""
 
     def __init__(self):
-        logger.info("### Initializing StripeWallet")
+        logger.debug("Initializing StripeWallet")
         self._settings_fields = self._settings_connection_fields()
         if not settings.stripe_api_endpoint:
             raise ValueError("Cannot initialize StripeWallet: missing endpoint.")
