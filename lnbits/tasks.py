@@ -215,6 +215,7 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     payment.status = PaymentState.SUCCESS
     await update_payment(payment)
     if payment.fiat_provider:
+        print("### dispath payment", payment.json())
         await handle_fiat_payment_confirmation(payment)
     internal = "internal" if is_internal else ""
     logger.success(f"{internal} invoice {checking_id} settled")
