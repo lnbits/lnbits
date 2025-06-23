@@ -148,8 +148,8 @@ if __name__ == "__main__":
         await nh.post_note("Sent from the bot benarc@nostr.com")
 
         # await nh.send_dm(their_pubkey_hex, "hello from NostrHelper DM!")
-        # await nh.check_zaps_for_note(target_note_id)
-        await nh.run_subscribe_dms(MyHandler())
+        await nh.check_zaps_for_note(target_note_id)
+        # await nh.run_subscribe_dms(MyHandler())
 
     asyncio.run(main())
 
