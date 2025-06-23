@@ -315,6 +315,9 @@ async def test_handle_fiat_payment_confirmation(
 
     faucet_wallet_payments = await get_payments(wallet_id=faucet_wallet.id)
     # One for the service fee, one for the top-up
+    print("### faucet_wallet_payments", len(faucet_wallet_payments))
+    for payment in faucet_wallet_payments:
+        print("   ### payment", payment.json())
     assert len(faucet_wallet_payments) == 2
     faucet_payment = (
         faucet_wallet_payments[0]
