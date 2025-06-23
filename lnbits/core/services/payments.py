@@ -145,7 +145,7 @@ async def create_wallet_fiat_invoice(
     internal_payment.extra["fiat_payment_request"] = fiat_invoice.payment_request
     new_checking_id = (
         f"fiat_{fiat_provider_name}_"
-        f"_{fiat_invoice.checking_id or internal_payment.checking_id}"
+        f"{fiat_invoice.checking_id or internal_payment.checking_id}"
     )
     await update_payment(internal_payment, new_checking_id, conn=conn)
     internal_payment.checking_id = new_checking_id
@@ -958,7 +958,7 @@ async def _debit_fiat_service_faucet_wallet(
     )
     await create_payment(
         checking_id=f"internal_fiat_{fiat_provider_name}_"
-        f"_faucet_{payment.payment_hash}",
+        f"faucet_{payment.payment_hash}",
         data=create_payment_model,
         status=PaymentState.SUCCESS,
         conn=conn,
