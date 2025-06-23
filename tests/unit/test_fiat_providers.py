@@ -288,8 +288,8 @@ async def test_handle_fiat_payment_confirmation(
 
     fiat_mock_response = FiatInvoiceResponse(
         ok=True,
-        checking_id=f"session_123_{get_random_string(10)}",
-        payment_request="https://stripe.com/pay/session_123",
+        checking_id=f"session_1000_{get_random_string(10)}",
+        payment_request="https://stripe.com/pay/session_1000",
     )
 
     mocker.patch(
@@ -298,17 +298,18 @@ async def test_handle_fiat_payment_confirmation(
     )
     mocker.patch(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
-        AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
+        AsyncMock(return_value=10000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
     )
     payment = await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
     assert payment.status == PaymentState.PENDING
-    assert payment.amount == 1000_000
+    assert payment.amount == 10_000_000
 
     await payments.handle_fiat_payment_confirmation(payment)
+    # await asyncio.sleep(1)  # Simulate async delay
 
     service_fee_payments = await get_payments(wallet_id=service_fee_wallet.id)
     assert len(service_fee_payments) == 1
-    assert service_fee_payments[0].amount == 200_000
+    assert service_fee_payments[0].amount == 2_000_000
     assert service_fee_payments[0].fee == 0
     assert service_fee_payments[0].status == PaymentState.SUCCESS
     assert service_fee_payments[0].fiat_provider is None
@@ -324,7 +325,7 @@ async def test_handle_fiat_payment_confirmation(
         if faucet_wallet_payments[0].amount < 0
         else faucet_wallet_payments[1]
     )
-    assert faucet_payment.amount == -1000_000
+    assert faucet_payment.amount == -10_000_000
     assert faucet_payment.fee == 0
     assert faucet_payment.status == PaymentState.SUCCESS
     assert faucet_payment.fiat_provider is None
