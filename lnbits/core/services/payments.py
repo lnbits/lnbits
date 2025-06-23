@@ -114,7 +114,7 @@ async def create_wallet_fiat_invoice(
     amount_sat = await fiat_amount_as_satoshis(invoice_data.amount, invoice_data.unit)
     await _check_fiat_invoice_limits(amount_sat, fiat_provider_name, conn)
 
-    invoice_data.internal = True
+    invoice_data.internal = True  # use FakeWallet for fiat invoices
     if not invoice_data.memo:
         invoice_data.memo = settings.lnbits_site_title + f" ({fiat_provider_name})"
 
