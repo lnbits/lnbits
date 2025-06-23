@@ -1,5 +1,7 @@
 ##### USES NOSTR-SDK #####
-
+import httpx
+from lnbits.core.views.api import api_lnurlscan
+from bech32 import bech32_decode, convertbits
 from helpers import get_pr, decode_key_to_hex
 import asyncio
 from nostr_sdk import (
@@ -150,3 +152,23 @@ if __name__ == "__main__":
         await nh.run_subscribe_dms(MyHandler())
 
     asyncio.run(main())
+
+async def get_pr(ln_address, amount):
+    data = await api_lnurlscan(ln_address)
+    if data.get("status") == "ERROR":
+        return
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url=f"{data['callback']}?amount={amount* 1000}")
+            if response.status_code != 200:
+                return
+            return response.json()["pr"]
+    except Exception:
+        return None
+
+def decode_key_to_hex(key):
+    hrp, data = bech32_decode(key)
+    if hrp not in ("npub", "nsec") or data is None:
+        raise ValueError(f"Invalid npub/nsec: {key}")
+    decoded_bytes = bytes(convertbits(data, 5, 8, False))
+    return decoded_bytes.hex()
