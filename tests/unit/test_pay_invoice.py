@@ -13,11 +13,13 @@ from lnbits.core.crud.payments import get_payment, get_payments_paginated
 from lnbits.core.models import Payment, PaymentState, Wallet
 from lnbits.core.services import create_invoice, create_user_account, pay_invoice
 from lnbits.core.services.payments import update_wallet_balance
+from lnbits.core.tasks import wait_for_paid_invoices
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
 from lnbits.tasks import (
     create_permanent_task,
     internal_invoice_listener,
+    invoice_listener,
     register_invoice_listener,
 )
 from lnbits.wallets.base import PaymentResponse
@@ -229,14 +231,19 @@ async def test_pay_for_extension(to_wallet: Wallet, settings: Settings):
         )
 
 
-@pytest.mark.skip
+# @pytest.mark.skip
 @pytest.mark.anyio
 async def test_notification_for_internal_payment(to_wallet: Wallet):
     test_name = "test_notification_for_internal_payment"
 
     create_permanent_task(internal_invoice_listener)
+    create_permanent_task(invoice_listener)
     invoice_queue: asyncio.Queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, test_name)
+
+    invoice_queue_2: asyncio.Queue = asyncio.Queue()
+    register_invoice_listener(invoice_queue_2, "core")
+    create_permanent_task(lambda: wait_for_paid_invoices(invoice_queue_2))
 
     payment = await create_invoice(
         wallet_id=to_wallet.id,

@@ -103,13 +103,16 @@ class FakeWallet(Wallet):
             preimage=preimage.hex(),
         )
 
-    async def pay_invoice(self, bolt11: str, _: int) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        print("### pay_invoice", bolt11)
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
             return PaymentResponse(ok=False, error_message=str(exc))
 
+        print("### pay_invoice payment_hash", invoice.payment_hash)
         if invoice.payment_hash in self.payment_secrets:
+            print("### pay_invoice: self.queue.put")
             await self.queue.put(invoice)
             self.paid_invoices.add(invoice.payment_hash)
             return PaymentResponse(
@@ -124,16 +127,24 @@ class FakeWallet(Wallet):
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+        print("### get_invoice_status", checking_id)
         if checking_id in self.paid_invoices:
+            print("### get_invoice_status: paid invoice")
             return PaymentSuccessStatus()
         if checking_id in list(self.payment_secrets.keys()):
+            print("### get_invoice_status: pending invoice")
             return PaymentPendingStatus()
+        print("### get_invoice_status: failed invoice")
         return PaymentFailedStatus()
 
     async def get_payment_status(self, _: str) -> PaymentStatus:
+        print("### get_payment_status is not implemented in FakeWallet")
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        print("### paid_invoices_stream started", settings.lnbits_running)
         while settings.lnbits_running:
             value: Bolt11 = await self.queue.get()
+            print("### paid_invoices_stream", value.payment_hash)
             yield value.payment_hash
+        print("### paid_invoices_stream stopped", settings.lnbits_running)

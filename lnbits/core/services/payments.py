@@ -529,6 +529,16 @@ async def _pay_internal_invoice(
     await update_payment(internal_payment, conn=conn)
     logger.success(f"internal payment successful {internal_payment.checking_id}")
 
+    funding_source = get_funding_source()
+    if funding_source.__class__.__name__ == "FakeWallet":
+        payment_response = await funding_source.pay_invoice(
+            bolt11=payment.bolt11, fee_limit_msat=0
+        )
+        print("### payment_response", payment_response)
+        if payment_response.success:
+            return payment
+
+    #
     await send_payment_notification(wallet, payment)
 
     # notify receiver asynchronously

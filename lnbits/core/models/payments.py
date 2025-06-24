@@ -111,12 +111,15 @@ class Payment(BaseModel):
 
     async def check_status(self) -> PaymentStatus:
         if self.is_internal:
+            print("### check_status is internal")
             if self.success:
                 return PaymentSuccessStatus()
             if self.failed:
                 return PaymentFailedStatus()
             return PaymentPendingStatus()
+
         funding_source = get_funding_source()
+        print("### check_status is external", funding_source)
         if self.is_out:
             status = await funding_source.get_payment_status(self.checking_id)
         else:

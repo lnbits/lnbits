@@ -200,9 +200,17 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     invoice_listeners from core and extensions.
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
+    if not payment:
+        logger.warning(
+            f"invoice_callback_dispatcher: no payment found for {checking_id}"
+        )
+        return
+    print("### payment:", payment.json())
     if payment and payment.is_in:
         status = await payment.check_status()
+        print("### payment data:", payment.status, status)
         if not status.success:
+            print("### payment not success: ", status)
             logger.debug(f"payment {checking_id} is not settled yet, skipping")
             return
         payment.fee = status.fee_msat or 0
