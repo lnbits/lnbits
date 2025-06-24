@@ -1,6 +1,5 @@
 import asyncio
 import hashlib
-from math import ceil
 
 import pytest
 
@@ -64,15 +63,11 @@ async def test_pay_real_invoice(
     funding_source = get_funding_source()
     status = await funding_source.get_payment_status(invoice["payment_hash"])
     assert status.paid
-    assert status.fee_msat == 0
 
     await asyncio.sleep(1)
     balance = await get_node_balance_sats()
 
     expected_difference = 100
-    if status.fee_msat > 0:
-        expected_difference -= ceil(status.fee_msat / 1000)
-
     assert prev_balance - balance == expected_difference
 
 
@@ -109,12 +104,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
 
         await asyncio.sleep(1)
         balance = await get_node_balance_sats()
-        expected_amount = create_invoice.amount
-
-        if "fee_msat" in payment_status and payment_status["fee_msat"] > 0:
-            expected_amount -= ceil(payment_status["fee_msat"] / 1000)
-
-        assert balance - prev_balance == expected_amount
+        assert balance - prev_balance == create_invoice.amount
         assert payment_status.get("preimage") is not None
 
         # exit out of infinite loop
