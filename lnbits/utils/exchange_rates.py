@@ -214,23 +214,23 @@ def apply_trimmed_mean_filter(
         provider_name, value = rate
         deviation = abs(value - median_value) / median_value
         if deviation <= threshold_percentage:
-            logger.info(
+            logger.debug(
                 f"Keeping {provider_name}: {value} (deviation: {deviation:.4f})"
             )
             filtered_rates.append(rate)
         else:
-            logger.warning(
+            logger.debug(
                 f"Removing outlier {provider_name}: {value} "
                 f"(deviation: {deviation:.4f})"
             )
 
     # If we still have at least 2 rates after filtering, use them
     if len(filtered_rates) >= 2:
-        logger.warning(f"Filtered rates: {filtered_rates}")
+        logger.debug(f"Filtered rates: {filtered_rates}")
         return filtered_rates
     else:
         # Fall back to median if filtering removed too many values
-        logger.warning("Filtering removed too many values, using median instead")
+        logger.debug("Filtering removed too many values, using median instead")
         # Find the rate closest to median
         closest_rate = min(rates, key=lambda x: abs(x[1] - median_value))
         return [closest_rate]
