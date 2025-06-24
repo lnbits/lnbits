@@ -8,11 +8,6 @@ on:
         required: true
         default: "3.10"
         type: string
-      poetry-version:
-        description: "Poetry Version"
-        required: true
-        default: "1.5.1"
-        type: string
 
 jobs:
   jmeter:

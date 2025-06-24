@@ -1,23 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Callable
 
-import bcrypt
 from pydantic import BaseModel
 
 
 def _do_nothing(*_):
     pass
-
-
-@dataclass
-class SolveBugBcryptWarning:
-    __version__: str = getattr(bcrypt, "__version__")  # noqa
-
-
-# fix annoying warning in the logs
-setattr(bcrypt, "__about__", SolveBugBcryptWarning())  # noqa
 
 
 class CoreAppExtra:

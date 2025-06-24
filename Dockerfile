@@ -4,13 +4,14 @@ RUN apt-get clean
 RUN apt-get update
 RUN apt-get install -y curl pkg-config build-essential libnss-myhostname
 
-RUN curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
+RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
 # Only copy the files required to install the dependencies
 COPY pyproject.toml poetry.lock ./
+RUN touch README.md
 
 RUN mkdir data
 
@@ -20,7 +21,7 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
 ARG POETRY_INSTALL_ARGS="--only main"
-RUN poetry install ${POETRY_INSTALL_ARGS}
+RUN poetry install --no-root ${POETRY_INSTALL_ARGS}
 
 FROM python:3.12-slim-bookworm
 
@@ -33,7 +34,7 @@ RUN apt-get update && apt-get -y upgrade && \
     apt-get -y install postgresql-client-14 postgresql-client-common && \
     apt-get clean all && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
+RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
 
 ENV POETRY_NO_INTERACTION=1 \

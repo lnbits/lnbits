@@ -41,8 +41,6 @@ websocket-client = "1.8.0"
 pycryptodomex = "3.20.0"
 packaging = "24.0"
 bolt11 = "2.1.0"
-# needed for new login methods: username-password, google-auth, github-auth
-bcrypt = "4.2.0"
 pyjwt = "2.9.0"
 passlib = "1.7.4"
 itsdangerous = "2.2.0"
@@ -56,7 +54,7 @@ environs = "9.5.0"
 # needed for scheduler extension
 python-crontab = "3.2.0"
 # needed for liquid support boltz
-wallycore = {version = "1.3.0", optional = true}
+wallycore = {version = "1.4.0", optional = true}
 # needed for breez funding source
 breez-sdk = {version = "0.6.6", optional = true}
 
