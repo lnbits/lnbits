@@ -10,7 +10,7 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # Only copy the files required to install the dependencies
-COPY pyproject.toml poetry.lock ./
+COPY README.md pyproject.toml poetry.lock ./
 
 RUN mkdir data
 
