@@ -63,7 +63,7 @@ async def test_pay_real_invoice(
     print(payment_status)
 
     funding_source = get_funding_source()
-    status = await funding_source.get_payment_status(invoice["payment_hash"])
+    status = await funding_source.et_payment_status(invoice["payment_hash"])
     assert status.paid
     assert status.fee_msat == 0
     print(status)
@@ -111,8 +111,10 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         await asyncio.sleep(1)
         balance = await get_node_balance_sats()
         expected_amount = create_invoice.amount
-        if payment_status["fee_msat"] > 0:
+
+        if "fee_msat" in payment_status and payment_status["fee_msat"] > 0:
             expected_amount -= ceil(payment_status["fee_msat"] / 1000)
+
         assert balance - prev_balance == expected_amount
         assert payment_status.get("preimage") is not None
 
