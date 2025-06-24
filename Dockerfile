@@ -10,7 +10,8 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # Only copy the files required to install the dependencies
-COPY README.md pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock ./
+RUN touch README.md
 
 RUN mkdir data
 
@@ -19,7 +20,7 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_CREATE=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-ARG POETRY_INSTALL_ARGS="--only main"
+ARG POETRY_INSTALL_ARGS="--only main --no-root"
 RUN poetry install ${POETRY_INSTALL_ARGS}
 
 FROM python:3.12-slim-bookworm
