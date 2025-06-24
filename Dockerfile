@@ -20,8 +20,8 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_CREATE=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-ARG POETRY_INSTALL_ARGS="--only main --no-root"
-RUN poetry install ${POETRY_INSTALL_ARGS}
+ARG POETRY_INSTALL_ARGS="--only main"
+RUN poetry install --no-root ${POETRY_INSTALL_ARGS}
 
 FROM python:3.12-slim-bookworm
 
