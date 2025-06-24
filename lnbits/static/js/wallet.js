@@ -338,9 +338,6 @@ window.WalletPageLogic = {
           '/api/v1/lnurlscan/' + this.parse.data.request,
           this.g.wallet.adminkey
         )
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
         .then(response => {
           const data = response.data
 
@@ -377,6 +374,9 @@ window.WalletPageLogic = {
               fixed: data.fixed
             }
           }
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
         })
     },
     decodeQR(res) {
