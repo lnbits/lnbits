@@ -2,6 +2,7 @@ import httpx
 from lnbits.core.views.api import api_lnurlscan
 from bech32 import bech32_decode, convertbits
 import asyncio
+from loguru import logger
 from nostr_sdk import (
     Client,
     Keys,
@@ -63,13 +64,15 @@ class NostrHelper:
     async def post_note(self, content: str) -> str:
         builder = EventBuilder.text_note(content)
         output = await self.client.send_event_builder(builder)
-        print(f"[post_note] {output}")
+        logger.debug(f"[post_note] {output}")
         return str(output)
 
     async def reply_to_note(self, content: str, note_id: str) -> str:
         builder = EventBuilder.text_note(content)
+        builder = builder.reply(EventId.from_hex(note_id), self.my_pubkey)
+
         output = await self.client.send_event_builder(builder)
-        print(f"[post_note] {output}")
+        logger.debug(f"[reply_to_note] {output}")
         return str(output)
 
     async def subscribe_mentions(self, pubkey_hex: str, since: int = None):
@@ -80,7 +83,7 @@ class NostrHelper:
         )
         if since:
             filter = filter.since(since)
-        print("[subscribe_mentions] Subscribing to mentions...")
+        logger.debug("[subscribe_mentions] Subscribing to mentions...")
         await self.client.subscribe(filter, None)
 
     async def run_subscribe_mentions(self, pubkey_hex: str, handler: HandleNotification, since: int = None):
@@ -90,7 +93,7 @@ class NostrHelper:
     async def send_dm(self, target_pubkey: str, message: str):
         target = PublicKey.parse(target_pubkey)
         output = await self.client.send_private_msg(target, message, [])
-        print(f"[send_dm] {output}")
+        logger.debug(f"[send_dm] {output}")
         return str(output)
 
     async def subscribe_dms(self, since: int = None):
@@ -105,7 +108,7 @@ class NostrHelper:
         if since:
             combined_filter = combined_filter.since(since)
 
-        print("[subscribe_dms] Subscribing to DMs (kind 4 + kind 14)...")
+        logger.debug("[subscribe_dms] Subscribing to DMs (kind 4 + kind 14)...")
         await self.client.subscribe(combined_filter, None)
 
     async def run_subscribe_dms(self, handler: HandleNotification, since: int = None):
@@ -120,24 +123,24 @@ class NostrHelper:
             EventId.from_hex(note_id),
         )
         output = await self.client.send_event_builder(builder)
-        print(f"[send_zap] {output}")
+        logger.debug(f"[send_zap] {output}")
         return str(output)
 
     async def check_zaps_for_note(self, note_id: str, subscription_id: str = None):
         if not subscription_id:
             subscription_id = f"zaps_{note_id}"
         filter = Filter().kind(Kind(9735)).event(EventId.parse(note_id))
-        print(f"[check_zaps_for_note] Subscribing to zap receipts... sub_id={subscription_id}")
+        logger.debug(f"[check_zaps_for_note] Subscribing to zap receipts... sub_id={subscription_id}")
         await self.client.subscribe(filter, subscription_id)
         return subscription_id  # return so caller can track it
 
     async def unsubscribe(self, subscription_id: str):
-        print(f"[unsubscribe] {subscription_id}")
+        logger.debug(f"[unsubscribe] {subscription_id}")
         await self.client.unsubscribe(subscription_id)
 
 
     async def run_notifications(self, handler: HandleNotification):
-        print("[run_notifications] Starting notification handler...")
+        logger.debug("[run_notifications] Starting notification handler...")
         await self.client.handle_notifications(handler)
 
 ####################################################################
@@ -160,7 +163,7 @@ if __name__ == "__main__":
 
         class MyHandler(HandleNotification):
             async def handle(self, relay_url, subscription_id, event: Event):
-                print(f"[notif] {relay_url} {event.kind()} {event.as_json()}")
+                logger.debug(f"[notif] {relay_url} {event.kind()} {event.as_json()}")
 
             async def handle_msg(self, relay_url, msg):
                 pass
