@@ -130,14 +130,20 @@ async def api_lnurlscan(
         headers = {"User-Agent": settings.user_agent}
         async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
             check_callback_url(url)
-            r = await client.get(url, timeout=5)
-            r.raise_for_status()
-            if r.is_error:
-                raise HTTPException(
-                    status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                    detail={"domain": domain, "message": "failed to get parameters"},
-                )
-
+            try:
+                r = await client.get(url, timeout=5)
+                r.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code == 404:
+                    raise HTTPException(HTTPStatus.NOT_FOUND, "Not found") from exc
+                else:
+                    raise HTTPException(
+                        status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                        detail={
+                            "domain": domain,
+                            "message": "failed to get parameters",
+                        },
+                    ) from exc
         try:
             data = json.loads(r.text)
         except json.decoder.JSONDecodeError as exc:
