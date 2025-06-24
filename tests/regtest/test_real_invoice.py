@@ -66,9 +66,7 @@ async def test_pay_real_invoice(
 
     await asyncio.sleep(1)
     balance = await get_node_balance_sats()
-
-    expected_difference = 100
-    assert prev_balance - balance == expected_difference
+    assert prev_balance - balance == 100
 
 
 @pytest.mark.anyio
@@ -105,6 +103,7 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
         await asyncio.sleep(1)
         balance = await get_node_balance_sats()
         assert balance - prev_balance == create_invoice.amount
+
         assert payment_status.get("preimage") is not None
 
         # exit out of infinite loop
