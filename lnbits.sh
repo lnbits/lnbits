@@ -6,15 +6,15 @@ if [ ! -d lnbits/data ]; then
   # Update package list and install prerequisites non-interactively
   sudo apt update -y
   sudo apt install -y software-properties-common
-  
+
   # Add the deadsnakes PPA repository non-interactively
   sudo add-apt-repository -y ppa:deadsnakes/ppa
-  
-  # Install Python 3.9 and distutils non-interactively
-  sudo apt install -y python3.9 python3.9-distutils
+
+  # Install Python 3.10 and distutils non-interactively
+  sudo apt install -y python3.10 python3.10-distutils
 
   # Install Poetry
-  curl -sSL https://install.python-poetry.org | python3.9 -
+  curl -sSL https://install.python-poetry.org | python3.10 -
 
   # Add Poetry to PATH for the current session
   export PATH="/home/$USER/.local/bin:$PATH"
