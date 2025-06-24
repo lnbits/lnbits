@@ -136,14 +136,14 @@ async def api_lnurlscan(
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code == 404:
                     raise HTTPException(HTTPStatus.NOT_FOUND, "Not found") from exc
-                else:
-                    raise HTTPException(
-                        status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                        detail={
-                            "domain": domain,
-                            "message": "failed to get parameters",
-                        },
-                    ) from exc
+
+                raise HTTPException(
+                    status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                    detail={
+                        "domain": domain,
+                        "message": "failed to get parameters",
+                    },
+                ) from exc
         try:
             data = json.loads(r.text)
         except json.decoder.JSONDecodeError as exc:
