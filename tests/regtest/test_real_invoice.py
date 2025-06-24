@@ -70,7 +70,11 @@ async def test_pay_real_invoice(
 
     await asyncio.sleep(1)
     balance = await get_node_balance_sats()
-    assert prev_balance - balance == 100 - ceil(status.fee_msat / 1000)
+
+    expected_balance = 100
+    if status.fee_msat > 0:
+        expected_balance -= ceil(status.fee_msat / 1000)
+    assert prev_balance - balance == expected_balance
 
 
 @pytest.mark.anyio
