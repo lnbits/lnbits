@@ -201,25 +201,24 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
     if not payment:
-        logger.warning(
-            f"invoice_callback_dispatcher: no payment found for {checking_id}"
-        )
+        logger.warning(f"No payment found for {checking_id}.")
         return
-    print("### payment:", payment.json())
-    if payment and payment.is_in:
-        status = await payment.check_status()
-        print("### payment data:", payment.status, status)
-        if not status.success:
-            print("### payment not success: ", status)
-            logger.debug(f"payment {checking_id} is not settled yet, skipping")
-            return
-        payment.fee = status.fee_msat or 0
-        # only overwrite preimage if status.preimage provides it
-        payment.preimage = status.preimage or payment.preimage
-        payment.status = PaymentState.SUCCESS
-        await update_payment(payment)
-        internal = "internal" if is_internal else ""
-        logger.success(f"{internal} invoice {checking_id} settled")
-        for name, send_chan in invoice_listeners.items():
-            logger.trace(f"invoice listeners: sending to `{name}`")
-            await send_chan.put(payment)
+    if not payment.is_in:
+        logger.warning(f"Not incomming payment for {checking_id}.")
+        return
+
+    status = await payment.check_status()
+    if not status.success:
+        logger.debug(f"Payment {checking_id} is not settled yet.")
+        return
+
+    payment.fee = status.fee_msat or 0
+    # only overwrite preimage if status.preimage provides it
+    payment.preimage = status.preimage or payment.preimage
+    payment.status = PaymentState.SUCCESS
+    await update_payment(payment)
+    internal = "internal" if is_internal else ""
+    logger.success(f"{internal} invoice {checking_id} settled")
+    for name, send_chan in invoice_listeners.items():
+        logger.trace(f"invoice listeners: sending to `{name}`")
+        await send_chan.put(payment)

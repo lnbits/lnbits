@@ -18,7 +18,11 @@ from lnbits.settings import settings
 from lnbits.tasks import create_task
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
-from lnbits.wallets import fake_wallet, get_funding_source
+from lnbits.wallets import (
+    fake_wallet,
+    get_funding_source,
+    is_funding_source_fake_wallet,
+)
 from lnbits.wallets.base import (
     PaymentPendingStatus,
     PaymentResponse,
@@ -529,16 +533,13 @@ async def _pay_internal_invoice(
     await update_payment(internal_payment, conn=conn)
     logger.success(f"internal payment successful {internal_payment.checking_id}")
 
-    funding_source = get_funding_source()
-    if funding_source.__class__.__name__ == "FakeWallet":
-        payment_response = await funding_source.pay_invoice(
-            bolt11=payment.bolt11, fee_limit_msat=0
-        )
-        print("### payment_response", payment_response)
-        if payment_response.success:
+    if is_funding_source_fake_wallet():
+        resp = await get_funding_source().pay_invoice(payment.bolt11, 0)
+        # Fake wallet keeps the payments in memory.
+        # It acts as a regular funding source if the server was not restarted.
+        if resp.success:
             return payment
 
-    #
     await send_payment_notification(wallet, payment)
 
     # notify receiver asynchronously

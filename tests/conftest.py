@@ -24,6 +24,7 @@ from lnbits.core.views.payment_api import _api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import AuthMethods, Settings
 from lnbits.settings import settings as lnbits_settings
+from lnbits.wallets import set_funding_source
 from lnbits.wallets.fake import FakeWallet
 from tests.helpers import (
     get_random_invoice_data,
@@ -263,6 +264,16 @@ async def invoice(to_wallet):
 @pytest.fixture(scope="function")
 async def external_funding_source():
     yield FakeWallet()
+
+
+@pytest.fixture
+def set_fake_wallet_after_test(settings: Settings):
+    # Setup (if needed)
+    yield
+    # Clean-up code here
+    settings.lnbits_backend_wallet_class = "FakeWallet"
+    set_funding_source()
+    print("Cleaning up after test_foo")
 
 
 @pytest.fixture(scope="session")
