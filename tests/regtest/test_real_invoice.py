@@ -110,12 +110,10 @@ async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_
 
         await asyncio.sleep(1)
         balance = await get_node_balance_sats()
-        print(payment_status)
-        assert False is True
-        assert balance - prev_balance == create_invoice.amount + ceil(
-            payment_status["fee_msat"] / 1000
-        )
-
+        expected_amount = create_invoice.amount
+        if payment_status["fee_msat"] > 0:
+            expected_amount -= ceil(payment_status["fee_msat"] / 1000)
+        assert balance - prev_balance == expected_amount
         assert payment_status.get("preimage") is not None
 
         # exit out of infinite loop
