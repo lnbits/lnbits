@@ -60,13 +60,11 @@ async def test_pay_real_invoice(
     assert response.status_code < 300
     payment_status = response.json()
     assert payment_status["paid"]
-    print(payment_status)
 
     funding_source = get_funding_source()
     status = await funding_source.get_payment_status(invoice["payment_hash"])
     assert status.paid
     assert status.fee_msat == 0
-    print(status)
 
     await asyncio.sleep(1)
     balance = await get_node_balance_sats()
@@ -74,6 +72,7 @@ async def test_pay_real_invoice(
     expected_balance = 100
     if status.fee_msat > 0:
         expected_balance -= ceil(status.fee_msat / 1000)
+
     assert prev_balance - balance == expected_balance
 
 
