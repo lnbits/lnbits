@@ -66,7 +66,6 @@ async def test_pay_real_invoice(
 
     await asyncio.sleep(1)
     balance = await get_node_balance_sats()
-    # TODO: maybe take fee into consideration?
     assert prev_balance - balance == 100
 
 

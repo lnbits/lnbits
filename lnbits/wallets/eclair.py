@@ -3,7 +3,9 @@ import base64
 import hashlib
 import json
 import urllib.parse
-from typing import Any, AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from decimal import Decimal
+from typing import Any, Optional
 
 import httpx
 from loguru import logger
@@ -70,8 +72,8 @@ class EclairWallet(Wallet):
 
             if r.is_error or "total" not in data:
                 return StatusResponse(f"Server error: '{r.text}'", 0)
-
-            return StatusResponse(None, int(data.get("total") * 100_000_000_000))
+            total = round(Decimal(data.get("total")), 8) * 100_000_000_000
+            return StatusResponse(balance_msat=int(total), error_message=None)
         except json.JSONDecodeError:
             return StatusResponse("Server error: 'invalid json response'", 0)
         except Exception as exc:
