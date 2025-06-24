@@ -17,6 +17,7 @@ from nostr_sdk import (
     SingleLetterTag,
     Alphabet,
     HandleNotification,
+    Timestamp,
 )
 
 async def get_pr(ln_address, amount):
@@ -82,7 +83,8 @@ class NostrHelper:
             .custom_tag(SingleLetterTag.lowercase(Alphabet.P), pubkey_hex)
         )
         if since:
-            filter = filter.since(since)
+            filter = filter.since(Timestamp.from_secs(since))
+
         logger.debug("[subscribe_mentions] Subscribing to mentions...")
         await self.client.subscribe(filter, None)
 
