@@ -116,7 +116,6 @@ class Payment(BaseModel):
             if self.failed:
                 return PaymentFailedStatus()
             return PaymentPendingStatus()
-
         funding_source = get_funding_source()
         if self.is_out:
             status = await funding_source.get_payment_status(self.checking_id)
