@@ -1,4 +1,3 @@
-##### USES NOSTR-SDK #####
 import httpx
 from lnbits.core.views.api import api_lnurlscan
 from bech32 import bech32_decode, convertbits
@@ -67,6 +66,12 @@ class NostrHelper:
         print(f"[post_note] {output}")
         return str(output)
 
+    async def reply_to_note(self, content: str, note_id: str) -> str:
+        builder = EventBuilder.text_note(content)
+        output = await self.client.send_event_builder(builder)
+        print(f"[post_note] {output}")
+        return str(output)
+
     async def subscribe_mentions(self, pubkey_hex: str, since: int = None):
         filter = (
             Filter()
@@ -118,10 +123,18 @@ class NostrHelper:
         print(f"[send_zap] {output}")
         return str(output)
 
-    async def check_zaps_for_note(self, note_id: str):
+    async def check_zaps_for_note(self, note_id: str, subscription_id: str = None):
+        if not subscription_id:
+            subscription_id = f"zaps_{note_id}"
         filter = Filter().kind(Kind(9735)).event(EventId.parse(note_id))
-        print("[check_zaps_for_note] Subscribing to zap receipts...")
-        await self.client.subscribe(filter, None)
+        print(f"[check_zaps_for_note] Subscribing to zap receipts... sub_id={subscription_id}")
+        await self.client.subscribe(filter, subscription_id)
+        return subscription_id  # return so caller can track it
+
+    async def unsubscribe(self, subscription_id: str):
+        print(f"[unsubscribe] {subscription_id}")
+        await self.client.unsubscribe(subscription_id)
+
 
     async def run_notifications(self, handler: HandleNotification):
         print("[run_notifications] Starting notification handler...")
