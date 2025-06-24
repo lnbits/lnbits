@@ -3,7 +3,8 @@ import base64
 import hashlib
 import json
 import urllib.parse
-from typing import Any, AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Any, Optional
 
 import httpx
 from loguru import logger
@@ -177,6 +178,8 @@ class EclairWallet(Wallet):
 
         payment_status: PaymentStatus = await self.get_payment_status(checking_id)
         success = True if payment_status.success else None
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print(payment_status)
         return PaymentResponse(
             ok=success,
             checking_id=checking_id,
@@ -231,6 +234,8 @@ class EclairWallet(Wallet):
                 "failed": False,
                 "pending": None,
             }
+            print("???????????????????")
+            print(data)
             return PaymentStatus(
                 statuses.get(data["status"]["type"]), fee_msat, preimage
             )
