@@ -1141,12 +1141,41 @@
               :type="hideInput ? 'password' : 'text'"
               :label="prop.label"
               :hint="prop.hint"
+              :readonly="prop.readonly || false"
             >
+              <q-btn
+                v-if="prop.copy"
+                @click="copyText(formData[key])"
+                icon="content_copy"
+                class="cursor-pointer"
+                color="grey"
+                flat
+                dense
+              ></q-btn>
+              <q-btn
+                v-if="prop.qrcode"
+                @click="showQRValue(formData[key])"
+                icon="qr_code"
+                class="cursor-pointer"
+                color="grey"
+                flat
+                dense
+              ></q-btn>
             </q-input>
           </div>
         </div>
       </div>
     </q-list>
+    <q-dialog v-model="showQRDialog">
+      <q-card class="q-pa-md">
+        <q-card-section>
+          <lnbits-qrcode :value="qrValue" :size="200"></lnbits-qrcode>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Close" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 

@@ -8,6 +8,10 @@ window.app.component('lnbits-funding-sources', {
         fundingSource => fundingSource[0] === item
       )
       return fundingSource ? fundingSource[1] : item
+    },
+    showQRValue(value) {
+      this.qrValue = value
+      this.showQRDialog = true
     }
   },
   computed: {
@@ -17,7 +21,8 @@ window.app.component('lnbits-funding-sources', {
         const tmpObj = {}
         if (obj !== null) {
           for (let [k, v] of Object.entries(obj)) {
-            tmpObj[k] = {label: v, value: null}
+            tmpObj[k] =
+              typeof v === 'string' ? {label: v, value: null} : v || {}
           }
         }
         tmp.push([key, tmpObj])
@@ -31,6 +36,8 @@ window.app.component('lnbits-funding-sources', {
   data() {
     return {
       hideInput: true,
+      showQRDialog: false,
+      qrValue: '',
       rawFundingSources: [
         ['VoidWallet', 'Void Wallet', null],
         [
@@ -138,7 +145,14 @@ window.app.component('lnbits-funding-sources', {
             boltz_client_endpoint: 'Endpoint',
             boltz_client_macaroon: 'Admin Macaroon path or hex',
             boltz_client_cert: 'Certificate path or hex',
-            boltz_client_wallet: 'Wallet Name'
+            boltz_client_wallet: 'Wallet Name',
+            boltz_client_password: 'Wallet Password (can be empty)',
+            boltz_mnemonic: {
+              label: 'Liquid mnemonic (copy into greenwallet)',
+              readonly: true,
+              copy: true,
+              qrcode: true
+            }
           }
         ],
         [
