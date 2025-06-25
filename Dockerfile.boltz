@@ -2,7 +2,7 @@ FROM boltz/boltz-client:latest AS boltz
 
 FROM lnbits/lnbits:latest
 
-COPY --from=boltz /bin/boltzd /usr/local/bin/
+COPY --from=boltz /bin/boltzd /bin/boltzcli /usr/local/bin/
 RUN ls -l /usr/local/bin/boltzd
 RUN apt-get update && apt-get -y upgrade && \
     apt-get install -y netcat-openbsd

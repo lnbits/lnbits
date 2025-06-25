@@ -1,8 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Starting boltzd..."
-boltzd --standalone &
+boltzd --standalone --referralId lnbits &
 
 # Capture boltzd PID to monitor if needed
 BOLTZ_PID=$!
@@ -25,4 +24,3 @@ fi
 
 echo "Starting LNbits on $LNBITS_HOST:$LNBITS_PORT..."
 exec poetry run lnbits --port "$LNBITS_PORT" --host "$LNBITS_HOST" --forwarded-allow-ips='*'
-
