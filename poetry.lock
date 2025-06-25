@@ -2017,6 +2017,29 @@ files = [
 ]
 
 [[package]]
+name = "nostr-sdk"
+version = "0.42.1"
+description = "Nostr protocol implementation, Relay, RelayPool, high-level client library, NWC client and more."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "nostr_sdk-0.42.1-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:57ac8b7a6f56bb619a3ef58fbfe1bd93e180d5cd73681b45eeaf5ae2dd45d345"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-macosx_11_0_x86_64.whl", hash = "sha256:8897a4c3c34aa3cf4d500e570a1697ba253f89223e8548d2b75da2006fc730eb"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-manylinux_2_17_aarch64.whl", hash = "sha256:166f1c7b1901813ad9a6296641384cbcc7e35c18ccdf3229d88fcd1e0b51d6ee"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-manylinux_2_17_armv7l.whl", hash = "sha256:f2b86bc50805be59113c974665bdf4dcaaf76a1f591a9dba41f1d50acb674b3c"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-manylinux_2_17_i686.whl", hash = "sha256:73b0c16494221a0faf8ec369a2609faba3f17ffd0f03620baa0ec83c58c49b71"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-manylinux_2_17_x86_64.whl", hash = "sha256:f68663073630c8edee55d9bec689f019ea616ef6482857e7f72ba1dc1b4fa9cc"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:b6659308d7629e23be252455c46d81549fe6bf945915ec4a0cba2c4b61815c07"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-musllinux_1_2_armv7l.whl", hash = "sha256:1fa8a8688cf17e838c31caf5c8a357b7c7c2ba3b6ee85e39c05c93e80d999b99"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-musllinux_1_2_i686.whl", hash = "sha256:0a89ae1c7b2c36025024511240aa10540aade2551e8b97d40b4a0b88feaabe8c"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:e3dda5d65591158a0c9794aa79a2f2ea7bbe3cfcba236645fbff8291d94946f1"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-win32.whl", hash = "sha256:d20988c0d6dd16c183607dfdbd243e4f5cc9d8a4faa0c498df546fa8383da902"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-win_amd64.whl", hash = "sha256:35978a8e526e66d05a346546391c28d643dfca31117a95c51c940c994c422d7d"},
+    {file = "nostr_sdk-0.42.1-cp39-abi3-win_arm64.whl", hash = "sha256:802c74f903b120b74bf501bf68c81d5ee1dc9f7f57801a53a507044a14b9a840"},
+]
+
+[[package]]
 name = "oauthlib"
 version = "3.3.1"
 description = "A generic, spec-compliant, thorough implementation of the OAuth request-signing logic"
@@ -3747,4 +3770,4 @@ liquid = ["wallycore"]
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.12 | ~3.11 | ~3.10"
-content-hash = "8a345c03b3103cce8b278612308d7aa787dda35fc1bfece6d22cc858f618f527"
+content-hash = "dbe00df92c27f308c5b99f8758c0a61319c535dd13173ac3fb1f94429faaedbc"
