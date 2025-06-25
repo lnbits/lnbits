@@ -91,9 +91,10 @@ class BoltzWallet(Wallet):
                 request, metadata=self.metadata
             )
         except AioRpcError as exc:
+            logger.warning(exc)
             return StatusResponse(
-                exc.details()
-                + " make sure you have macaroon and certificate configured, unless your client runs without",  # noqa: E501
+                "make sure you have macaroon and certificate configured,"
+                "unless your client runs without",
                 0,
             )
 
@@ -257,8 +258,8 @@ class BoltzWallet(Wallet):
             logger.info(f"Wallet '{wallet_name}' already exists with ID {response.id}")
             return settings.boltz_mnemonic
         except AioRpcError as exc:
-            if exc.code() == grpc.StatusCode.NOT_FOUND:
-                details = exc.details() or "unknown error"
+            details = exc.details() or "unknown error"
+            if exc.code() != grpc.StatusCode.NOT_FOUND:
                 logger.error(f"Error checking wallet existence: {details}")
                 raise
 
