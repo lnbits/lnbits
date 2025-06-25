@@ -204,7 +204,7 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
         logger.warning(f"No payment found for {checking_id}.")
         return
     if not payment.is_in:
-        logger.warning(f"Not incomming payment for {checking_id}.")
+        logger.warning(f"Not incoming payment for {checking_id}.")
         return
 
     status = await payment.check_status()
