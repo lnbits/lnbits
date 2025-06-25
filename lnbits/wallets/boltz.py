@@ -257,8 +257,8 @@ class BoltzWallet(Wallet):
             logger.info(f"Wallet '{wallet_name}' already exists with ID {response.id}")
             return settings.boltz_mnemonic
         except AioRpcError as exc:
-            details = exc.details() or "unknown error"
-            if "not found" not in details.lower():
+            if exc.code() == grpc.StatusCode.NOT_FOUND:
+                details = exc.details() or "unknown error"
                 logger.error(f"Error checking wallet existence: {details}")
                 raise
 
