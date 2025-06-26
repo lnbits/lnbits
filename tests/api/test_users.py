@@ -2,6 +2,9 @@ import pytest
 import shortuuid
 from httpx import AsyncClient
 
+from lnbits.core.models.users import User
+from lnbits.settings import Settings
+
 
 @pytest.mark.anyio
 async def test_create_user_success(http_client: AsyncClient, superuser_token):
@@ -181,3 +184,189 @@ async def test_create_user_duplicate_email(http_client: AsyncClient, superuser_t
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
     assert response2.status_code == 400 or response2.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_update_user_success(http_client: AsyncClient, superuser_token):
+    # Create a user first
+    tiny_id = shortuuid.uuid()[:8]
+    data = {
+        "username": f"update_{tiny_id}",
+        "password": "secret1234",
+        "password_repeat": "secret1234",
+        "email": f"update_{tiny_id}@lnbits.com",
+    }
+    create_resp = await http_client.post(
+        "/users/api/v1/user",
+        json=data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 200
+    user_id = create_resp.json()["id"]
+
+    # Update the user
+    update_data = {
+        "id": user_id,
+        "username": f"updated_{tiny_id}",
+        "email": f"updated_{tiny_id}@lnbits.com",
+        "pubkey": None,
+        "external_id": None,
+        "extra": {"provider": "lnbits"},
+        "extensions": [],
+        "password": None,
+        "password_repeat": None,
+    }
+    resp = await http_client.put(
+        f"/users/api/v1/user/{user_id}",
+        json=update_data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["username"] == update_data["username"]
+    assert resp.json()["email"] == update_data["email"]
+
+
+@pytest.mark.anyio
+async def test_update_user_id_mismatch(http_client: AsyncClient, superuser_token):
+    # Create a user first
+    tiny_id = shortuuid.uuid()[:8]
+    data = {
+        "username": f"mismatch_{tiny_id}",
+        "password": "secret1234",
+        "password_repeat": "secret1234",
+        "email": f"mismatch_{tiny_id}@lnbits.com",
+    }
+    create_resp = await http_client.post(
+        "/users/api/v1/user",
+        json=data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 200
+    user_id = create_resp.json()["id"]
+
+    # Try to update with mismatched id
+    update_data = {
+        "id": "wrongid",
+        "username": f"updated_{tiny_id}",
+        "email": f"updated_{tiny_id}@lnbits.com",
+        "pubkey": None,
+        "external_id": None,
+        "extra": {"provider": "lnbits"},
+        "extensions": [],
+        "password": None,
+        "password_repeat": None,
+    }
+    resp = await http_client.put(
+        f"/users/api/v1/user/{user_id}",
+        json=update_data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "User Id missmatch."
+
+
+@pytest.mark.anyio
+async def test_update_user_password_fields(http_client: AsyncClient, superuser_token):
+    # Create a user first
+    tiny_id = shortuuid.uuid()[:8]
+    data = {
+        "username": f"pwfield_{tiny_id}",
+        "password": "secret1234",
+        "password_repeat": "secret1234",
+        "email": f"pwfield_{tiny_id}@lnbits.com",
+    }
+    create_resp = await http_client.post(
+        "/users/api/v1/user",
+        json=data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 200
+    user_id = create_resp.json()["id"]
+
+    # Try to update with password fields set
+    update_data = {
+        "id": user_id,
+        "username": f"updated_{tiny_id}",
+        "email": f"updated_{tiny_id}@lnbits.com",
+        "pubkey": None,
+        "external_id": None,
+        "extra": {"provider": "lnbits"},
+        "extensions": [],
+        "password": "newpass1234",
+        "password_repeat": "newpass1234",
+    }
+    resp = await http_client.put(
+        f"/users/api/v1/user/{user_id}",
+        json=update_data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Use 'reset password' functionality."
+
+
+@pytest.mark.anyio
+async def test_update_user_invalid_username(http_client: AsyncClient, superuser_token):
+    # Create a user first
+    tiny_id = shortuuid.uuid()[:8]
+    data = {
+        "username": f"valid_{tiny_id}",
+        "password": "secret1234",
+        "password_repeat": "secret1234",
+        "email": f"valid_{tiny_id}@lnbits.com",
+    }
+    create_resp = await http_client.post(
+        "/users/api/v1/user",
+        json=data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 200
+    user_id = create_resp.json()["id"]
+
+    # Try to update with invalid username
+    update_data = {
+        "id": user_id,
+        "username": "!@#invalid",  # invalid username
+        "email": f"valid_{tiny_id}@lnbits.com",
+        "pubkey": None,
+        "external_id": None,
+        "extra": {"provider": "lnbits"},
+        "extensions": [],
+        "password": None,
+        "password_repeat": None,
+    }
+    resp = await http_client.put(
+        f"/users/api/v1/user/{user_id}",
+        json=update_data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert resp.status_code == 400 or resp.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_update_superuser_only_allowed_by_superuser(
+    http_client: AsyncClient, user_alan: User, superuser_token, settings: Settings
+):
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+
+    assert response.status_code == 200, "Alan logs in OK."
+    alan_access_token = response.json().get("access_token")
+    assert alan_access_token is not None, "Expected access token after login."
+    settings.lnbits_admin_users = [user_alan.id]
+    update_data = {
+        "id": settings.super_user,
+        "username": "superadmin",
+        "email": "superadmin@lnbits.com",
+        "pubkey": None,
+        "external_id": None,
+        "extra": {"provider": "lnbits"},
+        "extensions": [],
+        "password": None,
+        "password_repeat": None,
+    }
+    resp = await http_client.put(
+        f"/users/api/v1/user/{settings.super_user}",
+        json=update_data,
+        headers={"Authorization": f"Bearer {alan_access_token}"},
+    )
+
+    assert resp.json()["detail"] == "Action only allowed for super user."
