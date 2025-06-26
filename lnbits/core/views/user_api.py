@@ -100,6 +100,7 @@ async def api_create_user(data: CreateUser) -> CreateUser:
         username=data.username,
         email=data.email,
         pubkey=data.pubkey,
+        external_id=data.external_id,
         extra=data.extra,
     )
     account.validate_fields()
@@ -132,6 +133,7 @@ async def api_update_user(
         username=data.username,
         email=data.email,
         pubkey=data.pubkey,
+        external_id=data.external_id,
         extra=data.extra or UserExtra(),
     )
     await update_user_account(account)

@@ -411,23 +411,13 @@ async def update(
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid user ID.")
     if data.username and not is_valid_username(data.username):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid username.")
-    if data.email != user.email:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            "Email mismatch.",
-        )
+
     if (
         data.username
         and user.username != data.username
         and await get_account_by_username(data.username)
     ):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
-    if (
-        data.email
-        and data.email != user.email
-        and await get_account_by_email(data.email)
-    ):
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Email already exists.")
 
     account = await get_account(user.id)
     if not account:
@@ -435,8 +425,6 @@ async def update(
 
     if data.username:
         account.username = data.username
-    if data.email:
-        account.email = data.email
     if data.extra:
         account.extra = data.extra
 
