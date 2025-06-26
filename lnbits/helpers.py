@@ -17,7 +17,6 @@ from pydantic.schema import field_schema
 
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.nodes import get_node_class
-from lnbits.requestvars import g
 from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
 
@@ -42,7 +41,7 @@ def urlsafe_short_hash() -> str:
 
 
 def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> str:
-    base = g().base_url if external else ""
+    base = f"http://{settings.host}:{settings.port}" if external else ""
     url_params = "?"
     for key, value in params.items():
         url_params += f"{key}={value}&"
