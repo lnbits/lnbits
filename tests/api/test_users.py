@@ -223,7 +223,6 @@ async def test_update_user_success(http_client: AsyncClient, superuser_token):
         json=update_data,
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
-    print("### resp 1", resp.json())
     assert resp.status_code == 200
     assert resp.json()["username"] == update_data["username"]
     assert resp.json()["email"] == update_data["email"]
