@@ -1,8 +1,9 @@
 import asyncio
+from collections.abc import AsyncGenerator
 from datetime import datetime
 from hashlib import sha256
 from os import urandom
-from typing import AsyncGenerator, Optional
+from typing import Optional
 
 from bolt11 import (
     Bolt11,

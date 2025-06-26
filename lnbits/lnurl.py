@@ -58,9 +58,9 @@ class LnurlErrorResponseHandler(APIRoute):
 
 
 __all__ = [
+    "LnurlErrorResponse",
+    "LnurlErrorResponseHandler",
     "decode",
     "encode",
     "handle",
-    "LnurlErrorResponse",
-    "LnurlErrorResponseHandler",
 ]
