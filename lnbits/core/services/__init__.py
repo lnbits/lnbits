@@ -30,26 +30,20 @@ from .users import (
 from .websockets import websocket_manager, websocket_updater
 
 __all__ = [
-    # payments
     "calculate_fiat_amounts",
-    # users
     "check_admin_settings",
     "check_transaction_status",
     "check_wallet_limits",
-    # settings
     "check_webpush_settings",
     "create_invoice",
     "create_user_account",
     "create_user_account_no_ckeck",
-    # notifications
     "enqueue_notification",
     "fee_reserve",
     "fee_reserve_total",
-    # funding source
     "get_balance_delta",
     "pay_invoice",
     "perform_lnurlauth",
-    # lnurl
     "redeem_lnurl_withdraw",
     "send_payment_notification",
     "service_fee",
@@ -59,7 +53,6 @@ __all__ = [
     "update_user_account",
     "update_user_extensions",
     "update_wallet_balance",
-    # websockets
     "websocket_manager",
     "websocket_updater",
 ]
