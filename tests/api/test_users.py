@@ -231,6 +231,24 @@ async def test_update_user_success(http_client: AsyncClient, superuser_token):
 
 
 @pytest.mark.anyio
+async def test_update_bad_external_id(
+    http_client: AsyncClient, user_alan: User, superuser_token
+):
+
+    update_data = {"id": user_alan.id, "external_id": "external 1234"}
+    resp = await http_client.put(
+        f"/users/api/v1/user/{user_alan.id}",
+        json=update_data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert resp.status_code == 400
+    assert (
+        resp.json()["detail"] == "Invalid external id. "
+        "Max length is 256 characters. Space and newlines are not allowed."
+    )
+
+
+@pytest.mark.anyio
 async def test_update_user_id_mismatch(http_client: AsyncClient, superuser_token):
     # Create a user first
     tiny_id = shortuuid.uuid()[:8]
