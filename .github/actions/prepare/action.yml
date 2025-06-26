@@ -43,7 +43,7 @@ runs:
       shell: bash
       run: |
         poetry env use python${{ inputs.python-version }}
-        poetry install
+        poetry install --no-root
         # needed for conv tests
         poetry add psycopg2-binary
 
