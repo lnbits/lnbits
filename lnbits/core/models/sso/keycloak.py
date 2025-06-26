@@ -1,5 +1,4 @@
-"""Keycloak SSO Login Helper
-"""
+"""Keycloak SSO Login Helper"""
 
 from typing import Optional
 

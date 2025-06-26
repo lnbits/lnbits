@@ -3,11 +3,12 @@ import base64
 import hashlib
 import json
 import urllib.parse
-from typing import Any, AsyncGenerator, Dict, Optional
+from collections.abc import AsyncGenerator
+from typing import Any, Optional
 
 import httpx
 from loguru import logger
-from websockets.client import connect
+from websockets.legacy.client import connect
 
 from lnbits.settings import settings
 
@@ -100,7 +101,7 @@ class PhoenixdWallet(Wallet):
 
         try:
             msats_amount = amount
-            data: Dict[str, Any] = {
+            data: dict[str, Any] = {
                 "amountSat": f"{msats_amount}",
                 "externalId": "",
             }

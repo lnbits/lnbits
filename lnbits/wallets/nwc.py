@@ -3,13 +3,14 @@ import hashlib
 import json
 import random
 import time
-from typing import AsyncGenerator, Dict, List, Optional, Union, cast
+from collections.abc import AsyncGenerator
+from typing import Optional, Union, cast
 from urllib.parse import parse_qs, unquote, urlparse
 
 import secp256k1
 from bolt11 import decode as bolt11_decode
 from loguru import logger
-from websockets.client import connect as ws_connect
+from websockets.legacy.client import connect as ws_connect
 
 from lnbits.settings import settings
 from lnbits.utils.nostr import (
@@ -358,7 +359,7 @@ class NWCConnection:
         """
         return self.shutdown or not settings.lnbits_running
 
-    async def _send(self, data: List[Union[str, Dict]]):
+    async def _send(self, data: list[Union[str, dict]]):
         """
         Sends data to the NWC relay.
 
@@ -394,7 +395,7 @@ class NWCConnection:
 
     async def _close_subscription_by_subid(
         self, sub_id: str, send_event: bool = True
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Closes a subscription by its sub_id.
 
@@ -425,7 +426,7 @@ class NWCConnection:
 
     async def _close_subscription_by_eventid(
         self, event_id, send_event=True
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Closes a subscription associated to an event_id.
 
@@ -498,7 +499,7 @@ class NWCConnection:
         except Exception as e:
             logger.error("Error handling subscription timeout: " + str(e))
 
-    async def _on_ok_message(self, msg: List[str]):
+    async def _on_ok_message(self, msg: list[str]):
         """
         Handles OK messages from the relay.
         """
@@ -512,12 +513,12 @@ class NWCConnection:
             if subscription:  # Check if the subscription exists first
                 subscription["future"].set_exception(Exception(info))
 
-    async def _on_event_message(self, msg: List[Union[str, Dict]]):
+    async def _on_event_message(self, msg: list[Union[str, dict]]):
         """
         Handles EVENT messages from the relay.
         """
         sub_id = cast(str, msg[1])
-        event = cast(Dict, msg[2])
+        event = cast(dict, msg[2])
         if not verify_event(event):  # Ensure the event is valid (do not trust relays)
             raise Exception("Invalid event signature")
         tags = event["tags"]
@@ -571,7 +572,7 @@ class NWCConnection:
                     else:
                         subscription["future"].set_result(result)
 
-    async def _on_closed_message(self, msg: List[str]):
+    async def _on_closed_message(self, msg: list[str]):
         """
         Handles CLOSED messages from the relay.
         """
@@ -646,7 +647,7 @@ class NWCConnection:
                 logger.debug("Reconnecting to NWC relay in 5 seconds...")
                 await asyncio.sleep(5)
 
-    async def call(self, method: str, params: Dict) -> Dict:
+    async def call(self, method: str, params: dict) -> dict:
         """
         Call a NWC method.
 
@@ -708,7 +709,7 @@ class NWCConnection:
         # Wait for the response
         return await future
 
-    async def get_info(self) -> Dict:
+    async def get_info(self) -> dict:
         """
         Get the info about the service provider and cache it.
 
@@ -793,7 +794,7 @@ class NWCConnection:
             logger.warning("Error closing connection: " + str(e))
 
 
-def parse_nwc(nwc) -> Dict:
+def parse_nwc(nwc) -> dict:
     """
     Parses a NWC URL (nostr+walletconnect://...) and extracts relevant information.
 
