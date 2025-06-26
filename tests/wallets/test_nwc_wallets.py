@@ -9,7 +9,7 @@ import secp256k1
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
-from websockets.server import serve as ws_serve
+from websockets.legacy.server import serve as ws_serve
 
 from lnbits.wallets.nwc import NWCWallet
 from tests.wallets.helpers import (

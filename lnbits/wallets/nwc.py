@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 import secp256k1
 from bolt11 import decode as bolt11_decode
 from loguru import logger
-from websockets.client import connect as ws_connect
+from websockets.legacy.client import connect as ws_connect
 
 from lnbits.settings import settings
 from lnbits.utils.nostr import (
