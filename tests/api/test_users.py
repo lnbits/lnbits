@@ -6,6 +6,7 @@ from httpx import AsyncClient
 
 from lnbits.core.models.users import User
 from lnbits.settings import Settings
+from lnbits.utils.nostr import generate_keypair
 
 
 @pytest.mark.anyio
@@ -207,11 +208,12 @@ async def test_update_user_success(http_client: AsyncClient, superuser_token):
     user_id = create_resp.json()["id"]
 
     # Update the user
+    _, pubkey = generate_keypair()
     update_data = {
         "id": user_id,
         "username": f"updated_{tiny_id}",
         "email": f"updated_{tiny_id}@lnbits.com",
-        "pubkey": "0000000000000000000000000000000000000000000000000000000000001234",
+        "pubkey": pubkey,
         "external_id": "external_1234",
         "extra": {"provider": "lnbits"},
         "extensions": [],
@@ -221,6 +223,7 @@ async def test_update_user_success(http_client: AsyncClient, superuser_token):
         json=update_data,
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
+    print("### resp 1", resp.json())
     assert resp.status_code == 200
     assert resp.json()["username"] == update_data["username"]
     assert resp.json()["email"] == update_data["email"]
@@ -251,12 +254,8 @@ async def test_update_user_id_mismatch(http_client: AsyncClient, superuser_token
         "id": "wrongid",
         "username": f"updated_{tiny_id}",
         "email": f"updated_{tiny_id}@lnbits.com",
-        "pubkey": None,
-        "external_id": None,
         "extra": {"provider": "lnbits"},
         "extensions": [],
-        "password": None,
-        "password_repeat": None,
     }
     resp = await http_client.put(
         f"/users/api/v1/user/{user_id}",
@@ -327,24 +326,22 @@ async def test_update_user_invalid_username(http_client: AsyncClient, superuser_
         "id": user_id,
         "username": "!@#invalid",  # invalid username
         "email": f"valid_{tiny_id}@lnbits.com",
-        "pubkey": None,
-        "external_id": None,
         "extra": {"provider": "lnbits"},
         "extensions": [],
-        "password": None,
-        "password_repeat": None,
     }
     resp = await http_client.put(
         f"/users/api/v1/user/{user_id}",
         json=update_data,
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
-    assert resp.status_code == 400 or resp.status_code == 422
+
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Invalid username."
 
 
 @pytest.mark.anyio
 async def test_update_superuser_only_allowed_by_superuser(
-    http_client: AsyncClient, user_alan: User, superuser_token, settings: Settings
+    http_client: AsyncClient, user_alan: User, settings: Settings
 ):
     response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
 
