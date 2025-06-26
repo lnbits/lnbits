@@ -350,6 +350,7 @@ window.localisation.en = {
   update_account: 'Update Account',
   invalid_username: 'Invalid Username',
   auth_provider: 'Auth Provider',
+  external_id: 'External ID',
   my_account: 'My Account',
   existing_account_question: 'Already have an account?',
   background_image: 'Background Image',

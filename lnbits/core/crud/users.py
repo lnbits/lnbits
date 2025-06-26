@@ -68,6 +68,7 @@ async def get_accounts(
             accounts.username,
             accounts.email,
             accounts.pubkey,
+            accounts.external_id,
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0)) as balance_msat,
@@ -128,8 +129,8 @@ async def get_account_by_username(
     if len(username) == 0:
         return None
     return await (conn or db).fetchone(
-        "SELECT * FROM accounts WHERE username = :username",
-        {"username": username},
+        "SELECT * FROM accounts WHERE LOWER(username) = :username",
+        {"username": username.lower()},
         Account,
     )
 
@@ -138,8 +139,8 @@ async def get_account_by_pubkey(
     pubkey: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
     return await (conn or db).fetchone(
-        "SELECT * FROM accounts WHERE pubkey = :pubkey",
-        {"pubkey": pubkey},
+        "SELECT * FROM accounts WHERE LOWER(pubkey) = :pubkey",
+        {"pubkey": pubkey.lower()},
         Account,
     )
 
@@ -150,8 +151,8 @@ async def get_account_by_email(
     if len(email) == 0:
         return None
     return await (conn or db).fetchone(
-        "SELECT * FROM accounts WHERE email = :email",
-        {"email": email},
+        "SELECT * FROM accounts WHERE LOWER(email) = :email",
+        {"email": email.lower()},
         Account,
     )
 
@@ -160,8 +161,11 @@ async def get_account_by_username_or_email(
     username_or_email: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
     return await (conn or db).fetchone(
-        "SELECT * FROM accounts WHERE email = :value or username = :value",
-        {"value": username_or_email},
+        """
+            SELECT * FROM accounts
+            WHERE LOWER(email) = :value or LOWER(username) = :value
+        """,
+        {"value": username_or_email.lower()},
         Account,
     )
 
@@ -183,6 +187,7 @@ async def get_user_from_account(
         email=account.email,
         username=account.username,
         pubkey=account.pubkey,
+        external_id=account.external_id,
         extra=account.extra,
         created_at=account.created_at,
         updated_at=account.updated_at,

@@ -148,6 +148,14 @@
     >
     </q-input>
     <q-input
+      v-model="activeUser.data.external_id"
+      :label="$t('external_id')"
+      filled
+      dense
+      class="q-mb-md"
+    >
+    </q-input>
+    <q-input
       v-model="activeUser.data.extra.picture"
       :label="$t('picture')"
       filled
