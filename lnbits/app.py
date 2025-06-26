@@ -65,7 +65,6 @@ from .middleware import (
     add_ip_block_middleware,
     add_ratelimit_middleware,
 )
-from .requestvars import g
 from .tasks import (
     check_pending_payments,
     internal_invoice_listener,
@@ -170,8 +169,6 @@ def create_app() -> FastAPI:
         StaticFiles(directory=Path(settings.lnbits_data_folder, "images")),
         name="library",
     )
-
-    g().base_url = f"http://{settings.host}:{settings.port}"
 
     app.add_middleware(
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
