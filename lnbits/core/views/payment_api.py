@@ -2,7 +2,7 @@ import json
 import ssl
 from http import HTTPStatus
 from math import ceil
-from typing import List, Optional
+from typing import Optional
 from urllib.parse import urlparse
 
 import httpx
@@ -79,7 +79,7 @@ payment_router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
     name="Payment List",
     summary="get list of payments",
     response_description="list of payments",
-    response_model=List[Payment],
+    response_model=list[Payment],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments(
@@ -98,7 +98,7 @@ async def api_payments(
 @payment_router.get(
     "/history",
     name="Get payments history",
-    response_model=List[PaymentHistoryPoint],
+    response_model=list[PaymentHistoryPoint],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_history(
@@ -113,7 +113,7 @@ async def api_payments_history(
 @payment_router.get(
     "/stats/count",
     name="Get payments history for all users",
-    response_model=List[PaymentCountStat],
+    response_model=list[PaymentCountStat],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_counting_stats(
@@ -135,7 +135,7 @@ async def api_payments_counting_stats(
 @payment_router.get(
     "/stats/wallets",
     name="Get payments history for all users",
-    response_model=List[PaymentWalletStats],
+    response_model=list[PaymentWalletStats],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_wallets_stats(
@@ -156,7 +156,7 @@ async def api_payments_wallets_stats(
 @payment_router.get(
     "/stats/daily",
     name="Get payments history per day",
-    response_model=List[PaymentDailyStats],
+    response_model=list[PaymentDailyStats],
     openapi_extra=generate_filter_params_openapi(PaymentFilters),
 )
 async def api_payments_daily_stats(

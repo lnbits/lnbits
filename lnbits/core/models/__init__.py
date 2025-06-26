@@ -48,62 +48,62 @@ from .wallets import BaseWallet, CreateWallet, KeyType, Wallet, WalletTypeInfo
 from .webpush import CreateWebPushSubscription, WebPushSubscription
 
 __all__ = [
-    # audit
-    "AuditEntry",
-    "AuditFilters",
-    # lnurl
-    "CreateLnurl",
-    "CreateLnurlAuth",
-    "PayLnurlWData",
-    # misc
-    "BalanceDelta",
-    "Callback",
-    "ConversionData",
-    "CoreAppExtra",
-    "DbVersion",
-    "SimpleStatus",
-    # payments
-    "CreateInvoice",
-    "CreatePayment",
-    "DecodePayment",
-    "PayInvoice",
-    "Payment",
-    "PaymentCountField",
-    "PaymentCountStat",
-    "PaymentDailyStats",
-    "PaymentsStatusCount",
-    "PaymentWalletStats",
-    "PaymentExtra",
-    "PaymentFilters",
-    "PaymentHistoryPoint",
-    "PaymentState",
-    # tinyurl
-    "TinyURL",
     # users
     "AccessTokenPayload",
     "Account",
     "AccountFilters",
     "AccountOverview",
-    "UserAcls",
+    # audit
+    "AuditEntry",
+    "AuditFilters",
+    # misc
+    "BalanceDelta",
+    # wallets
+    "BaseWallet",
+    "Callback",
+    "ConversionData",
+    "CoreAppExtra",
+    # payments
+    "CreateInvoice",
+    # lnurl
+    "CreateLnurl",
+    "CreateLnurlAuth",
+    "CreatePayment",
     "CreateUser",
-    "RegisterUser",
+    "CreateWallet",
+    # webpush
+    "CreateWebPushSubscription",
+    "DbVersion",
+    "DecodePayment",
+    "KeyType",
     "LoginUsernamePassword",
     "LoginUsr",
+    "PayInvoice",
+    "PayLnurlWData",
+    "Payment",
+    "PaymentCountField",
+    "PaymentCountStat",
+    "PaymentDailyStats",
+    "PaymentExtra",
+    "PaymentFilters",
+    "PaymentHistoryPoint",
+    "PaymentState",
+    "PaymentWalletStats",
+    "PaymentsStatusCount",
+    "RegisterUser",
     "ResetUserPassword",
+    "SimpleStatus",
+    # tinyurl
+    "TinyURL",
     "UpdateBalance",
     "UpdateSuperuserPassword",
     "UpdateUser",
     "UpdateUserPassword",
     "UpdateUserPubkey",
     "User",
+    "UserAcls",
     "UserExtra",
-    # wallets
-    "BaseWallet",
-    "CreateWallet",
-    "KeyType",
     "Wallet",
     "WalletTypeInfo",
-    # webpush
-    "CreateWebPushSubscription",
     "WebPushSubscription",
 ]

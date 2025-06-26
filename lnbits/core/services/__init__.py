@@ -34,40 +34,33 @@ from .users import (
 from .websockets import websocket_manager, websocket_updater
 
 __all__ = [
-    # funding source
-    "get_balance_delta",
-    "switch_to_voidwallet",
-    # lnurl
-    "redeem_lnurl_withdraw",
-    "perform_lnurlauth",
-    # notifications
-    "enqueue_notification",
-    "send_payment_notification",
-    # payments
     "calculate_fiat_amounts",
+    "check_admin_settings",
     "check_transaction_status",
     "check_wallet_limits",
-    "create_invoice",
-    "create_wallet_invoice",
-    "create_fiat_invoice",
-    "fee_reserve",
-    "fee_reserve_total",
-    "get_payments_daily_stats",
-    "pay_invoice",
-    "service_fee",
-    "update_pending_payment",
-    "update_pending_payments",
-    "update_wallet_balance",
-    # settings
     "check_webpush_settings",
-    "update_cached_settings",
-    # users
-    "check_admin_settings",
+    "create_invoice",
+    "create_fiat_invoice",
+    "create_wallet_invoice",
     "create_user_account",
     "create_user_account_no_ckeck",
+    "enqueue_notification",
+    "fee_reserve",
+    "fee_reserve_total",
+    "get_balance_delta",
+    "get_payments_daily_stats",
+    "pay_invoice",
+    "perform_lnurlauth",
+    "redeem_lnurl_withdraw",
+    "send_payment_notification",
+    "service_fee",
+    "switch_to_voidwallet",
+    "update_cached_settings",
+    "update_pending_payment",
+    "update_pending_payments",
     "update_user_account",
     "update_user_extensions",
-    # websockets
+    "update_wallet_balance",
     "websocket_manager",
     "websocket_updater",
 ]
