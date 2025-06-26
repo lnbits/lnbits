@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 import shortuuid
 from httpx import AsyncClient
@@ -116,7 +118,7 @@ async def test_create_user_with_extensions_and_extra(
 
 @pytest.mark.anyio
 async def test_create_user_minimum_fields(http_client: AsyncClient, superuser_token):
-    data = {}
+    data: dict[str, str] = {}
     response = await http_client.post(
         "/users/api/v1/user",
         json=data,
@@ -209,12 +211,10 @@ async def test_update_user_success(http_client: AsyncClient, superuser_token):
         "id": user_id,
         "username": f"updated_{tiny_id}",
         "email": f"updated_{tiny_id}@lnbits.com",
-        "pubkey": None,
-        "external_id": None,
+        "pubkey": "0000000000000000000000000000000000000000000000000000000000001234",
+        "external_id": "external_1234",
         "extra": {"provider": "lnbits"},
         "extensions": [],
-        "password": None,
-        "password_repeat": None,
     }
     resp = await http_client.put(
         f"/users/api/v1/user/{user_id}",
@@ -224,6 +224,8 @@ async def test_update_user_success(http_client: AsyncClient, superuser_token):
     assert resp.status_code == 200
     assert resp.json()["username"] == update_data["username"]
     assert resp.json()["email"] == update_data["email"]
+    assert resp.json()["pubkey"] == update_data["pubkey"]
+    assert resp.json()["external_id"] == update_data["external_id"]
 
 
 @pytest.mark.anyio
@@ -245,7 +247,7 @@ async def test_update_user_id_mismatch(http_client: AsyncClient, superuser_token
     user_id = create_resp.json()["id"]
 
     # Try to update with mismatched id
-    update_data = {
+    update_data: dict[str, Any] = {
         "id": "wrongid",
         "username": f"updated_{tiny_id}",
         "email": f"updated_{tiny_id}@lnbits.com",
@@ -288,8 +290,6 @@ async def test_update_user_password_fields(http_client: AsyncClient, superuser_t
         "id": user_id,
         "username": f"updated_{tiny_id}",
         "email": f"updated_{tiny_id}@lnbits.com",
-        "pubkey": None,
-        "external_id": None,
         "extra": {"provider": "lnbits"},
         "extensions": [],
         "password": "newpass1234",
@@ -352,16 +352,12 @@ async def test_update_superuser_only_allowed_by_superuser(
     alan_access_token = response.json().get("access_token")
     assert alan_access_token is not None, "Expected access token after login."
     settings.lnbits_admin_users = [user_alan.id]
-    update_data = {
+    update_data: dict[str, Any] = {
         "id": settings.super_user,
         "username": "superadmin",
         "email": "superadmin@lnbits.com",
-        "pubkey": None,
-        "external_id": None,
         "extra": {"provider": "lnbits"},
         "extensions": [],
-        "password": None,
-        "password_repeat": None,
     }
     resp = await http_client.put(
         f"/users/api/v1/user/{settings.super_user}",
