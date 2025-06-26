@@ -273,9 +273,20 @@
                     >
                     </q-input>
                     <q-input
+                      v-model="user.external_id"
+                      :label="$t('external_id')"
+                      filled
+                      dense
+                      readonly
+                      class="q-mb-md"
+                    >
+                    </q-input>
+
+                    <q-input
                       v-model="user.extra.picture"
                       :label="$t('picture')"
                       filled
+                      dense
                       class="q-mb-md"
                     >
                     </q-input>

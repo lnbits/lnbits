@@ -198,6 +198,14 @@ def is_valid_username(username: str) -> bool:
     return re.fullmatch(username_regex, username) is not None
 
 
+def is_valid_external_id(external_id: str) -> bool:
+    if len(external_id) > 256:
+        return False
+    if " " in external_id or "\n" in external_id:
+        return False
+    return True
+
+
 def is_valid_pubkey(pubkey: str) -> bool:
     if len(pubkey) != 64:
         return False

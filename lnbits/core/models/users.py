@@ -9,7 +9,12 @@ from pydantic import BaseModel, Field
 
 from lnbits.core.models.misc import SimpleItem
 from lnbits.db import FilterModel
-from lnbits.helpers import is_valid_email_address, is_valid_pubkey, is_valid_username
+from lnbits.helpers import (
+    is_valid_email_address,
+    is_valid_external_id,
+    is_valid_pubkey,
+    is_valid_username,
+)
 from lnbits.settings import settings
 
 from .wallets import Wallet
@@ -93,6 +98,7 @@ class UserAcls(BaseModel):
 
 class Account(BaseModel):
     id: str
+    external_id: str | None = None  # for external account linking
     username: str | None = None
     password_hash: str | None = None
     pubkey: str | None = None
@@ -130,6 +136,11 @@ class Account(BaseModel):
             raise ValueError("Invalid email.")
         if self.pubkey and not is_valid_pubkey(self.pubkey):
             raise ValueError("Invalid pubkey.")
+        if self.external_id and not is_valid_external_id(self.external_id):
+            raise ValueError(
+                "Invalid external id. Max length is 256 characters. "
+                "Space and newlines are not allowed."
+            )
         user_uuid4 = UUID(hex=self.id, version=4)
         if user_uuid4.hex != self.id:
             raise ValueError("User ID is not valid UUID4 hex string.")
@@ -143,7 +154,14 @@ class AccountOverview(Account):
 
 
 class AccountFilters(FilterModel):
-    __search_fields__ = ["user", "email", "username", "pubkey", "wallet_id"]
+    __search_fields__ = [
+        "user",
+        "email",
+        "username",
+        "pubkey",
+        "external_id",
+        "wallet_id",
+    ]
     __sort_fields__ = [
         "balance_msat",
         "email",
@@ -157,6 +175,7 @@ class AccountFilters(FilterModel):
     user: str | None = None
     username: str | None = None
     pubkey: str | None = None
+    external_id: str | None = None
     wallet_id: str | None = None
 
 
@@ -167,6 +186,7 @@ class User(BaseModel):
     email: str | None = None
     username: str | None = None
     pubkey: str | None = None
+    external_id: str | None = None  # for external account linking
     extensions: list[str] = []
     wallets: list[Wallet] = []
     admin: bool = False
@@ -207,13 +227,13 @@ class CreateUser(BaseModel):
     password: str | None = Query(default=None, min_length=8, max_length=50)
     password_repeat: str | None = Query(default=None, min_length=8, max_length=50)
     pubkey: str = Query(default=None, max_length=64)
+    external_id: str = Query(default=None, max_length=256)
     extensions: list[str] | None = None
     extra: UserExtra | None = None
 
 
 class UpdateUser(BaseModel):
     user_id: str
-    email: str | None = Query(default=None)
     username: str | None = Query(default=..., min_length=2, max_length=20)
     extra: UserExtra | None = None
 

@@ -711,3 +711,11 @@ async def m031_add_color_and_icon_to_wallets(db: Connection):
     Adds icon and color columns to wallets.
     """
     await db.execute("ALTER TABLE wallets ADD COLUMN extra TEXT")
+
+
+async def m032_add_external_id_to_accounts(db: Connection):
+    """
+    Adds external_id column to accounts.
+    Used for external account linking.
+    """
+    await db.execute("ALTER TABLE accounts ADD COLUMN external_id TEXT")
