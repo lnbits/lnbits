@@ -48,30 +48,23 @@ from .wallets import BaseWallet, CreateWallet, KeyType, Wallet, WalletTypeInfo
 from .webpush import CreateWebPushSubscription, WebPushSubscription
 
 __all__ = [
-    # users
     "AccessTokenPayload",
     "Account",
     "AccountFilters",
     "AccountOverview",
-    # audit
     "AuditEntry",
     "AuditFilters",
-    # misc
     "BalanceDelta",
-    # wallets
     "BaseWallet",
     "Callback",
     "ConversionData",
     "CoreAppExtra",
-    # payments
     "CreateInvoice",
-    # lnurl
     "CreateLnurl",
     "CreateLnurlAuth",
     "CreatePayment",
     "CreateUser",
     "CreateWallet",
-    # webpush
     "CreateWebPushSubscription",
     "DbVersion",
     "DecodePayment",
@@ -93,7 +86,6 @@ __all__ = [
     "RegisterUser",
     "ResetUserPassword",
     "SimpleStatus",
-    # tinyurl
     "TinyURL",
     "UpdateBalance",
     "UpdateSuperuserPassword",

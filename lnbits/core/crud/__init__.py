@@ -85,24 +85,16 @@ from .webpush import (
 )
 
 __all__ = [
-    # payments
     "DateTrunc",
     "check_internal",
-    # users
     "create_account",
-    # settings
     "create_admin_settings",
-    # audit
     "create_audit_entry",
-    # extensions
     "create_installed_extension",
     "create_payment",
-    # tinyurl
     "create_tinyurl",
     "create_user_extension",
-    # wallets
     "create_wallet",
-    # webpush
     "create_webpush_subscription",
     "delete_account",
     "delete_accounts_no_wallets",
@@ -126,7 +118,6 @@ __all__ = [
     "get_account_by_username_or_email",
     "get_accounts",
     "get_admin_settings",
-    # db_versions
     "get_db_version",
     "get_db_versions",
     "get_installed_extension",
