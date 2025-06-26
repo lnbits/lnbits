@@ -7,7 +7,7 @@ from typing import Optional
 import httpx
 from loguru import logger
 from pydantic import BaseModel
-from websockets.client import WebSocketClientProtocol, connect
+from websockets.legacy.client import WebSocketClientProtocol, connect
 from websockets.typing import Subprotocol
 
 from lnbits import bolt11

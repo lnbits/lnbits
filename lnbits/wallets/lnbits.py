@@ -5,7 +5,7 @@ from typing import Optional
 
 import httpx
 from loguru import logger
-from websockets.client import connect
+from websockets.legacy.client import connect
 
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
