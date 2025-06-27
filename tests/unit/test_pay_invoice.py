@@ -558,18 +558,14 @@ async def test_pay_external_invoice_success_bad_checking_id(
         AsyncMock(return_value=payment_reponse_success),
     )
 
-    await pay_invoice(
-        wallet_id=from_wallet.id,
-        payment_request=external_invoice.payment_request,
-    )
+    with pytest.raises(PaymentError):
+        await pay_invoice(
+            wallet_id=from_wallet.id,
+            payment_request=external_invoice.payment_request,
+        )
 
     payment = await get_standalone_payment(bad_checking_id)
-    assert payment
-    assert payment.checking_id == bad_checking_id, "checking_id updated"
-    assert payment.payment_hash == external_invoice.checking_id
-    assert payment.amount == -2108_000
-    assert payment.preimage == preimage
-    assert payment.status == PaymentState.SUCCESS.value
+    assert payment is None, "Payment should not be created with bad checking_id"
 
 
 @pytest.mark.anyio
@@ -590,19 +586,21 @@ async def test_no_checking_id(
         AsyncMock(return_value=payment_reponse_pending),
     )
 
-    await pay_invoice(
-        wallet_id=from_wallet.id,
-        payment_request=external_invoice.payment_request,
-    )
+    with pytest.raises(PaymentError):
+        await pay_invoice(
+            wallet_id=from_wallet.id,
+            payment_request=external_invoice.payment_request,
+        )
 
     payment = await get_standalone_payment(external_invoice.checking_id)
 
     assert payment
+    assert payment.status == PaymentState.FAILED.value
+
     assert payment.checking_id == external_invoice.checking_id
     assert payment.payment_hash == external_invoice.checking_id
     assert payment.amount == -2110_000
     assert payment.preimage is None
-    assert payment.status == PaymentState.PENDING.value
 
 
 @pytest.mark.anyio
