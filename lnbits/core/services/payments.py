@@ -751,7 +751,7 @@ async def _pay_external_invoice(
     payment.checking_id = payment_response.checking_id
     if payment.success:
         await send_payment_notification(wallet, payment)
-    logger.success(f"payment successful {payment_response.checking_id}")
+        logger.success(f"payment successful {payment_response.checking_id}")
 
     return payment
 
