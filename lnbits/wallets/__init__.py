@@ -46,6 +46,10 @@ def get_funding_source() -> Wallet:
     return funding_source
 
 
+def is_funding_source_fake_wallet() -> bool:
+    return funding_source.__class__.__name__ == "FakeWallet"
+
+
 wallets_module = importlib.import_module("lnbits.wallets")
 fake_wallet = FakeWallet()
 

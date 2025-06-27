@@ -20,7 +20,8 @@ from lnbits.tasks import (
     internal_invoice_listener,
     register_invoice_listener,
 )
-from lnbits.wallets.base import PaymentResponse
+from lnbits.wallets import set_funding_source
+from lnbits.wallets.base import PaymentResponse, PaymentStatus
 from lnbits.wallets.fake import FakeWallet
 
 
@@ -230,8 +231,8 @@ async def test_pay_for_extension(to_wallet: Wallet, settings: Settings):
 
 
 @pytest.mark.anyio
-async def test_notification_for_internal_payment(to_wallet: Wallet):
-    test_name = "test_notification_for_internal_payment"
+async def test_notification_for_fake_wallet(to_wallet: Wallet):
+    test_name = "test_notification_for_fake_wallet"
 
     create_permanent_task(internal_invoice_listener)
     invoice_queue: asyncio.Queue = asyncio.Queue()
@@ -246,6 +247,58 @@ async def test_notification_for_internal_payment(to_wallet: Wallet):
     await pay_invoice(
         wallet_id=to_wallet.id, payment_request=payment.bolt11, extra={"tag": "lnurlp"}
     )
+    await asyncio.sleep(1)
+
+    while True:
+        _payment: Payment = invoice_queue.get_nowait()  # raises if queue empty
+        assert _payment
+        if _payment.memo == test_name:
+            assert _payment.status == PaymentState.SUCCESS.value
+            assert _payment.bolt11 == payment.bolt11
+            assert _payment.amount == 123_000
+            updated_payment = await get_payment(_payment.checking_id)
+            assert updated_payment.webhook_status == "404"
+
+            break  # we found our payment, success
+
+
+@pytest.mark.anyio
+async def test_notification_for_internal_payment(
+    to_wallet: Wallet,
+    settings: Settings,
+    set_fake_wallet_after_test,
+    mocker: MockerFixture,
+):
+    test_name = "test_notification_for_internal_payment"
+
+    create_permanent_task(internal_invoice_listener)
+    invoice_queue: asyncio.Queue = asyncio.Queue()
+    register_invoice_listener(invoice_queue, test_name)
+
+    payment = await create_invoice(
+        wallet_id=to_wallet.id,
+        amount=123,
+        memo=test_name,
+        webhook="http://test.404.lnbits.com",
+    )
+
+    mocker.patch(
+        "lnbits.wallets.LNbitsWallet.get_invoice_status",
+        AsyncMock(return_value=PaymentStatus(paid=True)),
+    )
+
+    # change the wallet so the payment is not form FakeWallet to FakeWallet
+    settings.lnbits_backend_wallet_class = "LNbitsWallet"
+    settings.lnbits_endpoint = "http://fake.lnbits.com"
+    settings.lnbits_admin_key = "fake_admin_key"
+    set_funding_source()
+
+    await pay_invoice(
+        wallet_id=to_wallet.id,
+        payment_request=payment.bolt11,
+        extra={"tag": "lnurlp"},
+    )
+
     await asyncio.sleep(1)
 
     while True:
