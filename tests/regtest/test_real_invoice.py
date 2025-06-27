@@ -101,6 +101,7 @@ async def test_pay_real_invoice_noroute(
 async def test_pay_real_invoice_mainnet(
     client,
     adminkey_headers_from,
+    inkey_headers_from,
 ):
     """regtest should fail paying a mainnet invoice"""
     inv = (
@@ -110,6 +111,7 @@ async def test_pay_real_invoice_mainnet(
         "lll4ttz7sp6kpvqqqqlgqqqqqeqqjqm9fkydmtwsxcxx3j44x9fckjqttg54zlxzw92yeaz9nzn8w7hgv"
         "87ph5ug4wmgxqpk929k7l6dsnc2y9532daaqlpg9tfjglshuh48cpjh0dua"
     )
+    payment_hash = "dce88a2f9e489fc0ebb0989e8c6323e56ee13dd5523c9e08e833b5e97fd694b2"
 
     response = await client.post(
         "/api/v1/payments", json={"bolt11": inv}, headers=adminkey_headers_from
@@ -117,6 +119,16 @@ async def test_pay_real_invoice_mainnet(
     assert response.status_code == 520
     invoice = response.json()
     assert invoice["status"] == "failed"
+
+    # check the payment status
+    response = await client.get(
+        f"/api/v1/payments/{payment_hash}",
+        headers=inkey_headers_from,
+    )
+    assert response.status_code < 300
+    payment = response.json()
+    assert payment["paid"] is False
+    assert payment["status"] == "failed"
 
 
 @pytest.mark.anyio
