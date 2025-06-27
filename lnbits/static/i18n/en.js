@@ -64,7 +64,7 @@ window.localisation.en = {
   update_currency: 'Update currency',
   press_to_claim: 'Press to claim bitcoin',
   claim_desc:
-    'It seems you have a claimable amount of bitcoin but you don’t have a wallet yet. Press the button below to claim it. This will create a new wallet for you.',
+    "It seems you have a claimable amount of bitcoin but you don't have a wallet yet. Press the button below to claim it. This will create a new wallet for you.",
   donate: 'Donate',
   view_github: 'View on GitHub',
   voidwallet_active: 'VoidWallet is active! Payments disabled',
@@ -447,7 +447,7 @@ window.localisation.en = {
   node_balance: 'Node Balance: {balance} sats',
   lnbits_balance: 'LNbits Balance: {balance} sats',
   funding_reserve_percent: 'Reserve Percent: {percent} %',
-  node_managment: 'Node Management',
+  node_management: 'Node Management',
   node_management_not_supported:
     'Node Management not supported by active funding source',
   toggle_node_ui: 'Node UI',
