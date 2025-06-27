@@ -64,7 +64,7 @@ window.localisation.en = {
   update_currency: 'Update currency',
   press_to_claim: 'Press to claim bitcoin',
   claim_desc:
-    "It seems you have a claimable amount of bitcoin but you don't have a wallet yet. Press the button below to claim it. This will create a new wallet for you.",
+    'It seems you have a claimable amount of bitcoin but you don’t have a wallet yet. Press the button below to claim it. This will create a new wallet for you.',
   donate: 'Donate',
   view_github: 'View on GitHub',
   voidwallet_active: 'VoidWallet is active! Payments disabled',
