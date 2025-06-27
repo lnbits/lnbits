@@ -166,11 +166,12 @@
                       v-if="authAction === 'login' && allowedRegister"
                       class="q-mb-none"
                     >
-                      Not registered? Create an
-                      <span
+                      Not registered?
+                      <a
+                        href="#"
                         class="text-secondary cursor-pointer"
-                        @click="showRegister('username-password')"
-                        >Account</span
+                        @click.prevent="showRegister('username-password')"
+                        >Create an Account</a
                       >
                     </p>
                     <p
@@ -182,11 +183,12 @@
                     <p v-else-if="authAction === 'register'" class="q-mb-none">
                       <span v-text="$t('existing_account_question')"></span>
 
-                      <span
+                      <a
+                        href="#"
                         class="text-secondary cursor-pointer q-ml-sm"
-                        @click="showLogin('username-password')"
+                        @click.prevent="showLogin('username-password')"
                         v-text="$t('login')"
-                      ></span>
+                      ></a>
                     </p>
                   </div>
                 </username-password>

@@ -335,7 +335,7 @@ window.localisation.we = {
   node_balance: 'Cydbwysedd Nôd: {balance} sats',
   lnbits_balance: 'Cydbwysedd LNbits: {balance} sats',
   funding_reserve_percent: 'Cadw Canran: {percent} %',
-  node_managment: 'Rheoli Nodau',
+  node_management: 'Rheoli Nodau',
   node_management_not_supported:
     'Nid yw Rheoli Nodau yn cael ei gefnogi gan ffynhonnell ariannu weithredol',
   toggle_node_ui: 'Node UI',

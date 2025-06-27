@@ -332,7 +332,7 @@ window.localisation.cs = {
   node_balance: 'Stav uzlu: {balance} sats',
   lnbits_balance: 'Zůstatek LNbits: {balance} sats',
   funding_reserve_percent: 'Rezervovat procento: {percent} %',
-  node_managment: 'Správa uzlů',
+  node_management: 'Správa uzlů',
   node_management_not_supported:
     'Správa uzlů není podporována aktivním zdrojem financování',
   toggle_node_ui: 'Uživatelské rozhraní uzlu',

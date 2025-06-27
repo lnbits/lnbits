@@ -447,7 +447,7 @@ window.localisation.en = {
   node_balance: 'Node Balance: {balance} sats',
   lnbits_balance: 'LNbits Balance: {balance} sats',
   funding_reserve_percent: 'Reserve Percent: {percent} %',
-  node_managment: 'Node Management',
+  node_management: 'Node Management',
   node_management_not_supported:
     'Node Management not supported by active funding source',
   toggle_node_ui: 'Node UI',

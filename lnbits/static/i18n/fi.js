@@ -434,7 +434,7 @@ window.localisation.fi = {
   node_balance: 'Solmun saldo: {balance} sats',
   lnbits_balance: 'LNbits-saldo: {balance} sat',
   funding_reserve_percent: 'Omavaraisuusaste: {percent} %',
-  node_managment: 'Solmun hallinta',
+  node_management: 'Solmun hallinta',
   node_management_not_supported:
     'Solmun hallinta ei ole mahdollista valitun rahoituslähteen kanssa.',
   toggle_node_ui: 'Solmun käyttöliittymä',

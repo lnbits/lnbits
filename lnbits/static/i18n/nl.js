@@ -341,7 +341,7 @@ window.localisation.nl = {
   node_balance: 'Node Balans: {balance} sats',
   lnbits_balance: 'LNbits Saldo: {balance} sats',
   funding_reserve_percent: 'Reservepercentage: {percent} %',
-  node_managment: 'Nodebeheer',
+  node_management: 'Nodebeheer',
   node_management_not_supported:
     'Nodebeheer wordt niet ondersteund door de actieve financieringsbron',
   toggle_node_ui: 'Node UI',

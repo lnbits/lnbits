@@ -335,7 +335,7 @@ window.localisation.sk = {
   node_balance: 'Stav uzla: {balance} sats',
   lnbits_balance: 'Zostatok LNbits: {balance} sats',
   funding_reserve_percent: 'Rezervovať percento: {percent} %',
-  node_managment: 'Správa uzlov',
+  node_management: 'Správa uzlov',
   node_management_not_supported:
     'Správa uzlov nie je podporovaná aktívnym zdrojom financovania',
   toggle_node_ui: 'Používateľské rozhranie uzla',

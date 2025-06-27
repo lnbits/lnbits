@@ -342,7 +342,7 @@ window.localisation.de = {
   node_balance: 'Kontostand: {balance} Sats',
   lnbits_balance: 'LNbits-Guthaben: {balance} Sats',
   funding_reserve_percent: 'Reservieren Prozent: {percent} %',
-  node_managment: 'Knotenverwaltung',
+  node_management: 'Knotenverwaltung',
   node_management_not_supported:
     'Knotenverwaltung wird von der aktiven Finanzierungsquelle nicht unterstützt',
   toggle_node_ui: 'Node-Benutzeroberfläche',

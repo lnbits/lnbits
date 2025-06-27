@@ -334,7 +334,7 @@ window.localisation.jp = {
   node_balance: 'ノード残高: {balance} サッツ',
   lnbits_balance: 'LNbits残高: {balance} sats',
   funding_reserve_percent: '予約パーセント: {percent} %',
-  node_managment: 'ノード管理',
+  node_management: 'ノード管理',
   node_management_not_supported:
     'アクティブな資金源ではノード管理がサポートされていません',
   toggle_node_ui: 'ノードUI',

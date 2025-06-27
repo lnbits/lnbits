@@ -337,7 +337,7 @@ window.localisation.pl = {
   node_balance: 'Saldo węzła: {balance} sats',
   lnbits_balance: 'Saldo LNbits: {balance} sats',
   funding_reserve_percent: 'Rezerwa procentowa: {percent} %',
-  node_managment: 'Zarządzanie węzłami',
+  node_management: 'Zarządzanie węzłami',
   node_management_not_supported:
     'Zarządzanie węzłami nie jest obsługiwane przez aktywne źródło finansowania.',
   toggle_node_ui: 'Interfejs użytkownika węzła',
