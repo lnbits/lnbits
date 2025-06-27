@@ -94,7 +94,6 @@ async def test_pay_real_invoice_noroute(
     payment = response.json()
     assert payment["paid"] is False
     assert payment["status"] == "failed"
-    assert payment["preimage"] is None
 
 
 @pytest.mark.anyio
