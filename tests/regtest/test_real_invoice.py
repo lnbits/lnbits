@@ -71,6 +71,68 @@ async def test_pay_real_invoice(
 
 @pytest.mark.anyio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_pay_real_invoice_noroute(
+    client,
+    real_invoice_noroute,
+    adminkey_headers_from,
+    inkey_headers_from,
+):
+    response = await client.post(
+        "/api/v1/payments", json=real_invoice_noroute, headers=adminkey_headers_from
+    )
+    assert response.status_code == 520
+    invoice = response.json()
+
+    assert invoice["status"] == "failed"
+
+    # check the payment status
+    response = await client.get(
+        f'/api/v1/payments/{real_invoice_noroute["payment_hash"]}',
+        headers=inkey_headers_from,
+    )
+    assert response.status_code < 300
+    payment = response.json()
+    assert payment["paid"] is False
+    assert payment["status"] == "failed"
+
+
+@pytest.mark.anyio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
+async def test_pay_real_invoice_mainnet(
+    client,
+    adminkey_headers_from,
+    inkey_headers_from,
+):
+    """regtest should fail paying a mainnet invoice"""
+    inv = (
+        "lnbc100n1p59ujlrpp5mn5g5tu7fz0up6asnz0gcceru4hwz0w42g7fuz8gxw67jl7kjjeqcqzyssp5qq"
+        "5y92fwazqdtnu8u9p9qf333hqnkuvtuu5csdze5ak4q86hyrhq9q7sqqqqqqqqqqqqqqqqqqqsqqqqqys"
+        "gqdq2f38xy6t5wvmqz9gxqrrssrzjqwryaup9lh50kkranzgcdnn2fgvx390wgj5jd07rwr3vxeje0glc"
+        "lll4ttz7sp6kpvqqqqlgqqqqqeqqjqm9fkydmtwsxcxx3j44x9fckjqttg54zlxzw92yeaz9nzn8w7hgv"
+        "87ph5ug4wmgxqpk929k7l6dsnc2y9532daaqlpg9tfjglshuh48cpjh0dua"
+    )
+    payment_hash = "dce88a2f9e489fc0ebb0989e8c6323e56ee13dd5523c9e08e833b5e97fd694b2"
+
+    response = await client.post(
+        "/api/v1/payments", json={"bolt11": inv}, headers=adminkey_headers_from
+    )
+    assert response.status_code == 520
+    invoice = response.json()
+    assert invoice["status"] == "failed"
+
+    # check the payment status
+    response = await client.get(
+        f"/api/v1/payments/{payment_hash}",
+        headers=inkey_headers_from,
+    )
+    assert response.status_code < 300
+    payment = response.json()
+    assert payment["paid"] is False
+    assert payment["status"] == "failed"
+
+
+@pytest.mark.anyio
+@pytest.mark.skipif(is_fake, reason="this only works in regtest")
 async def test_create_real_invoice(client, adminkey_headers_from, inkey_headers_from):
     prev_balance = await get_node_balance_sats()
     create_invoice = CreateInvoice(out=False, amount=1000, memo="test")
