@@ -265,9 +265,6 @@ class CoreLightningRestWallet(Wallet):
             r.raise_for_status()
             data = r.json()
 
-            # TODO: remove
-            logger.error(data)
-
             if r.is_error or "error" in data or not data.get("pays"):
                 raise Exception("error in corelightning-rest response")
 
