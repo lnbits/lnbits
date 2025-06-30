@@ -18,7 +18,7 @@ from lnbits.core.crud import (
     update_payment,
 )
 from lnbits.core.models import Payment, PaymentState
-from lnbits.core.services.payments import handle_fiat_payment_confirmation
+from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
