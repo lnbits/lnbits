@@ -1,4 +1,7 @@
-from .funding_source import get_balance_delta, switch_to_voidwallet
+from .funding_source import (
+    get_balance_delta,
+    switch_to_voidwallet,
+)
 from .notifications import enqueue_notification, send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
@@ -41,17 +44,13 @@ __all__ = [
     "create_user_account_no_ckeck",
     "create_wallet_invoice",
     "enqueue_notification",
-    "enqueue_notification",
     "fee_reserve",
     "fee_reserve_total",
-    "get_balance_delta",
     "get_balance_delta",
     "get_payments_daily_stats",
     "pay_invoice",
     "send_payment_notification",
-    "send_payment_notification",
     "service_fee",
-    "switch_to_voidwallet",
     "switch_to_voidwallet",
     "update_cached_settings",
     "update_pending_payment",
