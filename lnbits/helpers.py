@@ -363,3 +363,14 @@ def safe_upload_file_path(filename: str, directory: str = "images") -> Path:
     # Prevent filename with subdirectories
     file_path = image_folder / filename.split("/")[-1]
     return file_path.resolve()
+
+
+def normalize_endpoint(endpoint: str, add_proto=True) -> str:
+    endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+    if add_proto:
+        if endpoint.startswith("ws://") or endpoint.startswith("wss://"):
+            return endpoint
+        endpoint = (
+            f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
+        )
+    return endpoint

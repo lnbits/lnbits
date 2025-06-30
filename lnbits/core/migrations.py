@@ -719,3 +719,7 @@ async def m032_add_external_id_to_accounts(db: Connection):
     Used for external account linking.
     """
     await db.execute("ALTER TABLE accounts ADD COLUMN external_id TEXT")
+
+
+async def m033_update_payment_table(db: Connection):
+    await db.execute("ALTER TABLE apipayments ADD COLUMN fiat_provider TEXT")

@@ -110,11 +110,13 @@ class Account(BaseModel):
 
     is_super_user: bool = Field(default=False, no_database=True)
     is_admin: bool = Field(default=False, no_database=True)
+    fiat_providers: list[str] = Field(default=[], no_database=True)
 
     def __init__(self, **data):
         super().__init__(**data)
         self.is_super_user = settings.is_super_user(self.id)
         self.is_admin = settings.is_admin_user(self.id)
+        self.fiat_providers = settings.get_fiat_providers_for_user(self.id)
 
     def hash_password(self, password: str) -> str:
         """sets and returns the hashed password"""
@@ -191,6 +193,7 @@ class User(BaseModel):
     wallets: list[Wallet] = []
     admin: bool = False
     super_user: bool = False
+    fiat_providers: list[str] = []
     has_password: bool = False
     extra: UserExtra = UserExtra()
 

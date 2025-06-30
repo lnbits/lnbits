@@ -9,6 +9,7 @@ import httpx
 from loguru import logger
 from websockets.client import connect
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -35,7 +36,7 @@ class PhoenixdWallet(Wallet):
                 "cannot initialize PhoenixdWallet: missing phoenixd_api_password"
             )
 
-        self.endpoint = self.normalize_endpoint(settings.phoenixd_api_endpoint)
+        self.endpoint = normalize_endpoint(settings.phoenixd_api_endpoint)
         parsed_url = urllib.parse.urlparse(settings.phoenixd_api_endpoint)
 
         if parsed_url.scheme == "http":

@@ -9,6 +9,8 @@ from bolt11 import Bolt11Exception
 from bolt11.decode import decode
 from loguru import logger
 
+from lnbits.exceptions import UnsupportedError
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
@@ -18,7 +20,6 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    UnsupportedError,
     Wallet,
 )
 from .macaroon import load_macaroon
@@ -43,7 +44,7 @@ class CoreLightningRestWallet(Wallet):
                 "invalid corelightning_rest_macaroon provided"
             )
 
-        self.url = self.normalize_endpoint(settings.corelightning_rest_url)
+        self.url = normalize_endpoint(settings.corelightning_rest_url)
         headers = {
             "macaroon": macaroon,
             "encodingtype": "hex",

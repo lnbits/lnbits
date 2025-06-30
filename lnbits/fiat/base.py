@@ -1,26 +1,22 @@
 from __future__ import annotations
 
-import asyncio
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple
 
-from loguru import logger
-
 if TYPE_CHECKING:
-    from lnbits.nodes.base import Node
+    pass
 
 
-class StatusResponse(NamedTuple):
-    error_message: str | None
-    balance_msat: int
+class FiatStatusResponse(NamedTuple):
+    error_message: str | None = None
+    balance: float = 0
 
 
-class InvoiceResponse(NamedTuple):
+class FiatInvoiceResponse(NamedTuple):
     ok: bool
     checking_id: str | None = None  # payment_hash, rpc_id
     payment_request: str | None = None
     error_message: str | None = None
-    preimage: str | None = None
 
     @property
     def success(self) -> bool:
@@ -35,12 +31,11 @@ class InvoiceResponse(NamedTuple):
         return self.ok is False
 
 
-class PaymentResponse(NamedTuple):
+class FiatPaymentResponse(NamedTuple):
     # when ok is None it means we don't know if this succeeded
     ok: bool | None = None
     checking_id: str | None = None  # payment_hash, rcp_id
-    fee_msat: int | None = None
-    preimage: str | None = None
+    fee: float | None = None
     error_message: str | None = None
 
     @property
@@ -56,10 +51,9 @@ class PaymentResponse(NamedTuple):
         return self.ok is False
 
 
-class PaymentStatus(NamedTuple):
+class FiatPaymentStatus(NamedTuple):
     paid: bool | None = None
-    fee_msat: int | None = None
-    preimage: str | None = None
+    fee: float | None = None  # todo: what fee is this?
 
     @property
     def success(self) -> bool:
@@ -81,72 +75,60 @@ class PaymentStatus(NamedTuple):
         return "pending"
 
 
-class PaymentSuccessStatus(PaymentStatus):
+class FiatPaymentSuccessStatus(FiatPaymentStatus):
     paid = True
 
 
-class PaymentFailedStatus(PaymentStatus):
+class FiatPaymentFailedStatus(FiatPaymentStatus):
     paid = False
 
 
-class PaymentPendingStatus(PaymentStatus):
+class FiatPaymentPendingStatus(FiatPaymentStatus):
     paid = None
 
 
-class Wallet(ABC):
-
-    __node_cls__: type[Node] | None = None
-
-    def __init__(self) -> None:
-        self.pending_invoices: list[str] = []
-
+class FiatProvider(ABC):
     @abstractmethod
     async def cleanup(self):
         pass
 
     @abstractmethod
-    def status(self) -> Coroutine[None, None, StatusResponse]:
+    def status(
+        self, only_check_settings: bool | None = False
+    ) -> Coroutine[None, None, FiatStatusResponse]:
         pass
 
     @abstractmethod
     def create_invoice(
         self,
-        amount: int,
+        amount: float,
+        payment_hash: str,
+        currency: str,
         memo: str | None = None,
-        description_hash: bytes | None = None,
-        unhashed_description: bytes | None = None,
         **kwargs,
-    ) -> Coroutine[None, None, InvoiceResponse]:
+    ) -> Coroutine[None, None, FiatInvoiceResponse]:
         pass
 
     @abstractmethod
     def pay_invoice(
-        self, bolt11: str, fee_limit_msat: int
-    ) -> Coroutine[None, None, PaymentResponse]:
+        self,
+        payment_request: str,
+    ) -> Coroutine[None, None, FiatPaymentResponse]:
         pass
 
     @abstractmethod
     def get_invoice_status(
         self, checking_id: str
-    ) -> Coroutine[None, None, PaymentStatus]:
+    ) -> Coroutine[None, None, FiatPaymentStatus]:
         pass
 
     @abstractmethod
     def get_payment_status(
         self, checking_id: str
-    ) -> Coroutine[None, None, PaymentStatus]:
+    ) -> Coroutine[None, None, FiatPaymentStatus]:
         pass
 
-    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
-            for invoice in self.pending_invoices:
-                try:
-                    status = await self.get_invoice_status(invoice)
-                    if status.paid:
-                        yield invoice
-                        self.pending_invoices.remove(invoice)
-                    elif status.failed:
-                        self.pending_invoices.remove(invoice)
-                except Exception as exc:
-                    logger.error(f"could not get status of invoice {invoice}: '{exc}' ")
-            await asyncio.sleep(5)
+    async def paid_invoices_stream(
+        self,
+    ) -> AsyncGenerator[str, None]:
+        yield ""

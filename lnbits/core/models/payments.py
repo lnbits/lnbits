@@ -8,6 +8,13 @@ from fastapi import Query
 from pydantic import BaseModel, Field, validator
 
 from lnbits.db import FilterModel
+from lnbits.fiat import get_fiat_provider
+from lnbits.fiat.base import (
+    FiatPaymentFailedStatus,
+    FiatPaymentPendingStatus,
+    FiatPaymentStatus,
+    FiatPaymentSuccessStatus,
+)
 from lnbits.utils.exchange_rates import allowed_currencies
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import (
@@ -60,6 +67,8 @@ class Payment(BaseModel):
     amount: int
     fee: int
     bolt11: str
+    # payment_request: str | None
+    fiat_provider: str | None = None
     status: str = PaymentState.PENDING
     memo: str | None = None
     expiry: datetime | None = None
@@ -107,14 +116,23 @@ class Payment(BaseModel):
 
     @property
     def is_internal(self) -> bool:
-        return self.checking_id.startswith("internal_")
+        return self.checking_id.startswith("internal_") or self.checking_id.startswith(
+            "fiat_"
+        )
 
-    async def check_status(self) -> PaymentStatus:
+    async def check_status(
+        self, skip_internal_payment_notifications: bool | None = False
+    ) -> PaymentStatus:
         if self.is_internal:
             if self.success:
                 return PaymentSuccessStatus()
             if self.failed:
                 return PaymentFailedStatus()
+            if self.is_in and self.fiat_provider:
+                fiat_status = await self.check_fiat_status(
+                    skip_internal_payment_notifications
+                )
+                return PaymentStatus(paid=fiat_status.paid)
             return PaymentPendingStatus()
         funding_source = get_funding_source()
         if self.is_out:
@@ -122,6 +140,39 @@ class Payment(BaseModel):
         else:
             status = await funding_source.get_invoice_status(self.checking_id)
         return status
+
+    async def check_fiat_status(
+        self, skip_internal_payment_notifications: bool | None = False
+    ) -> FiatPaymentStatus:
+        if not self.is_internal:
+            return FiatPaymentPendingStatus()
+        if self.success:
+            return FiatPaymentSuccessStatus()
+        if self.failed:
+            return FiatPaymentFailedStatus()
+
+        if not self.fiat_provider:
+            return FiatPaymentPendingStatus()
+
+        checking_id = self.extra.get("fiat_checking_id")
+        if not checking_id:
+            return FiatPaymentPendingStatus()
+
+        fiat_provider = await get_fiat_provider(self.fiat_provider)
+        if not fiat_provider:
+            return FiatPaymentPendingStatus()
+        fiat_status = await fiat_provider.get_invoice_status(checking_id)
+
+        if skip_internal_payment_notifications:
+            return fiat_status
+
+        if fiat_status.success:
+            # notify receivers asynchronously
+            from lnbits.tasks import internal_invoice_queue
+
+            await internal_invoice_queue.put(self.checking_id)
+
+        return fiat_status
 
 
 class PaymentFilters(FilterModel):
@@ -206,6 +257,7 @@ class CreateInvoice(BaseModel):
     webhook: str | None = None
     bolt11: str | None = None
     lnurl_callback: str | None = None
+    fiat_provider: str | None = None
 
     @validator("unit")
     @classmethod

@@ -6,6 +6,7 @@ from typing import Any, AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -94,7 +95,7 @@ class StrikeWallet(Wallet):
         self._general_limiter = TokenBucket(1000, 600)
 
         self.client = httpx.AsyncClient(
-            base_url=self.normalize_endpoint(settings.strike_api_endpoint),
+            base_url=normalize_endpoint(settings.strike_api_endpoint),
             headers={
                 "Authorization": f"Bearer {settings.strike_api_key}",
                 "Content-Type": "application/json",
