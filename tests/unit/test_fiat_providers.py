@@ -26,7 +26,7 @@ async def test_create_wallet_fiat_invoice_missing_provider():
         unit="USD", amount=1.0, memo="Test", fiat_provider=None
     )
     with pytest.raises(ValueError, match="Fiat provider is required"):
-        await payments.create_wallet_fiat_invoice("wallet_id", invoice_data)
+        await payments.create_fiat_invoice("wallet_id", invoice_data)
 
 
 @pytest.mark.anyio
@@ -38,7 +38,7 @@ async def test_create_wallet_fiat_invoice_provider_not_enabled(settings: Setting
     with pytest.raises(
         ValueError, match="Fiat provider 'notarealprovider' is not enabled"
     ):
-        await payments.create_wallet_fiat_invoice("wallet_id", invoice_data)
+        await payments.create_fiat_invoice("wallet_id", invoice_data)
 
 
 @pytest.mark.anyio
@@ -48,7 +48,7 @@ async def test_create_wallet_fiat_invoice_with_sat_unit(settings: Settings):
         unit="sat", amount=1.0, memo="Test", fiat_provider="stripe"
     )
     with pytest.raises(ValueError, match="Fiat provider cannot be used with satoshis"):
-        await payments.create_wallet_fiat_invoice("wallet_id", invoice_data)
+        await payments.create_fiat_invoice("wallet_id", invoice_data)
 
 
 @pytest.mark.anyio
@@ -101,13 +101,13 @@ async def test_create_wallet_fiat_invoice_fiat_limits_fail(
         AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
     )
     with pytest.raises(ValueError, match="Maximum amount is 105 sats for 'stripe'."):
-        await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
 
     settings.stripe_limits.service_min_amount_sats = 1001
     settings.stripe_limits.service_max_amount_sats = 10000
 
     with pytest.raises(ValueError, match="Minimum amount is 1001 sats for 'stripe'."):
-        await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
 
     settings.stripe_limits.service_min_amount_sats = 10
     settings.stripe_limits.service_max_amount_sats = 10000
@@ -116,14 +116,14 @@ async def test_create_wallet_fiat_invoice_fiat_limits_fail(
     with pytest.raises(
         ValueError, match="Fiat provider 'stripe' service fee wallet missing."
     ):
-        await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
 
     settings.stripe_limits.service_fee_wallet_id = "not_a_real_wallet_id"
 
     with pytest.raises(
         ValueError, match="Fiat provider 'stripe' service fee wallet not found."
     ):
-        await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
 
     settings.stripe_limits.service_fee_wallet_id = to_wallet.id
     settings.stripe_limits.service_faucet_wallet_id = "not_a_real_wallet_id"
@@ -131,7 +131,7 @@ async def test_create_wallet_fiat_invoice_fiat_limits_fail(
     with pytest.raises(
         ValueError, match="Fiat provider 'stripe' faucet wallet not found."
     ):
-        await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
 
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
@@ -140,7 +140,7 @@ async def test_create_wallet_fiat_invoice_fiat_limits_fail(
     with pytest.raises(
         ValueError, match="The amount exceeds the 'stripe'faucet wallet balance."
     ):
-        await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+        await payments.create_fiat_invoice(to_wallet.id, invoice_data)
 
 
 @pytest.mark.anyio
@@ -170,7 +170,7 @@ async def test_create_wallet_fiat_provider_fails(
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
     with pytest.raises(ValueError, match="Cannot create payment request for 'stripe'."):
-        await payments.create_wallet_fiat_invoice(wallet.id, invoice_data)
+        await payments.create_fiat_invoice(wallet.id, invoice_data)
 
     wallet_payments = await get_payments(wallet_id=wallet.id)
     assert len(wallet_payments) == 1
@@ -206,7 +206,7 @@ async def test_create_wallet_fiat_invoice_success(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
         AsyncMock(return_value=1000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
     )
-    payment = await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
     assert payment.status == PaymentState.PENDING
     assert payment.amount == 1000_000
     assert payment.fiat_provider == "stripe"
@@ -300,7 +300,7 @@ async def test_handle_fiat_payment_confirmation(
         "lnbits.utils.exchange_rates.get_fiat_rate_satoshis",
         AsyncMock(return_value=10000),  # 1 BTC = 100 000 USD, so 1 USD = 1000 sats
     )
-    payment = await payments.create_wallet_fiat_invoice(to_wallet.id, invoice_data)
+    payment = await payments.create_fiat_invoice(to_wallet.id, invoice_data)
     assert payment.status == PaymentState.PENDING
     assert payment.amount == 10_000_000
 

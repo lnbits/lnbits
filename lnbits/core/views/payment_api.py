@@ -62,7 +62,7 @@ from ..crud import (
     get_wallet_for_key,
 )
 from ..services import (
-    create_wallet_fiat_invoice,
+    create_fiat_invoice,
     create_wallet_invoice,
     fee_reserve_total,
     get_payments_daily_stats,
@@ -265,7 +265,7 @@ async def api_payments_create(
 
     # If the payment is not outgoing, we can create a new invoice.
     if invoice_data.fiat_provider:
-        return await create_wallet_fiat_invoice(wallet_id, invoice_data)
+        return await create_fiat_invoice(wallet_id, invoice_data)
 
     return await create_wallet_invoice(wallet_id, invoice_data)
 

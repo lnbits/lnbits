@@ -98,7 +98,7 @@ async def pay_invoice(
     return payment
 
 
-async def create_wallet_fiat_invoice(
+async def create_fiat_invoice(
     wallet_id: str, invoice_data: CreateInvoice, conn: Optional[Connection] = None
 ):
     fiat_provider_name = invoice_data.fiat_provider
