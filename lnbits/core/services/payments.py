@@ -1,13 +1,13 @@
 import asyncio
-import json
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import httpx
 from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
+from lnurl import LnurlErrorResponse, LnurlSuccessResponse
+from lnurl import execute_withdraw as lnurl_withdraw
 from loguru import logger
 
 from lnbits.core.crud.payments import get_daily_stats
@@ -207,28 +207,24 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
         payment_hash=data.payment_hash,
     )
 
-    # lnurl_response is not saved in the database
-    if data.lnurl_callback:
-        headers = {"User-Agent": settings.user_agent}
-        async with httpx.AsyncClient(headers=headers) as client:
-            try:
-                check_callback_url(data.lnurl_callback)
-                r = await client.get(
-                    data.lnurl_callback,
-                    params={"pr": payment.bolt11},
-                    timeout=10,
-                )
-                if r.is_error:
-                    payment.extra["lnurl_response"] = r.text
-                else:
-                    resp = json.loads(r.text)
-                    if resp["status"] != "OK":
-                        payment.extra["lnurl_response"] = resp["reason"]
-                    else:
-                        payment.extra["lnurl_response"] = True
-            except (httpx.ConnectError, httpx.RequestError) as ex:
-                logger.error(ex)
-                payment.extra["lnurl_response"] = False
+    if data.lnurl_withdraw:
+        try:
+            check_callback_url(data.lnurl_withdraw.callback)
+            res = await lnurl_withdraw(
+                data.lnurl_withdraw,
+                payment.bolt11,
+                user_agent=settings.user_agent,
+                timeout=10,
+            )
+            if isinstance(res, LnurlErrorResponse):
+                payment.extra["lnurl_response"] = res.reason
+                payment.status = "failed"
+            elif isinstance(res, LnurlSuccessResponse):
+                payment.extra["lnurl_response"] = True
+        except Exception as exc:
+            payment.extra["lnurl_response"] = str(exc)
+            payment.status = "failed"
+        await update_payment(payment)
 
     return payment
 

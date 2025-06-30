@@ -258,10 +258,10 @@ window.WalletPageLogic = {
           this.receive.data.amount,
           this.receive.data.memo,
           this.receive.unit,
-          this.receive.lnurl && this.receive.lnurl.callback,
-          this.receive.fiatProvider,
           this.receive.data.internalMemo,
-          this.receive.data.payment_hash
+          this.receive.data.payment_hash,
+          this.receive.lnurlWithdraw,
+          this.receive.fiatProvider
         )
         .then(response => {
           this.g.updatePayments = !this.g.updatePayments
@@ -276,24 +276,24 @@ window.WalletPageLogic = {
           }
           // TODO: lnurl_callback and lnurl_response
           // WITHDRAW
-          if (response.data.lnurl_response !== null) {
-            if (response.data.lnurl_response === false) {
-              response.data.lnurl_response = `Unable to connect`
+          if (response.data.extra.lnurl_response !== null) {
+            if (response.data.extra.lnurl_response === false) {
+              response.data.extra.lnurl_response = `Unable to connect`
             }
 
-            if (typeof response.data.lnurl_response === 'string') {
+            if (typeof response.data.extra.lnurl_response === 'string') {
               // failure
               Quasar.Notify.create({
                 timeout: 5000,
                 type: 'warning',
                 message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
-                caption: response.data.lnurl_response
+                caption: response.data.extra.lnurl_response
               })
               return
-            } else if (response.data.lnurl_response === true) {
+            } else if (response.data.extra.lnurl_response === true) {
               // success
               Quasar.Notify.create({
-                timeout: 5000,
+                timeout: 3000,
                 message: `Invoice sent to ${this.receive.lnurl.domain}!`,
                 spinner: true
               })
@@ -361,14 +361,15 @@ window.WalletPageLogic = {
             return
           }
 
-          if (data.kind === 'pay') {
+          if (data.tag === 'payRequest') {
             this.parse.lnurlpay = Object.freeze(data)
             this.parse.data.amount = data.minSendable / 1000
-          } else if (data.kind === 'auth') {
+          } else if (data.tag === 'login') {
             this.parse.lnurlauth = Object.freeze(data)
-          } else if (data.kind === 'withdraw') {
+          } else if (data.tag === 'withdrawRequest') {
             this.parse.show = false
             this.receive.show = true
+            this.receive.lnurlWithdraw = Object.freeze(data)
             this.receive.status = 'pending'
             this.receive.paymentReq = null
             this.receive.paymentHash = null
@@ -378,8 +379,9 @@ window.WalletPageLogic = {
               data.minWithdrawable / 1000,
               data.maxWithdrawable / 1000
             ]
+            const domain = data.callback.split('/')[2]
             this.receive.lnurl = {
-              domain: data.domain,
+              domain: domain,
               callback: data.callback,
               fixed: data.fixed
             }
@@ -520,16 +522,13 @@ window.WalletPageLogic = {
         message: 'Processing payment...'
       })
       LNbits.api
-        .payLnurl(
-          this.g.wallet,
-          this.parse.lnurlpay.callback,
-          this.parse.lnurlpay.description_hash,
-          this.parse.data.amount * 1000,
-          this.parse.lnurlpay.description.slice(0, 120),
-          this.parse.data.comment,
-          this.parse.data.unit,
-          this.parse.data.internalMemo
-        )
+        .request('post', '/api/v1/payments/lnurl', this.g.wallet.adminkey, {
+          res: this.parse.lnurlpay,
+          unit: this.parse.data.unit,
+          amount: this.parse.data.amount * 1000,
+          comment: this.parse.data.comment,
+          internalMemo: this.parse.data.internalMemo
+        })
         .then(response => {
           this.parse.show = false
 
@@ -615,7 +614,6 @@ window.WalletPageLogic = {
           this.parse.show = false
         })
         .catch(err => {
-          dismissAuthMsg()
           if (err.response.data.reason) {
             Quasar.Notify.create({
               message: `Authentication failed. ${this.parse.lnurlauth.domain} says:`,

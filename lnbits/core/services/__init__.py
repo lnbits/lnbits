@@ -2,7 +2,6 @@ from .funding_source import (
     get_balance_delta,
     switch_to_voidwallet,
 )
-from .lnurl import perform_lnurlauth, redeem_lnurl_withdraw
 from .notifications import enqueue_notification, send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
@@ -55,8 +54,6 @@ __all__ = [
     "get_balance_delta",
     "get_payments_daily_stats",
     "pay_invoice",
-    "perform_lnurlauth",
-    "redeem_lnurl_withdraw",
     "send_payment_notification",
     "service_fee",
     "settle_hold_invoice",
