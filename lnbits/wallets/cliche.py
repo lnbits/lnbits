@@ -6,6 +6,7 @@ from typing import AsyncGenerator, Optional
 from loguru import logger
 from websocket import create_connection
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -25,7 +26,7 @@ class ClicheWallet(Wallet):
         if not settings.cliche_endpoint:
             raise ValueError("cannot initialize ClicheWallet: missing cliche_endpoint")
 
-        self.endpoint = self.normalize_endpoint(settings.cliche_endpoint)
+        self.endpoint = normalize_endpoint(settings.cliche_endpoint)
 
     async def cleanup(self):
         pass

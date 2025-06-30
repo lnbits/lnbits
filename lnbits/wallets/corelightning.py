@@ -8,6 +8,7 @@ from bolt11.exceptions import Bolt11Exception
 from loguru import logger
 from pyln.client import LightningRpc, RpcError
 
+from lnbits.exceptions import UnsupportedError
 from lnbits.nodes.cln import CoreLightningNode
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
@@ -20,7 +21,6 @@ from .base import (
     PaymentStatus,
     PaymentSuccessStatus,
     StatusResponse,
-    UnsupportedError,
     Wallet,
 )
 

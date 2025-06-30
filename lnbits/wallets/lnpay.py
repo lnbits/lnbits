@@ -5,6 +5,7 @@ from typing import AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -36,7 +37,7 @@ class LNPayWallet(Wallet):
                 "missing lnpay_wallet_key or lnpay_admin_key"
             )
         self.wallet_key = wallet_key
-        self.endpoint = self.normalize_endpoint(settings.lnpay_api_endpoint)
+        self.endpoint = normalize_endpoint(settings.lnpay_api_endpoint)
 
         headers = {
             "X-Api-Key": settings.lnpay_api_key,
