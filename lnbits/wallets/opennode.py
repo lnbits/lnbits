@@ -5,6 +5,7 @@ import httpx
 from loguru import logger
 
 from lnbits.exceptions import UnsupportedError
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -38,7 +39,7 @@ class OpenNodeWallet(Wallet):
             )
         self.key = key
 
-        self.endpoint = self.normalize_endpoint(settings.opennode_api_endpoint)
+        self.endpoint = normalize_endpoint(settings.opennode_api_endpoint)
 
         headers = {
             "Authorization": self.key,

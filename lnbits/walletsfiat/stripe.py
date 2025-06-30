@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 import httpx
 from loguru import logger
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -32,7 +33,7 @@ class StripeWallet(FiatProvider):
 
         if not settings.stripe_api_secret_key:
             raise ValueError("Cannot initialize StripeWallet: missing API secret key.")
-        self.endpoint = self.normalize_endpoint(settings.stripe_api_endpoint)
+        self.endpoint = normalize_endpoint(settings.stripe_api_endpoint)
         self.headers = {
             "Authorization": f"Bearer {settings.stripe_api_secret_key}",
             "User-Agent": settings.user_agent,

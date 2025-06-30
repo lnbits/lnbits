@@ -6,6 +6,7 @@ import httpx
 from bolt11 import decode as bolt11_decode
 from loguru import logger
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -27,7 +28,7 @@ class ZBDWallet(Wallet):
         if not settings.zbd_api_key:
             raise ValueError("cannot initialize ZBDWallet: missing zbd_api_key")
 
-        self.endpoint = self.normalize_endpoint(settings.zbd_api_endpoint)
+        self.endpoint = normalize_endpoint(settings.zbd_api_endpoint)
         headers = {
             "apikey": settings.zbd_api_key,
             "User-Agent": settings.user_agent,

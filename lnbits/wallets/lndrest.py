@@ -7,6 +7,7 @@ from typing import Any, AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.nodes.lndrest import LndRestNode
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
@@ -41,7 +42,7 @@ class LndRestWallet(Wallet):
                 "This only works if you have a publicly issued certificate."
             )
 
-        self.endpoint = self.normalize_endpoint(settings.lnd_rest_endpoint)
+        self.endpoint = normalize_endpoint(settings.lnd_rest_endpoint)
 
         # if no cert provided it should be public so we set verify to True
         # and it will still check for validity of certificate and fail if its not valid

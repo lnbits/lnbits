@@ -7,6 +7,7 @@ from typing import AsyncGenerator, Optional
 import httpx
 from loguru import logger
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -36,7 +37,7 @@ class SparkWallet(Wallet):
         if not settings.spark_token:
             raise ValueError("cannot initialize SparkWallet: missing spark_token")
 
-        url = self.normalize_endpoint(settings.spark_url)
+        url = normalize_endpoint(settings.spark_url)
         url = url.replace("/rpc", "")
         self.token = settings.spark_token
 

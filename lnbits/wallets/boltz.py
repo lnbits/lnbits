@@ -5,6 +5,7 @@ from bolt11.decode import decode
 from grpc.aio import AioRpcError
 from loguru import logger
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2, boltzrpc_pb2_grpc
 from lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc import grpc
@@ -42,7 +43,7 @@ class BoltzWallet(Wallet):
                 "cannot initialize BoltzWallet: missing boltz_client_wallet"
             )
 
-        self.endpoint = self.normalize_endpoint(
+        self.endpoint = normalize_endpoint(
             settings.boltz_client_endpoint, add_proto=True
         )
 

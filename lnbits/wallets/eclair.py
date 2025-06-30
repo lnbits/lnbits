@@ -11,6 +11,7 @@ import httpx
 from loguru import logger
 from websockets.client import connect
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
@@ -39,7 +40,7 @@ class EclairWallet(Wallet):
         if not settings.eclair_pass:
             raise ValueError("cannot initialize EclairWallet: missing eclair_pass")
 
-        self.url = self.normalize_endpoint(settings.eclair_url)
+        self.url = normalize_endpoint(settings.eclair_url)
         self.ws_url = f"ws://{urllib.parse.urlsplit(self.url).netloc}/ws"
 
         password = settings.eclair_pass
