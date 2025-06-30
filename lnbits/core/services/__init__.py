@@ -1,8 +1,4 @@
-from .funding_source import (
-    get_balance_delta,
-    switch_to_voidwallet,
-)
-from .lnurl import perform_lnurlauth, redeem_lnurl_withdraw
+from .funding_source import get_balance_delta, switch_to_voidwallet
 from .notifications import enqueue_notification, send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
@@ -34,6 +30,10 @@ from .users import (
 from .websockets import websocket_manager, websocket_updater
 
 __all__ = [
+    "get_balance_delta",
+    "switch_to_voidwallet",
+    "enqueue_notification",
+    "send_payment_notification",
     "calculate_fiat_amounts",
     "check_admin_settings",
     "check_transaction_status",
@@ -50,8 +50,6 @@ __all__ = [
     "get_balance_delta",
     "get_payments_daily_stats",
     "pay_invoice",
-    "perform_lnurlauth",
-    "redeem_lnurl_withdraw",
     "send_payment_notification",
     "service_fee",
     "switch_to_voidwallet",

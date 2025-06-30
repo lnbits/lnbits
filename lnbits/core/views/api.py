@@ -1,28 +1,39 @@
-import hashlib
-import json
 from http import HTTPStatus
 from io import BytesIO
 from time import time
 from typing import Any
-from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
-import httpx
 import pyqrcode
+from bolt11 import decode as bolt11_decode
 from fastapi import (
     APIRouter,
     Depends,
+    HTTPException,
 )
-from fastapi.exceptions import HTTPException
 from fastapi.responses import StreamingResponse
+from lnurl import LnurlResponseException
+from lnurl import execute_login as lnurlauth
+from lnurl import execute_pay_request as lnurlp
+from lnurl import handle as lnurl_handle
+from lnurl.models import (
+    LnurlAuthResponse,
+    LnurlErrorResponse,
+    LnurlPayActionResponse,
+    LnurlPayResponse,
+    LnurlResponseModel,
+    LnurlWithdrawResponse,
+)
+from loguru import logger
 
 from lnbits.core.models import (
     BaseWallet,
     ConversionData,
-    CreateLnurlAuth,
     CreateWallet,
+    Payment,
     User,
     Wallet,
 )
+from lnbits.core.models.lnurl import CreateLnurlPayment
 from lnbits.decorators import (
     WalletTypeInfo,
     check_user_exists,
@@ -30,7 +41,6 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import check_callback_url
-from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     allowed_currencies,
@@ -41,7 +51,7 @@ from lnbits.utils.exchange_rates import (
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import StatusResponse
 
-from ..services import create_user_account, perform_lnurlauth
+from ..services import create_user_account, pay_invoice
 
 api_router = APIRouter(tags=["Core"])
 
@@ -92,141 +102,99 @@ async def api_create_account(data: CreateWallet) -> Wallet:
     return user.wallets[0]
 
 
-@api_router.get("/api/v1/lnurlscan/{code}")
-async def api_lnurlscan(
-    code: str, wallet: WalletTypeInfo = Depends(require_invoice_key)
-):
-    try:
-        url = str(lnurl_decode(code))
-        domain = urlparse(url).netloc
-    except Exception as exc:
-        # parse internet identifier (user@domain.com)
-        name_domain = code.split("@")
-        if len(name_domain) == 2 and len(name_domain[1].split(".")) >= 2:
-            name, domain = name_domain
-            url = (
-                ("http://" if domain.endswith(".onion") else "https://")
-                + domain
-                + "/.well-known/lnurlp/"
-                + name
-            )
-            # will proceed with these values
-        else:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, detail="invalid lnurl"
-            ) from exc
-
-    # params is what will be returned to the client
-    params: dict = {"domain": domain}
-
-    if "tag=login" in url:
-        params.update(kind="auth")
-        params.update(callback=url)  # with k1 already in it
-
-        lnurlauth_key = wallet.wallet.lnurlauth_key(domain)
-        assert lnurlauth_key.verifying_key
-        params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
-    else:
-        headers = {"User-Agent": settings.user_agent}
-        async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
-            check_callback_url(url)
-            try:
-                r = await client.get(url, timeout=5)
-                r.raise_for_status()
-            except httpx.HTTPStatusError as exc:
-                if exc.response.status_code == 404:
-                    raise HTTPException(HTTPStatus.NOT_FOUND, "Not found") from exc
-
-                raise HTTPException(
-                    status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                    detail={
-                        "domain": domain,
-                        "message": "failed to get parameters",
-                    },
-                ) from exc
-        try:
-            data = json.loads(r.text)
-        except json.decoder.JSONDecodeError as exc:
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                detail={
-                    "domain": domain,
-                    "message": f"got invalid response '{r.text[:200]}'",
-                },
-            ) from exc
-
-        try:
-            tag: str = data.get("tag")
-            params.update(**data)
-            if tag == "channelRequest":
-                raise HTTPException(
-                    status_code=HTTPStatus.BAD_REQUEST,
-                    detail={
-                        "domain": domain,
-                        "kind": "channel",
-                        "message": "unsupported",
-                    },
-                )
-            elif tag == "withdrawRequest":
-                params.update(kind="withdraw")
-                params.update(fixed=data["minWithdrawable"] == data["maxWithdrawable"])
-
-                # callback with k1 already in it
-                parsed_callback: ParseResult = urlparse(data["callback"])
-                qs: dict = parse_qs(parsed_callback.query)
-                qs["k1"] = data["k1"]
-
-                # balanceCheck/balanceNotify
-                if "balanceCheck" in data:
-                    params.update(balanceCheck=data["balanceCheck"])
-
-                # format callback url and send to client
-                parsed_callback = parsed_callback._replace(
-                    query=urlencode(qs, doseq=True)
-                )
-                params.update(callback=urlunparse(parsed_callback))
-            elif tag == "payRequest":
-                params.update(kind="pay")
-                params.update(fixed=data["minSendable"] == data["maxSendable"])
-
-                params.update(
-                    description_hash=hashlib.sha256(
-                        data["metadata"].encode()
-                    ).hexdigest()
-                )
-                metadata = json.loads(data["metadata"])
-                for [k, v] in metadata:
-                    if k == "text/plain":
-                        params.update(description=v)
-                    if k in ("image/jpeg;base64", "image/png;base64"):
-                        data_uri = f"data:{k},{v}"
-                        params.update(image=data_uri)
-                    if k in ("text/email", "text/identifier"):
-                        params.update(targetUser=v)
-                params.update(commentAllowed=data.get("commentAllowed", 0))
-
-        except KeyError as exc:
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                detail={
-                    "domain": domain,
-                    "message": f"lnurl JSON response invalid: {exc}",
-                },
-            ) from exc
-
-    return params
+@api_router.get(
+    "/api/v1/lnurlscan/{code}",
+    dependencies=[Depends(require_invoice_key)],
+    response_model=LnurlPayResponse
+    | LnurlWithdrawResponse
+    | LnurlAuthResponse
+    | LnurlErrorResponse,
+)
+async def api_lnurlscan(code: str) -> LnurlResponseModel:
+    lnurl_response = await lnurl_handle(code, user_agent=settings.user_agent, timeout=5)
+    if isinstance(
+        lnurl_response, (LnurlPayResponse, LnurlWithdrawResponse, LnurlAuthResponse)
+    ):
+        check_callback_url(lnurl_response.callback)
+    return lnurl_response
 
 
 @api_router.post("/api/v1/lnurlauth")
 async def api_perform_lnurlauth(
-    data: CreateLnurlAuth, wallet: WalletTypeInfo = Depends(require_admin_key)
-):
-    err = await perform_lnurlauth(data.callback, wallet=wallet)
-    if err:
-        raise HTTPException(
-            status_code=HTTPStatus.SERVICE_UNAVAILABLE, detail=err.reason
+    data: LnurlAuthResponse, key_type: WalletTypeInfo = Depends(require_admin_key)
+) -> LnurlResponseModel:
+    check_callback_url(data.callback)
+    res = await lnurlauth(
+        res=data,
+        seed=key_type.wallet.adminkey,
+        user_agent=settings.user_agent,
+        timeout=5,
+    )
+    return res
+
+
+@api_router.post("/api/v1/payments/lnurl")
+async def api_payments_pay_lnurl(
+    data: CreateLnurlPayment, wallet: WalletTypeInfo = Depends(require_admin_key)
+) -> Payment:
+
+    check_callback_url(data.res.callback)
+
+    if data.unit and data.unit != "sat":
+        amount_msat = await fiat_amount_as_satoshis(data.amount, data.unit) * 1000
+    else:
+        amount_msat = data.amount
+
+    try:
+        res = await lnurlp(
+            data.res,
+            msat=str(amount_msat),
+            user_agent=settings.user_agent,
+            timeout=5,
         )
-    return ""
+    except LnurlResponseException as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
+
+    if not isinstance(res, LnurlPayActionResponse):
+        msg = f"lnurl response is not a LnurlPayActionResponse: {res}"
+        logger.warning(msg)
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=msg)
+
+    invoice = bolt11_decode(res.pr)
+
+    if invoice.amount_msat != amount_msat:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=(
+                f"{data.res.callback} returned an invalid invoice. Expected"
+                f" {amount_msat} msat, got {invoice.amount_msat}."
+            ),
+        )
+
+    if invoice.description:
+        description = invoice.description
+    else:
+        # If the invoice description is empty, use the metadata from the lnurl response
+        description = data.res.metadata.text
+
+    extra: dict[str, Any] = {}
+    if res.success_action:
+        extra["success_action"] = res.success_action.json()
+    if data.comment:
+        extra["comment"] = data.comment
+    if data.unit and data.unit != "sat":
+        extra["fiat_currency"] = data.unit
+        extra["fiat_amount"] = data.amount / 1000
+
+    payment = await pay_invoice(
+        wallet_id=wallet.wallet.id,
+        payment_request=str(res.pr),
+        description=description,
+        extra=extra,
+    )
+    return payment
 
 
 @api_router.get(
