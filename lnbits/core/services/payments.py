@@ -20,7 +20,7 @@ from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
-from lnbits.tasks import create_task, internal_invoice_queue_put
+from lnbits.tasks import internal_invoice_queue_put
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
@@ -587,20 +587,6 @@ async def get_payments_daily_stats(
     return data
 
 
-async def handle_fiat_payment_confirmation(
-    payment: Payment, conn: Optional[Connection] = None
-):
-    try:
-        await _credit_fiat_service_fee_wallet(payment, conn=conn)
-    except Exception as e:
-        logger.warning(e)
-
-    try:
-        await _debit_fiat_service_faucet_wallet(payment, conn=conn)
-    except Exception as e:
-        logger.warning(e)
-
-
 async def _pay_invoice(
     wallet_id: str,
     create_payment_model: CreatePayment,
@@ -878,85 +864,6 @@ async def _credit_service_fee_wallet(
     )
     await create_payment(
         checking_id=f"service_fee_{payment.payment_hash}",
-        data=create_payment_model,
-        status=PaymentState.SUCCESS,
-        conn=conn,
-    )
-
-
-async def _credit_fiat_service_fee_wallet(
-    payment: Payment, conn: Optional[Connection] = None
-):
-    fiat_provider_name = payment.fiat_provider
-    if not fiat_provider_name:
-        return
-    if payment.fee == 0:
-        return
-
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
-    if not limits:
-        return
-
-    if not limits.service_fee_wallet_id:
-        return
-
-    memo = (
-        f"Service fee for fiat payment of "
-        f"{abs(payment.sat)} sats. "
-        f"Provider: {fiat_provider_name}. "
-        f"Wallet: '{payment.wallet_id}'."
-    )
-    create_payment_model = CreatePayment(
-        wallet_id=limits.service_fee_wallet_id,
-        bolt11=payment.bolt11,
-        payment_hash=payment.payment_hash,
-        amount_msat=abs(payment.fee),
-        memo=memo,
-    )
-    await create_payment(
-        checking_id=f"service_fee_{payment.payment_hash}",
-        data=create_payment_model,
-        status=PaymentState.SUCCESS,
-        conn=conn,
-    )
-
-
-async def _debit_fiat_service_faucet_wallet(
-    payment: Payment, conn: Optional[Connection] = None
-):
-    fiat_provider_name = payment.fiat_provider
-    if not fiat_provider_name:
-        return
-
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
-    if not limits:
-        return
-
-    if not limits.service_faucet_wallet_id:
-        return
-
-    faucet_wallet = await get_wallet(limits.service_faucet_wallet_id, conn=conn)
-    if not faucet_wallet:
-        raise ValueError(
-            f"Fiat provider '{fiat_provider_name}' faucet wallet not found."
-        )
-
-    memo = (
-        f"Faucet payment of {abs(payment.sat)} sats. "
-        f"Provider: {fiat_provider_name}. "
-        f"Wallet: '{payment.wallet_id}'."
-    )
-    create_payment_model = CreatePayment(
-        wallet_id=limits.service_faucet_wallet_id,
-        bolt11=payment.bolt11,
-        payment_hash=payment.payment_hash,
-        amount_msat=-abs(payment.amount),
-        memo=memo,
-        extra=payment.extra,
-    )
-    await create_payment(
-        checking_id=f"internal_fiat_{fiat_provider_name}_"
-        f"faucet_{payment.payment_hash}",
         data=create_payment_model,
         status=PaymentState.SUCCESS,
         conn=conn,
