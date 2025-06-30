@@ -1,5 +1,4 @@
 import asyncio
-from typing import Tuple
 
 import httpx
 from loguru import logger
@@ -48,7 +47,7 @@ async def send_nostr_dm(
     return dm_event.to_dict()
 
 
-async def fetch_nip5_details(identifier: str) -> Tuple[str, list[str]]:
+async def fetch_nip5_details(identifier: str) -> tuple[str, list[str]]:
     identifier, domain = identifier.split("@")
     if not identifier or not domain:
         raise ValueError("Invalid NIP5 identifier")

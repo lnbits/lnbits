@@ -2,11 +2,9 @@ import asyncio
 import time
 import traceback
 import uuid
+from collections.abc import Coroutine
 from typing import (
     Callable,
-    Coroutine,
-    Dict,
-    List,
     Optional,
 )
 
@@ -22,8 +20,8 @@ from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
-tasks: List[asyncio.Task] = []
-unique_tasks: Dict[str, asyncio.Task] = {}
+tasks: list[asyncio.Task] = []
+unique_tasks: dict[str, asyncio.Task] = {}
 
 
 def create_task(coro: Coroutine) -> asyncio.Task:
@@ -83,7 +81,7 @@ async def catch_everything_and_restart(
         return await catch_everything_and_restart(func, name)
 
 
-invoice_listeners: Dict[str, asyncio.Queue] = {}
+invoice_listeners: dict[str, asyncio.Queue] = {}
 
 
 # TODO: name should not be optional

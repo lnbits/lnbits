@@ -1,7 +1,8 @@
 import asyncio
 import time
+from collections.abc import AsyncGenerator
 from decimal import Decimal
-from typing import Any, AsyncGenerator, Dict, Optional
+from typing import Any, Optional
 
 import httpx
 from loguru import logger
@@ -111,8 +112,8 @@ class StrikeWallet(Wallet):
 
         # runtime state
         self.pending_invoices: list[str] = []  # Keep it as a list
-        self.pending_payments: Dict[str, str] = {}
-        self.failed_payments: Dict[str, str] = {}
+        self.pending_payments: dict[str, str] = {}
+        self.failed_payments: dict[str, str] = {}
 
         # balance cache
         self._cached_balance: Optional[int] = None
@@ -183,7 +184,7 @@ class StrikeWallet(Wallet):
             if btc and "available" in btc:
                 available_btc = Decimal(btc["available"])  # Get available BTC amount.
                 msats = int(
-                    available_btc * Decimal(1e11)
+                    available_btc * Decimal("1e11")
                 )  # Convert BTC to millisatoshis.
                 self._cached_balance = msats
                 self._cached_balance_ts = now
@@ -204,10 +205,10 @@ class StrikeWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         try:
-            btc_amt = (Decimal(amount) / Decimal(1e8)).quantize(
+            btc_amt = (Decimal(amount) / Decimal("1e8")).quantize(
                 Decimal("0.00000001")
             )  # Convert amount from millisatoshis to BTC.
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "bolt11": {
                     "amount": {
                         "currency": "BTC",
@@ -270,7 +271,7 @@ class StrikeWallet(Wallet):
             # Network fee → msat.
             fee_obj = data.get("lightningNetworkFee") or data.get("totalFee") or {}
             fee_btc = Decimal(fee_obj.get("amount", "0"))
-            fee_msat = int(fee_btc * Decimal(1e11))  # millisatoshis.
+            fee_msat = int(fee_btc * Decimal("1e11"))  # millisatoshis.
 
             if state in {"SUCCEEDED", "COMPLETED"}:
                 preimage = data.get("preimage") or data.get("preImage")
@@ -427,9 +428,9 @@ class StrikeWallet(Wallet):
         orderby: Optional[str] = None,
         skip: Optional[int] = None,
         top: Optional[int] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         try:
-            params: Dict[str, Any] = {}
+            params: dict[str, Any] = {}
             if filters:
                 params["$filter"] = filters
             if orderby:
@@ -465,7 +466,7 @@ class StrikeWallet(Wallet):
             try:
                 if currency_str == "BTC":
                     fee_btc_decimal = Decimal(amount_str)
-                    fee_msat = int(fee_btc_decimal * Decimal(1e11))
+                    fee_msat = int(fee_btc_decimal * Decimal("1e11"))
                 elif currency_str == "SAT":
                     fee_sat_decimal = Decimal(amount_str)
                     fee_msat = int(fee_sat_decimal * 1000)
