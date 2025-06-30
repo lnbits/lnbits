@@ -186,7 +186,6 @@ async def test_create_fiat_invoice(
     response = await client.post(
         "/api/v1/payments", json=data, headers=inkey_headers_to
     )
-    print("### response", response.text)
     assert response.status_code == 201
     invoice = response.json()
     decode = bolt11.decode(invoice["bolt11"])

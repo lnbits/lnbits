@@ -4,19 +4,19 @@ import importlib
 from enum import Enum
 
 from lnbits.settings import settings
-from lnbits.walletsfiat.base import FiatWallet
+from lnbits.walletsfiat.base import FiatProvider
 
 from .stripe import StripeWallet
 
 fiat_wallets_module = importlib.import_module("lnbits.walletsfiat")
 
 
-class FiatProvider(Enum):
+class FiatProviderType(Enum):
     stripe = "StripeWallet"
 
 
-async def get_fiat_provider(name: str) -> FiatWallet:
-    if name not in FiatProvider.__members__:
+async def get_fiat_provider(name: str) -> FiatProvider:
+    if name not in FiatProviderType.__members__:
         raise ValueError(f"Fiat provider '{name}' is not supported.")
 
     fiat_provider = fiat_providers.get(name)
@@ -27,18 +27,18 @@ async def get_fiat_provider(name: str) -> FiatWallet:
             del fiat_providers[name]
         else:
             return fiat_provider
-    fiat_providers[name] = _init_fiat_provider(FiatProvider[name])
+    fiat_providers[name] = _init_fiat_provider(FiatProviderType[name])
     return fiat_providers[name]
 
 
-def _init_fiat_provider(fiat_provider: FiatProvider) -> FiatWallet:
+def _init_fiat_provider(fiat_provider: FiatProviderType) -> FiatProvider:
     if not settings.is_fiat_provider_enabled(fiat_provider.name):
         raise ValueError(f"Fiat provider '{fiat_provider.name}' not enabled.")
     provider_constructor = getattr(fiat_wallets_module, fiat_provider.value)
     return provider_constructor()
 
 
-fiat_providers: dict[str, FiatWallet] = {}
+fiat_providers: dict[str, FiatProvider] = {}
 
 
 __all__ = [

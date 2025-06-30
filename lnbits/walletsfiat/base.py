@@ -87,7 +87,7 @@ class FiatPaymentPendingStatus(FiatPaymentStatus):
     paid = None
 
 
-class FiatWallet(ABC):
+class FiatProvider(ABC):
     @abstractmethod
     async def cleanup(self):
         pass

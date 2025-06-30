@@ -16,12 +16,12 @@ from .base import (
     FiatPaymentResponse,
     FiatPaymentStatus,
     FiatPaymentSuccessStatus,
+    FiatProvider,
     FiatStatusResponse,
-    FiatWallet,
 )
 
 
-class StripeWallet(FiatWallet):
+class StripeWallet(FiatProvider):
     """https://docs.stripe.com/api"""
 
     def __init__(self):
