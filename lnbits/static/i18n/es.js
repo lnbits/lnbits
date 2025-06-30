@@ -343,7 +343,7 @@ window.localisation.es = {
   node_balance: 'Balance de Nodo: {balance} sats',
   lnbits_balance: 'Saldo de LNbits: {balance} sats',
   funding_reserve_percent: 'Reserve Porcentaje: {percent} %',
-  node_managment: 'Gestión de nodos',
+  node_management: 'Gestión de nodos',
   node_management_not_supported:
     'La gestión de nodos no es compatible con la fuente de financiación activa',
   toggle_node_ui: 'Interfaz de usuario de nodo',
