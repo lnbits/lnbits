@@ -20,7 +20,7 @@ from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
-from lnbits.tasks import internal_invoice_queue_put
+from lnbits.tasks import create_task, internal_invoice_queue_put
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
