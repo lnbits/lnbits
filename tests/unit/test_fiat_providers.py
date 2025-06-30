@@ -13,7 +13,10 @@ from lnbits.core.models.payments import CreateInvoice, PaymentState
 from lnbits.core.models.users import User
 from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import payments
-from lnbits.core.services.fiat_providers import check_stripe_signature
+from lnbits.core.services.fiat_providers import (
+    check_stripe_signature,
+    handle_fiat_payment_confirmation,
+)
 from lnbits.core.services.users import create_user_account
 from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus
 from lnbits.settings import Settings
@@ -304,7 +307,7 @@ async def test_handle_fiat_payment_confirmation(
     assert payment.status == PaymentState.PENDING
     assert payment.amount == 10_000_000
 
-    await payments.handle_fiat_payment_confirmation(payment)
+    await handle_fiat_payment_confirmation(payment)
     # await asyncio.sleep(1)  # Simulate async delay
 
     service_fee_payments = await get_payments(wallet_id=service_fee_wallet.id)
