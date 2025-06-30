@@ -28,7 +28,7 @@ from lnbits.core.models import (
     WalletTypeInfo,
 )
 from lnbits.db import Connection, Filter, Filters, TFilterModel
-from lnbits.helpers import path_segments
+from lnbits.helpers import normalize_path, path_segments
 from lnbits.settings import AuthMethods, settings
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -346,3 +346,16 @@ async def _check_account_api_access(
         raise HTTPException(HTTPStatus.FORBIDDEN, "Path not allowed.")
     if not endpoint.supports_method(method):
         raise HTTPException(HTTPStatus.FORBIDDEN, "Method not allowed.")
+
+
+def url_for_interceptor(original_method):
+    def normalize_url(self, *args, **kwargs):
+        url = original_method(self, *args, **kwargs)
+        return url.replace(path=normalize_path(url.path))
+
+    return normalize_url
+
+
+# Upgraded extensions modify the path.
+# This interceptor ensures that the path is normalized.
+Request.url_for = url_for_interceptor(Request.url_for)  # type: ignore[method-assign]
