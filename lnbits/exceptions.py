@@ -26,6 +26,10 @@ class InvoiceError(Exception):
         self.status = status
 
 
+class UnsupportedError(Exception):
+    pass
+
+
 def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     # Only the browser sends "text/html" request
     # not fail proof, but everything else get's a JSON response

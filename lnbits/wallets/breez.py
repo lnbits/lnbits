@@ -1,5 +1,7 @@
 import base64
 
+from lnbits.exceptions import UnsupportedError
+
 try:
     import breez_sdk  # type: ignore
 
@@ -34,7 +36,6 @@ else:
         PaymentStatus,
         PaymentSuccessStatus,
         StatusResponse,
-        UnsupportedError,
         Wallet,
     )
 

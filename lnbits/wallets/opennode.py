@@ -4,6 +4,7 @@ from typing import AsyncGenerator, Optional
 import httpx
 from loguru import logger
 
+from lnbits.exceptions import UnsupportedError
 from lnbits.settings import settings
 
 from .base import (
@@ -12,7 +13,6 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    UnsupportedError,
     Wallet,
 )
 

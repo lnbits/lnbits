@@ -160,7 +160,3 @@ class Wallet(ABC):
                 f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
             )
         return endpoint
-
-
-class UnsupportedError(Exception):
-    pass

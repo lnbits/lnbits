@@ -9,6 +9,7 @@ from bolt11 import Bolt11Exception
 from bolt11.decode import decode
 from loguru import logger
 
+from lnbits.exceptions import UnsupportedError
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
@@ -18,7 +19,6 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    UnsupportedError,
     Wallet,
 )
 from .macaroon import load_macaroon
