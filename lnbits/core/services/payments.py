@@ -732,14 +732,10 @@ async def _pay_external_invoice(
         or payment_response.ok is False
         or payment_response.checking_id != checking_id
     ):
-        logger.debug(f"payment failed {checking_id}, {payment_response.error_message}")
         payment.status = PaymentState.FAILED
         await update_payment(payment, conn=conn)
-        raise PaymentError(
-            payment_response.error_message
-            or "Payment failed, but fundingsource didn't give us an error message.",
-            status="failed",
-        )
+        message = payment_response.error_message or "without an error message."
+        raise PaymentError(f"Payment failed: {message}", status="failed")
 
     # payment.ok can be True (paid) or None (pending)!
     payment.status = (
