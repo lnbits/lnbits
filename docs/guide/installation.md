@@ -163,7 +163,7 @@ The LNbits Docker image comes with no extensions installed. User-installed exten
 It is recommended to point the `LNBITS_EXTENSIONS_PATH` environment variable to a directory that is mapped to a Docker volume. This way, the extensions will not be reinstalled when the container is destroyed.
 Example:
 ```sh
-docker run ... -e "LNBITS_EXTENSIONS_PATH='data/extensions'" --volume ${PWD}/data/:/app/data lnbits/lnbits ...
+docker run ... -e "LNBITS_EXTENSIONS_PATH='/app/data/extensions'" --volume ${PWD}/data/:/app/data ...
 ```
 
 Build the image yourself.
