@@ -711,8 +711,6 @@ async def _pay_external_invoice(
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
     service_fee_msat = service_fee(amount_msat, internal=False)
 
-    from lnbits.tasks import create_task
-
     task = create_task(
         _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)
     )
