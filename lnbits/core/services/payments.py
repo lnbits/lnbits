@@ -17,6 +17,7 @@ from lnbits.core.models.payments import CreateInvoice
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError
+from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
@@ -28,7 +29,6 @@ from lnbits.wallets.base import (
     PaymentStatus,
     PaymentSuccessStatus,
 )
-from lnbits.walletsfiat import get_fiat_provider
 
 from ..crud import (
     check_internal,

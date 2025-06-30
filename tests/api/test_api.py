@@ -8,8 +8,8 @@ from pytest_mock.plugin import MockerFixture
 from lnbits import bolt11
 from lnbits.core.models import CreateInvoice, Payment
 from lnbits.core.views.payment_api import api_payment
+from lnbits.fiat.base import FiatInvoiceResponse
 from lnbits.settings import Settings
-from lnbits.walletsfiat.base import FiatInvoiceResponse
 
 from ..helpers import (
     get_random_invoice_data,
@@ -176,7 +176,7 @@ async def test_create_fiat_invoice(
     )
 
     mocker.patch(
-        "lnbits.walletsfiat.StripeWallet.create_invoice",
+        "lnbits.fiat.StripeWallet.create_invoice",
         AsyncMock(return_value=fiat_mock_response),
     )
     mocker.patch(

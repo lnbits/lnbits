@@ -8,6 +8,13 @@ from fastapi import Query
 from pydantic import BaseModel, Field, validator
 
 from lnbits.db import FilterModel
+from lnbits.fiat import get_fiat_provider
+from lnbits.fiat.base import (
+    FiatPaymentFailedStatus,
+    FiatPaymentPendingStatus,
+    FiatPaymentStatus,
+    FiatPaymentSuccessStatus,
+)
 from lnbits.utils.exchange_rates import allowed_currencies
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import (
@@ -15,13 +22,6 @@ from lnbits.wallets.base import (
     PaymentPendingStatus,
     PaymentStatus,
     PaymentSuccessStatus,
-)
-from lnbits.walletsfiat import get_fiat_provider
-from lnbits.walletsfiat.base import (
-    FiatPaymentFailedStatus,
-    FiatPaymentPendingStatus,
-    FiatPaymentStatus,
-    FiatPaymentSuccessStatus,
 )
 
 

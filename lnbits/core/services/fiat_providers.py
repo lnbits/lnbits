@@ -7,7 +7,7 @@ from loguru import logger
 
 from lnbits.core.crud.payments import get_standalone_payment
 from lnbits.core.models.misc import SimpleStatus
-from lnbits.walletsfiat import get_fiat_provider
+from lnbits.fiat import get_fiat_provider
 
 
 async def handle_stripe_event(event: dict):

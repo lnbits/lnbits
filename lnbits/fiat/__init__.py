@@ -3,12 +3,12 @@ from __future__ import annotations
 import importlib
 from enum import Enum
 
+from lnbits.fiat.base import FiatProvider
 from lnbits.settings import settings
-from lnbits.walletsfiat.base import FiatProvider
 
 from .stripe import StripeWallet
 
-fiat_wallets_module = importlib.import_module("lnbits.walletsfiat")
+fiat_wallets_module = importlib.import_module("lnbits.fiat")
 
 
 class FiatProviderType(Enum):

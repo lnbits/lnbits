@@ -15,8 +15,8 @@ from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import payments
 from lnbits.core.services.fiat_providers import check_stripe_signature
 from lnbits.core.services.users import create_user_account
+from lnbits.fiat.base import FiatInvoiceResponse, FiatPaymentStatus
 from lnbits.settings import Settings
-from lnbits.walletsfiat.base import FiatInvoiceResponse, FiatPaymentStatus
 from tests.helpers import get_random_string
 
 
@@ -159,7 +159,7 @@ async def test_create_wallet_fiat_provider_fails(
     )
 
     mocker.patch(
-        "lnbits.walletsfiat.StripeWallet.create_invoice",
+        "lnbits.fiat.StripeWallet.create_invoice",
         AsyncMock(return_value=fiat_mock_response),
     )
     mocker.patch(
@@ -199,7 +199,7 @@ async def test_create_wallet_fiat_invoice_success(
     )
 
     mocker.patch(
-        "lnbits.walletsfiat.StripeWallet.create_invoice",
+        "lnbits.fiat.StripeWallet.create_invoice",
         AsyncMock(return_value=fiat_mock_response),
     )
     mocker.patch(
@@ -224,7 +224,7 @@ async def test_create_wallet_fiat_invoice_success(
 
     fiat_mock_status = FiatPaymentStatus(paid=True, fee=123)
     mocker.patch(
-        "lnbits.walletsfiat.StripeWallet.get_invoice_status",
+        "lnbits.fiat.StripeWallet.get_invoice_status",
         AsyncMock(return_value=fiat_mock_status),
     )
     status = await payment.check_status()
@@ -293,7 +293,7 @@ async def test_handle_fiat_payment_confirmation(
     )
 
     mocker.patch(
-        "lnbits.walletsfiat.StripeWallet.create_invoice",
+        "lnbits.fiat.StripeWallet.create_invoice",
         AsyncMock(return_value=fiat_mock_response),
     )
     mocker.patch(
