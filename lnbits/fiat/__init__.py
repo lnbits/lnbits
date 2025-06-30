@@ -8,7 +8,7 @@ from lnbits.settings import settings
 
 from .stripe import StripeWallet
 
-fiat_wallets_module = importlib.import_module("lnbits.fiat")
+fiat_module = importlib.import_module("lnbits.fiat")
 
 
 class FiatProviderType(Enum):
@@ -34,7 +34,7 @@ async def get_fiat_provider(name: str) -> FiatProvider:
 def _init_fiat_provider(fiat_provider: FiatProviderType) -> FiatProvider:
     if not settings.is_fiat_provider_enabled(fiat_provider.name):
         raise ValueError(f"Fiat provider '{fiat_provider.name}' not enabled.")
-    provider_constructor = getattr(fiat_wallets_module, fiat_provider.value)
+    provider_constructor = getattr(fiat_module, fiat_provider.value)
     return provider_constructor()
 
 
