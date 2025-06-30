@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple
+from collections.abc import AsyncGenerator, Coroutine
+from typing import TYPE_CHECKING, NamedTuple
 
 if TYPE_CHECKING:
     pass

@@ -1,7 +1,8 @@
 import asyncio
 import json
+from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
-from typing import AsyncGenerator, Optional
+from typing import Optional
 from urllib.parse import urlencode
 
 import httpx

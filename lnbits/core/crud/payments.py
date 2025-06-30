@@ -1,5 +1,5 @@
 from time import time
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet, get_wallets_ids
 from lnbits.core.db import db
@@ -394,7 +394,7 @@ async def get_daily_stats(
     filters: Optional[Filters[PaymentFilters]] = None,
     user_id: Optional[str] = None,
     conn: Optional[Connection] = None,
-) -> Tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
+) -> tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
 
     if not filters:
         filters = Filters()
