@@ -320,7 +320,7 @@ window.localisation.cn = {
   node_balance: '节点余额：{balance} sats',
   lnbits_balance: 'LNbits 余额：{balance} sats',
   funding_reserve_percent: '保留百分比: {percent} %',
-  node_managment: '节点管理',
+  node_management: '节点管理',
   node_management_not_supported: '活动资金来源不支持节点管理',
   toggle_node_ui: '节点用户界面',
   toggle_public_node_ui: '公共节点用户界面',

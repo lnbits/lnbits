@@ -346,7 +346,7 @@ window.localisation.fr = {
   node_balance: 'Solde du nœud : {balance} sats',
   lnbits_balance: 'Solde LNbits : {balance} sats',
   funding_reserve_percent: 'Pourcentage de Réserve : {percent} %',
-  node_managment: 'Gestion des nœuds',
+  node_management: 'Gestion des nœuds',
   node_management_not_supported:
     "La gestion des nœuds n'est pas prise en charge par la source de financement active",
   toggle_node_ui: 'Interface utilisateur de nœud',

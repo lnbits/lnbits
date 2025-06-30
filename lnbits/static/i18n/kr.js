@@ -331,7 +331,7 @@ window.localisation.kr = {
   node_balance: '노드 잔액: {balance} 사토시',
   lnbits_balance: 'LNbits 잔액: {balance} sats',
   funding_reserve_percent: '예약 비율: {percent} %',
-  node_managment: '노드 관리',
+  node_management: '노드 관리',
   node_management_not_supported:
     '활성화된 자금 출처에 의해 노드 관리는 지원되지 않습니다.',
   toggle_node_ui: '노드 UI',

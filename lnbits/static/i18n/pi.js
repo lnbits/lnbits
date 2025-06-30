@@ -337,7 +337,7 @@ window.localisation.pi = {
   node_balance: 'Node Balance: {balance} doubloons',
   lnbits_balance: "LNbits Balance: {balance} pieces o' eight",
   funding_reserve_percent: 'Reserve Percent: {percent} %',
-  node_managment: 'Node Management',
+  node_management: 'Node Management',
   node_management_not_supported:
     'Node Management not be supported by active funding source',
   toggle_node_ui: 'Node Main Deck',
