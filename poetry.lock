@@ -4403,4 +4403,4 @@ liquid = ["wallycore"]
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.12 | ~3.11 | ~3.10"
-content-hash = "8a47e127a25065e3dd310ee222cfe90b9a4befa931898e23c76159adc1364dc2"
+content-hash = "ff56b94a63cba5f5bb72dd52452f37b7fa8ca8d5a87dcce8b469cf53d2d62836"
