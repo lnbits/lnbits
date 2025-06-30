@@ -107,6 +107,13 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = No
 internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
 
 
+async def internal_invoice_queue_put(checking_id: str) -> None:
+    """
+    A method to call when it wants to notify about an internal invoice payment.
+    """
+    await internal_invoice_queue.put(checking_id)
+
+
 async def internal_invoice_listener() -> None:
     """
     internal_invoice_queue will be filled directly in core/services.py
