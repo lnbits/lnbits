@@ -159,6 +159,13 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits/lnbits
 ```
 
+The LNbits Docker image comes with no extensions installed. User-installed extensions will be stored by default in a container directory.
+It is recommended to point the `LNBITS_EXTENSIONS_PATH` environment variable to a directory that is mapped to a Docker volume. This way, the extensions will not be reinstalled when the container is destroyed.
+Example:
+```sh
+docker run ... -e "LNBITS_EXTENSIONS_PATH='data/extensions'" --volume ${PWD}/data/:/app/data lnbits/lnbits ...
+```
+
 Build the image yourself.
 
 ```sh
