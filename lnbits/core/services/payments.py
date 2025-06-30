@@ -736,7 +736,7 @@ async def _pay_external_invoice(
         payment.status = PaymentState.FAILED
         await update_payment(payment, conn=conn)
         raise PaymentError(
-            f"Payment failed: {payment_response.error_message}"
+            payment_response.error_message
             or "Payment failed, but fundingsource didn't give us an error message.",
             status="failed",
         )
