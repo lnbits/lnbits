@@ -848,6 +848,19 @@
             </div>
             <q-separator></q-separator>
             <h6 class="text-center" v-text="parse.invoice.description"></h6>
+            <q-input
+              dense
+              v-model="parse.data.comment"
+              label="Internal memo"
+              class="q-mb-md text-center"
+              :rules="[ val => !val || val.length <= 64 || 'Please use maximum 64 characters' ]"
+              ><template v-if="parse.data.comment" v-slot:append>
+                <q-icon
+                  name="cancel"
+                  @click.stop.prevent="parse.data.comment = null"
+                  class="cursor-pointer"
+                /> </template
+            ></q-input>
             <q-list separator bordered dense class="q-mb-md">
               <q-expansion-item expand-separator icon="info" label="Details">
                 <q-list separator>

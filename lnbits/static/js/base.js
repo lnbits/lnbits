@@ -31,11 +31,17 @@ window.LNbits = {
         fiat_provider: fiatProvider
       })
     },
-    payInvoice(wallet, bolt11) {
-      return this.request('post', '/api/v1/payments', wallet.adminkey, {
+    payInvoice(wallet, bolt11, internalMemo = null) {
+      const data = {
         out: true,
         bolt11: bolt11
-      })
+      }
+      if (internalMemo && internalMemo !== '') {
+        data.extra = {
+          internal_memo: String(internalMemo)
+        }
+      }
+      return this.request('post', '/api/v1/payments', wallet.adminkey, data)
     },
     payLnurl(
       wallet,

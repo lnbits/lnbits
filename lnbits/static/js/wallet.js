@@ -14,6 +14,7 @@ window.WalletPageLogic = {
           request: '',
           amount: 0,
           comment: '',
+          internalMemo: null,
           unit: 'sat'
         },
         paymentChecker: null,
@@ -220,6 +221,7 @@ window.WalletPageLogic = {
         window.isSecureContext && navigator.clipboard?.readText !== undefined
       this.parse.data.request = ''
       this.parse.data.comment = ''
+      this.parse.data.internalMemo = null
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
       this.focusInput('textArea')
@@ -479,7 +481,11 @@ window.WalletPageLogic = {
       })
 
       LNbits.api
-        .payInvoice(this.g.wallet, this.parse.data.request)
+        .payInvoice(
+          this.g.wallet,
+          this.parse.data.request,
+          this.parse.data.internalMemo
+        )
         .then(response => {
           dismissPaymentMsg()
           this.updatePayments = !this.updatePayments
