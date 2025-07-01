@@ -317,18 +317,16 @@ async def build_all_installed_extensions_list(  # noqa: C901
 
         release = next((e for e in ext_releases if e.is_version_compatible), None)
 
-        if not release:
-            continue
-
-        ext_meta = ExtensionMeta(installed_release=release)
-        ext_info = InstallableExtension(
-            id=ext_id,
-            name=ext_id,
-            version=release.version,
-            icon=release.icon,
-            meta=ext_meta,
-        )
-        installed_extensions.append(ext_info)
+        if release:
+            ext_meta = ExtensionMeta(installed_release=release)
+            ext_info = InstallableExtension(
+                id=ext_id,
+                name=ext_id,
+                version=release.version,
+                icon=release.icon,
+                meta=ext_meta,
+            )
+            installed_extensions.append(ext_info)
 
     if include_deactivated:
         return installed_extensions
