@@ -551,8 +551,8 @@ class BreezSdkFundingSource(LNbitsSettings):
 
 
 class BreezLiquidSdkFundingSource(LNbitsSettings):
-    breez_liquid_api_key: Optional[str] = Field(default=None)
-    breez_liquid_seed: Optional[str] = Field(default=None)
+    breez_liquid_api_key: str | None = Field(default=None)
+    breez_liquid_seed: str | None = Field(default=None)
 
 
 class BoltzFundingSource(LNbitsSettings):
