@@ -151,7 +151,7 @@ def register_exception_handlers(app: FastAPI):
         status_code = HTTPStatus.NOT_FOUND
         message: str = "Page not found."
 
-        if path in settings.lnbits_all_extensions_ids:
+        if settings.is_ready_to_install_extension_id(path):
             status_code = HTTPStatus.FORBIDDEN
             message = f"Extension '{path}' not installed. Ask the admin to install it."
 
