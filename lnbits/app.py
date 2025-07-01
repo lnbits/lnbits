@@ -277,7 +277,7 @@ async def check_installed_extensions(app: FastAPI):
         logger.info(f"{ext.id} ({ext.installed_version})")
 
 
-async def build_all_installed_extensions_list(
+async def build_all_installed_extensions_list(  # noqa: C901
     include_deactivated: Optional[bool] = True,
 ) -> list[InstallableExtension]:
     """
@@ -288,18 +288,23 @@ async def build_all_installed_extensions_list(
     settings.lnbits_installed_extensions_ids = {e.id for e in installed_extensions}
 
     for ext_dir in Path(settings.lnbits_extensions_path, "extensions").iterdir():
-        if not ext_dir.is_dir():
-            continue
-        if ext_dir.name in settings.lnbits_installed_extensions_ids:
-            continue
-        ext_info = InstallableExtension.from_ext_dir(ext_dir.name)
-        if not ext_info:
-            continue
+        try:
+            if not ext_dir.is_dir():
+                continue
+            ext_id = ext_dir.name
+            if ext_id in settings.lnbits_installed_extensions_ids:
+                continue
+            ext_info = InstallableExtension.from_ext_dir(ext_id)
+            if not ext_info:
+                continue
 
-        installed_extensions.append(ext_info)
-        await create_installed_extension(ext_info)
-        current_version = await get_db_version(ext_dir.name)
-        await migrate_extension_database(ext_info, current_version)
+            installed_extensions.append(ext_info)
+            await create_installed_extension(ext_info)
+            current_version = await get_db_version(ext_id)
+            await migrate_extension_database(ext_info, current_version)
+
+        except Exception as e:
+            logger.warning(e)
 
     for ext_id in settings.lnbits_extensions_default_install:
         if ext_id in settings.lnbits_installed_extensions_ids:
