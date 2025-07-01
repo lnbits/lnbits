@@ -24,7 +24,6 @@ class InvoiceResponse(NamedTuple):
     payment_request: str | None = None
     error_message: str | None = None
     preimage: str | None = None
-    adjusted_amount_sats: int | None = None
     fees_msats: int | None = None
 
     @property
