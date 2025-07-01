@@ -880,14 +880,24 @@
           :props="props"
           style="white-space: normal; word-break: break-all"
         >
-          <q-badge v-if="props.row.tag" color="yellow" text-color="black">
+          <q-badge
+            v-if="props.row.tag"
+            color="yellow"
+            text-color="black"
+            class="q-mr-sm"
+          >
             <a
               v-text="'#' + props.row.tag"
               class="inherit"
               :href="['/', props.row.tag].join('')"
             ></a>
           </q-badge>
-          <span class="q-ml-sm" v-text="props.row.memo"></span>
+          <span v-text="props.row.memo"></span>
+          <span
+            class="text-grey-5 q-ml-sm ellipsis"
+            v-if="props.row.extra.internal_memo"
+            v-text="`(${props.row.extra.internal_memo})`"
+          ></span>
           <br />
 
           <i>
