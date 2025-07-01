@@ -19,40 +19,22 @@ window.LNbits = {
       amount,
       memo,
       unit = 'sat',
-      lnurlCallback = null,
+      lnurlWithdraw = null,
       fiatProvider = null
     ) {
       return this.request('post', '/api/v1/payments', wallet.inkey, {
         out: false,
         amount: amount,
         memo: memo,
-        lnurl_callback: lnurlCallback,
-        unit: unit,
-        fiat_provider: fiatProvider
+        fiat_provider: fiatProvider,
+        lnurl_withdraw: lnurlWithdraw,
+        unit: unit
       })
     },
     payInvoice(wallet, bolt11) {
       return this.request('post', '/api/v1/payments', wallet.adminkey, {
         out: true,
         bolt11: bolt11
-      })
-    },
-    payLnurl(
-      wallet,
-      callback,
-      description_hash,
-      amount,
-      description = '',
-      comment = '',
-      unit = ''
-    ) {
-      return this.request('post', '/api/v1/payments/lnurl', wallet.adminkey, {
-        callback,
-        description_hash,
-        amount,
-        comment,
-        description,
-        unit
       })
     },
     authLnurl(wallet, callback) {

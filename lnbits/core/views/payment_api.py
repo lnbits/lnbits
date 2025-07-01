@@ -1,11 +1,6 @@
-import json
-import ssl
 from http import HTTPStatus
-from math import ceil
 from typing import Optional
-from urllib.parse import urlparse
 
-import httpx
 from fastapi import (
     APIRouter,
     Depends,
@@ -14,7 +9,10 @@ from fastapi import (
     Query,
 )
 from fastapi.responses import JSONResponse
-from loguru import logger
+from lnurl import LnurlErrorResponse, LnurlSuccessResponse, LnurlWithdrawResponse
+from lnurl import decode as lnurl_decode
+from lnurl import execute_withdraw as lnurl_withdraw
+from lnurl import handle as lnurl_handle
 
 from lnbits import bolt11
 from lnbits.core.crud.payments import (
@@ -23,10 +21,9 @@ from lnbits.core.crud.payments import (
 )
 from lnbits.core.models import (
     CreateInvoice,
-    CreateLnurl,
+    CreateLnurlWithdraw,
     DecodePayment,
     KeyType,
-    PayLnurlWData,
     Payment,
     PaymentCountField,
     PaymentCountStat,
@@ -41,7 +38,6 @@ from lnbits.decorators import (
     WalletTypeInfo,
     check_user_exists,
     parse_filters,
-    require_admin_key,
     require_invoice_key,
 )
 from lnbits.helpers import (
@@ -49,9 +45,7 @@ from lnbits.helpers import (
     filter_dict_keys,
     generate_filter_params_openapi,
 )
-from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from ..crud import (
     DateTrunc,
@@ -285,79 +279,6 @@ async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONRespo
         )
 
 
-@payment_router.post("/lnurl")
-async def api_payments_pay_lnurl(
-    data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
-) -> Payment:
-    domain = urlparse(data.callback).netloc
-
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
-        try:
-            if data.unit and data.unit != "sat":
-                amount_msat = await fiat_amount_as_satoshis(data.amount, data.unit)
-                # no msat precision
-                amount_msat = ceil(amount_msat // 1000) * 1000
-            else:
-                amount_msat = data.amount
-            check_callback_url(data.callback)
-            r = await client.get(
-                data.callback,
-                params={"amount": amount_msat, "comment": data.comment},
-                timeout=40,
-            )
-            if r.is_error:
-                raise httpx.ConnectError("LNURL callback connection error")
-            r.raise_for_status()
-        except (httpx.HTTPError, ssl.SSLError) as exc:
-            logger.warning(exc)
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Failed to connect to {domain}.",
-            ) from exc
-
-    params = json.loads(r.text)
-    if params.get("status") == "ERROR":
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} said: '{params.get('reason', '')}'",
-        )
-
-    if not params.get("pr"):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} did not return a payment request.",
-        )
-
-    invoice = bolt11.decode(params["pr"])
-    if invoice.amount_msat != amount_msat:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=(
-                f"{domain} returned an invalid invoice. Expected"
-                f" {amount_msat} msat, got {invoice.amount_msat}."
-            ),
-        )
-
-    extra = {}
-    if params.get("successAction"):
-        extra["success_action"] = params["successAction"]
-    if data.comment:
-        extra["comment"] = data.comment
-    if data.unit and data.unit != "sat":
-        extra["fiat_currency"] = data.unit
-        extra["fiat_amount"] = data.amount / 1000
-    assert data.description is not None, "description is required"
-
-    payment = await pay_invoice(
-        wallet_id=wallet.wallet.id,
-        payment_request=params["pr"],
-        description=data.description,
-        extra=extra,
-    )
-    return payment
-
-
 # TODO: refactor this route into a public and admin one
 @payment_router.get("/{payment_hash}")
 async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
@@ -419,54 +340,22 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
 @payment_router.post("/{payment_request}/pay-with-nfc", status_code=HTTPStatus.OK)
 async def api_payment_pay_with_nfc(
     payment_request: str,
-    lnurl_data: PayLnurlWData,
-) -> JSONResponse:
-    lnurl = lnurl_data.lnurl_w.lower()
+    lnurl_data: CreateLnurlWithdraw,
+) -> LnurlSuccessResponse | LnurlErrorResponse:
+    res = await lnurl_handle(
+        lnurl_data.lnurl_w, user_agent=settings.user_agent, timeout=10
+    )
+    if not isinstance(res, LnurlWithdrawResponse):
+        return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
+    try:
+        check_callback_url(res.callback)
+    except ValueError as exc:
+        return LnurlErrorResponse(reason=f"Invalid callback URL: {exc!s}")
 
-    # Follow LUD-17 -> https://github.com/lnurl/luds/blob/luds/17.md
-    url = lnurl.replace("lnurlw://", "https://")
+    res2 = await lnurl_withdraw(
+        res, payment_request, user_agent=settings.user_agent, timeout=10
+    )
+    if not isinstance(res2, (LnurlSuccessResponse, LnurlErrorResponse)):
+        return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
 
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
-        try:
-            check_callback_url(url)
-            lnurl_req = await client.get(url, timeout=10)
-            if lnurl_req.is_error:
-                return JSONResponse(
-                    {"success": False, "detail": "Error loading LNURL request"}
-                )
-
-            lnurl_res = lnurl_req.json()
-
-            if lnurl_res.get("status") == "ERROR":
-                return JSONResponse({"success": False, "detail": lnurl_res["reason"]})
-
-            if lnurl_res.get("tag") != "withdrawRequest":
-                return JSONResponse(
-                    {"success": False, "detail": "Invalid LNURL-withdraw"}
-                )
-
-            callback_url = lnurl_res["callback"]
-            k1 = lnurl_res["k1"]
-
-            callback_req = await client.get(
-                callback_url,
-                params={"k1": k1, "pr": payment_request},
-                timeout=10,
-            )
-            if callback_req.is_error:
-                return JSONResponse(
-                    {"success": False, "detail": "Error loading callback request"}
-                )
-
-            callback_res = callback_req.json()
-
-            if callback_res.get("status") == "ERROR":
-                return JSONResponse(
-                    {"success": False, "detail": callback_res["reason"]}
-                )
-            else:
-                return JSONResponse({"success": True, "detail": callback_res})
-
-        except Exception as e:
-            return JSONResponse({"success": False, "detail": f"Unexpected error: {e}"})
+    return res2

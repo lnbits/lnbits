@@ -1,20 +1,19 @@
 from typing import Optional
 
+from lnurl import LnurlPayResponse
 from pydantic import BaseModel
 
 
-class CreateLnurl(BaseModel):
-    description_hash: str
-    callback: str
+class CreateLnurlPayment(BaseModel):
+    res: LnurlPayResponse
     amount: int
     comment: Optional[str] = None
-    description: Optional[str] = None
     unit: Optional[str] = None
 
 
-class CreateLnurlAuth(BaseModel):
-    callback: str
+# class CreateLnurlAuth(BaseModel):
+#     callback: str
 
 
-class PayLnurlWData(BaseModel):
+class CreateLnurlWithdraw(BaseModel):
     lnurl_w: str
