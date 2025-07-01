@@ -64,6 +64,7 @@ window.PaymentsPageLogic = {
             align: 'left',
             label: 'Fee',
             field: 'fee',
+            format: val => val / 1000,
             sortable: true
           },
 
