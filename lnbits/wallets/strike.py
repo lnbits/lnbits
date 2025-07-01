@@ -487,7 +487,7 @@ class StrikeWallet(Wallet):
 
         return None
 
-    async def _get_payment_status_by_checking_id(
+    async def _get_payment_status_by_checking_id(  # noqa: C901
         self, checking_id: str
     ) -> PaymentStatus:
         r_payment = await self._get(f"/payments/{checking_id}")

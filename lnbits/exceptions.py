@@ -1,7 +1,7 @@
 import sys
 import traceback
 from http import HTTPStatus
-from typing import Optional
+from typing import Optional, Union
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -121,17 +121,12 @@ def register_exception_handlers(app: FastAPI):
             content={"detail": exc.detail},
         )
 
-    @app.exception_handler(PaymentError)
-    async def payment_error_handler(request: Request, exc: PaymentError):
-        logger.error(f"{exc.message}, {exc.status}")
-        return JSONResponse(
-            status_code=520,
-            content={"detail": exc.message, "status": exc.status},
-        )
-
     @app.exception_handler(InvoiceError)
-    async def invoice_error_handler(request: Request, exc: InvoiceError):
-        logger.error(f"{exc.message}, Status: {exc.status}")
+    @app.exception_handler(PaymentError)
+    async def payment_error_handler(
+        request: Request, exc: Union[InvoiceError, PaymentError]
+    ):
+        logger.error(f"{exc.message}, {exc.status}")
         return JSONResponse(
             status_code=520,
             content={"detail": exc.message, "status": exc.status},
@@ -148,12 +143,13 @@ def register_exception_handlers(app: FastAPI):
             )
 
         path = path_segments(request.url.path)[0]
-        status_code = HTTPStatus.NOT_FOUND
-        message: str = "Page not found."
 
         if settings.is_ready_to_install_extension_id(path):
             status_code = HTTPStatus.FORBIDDEN
             message = f"Extension '{path}' not installed. Ask the admin to install it."
+        else:
+            status_code = HTTPStatus.NOT_FOUND
+            message = "Page not found."
 
         return template_renderer().TemplateResponse(
             request,

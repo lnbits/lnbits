@@ -92,7 +92,7 @@ async def get_latest_payments_by_extension(
     )
 
 
-async def get_payments_paginated(
+async def get_payments_paginated(  # noqa: C901
     *,
     wallet_id: Optional[str] = None,
     user_id: Optional[str] = None,
