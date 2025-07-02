@@ -23,9 +23,9 @@ else:
     from typing import Optional
 
     import breez_sdk_liquid as breez_sdk  # type: ignore
+    from bolt11 import decode as bolt11_decode
     from loguru import logger
 
-    from lnbits import bolt11 as lnbits_bolt11
     from lnbits.settings import settings
 
     from .base import (
@@ -126,7 +126,7 @@ else:
                 )
 
                 bolt11 = res.destination
-                invoice_data = lnbits_bolt11.decode(bolt11)
+                invoice_data = bolt11_decode(bolt11)
                 payment_hash = invoice_data.payment_hash
 
                 return InvoiceResponse(
@@ -142,7 +142,7 @@ else:
         async def pay_invoice(
             self, bolt11: str, fee_limit_msat: int
         ) -> PaymentResponse:
-            invoice_data = lnbits_bolt11.decode(bolt11)
+            invoice_data = bolt11_decode(bolt11)
 
             try:
                 prepare_req = breez_sdk.PrepareSendRequest(destination=bolt11)
@@ -210,7 +210,7 @@ else:
                         or not p.details.invoice
                     ):
                         continue
-                    invoice_data = lnbits_bolt11.decode(p.details.invoice)
+                    invoice_data = bolt11_decode(p.details.invoice)
                     if invoice_data.payment_hash == payment_hash:
                         return p
                 if len(history) < 100:
@@ -282,5 +282,5 @@ else:
                     or not details.invoice
                 ):
                     continue
-                invoice_data = lnbits_bolt11.decode(details.invoice)
+                invoice_data = bolt11_decode(details.invoice)
                 yield invoice_data.payment_hash
