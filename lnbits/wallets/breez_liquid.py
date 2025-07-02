@@ -148,7 +148,6 @@ else:
                 prepare_req = breez_sdk.PrepareSendRequest(destination=bolt11)
                 req = self.sdk_services.prepare_send_payment(prepare_req)
 
-                # TODO figure out the fee madness for breez liquid and phoenixd
                 fee_limit_sat = 50 + int(fee_limit_msat / 1000)
 
                 if req.fees_sat and req.fees_sat > fee_limit_sat:
