@@ -272,8 +272,10 @@ else:
                 if event.is_payment_succeeded() or not isinstance(
                     event, breez_sdk.SdkEvent
                 ):
-                    if not event.is_payment_succeeded() or not isinstance(
-                        event, breez_sdk.SdkEvent.PAYMENT_SUCCEEDED
+                    # you can set success of we hit `PAYMENT_WAITING_CONFIRMATION`
+                    # instead of `PAYMENT_SUCCEEDED` to make is faster
+                    if not isinstance(
+                        event, breez_sdk.SdkEvent.PAYMENT_WAITING_CONFIRMATION
                     ):
                         continue
                     details = event.details.details
