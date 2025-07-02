@@ -277,7 +277,7 @@ async def check_installed_extensions(app: FastAPI):
         logger.info(f"{ext.id} ({ext.installed_version})")
 
 
-async def build_all_installed_extensions_list(
+async def build_all_installed_extensions_list(  # noqa: C901
     include_deactivated: Optional[bool] = True,
 ) -> list[InstallableExtension]:
     """

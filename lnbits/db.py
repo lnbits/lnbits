@@ -658,7 +658,7 @@ def dict_to_submodel(model: type[TModel], value: dict | str) -> TModel | None:
     return dict_to_model(_subdict, model)
 
 
-def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
+def dict_to_model(_row: dict, model: type[TModel]) -> TModel:  # noqa: C901
     """
     Convert a dictionary with JSON-encoded nested models to a Pydantic model
     :param _dict: Dictionary from database

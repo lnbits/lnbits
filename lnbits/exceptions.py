@@ -69,7 +69,7 @@ def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     )
 
 
-def register_exception_handlers(app: FastAPI):
+def register_exception_handlers(app: FastAPI):  # noqa: C901
     """Register exception handlers for the FastAPI app"""
 
     @app.exception_handler(Exception)
