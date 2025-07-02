@@ -353,7 +353,7 @@ async def extensions_list():
     help="Admin user ID (must have permissions to install extensions).",
 )
 @coro
-async def extensions_update(
+async def extensions_update(  # noqa: C901
     extension: Optional[str] = None,
     all_extensions: Optional[bool] = False,
     repo_index: Optional[str] = None,

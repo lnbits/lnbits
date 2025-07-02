@@ -74,7 +74,7 @@ def sign_event(pub_key, priv_key, event):
     return event
 
 
-async def handle(wallet, mock_settings, data, websocket, path):
+async def handle(wallet, mock_settings, data, websocket, path):  # noqa: C901
     async for message in websocket:
         if not wallet:
             continue

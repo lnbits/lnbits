@@ -513,7 +513,7 @@ class NWCConnection:
             if subscription:  # Check if the subscription exists first
                 subscription["future"].set_exception(Exception(info))
 
-    async def _on_event_message(self, msg: list[Union[str, dict]]):
+    async def _on_event_message(self, msg: list[Union[str, dict]]):  # noqa: C901
         """
         Handles EVENT messages from the relay.
         """

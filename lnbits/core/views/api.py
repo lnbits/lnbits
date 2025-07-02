@@ -93,7 +93,7 @@ async def api_create_account(data: CreateWallet) -> Wallet:
 
 
 @api_router.get("/api/v1/lnurlscan/{code}")
-async def api_lnurlscan(
+async def api_lnurlscan(  # noqa: C901
     code: str, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
     try:

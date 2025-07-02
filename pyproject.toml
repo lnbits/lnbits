@@ -211,8 +211,7 @@ classmethod-decorators = [
 ]
 
 [tool.ruff.lint.mccabe]
-# TODO: Decrease this to 10.
-max-complexity = 16
+max-complexity = 10
 
 [tool.ruff.lint.flake8-bugbear]
 # Allow default arguments like, e.g., `data: List[str] = fastapi.Query(None)`.
