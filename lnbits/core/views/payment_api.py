@@ -282,50 +282,17 @@ async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONRespo
         )
 
 
-@payment_router.post("/lnurl")
-async def api_payments_pay_lnurl(
-    data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
-) -> Payment:
-    domain = urlparse(data.callback).netloc
-
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
-        try:
-            if data.unit and data.unit != "sat":
-                amount_msat = await fiat_amount_as_satoshis(data.amount, data.unit)
-                # no msat precision
-                amount_msat = ceil(amount_msat // 1000) * 1000
-            else:
-                amount_msat = data.amount
-            check_callback_url(data.callback)
-            r = await client.get(
-                data.callback,
-                params={"amount": amount_msat, "comment": data.comment},
-                timeout=40,
-            )
-            if r.is_error:
-                raise httpx.ConnectError("LNURL callback connection error")
-            r.raise_for_status()
-        except (httpx.HTTPError, ssl.SSLError) as exc:
-            logger.warning(exc)
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Failed to connect to {domain}.",
-            ) from exc
-
-    params = json.loads(r.text)
+def _validate_lnurl_response(params, domain, amount_msat):
     if params.get("status") == "ERROR":
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"{domain} said: '{params.get('reason', '')}'",
         )
-
     if not params.get("pr"):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"{domain} did not return a payment request.",
         )
-
     invoice = bolt11.decode(params["pr"])
     if invoice.amount_msat != amount_msat:
         raise HTTPException(
@@ -335,6 +302,44 @@ async def api_payments_pay_lnurl(
                 f" {amount_msat} msat, got {invoice.amount_msat}."
             ),
         )
+    return invoice
+
+
+async def _fetch_lnurl_params(client, data, amount_msat, domain):
+    check_callback_url(data.callback)
+    try:
+        r = await client.get(
+            data.callback,
+            params={"amount": amount_msat, "comment": data.comment},
+            timeout=40,
+        )
+        if r.is_error:
+            raise httpx.ConnectError("LNURL callback connection error")
+        r.raise_for_status()
+    except (httpx.HTTPError, ssl.SSLError) as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Failed to connect to {domain}.",
+        ) from exc
+    return json.loads(r.text)
+
+
+@payment_router.post("/lnurl")
+async def api_payments_pay_lnurl(
+    data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
+) -> Payment:
+    domain = urlparse(data.callback).netloc
+    headers = {"User-Agent": settings.user_agent}
+    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+        if data.unit and data.unit != "sat":
+            amount_msat = await fiat_amount_as_satoshis(data.amount, data.unit)
+            amount_msat = ceil(amount_msat // 1000) * 1000
+        else:
+            amount_msat = data.amount
+
+        params = await _fetch_lnurl_params(client, data, amount_msat, domain)
+        _validate_lnurl_response(params, domain, amount_msat)
 
     extra = {}
     if params.get("successAction"):
