@@ -13,7 +13,7 @@ if not BREEZ_SDK_INSTALLED:
         def __init__(self):
             raise RuntimeError(
                 "Breez Liquid SDK is not installed. "
-                "Ask admin to run `poetry add -E breez_sdk_liquid` to install it."
+                "Ask admin to run `poetry add -E breez` to install it."
             )
 
 else:
@@ -128,15 +128,14 @@ else:
                 payment_hash = invoice_data.payment_hash
 
                 return InvoiceResponse(
-                    True,
-                    payment_hash,
-                    bolt11,
-                    None,
+                    ok=True,
+                    checking_id=payment_hash,
+                    payment_request=bolt11,
                     fees_msats=receive_fees_sats * 1000,
                 )
             except Exception as e:
                 logger.warning(e)
-                return InvoiceResponse(False, None, None, str(e))
+                return InvoiceResponse(ok=False, error_message=str(e))
 
         async def pay_invoice(
             self, bolt11: str, fee_limit_msat: int
@@ -155,7 +154,7 @@ else:
                 req = self.sdk_services.prepare_send_payment(prepare_req)
                 # TODO figure out the fee madness for breez liquid and phoenixd
                 fee_limit_sat = 50 + int(fee_limit_msat / 1000)
-                if req.fees_sat > fee_limit_sat:
+                if req.fees_sat and req.fees_sat > fee_limit_sat:
                     return PaymentResponse(
                         ok=False,
                         error_message=f"""
@@ -172,25 +171,26 @@ else:
             except Exception as exc:
                 logger.warning(exc)
                 # assume that payment failed?
-                return PaymentResponse(
-                    False, None, None, None, f"payment failed: {exc}"
-                )
+                return PaymentResponse(ok=False, error_message=f"payment failed: {exc}")
 
             checking_id = invoice_data.payment_hash
 
+            fees = req.fees_sat * 1000 if req.fees_sat and req.fees_sat > 0 else 0
+
             if payment.status != breez_sdk.PaymentState.COMPLETE:
                 return PaymentResponse(
-                    None, checking_id, req.fees_sat * 1000, None, "payment is pending"
+                    checking_id=checking_id,
+                    fee_msat=fees,
+                    error_message="payment is pending",
                 )
 
             # let's use the payment_hash as the checking_id
             lightning_details: breez_sdk.PaymentDetails.LIGHTNING = payment.details
             return PaymentResponse(
-                True,
-                checking_id,
-                payment.fees_sat * 1000,
-                lightning_details.preimage,
-                None,
+                ok=True,
+                checking_id=checking_id,
+                fee_msat=payment.fees_sat * 1000,
+                preimage=lightning_details.preimage,
             )
 
         def _find_payment(
