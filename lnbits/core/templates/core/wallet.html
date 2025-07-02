@@ -854,7 +854,7 @@
               v-model="parse.data.internalMemo"
               label="Internal memo"
               class="q-mb-md"
-              :rules="[ val => !val || val.length <= 64 || 'Please use maximum 64 characters' ]"
+              :rules="[ val => !val || val.length <= 512 || 'Please use maximum 64 characters' ]"
               ><template v-if="parse.data.internalMemo" v-slot:append>
                 <q-icon
                   name="cancel"
@@ -1099,7 +1099,7 @@
                     v-model="parse.data.internalMemo"
                     label="Internal memo (optional)"
                     class="q-my-md"
-                    :rules="[ val => !val || val.length <= 64 || 'Please use maximum 64 characters' ]"
+                    :rules="[ val => !val || val.length <= 512 || 'Please use maximum 64 characters' ]"
                     ><template v-if="parse.data.internalMemo" v-slot:append>
                       <q-icon
                         name="cancel"
