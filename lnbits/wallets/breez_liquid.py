@@ -265,7 +265,7 @@ else:
         async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
             while settings.lnbits_running:
                 event = await breez_event_queue.get()
-                # you can set success of we hit `PAYMENT_WAITING_CONFIRMATION`
+                # we can set success if we hit `PAYMENT_WAITING_CONFIRMATION`
                 # instead of `PAYMENT_SUCCEEDED` to make is faster
                 # https://github.com/breez/breez-sdk-liquid/issues/961
                 # uncomment if this issue is resolved (duplicate events)
