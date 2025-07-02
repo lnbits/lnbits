@@ -149,17 +149,9 @@ else:
             invoice_data = lnbits_bolt11.decode(bolt11)
 
             try:
-                amount_sat = (
-                    invoice_data.amount_msat / 1000 if invoice_data.amount_msat else 0
-                )
-                # TODO: issue with breez sdk, PayAmount is of type BITCOIN
-                # not PayAmount after initialisation
-                receiver_amount = breez_sdk.PayAmount.BITCOIN(int(amount_sat))
-                prepare_req = breez_sdk.PrepareSendRequest(
-                    destination=bolt11,
-                    amount=receiver_amount,  # type: ignore
-                )
+                prepare_req = breez_sdk.PrepareSendRequest(destination=bolt11)
                 req = self.sdk_services.prepare_send_payment(prepare_req)
+
                 # TODO figure out the fee madness for breez liquid and phoenixd
                 fee_limit_sat = 50 + int(fee_limit_msat / 1000)
                 if req.fees_sat and req.fees_sat > fee_limit_sat:
@@ -174,13 +166,12 @@ else:
                     breez_sdk.SendPaymentRequest(prepare_response=req)
                 )
 
-                payment: breez_sdk.Payment = send_response.payment
-
             except Exception as exc:
                 logger.warning(exc)
                 # assume that payment failed?
                 return PaymentResponse(ok=False, error_message=f"payment failed: {exc}")
 
+            payment: breez_sdk.Payment = send_response.payment
             checking_id = invoice_data.payment_hash
 
             fees = req.fees_sat * 1000 if req.fees_sat and req.fees_sat > 0 else 0
@@ -192,12 +183,17 @@ else:
                     error_message="payment is pending",
                 )
 
+            if not isinstance(payment.details, breez_sdk.PaymentDetails.LIGHTNING):
+                return PaymentResponse(
+                    error_message="lightning payment details are not available"
+                )
+
             # let's use the payment_hash as the checking_id
             return PaymentResponse(
                 ok=True,
                 checking_id=checking_id,
                 fee_msat=payment.fees_sat * 1000,
-                preimage=payment.details.LIGHTNING.preimage,
+                preimage=payment.details.preimage,
             )
 
         def _find_payment(self, payment_hash: str) -> Optional[breez_sdk.Payment]:
@@ -214,10 +210,11 @@ else:
                     if (
                         not details
                         or not details.is_lightning()
-                        or not details.LIGHTNING.invoice
+                        or not isinstance(details, breez_sdk.PaymentDetails.LIGHTNING)
+                        or not details.invoice
                     ):
                         continue
-                    invoice_data = lnbits_bolt11.decode(details.LIGHTNING.invoice)
+                    invoice_data = lnbits_bolt11.decode(details.invoice)
                     if invoice_data.payment_hash == payment_hash:
                         return p
                 if len(history) < 100:
@@ -278,8 +275,9 @@ else:
                     if (
                         not details
                         or not details.is_lightning()
-                        or not details.LIGHTNING.invoice
+                        or not isinstance(details, breez_sdk.PaymentDetails.LIGHTNING)
+                        or not details.invoice
                     ):
                         continue
-                    invoice_data = lnbits_bolt11.decode(details.LIGHTNING.invoice)
+                    invoice_data = lnbits_bolt11.decode(details.invoice)
                     yield invoice_data.payment_hash
