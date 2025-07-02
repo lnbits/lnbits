@@ -121,7 +121,6 @@ async def api_payments_counting_stats(
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
     user: User = Depends(check_user_exists),
 ):
-
     if user.admin:
         # admin user can see payments from all wallets
         for_user_id = None
@@ -142,7 +141,6 @@ async def api_payments_wallets_stats(
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
     user: User = Depends(check_user_exists),
 ):
-
     if user.admin:
         # admin user can see payments from all wallets
         for_user_id = None
@@ -163,7 +161,6 @@ async def api_payments_daily_stats(
     user: User = Depends(check_user_exists),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
-
     if user.admin:
         # admin user can see payments from all wallets
         for_user_id = None
@@ -347,6 +344,8 @@ async def api_payments_pay_lnurl(
     if data.unit and data.unit != "sat":
         extra["fiat_currency"] = data.unit
         extra["fiat_amount"] = data.amount / 1000
+    if data.internal_memo:
+        extra["internal_memo"] = data.internal_memo
     assert data.description is not None, "description is required"
 
     payment = await pay_invoice(

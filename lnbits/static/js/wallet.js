@@ -523,7 +523,8 @@ window.WalletPageLogic = {
           this.parse.data.amount * 1000,
           this.parse.lnurlpay.description.slice(0, 120),
           this.parse.data.comment,
-          this.parse.data.unit
+          this.parse.data.unit,
+          this.parse.data.internalMemo
         )
         .then(response => {
           this.parse.show = false

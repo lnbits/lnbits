@@ -50,16 +50,28 @@ window.LNbits = {
       amount,
       description = '',
       comment = '',
-      unit = ''
+      unit = '',
+      internalMemo = null
     ) {
-      return this.request('post', '/api/v1/payments/lnurl', wallet.adminkey, {
+      const data = {
         callback,
         description_hash,
         amount,
         comment,
         description,
         unit
-      })
+      }
+
+      if (internalMemo && internalMemo !== '') {
+        data.internal_memo = String(internalMemo)
+      }
+
+      return this.request(
+        'post',
+        '/api/v1/payments/lnurl',
+        wallet.adminkey,
+        data
+      )
     },
     authLnurl(wallet, callback) {
       return this.request('post', '/api/v1/lnurlauth', wallet.adminkey, {

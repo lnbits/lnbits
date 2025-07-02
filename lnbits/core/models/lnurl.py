@@ -10,6 +10,7 @@ class CreateLnurl(BaseModel):
     comment: Optional[str] = None
     description: Optional[str] = None
     unit: Optional[str] = None
+    internal_memo: Optional[str] = None
 
 
 class CreateLnurlAuth(BaseModel):

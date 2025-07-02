@@ -849,15 +849,16 @@
             <q-separator></q-separator>
             <h6 class="text-center" v-text="parse.invoice.description"></h6>
             <q-input
+              filled
               dense
-              v-model="parse.data.comment"
+              v-model="parse.data.internalMemo"
               label="Internal memo"
-              class="q-mb-md text-center"
+              class="q-mb-md"
               :rules="[ val => !val || val.length <= 64 || 'Please use maximum 64 characters' ]"
-              ><template v-if="parse.data.comment" v-slot:append>
+              ><template v-if="parse.data.internalMemo" v-slot:append>
                 <q-icon
                   name="cancel"
-                  @click.stop.prevent="parse.data.comment = null"
+                  @click.stop.prevent="parse.data.internalMemo = null"
                   class="cursor-pointer"
                 /> </template
             ></q-input>
@@ -1091,6 +1092,20 @@
                     :type="parse.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
                     label="Comment (optional)"
                     :maxlength="parse.lnurlpay.commentAllowed"
+                  ></q-input>
+                  <q-input
+                    filled
+                    dense
+                    v-model="parse.data.internalMemo"
+                    label="Internal memo (optional)"
+                    class="q-my-md"
+                    :rules="[ val => !val || val.length <= 64 || 'Please use maximum 64 characters' ]"
+                    ><template v-if="parse.data.internalMemo" v-slot:append>
+                      <q-icon
+                        name="cancel"
+                        @click.stop.prevent="parse.data.internalMemo = null"
+                        class="cursor-pointer"
+                      /> </template
                   ></q-input>
                 </div>
               </div>
