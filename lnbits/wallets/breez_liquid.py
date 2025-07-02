@@ -250,9 +250,14 @@ else:
                     logger.warning(f"unexpected payment type: {payment.status}")
                     return PaymentPendingStatus()
                 if payment.status == breez_sdk.PaymentState.COMPLETE:
+                    if not isinstance(
+                        payment.details, breez_sdk.PaymentDetails.LIGHTNING
+                    ):
+                        logger.warning("payment details are not of type LIGHTNING")
+                        return PaymentPendingStatus()
                     return PaymentSuccessStatus(
                         fee_msat=int(payment.fees_sat * 1000),
-                        preimage=payment.details.LIGHTNING.preimage,
+                        preimage=payment.details.preimage,
                     )
                 if payment.status == breez_sdk.PaymentState.FAILED:
                     return PaymentFailedStatus()
