@@ -268,9 +268,12 @@ else:
                 event = await breez_event_queue.get()
                 # you can set success of we hit `PAYMENT_WAITING_CONFIRMATION`
                 # instead of `PAYMENT_SUCCEEDED` to make is faster
-                if not isinstance(
-                    event, breez_sdk.SdkEvent.PAYMENT_WAITING_CONFIRMATION
-                ) and not isinstance(event, breez_sdk.SdkEvent.PAYMENT_SUCCEEDED):
+                # https://github.com/breez/breez-sdk-liquid/issues/961
+                # uncomment if this issue is resolved (duplicate events)
+                # if not isinstance(
+                #     event, breez_sdk.SdkEvent.PAYMENT_WAITING_CONFIRMATION
+                # ) and
+                if not isinstance(event, breez_sdk.SdkEvent.PAYMENT_SUCCEEDED):
                     continue
                 logger.debug(f"breez invoice paid event: {event.details}")
                 details = event.details.details
