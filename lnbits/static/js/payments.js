@@ -60,10 +60,10 @@ window.PaymentsPageLogic = {
             sortable: false
           },
           {
-            name: 'fee',
+            name: 'fee_sats',
             align: 'left',
             label: 'Fee',
-            field: 'fee',
+            field: 'fee_sats',
             sortable: true
           },
 
@@ -166,6 +166,8 @@ window.PaymentsPageLogic = {
               p.extra.wallet_fiat_currency
             )
           }
+          p.fee_sats =
+            new Intl.NumberFormat(window.LOCALE).format(p.fee / 1000) + ' sats'
 
           return p
         })
