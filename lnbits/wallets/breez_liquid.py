@@ -133,7 +133,7 @@ else:
                     ok=True,
                     checking_id=payment_hash,
                     payment_request=bolt11,
-                    fees_msats=receive_fees_sats * 1000,
+                    fee_msat=receive_fees_sats * 1000,
                 )
             except Exception as e:
                 logger.warning(e)
