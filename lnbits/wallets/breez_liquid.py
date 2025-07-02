@@ -281,6 +281,9 @@ else:
                     or not isinstance(details, breez_sdk.PaymentDetails.LIGHTNING)
                     or not details.invoice
                 ):
+                    logger.warning(
+                        f"unexpected payment details: {details} for event: {event}"
+                    )
                     continue
                 invoice_data = bolt11_decode(details.invoice)
                 yield invoice_data.payment_hash
