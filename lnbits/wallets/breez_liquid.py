@@ -150,12 +150,14 @@ else:
 
                 # TODO figure out the fee madness for breez liquid and phoenixd
                 fee_limit_sat = 50 + int(fee_limit_msat / 1000)
+
                 if req.fees_sat and req.fees_sat > fee_limit_sat:
                     return PaymentResponse(
                         ok=False,
-                        error_message=f"""
-                        fee of {req.fees_sat} sat exceeds limit of {fee_limit_sat} sat
-                        """,
+                        error_message=(
+                            f"fee of {req.fees_sat} sat exceeds limit of "
+                            f"{fee_limit_sat} sat"
+                        ),
                     )
 
                 send_response = self.sdk_services.send_payment(
