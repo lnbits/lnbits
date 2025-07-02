@@ -101,6 +101,11 @@ window.localisation.en = {
   memo: 'Memo',
   date: 'Date',
   path: 'Path',
+  internal_memo: 'Internal memo (Optional)',
+  internal_memo_hint_receive:
+    "This memo is not shown to the payer but it's stored in the invoice for your reference.",
+  internal_memo_hint_pay:
+    "This memo is not shown to the payee but it's stored in the payment for your reference.",
   payment_processing: 'Processing payment...',
   payment_processing: 'Processing payment...',
   payment_successful: 'Payment successful!',
