@@ -39,7 +39,8 @@ window.WalletPageLogic = {
         fiatProvider: '',
         data: {
           amount: null,
-          memo: ''
+          memo: '',
+          internalMemo: null
         }
       },
       invoiceQrCode: '',
@@ -200,6 +201,7 @@ window.WalletPageLogic = {
       this.receive.paymentHash = null
       this.receive.data.amount = null
       this.receive.data.memo = null
+      this.receive.data.internalMemo = null
       this.receive.unit = this.isFiatPriority
         ? this.g.wallet.currency || 'sat'
         : 'sat'
@@ -257,7 +259,8 @@ window.WalletPageLogic = {
           this.receive.data.memo,
           this.receive.unit,
           this.receive.lnurl && this.receive.lnurl.callback,
-          this.receive.fiatProvider
+          this.receive.fiatProvider,
+          this.receive.data.internalMemo
         )
         .then(response => {
           this.g.updatePayments = !this.g.updatePayments

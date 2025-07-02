@@ -20,16 +20,23 @@ window.LNbits = {
       memo,
       unit = 'sat',
       lnurlCallback = null,
-      fiatProvider = null
+      fiatProvider = null,
+      internalMemo = null
     ) {
-      return this.request('post', '/api/v1/payments', wallet.inkey, {
+      const data = {
         out: false,
         amount: amount,
         memo: memo,
-        lnurl_callback: lnurlCallback,
         unit: unit,
+        lnurl_callback: lnurlCallback,
         fiat_provider: fiatProvider
-      })
+      }
+      if (internalMemo) {
+        data.extra = {
+          internal_memo: String(internalMemo)
+        }
+      }
+      return this.request('post', '/api/v1/payments', wallet.inkey, data)
     },
     payInvoice(wallet, bolt11, internalMemo = null) {
       const data = {
