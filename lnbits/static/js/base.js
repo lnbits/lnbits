@@ -36,7 +36,7 @@ window.LNbits = {
         out: true,
         bolt11: bolt11
       }
-      if (internalMemo && internalMemo !== '') {
+      if (internalMemo) {
         data.extra = {
           internal_memo: String(internalMemo)
         }
@@ -62,7 +62,7 @@ window.LNbits = {
         unit
       }
 
-      if (internalMemo && internalMemo !== '') {
+      if (internalMemo) {
         data.internal_memo = String(internalMemo)
       }
 
