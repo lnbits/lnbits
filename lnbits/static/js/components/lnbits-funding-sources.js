@@ -59,8 +59,9 @@ window.app.component('lnbits-funding-sources', {
             clnrest_invoice_rune: 'Rune used for creating invoices',
             clnrest_pay_rune: 'Rune used for paying invoices using pay',
             clnrest_renepay_rune: 'Rune used for paying invoices using renepay',
-            clnrest_last_pay_index: 'Ignores any invoices paid prior to or including this index. 0 is equivalent to not specifying and negative value is invalid.',
-            clnrest_nodeid: 'Node id',
+            clnrest_last_pay_index:
+              'Ignores any invoices paid prior to or including this index. 0 is equivalent to not specifying and negative value is invalid.',
+            clnrest_nodeid: 'Node id'
           }
         ],
         [
