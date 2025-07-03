@@ -147,7 +147,7 @@ else:
                 prepare_req = breez_sdk.PrepareSendRequest(destination=bolt11)
                 req = self.sdk_services.prepare_send_payment(prepare_req)
 
-                fee_limit_sat = settings.breez_liquid_fee_limit_offset + int(
+                fee_limit_sat = settings.breez_liquid_fee_offset_sat + int(
                     fee_limit_msat / 1000
                 )
 
