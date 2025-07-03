@@ -25,7 +25,6 @@ else:
 
     import breez_sdk_liquid as breez_sdk  # type: ignore
     from bolt11 import decode as bolt11_decode
-    from breez_sdk_liquid import PaymentDetails
     from loguru import logger
 
     from lnbits.settings import settings
@@ -41,8 +40,8 @@ else:
         Wallet,
     )
 
-    breez_incoming_queue: Queue[PaymentDetails.LIGHTNING] = Queue()
-    breez_outgoing_queue: dict[str, Queue[PaymentDetails.LIGHTNING]] = {}
+    breez_incoming_queue: Queue[breez_sdk.PaymentDetails.LIGHTNING] = Queue()
+    breez_outgoing_queue: dict[str, Queue[breez_sdk.PaymentDetails.LIGHTNING]] = {}
 
     class PaymentsListener(breez_sdk.EventListener):
         def on_event(self, e: breez_sdk.SdkEvent) -> None:
