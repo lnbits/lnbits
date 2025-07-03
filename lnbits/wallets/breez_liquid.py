@@ -24,6 +24,7 @@ else:
 
     import breez_sdk_liquid as breez_sdk  # type: ignore
     from bolt11 import decode as bolt11_decode
+    from breez_sdk_liquid import PaymentDetails
     from loguru import logger
 
     from lnbits.settings import settings
@@ -39,12 +40,29 @@ else:
         Wallet,
     )
 
-    breez_event_queue: asyncio.Queue[breez_sdk.SdkEvent] = asyncio.Queue()
+    breez_incoming_queue: asyncio.Queue[PaymentDetails.LIGHTNING] = asyncio.Queue()
+    breez_outgoing_queue: dict[str, asyncio.Queue[PaymentDetails.LIGHTNING]] = {}
 
-    class SDKListener(breez_sdk.EventListener):
+    class IncomingPaymentsListener(breez_sdk.EventListener):
         def on_event(self, e: breez_sdk.SdkEvent) -> None:
             logger.debug(f"received breez sdk event: {e}")
-            breez_event_queue.put_nowait(e)
+            # TODO: when this issue is fixed:
+            # https://github.com/breez/breez-sdk-liquid/issues/961
+            # use breez_sdk.SdkEvent.PAYMENT_WAITING_CONFIRMATION
+            if not isinstance(
+                e, breez_sdk.SdkEvent.PAYMENT_SUCCEEDED
+            ) or not isinstance(e.details.details, breez_sdk.PaymentDetails.LIGHTNING):
+                return
+
+            if e.details.payment_type is breez_sdk.PaymentType.RECEIVE:
+                breez_incoming_queue.put_nowait(e.details.details)
+            if (
+                e.details.payment_type is breez_sdk.PaymentType.SEND
+                and e.details.details.payment_hash in breez_outgoing_queue
+            ):
+                breez_outgoing_queue[e.details.details.payment_hash].put_nowait(
+                    e.details.details
+                )
 
     class BreezLiquidSdkWallet(Wallet):  # type: ignore[no-redef]
         def __init__(self):
@@ -74,7 +92,7 @@ else:
                     config=self.config, mnemonic=mnemonic
                 )
                 self.sdk_services = breez_sdk.connect(connect_request)
-                self.sdk_services.add_event_listener(SDKListener())
+                self.sdk_services.add_event_listener(IncomingPaymentsListener())
             except Exception as exc:
                 logger.warning(exc)
                 raise ValueError(
@@ -169,16 +187,17 @@ else:
                 return PaymentResponse(error_message=f"Exception while payment: {exc}")
 
             payment: breez_sdk.Payment = send_response.payment
+            logger.debug(f"pay invoice res: {payment}")
             checking_id = invoice_data.payment_hash
 
             fees = req.fees_sat * 1000 if req.fees_sat and req.fees_sat > 0 else 0
 
             if payment.status != breez_sdk.PaymentState.COMPLETE:
-                return PaymentResponse(
-                    checking_id=checking_id,
-                    fee_msat=fees,
-                    error_message="payment is pending",
-                )
+                breez_outgoing_queue[checking_id] = asyncio.Queue()
+                details = await breez_outgoing_queue[checking_id].get()
+                # TODO stopped here
+                assert details
+            assert fees
 
             if not isinstance(payment.details, breez_sdk.PaymentDetails.LIGHTNING):
                 return PaymentResponse(
@@ -241,26 +260,13 @@ else:
 
         async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
             while settings.lnbits_running:
-                event = await breez_event_queue.get()
-                # we can set success if we hit `PAYMENT_WAITING_CONFIRMATION`
-                # instead of `PAYMENT_SUCCEEDED` to make is faster
-                # https://github.com/breez/breez-sdk-liquid/issues/961
-                # uncomment if this issue is resolved (duplicate events)
-                # if not isinstance(
-                #     event, breez_sdk.SdkEvent.PAYMENT_WAITING_CONFIRMATION
-                # ) and
-                if not isinstance(event, breez_sdk.SdkEvent.PAYMENT_SUCCEEDED):
-                    continue
-                logger.debug(f"breez invoice paid event: {event.details}")
-                details = event.details.details
-                if (
-                    not details
-                    or not isinstance(details, breez_sdk.PaymentDetails.LIGHTNING)
-                    or not details.invoice
-                ):
+                details = await breez_incoming_queue.get()
+                logger.debug(f"breez invoice paid event: {details}")
+                if not details.invoice:
                     logger.warning(
-                        f"unexpected payment details: {details} for event: {event}"
+                        "Paid invoices stream expected bolt11 invoice, got None"
                     )
                     continue
+
                 invoice_data = bolt11_decode(details.invoice)
                 yield invoice_data.payment_hash
