@@ -54,10 +54,8 @@ else:
                 )
 
             if not settings.breez_liquid_api_key:
-                raise ValueError(
-                    "cannot initialize BreezLiquidSdkWallet: "
-                    "missing breez_liquid_api_key"
-                )
+                with open(Path("lnbits/wallets", ".breez")) as f:
+                    settings.breez_liquid_api_key = f.read().strip()
 
             self.config = breez_sdk.default_config(
                 breez_sdk.LiquidNetwork.MAINNET,
