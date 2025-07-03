@@ -43,7 +43,7 @@ else:
     breez_incoming_queue: asyncio.Queue[PaymentDetails.LIGHTNING] = asyncio.Queue()
     breez_outgoing_queue: dict[str, asyncio.Queue[PaymentDetails.LIGHTNING]] = {}
 
-    class IncomingPaymentsListener(breez_sdk.EventListener):
+    class PaymentsListener(breez_sdk.EventListener):
         def on_event(self, e: breez_sdk.SdkEvent) -> None:
             logger.debug(f"received breez sdk event: {e}")
             # TODO: when this issue is fixed:
@@ -54,14 +54,17 @@ else:
             ) or not isinstance(e.details.details, breez_sdk.PaymentDetails.LIGHTNING):
                 return
 
-            if e.details.payment_type is breez_sdk.PaymentType.RECEIVE:
-                breez_incoming_queue.put_nowait(e.details.details)
-            if (
-                e.details.payment_type is breez_sdk.PaymentType.SEND
-                and e.details.details.payment_hash in breez_outgoing_queue
+            payment = e.details
+            payment_details = e.details.details
+
+            if payment.payment_type is breez_sdk.PaymentType.RECEIVE:
+                breez_incoming_queue.put_nowait(payment_details)
+            elif (
+                payment.payment_type is breez_sdk.PaymentType.SEND
+                and payment_details.payment_hash in breez_outgoing_queue
             ):
-                breez_outgoing_queue[e.details.details.payment_hash].put_nowait(
-                    e.details.details
+                breez_outgoing_queue[payment_details.payment_hash].put_nowait(
+                    payment_details
                 )
 
     class BreezLiquidSdkWallet(Wallet):  # type: ignore[no-redef]
@@ -92,7 +95,7 @@ else:
                     config=self.config, mnemonic=mnemonic
                 )
                 self.sdk_services = breez_sdk.connect(connect_request)
-                self.sdk_services.add_event_listener(IncomingPaymentsListener())
+                self.sdk_services.add_event_listener(PaymentsListener())
             except Exception as exc:
                 logger.warning(exc)
                 raise ValueError(
@@ -193,18 +196,13 @@ else:
             fees = req.fees_sat * 1000 if req.fees_sat and req.fees_sat > 0 else 0
 
             if payment.status != breez_sdk.PaymentState.COMPLETE:
-                breez_outgoing_queue[checking_id] = asyncio.Queue()
-                details = await breez_outgoing_queue[checking_id].get()
-                # TODO stopped here
-                assert details
-            assert fees
+                return await self._wait_for_outgoing_payment(checking_id, fees, 5)
 
             if not isinstance(payment.details, breez_sdk.PaymentDetails.LIGHTNING):
                 return PaymentResponse(
                     error_message="lightning payment details are not available"
                 )
 
-            # let's use the payment_hash as the checking_id
             return PaymentResponse(
                 ok=True,
                 checking_id=checking_id,
@@ -270,3 +268,29 @@ else:
 
                 invoice_data = bolt11_decode(details.invoice)
                 yield invoice_data.payment_hash
+
+        async def _wait_for_outgoing_payment(
+            self, checking_id: str, fees: int, timeout: int
+        ) -> PaymentResponse:
+            try:
+                breez_outgoing_queue[checking_id] = asyncio.Queue()
+                payment_details = await asyncio.wait_for(
+                    breez_outgoing_queue[checking_id].get(), timeout
+                )
+                return PaymentResponse(
+                    ok=True,
+                    preimage=payment_details.preimage,
+                    checking_id=checking_id,
+                    fee_msat=fees,
+                )
+            except asyncio.TimeoutError:
+                logger.debug(
+                    f"payment '{checking_id}' is still pending after {timeout} seconds"
+                )
+                return PaymentResponse(
+                    checking_id=checking_id,
+                    fee_msat=fees,
+                    error_message="payment is pending",
+                )
+            finally:
+                breez_outgoing_queue.pop(checking_id, None)
