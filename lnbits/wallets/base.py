@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, NamedTuple
 
 from loguru import logger
 
+from lnbits.settings import settings
+
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
 
@@ -139,7 +141,7 @@ class Wallet(ABC):
         pass
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             for invoice in self.pending_invoices:
                 try:
                     status = await self.get_invoice_status(invoice)
