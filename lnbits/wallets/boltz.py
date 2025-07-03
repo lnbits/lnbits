@@ -236,7 +236,7 @@ class BoltzWallet(Wallet):
         return PaymentFailedStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             try:
                 request = boltzrpc_pb2.GetSwapInfoRequest()
                 info: boltzrpc_pb2.GetSwapInfoResponse

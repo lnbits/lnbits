@@ -277,7 +277,7 @@ else:
                 return PaymentPendingStatus()
 
         async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-            while True:
+            while settings.lnbits_running:
                 event = await breez_event_queue.get()
                 if event.is_invoice_paid():
                     yield event.details.payment_hash
