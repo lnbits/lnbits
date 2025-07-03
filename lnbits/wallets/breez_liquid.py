@@ -149,7 +149,9 @@ else:
                 prepare_req = breez_sdk.PrepareSendRequest(destination=bolt11)
                 req = self.sdk_services.prepare_send_payment(prepare_req)
 
-                fee_limit_sat = 50 + int(fee_limit_msat / 1000)
+                fee_limit_sat = settings.breez_liquid_fee_limit_offset + int(
+                    fee_limit_msat / 1000
+                )
 
                 if req.fees_sat and req.fees_sat > fee_limit_sat:
                     return PaymentResponse(
