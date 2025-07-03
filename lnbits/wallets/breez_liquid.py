@@ -196,7 +196,7 @@ else:
 
         def _find_payment(self, payment_hash: str) -> Optional[breez_sdk.Payment]:
             offset = 0
-            while True:
+            while settings.lnbits_running:
                 list_payments_request = breez_sdk.ListPaymentsRequest(
                     offset=offset, limit=100
                 )
