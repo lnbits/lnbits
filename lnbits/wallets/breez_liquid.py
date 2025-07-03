@@ -103,7 +103,7 @@ else:
             **_,
         ) -> InvoiceResponse:
             try:
-                # TODO: issue with breez sdk, receive_amount is of type BITCOIN
+                # issue with breez sdk, receive_amount is of type BITCOIN
                 # not ReceiveAmount after initialisation
                 receive_amount = breez_sdk.ReceiveAmount.BITCOIN(amount)
                 req = self.sdk_services.prepare_receive_payment(
@@ -166,8 +166,7 @@ else:
 
             except Exception as exc:
                 logger.warning(exc)
-                # assume that payment failed?
-                return PaymentResponse(ok=False, error_message=f"payment failed: {exc}")
+                return PaymentResponse(error_message=f"Exception while payment: {exc}")
 
             payment: breez_sdk.Payment = send_response.payment
             checking_id = invoice_data.payment_hash
@@ -194,34 +193,10 @@ else:
                 preimage=payment.details.preimage,
             )
 
-        def _find_payment(self, payment_hash: str) -> Optional[breez_sdk.Payment]:
-            offset = 0
-            while settings.lnbits_running:
-                list_payments_request = breez_sdk.ListPaymentsRequest(
-                    offset=offset, limit=100
-                )
-                history: list[breez_sdk.Payment] = self.sdk_services.list_payments(
-                    req=list_payments_request
-                )
-                for p in history:
-                    if (
-                        not p.details
-                        or not p.details.is_lightning()
-                        or not isinstance(p.details, breez_sdk.PaymentDetails.LIGHTNING)
-                        or not p.details.invoice
-                    ):
-                        continue
-                    invoice_data = bolt11_decode(p.details.invoice)
-                    if invoice_data.payment_hash == payment_hash:
-                        return p
-                if len(history) < 100:
-                    break
-                offset += 100
-            return None
-
         async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
             try:
-                payment = self._find_payment(checking_id)
+                req = breez_sdk.GetPaymentRequest.PAYMENT_HASH(checking_id)
+                payment = self.sdk_services.get_payment(req=req)  # type: ignore
                 if payment is None:
                     return PaymentPendingStatus()
                 if payment.payment_type != breez_sdk.PaymentType.RECEIVE:
@@ -240,7 +215,8 @@ else:
 
         async def get_payment_status(self, checking_id: str) -> PaymentStatus:
             try:
-                payment = self._find_payment(checking_id)
+                req = breez_sdk.GetPaymentRequest.PAYMENT_HASH(checking_id)
+                payment = self.sdk_services.get_payment(req=req)  # type: ignore
                 if payment is None:
                     return PaymentPendingStatus()
                 if payment.payment_type != breez_sdk.PaymentType.SEND:
