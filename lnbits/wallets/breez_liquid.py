@@ -90,6 +90,7 @@ else:
             try:
                 info: breez_sdk.GetInfoResponse = self.sdk_services.get_info()
             except Exception as exc:
+                logger.warning(exc)
                 return StatusResponse(f"Failed to connect to breez, got: '{exc}...'", 0)
             return StatusResponse(None, int(info.wallet_info.balance_sat * 1000))
 
