@@ -18,6 +18,7 @@ if not BREEZ_SDK_INSTALLED:
 
 else:
     import asyncio
+    from asyncio import Queue
     from collections.abc import AsyncGenerator
     from pathlib import Path
     from typing import Optional
@@ -40,8 +41,8 @@ else:
         Wallet,
     )
 
-    breez_incoming_queue: asyncio.Queue[PaymentDetails.LIGHTNING] = asyncio.Queue()
-    breez_outgoing_queue: dict[str, asyncio.Queue[PaymentDetails.LIGHTNING]] = {}
+    breez_incoming_queue: Queue[PaymentDetails.LIGHTNING] = Queue()
+    breez_outgoing_queue: dict[str, Queue[PaymentDetails.LIGHTNING]] = {}
 
     class PaymentsListener(breez_sdk.EventListener):
         def on_event(self, e: breez_sdk.SdkEvent) -> None:
@@ -273,7 +274,7 @@ else:
             self, checking_id: str, fees: int, timeout: int
         ) -> PaymentResponse:
             try:
-                breez_outgoing_queue[checking_id] = asyncio.Queue()
+                breez_outgoing_queue[checking_id] = Queue()
                 payment_details = await asyncio.wait_for(
                     breez_outgoing_queue[checking_id].get(), timeout
                 )
