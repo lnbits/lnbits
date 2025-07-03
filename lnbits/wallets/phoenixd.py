@@ -165,8 +165,6 @@ class PhoenixdWallet(Wallet):
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        # PhoenixD returns 200 even if the payment fails anything else we consider
-        # an error and expect phoenix to not create a payment
         try:
             r = await self.client.post(
                 "/payinvoice",
@@ -175,20 +173,22 @@ class PhoenixdWallet(Wallet):
                 },
                 timeout=40,
             )
+
             r.raise_for_status()
+
         except TimeoutException:
             # be safe and return pending on timeouts
             msg = f"Timeout connecting to {self.endpoint}. keep pending..."
-            logger.error(msg)
+            logger.warning(msg)
             return PaymentResponse(ok=None, error_message=msg)
         except RequestError as exc:
             # RequestError is raised when the request never hit the destination server
             msg = f"Unable to connect to {self.endpoint}."
-            logger.error(msg)
-            logger.error(exc)
+            logger.warning(msg)
+            logger.warning(exc)
             return PaymentResponse(ok=False, error_message=msg)
         except Exception as exc:
-            logger.error(exc)
+            logger.warning(exc)
             return PaymentResponse(
                 ok=None, error_message="Server error, keep pending...'"
             )
@@ -199,7 +199,12 @@ class PhoenixdWallet(Wallet):
             if "routingFeeSat" not in data and "reason" in data:
                 return PaymentResponse(error_message=data["reason"])
 
-            if r.is_error or "paymentHash" not in data:
+            # missing fields, should not happen, but just in case we keep it pending
+            if (
+                "routingFeeSat" not in data
+                or "paymentPreimage" not in data
+                or "paymentHash" not in data
+            ):
                 error_message = data["message"] if "message" in data else r.text
                 return PaymentResponse(error_message=error_message)
 
@@ -213,35 +218,12 @@ class PhoenixdWallet(Wallet):
                 preimage=preimage,
             )
 
-        except json.JSONDecodeError:
-            # phoenixd should never return invalid json,
-            # but just in case we keep it pending
-            logger.error(f"Phoenixd: invalid json response: {r.text}, keeping pending")
-            return PaymentResponse(
-                error_message="Server error: 'invalid json response'"
-            )
-
-        if "reason" in data:
-            # if reason is present, the payment failed and
-            # it was not created by phoenixd
-            return PaymentResponse(
-                error_message="Server error: 'missing required fields'"
-            )
-
-        # missing fields, should not happen, but just in case we keep it pending
-        if (
-            "routingFeeSat" not in data
-            or "paymentPreimage" not in data
-            or "paymentHash" not in data
-        ):
-            logger.error(f"Phoenixd: missing required fields: {data}, keeping pending")
+        except Exception as exc:
+            logger.info(f"Failed to pay invoice {bolt11}")
+            logger.warning(exc)
             return PaymentResponse(
                 error_message=f"Unable to connect to {self.endpoint}."
             )
-        checking_id = data["paymentHash"]
-        fee_msat = -int(data["routingFeeSat"])
-        preimage = data["paymentPreimage"]
-        return PaymentResponse(True, checking_id, fee_msat, preimage)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(
@@ -253,13 +235,17 @@ class PhoenixdWallet(Wallet):
                 return PaymentFailedStatus()
             else:
                 # otherwise something unexpected happened, and we keep it pending
-                logger.error(f"Error getting invoice status: {r.text}, keeping pending")
+                logger.warning(
+                    f"Error getting invoice status: {r.text}, keeping pending"
+                )
                 return PaymentPendingStatus()
         try:
             data = r.json()
         except json.JSONDecodeError:
             # should never return invalid json, but just in case we keep it pending
-            logger.error(f"Phoenixd: invalid json response: {r.text}, keeping pending")
+            logger.warning(
+                f"Phoenixd: invalid json response: {r.text}, keeping pending"
+            )
             return PaymentPendingStatus()
 
         if "isPaid" in data and "fees" in data and "preimage" in data:
@@ -283,18 +269,24 @@ class PhoenixdWallet(Wallet):
                 return PaymentFailedStatus()
             else:
                 # otherwise something unexpected happened, and we keep it pending
-                logger.error(f"Error getting payment status: {r.text}, keeping pending")
+                logger.warning(
+                    f"Error getting payment status: {r.text}, keeping pending"
+                )
                 return PaymentPendingStatus()
         try:
             data = r.json()
         except json.JSONDecodeError:
             # should never return invalid json, but just in case we keep it pending
-            logger.error(f"Phoenixd: invalid json response: {r.text}, keeping pending")
+            logger.warning(
+                f"Phoenixd: invalid json response: {r.text}, keeping pending"
+            )
             return PaymentPendingStatus()
 
         if "isPaid" not in data or "fees" not in data or "preimage" not in data:
             # should never happen, but just in case we keep it pending
-            logger.error(f"Phoenixd: missing required fields: {data}, keeping pending")
+            logger.warning(
+                f"Phoenixd: missing required fields: {data}, keeping pending"
+            )
             return PaymentPendingStatus()
 
         if data["isPaid"] is True:
@@ -324,7 +316,7 @@ class PhoenixdWallet(Wallet):
                             yield message_json["paymentHash"]
 
             except Exception as exc:
-                logger.error(
+                logger.warning(
                     f"lost connection to phoenixd invoices stream: '{exc}'"
                     "retrying in 5 seconds"
                 )
