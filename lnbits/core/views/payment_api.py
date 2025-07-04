@@ -282,7 +282,9 @@ async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONRespo
         )
 
 
-def _validate_lnurl_response(params, domain, amount_msat):
+def _validate_lnurl_response(
+    params: dict, domain: str, amount_msat: int
+) -> bolt11.Invoice:
     if params.get("status") == "ERROR":
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -305,10 +307,12 @@ def _validate_lnurl_response(params, domain, amount_msat):
     return invoice
 
 
-async def _fetch_lnurl_params(client, data, amount_msat, domain):
+async def _fetch_lnurl_params(
+    client: httpx.AsyncClient, data: CreateLnurl, amount_msat: int, domain: str
+) -> dict:
     check_callback_url(data.callback)
     try:
-        r = await client.get(
+        r: httpx.Response = await client.get(
             data.callback,
             params={"amount": amount_msat, "comment": data.comment},
             timeout=40,
@@ -349,7 +353,7 @@ async def api_payments_pay_lnurl(
     if data.unit and data.unit != "sat":
         extra["fiat_currency"] = data.unit
         extra["fiat_amount"] = data.amount / 1000
-    if data.internal_memo:
+    if data.internal_memo is not None and len(data.internal_memo) <= 512:
         extra["internal_memo"] = data.internal_memo
     assert data.description is not None, "description is required"
 
