@@ -55,7 +55,7 @@ async def get_count_stats(
             {clause}
             GROUP BY {field}
             ORDER BY {field}
-        """,
+        """,  # noqa: S608
         values=filters.values(),
         model=AuditCountStat,
     )
@@ -77,7 +77,7 @@ async def get_long_duration_stats(
             GROUP BY path
             ORDER BY total DESC
             LIMIT 5
-        """,
+        """,  # noqa: S608
         values=filters.values(),
         model=AuditCountStat,
     )

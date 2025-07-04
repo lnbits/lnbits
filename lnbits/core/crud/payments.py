@@ -55,7 +55,7 @@ async def get_standalone_payment(
         SELECT * FROM apipayments
         WHERE {clause}
         ORDER BY amount LIMIT 1
-        """,
+        """,  # noqa: S608
         values,
         Payment,
     )
@@ -88,7 +88,7 @@ async def get_latest_payments_by_extension(
         AND extra LIKE :ext_name
         AND extra LIKE :ext_id
         ORDER BY time DESC LIMIT {int(limit)}
-        """,
+        """,  # noqa: S608
         {
             "status": f"{PaymentState.SUCCESS}",
             "ext_name": f"%{ext_name}%",
@@ -238,17 +238,17 @@ async def delete_expired_invoices(
         DELETE FROM apipayments
         WHERE status = :status AND amount > 0
         AND time < {db.timestamp_placeholder("delta")}
-        """,
+        """,  # noqa: S608
         {"status": f"{PaymentState.PENDING}", "delta": int(time() - 2592000)},
     )
     # then we delete all invoices whose expiry date is in the past
     await (conn or db).execute(
         f"""
         DELETE FROM apipayments
-        WHERE status = '{PaymentState.PENDING}' AND amount > 0
+        WHERE status = :status AND amount > 0
         AND expiry < {db.timestamp_placeholder("now")}
-        """,
-        {"now": int(time())},
+        """,  # noqa: S608
+        {"status": f"{PaymentState.PENDING}", "now": int(time())},
     )
 
 
@@ -337,7 +337,7 @@ async def get_payments_history(
         {filters.where(where)}
         GROUP BY date
         ORDER BY date DESC
-        """,
+        """,  # noqa: S608
         filters.values(values),
     )
     if wallet_id:
@@ -389,7 +389,7 @@ async def get_payment_count_stats(
             {clause}
             GROUP BY {field}
             ORDER BY {field}
-        """,
+        """,  # noqa: S608
         values=filters.values(),
         model=PaymentCountStat,
     )
@@ -486,7 +486,7 @@ async def get_wallets_stats(
             {clauses}
             GROUP BY apipayments.wallet_id
             ORDER BY payments_count
-        """,
+        """,  # noqa: S608
         values=filters.values(),
         model=PaymentWalletStats,
     )

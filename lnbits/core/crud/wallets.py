@@ -52,7 +52,7 @@ async def delete_wallet(
         UPDATE wallets
         SET deleted = :deleted, updated_at = {db.timestamp_placeholder('now')}
         WHERE id = :wallet AND "user" = :user
-        """,
+        """,  # noqa: S608
         {"wallet": wallet_id, "user": user_id, "deleted": deleted, "now": now},
     )
 
@@ -75,7 +75,7 @@ async def delete_wallet_by_id(
         UPDATE wallets
         SET deleted = true, updated_at = {db.timestamp_placeholder('now')}
         WHERE id = :wallet
-        """,
+        """,  # noqa: S608
         {"wallet": wallet_id, "now": now},
     )
     return result.rowcount

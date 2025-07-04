@@ -118,7 +118,7 @@ async def delete_accounts_no_wallets(
             (updated_at is null AND created_at < :delta)
             OR updated_at < {db.timestamp_placeholder("delta")}
         )
-        """,
+        """,  # noqa: S608
         {"delta": delta},
     )
 

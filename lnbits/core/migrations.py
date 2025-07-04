@@ -222,7 +222,7 @@ async def m007_set_invoice_expiries(db: Connection):
             AND bolt11 IS NOT NULL
             AND expiry IS NULL
             AND time < {db.timestamp_now}
-            """
+            """  # noqa: S608
         )
         rows = result.mappings().all()
         if len(rows):
@@ -245,7 +245,7 @@ async def m007_set_invoice_expiries(db: Connection):
                     f"""
                     UPDATE apipayments SET expiry = {db.timestamp_placeholder('expiry')}
                     WHERE checking_id = :checking_id AND amount > 0
-                    """,
+                    """,  # noqa: S608
                     {"expiry": expiration_date, "checking_id": checking_id},
                 )
             except Exception as exc:
@@ -459,14 +459,14 @@ async def m017_add_timestamp_columns_to_accounts_and_wallets(db: Connection):
             f"""
             UPDATE wallets SET created_at = {db.timestamp_placeholder('now')}
             WHERE created_at IS NULL
-            """,
+            """,  # noqa: S608
             {"now": now},
         )
         await db.execute(
             f"""
             UPDATE accounts SET created_at = {db.timestamp_placeholder('now')}
             WHERE created_at IS NULL
-            """,
+            """,  # noqa: S608
             {"now": now},
         )
 
@@ -618,7 +618,7 @@ async def m027_update_apipayments_data(db: Connection):
         logger.info(f"Updating {offset} to {offset+limit}")
 
         result = await db.execute(
-            f"SELECT * FROM apipayments  ORDER BY time LIMIT {limit} OFFSET {offset}"
+            f"SELECT * FROM apipayments  ORDER BY time LIMIT {limit} OFFSET {offset}"  # noqa: S608
         )
         payments = result.mappings().all()
         logger.info(f"Payments count: {len(payments)}")
@@ -635,7 +635,7 @@ async def m027_update_apipayments_data(db: Connection):
                 UPDATE apipayments
                 SET tag = :tag, created_at = {tsph}, updated_at = {tsph}
                 WHERE checking_id = :checking_id
-                """,
+                """,  # noqa: S608
                 {
                     "tag": tag,
                     "created_at": created_at,
