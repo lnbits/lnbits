@@ -99,6 +99,18 @@ async def pay_invoice(
     return payment
 
 
+async def create_payment_request(
+    wallet_id: str, invoice_data: CreateInvoice
+) -> Payment:
+    """
+    Create a lightning invoice or a fiat payment request.
+    """
+    if invoice_data.fiat_provider:
+        return await create_fiat_invoice(wallet_id, invoice_data)
+
+    return await create_wallet_invoice(wallet_id, invoice_data)
+
+
 async def create_fiat_invoice(
     wallet_id: str, invoice_data: CreateInvoice, conn: Optional[Connection] = None
 ):
