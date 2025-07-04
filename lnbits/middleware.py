@@ -131,8 +131,6 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
         try:
             response = await call_next(request)
-            if not response:
-                raise ValueError()
             return response
         finally:
             if request_details:

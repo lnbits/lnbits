@@ -377,9 +377,8 @@ class InstallableExtension(BaseModel):
         if ext_zip_file.is_file():
             os.remove(ext_zip_file)
         try:
-            assert (
-                self.meta and self.meta.installed_release
-            ), "installed_release is none."
+            if not self.meta or not self.meta.installed_release:
+                raise ValueError("installed_release is none.")
 
             self._restore_payment_info()
 

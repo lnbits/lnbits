@@ -347,7 +347,8 @@ async def update_password(
     payload: AccessTokenPayload = Depends(access_token_payload),
 ) -> Optional[User]:
     _validate_auth_timeout(payload.auth_time)
-    assert data.user_id == user.id, "Invalid user ID."
+    if data.user_id != user.id:
+        raise ValueError("Invalid user ID.")
     if (
         data.username
         and user.username != data.username
@@ -356,12 +357,15 @@ async def update_password(
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
 
     account = await get_account(user.id)
-    assert account, "Account not found."
+    if not account:
+        raise ValueError("Account not found.")
 
     # old accounts do not have a password
     if account.password_hash:
-        assert data.password_old, "Missing old password."
-        assert account.verify_password(data.password_old), "Invalid old password."
+        if not data.password_old:
+            raise ValueError("Missing old password.")
+        if not account.verify_password(data.password_old):
+            raise ValueError("Invalid old password.")
 
     account.username = data.username
     account.hash_password(data.password)
@@ -596,9 +600,16 @@ def _nostr_nip98_event(request: Request) -> dict:
     auth_threshold = settings.auth_credetials_update_threshold
     if not (abs(time() - event["created_at"]) < auth_threshold):
         raise ValueError(
-            f"More than {auth_threshold} seconds have passed ""since the event was signed."
+            f"More than {auth_threshold} seconds have passed "
+            "since the event was signed."
         )
 
+    _check_nostr_event_tags(event)
+
+    return event
+
+
+def _check_nostr_event_tags(event: dict):
     method: Optional[str] = next((v for k, v in event["tags"] if k == "method"), None)
     if not method:
         raise ValueError("Tag 'method' is missing.")
@@ -612,8 +623,6 @@ def _nostr_nip98_event(request: Request) -> dict:
     accepted_urls = [f"{u}/nostr" for u in settings.nostr_absolute_request_urls]
     if url not in accepted_urls:
         raise ValueError(f"Invalid value for tag 'u': '{url}'.")
-
-    return event
 
 
 def _validate_auth_timeout(auth_time: Optional[int] = 0):

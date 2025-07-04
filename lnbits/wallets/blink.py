@@ -253,7 +253,7 @@ class BlinkWallet(Wallet):
 
             response_data = response.get("data")
             if response_data is None:
-                raise ValueError()
+                raise ValueError("No data found in response.")
             txs_data = (
                 response_data.get("me", {})
                 .get("defaultAccount", {})
@@ -286,9 +286,8 @@ class BlinkWallet(Wallet):
                     await ws.send(json.dumps(self.ws_auth))
                     confirmation = await ws.recv()
                     ack = json.loads(confirmation)
-                    assert (
-                        ack.get("type") == "connection_ack"
-                    ), "Websocket connection not acknowledged."
+                    if ack.get("type") != "connection_ack":
+                        raise ValueError("Websocket connection not acknowledged.")
 
                     logger.info("Websocket connection acknowledged.")
                     subscription_req = {
