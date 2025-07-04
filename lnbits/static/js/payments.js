@@ -8,7 +8,8 @@ window.PaymentsPageLogic = {
       searchData: {
         wallet_id: null,
         payment_hash: null,
-        memo: null
+        memo: null,
+        internal_memo: null
       },
       statusFilters: {
         success: true,
@@ -79,6 +80,14 @@ window.PaymentsPageLogic = {
             align: 'left',
             label: 'Memo',
             field: 'memo',
+            sortable: false,
+            max_length: 20
+          },
+          {
+            name: 'internal_memo',
+            align: 'left',
+            label: 'Internal Memo',
+            field: 'internal_memo',
             sortable: false,
             max_length: 20
           },
@@ -165,6 +174,9 @@ window.PaymentsPageLogic = {
               p.extra.wallet_fiat_amount,
               p.extra.wallet_fiat_currency
             )
+          }
+          if (p.extra?.internal_memo) {
+            p.internal_memo = p.extra.internal_memo
           }
           p.fee_sats =
             new Intl.NumberFormat(window.LOCALE).format(p.fee / 1000) + ' sats'

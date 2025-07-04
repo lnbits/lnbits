@@ -14,6 +14,7 @@ window.WalletPageLogic = {
           request: '',
           amount: 0,
           comment: '',
+          internalMemo: null,
           unit: 'sat'
         },
         paymentChecker: null,
@@ -38,7 +39,8 @@ window.WalletPageLogic = {
         fiatProvider: '',
         data: {
           amount: null,
-          memo: ''
+          memo: '',
+          internalMemo: null
         }
       },
       invoiceQrCode: '',
@@ -199,6 +201,7 @@ window.WalletPageLogic = {
       this.receive.paymentHash = null
       this.receive.data.amount = null
       this.receive.data.memo = null
+      this.receive.data.internalMemo = null
       this.receive.unit = this.isFiatPriority
         ? this.g.wallet.currency || 'sat'
         : 'sat'
@@ -220,6 +223,7 @@ window.WalletPageLogic = {
         window.isSecureContext && navigator.clipboard?.readText !== undefined
       this.parse.data.request = ''
       this.parse.data.comment = ''
+      this.parse.data.internalMemo = null
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
       this.focusInput('textArea')
@@ -255,7 +259,8 @@ window.WalletPageLogic = {
           this.receive.data.memo,
           this.receive.unit,
           this.receive.lnurl && this.receive.lnurl.callback,
-          this.receive.fiatProvider
+          this.receive.fiatProvider,
+          this.receive.data.internalMemo
         )
         .then(response => {
           this.g.updatePayments = !this.g.updatePayments
@@ -479,7 +484,11 @@ window.WalletPageLogic = {
       })
 
       LNbits.api
-        .payInvoice(this.g.wallet, this.parse.data.request)
+        .payInvoice(
+          this.g.wallet,
+          this.parse.data.request,
+          this.parse.data.internalMemo
+        )
         .then(response => {
           dismissPaymentMsg()
           this.updatePayments = !this.updatePayments
@@ -517,7 +526,8 @@ window.WalletPageLogic = {
           this.parse.data.amount * 1000,
           this.parse.lnurlpay.description.slice(0, 120),
           this.parse.data.comment,
-          this.parse.data.unit
+          this.parse.data.unit,
+          this.parse.data.internalMemo
         )
         .then(response => {
           this.parse.show = false

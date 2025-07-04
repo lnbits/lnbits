@@ -667,8 +667,36 @@
               dense
               type="textarea"
               rows="2"
-              v-model.trim="receive.data.memo"
+              v-model="receive.data.memo"
               :label="$t('memo')"
+            >
+              <template v-if="receive.data.internalMemo === null" v-slot:append>
+                <q-icon
+                  name="add_comment"
+                  @click.stop.prevent="receive.data.internalMemo = ''"
+                  class="cursor-pointer"
+                ></q-icon>
+                <q-tooltip>
+                  <span v-text="$t('internal_memo')"></span>
+                </q-tooltip>
+              </template>
+            </q-input>
+            <q-input
+              v-if="receive.data.internalMemo !== null"
+              autogrow
+              filled
+              dense
+              v-model="receive.data.internalMemo"
+              class="q-mb-lg"
+              :label="$t('internal_memo')"
+              :hint="$t('internal_memo_hint_receive')"
+              :rules="[ val => !val || val.length <= 512 || 'Please use maximum 512 characters' ]"
+              ><template v-slot:append>
+                <q-icon
+                  name="cancel"
+                  @click.stop.prevent="receive.data.internalMemo = null"
+                  class="cursor-pointer"
+                /> </template
             ></q-input>
             <div v-if="g.user.fiat_providers?.length" class="q-mt-md">
               <q-list bordered dense class="rounded-borders">
@@ -848,6 +876,21 @@
             </div>
             <q-separator></q-separator>
             <h6 class="text-center" v-text="parse.invoice.description"></h6>
+            <q-input
+              autogrow
+              filled
+              dense
+              v-model="parse.data.internalMemo"
+              :label="$t('internal_memo')"
+              :hint="$t('internal_memo_hint_pay')"
+              class="q-mb-lg"
+              :rules="[ val => !val || val.length <= 512 || 'Please use maximum 512 characters' ]"
+              ><template v-if="parse.data.internalMemo" v-slot:append>
+                <q-icon
+                  name="cancel"
+                  @click.stop.prevent="parse.data.internalMemo = null"
+                  class="cursor-pointer" /></template
+            ></q-input>
             <q-list separator bordered dense class="q-mb-md">
               <q-expansion-item expand-separator icon="info" label="Details">
                 <q-list separator>
@@ -1041,7 +1084,7 @@
                 </p>
               </div>
               <div class="row">
-                <div class="col">
+                <div class="col q-mb-lg">
                   <q-select
                     filled
                     dense
@@ -1075,9 +1118,39 @@
                     filled
                     dense
                     v-model="parse.data.comment"
-                    :type="parse.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
+                    :type="parse.lnurlpay.commentAllowed > 512 ? 'textarea' : 'text'"
                     label="Comment (optional)"
                     :maxlength="parse.lnurlpay.commentAllowed"
+                    ><template
+                      v-if="parse.data.internalMemo === null"
+                      v-slot:append
+                    >
+                      <q-icon
+                        name="add_comment"
+                        @click.stop.prevent="parse.data.internalMemo = ''"
+                        class="cursor-pointer"
+                      ></q-icon>
+                      <q-tooltip>
+                        <span v-text="$t('internal_memo')"></span>
+                      </q-tooltip> </template
+                  ></q-input>
+                  <br />
+                  <q-input
+                    v-if="parse.data.internalMemo !== null"
+                    autogrow
+                    filled
+                    dense
+                    v-model="parse.data.internalMemo"
+                    :label="$t('internal_memo')"
+                    :hint="$t('internal_memo_hint_pay')"
+                    class=""
+                    :rules="[ val => !val || val.length <= 512 || 'Please use maximum 512 characters' ]"
+                    ><template v-slot:append>
+                      <q-icon
+                        name="cancel"
+                        @click.stop.prevent="parse.data.internalMemo = null"
+                        class="cursor-pointer"
+                      /> </template
                   ></q-input>
                 </div>
               </div>
