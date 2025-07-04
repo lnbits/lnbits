@@ -57,8 +57,8 @@ else:
             # else convert from base64
             try:
                 return base64.b64decode(source)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug(exc)
         return None
 
     def load_greenlight_credentials() -> (

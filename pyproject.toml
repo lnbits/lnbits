@@ -70,6 +70,7 @@ breez = ["breez-sdk", "breez-sdk-liquid"]
 liquid = ["wallycore"]
 
 [tool.poetry.group.dev.dependencies]
+bandit = "^1.8.5"
 black = "^25.1.0"
 mypy = "^1.11.2"
 types-protobuf = "^6.30.2.20250516"
@@ -192,7 +193,8 @@ extend-exclude = [
 # UP - pyupgrade
 # RUF - ruff specific rules
 # B - bugbear
-select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B"]
+# S - bandit
+select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B", "S"]
 # UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
 # RUF012: mutable-class-default
 ignore = ["RUF012"]
@@ -210,6 +212,28 @@ classmethod-decorators = [
     "root_validator",
     "validator",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# S101: Use of assert detected. mostly for tests...
+# S105: Use of hard-coded password. mostly for tests...
+# S106: Possible hardcoded password: 'password'.
+# S307 Use of possibly insecure function; consider using `ast.literal_eval
+# S602 `subprocess` call with `shell=True` identified, security issue
+# S603 `subprocess` call: check for execution of untrusted input
+# S607: Starting a process with a partial executable path
+# TODO: do not skip S608:
+# S608: Possible SQL injection vector through string-based query construction
+# S324 Probable use of insecure hash functions in `hashlib`: `md5`
+"lnbits/*" = ["S101", "S608"]
+"lnbits/core/views/admin_api.py" = ["S602", "S603", "S607"]
+"crypto.py" = ["S324"]
+"test*.py" = ["S101", "S105", "S106", "S307"]
+"tools*.py" = ["S101", "S608"]
+"tests/*" = ["S311"]
+"tests/regtest/helpers.py" = ["S603"]
+
+[tool.bandit]
+skips = ["B101", "B404"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10

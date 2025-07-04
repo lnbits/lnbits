@@ -683,7 +683,7 @@ class NodeUISettings(LNbitsSettings):
 
 class AuthMethods(Enum):
     user_id_only = "user-id-only"
-    username_and_password = "username-password"
+    username_and_password = "username-password"  # noqa: S105
     nostr_auth_nip98 = "nostr-auth-nip98"
     google_auth = "google-auth"
     github_auth = "github-auth"

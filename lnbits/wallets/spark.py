@@ -1,8 +1,8 @@
 import asyncio
 import hashlib
 import json
-import random
 from collections.abc import AsyncGenerator
+from secrets import token_urlsafe
 from typing import Optional
 
 import httpx
@@ -116,7 +116,7 @@ class SparkWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = f"lbs{random.random()}"
+        label = f"lbs{token_urlsafe(16)}"
         try:
             if description_hash:
                 r = await self.invoicewithdescriptionhash(
