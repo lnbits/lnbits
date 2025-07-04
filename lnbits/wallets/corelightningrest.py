@@ -298,7 +298,8 @@ class CoreLightningRestWallet(Wallet):
                             self.last_pay_index = inv["pay_index"]
                             if not paid:
                                 continue
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(exc)
                             continue
                         logger.trace(f"paid invoice: {inv}")
 
