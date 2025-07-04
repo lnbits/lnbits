@@ -300,6 +300,7 @@ async def create_invoice(
         memo=memo,
         extra=extra,
         webhook=webhook,
+        fee=payment_response.fee_msat or 0,
     )
 
     payment = await create_payment(

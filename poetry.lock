@@ -657,6 +657,47 @@ files = [
 ]
 
 [[package]]
+name = "breez-sdk-liquid"
+version = "0.9.1"
+description = "Python language bindings for the Breez Liquid SDK"
+optional = true
+python-versions = "*"
+groups = ["main"]
+markers = "extra == \"breez\""
+files = [
+    {file = "breez_sdk_liquid-0.9.1-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:414a7c04dbf869435fe234b3b9987699c15dc2f8d4660d9ca1a51af608331b45"},
+    {file = "breez_sdk_liquid-0.9.1-cp310-cp310-manylinux_2_31_aarch64.whl", hash = "sha256:7f461b6b10ddfe9cfb58119e590e5f67da4d7c93fc580a84a0116ce9fd21dffa"},
+    {file = "breez_sdk_liquid-0.9.1-cp310-cp310-manylinux_2_31_x86_64.whl", hash = "sha256:c27efe35539e4092dddbe5315f5cefffccbdd699017ed8733611d11eb52f4ce0"},
+    {file = "breez_sdk_liquid-0.9.1-cp310-cp310-win32.whl", hash = "sha256:375f6322c2552d15d6ba68302a85fdc345a7671eeda8fea92c013a16c5e96505"},
+    {file = "breez_sdk_liquid-0.9.1-cp310-cp310-win_amd64.whl", hash = "sha256:f28d107099fb7caaac4051d5950a4f11bf823e11b56e797976c5fa2a7280d597"},
+    {file = "breez_sdk_liquid-0.9.1-cp311-cp311-macosx_11_0_universal2.whl", hash = "sha256:acefa49896bdb4ca06d351faacbf075646d574dda5539033df11310ec5a94446"},
+    {file = "breez_sdk_liquid-0.9.1-cp311-cp311-manylinux_2_31_aarch64.whl", hash = "sha256:d0e54fd5c8ce542dc2061d8a1ef46e6a1d430dbaea5eab369bb91ae2c4a1be7b"},
+    {file = "breez_sdk_liquid-0.9.1-cp311-cp311-manylinux_2_31_x86_64.whl", hash = "sha256:a5d1bfd4d3286d57c110d925332416b0903dda076dadede02c4b7db67576f0bf"},
+    {file = "breez_sdk_liquid-0.9.1-cp311-cp311-win32.whl", hash = "sha256:3ce2152f0a2ba65f4425fd22efb8e1dafb419e5fcf3b93dfe06fc061b1d1c0c6"},
+    {file = "breez_sdk_liquid-0.9.1-cp311-cp311-win_amd64.whl", hash = "sha256:8cdb4f247bccc0f4b9bbfff4451faa78d7b17e76a9dc918804880b600f1d4249"},
+    {file = "breez_sdk_liquid-0.9.1-cp312-cp312-macosx_11_0_universal2.whl", hash = "sha256:c463191a89a829afcae19c94f7683dac415667755d68c212afc60d8f2b21ba63"},
+    {file = "breez_sdk_liquid-0.9.1-cp312-cp312-manylinux_2_31_aarch64.whl", hash = "sha256:52efaeae2c278b498b37de1090e80f73987ee943743e69a363877ed93cd7a31e"},
+    {file = "breez_sdk_liquid-0.9.1-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:68aebea98990319c677bcbd7d1de258627b85063a29720879986694b9d393adb"},
+    {file = "breez_sdk_liquid-0.9.1-cp312-cp312-win32.whl", hash = "sha256:f53e4a1973dfd41df3ac3ecb42cf72acb71f49d5727a8acab25668b51a953bb2"},
+    {file = "breez_sdk_liquid-0.9.1-cp312-cp312-win_amd64.whl", hash = "sha256:6adb1f3f3ccd4b743a11dcc0b307db604c3424f42e2547f94fa939f0afb9bb85"},
+    {file = "breez_sdk_liquid-0.9.1-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:f94432a75bc848e597fb9859a77bab6c703d5e423d470519f37c402fc3c5d79e"},
+    {file = "breez_sdk_liquid-0.9.1-cp313-cp313-manylinux_2_31_aarch64.whl", hash = "sha256:8d6838e69620162c038d513f95ffade870e112ae5c6a0d713eaa2a3a31d6f212"},
+    {file = "breez_sdk_liquid-0.9.1-cp313-cp313-manylinux_2_31_x86_64.whl", hash = "sha256:d6b9a8601cef5875447e10c75ca3e1579dd1e881ec57cabe9787616b8a6de263"},
+    {file = "breez_sdk_liquid-0.9.1-cp313-cp313-win32.whl", hash = "sha256:d76fc905003ac5a0cfd2132df90ba6343b40b9948164a0be06a68f15b28789a2"},
+    {file = "breez_sdk_liquid-0.9.1-cp313-cp313-win_amd64.whl", hash = "sha256:d6b0fc1d77b7855d9a72799d65cdaaa0bd07a3999d6d4d27050d8ef174ce0fd3"},
+    {file = "breez_sdk_liquid-0.9.1-cp38-cp38-macosx_11_0_universal2.whl", hash = "sha256:d0d560657c29d7e3b054ad4be07955fc41b63d4b93a2b51b29bb85d1d52341af"},
+    {file = "breez_sdk_liquid-0.9.1-cp38-cp38-manylinux_2_31_aarch64.whl", hash = "sha256:2531f788eb15bb00f4b3b505ac5b8ee3de23161dd4f65768a4aa3255ea04d68e"},
+    {file = "breez_sdk_liquid-0.9.1-cp38-cp38-manylinux_2_31_x86_64.whl", hash = "sha256:f9c9f6255999cf403bc07a9deed99f8c1625a0405ae9231e3dbecb3b6af0fdc7"},
+    {file = "breez_sdk_liquid-0.9.1-cp38-cp38-win32.whl", hash = "sha256:5232b25b7e8583100ec54423e7568a305cac7778736adc9f8c735798110350c7"},
+    {file = "breez_sdk_liquid-0.9.1-cp38-cp38-win_amd64.whl", hash = "sha256:67d2b894b70ba9011fc98e04ed1ade2ff18f0413b6f2a0994747e71418d004e4"},
+    {file = "breez_sdk_liquid-0.9.1-cp39-cp39-macosx_11_0_universal2.whl", hash = "sha256:bd77d2ce43a2c0ad77a7f22226e373034ff57677338b38e4ebe3b77eb34fa224"},
+    {file = "breez_sdk_liquid-0.9.1-cp39-cp39-manylinux_2_31_aarch64.whl", hash = "sha256:14092d9d65f1b0a9009e64630614e7b8b936e9d382d0f6415f023f0b192f6b45"},
+    {file = "breez_sdk_liquid-0.9.1-cp39-cp39-manylinux_2_31_x86_64.whl", hash = "sha256:5faa4d5e9a2b47899783aa0c44ac2274d32f74a7f469506af14520deabaabf9f"},
+    {file = "breez_sdk_liquid-0.9.1-cp39-cp39-win32.whl", hash = "sha256:b5b2c4bae13655d108475f4f22efdc2b07283f72d99b9c6f99166d9e41e62942"},
+    {file = "breez_sdk_liquid-0.9.1-cp39-cp39-win_amd64.whl", hash = "sha256:f3ad7c65582558031451538c8a03caa3486a2d2c8906f2fbbccce84e9357d1ea"},
+]
+
+[[package]]
 name = "certifi"
 version = "2025.6.15"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -4373,10 +4414,10 @@ multidict = ">=4.0"
 propcache = ">=0.2.1"
 
 [extras]
-breez = ["breez-sdk"]
+breez = ["breez-sdk", "breez-sdk-liquid"]
 liquid = ["wallycore"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.12 | ~3.11 | ~3.10"
-content-hash = "434e37e5aeb0eeb1a22e12fd1914b45f27195162ef4ebc1055071fd4718d85fc"
+content-hash = "53f582a8079540033939ccd1bbd93b8ec1e8190ee26be0c0b8d64d57edb5cdac"

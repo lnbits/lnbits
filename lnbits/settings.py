@@ -305,7 +305,7 @@ class FeeSettings(LNbitsSettings):
             return 0
         reserve_min = self.lnbits_reserve_fee_min
         reserve_percent = self.lnbits_reserve_fee_percent
-        return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+        return max(int(reserve_min), int(abs(amount_msat) * reserve_percent / 100.0))
 
 
 class ExchangeProvidersSettings(LNbitsSettings):
@@ -549,6 +549,12 @@ class BreezSdkFundingSource(LNbitsSettings):
     breez_use_trampoline: bool = Field(default=True)
 
 
+class BreezLiquidSdkFundingSource(LNbitsSettings):
+    breez_liquid_api_key: str | None = Field(default=None)
+    breez_liquid_seed: str | None = Field(default=None)
+    breez_liquid_fee_offset_sat: int = Field(default=50)
+
+
 class BoltzFundingSource(LNbitsSettings):
     boltz_client_endpoint: str | None = Field(default="127.0.0.1:9002")
     boltz_client_macaroon: str | None = Field(default=None)
@@ -618,6 +624,7 @@ class FundingSourcesSettings(
     NWCFundingSource,
     BreezSdkFundingSource,
     StrikeFundingSource,
+    BreezLiquidSdkFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
     # How long to wait for the payment to be confirmed before returning a pending status
@@ -924,6 +931,7 @@ class SuperUserSettings(LNbitsSettings):
             "BoltzWallet",
             "BlinkWallet",
             "BreezSdkWallet",
+            "BreezLiquidSdkWallet",
             "CoreLightningRestWallet",
             "CoreLightningWallet",
             "EclairWallet",
