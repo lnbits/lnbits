@@ -2120,7 +2120,9 @@
                   "response": {
                     "isPaid": true,
                     "fees": 50,
-                    "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                    "paymentPreimage": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                    "routingFeeSat": -30
                   }
                 }
               ]
@@ -2182,8 +2184,16 @@
               "get_invoice_status_endpoint": []
             },
             "phoenixd": {
-              "description": "phoenixd.py doesn't handle the 'failed' status for `get_invoice_status`",
-              "get_invoice_status_endpoint": []
+              "get_invoice_status_endpoint": [
+                {
+                  "description": "http 404",
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
             }
           }
         },
@@ -2389,14 +2399,6 @@
                   "description": "bad json",
                   "response_type": "data",
                   "response": "data-not-json"
-                },
-                {
-                  "description": "http 404",
-                  "response_type": "response",
-                  "response": {
-                    "response": "Not Found",
-                    "status": 404
-                  }
                 }
               ]
             }
@@ -2674,8 +2676,16 @@
               ]
             },
             "phoenixd": {
-              "description": "phoenixd.py doesn't handle the 'failed' status for `get_invoice_status`",
-              "get_payment_status_endpoint": []
+              "get_payment_status_endpoint": [
+                {
+                  "description": "http 404",
+                  "response_type": "response",
+                  "response": {
+                    "response": "Not Found",
+                    "status": 404
+                  }
+                }
+              ]
             }
           }
         },
@@ -2932,14 +2942,6 @@
                   "description": "bad json",
                   "response_type": "data",
                   "response": "data-not-json"
-                },
-                {
-                  "description": "http 404",
-                  "response_type": "response",
-                  "response": {
-                    "response": "Not Found",
-                    "status": 404
-                  }
                 }
               ]
             }

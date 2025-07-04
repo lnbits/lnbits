@@ -190,7 +190,7 @@ class PhoenixdWallet(Wallet):
         except Exception as exc:
             logger.warning(exc)
             return PaymentResponse(
-                ok=None, error_message="Server error, keep pending...'"
+                ok=None, error_message=f"Unable to connect to {self.endpoint}."
             )
 
         try:
@@ -206,6 +206,7 @@ class PhoenixdWallet(Wallet):
                 or "paymentHash" not in data
             ):
                 error_message = data["message"] if "message" in data else r.text
+                logger.warning(error_message)
                 return PaymentResponse(error_message=error_message)
 
             checking_id = data["paymentHash"]
@@ -218,6 +219,14 @@ class PhoenixdWallet(Wallet):
                 preimage=preimage,
             )
 
+        except json.JSONDecodeError:
+            return PaymentResponse(
+                error_message="Server error: 'invalid json response'"
+            )
+        except KeyError:
+            return PaymentResponse(
+                error_message="Server error: 'missing required fields'"
+            )
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
