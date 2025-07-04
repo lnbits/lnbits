@@ -223,6 +223,7 @@ classmethod-decorators = [
 # S607: Starting a process with a partial executable path
 # S608: Possible SQL injection vector through string-based query construction
 # S324 Probable use of insecure hash functions in `hashlib`: `md5`
+# TODO: remove S101 ignore
 "lnbits/*" = ["S101"]
 "lnbits/core/views/admin_api.py" = ["S602", "S603", "S607"]
 "crypto.py" = ["S324"]

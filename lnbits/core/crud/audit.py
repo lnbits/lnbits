@@ -30,7 +30,7 @@ async def delete_expired_audit_entries(
     conn: Optional[Connection] = None,
 ):
     await (conn or db).execute(
-        # Timestamp placeholder is safe from SQL injection as it is not user input
+        # Timestamp placeholder is safe from SQL injection (not user input)
         f"""
             DELETE from audit
             WHERE delete_at < {db.timestamp_now}
