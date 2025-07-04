@@ -10,7 +10,6 @@ window.WalletPageLogic = {
         invoice: null,
         lnurlpay: null,
         lnurlauth: null,
-        toggleInternalMemo: false,
         data: {
           request: '',
           amount: 0,
@@ -38,7 +37,6 @@ window.WalletPageLogic = {
         units: ['sat'],
         unit: 'sat',
         fiatProvider: '',
-        toggleInternalMemo: false,
         data: {
           amount: null,
           memo: '',
