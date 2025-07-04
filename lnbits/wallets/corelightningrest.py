@@ -1,7 +1,7 @@
 import asyncio
 import json
-import random
 from collections.abc import AsyncGenerator
+from secrets import token_urlsafe
 from typing import Optional
 
 import httpx
@@ -111,7 +111,7 @@ class CoreLightningRestWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = kwargs.get("label", f"lbl{random.random()}")
+        label = kwargs.get("label", f"lbl{token_urlsafe(16)}")
         data: dict = {
             "amount": amount * 1000,
             "description": memo,
