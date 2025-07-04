@@ -821,7 +821,7 @@ def parse_nwc(nwc) -> dict:
             if key in ["relay", "secret"] and value:
                 data[key] = unquote(value[0])
         if "pubkey" not in data or "relay" not in data or "secret" not in data:
-            raise Exception("Invalid NWC pairing url")
+            raise ValueError("Invalid NWC pairing url")
     else:
-        raise Exception("Invalid NWC pairing url")
+        raise ValueError("Invalid NWC pairing url")
     return data
