@@ -248,7 +248,8 @@ async def m007_set_invoice_expiries(db: Connection):
                     """,
                     {"expiry": expiration_date, "checking_id": checking_id},
                 )
-            except Exception:
+            except Exception as exc:
+                logger.debug(exc)
                 continue
     except OperationalError:
         # this is necessary now because it may be the case that this migration will
@@ -371,7 +372,8 @@ async def m014_set_deleted_wallets(db: Connection):
                         "wallet": row.get("id"),
                     },
                 )
-            except Exception:
+            except Exception as exc:
+                logger.debug(exc)
                 continue
     except OperationalError:
         # this is necessary now because it may be the case that this migration will

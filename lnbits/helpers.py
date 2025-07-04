@@ -306,8 +306,11 @@ def check_callback_url(url: str):
     )
 
 
-def download_url(url, save_path):
-    with request.urlopen(url, timeout=60) as dl_file:
+def download_url(url: str, save_path: Path):
+    if not url.startswith(("http:", "https:")):
+        raise ValueError(f"Invalid URL: {url}. Must start with 'http' or 'https'.")
+
+    with request.urlopen(url, timeout=60) as dl_file:  # noqa: S310
         with open(save_path, "wb") as out_file:
             out_file.write(dl_file.read())
 
