@@ -187,7 +187,8 @@ async def api_users_reset_password(user_id: str) -> str:
     reset_data = ["reset", user_id, int(time.time())]
     reset_data_json = json.dumps(reset_data, separators=(",", ":"), ensure_ascii=False)
     reset_key = encrypt_internal_message(reset_data_json)
-    assert reset_key, "Cannot generate reset key."
+    if not reset_key:
+        raise Exception("Cannot generate reset key.")
     reset_key_b64 = base64.b64encode(reset_key.encode()).decode()
     return f"reset_key_{reset_key_b64}"
 

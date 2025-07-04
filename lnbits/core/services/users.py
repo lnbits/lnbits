@@ -80,7 +80,8 @@ async def create_user_account_no_ckeck(
             logger.error(f"Error enabeling default extension {ext_id}: {e}")
 
     user = await get_user_from_account(account)
-    assert user, "Cannot find user for account."
+    if not user:
+        raise Exception("Cannot find user for account.")
 
     return user
 

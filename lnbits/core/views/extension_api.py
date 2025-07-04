@@ -173,8 +173,10 @@ async def api_enable_extension(
     try:
         logger.info(f"Enabling extension: {ext_id}.")
         ext = await get_installed_extension(ext_id)
-        assert ext, f"Extension '{ext_id}' is not installed."
-        assert ext.active, f"Extension '{ext_id}' is not activated."
+        if not ext:
+            raise Exception(f"Extension '{ext_id}' is not installed.")
+        if not ext.active:
+            raise Exception(f"Extension '{ext_id}' is not activated.")
 
         user_ext = await get_user_extension(user.id, ext_id)
         if not user_ext:
@@ -255,7 +257,8 @@ async def api_activate_extension(ext_id: str) -> SimpleStatus:
         logger.info(f"Activating extension: '{ext_id}'.")
 
         ext = await get_valid_extension(ext_id)
-        assert ext, f"Extension '{ext_id}' doesn't exist."
+        if not ext:
+            raise Exception(f"Extension '{ext_id}' doesn't exist.")
 
         await activate_extension(ext)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' activated.")
@@ -274,7 +277,8 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
         logger.info(f"Deactivating extension: '{ext_id}'.")
 
         ext = await get_valid_extension(ext_id)
-        assert ext, f"Extension '{ext_id}' doesn't exist."
+        if not ext:
+            raise Exception(f"Extension '{ext_id}' doesn't exist.")
 
         await deactivate_extension(ext_id)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' deactivated.")
@@ -358,26 +362,33 @@ async def get_pay_to_install_invoice(
         assert (
             ext_id == data.ext_id
         ), f"Wrong extension id. Expected {ext_id}, but got {data.ext_id}"
-        assert data.cost_sats, "A non-zero amount must be specified."
+        if not data.cost_sats:
+            raise Exception("A non-zero amount must be specified.")
         release = await InstallableExtension.get_extension_release(
             data.ext_id, data.source_repo, data.archive, data.version
         )
-        assert release, "Release not found."
-        assert release.pay_link, "Pay link not found for release."
+        if not release:
+            raise Exception("Release not found.")
+        if not release.pay_link:
+            raise Exception("Pay link not found for release.")
 
         payment_info = await release.fetch_release_payment_info(data.cost_sats)
 
-        assert payment_info and payment_info.payment_request, "Cannot request invoice."
+        if not (payment_info and payment_info.payment_request):
+            raise Exception("Cannot request invoice.")
         invoice = bolt11_decode(payment_info.payment_request)
 
-        assert invoice.amount_msat is not None, "Invoic amount is missing."
+        if invoice.amount_msat is None:
+            raise Exception("Invoic amount is missing.")
         invoice_amount = int(invoice.amount_msat / 1000)
-        assert (
-            invoice_amount == data.cost_sats
-        ), f"Wrong invoice amount: {invoice_amount}."
-        assert (
-            payment_info.payment_hash == invoice.payment_hash
-        ), "Wrong invoice payment hash."
+        if (
+            invoice_amount != data.cost_sats
+        ):
+            raise Exception(f"Wrong invoice amount: {invoice_amount}.")
+        if (
+            payment_info.payment_hash != invoice.payment_hash
+        ):
+            raise Exception("Wrong invoice payment hash.")
 
         return payment_info
 

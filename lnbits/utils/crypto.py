@@ -66,7 +66,8 @@ class AESCipher:
         self, salt: bytes, output_len: int = 32 + 16
     ) -> tuple[bytes, bytes]:
         # extended from https://gist.github.com/gsakkis/4546068
-        assert len(salt) == 8, "Salt must be 8 bytes"
+        if len(salt) != 8:
+            raise Exception("Salt must be 8 bytes")
         data = self.key + salt
         key = md5(data).digest()
         final_key = key

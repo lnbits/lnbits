@@ -85,7 +85,8 @@ async def api_update_settings(data: UpdateSettings, user: User = Depends(check_a
     enqueue_notification(NotificationType.settings_update, {"username": user.username})
     await update_admin_settings(data)
     admin_settings = await get_admin_settings(user.super_user)
-    assert admin_settings, "Updated admin settings not found."
+    if not admin_settings:
+        raise Exception("Updated admin settings not found.")
     update_cached_settings(admin_settings.dict())
     core_app_extra.register_new_ratelimiter()
     return {"status": "Success"}

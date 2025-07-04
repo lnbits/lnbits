@@ -353,7 +353,8 @@ async def api_payments_pay_lnurl(
             len(data.internal_memo) <= 512
         ), "Internal memo must be 512 characters or less."
         extra["internal_memo"] = data.internal_memo
-    assert data.description is not None, "description is required"
+    if data.description is None:
+        raise Exception("description is required")
 
     payment = await pay_invoice(
         wallet_id=wallet.wallet.id,

@@ -252,7 +252,8 @@ class BlinkWallet(Wallet):
             response = await self._graphql_query(data)
 
             response_data = response.get("data")
-            assert response_data is not None
+            if response_data is None:
+                raise Exception()
             txs_data = (
                 response_data.get("me", {})
                 .get("defaultAccount", {})
@@ -260,7 +261,8 @@ class BlinkWallet(Wallet):
                 .get("transactionsByPaymentHash", [])
             )
             tx_data = next((t for t in txs_data if t.get("direction") == "SEND"), None)
-            assert tx_data, "No SEND data found."
+            if not tx_data:
+                raise Exception("No SEND data found.")
             fee = tx_data.get("settlementFee")
             preimage = tx_data.get("settlementVia", {}).get("preImage")
             status = tx_data.get("status")

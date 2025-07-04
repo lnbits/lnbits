@@ -211,7 +211,8 @@ class ExtensionRelease(BaseModel):
         self, amount: int | None = None
     ) -> ReleasePaymentInfo | None:
         url = f"{self.pay_link}?amount={amount}" if amount else self.pay_link
-        assert url, "Missing URL for payment info."
+        if not url:
+            raise Exception("Missing URL for payment info.")
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(url)

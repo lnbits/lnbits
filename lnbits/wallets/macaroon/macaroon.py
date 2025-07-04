@@ -22,7 +22,8 @@ def load_macaroon(
         aes = AESCipher(key.encode())
         return aes.decrypt(encrypted_macaroon)
 
-    assert macaroon, "macaroon must be set here"
+    if not macaroon:
+        raise Exception("macaroon must be set here")
 
     # if the macaroon is a file path, load it and return hex version
     if macaroon.split(".")[-1] == "macaroon":
