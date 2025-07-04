@@ -268,7 +268,7 @@ async def create_payment(
         preimage=data.preimage,
         expiry=data.expiry,
         webhook=data.webhook,
-        fee=data.fee,
+        fee=-abs(data.fee),
         tag=extra.get("tag", None),
         extra=extra,
     )

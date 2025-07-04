@@ -219,6 +219,16 @@ window.app.component('lnbits-funding-sources', {
             strike_api_endpoint: 'API Endpoint',
             strike_api_key: 'API Key'
           }
+        ],
+        [
+          'BreezLiquidSdkWallet',
+          'Breez Liquid SDK',
+          {
+            breez_liquid_api_key: 'Breez API Key (can be empty)',
+            breez_liquid_seed: 'Liquid seed phrase',
+            breez_liquid_fee_offset_sat:
+              'Offset amount in sats to increase fee limit'
+          }
         ]
       ]
     }
