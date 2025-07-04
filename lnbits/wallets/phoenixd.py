@@ -196,17 +196,8 @@ class PhoenixdWallet(Wallet):
         try:
             data = r.json()
 
-            if "routingFeeSat" not in data and "reason" in data:
-                return PaymentResponse(error_message=data["reason"])
-
-            # missing fields, should not happen, but just in case we keep it pending
-            if (
-                "routingFeeSat" not in data
-                or "paymentPreimage" not in data
-                or "paymentHash" not in data
-            ):
-                error_message = data["message"] if "message" in data else r.text
-                logger.warning(error_message)
+            if "routingFeeSat" not in data and ("reason" in data or "message" in data):
+                error_message = data.get("reason", data.get("message", "Unknown error"))
                 return PaymentResponse(error_message=error_message)
 
             checking_id = data["paymentHash"]
