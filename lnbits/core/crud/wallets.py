@@ -48,6 +48,7 @@ async def delete_wallet(
 ) -> None:
     now = int(time())
     await (conn or db).execute(
+        # Timestamp placeholder is safe from SQL injection (not user input)
         f"""
         UPDATE wallets
         SET deleted = :deleted, updated_at = {db.timestamp_placeholder('now')}
@@ -71,6 +72,7 @@ async def delete_wallet_by_id(
 ) -> Optional[int]:
     now = int(time())
     result = await (conn or db).execute(
+        # Timestamp placeholder is safe from SQL injection (not user input)
         f"""
         UPDATE wallets
         SET deleted = true, updated_at = {db.timestamp_placeholder('now')}

@@ -51,6 +51,7 @@ async def get_standalone_payment(
 
     row = await (conn or db).fetchone(
         # This query is safe from SQL injection
+        # The `clause` is constructed from sanitized inputs
         f"""
         SELECT * FROM apipayments
         WHERE {clause}
@@ -82,6 +83,7 @@ async def get_latest_payments_by_extension(
 ) -> list[Payment]:
     return await db.fetchall(
         # This query is safe from SQL injection
+        # The limtit is an integer and not user input
         f"""
         SELECT * FROM apipayments
         WHERE status = :status
@@ -233,7 +235,7 @@ async def delete_expired_invoices(
     # first we delete all invoices older than one month
 
     await (conn or db).execute(
-        # This query is safe from SQL injection
+        # Timestamp placeholder is safe from SQL injection (not user input)
         f"""
         DELETE FROM apipayments
         WHERE status = :status AND amount > 0
@@ -243,6 +245,7 @@ async def delete_expired_invoices(
     )
     # then we delete all invoices whose expiry date is in the past
     await (conn or db).execute(
+        # Timestamp placeholder is safe from SQL injection (not user input)
         f"""
         DELETE FROM apipayments
         WHERE status = :status AND amount > 0
@@ -328,13 +331,17 @@ async def get_payments_history(
         )
         """
     ]
+    clause = filters.where(where)
     transactions: list[dict] = await db.fetchall(
+        # This query is safe from SQL injection:
+        # - `date_trunc` is a static string, not user input
+        # - `clause` is generated from filters, which are validated and sanitized
         f"""
         SELECT {date_trunc} date,
                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income,
                SUM(CASE WHEN amount < 0 THEN abs(amount) + abs(fee) ELSE 0 END) spending
         FROM apipayments
-        {filters.where(where)}
+        {clause}
         GROUP BY date
         ORDER BY date DESC
         """,  # noqa: S608
@@ -383,6 +390,9 @@ async def get_payment_count_stats(
 
     clause = filters.where(extra_stmts)
     data = await (conn or db).fetchall(
+        # SQL injection vectors safety:
+        # - `field` is a static string, not user input
+        # - `clause` is generated from filters, which are validated and sanitized
         query=f"""
             SELECT {field} as field, count(*) as total
             FROM apipayments
@@ -475,6 +485,8 @@ async def get_wallets_stats(
     clauses = filters.where(where_stmts)
 
     data = await (conn or db).fetchall(
+        # This query is safe from SQL injection
+        # The `clause` is constructed from sanitized inputs
         query=f"""
             SELECT apipayments.wallet_id,
                     MAX(wallets.name) AS wallet_name,
