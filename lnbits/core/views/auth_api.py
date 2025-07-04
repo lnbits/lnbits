@@ -557,8 +557,8 @@ def _find_auth_provider_class(provider: str) -> Callable:
             provider_class = getattr(provider_module, f"{provider.title()}SSO")
             if provider_class:
                 return provider_class
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug(exc)
 
     raise ValueError(f"No SSO provider found for '{provider}'.")
 
