@@ -81,7 +81,7 @@ async def create_user_account_no_ckeck(
 
     user = await get_user_from_account(account)
     if not user:
-        raise Exception("Cannot find user for account.")
+        raise ValueError("Cannot find user for account.")
 
     return user
 

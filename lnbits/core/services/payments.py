@@ -67,7 +67,7 @@ async def pay_invoice(
         raise PaymentError("Only incoming payments allowed.", status="failed")
     invoice = _validate_payment_request(payment_request, max_sat)
     if not invoice.amount_msat:
-        raise Exception("invoice.amount_msat is required")
+        raise ValueError("invoice.amount_msat is required")
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         amount_msat = invoice.amount_msat

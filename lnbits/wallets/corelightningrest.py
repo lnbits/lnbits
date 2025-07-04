@@ -250,7 +250,7 @@ class CoreLightningRestWallet(Wallet):
             data = r.json()
 
             if r.is_error or "error" in data or data.get("invoices") is None:
-                raise Exception("error in cln response")
+                raise ValueError("error in cln response")
             return PaymentStatus(self.statuses.get(data["invoices"][0]["status"]))
         except Exception as e:
             logger.error(f"Error getting invoice status: {e}")
@@ -266,7 +266,7 @@ class CoreLightningRestWallet(Wallet):
             data = r.json()
 
             if r.is_error or "error" in data or not data.get("pays"):
-                raise Exception("error in corelightning-rest response")
+                raise ValueError("error in corelightning-rest response")
 
             pay = data["pays"][0]
 
@@ -292,7 +292,7 @@ class CoreLightningRestWallet(Wallet):
                         inv = json.loads(line)
                         if "error" in inv and "message" in inv["error"]:
                             logger.error("Error in paid_invoices_stream:", inv)
-                            raise Exception(inv["error"]["message"])
+                            raise ValueError(inv["error"]["message"])
                         try:
                             paid = inv["status"] == "paid"
                             self.last_pay_index = inv["pay_index"]
@@ -314,16 +314,12 @@ class CoreLightningRestWallet(Wallet):
                         )
                         paid_invoice = r.json()
                         logger.trace(f"paid invoice: {paid_invoice}")
-                        if not self.statuses[
-                            paid_invoice["invoices"][0]["status"]
-                        ]:
-                            raise Exception(
-                                "streamed invoice not paid"
-                            )
+                        if not self.statuses[paid_invoice["invoices"][0]["status"]]:
+                            raise ValueError("streamed invoice not paid")
                         if "invoices" not in paid_invoice:
-                            raise Exception("no invoices in response")
+                            raise ValueError("no invoices in response")
                         if not len(paid_invoice["invoices"]):
-                            raise Exception("no invoices in response")
+                            raise ValueError("no invoices in response")
                         yield paid_invoice["invoices"][0]["payment_hash"]
 
             except Exception as exc:

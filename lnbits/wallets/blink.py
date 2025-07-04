@@ -253,7 +253,7 @@ class BlinkWallet(Wallet):
 
             response_data = response.get("data")
             if response_data is None:
-                raise Exception()
+                raise ValueError()
             txs_data = (
                 response_data.get("me", {})
                 .get("defaultAccount", {})
@@ -262,7 +262,7 @@ class BlinkWallet(Wallet):
             )
             tx_data = next((t for t in txs_data if t.get("direction") == "SEND"), None)
             if not tx_data:
-                raise Exception("No SEND data found.")
+                raise ValueError("No SEND data found.")
             fee = tx_data.get("settlementFee")
             preimage = tx_data.get("settlementVia", {}).get("preImage")
             status = tx_data.get("status")

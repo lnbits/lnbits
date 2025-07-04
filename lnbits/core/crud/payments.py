@@ -265,7 +265,7 @@ async def create_payment(
     # note: this can be removed if the db uniqueness constraints are set appropriately
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     if previous_payment is not None:
-        raise Exception("Payment already exists")
+        raise ValueError("Payment already exists")
     extra = data.extra or {}
 
     payment = Payment(

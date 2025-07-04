@@ -38,7 +38,7 @@ async def create_webpush_subscription(
     )
     subscription = await get_webpush_subscription(endpoint, user)
     if not subscription:
-        raise Exception("Newly created webpush subscription couldn't be retrieved")
+        raise ValueError("Newly created webpush subscription couldn't be retrieved")
     return subscription
 
 

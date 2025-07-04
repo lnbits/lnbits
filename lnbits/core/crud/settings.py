@@ -57,7 +57,7 @@ async def update_super_user(super_user: str) -> SuperSettings:
     await set_settings_field("super_user", super_user)
     settings = await get_super_settings()
     if not settings:
-        raise Exception("updated super_user settings could not be retrieved")
+        raise ValueError("updated super_user settings could not be retrieved")
     return settings
 
 
@@ -88,7 +88,7 @@ async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSet
 
     settings = await get_super_settings()
     if not settings:
-        raise Exception("created admin settings could not be retrieved")
+        raise ValueError("created admin settings could not be retrieved")
     return settings
 
 

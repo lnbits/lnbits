@@ -67,7 +67,7 @@ class AESCipher:
     ) -> tuple[bytes, bytes]:
         # extended from https://gist.github.com/gsakkis/4546068
         if len(salt) != 8:
-            raise Exception("Salt must be 8 bytes")
+            raise ValueError("Salt must be 8 bytes")
         data = self.key + salt
         key = md5(data).digest()
         final_key = key

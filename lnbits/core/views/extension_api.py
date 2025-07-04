@@ -174,9 +174,9 @@ async def api_enable_extension(
         logger.info(f"Enabling extension: {ext_id}.")
         ext = await get_installed_extension(ext_id)
         if not ext:
-            raise Exception(f"Extension '{ext_id}' is not installed.")
+            raise ValueError(f"Extension '{ext_id}' is not installed.")
         if not ext.active:
-            raise Exception(f"Extension '{ext_id}' is not activated.")
+            raise ValueError(f"Extension '{ext_id}' is not activated.")
 
         user_ext = await get_user_extension(user.id, ext_id)
         if not user_ext:
@@ -258,7 +258,7 @@ async def api_activate_extension(ext_id: str) -> SimpleStatus:
 
         ext = await get_valid_extension(ext_id)
         if not ext:
-            raise Exception(f"Extension '{ext_id}' doesn't exist.")
+            raise ValueError(f"Extension '{ext_id}' doesn't exist.")
 
         await activate_extension(ext)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' activated.")
@@ -278,7 +278,7 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
 
         ext = await get_valid_extension(ext_id)
         if not ext:
-            raise Exception(f"Extension '{ext_id}' doesn't exist.")
+            raise ValueError(f"Extension '{ext_id}' doesn't exist.")
 
         await deactivate_extension(ext_id)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' deactivated.")
@@ -363,32 +363,28 @@ async def get_pay_to_install_invoice(
             ext_id == data.ext_id
         ), f"Wrong extension id. Expected {ext_id}, but got {data.ext_id}"
         if not data.cost_sats:
-            raise Exception("A non-zero amount must be specified.")
+            raise ValueError("A non-zero amount must be specified.")
         release = await InstallableExtension.get_extension_release(
             data.ext_id, data.source_repo, data.archive, data.version
         )
         if not release:
-            raise Exception("Release not found.")
+            raise ValueError("Release not found.")
         if not release.pay_link:
-            raise Exception("Pay link not found for release.")
+            raise ValueError("Pay link not found for release.")
 
         payment_info = await release.fetch_release_payment_info(data.cost_sats)
 
         if not (payment_info and payment_info.payment_request):
-            raise Exception("Cannot request invoice.")
+            raise ValueError("Cannot request invoice.")
         invoice = bolt11_decode(payment_info.payment_request)
 
         if invoice.amount_msat is None:
-            raise Exception("Invoic amount is missing.")
+            raise ValueError("Invoic amount is missing.")
         invoice_amount = int(invoice.amount_msat / 1000)
-        if (
-            invoice_amount != data.cost_sats
-        ):
-            raise Exception(f"Wrong invoice amount: {invoice_amount}.")
-        if (
-            payment_info.payment_hash != invoice.payment_hash
-        ):
-            raise Exception("Wrong invoice payment hash.")
+        if invoice_amount != data.cost_sats:
+            raise ValueError(f"Wrong invoice amount: {invoice_amount}.")
+        if payment_info.payment_hash != invoice.payment_hash:
+            raise ValueError("Wrong invoice payment hash.")
 
         return payment_info
 

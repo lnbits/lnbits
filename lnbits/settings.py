@@ -202,7 +202,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
         }
 
         if not len(existing_redirects) == 0:
-            raise Exception(
+            raise ValueError(
                 f"Cannot redirect for extension '{ext_id}'."
                 f" Already mapped by {existing_redirects}."
             )

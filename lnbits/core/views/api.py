@@ -125,7 +125,7 @@ async def api_lnurlscan(  # noqa: C901
 
         lnurlauth_key = wallet.wallet.lnurlauth_key(domain)
         if not lnurlauth_key.verifying_key:
-            raise Exception()
+            raise ValueError()
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         headers = {"User-Agent": settings.user_agent}

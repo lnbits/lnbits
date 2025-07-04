@@ -192,13 +192,13 @@ async def api_create_user_api_token(
     user: User = Depends(check_user_exists),
 ) -> ApiTokenResponse:
     if not data.expiration_time_minutes > 0:
-        raise Exception("Expiration time must be in the future.")
+        raise ValueError("Expiration time must be in the future.")
     account = await get_account(user.id)
     if not account or not account.verify_password(data.password):
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
     if not account.username:
-        raise Exception("Username must be configured.")
+        raise ValueError("Username must be configured.")
 
     acls = await get_user_access_control_lists(user.id)
     acl = acls.get_acl_by_id(data.acl_id)
@@ -226,7 +226,7 @@ async def api_delete_user_api_token(
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
     if not account.username:
-        raise Exception("Username must be configured.")
+        raise ValueError("Username must be configured.")
 
     acls = await get_user_access_control_lists(user.id)
     acl = acls.get_acl_by_id(data.acl_id)
@@ -321,7 +321,7 @@ async def update_pubkey(
     payload: AccessTokenPayload = Depends(access_token_payload),
 ) -> Optional[User]:
     if data.user_id != user.id:
-        raise Exception("Invalid user ID.")
+        raise ValueError("Invalid user ID.")
 
     _validate_auth_timeout(payload.auth_time)
     if (
@@ -329,11 +329,11 @@ async def update_pubkey(
         and data.pubkey != user.pubkey
         and await get_account_by_pubkey(data.pubkey)
     ):
-        raise Exception("Public key already in use.")
+        raise ValueError("Public key already in use.")
 
     account = await get_account(user.id)
     if not account:
-        raise Exception("Account not found.")
+        raise ValueError("Account not found.")
 
     account.pubkey = normalize_public_key(data.pubkey)
     await update_account(account)
@@ -380,9 +380,9 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         )
 
     if not data.password == data.password_repeat:
-        raise Exception("Passwords do not match.")
+        raise ValueError("Passwords do not match.")
     if not data.reset_key[:10].startswith("reset_key_"):
-        raise Exception("This is not a reset key.")
+        raise ValueError("This is not a reset key.")
 
     try:
         reset_key = base64.b64decode(data.reset_key[10:]).decode()
@@ -391,15 +391,15 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         raise ValueError("Invalid reset key.") from exc
 
     if not reset_data_json:
-        raise Exception("Cannot process reset key.")
+        raise ValueError("Cannot process reset key.")
 
     action, user_id, request_time = json.loads(reset_data_json)
     if not action:
-        raise Exception("Missing action.")
+        raise ValueError("Missing action.")
     if not user_id:
-        raise Exception("Missing user ID.")
+        raise ValueError("Missing user ID.")
     if not request_time:
-        raise Exception("Missing reset time.")
+        raise ValueError("Missing reset time.")
 
     _validate_auth_timeout(request_time)
 
@@ -586,34 +586,32 @@ def _nostr_nip98_event(request: Request) -> dict:
     except Exception as exc:
         logger.warning(exc)
     if not event:
-        raise Exception("Nostr login event cannot be parsed.")
+        raise ValueError("Nostr login event cannot be parsed.")
 
     if not verify_event(event):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Nostr login event is not valid.")
     if not event["kind"] == 27_235:
-        raise Exception("Invalid event kind.")
+        raise ValueError("Invalid event kind.")
 
     auth_threshold = settings.auth_credetials_update_threshold
-    if not (
-        abs(time() - event["created_at"]) < auth_threshold
-    ):
-        raise Exception(
-            f"More than {auth_threshold} seconds have passed since the event was signed."
+    if not (abs(time() - event["created_at"]) < auth_threshold):
+        raise ValueError(
+            f"More than {auth_threshold} seconds have passed ""since the event was signed."
         )
 
     method: Optional[str] = next((v for k, v in event["tags"] if k == "method"), None)
     if not method:
-        raise Exception("Tag 'method' is missing.")
+        raise ValueError("Tag 'method' is missing.")
     if not method.upper() == "POST":
-        raise Exception("Invalid value for tag 'method'.")
+        raise ValueError("Invalid value for tag 'method'.")
 
     url = next((v for k, v in event["tags"] if k == "u"), None)
 
     if not url:
-        raise Exception("Tag 'u' for URL is missing.")
+        raise ValueError("Tag 'u' for URL is missing.")
     accepted_urls = [f"{u}/nostr" for u in settings.nostr_absolute_request_urls]
-    if not url in accepted_urls:
-        raise Exception(f"Invalid value for tag 'u': '{url}'.")
+    if url not in accepted_urls:
+        raise ValueError(f"Invalid value for tag 'u': '{url}'.")
 
     return event
 
