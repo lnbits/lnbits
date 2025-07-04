@@ -458,9 +458,9 @@ class NWCConnection:
         t = time.time()
         while not self.connected:
             if time.time() - t > timeout:
-                raise ValueError("Connection timeout, cannot connect to NWC service")
+                raise Exception("Connection timeout, cannot connect to NWC service")
             if self._is_shutting_down():
-                raise ValueError("Connection is closing")
+                raise Exception("Connection is closing")
             logger.debug("Waiting for connection...")
             await asyncio.sleep(1)
 
@@ -521,7 +521,7 @@ class NWCConnection:
         sub_id = cast(str, msg[1])
         event = cast(dict, msg[2])
         if not verify_event(event):  # Ensure the event is valid (do not trust relays)
-            raise ValueError("Invalid event signature")
+            raise Exception("Invalid event signature")
         tags = event["tags"]
         if event["kind"] == 13194:  # An info event
             # info events are handled specially,
@@ -534,7 +534,7 @@ class NWCConnection:
                 if (
                     subscription["method"] != "info_sub"
                 ):  # Ensure the subscription is for an info event
-                    raise ValueError("Unexpected info event")
+                    raise Exception("Unexpected info event")
                 # create an info dictionary with the supported
                 # methods that is passed to the future
                 content = event["content"]
@@ -567,9 +567,9 @@ class NWCConnection:
                 else:
                     # ensure the result is for the expected method
                     if result_type != subscription["method"]:
-                        raise ValueError("Unexpected result type")
+                        raise Exception("Unexpected result type")
                     if not result:
-                        raise ValueError("Malformed response")
+                        raise Exception("Malformed response")
                     else:
                         subscription["future"].set_result(result)
 
@@ -605,7 +605,7 @@ class NWCConnection:
                 # A message from the relay, mostly useless, but we log it anyway
                 logger.info("Notice from relay " + self.relay + ": " + str(msg[1]))
             else:
-                raise ValueError("Unknown message type")
+                raise Exception("Unknown message type")
         except Exception as e:
             logger.error("Error parsing event: " + str(e))
 
@@ -694,7 +694,7 @@ class NWCConnection:
         # Check if the subscription already exists
         # (this means there is a bug somewhere, should not happen)
         if event["id"] in self.subscriptions:
-            raise ValueError("Subscription for this event id already exists?")
+            raise Exception("Subscription for this event id already exists?")
         # Store the subscription in the list
         self.subscriptions[event["id"]] = {
             "method": method,
@@ -821,7 +821,7 @@ def parse_nwc(nwc) -> dict:
             if key in ["relay", "secret"] and value:
                 data[key] = unquote(value[0])
         if "pubkey" not in data or "relay" not in data or "secret" not in data:
-            raise ValueError("Invalid NWC pairing url")
+            raise Exception("Invalid NWC pairing url")
     else:
-        raise ValueError("Invalid NWC pairing url")
+        raise Exception("Invalid NWC pairing url")
     return data

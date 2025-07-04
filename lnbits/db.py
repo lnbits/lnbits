@@ -331,7 +331,7 @@ class Database(Compat):
         try:
             async with self.engine.connect() as conn:
                 if not conn:
-                    raise ValueError("Could not connect to the database")
+                    raise Exception("Could not connect to the database")
 
                 wconn = Connection(conn, self.type, self.name, self.schema)
 

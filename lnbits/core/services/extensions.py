@@ -26,9 +26,11 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
 
     ext_info.meta = ext_info.meta or ExtensionMeta()
 
-    if ext_info.meta.installed_release:
-        if not (ext_info.meta.installed_release.is_version_compatible):
-            raise ValueError("Incompatible extension version")
+    if (
+        ext_info.meta.installed_release
+        and not ext_info.meta.installed_release.is_version_compatible
+    ):
+        raise ValueError("Incompatible extension version")
 
     installed_ext = await get_installed_extension(ext_info.id)
     if installed_ext and installed_ext.meta:

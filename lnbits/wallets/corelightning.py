@@ -122,7 +122,7 @@ class CoreLightningWallet(Wallet):
             )
 
             if r.get("code") and r.get("code") < 0:  # type: ignore
-                raise ValueError(r.get("message"))
+                raise Exception(r.get("message"))
             return InvoiceResponse(
                 ok=True,
                 checking_id=r["payment_hash"],

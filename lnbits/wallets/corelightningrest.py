@@ -250,7 +250,7 @@ class CoreLightningRestWallet(Wallet):
             data = r.json()
 
             if r.is_error or "error" in data or data.get("invoices") is None:
-                raise ValueError("error in cln response")
+                raise Exception("error in cln response")
             return PaymentStatus(self.statuses.get(data["invoices"][0]["status"]))
         except Exception as e:
             logger.error(f"Error getting invoice status: {e}")
@@ -266,7 +266,7 @@ class CoreLightningRestWallet(Wallet):
             data = r.json()
 
             if r.is_error or "error" in data or not data.get("pays"):
-                raise ValueError("error in corelightning-rest response")
+                raise Exception("error in corelightning-rest response")
 
             pay = data["pays"][0]
 
@@ -292,7 +292,7 @@ class CoreLightningRestWallet(Wallet):
                         inv = json.loads(line)
                         if "error" in inv and "message" in inv["error"]:
                             logger.error("Error in paid_invoices_stream:", inv)
-                            raise ValueError(inv["error"]["message"])
+                            raise Exception(inv["error"]["message"])
                         try:
                             paid = inv["status"] == "paid"
                             self.last_pay_index = inv["pay_index"]

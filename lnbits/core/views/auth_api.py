@@ -333,7 +333,7 @@ async def update_pubkey(
 
     account = await get_account(user.id)
     if not account:
-        raise ValueError("Account not found.")
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Account not found.")
 
     account.pubkey = normalize_public_key(data.pubkey)
     await update_account(account)
@@ -383,7 +383,7 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
             HTTPStatus.FORBIDDEN, "Auth by 'Username and Password' not allowed."
         )
 
-    if not data.password == data.password_repeat:
+    if data.password != data.password_repeat:
         raise ValueError("Passwords do not match.")
     if not data.reset_key[:10].startswith("reset_key_"):
         raise ValueError("This is not a reset key.")

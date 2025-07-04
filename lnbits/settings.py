@@ -201,7 +201,7 @@ class InstalledExtensionsSettings(LNbitsSettings):
             if r.find_in_conflict(ext_redirect_paths)
         }
 
-        if not len(existing_redirects) == 0:
+        if len(existing_redirects) != 0:
             raise ValueError(
                 f"Cannot redirect for extension '{ext_id}'."
                 f" Already mapped by {existing_redirects}."

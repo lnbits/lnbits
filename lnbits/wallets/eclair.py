@@ -198,7 +198,7 @@ class EclairWallet(Wallet):
             data = r.json()
 
             if r.is_error or "error" in data or data.get("status") is None:
-                raise ValueError("error in eclair response")
+                raise Exception("error in eclair response")
 
             statuses = {
                 "received": True,
@@ -222,7 +222,7 @@ class EclairWallet(Wallet):
             data = r.json()[-1]
 
             if r.is_error or "error" in data or data.get("status") is None:
-                raise ValueError("error in eclair response")
+                raise Exception("error in eclair response")
 
             fee_msat, preimage = None, None
             if data["status"]["type"] == "sent":
