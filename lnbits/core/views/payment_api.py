@@ -121,7 +121,6 @@ async def api_payments_counting_stats(
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
     user: User = Depends(check_user_exists),
 ):
-
     if user.admin:
         # admin user can see payments from all wallets
         for_user_id = None
@@ -142,7 +141,6 @@ async def api_payments_wallets_stats(
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
     user: User = Depends(check_user_exists),
 ):
-
     if user.admin:
         # admin user can see payments from all wallets
         for_user_id = None
@@ -163,7 +161,6 @@ async def api_payments_daily_stats(
     user: User = Depends(check_user_exists),
     filters: Filters[PaymentFilters] = Depends(parse_filters(PaymentFilters)),
 ):
-
     if user.admin:
         # admin user can see payments from all wallets
         for_user_id = None
@@ -285,23 +282,36 @@ async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONRespo
         )
 
 
-@payment_router.post("/lnurl")
-async def api_payments_pay_lnurl(
-    data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
-) -> Payment:
-    domain = urlparse(data.callback).netloc
+def _validate_lnurl_response(
+    params: dict, domain: str, amount_msat: int
+) -> bolt11.Invoice:
+    if params.get("status") == "ERROR":
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"{domain} said: '{params.get('reason', '')}'",
+        )
+    if not params.get("pr"):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"{domain} did not return a payment request.",
+        )
+    invoice = bolt11.decode(params["pr"])
+    if invoice.amount_msat != amount_msat:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=(
+                f"{domain} returned an invalid invoice. Expected"
+                f" {amount_msat} msat, got {invoice.amount_msat}."
+            ),
+        )
+    return invoice
 
+
+async def _fetch_lnurl_params(data: CreateLnurl, amount_msat: int, domain: str) -> dict:
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
         try:
-            if data.unit and data.unit != "sat":
-                amount_msat = await fiat_amount_as_satoshis(data.amount, data.unit)
-                # no msat precision
-                amount_msat = ceil(amount_msat // 1000) * 1000
-            else:
-                amount_msat = data.amount
-            check_callback_url(data.callback)
-            r = await client.get(
+            r: httpx.Response = await client.get(
                 data.callback,
                 params={"amount": amount_msat, "comment": data.comment},
                 timeout=40,
@@ -315,29 +325,24 @@ async def api_payments_pay_lnurl(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=f"Failed to connect to {domain}.",
             ) from exc
+        return json.loads(r.text)
 
-    params = json.loads(r.text)
-    if params.get("status") == "ERROR":
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} said: '{params.get('reason', '')}'",
-        )
 
-    if not params.get("pr"):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} did not return a payment request.",
-        )
+@payment_router.post("/lnurl")
+async def api_payments_pay_lnurl(
+    data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
+) -> Payment:
+    domain = urlparse(data.callback).netloc
+    check_callback_url(data.callback)
 
-    invoice = bolt11.decode(params["pr"])
-    if invoice.amount_msat != amount_msat:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=(
-                f"{domain} returned an invalid invoice. Expected"
-                f" {amount_msat} msat, got {invoice.amount_msat}."
-            ),
-        )
+    if data.unit and data.unit != "sat":
+        amount_msat = await fiat_amount_as_satoshis(data.amount, data.unit)
+        amount_msat = ceil(amount_msat // 1000) * 1000
+    else:
+        amount_msat = data.amount
+
+    params = await _fetch_lnurl_params(data, amount_msat, domain)
+    _validate_lnurl_response(params, domain, amount_msat)
 
     extra = {}
     if params.get("successAction"):
@@ -347,6 +352,11 @@ async def api_payments_pay_lnurl(
     if data.unit and data.unit != "sat":
         extra["fiat_currency"] = data.unit
         extra["fiat_amount"] = data.amount / 1000
+    if data.internal_memo is not None:
+        assert (
+            len(data.internal_memo) <= 512
+        ), "Internal memo must be 512 characters or less."
+        extra["internal_memo"] = data.internal_memo
     assert data.description is not None, "description is required"
 
     payment = await pay_invoice(
