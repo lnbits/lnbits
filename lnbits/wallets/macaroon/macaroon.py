@@ -3,6 +3,7 @@ from getpass import getpass
 from typing import Optional
 
 from loguru import logger
+
 from lnbits.utils.crypto import AESCipher
 
 
