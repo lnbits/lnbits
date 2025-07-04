@@ -486,7 +486,7 @@ async def get_wallets_stats(
 
     data = await (conn or db).fetchall(
         # This query is safe from SQL injection
-        # The `clause` is constructed from sanitized inputs
+        # The `clauses` is constructed from sanitized inputs
         query=f"""
             SELECT apipayments.wallet_id,
                     MAX(wallets.name) AS wallet_name,

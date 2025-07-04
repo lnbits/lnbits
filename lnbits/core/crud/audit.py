@@ -74,6 +74,8 @@ async def get_long_duration_stats(
         filters = Filters()
     clause = filters.where()
     long_duration_paths = await (conn or db).fetchall(
+        # This query is safe from SQL injection
+        # The `clause` is constructed from sanitized inputs
         query=f"""
             SELECT path as field, max(duration) as total FROM audit
             {clause}
