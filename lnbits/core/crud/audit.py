@@ -30,10 +30,11 @@ async def delete_expired_audit_entries(
     conn: Optional[Connection] = None,
 ):
     await (conn or db).execute(
-        f"""
+        """
             DELETE from audit
-            WHERE delete_at < {db.timestamp_now}
+            WHERE delete_at < :delete_at
         """,
+        {"delete_at": db.timestamp_now},
     )
 
 

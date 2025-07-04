@@ -50,11 +50,12 @@ async def get_standalone_payment(
         clause = f"({clause}) AND wallet_id = :wallet_id"
 
     row = await (conn or db).fetchone(
+        # This query is safe from SQL injection
         f"""
         SELECT * FROM apipayments
         WHERE {clause}
         ORDER BY amount LIMIT 1
-        """,
+        """,  # noqa: S608
         values,
         Payment,
     )
@@ -80,14 +81,19 @@ async def get_latest_payments_by_extension(
     ext_name: str, ext_id: str, limit: int = 5
 ) -> list[Payment]:
     return await db.fetchall(
+        # This query is safe from SQL injection
         f"""
         SELECT * FROM apipayments
-        WHERE status = '{PaymentState.SUCCESS}'
+        WHERE status = :status
         AND extra LIKE :ext_name
         AND extra LIKE :ext_id
         ORDER BY time DESC LIMIT {int(limit)}
-        """,
-        {"ext_name": f"%{ext_name}%", "ext_id": f"%{ext_id}%"},
+        """,  # noqa: S608
+        {
+            "status": f"{PaymentState.SUCCESS}",
+            "ext_name": f"%{ext_name}%",
+            "ext_id": f"%{ext_id}%",
+        },
         Payment,
     )
 
@@ -227,12 +233,13 @@ async def delete_expired_invoices(
     # first we delete all invoices older than one month
 
     await (conn or db).execute(
+        # This query is safe from SQL injection
         f"""
         DELETE FROM apipayments
-        WHERE status = '{PaymentState.PENDING}' AND amount > 0
+        WHERE status = :status AND amount > 0
         AND time < {db.timestamp_placeholder("delta")}
-        """,
-        {"delta": int(time() - 2592000)},
+        """,  # noqa: S608
+        {"status": f"{PaymentState.PENDING}", "delta": int(time() - 2592000)},
     )
     # then we delete all invoices whose expiry date is in the past
     await (conn or db).execute(
