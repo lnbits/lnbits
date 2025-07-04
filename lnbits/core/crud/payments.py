@@ -527,7 +527,7 @@ async def check_internal(
         SELECT * FROM apipayments
         WHERE payment_hash = :hash AND status = :status AND amount > 0
         """,
-        {"status": f"'{PaymentState.PENDING}'", "hash": payment_hash},
+        {"status": f"{PaymentState.PENDING}", "hash": payment_hash},
         Payment,
     )
 
