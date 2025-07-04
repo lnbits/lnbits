@@ -257,7 +257,7 @@ class PhoenixdWallet(Wallet):
             )
             return PaymentPendingStatus()
 
-        if "isPaid" in data and "fees" in data and "preimage" in data:
+        if "isPaid" not in data or "fees" not in data or "preimage" not in data:
             # should never return missing fields, but just in case we keep it pending
             return PaymentPendingStatus()
 
