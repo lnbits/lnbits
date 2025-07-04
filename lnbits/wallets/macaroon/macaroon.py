@@ -2,6 +2,7 @@ import base64
 from getpass import getpass
 from typing import Optional
 
+from loguru import logger
 from lnbits.utils.crypto import AESCipher
 
 
@@ -39,7 +40,7 @@ def load_macaroon(
     try:
         macaroon = base64.b64decode(macaroon).hex()
         return macaroon
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug(exc)
 
     return macaroon

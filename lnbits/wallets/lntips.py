@@ -173,11 +173,12 @@ class LnTipsWallet(Wallet):
                             inv = json.loads(data)
                             if not inv.get("payment_hash"):
                                 continue
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(exc)
                             continue
                         yield inv["payment_hash"]
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug(exc)
 
             # do not sleep if the connection was active for more than 10s
             # since the backend is expected to drop the connection after 90s
