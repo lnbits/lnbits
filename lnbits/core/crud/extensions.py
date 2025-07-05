@@ -50,7 +50,8 @@ async def drop_extension_db(ext_id: str, conn: Optional[Connection] = None) -> N
         {"id": ext_id},
     )
     # Check that 'ext_id' is a valid extension id and not a malicious string
-    assert row, f"Extension '{ext_id}' db version cannot be found"
+    if not row:
+        raise Exception(f"Extension '{ext_id}' db version cannot be found")
 
     is_file_based_db = await Database.clean_ext_db_files(ext_id)
     if is_file_based_db:

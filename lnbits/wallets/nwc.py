@@ -309,7 +309,8 @@ class NWCConnection:
         self.account_private_key = secp256k1.PrivateKey(bytes.fromhex(secret))
         self.account_private_key_hex = secret
         self.account_public_key = self.account_private_key.pubkey
-        assert self.account_public_key
+        if not self.account_public_key:
+            raise ValueError("Missing account public key")
         self.account_public_key_hex = self.account_public_key.serialize().hex()[2:]
 
         # Extract service key (used for encryption to identify the nwc service provider)

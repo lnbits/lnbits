@@ -264,7 +264,8 @@ async def create_payment(
     # we don't allow the creation of the same invoice twice
     # note: this can be removed if the db uniqueness constraints are set appropriately
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
-    assert previous_payment is None, "Payment already exists"
+    if previous_payment is not None:
+        raise ValueError("Payment already exists")
     extra = data.extra or {}
 
     payment = Payment(

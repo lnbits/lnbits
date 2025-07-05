@@ -170,64 +170,52 @@ async def api_enable_extension(
         raise HTTPException(
             HTTPStatus.NOT_FOUND, f"Extension '{ext_id}' doesn't exist."
         )
-    try:
-        logger.info(f"Enabling extension: {ext_id}.")
-        ext = await get_installed_extension(ext_id)
-        assert ext, f"Extension '{ext_id}' is not installed."
-        assert ext.active, f"Extension '{ext_id}' is not activated."
 
-        user_ext = await get_user_extension(user.id, ext_id)
-        if not user_ext:
-            user_ext = UserExtension(user=user.id, extension=ext_id, active=False)
-            await create_user_extension(user_ext)
+    logger.info(f"Enabling extension: {ext_id}.")
+    ext = await get_installed_extension(ext_id)
+    if not ext:
+        raise ValueError(f"Extension '{ext_id}' is not installed.")
+    if not ext.active:
+        raise ValueError(f"Extension '{ext_id}' is not activated.")
 
-        if user.admin or not ext.requires_payment:
-            user_ext.active = True
-            await update_user_extension(user_ext)
-            return SimpleStatus(success=True, message=f"Extension '{ext_id}' enabled.")
+    user_ext = await get_user_extension(user.id, ext_id)
+    if not user_ext:
+        user_ext = UserExtension(user=user.id, extension=ext_id, active=False)
+        await create_user_extension(user_ext)
 
-        if not (user_ext.extra and user_ext.extra.payment_hash_to_enable):
-            raise HTTPException(
-                HTTPStatus.PAYMENT_REQUIRED, f"Extension '{ext_id}' requires payment."
-            )
+    if user.admin or not ext.requires_payment:
+        user_ext.active = True
+        await update_user_extension(user_ext)
+        return SimpleStatus(success=True, message=f"Extension '{ext_id}' enabled.")
 
-        if user_ext.is_paid:
-            user_ext.active = True
-            await update_user_extension(user_ext)
-            return SimpleStatus(
-                success=True, message=f"Paid extension '{ext_id}' enabled."
-            )
-
-        assert (
-            ext.meta and ext.meta.pay_to_enable and ext.meta.pay_to_enable.wallet
-        ), f"Extension '{ext_id}' is missing payment wallet."
-
-        payment_status = await check_transaction_status(
-            wallet_id=ext.meta.pay_to_enable.wallet,
-            payment_hash=user_ext.extra.payment_hash_to_enable,
+    if not (user_ext.extra and user_ext.extra.payment_hash_to_enable):
+        raise HTTPException(
+            HTTPStatus.PAYMENT_REQUIRED, f"Extension '{ext_id}' requires payment."
         )
 
-        if not payment_status.paid:
-            raise HTTPException(
-                HTTPStatus.PAYMENT_REQUIRED,
-                f"Invoice generated but not paid for enabeling extension '{ext_id}'.",
-            )
-
+    if user_ext.is_paid:
         user_ext.active = True
-        user_ext.extra.paid_to_enable = True
         await update_user_extension(user_ext)
         return SimpleStatus(success=True, message=f"Paid extension '{ext_id}' enabled.")
 
-    except AssertionError as exc:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
-    except HTTPException as exc:
-        raise exc from exc
-    except Exception as exc:
-        logger.warning(exc)
+    if not ext.meta or not ext.meta.pay_to_enable or not ext.meta.pay_to_enable.wallet:
+        raise ValueError(f"Extension '{ext_id}' is missing payment wallet.")
+
+    payment_status = await check_transaction_status(
+        wallet_id=ext.meta.pay_to_enable.wallet,
+        payment_hash=user_ext.extra.payment_hash_to_enable,
+    )
+
+    if not payment_status.paid:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=(f"Failed to enable '{ext_id}' "),
-        ) from exc
+            HTTPStatus.PAYMENT_REQUIRED,
+            f"Invoice generated but not paid for enabeling extension '{ext_id}'.",
+        )
+
+    user_ext.active = True
+    user_ext.extra.paid_to_enable = True
+    await update_user_extension(user_ext)
+    return SimpleStatus(success=True, message=f"Paid extension '{ext_id}' enabled.")
 
 
 @extension_router.put("/{ext_id}/disable")
@@ -255,7 +243,8 @@ async def api_activate_extension(ext_id: str) -> SimpleStatus:
         logger.info(f"Activating extension: '{ext_id}'.")
 
         ext = await get_valid_extension(ext_id)
-        assert ext, f"Extension '{ext_id}' doesn't exist."
+        if not ext:
+            raise ValueError(f"Extension '{ext_id}' doesn't exist.")
 
         await activate_extension(ext)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' activated.")
@@ -274,7 +263,8 @@ async def api_deactivate_extension(ext_id: str) -> SimpleStatus:
         logger.info(f"Deactivating extension: '{ext_id}'.")
 
         ext = await get_valid_extension(ext_id)
-        assert ext, f"Extension '{ext_id}' doesn't exist."
+        if not ext:
+            raise ValueError(f"Extension '{ext_id}' doesn't exist.")
 
         await deactivate_extension(ext_id)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' deactivated.")
@@ -354,40 +344,35 @@ async def get_extension_releases(ext_id: str) -> list[ExtensionRelease]:
 async def get_pay_to_install_invoice(
     ext_id: str, data: CreateExtension
 ) -> ReleasePaymentInfo:
-    try:
-        assert (
-            ext_id == data.ext_id
-        ), f"Wrong extension id. Expected {ext_id}, but got {data.ext_id}"
-        assert data.cost_sats, "A non-zero amount must be specified."
-        release = await InstallableExtension.get_extension_release(
-            data.ext_id, data.source_repo, data.archive, data.version
+    if ext_id != data.ext_id:
+        raise ValueError(
+            f"Wrong extension id. Expected {ext_id}, but got {data.ext_id}"
         )
-        assert release, "Release not found."
-        assert release.pay_link, "Pay link not found for release."
+    if not data.cost_sats:
+        raise ValueError("A non-zero amount must be specified.")
+    release = await InstallableExtension.get_extension_release(
+        data.ext_id, data.source_repo, data.archive, data.version
+    )
+    if not release:
+        raise ValueError("Release not found.")
+    if not release.pay_link:
+        raise ValueError("Pay link not found for release.")
 
-        payment_info = await release.fetch_release_payment_info(data.cost_sats)
+    payment_info = await release.fetch_release_payment_info(data.cost_sats)
 
-        assert payment_info and payment_info.payment_request, "Cannot request invoice."
-        invoice = bolt11_decode(payment_info.payment_request)
+    if not (payment_info and payment_info.payment_request):
+        raise ValueError("Cannot request invoice.")
+    invoice = bolt11_decode(payment_info.payment_request)
 
-        assert invoice.amount_msat is not None, "Invoic amount is missing."
-        invoice_amount = int(invoice.amount_msat / 1000)
-        assert (
-            invoice_amount == data.cost_sats
-        ), f"Wrong invoice amount: {invoice_amount}."
-        assert (
-            payment_info.payment_hash == invoice.payment_hash
-        ), "Wrong invoice payment hash."
+    if invoice.amount_msat is None:
+        raise ValueError("Invoic amount is missing.")
+    invoice_amount = int(invoice.amount_msat / 1000)
+    if invoice_amount != data.cost_sats:
+        raise ValueError(f"Wrong invoice amount: {invoice_amount}.")
+    if payment_info.payment_hash != invoice.payment_hash:
+        raise ValueError("Wrong invoice payment hash.")
 
-        return payment_info
-
-    except AssertionError as exc:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
-    except Exception as exc:
-        logger.warning(exc)
-        raise HTTPException(
-            HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot request invoice"
-        ) from exc
+    return payment_info
 
 
 @extension_router.put("/{ext_id}/invoice/enable")
