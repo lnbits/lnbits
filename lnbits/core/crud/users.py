@@ -110,6 +110,7 @@ async def delete_accounts_no_wallets(
 ) -> None:
     delta = int(time()) - time_delta
     await (conn or db).execute(
+        # Timestamp placeholder is safe from SQL injection (not user input)
         f"""
         DELETE FROM accounts
         WHERE NOT EXISTS (
@@ -118,7 +119,7 @@ async def delete_accounts_no_wallets(
             (updated_at is null AND created_at < :delta)
             OR updated_at < {db.timestamp_placeholder("delta")}
         )
-        """,
+        """,  # noqa: S608
         {"delta": delta},
     )
 

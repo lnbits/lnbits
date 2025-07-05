@@ -78,10 +78,13 @@ async def get_installed_extensions(
     active: Optional[bool] = None,
     conn: Optional[Connection] = None,
 ) -> list[InstallableExtension]:
-    where = "WHERE active = :active" if active is not None else ""
+    query = "SELECT * FROM installed_extensions"
+    if active is not None:
+        query += " WHERE active = :active"
+
     values = {"active": active} if active is not None else {}
     all_extensions = await (conn or db).fetchall(
-        f"SELECT * FROM installed_extensions {where}",
+        query,
         values,
         model=InstallableExtension,
     )
