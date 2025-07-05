@@ -19,7 +19,8 @@ async def check_webpush_settings():
         vapid = Vapid()
         vapid.generate_keys()
         privkey = vapid.private_pem()
-        assert vapid.public_key, "VAPID public key does not exist"
+        if not vapid.public_key:
+            raise ValueError("VAPID public key does not exist")
         pubkey = b64urlencode(
             vapid.public_key.public_bytes(
                 serialization.Encoding.X962,

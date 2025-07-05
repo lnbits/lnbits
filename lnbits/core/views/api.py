@@ -124,7 +124,8 @@ async def api_lnurlscan(  # noqa: C901
         params.update(callback=url)  # with k1 already in it
 
         lnurlauth_key = wallet.wallet.lnurlauth_key(domain)
-        assert lnurlauth_key.verifying_key
+        if not lnurlauth_key.verifying_key:
+            raise ValueError("LNURL auth key not found for this domain.")
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         headers = {"User-Agent": settings.user_agent}

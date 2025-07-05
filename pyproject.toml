@@ -70,7 +70,6 @@ breez = ["breez-sdk", "breez-sdk-liquid"]
 liquid = ["wallycore"]
 
 [tool.poetry.group.dev.dependencies]
-bandit = "^1.8.5"
 black = "^25.1.0"
 mypy = "^1.11.2"
 types-protobuf = "^6.30.2.20250516"

@@ -26,10 +26,11 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
 
     ext_info.meta = ext_info.meta or ExtensionMeta()
 
-    if ext_info.meta.installed_release:
-        assert (
-            ext_info.meta.installed_release.is_version_compatible
-        ), "Incompatible extension version"
+    if (
+        ext_info.meta.installed_release
+        and not ext_info.meta.installed_release.is_version_compatible
+    ):
+        raise ValueError("Incompatible extension version")
 
     installed_ext = await get_installed_extension(ext_info.id)
     if installed_ext and installed_ext.meta:
@@ -93,9 +94,8 @@ async def stop_extension_background_work(ext_id: str) -> bool:
         old_module = importlib.import_module(ext.module_name)
 
         stop_fn_name = f"{ext_id}_stop"
-        assert hasattr(
-            old_module, stop_fn_name
-        ), f"No stop function found for '{ext.module_name}'."
+        if not hasattr(old_module, stop_fn_name):
+            raise ValueError(f"No stop function found for '{ext.module_name}'.")
 
         stop_fn = getattr(old_module, stop_fn_name)
         if stop_fn:
