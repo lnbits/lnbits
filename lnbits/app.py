@@ -58,7 +58,6 @@ from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.models.extensions import Extension, ExtensionMeta, InstallableExtension
 from .core.services import check_admin_settings, check_webpush_settings
-from .core.services.payments import check_pending_payments
 from .middleware import (
     AuditMiddleware,
     ExtensionsRedirectMiddleware,
