@@ -27,6 +27,7 @@ from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
 from lnbits.core.services.notifications import enqueue_notification
+from lnbits.core.services.payments import check_pending_payments
 from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
@@ -57,7 +58,6 @@ from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.models.extensions import Extension, ExtensionMeta, InstallableExtension
 from .core.services import check_admin_settings, check_webpush_settings
-from .core.services.payments import check_pending_payments
 from .middleware import (
     AuditMiddleware,
     ExtensionsRedirectMiddleware,
@@ -66,11 +66,7 @@ from .middleware import (
     add_ip_block_middleware,
     add_ratelimit_middleware,
 )
-from .tasks import (
-    internal_invoice_listener,
-    invoice_listener,
-    run_interval,
-)
+from .tasks import internal_invoice_listener, invoice_listener, run_interval
 
 
 async def startup(app: FastAPI):

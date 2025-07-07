@@ -359,16 +359,19 @@ async def test_retry_failed_invoice(
 
 @pytest.mark.anyio
 async def test_pay_external_invoice_pending(
-    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+    from_wallet: Wallet,
+    mocker: MockerFixture,
+    external_funding_source: FakeWallet,
+    settings: Settings,
 ):
+    settings.lnbits_reserve_fee_min = 1000  # msats
     invoice_amount = 2103
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
-    preimage = "0000000000000000000000000000000000000000000000000000000000002103"
     payment_reponse_pending = PaymentResponse(
-        ok=None, checking_id=external_invoice.checking_id, preimage=preimage
+        ok=None, checking_id=external_invoice.checking_id
     )
     mocker.patch(
         "lnbits.wallets.FakeWallet.pay_invoice",
@@ -392,12 +395,12 @@ async def test_pay_external_invoice_pending(
     assert _payment.checking_id == payment.payment_hash
     assert _payment.amount == -2103_000
     assert _payment.bolt11 == external_invoice.payment_request
-    assert _payment.preimage == preimage
 
     wallet = await get_wallet(from_wallet.id)
     assert wallet
+    reserve_fee_sat = int(abs(settings.lnbits_reserve_fee_min // 1000))
     assert (
-        balance_before - invoice_amount == wallet.balance
+        balance_before - invoice_amount - reserve_fee_sat == wallet.balance
     ), "Pending payment is subtracted."
 
     assert ws_notification.call_count == 0, "Websocket notification not sent."
@@ -405,8 +408,12 @@ async def test_pay_external_invoice_pending(
 
 @pytest.mark.anyio
 async def test_retry_pay_external_invoice_pending(
-    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+    from_wallet: Wallet,
+    mocker: MockerFixture,
+    external_funding_source: FakeWallet,
+    settings: Settings,
 ):
+    settings.lnbits_reserve_fee_min = 2000  # msats
     invoice_amount = 2106
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
@@ -440,9 +447,10 @@ async def test_retry_pay_external_invoice_pending(
 
     wallet = await get_wallet(from_wallet.id)
     assert wallet
-    # TODO: is this correct?
+    reserve_fee_sat = int(abs(settings.lnbits_reserve_fee_min // 1000))
+
     assert (
-        balance_before - invoice_amount == wallet.balance
+        balance_before - invoice_amount - reserve_fee_sat == wallet.balance
     ), "Failed payment is subtracted."
 
     assert ws_notification.call_count == 0, "Websocket notification not sent."
