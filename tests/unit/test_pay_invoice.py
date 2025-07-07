@@ -359,8 +359,12 @@ async def test_retry_failed_invoice(
 
 @pytest.mark.anyio
 async def test_pay_external_invoice_pending(
-    from_wallet: Wallet, mocker: MockerFixture, external_funding_source: FakeWallet
+    from_wallet: Wallet,
+    mocker: MockerFixture,
+    external_funding_source: FakeWallet,
+    settings: Settings,
 ):
+    settings.lnbits_reserve_fee_min = 1000  # msats
     invoice_amount = 2103
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
@@ -396,8 +400,9 @@ async def test_pay_external_invoice_pending(
 
     wallet = await get_wallet(from_wallet.id)
     assert wallet
+    referve_fee_sat = int(abs(settings.lnbits_reserve_fee_min // 1000))
     assert (
-        balance_before - invoice_amount == wallet.balance
+        balance_before - invoice_amount - referve_fee_sat == wallet.balance
     ), "Pending payment is subtracted."
 
     assert ws_notification.call_count == 0, "Websocket notification not sent."
@@ -410,7 +415,7 @@ async def test_retry_pay_external_invoice_pending(
     external_funding_source: FakeWallet,
     settings: Settings,
 ):
-    settings.lnbits_reserve_fee_min = 2000 # msats
+    settings.lnbits_reserve_fee_min = 2000  # msats
     invoice_amount = 2106
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request

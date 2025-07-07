@@ -778,13 +778,17 @@ async def _pay_external_invoice(
         message = payment_response.error_message or "without an error message."
         raise PaymentError(f"Payment failed: {message}", status="failed")
 
-    payment = await update_payment_success_status(payment, payment_response, conn=conn)
-
-    payment.checking_id = payment_response.checking_id
-    if payment.success:
+    if payment_response.success:
+        payment = await update_payment_success_status(
+            payment, payment_response, conn=conn
+        )
         await send_payment_notification(wallet, payment)
         logger.success(f"payment successful {payment_response.checking_id}")
+    elif payment.preimage is None and payment_response.preimage is not None:
+        payment.preimage = payment_response.preimage
+        await update_payment(payment, conn=conn)
 
+    payment.checking_id = payment_response.checking_id
     return payment
 
 
@@ -797,7 +801,7 @@ async def update_payment_success_status(
         service_fee_msat = service_fee(payment.amount, internal=False)
         payment.status = PaymentState.SUCCESS
         payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
-        payment.preimage = status.preimage
+        payment.preimage = payment.preimage or status.preimage
         await update_payment(payment, conn=conn)
     return payment
 
