@@ -1,13 +1,8 @@
 # Based on breez.py
 
-try:
-    import breez_sdk_liquid as breez_sdk  # type: ignore
+from importlib.util import find_spec
 
-    BREEZ_SDK_INSTALLED = True
-except ImportError:
-    BREEZ_SDK_INSTALLED = False
-
-if not BREEZ_SDK_INSTALLED:
+if not find_spec("breez_sdk_liquid"):
 
     class BreezLiquidSdkWallet:  # pyright: ignore
         def __init__(self):
@@ -23,8 +18,27 @@ else:
     from pathlib import Path
     from typing import Optional
 
-    import breez_sdk_liquid as breez_sdk  # type: ignore
     from bolt11 import decode as bolt11_decode
+    from breez_sdk_liquid import (
+        ConnectRequest,
+        EventListener,
+        GetInfoResponse,
+        GetPaymentRequest,
+        LiquidNetwork,
+        Payment,
+        PaymentDetails,
+        PaymentMethod,
+        PaymentState,
+        PaymentType,
+        PrepareReceiveRequest,
+        PrepareSendRequest,
+        ReceiveAmount,
+        ReceivePaymentRequest,
+        SdkEvent,
+        SendPaymentRequest,
+        connect,
+        default_config,
+    )
     from loguru import logger
 
     from lnbits.settings import settings
@@ -40,27 +54,27 @@ else:
         Wallet,
     )
 
-    breez_incoming_queue: Queue[breez_sdk.PaymentDetails.LIGHTNING] = Queue()
-    breez_outgoing_queue: dict[str, Queue[breez_sdk.PaymentDetails.LIGHTNING]] = {}
+    breez_incoming_queue: Queue[PaymentDetails.LIGHTNING] = Queue()
+    breez_outgoing_queue: dict[str, Queue[PaymentDetails.LIGHTNING]] = {}
 
-    class PaymentsListener(breez_sdk.EventListener):
-        def on_event(self, e: breez_sdk.SdkEvent) -> None:
+    class PaymentsListener(EventListener):
+        def on_event(self, e: SdkEvent) -> None:
             logger.debug(f"received breez sdk event: {e}")
             # TODO: when this issue is fixed:
             # https://github.com/breez/breez-sdk-liquid/issues/961
-            # use breez_sdk.SdkEvent.PAYMENT_WAITING_CONFIRMATION
-            if not isinstance(
-                e, breez_sdk.SdkEvent.PAYMENT_SUCCEEDED
-            ) or not isinstance(e.details.details, breez_sdk.PaymentDetails.LIGHTNING):
+            # use SdkEvent.PAYMENT_WAITING_CONFIRMATION
+            if not isinstance(e, SdkEvent.PAYMENT_SUCCEEDED) or not isinstance(
+                e.details.details, PaymentDetails.LIGHTNING
+            ):
                 return
 
             payment = e.details
             payment_details = e.details.details
 
-            if payment.payment_type is breez_sdk.PaymentType.RECEIVE:
+            if payment.payment_type is PaymentType.RECEIVE:
                 breez_incoming_queue.put_nowait(payment_details)
             elif (
-                payment.payment_type is breez_sdk.PaymentType.SEND
+                payment.payment_type is PaymentType.SEND
                 and payment_details.payment_hash in breez_outgoing_queue
             ):
                 breez_outgoing_queue[payment_details.payment_hash].put_nowait(
@@ -78,8 +92,8 @@ else:
                 with open(Path("lnbits/wallets", ".breez")) as f:
                     settings.breez_liquid_api_key = f.read().strip()
 
-            self.config = breez_sdk.default_config(
-                breez_sdk.LiquidNetwork.MAINNET,
+            self.config = default_config(
+                LiquidNetwork.MAINNET,
                 breez_api_key=settings.breez_liquid_api_key,
             )
 
@@ -91,10 +105,8 @@ else:
 
             try:
                 mnemonic = settings.breez_liquid_seed
-                connect_request = breez_sdk.ConnectRequest(
-                    config=self.config, mnemonic=mnemonic
-                )
-                self.sdk_services = breez_sdk.connect(connect_request)
+                connect_request = ConnectRequest(config=self.config, mnemonic=mnemonic)
+                self.sdk_services = connect(connect_request)
                 self.sdk_services.add_event_listener(PaymentsListener())
             except Exception as exc:
                 logger.warning(exc)
@@ -107,7 +119,7 @@ else:
 
         async def status(self) -> StatusResponse:
             try:
-                info: breez_sdk.GetInfoResponse = self.sdk_services.get_info()
+                info: GetInfoResponse = self.sdk_services.get_info()
             except Exception as exc:
                 logger.warning(exc)
                 return StatusResponse(f"Failed to connect to breez, got: '{exc}...'", 0)
@@ -124,10 +136,10 @@ else:
             try:
                 # issue with breez sdk, receive_amount is of type BITCOIN
                 # not ReceiveAmount after initialisation
-                receive_amount = breez_sdk.ReceiveAmount.BITCOIN(amount)
+                receive_amount = ReceiveAmount.BITCOIN(amount)
                 req = self.sdk_services.prepare_receive_payment(
-                    breez_sdk.PrepareReceiveRequest(
-                        payment_method=breez_sdk.PaymentMethod.BOLT11_INVOICE,
+                    PrepareReceiveRequest(
+                        payment_method=PaymentMethod.BOLT11_INVOICE,
                         amount=receive_amount,  # type: ignore
                     )
                 )
@@ -138,7 +150,7 @@ else:
                 )
 
                 res = self.sdk_services.receive_payment(
-                    breez_sdk.ReceivePaymentRequest(
+                    ReceivePaymentRequest(
                         prepare_response=req,
                         description=description,
                         use_description_hash=description_hash is not None,
@@ -165,7 +177,7 @@ else:
             invoice_data = bolt11_decode(bolt11)
 
             try:
-                prepare_req = breez_sdk.PrepareSendRequest(destination=bolt11)
+                prepare_req = PrepareSendRequest(destination=bolt11)
                 req = self.sdk_services.prepare_send_payment(prepare_req)
 
                 fee_limit_sat = settings.breez_liquid_fee_offset_sat + int(
@@ -182,23 +194,23 @@ else:
                     )
 
                 send_response = self.sdk_services.send_payment(
-                    breez_sdk.SendPaymentRequest(prepare_response=req)
+                    SendPaymentRequest(prepare_response=req)
                 )
 
             except Exception as exc:
                 logger.warning(exc)
                 return PaymentResponse(error_message=f"Exception while payment: {exc}")
 
-            payment: breez_sdk.Payment = send_response.payment
+            payment: Payment = send_response.payment
             logger.debug(f"pay invoice res: {payment}")
             checking_id = invoice_data.payment_hash
 
             fees = req.fees_sat * 1000 if req.fees_sat and req.fees_sat > 0 else 0
 
-            if payment.status != breez_sdk.PaymentState.COMPLETE:
+            if payment.status != PaymentState.COMPLETE:
                 return await self._wait_for_outgoing_payment(checking_id, fees, 10)
 
-            if not isinstance(payment.details, breez_sdk.PaymentDetails.LIGHTNING):
+            if not isinstance(payment.details, PaymentDetails.LIGHTNING):
                 return PaymentResponse(
                     error_message="lightning payment details are not available"
                 )
@@ -212,17 +224,17 @@ else:
 
         async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
             try:
-                req = breez_sdk.GetPaymentRequest.PAYMENT_HASH(checking_id)
+                req = GetPaymentRequest.PAYMENT_HASH(checking_id)
                 payment = self.sdk_services.get_payment(req=req)  # type: ignore
                 if payment is None:
                     return PaymentPendingStatus()
-                if payment.payment_type != breez_sdk.PaymentType.RECEIVE:
+                if payment.payment_type != PaymentType.RECEIVE:
                     logger.warning(f"unexpected payment type: {payment.status}")
                     return PaymentPendingStatus()
-                if payment.status == breez_sdk.PaymentState.FAILED:
+                if payment.status == PaymentState.FAILED:
                     return PaymentFailedStatus()
-                if payment.status == breez_sdk.PaymentState.COMPLETE and isinstance(
-                    payment.details, breez_sdk.PaymentDetails.LIGHTNING
+                if payment.status == PaymentState.COMPLETE and isinstance(
+                    payment.details, PaymentDetails.LIGHTNING
                 ):
                     return PaymentSuccessStatus(
                         paid=True,
@@ -236,24 +248,22 @@ else:
 
         async def get_payment_status(self, checking_id: str) -> PaymentStatus:
             try:
-                req = breez_sdk.GetPaymentRequest.PAYMENT_HASH(checking_id)
+                req = GetPaymentRequest.PAYMENT_HASH(checking_id)
                 payment = self.sdk_services.get_payment(req=req)  # type: ignore
                 if payment is None:
                     return PaymentPendingStatus()
-                if payment.payment_type != breez_sdk.PaymentType.SEND:
+                if payment.payment_type != PaymentType.SEND:
                     logger.warning(f"unexpected payment type: {payment.status}")
                     return PaymentPendingStatus()
-                if payment.status == breez_sdk.PaymentState.COMPLETE:
-                    if not isinstance(
-                        payment.details, breez_sdk.PaymentDetails.LIGHTNING
-                    ):
+                if payment.status == PaymentState.COMPLETE:
+                    if not isinstance(payment.details, PaymentDetails.LIGHTNING):
                         logger.warning("payment details are not of type LIGHTNING")
                         return PaymentPendingStatus()
                     return PaymentSuccessStatus(
                         fee_msat=int(payment.fees_sat * 1000),
                         preimage=payment.details.preimage,
                     )
-                if payment.status == breez_sdk.PaymentState.FAILED:
+                if payment.status == PaymentState.FAILED:
                     return PaymentFailedStatus()
                 return PaymentPendingStatus()
             except Exception as exc:
