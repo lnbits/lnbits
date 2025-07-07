@@ -24,9 +24,11 @@ else:
     from pathlib import Path
     from typing import Optional
 
+    import breez_sdk
+    from bolt11 import Bolt11Exception
+    from bolt11 import decode as bolt11_decode
     from loguru import logger
 
-    from lnbits import bolt11 as lnbits_bolt11
     from lnbits.settings import settings
 
     from .base import (
@@ -40,7 +42,15 @@ else:
         Wallet,
     )
 
-    breez_event_queue: asyncio.Queue = asyncio.Queue()
+    breez_incoming_queue: asyncio.Queue[breez_sdk.PaymentDetails.LN] = asyncio.Queue()
+
+    class PaymentsListener(breez_sdk.EventListener):
+        def on_event(self, e: breez_sdk.BreezEvent) -> None:
+            logger.debug(f"received breez sdk event: {e}")
+            if isinstance(e, breez_sdk.BreezEvent.PAYMENT_SUCCEED) and isinstance(
+                e.details, breez_sdk.PaymentDetails.LN
+            ):
+                breez_incoming_queue.put_nowait(e.details)
 
     def load_bytes(source: str, extension: str) -> Optional[bytes]:
         # first check if it can be read from a file
@@ -61,11 +71,7 @@ else:
                 logger.debug(exc)
         return None
 
-    def load_greenlight_credentials() -> (
-        Optional[
-            breez_sdk.GreenlightCredentials  # pyright: ignore[reportUnboundVariable]
-        ]
-    ):
+    def load_greenlight_credentials() -> Optional[breez_sdk.GreenlightCredentials]:
         if (
             settings.breez_greenlight_device_key
             and settings.breez_greenlight_device_cert
@@ -78,18 +84,11 @@ else:
                     "cannot decode breez_greenlight_device_key "
                     "or breez_greenlight_device_cert"
                 )
-            return breez_sdk.GreenlightCredentials(  # pyright: ignore[reportUnboundVariable]
+            return breez_sdk.GreenlightCredentials(
                 developer_key=list(device_key_bytes),
                 developer_cert=list(device_cert_bytes),
             )
         return None
-
-    class SDKListener(
-        breez_sdk.EventListener  # pyright: ignore[reportUnboundVariable]
-    ):
-        def on_event(self, event):
-            logger.debug(event)
-            breez_event_queue.put_nowait(event)
 
     class BreezSdkWallet(Wallet):  # type: ignore[no-redef]
         def __init__(self):
@@ -118,15 +117,15 @@ else:
                     "missing breez_greenlight_device_key"
                 )
 
+            gl_config = breez_sdk.GreenlightNodeConfig(
+                partner_credentials=load_greenlight_credentials(),
+                invite_code=settings.breez_greenlight_invite_code,
+            )
+            node_config = breez_sdk.NodeConfig.GREENLIGHT(config=gl_config)
             self.config = breez_sdk.default_config(
                 breez_sdk.EnvironmentType.PRODUCTION,
                 settings.breez_api_key,
-                breez_sdk.NodeConfig.GREENLIGHT(
-                    config=breez_sdk.GreenlightNodeConfig(
-                        partner_credentials=load_greenlight_credentials(),
-                        invite_code=settings.breez_greenlight_invite_code,
-                    )
-                ),
+                node_config=node_config,  # type: ignore[arg-type]
             )
 
             breez_sdk_working_dir = Path(settings.lnbits_data_folder, "breez-sdk")
@@ -135,8 +134,12 @@ else:
 
             try:
                 seed = breez_sdk.mnemonic_to_seed(settings.breez_greenlight_seed)
-                connect_request = breez_sdk.ConnectRequest(self.config, seed)
-                self.sdk_services = breez_sdk.connect(connect_request, SDKListener())
+                connect_request = breez_sdk.ConnectRequest(
+                    config=self.config, seed=seed
+                )
+                self.sdk_services = breez_sdk.connect(
+                    connect_request, PaymentsListener()
+                )
             except Exception as exc:
                 logger.warning(exc)
                 raise ValueError(f"cannot initialize BreezSdkWallet: {exc!s}") from exc
@@ -171,11 +174,11 @@ else:
                 breez_invoice: breez_sdk.ReceivePaymentResponse = (
                     self.sdk_services.receive_payment(
                         breez_sdk.ReceivePaymentRequest(
-                            amount * 1000,  # breez uses msat
-                            (
+                            amount_msat=amount * 1000,  # breez uses msat
+                            description=(
                                 unhashed_description.decode()
                                 if unhashed_description
-                                else memo
+                                else memo or ""
                             ),
                             preimage=kwargs.get("preimage"),
                             opening_fee_params=None,
@@ -198,8 +201,14 @@ else:
         async def pay_invoice(
             self, bolt11: str, fee_limit_msat: int
         ) -> PaymentResponse:
-            invoice = lnbits_bolt11.decode(bolt11)
-
+            logger.debug(f"fee_limit_msat {fee_limit_msat} is ignored by Breez SDK")
+            try:
+                invoice = bolt11_decode(bolt11)
+            except Bolt11Exception as exc:
+                logger.warning(exc)
+                return PaymentResponse(
+                    ok=False, error_message=f"invalid bolt11 invoice: {exc}"
+                )
             try:
                 send_payment_request = breez_sdk.SendPaymentRequest(
                     bolt11=bolt11, use_trampoline=settings.breez_use_trampoline
@@ -207,26 +216,31 @@ else:
                 send_payment_response: breez_sdk.SendPaymentResponse = (
                     self.sdk_services.send_payment(send_payment_request)
                 )
-                payment: breez_sdk.Payment = send_payment_response.payment
+                payment = send_payment_response.payment
             except Exception as exc:
                 logger.warning(exc)
                 try:
-                    # try to report issue to Breez to improve LSP routing
-                    self.sdk_services.report_issue(
-                        breez_sdk.ReportIssueRequest.PAYMENT_FAILURE(
-                            breez_sdk.ReportPaymentFailureDetails(invoice.payment_hash)
+                    # report issue to Breez to improve LSP routing
+                    payment_error = breez_sdk.ReportIssueRequest.PAYMENT_FAILURE(
+                        breez_sdk.ReportPaymentFailureDetails(
+                            payment_hash=invoice.payment_hash
                         )
                     )
+                    self.sdk_services.report_issue(payment_error)  # type: ignore[arg-type]
                 except Exception as ex:
                     logger.info(ex)
-                # assume that payment failed?
-                return PaymentResponse(ok=False, error_message=f"payment failed: {exc}")
+                return PaymentResponse(error_message=f"exception while payment {exc!s}")
 
             if payment.status != breez_sdk.PaymentStatus.COMPLETE:
-                return PaymentResponse(ok=False, error_message="payment is pending")
+                return PaymentResponse(ok=None, error_message="payment is pending")
 
             # let's use the payment_hash as the checking_id
             checking_id = invoice.payment_hash
+
+            if not isinstance(payment.details, breez_sdk.PaymentDetails.LN):
+                return PaymentResponse(
+                    error_message="Breez SDK returned a non-LN payment details object",
+                )
 
             return PaymentResponse(
                 ok=True,
@@ -237,18 +251,22 @@ else:
 
         async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
             try:
-                payment: breez_sdk.Payment = self.sdk_services.payment_by_hash(
-                    checking_id
-                )
+                payment = self.sdk_services.payment_by_hash(checking_id)
                 if payment is None:
                     return PaymentPendingStatus()
                 if payment.payment_type != breez_sdk.PaymentType.RECEIVED:
                     logger.warning(f"unexpected payment type: {payment.status}")
                     return PaymentPendingStatus()
+                if not isinstance(payment.details, breez_sdk.PaymentDetails.LN):
+                    logger.warning(f"unexpected paymentdetails type: {payment.details}")
+                    return PaymentPendingStatus()
                 if payment.status == breez_sdk.PaymentStatus.FAILED:
                     return PaymentFailedStatus()
                 if payment.status == breez_sdk.PaymentStatus.COMPLETE:
-                    return PaymentSuccessStatus()
+                    return PaymentSuccessStatus(
+                        fee_msat=payment.fee_msat,
+                        preimage=payment.details.data.payment_preimage,
+                    )
                 return PaymentPendingStatus()
             except Exception as exc:
                 logger.warning(exc)
@@ -256,13 +274,14 @@ else:
 
         async def get_payment_status(self, checking_id: str) -> PaymentStatus:
             try:
-                payment: breez_sdk.Payment = self.sdk_services.payment_by_hash(
-                    checking_id
-                )
+                payment = self.sdk_services.payment_by_hash(checking_id)
                 if payment is None:
                     return PaymentPendingStatus()
                 if payment.payment_type != breez_sdk.PaymentType.SENT:
-                    logger.warning(f"unexpected payment type: {payment.status}")
+                    logger.warning(f"unexpected payment type: {payment.payment_type}")
+                    return PaymentPendingStatus()
+                if not isinstance(payment.details, breez_sdk.PaymentDetails.LN):
+                    logger.warning(f"unexpected paymentdetails type: {payment.details}")
                     return PaymentPendingStatus()
                 if payment.status == breez_sdk.PaymentStatus.COMPLETE:
                     return PaymentSuccessStatus(
@@ -278,6 +297,5 @@ else:
 
         async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
             while settings.lnbits_running:
-                event = await breez_event_queue.get()
-                if event.is_invoice_paid():
-                    yield event.details.payment_hash
+                details = await breez_incoming_queue.get()
+                yield details.data.payment_hash
