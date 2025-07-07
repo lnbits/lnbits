@@ -67,11 +67,7 @@ from .middleware import (
     add_ip_block_middleware,
     add_ratelimit_middleware,
 )
-from .tasks import (
-    internal_invoice_listener,
-    invoice_listener,
-    run_interval,
-)
+from .tasks import internal_invoice_listener, invoice_listener, run_interval
 
 
 async def startup(app: FastAPI):

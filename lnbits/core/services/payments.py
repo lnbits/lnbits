@@ -354,20 +354,9 @@ async def check_pending_payments():
     if count > 0:
         logger.info(f"Task: checking {count} pending payments of last 15 days...")
         for i, payment in enumerate(pending_payments):
-            status = await payment.check_status()
+            payment = await update_pending_payment(payment)
             prefix = f"payment ({i+1} / {count})"
-            if status.failed:
-                payment.status = PaymentState.FAILED
-                await update_payment(payment)
-                logger.debug(f"{prefix} failed {payment.checking_id}")
-            elif status.success:
-                payment.fee = status.fee_msat or 0
-                payment.preimage = status.preimage
-                payment.status = PaymentState.SUCCESS
-                await update_payment(payment)
-                logger.debug(f"{prefix} success {payment.checking_id}")
-            else:
-                logger.debug(f"{prefix} pending {payment.checking_id}")
+            logger.debug(f"{prefix} {payment.status} {payment.checking_id}")
             await asyncio.sleep(0.01)  # to avoid complete blocking
         logger.info(
             f"Task: pending check finished for {count} payments"
