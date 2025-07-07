@@ -151,6 +151,8 @@ module = [
   "json5.*",
   "jsonpath_ng.*",
   "filetype.*",
+  "breez-sdk.*",
+  "breez-sdk-liquid.*",
 ]
 ignore_missing_imports = "True"
 
