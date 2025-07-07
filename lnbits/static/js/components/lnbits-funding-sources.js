@@ -50,7 +50,7 @@ window.app.component('lnbits-funding-sources', {
         ],
         [
           'CLNRestWallet',
-          'Core Lightning CLNRest',
+          'Core Lightning Rest (plugin)',
           {
             clnrest_url: 'Endpoint',
             clnrest_ca: 'ca.pem',
@@ -74,7 +74,7 @@ window.app.component('lnbits-funding-sources', {
         ],
         [
           'CoreLightningRestWallet',
-          'Core Lightning Rest',
+          'Core Lightning Rest (legacy)',
           {
             corelightning_rest_url: 'Endpoint',
             corelightning_rest_cert: 'Certificate',
