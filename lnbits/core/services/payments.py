@@ -336,6 +336,48 @@ async def update_pending_payment(payment: Payment) -> bool:
     return False
 
 
+async def check_pending_payments():
+    """
+    check_pending_payments is called during startup to check for pending payments with
+    the backend and also to delete expired invoices. Incoming payments will be
+    checked only once, outgoing pending payments will be checked regularly.
+    """
+    funding_source = get_funding_source()
+    if funding_source.__class__.__name__ == "VoidWallet":
+        logger.warning("Task: skipping pending check for VoidWallet")
+        return
+    start_time = time.time()
+    pending_payments = await get_payments(
+        since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
+        complete=False,
+        pending=True,
+        exclude_uncheckable=True,
+    )
+    count = len(pending_payments)
+    if count > 0:
+        logger.info(f"Task: checking {count} pending payments of last 15 days...")
+        for i, payment in enumerate(pending_payments):
+            status = await payment.check_status()
+            prefix = f"payment ({i+1} / {count})"
+            if status.failed:
+                payment.status = PaymentState.FAILED
+                await update_payment(payment)
+                logger.debug(f"{prefix} failed {payment.checking_id}")
+            elif status.success:
+                payment.fee = status.fee_msat or 0
+                payment.preimage = status.preimage
+                payment.status = PaymentState.SUCCESS
+                await update_payment(payment)
+                logger.debug(f"{prefix} success {payment.checking_id}")
+            else:
+                logger.debug(f"{prefix} pending {payment.checking_id}")
+            await asyncio.sleep(0.01)  # to avoid complete blocking
+        logger.info(
+            f"Task: pending check finished for {count} payments"
+            f" (took {time.time() - start_time:0.3f} s)"
+        )
+
+
 def fee_reserve_total(amount_msat: int, internal: bool = False) -> int:
     return fee_reserve(amount_msat, internal) + service_fee(amount_msat, internal)
 

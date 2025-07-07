@@ -57,6 +57,7 @@ from .core import init_core_routers
 from .core.db import core_app_extra
 from .core.models.extensions import Extension, ExtensionMeta, InstallableExtension
 from .core.services import check_admin_settings, check_webpush_settings
+from .core.services.payments import check_pending_payments
 from .middleware import (
     AuditMiddleware,
     ExtensionsRedirectMiddleware,
@@ -66,9 +67,9 @@ from .middleware import (
     add_ratelimit_middleware,
 )
 from .tasks import (
-    check_pending_payments,
     internal_invoice_listener,
     invoice_listener,
+    run_interval,
 )
 
 
@@ -466,7 +467,7 @@ def register_async_tasks():
     create_permanent_task(wait_for_audit_data)
     create_permanent_task(wait_notification_messages)
 
-    create_permanent_task(check_pending_payments)
+    create_permanent_task(run_interval(30 * 60, check_pending_payments))
     create_permanent_task(invoice_listener)
     create_permanent_task(internal_invoice_listener)
     create_permanent_task(cache.invalidate_forever)
