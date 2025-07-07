@@ -160,7 +160,7 @@ class CLNRestWallet(Wallet):
                     "equivalent IP addresses. Set CLNREST_URL to https:// for external "
                     "connections or use localhost."
                 )
-            return httpx.AsyncClient(base_url=self.url, verify=False)
+            return httpx.AsyncClient(base_url=self.url)
 
         elif parsed_url.scheme == "https":
             logger.info(f"Using SSL to connect to {self.url}")
@@ -258,7 +258,6 @@ class CLNRestWallet(Wallet):
 
     async def create_invoice(
         self,
-        # identifier: str,
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
@@ -271,12 +270,10 @@ class CLNRestWallet(Wallet):
                 False, None, None, "Unable to invoice without an invoice rune"
             )
 
-        label_prefix = "LNbits_testing"
-        identifier = "{wallet.user}_wallet.id}"
         random_uuid = (
             base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode("utf-8")
         )
-        label = f"{label_prefix} {identifier} {random_uuid}"
+        label = f"LNbits_{random_uuid}"
 
         data: dict = {
             "amount_msat": int(amount * 1000),
@@ -337,47 +334,53 @@ class CLNRestWallet(Wallet):
                 False, None, None, f"Unable to connect to {self.url}."
             )
 
-    async def pay_invoice_via_endpoint(  # noqa: C901
+    async def pay_invoice(  # noqa: C901
         self,
         bolt11: str,
         fee_limit_msat: int,
-        # identifier: str,
-        payment_endpoint: str,
-        label_prefix: Optional[str] = "LNbits",
         **kwargs,
     ) -> PaymentResponse:
 
-        # TODO: rune restrictions will not be enforced for payments that are internal
-        # to LNbits. maybe there should be a way to disable internal invoice settlement
-        # to always force settlement to the backing wallet
-
-        label_prefix = "LNbits_testing"
-        identifier = "{wallet.user}_wallet.id}"
-        random_uuid = (
-            base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode("utf-8")
-        )
-
-        logger.debug(
-            f"Pay invoice with parameters: identifier={identifier}, bolt11={bolt11}, "
-            f"label_prefix={label_prefix}, kwargs={kwargs}"
-        )
+        random_uuid = base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode()
+        label = (f"LNbits_{random_uuid}",)
 
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
             return PaymentResponse(ok=False, error_message=str(exc))
 
+        # Determine the endpoint based on the use_rene flag
+        default_to_renepay = True
+        if (
+            invoice.description is not None
+            and settings.clnrest_renepay_rune
+            and default_to_renepay
+        ):
+            payment_endpoint = "v1/renepay"
+        elif settings.clnrest_pay_rune:
+            payment_endpoint = "v1/pay"
+        else:
+            return PaymentResponse(
+                ok=False,
+                error_message="Unable to pay invoice without a pay or renepay rune",
+            )
+
+        # TODO: rune restrictions will not be enforced for payments that are internal
+        # to LNbits. maybe there should be a way to disable internal invoice settlement
+        # to always force settlement to the backing wallet
+
+        logger.debug(
+            f"Pay invoice with parameters: bolt11={bolt11}, "
+            f"label_prefix=LNbits, kwargs={kwargs}"
+        )
+
         if not invoice.amount_msat or invoice.amount_msat <= 0:
             return PaymentResponse(
                 ok=False, error_message="0 amount invoices are not allowed"
             )
 
-        random_uuid = (
-            base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode("utf-8")
-        )
-
         data = {
-            "label": f"LNbits {identifier} {random_uuid}",
+            "label": label,
             "description": invoice.description,
             "maxfee": fee_limit_msat,
         }
@@ -416,20 +419,6 @@ class CLNRestWallet(Wallet):
 
             r.raise_for_status()
             data = r.json()
-            logger.debug(data)
-
-            status = self.statuses.get(data["status"])
-            if "payment_preimage" not in data:
-                error_message = data.get("error", "No payment preimage in response")
-                logger.error(error_message)
-                return PaymentResponse(error_message=error_message)
-
-            checking_id = data["payment_hash"]
-            preimage = data["payment_preimage"]
-            fee_msat = data["amount_sent_msat"] - data["amount_msat"]
-            return PaymentResponse(
-                ok=status, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
-            )
         except httpx.HTTPStatusError as exc:
             try:
                 data = exc.response.json()
@@ -456,45 +445,18 @@ class CLNRestWallet(Wallet):
             error_message = f"Unable to connect to {self.url}. Exception: {exc!s}"
             return PaymentResponse(error_message=error_message)
 
-    async def pay_invoice(
-        self,
-        bolt11: str,
-        fee_limit_msat: int,
-        **kwargs,
-    ) -> PaymentResponse:
+        if "payment_preimage" not in data:
+            error_message = data.get("error", "No payment preimage in response")
+            logger.error(error_message)
+            return PaymentResponse(error_message=error_message)
 
-        identifier = "{wallet.user}_wallet.id}"
-        logger.debug(f"request to pay_invoice bolt11 {bolt11} identifier {identifier}")
-
-        try:
-            invoice = decode(bolt11)
-        except Bolt11Exception as exc:
-            return PaymentResponse(ok=False, error_message=str(exc))
-
-        # Determine the endpoint based on the use_rene flag
-        default_to_renepay = True
-        if (
-            invoice.description is not None
-            and settings.clnrest_renepay_rune
-            and default_to_renepay
-        ):
-            payment_endpoint = "v1/renepay"
-        elif settings.clnrest_pay_rune:
-            payment_endpoint = "v1/pay"
-        else:
-            return PaymentResponse(
-                ok=False,
-                error_message="Unable to pay invoice without a pay or renepay rune",
-            )
-
-        response = await self.pay_invoice_via_endpoint(
-            bolt11=bolt11,
-            fee_limit_msat=fee_limit_msat,
-            # identifier=identifier,
-            payment_endpoint=payment_endpoint,
-            **kwargs,
+        checking_id = data["payment_hash"]
+        preimage = data["payment_preimage"]
+        fee_msat = data["amount_sent_msat"] - data["amount_msat"]
+        status = self.statuses.get(data["status"])
+        return PaymentResponse(
+            ok=status, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
         )
-        return response
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         data: dict = {"payment_hash": checking_id}
@@ -592,7 +554,8 @@ class CLNRestWallet(Wallet):
                             self.last_pay_index = inv["pay_index"]
                             if not paid:
                                 continue
-                        except Exception:
+                        except Exception as exc:
+                            logger.warning(exc)
                             continue
                         logger.debug(f"paid invoice: {inv}")
 
