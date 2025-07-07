@@ -24,7 +24,7 @@ else:
     from pathlib import Path
     from typing import Optional
 
-    import breez_sdk
+    import breez_sdk  # type: ignore
     from bolt11 import Bolt11Exception
     from bolt11 import decode as bolt11_decode
     from loguru import logger
