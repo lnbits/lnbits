@@ -449,7 +449,7 @@ async def test_retry_pay_external_invoice_pending(
 
     wallet = await get_wallet(from_wallet.id)
     assert wallet
-    referve_fee_sat = int(abs(settings.lnbits_reserve_fee_min // 1000))
+    reserve_fee_sat = int(abs(settings.lnbits_reserve_fee_min // 1000))
 
     assert (
         balance_before - invoice_amount - reserve_fee_sat == wallet.balance
