@@ -784,9 +784,6 @@ async def _pay_external_invoice(
         )
         await send_payment_notification(wallet, payment)
         logger.success(f"payment successful {payment_response.checking_id}")
-    elif payment.preimage is None and payment_response.preimage is not None:
-        payment.preimage = payment_response.preimage
-        await update_payment(payment, conn=conn)
 
     payment.checking_id = payment_response.checking_id
     return payment

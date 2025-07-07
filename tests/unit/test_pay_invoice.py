@@ -370,9 +370,8 @@ async def test_pay_external_invoice_pending(
     assert external_invoice.payment_request
     assert external_invoice.checking_id
 
-    preimage = "0000000000000000000000000000000000000000000000000000000000002103"
     payment_reponse_pending = PaymentResponse(
-        ok=None, checking_id=external_invoice.checking_id, preimage=preimage
+        ok=None, checking_id=external_invoice.checking_id
     )
     mocker.patch(
         "lnbits.wallets.FakeWallet.pay_invoice",
@@ -396,7 +395,6 @@ async def test_pay_external_invoice_pending(
     assert _payment.checking_id == payment.payment_hash
     assert _payment.amount == -2103_000
     assert _payment.bolt11 == external_invoice.payment_request
-    assert _payment.preimage == preimage
 
     wallet = await get_wallet(from_wallet.id)
     assert wallet
