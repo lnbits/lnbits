@@ -15,7 +15,6 @@ from lnbits.core.crud import (
 )
 from lnbits.core.models import Payment, PaymentState
 from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
-from lnbits.core.services.payments import update_pending_payment
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 

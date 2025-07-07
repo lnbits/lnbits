@@ -27,6 +27,7 @@ from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
 from lnbits.core.services.notifications import enqueue_notification
+from lnbits.core.services.payments import check_pending_payments
 from lnbits.core.tasks import (
     audit_queue,
     collect_exchange_rates_data,
