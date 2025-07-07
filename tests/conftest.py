@@ -307,6 +307,7 @@ def _settings_cleanup(settings: Settings):
     settings.lnbits_reserve_fee_percent = 1
     settings.lnbits_reserve_fee_min = 2000
     settings.lnbits_service_fee = 0
+    settings.lnbits_reserve_fee_percent = 0
     settings.lnbits_wallet_limit_daily_max_withdraw = 0
     settings.lnbits_admin_extensions = []
     settings.lnbits_admin_users = []
