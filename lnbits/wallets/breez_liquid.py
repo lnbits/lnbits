@@ -196,7 +196,7 @@ else:
             fees = req.fees_sat * 1000 if req.fees_sat and req.fees_sat > 0 else 0
 
             if payment.status != breez_sdk.PaymentState.COMPLETE:
-                return await self._wait_for_outgoing_payment(checking_id, fees, 5)
+                return await self._wait_for_outgoing_payment(checking_id, fees, 10)
 
             if not isinstance(payment.details, breez_sdk.PaymentDetails.LIGHTNING):
                 return PaymentResponse(
@@ -221,9 +221,13 @@ else:
                     return PaymentPendingStatus()
                 if payment.status == breez_sdk.PaymentState.FAILED:
                     return PaymentFailedStatus()
-                if payment.status == breez_sdk.PaymentState.COMPLETE:
+                if payment.status == breez_sdk.PaymentState.COMPLETE and isinstance(
+                    payment.details, breez_sdk.PaymentDetails.LIGHTNING
+                ):
                     return PaymentSuccessStatus(
-                        paid=True, fee_msat=int(payment.fees_sat * 1000)
+                        paid=True,
+                        fee_msat=int(payment.fees_sat * 1000),
+                        preimage=payment.details.preimage,
                     )
                 return PaymentPendingStatus()
             except Exception as exc:
@@ -272,6 +276,7 @@ else:
         async def _wait_for_outgoing_payment(
             self, checking_id: str, fees: int, timeout: int
         ) -> PaymentResponse:
+            logger.debug(f"waiting for outgoing payment {checking_id} to complete")
             try:
                 breez_outgoing_queue[checking_id] = Queue()
                 payment_details = await asyncio.wait_for(

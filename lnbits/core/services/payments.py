@@ -323,17 +323,14 @@ async def update_pending_payments(wallet_id: str):
         await update_pending_payment(payment)
 
 
-async def update_pending_payment(payment: Payment) -> bool:
+async def update_pending_payment(payment: Payment) -> Payment:
     status = await payment.check_status()
     if status.failed:
         payment.status = PaymentState.FAILED
         await update_payment(payment)
-        return True
-    if status.success:
-        payment.status = PaymentState.SUCCESS
-        await update_payment(payment)
-        return True
-    return False
+    elif status.success:
+        payment = await update_payment_success_status(payment, status)
+    return payment
 
 
 async def check_pending_payments():
@@ -765,19 +762,20 @@ async def _pay_external_invoice(
     )
 
     fee_reserve_msat = fee_reserve(amount_msat, internal=False)
-    service_fee_msat = service_fee(amount_msat, internal=False)
 
     task = create_task(
         _fundingsource_pay_invoice(checking_id, payment.bolt11, fee_reserve_msat)
     )
 
     # make sure a hold invoice or deferred payment is not blocking the server
+    wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
     try:
-        wait_time = max(1, settings.lnbits_funding_source_pay_invoice_wait_seconds)
-        payment_response = await asyncio.wait_for(task, wait_time)
+        payment_response = await asyncio.wait_for(task, timeout=wait_time)
     except asyncio.TimeoutError:
         # return pending payment on timeout
-        logger.debug(f"payment timeout, {checking_id} is still pending")
+        logger.debug(
+            f"payment timeout after {wait_time}s, {checking_id} is still pending"
+        )
         return payment
 
     # payment failed
@@ -791,18 +789,27 @@ async def _pay_external_invoice(
         message = payment_response.error_message or "without an error message."
         raise PaymentError(f"Payment failed: {message}", status="failed")
 
-    # payment.ok can be True (paid) or None (pending)!
-    payment.status = (
-        PaymentState.SUCCESS if payment_response.ok is True else PaymentState.PENDING
-    )
-    payment.fee = -(abs(payment_response.fee_msat or 0) + abs(service_fee_msat))
-    payment.preimage = payment_response.preimage
-    await update_payment(payment, payment_response.checking_id, conn=conn)
+    payment = await update_payment_success_status(payment, payment_response, conn=conn)
+
     payment.checking_id = payment_response.checking_id
     if payment.success:
         await send_payment_notification(wallet, payment)
         logger.success(f"payment successful {payment_response.checking_id}")
 
+    return payment
+
+
+async def update_payment_success_status(
+    payment: Payment,
+    status: PaymentStatus,
+    conn: Optional[Connection] = None,
+) -> Payment:
+    if status.success:
+        service_fee_msat = service_fee(payment.amount * 1000, internal=False)
+        payment.status = PaymentState.SUCCESS
+        payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
+        payment.preimage = status.preimage
+        await update_payment(payment, conn=conn)
     return payment
 
 
@@ -836,8 +843,7 @@ async def _verify_external_payment(
 
     if status.success:
         # payment was successful on the fundingsource
-        payment.status = PaymentState.SUCCESS
-        await update_payment(payment, conn=conn)
+        await update_payment_success_status(payment, status, conn=conn)
         raise PaymentError(
             "Failed payment was already paid on the fundingsource.",
             status="success",
