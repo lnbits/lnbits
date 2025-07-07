@@ -402,7 +402,7 @@ async def test_pay_external_invoice_pending(
     assert wallet
     referve_fee_sat = int(abs(settings.lnbits_reserve_fee_min // 1000))
     assert (
-        balance_before - invoice_amount - referve_fee_sat == wallet.balance
+        balance_before - invoice_amount - reserve_fee_sat == wallet.balance
     ), "Pending payment is subtracted."
 
     assert ws_notification.call_count == 0, "Websocket notification not sent."
