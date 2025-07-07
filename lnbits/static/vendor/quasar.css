@@ -10326,7 +10326,7 @@ body.body--dark .inset-shadow-down {
 }
 
 /* body */
-.q-body--fullscreen-mixin, .q-body--prevent-scroll {
+.q-body--fullscreen-mixin {
   position: fixed !important;
 }
 
