@@ -805,7 +805,7 @@ async def update_payment_success_status(
     conn: Optional[Connection] = None,
 ) -> Payment:
     if status.success:
-        service_fee_msat = service_fee(payment.amount * 1000, internal=False)
+        service_fee_msat = service_fee(payment.amount, internal=False)
         payment.status = PaymentState.SUCCESS
         payment.fee = -(abs(status.fee_msat or 0) + abs(service_fee_msat))
         payment.preimage = status.preimage
