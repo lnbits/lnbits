@@ -410,7 +410,7 @@ async def test_retry_pay_external_invoice_pending(
     external_funding_source: FakeWallet,
     settings: Settings,
 ):
-    settings.lnbits_reserve_fee_min = 1500
+    settings.lnbits_reserve_fee_min = 2000 # msats
     invoice_amount = 2106
     external_invoice = await external_funding_source.create_invoice(invoice_amount)
     assert external_invoice.payment_request
