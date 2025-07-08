@@ -322,21 +322,22 @@ class CLNRestWallet(Wallet):
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
             logger.warning(exc)
-            error_message = f"Unable to connect to {self.url}. Exception: {exc!s}"
+            error_message = f"Unable to connect to {self.url}."
             return PaymentResponse(error_message=error_message)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         data: dict = {"payment_hash": checking_id}
-        r = await self.client.post(
-            "/v1/listinvoices",
-            json=data,
-            headers=self.readonly_headers,
-        )
+
         try:
+            r = await self.client.post(
+                "/v1/listinvoices",
+                json=data,
+                headers=self.readonly_headers,
+            )
             r.raise_for_status()
             data = r.json()
             if r.is_error or "error" in data or data.get("invoices") is None:
-                raise Exception("error in cln response")
+                raise Exception("error in cln response") # todo: pending status
             status = self.statuses.get(data["invoices"][0]["status"])
             fee_msat = data["invoices"][0].get("amount_received_msat", 0) - data[
                 "invoices"
@@ -351,19 +352,19 @@ class CLNRestWallet(Wallet):
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        data: dict = {"payment_hash": checking_id}
-        r = await self.client.post(
-            "/v1/listpays",
-            json=data,
-            headers=self.readonly_headers,
-        )
         try:
+            data: dict = {"payment_hash": checking_id}
+            r = await self.client.post(
+                "/v1/listpays",
+                json=data,
+                headers=self.readonly_headers,
+            )
             r.raise_for_status()
             data = r.json()
 
             if r.is_error or "error" in data:
                 logger.error(f"API response error: {data}")
-                raise Exception("Error in corelightning-rest response")
+                raise Exception("Error in corelightning-rest response") # todo: pending status
 
             pays_list = data.get("pays", [])
             if not pays_list:
@@ -375,8 +376,8 @@ class CLNRestWallet(Wallet):
                 error_message = (
                     f"Expected one payment status, but found {len(pays_list)}"
                 )
-                logger.error(error_message)
-                raise Exception(error_message)
+                logger.warning(error_message)
+                raise Exception(error_message) # todo: pending status
 
             pay = pays_list[-1]
             logger.trace(f"Payment status from API: {pay['status']}")
