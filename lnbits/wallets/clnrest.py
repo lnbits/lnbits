@@ -56,27 +56,21 @@ class CLNRestWallet(Wallet):
             "Content-Type": "application/json",
         }
 
-        if hasattr(settings, "clnrest_nodeid") and settings.clnrest_nodeid is not None:
+        if settings.clnrest_nodeid is not None:
             self.base_headers["nodeid"] = settings.clnrest_nodeid
 
         # Ensure the readonly rune is set
-        if (
-            hasattr(settings, "clnrest_readonly_rune")
-            and settings.clnrest_readonly_rune is not None
-        ):
+        if settings.clnrest_readonly_rune is not None:
             self.readonly_headers = {
                 **self.base_headers,
                 "rune": settings.clnrest_readonly_rune,
             }
         else:
-            logger.error(
+            logger.warning(
                 "Readonly rune 'CLNREST_READONLY_RUNE' is required but not set."
             )
 
-        if (
-            hasattr(settings, "clnrest_invoice_rune")
-            and settings.clnrest_invoice_rune is not None
-        ):
+        if settings.clnrest_invoice_rune is not None:
             self.invoice_headers = {
                 **self.base_headers,
                 "rune": settings.clnrest_invoice_rune,
@@ -87,20 +81,14 @@ class CLNRestWallet(Wallet):
                 "setting 'CLNREST_INVOICE_RUNE[:4]'"
             )
 
-        if (
-            hasattr(settings, "clnrest_pay_rune")
-            and settings.clnrest_pay_rune is not None
-        ):
+        if settings.clnrest_pay_rune is not None:
             self.pay_headers = {**self.base_headers, "rune": settings.clnrest_pay_rune}
         else:
             logger.warning(
                 "Will be unable to call pay endpoint without setting 'CLNREST_PAY_RUNE'"
             )
 
-        if (
-            hasattr(settings, "clnrest_renepay_rune")
-            and settings.clnrest_renepay_rune is not None
-        ):
+        if settings.clnrest_renepay_rune is not None:
             self.renepay_headers = {
                 **self.base_headers,
                 "rune": settings.clnrest_renepay_rune,
