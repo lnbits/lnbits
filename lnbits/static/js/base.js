@@ -462,18 +462,6 @@ window.LNbits = {
       converter.setFlavor('github')
       converter.setOption('simpleLineBreaks', true)
       return converter.makeHtml(text)
-    },
-    hexToRgb(hex) {
-      return Quasar.colors.hexToRgb(hex)
-    },
-    hexDarken(hex, percent) {
-      return Quasar.colors.lighten(hex, percent)
-    },
-    hexAlpha(hex, alpha) {
-      return Quasar.colors.changeAlpha(hex, alpha)
-    },
-    getPaletteColor(color) {
-      return Quasar.colors.getPaletteColor(color)
     }
   }
 }
@@ -490,7 +478,6 @@ if (!window.g) {
     fiatTracking: false,
     wallets: [],
     payments: [],
-    allowedThemes: null,
     langs: [],
     walletEventListeners: [],
     updatePayments: false,
@@ -507,12 +494,9 @@ window.windowMixin = {
       mobileSimple: true,
       walletFlip: true,
       showAddWalletDialog: {show: false},
-      borderSelection: null,
-      gradientSelection: null,
-      themeSelection: null,
-      reactionSelection: null,
-      bgimageSelection: null,
-      gradientSelection: false,
+      isUserAuthorized: false,
+      isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
+      walletEventListeners: [],
       borderChoice: this.$q.localStorage.has('lnbits.border')
         ? this.$q.localStorage.getItem('lnbits.border')
         : USE_DEFAULT_BORDER,
@@ -528,10 +512,6 @@ window.windowMixin = {
       bgimageChoice: this.$q.localStorage.has('lnbits.backgroundImage')
         ? this.$q.localStorage.getItem('lnbits.backgroundImage')
         : USE_DEFAULT_BGIMAGE,
-      isUserAuthorized: false,
-      isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
-      walletEventListeners: [],
-      backgroundImage: '',
       ...WINDOW_SETTINGS
     }
   },
@@ -637,138 +617,51 @@ window.windowMixin = {
     },
     changeTheme(newValue) {
       document.body.setAttribute('data-theme', newValue)
-      if (this.themeSelection) {
-        this.themeChoice = newValue
-        this.$q.localStorage.set('lnbits.theme', newValue)
-      }
-      this.setColors()
+      this.$q.localStorage.set('lnbits.theme', newValue)
+      this.themeChoice = newValue
     },
     applyGradient() {
-      darkBgColor = this.$q.localStorage.getItem('lnbits.darkBgColor')
-      primaryColor = this.$q.localStorage.getItem('lnbits.primaryColor')
       if (this.gradientChoice) {
+        document.body.classList.add('gradient-bg')
         this.$q.localStorage.set('lnbits.gradientBg', true)
+        // Ensure dark mode is enabled when gradient background is applied
         if (!this.$q.dark.isActive) {
           this.$q.dark.toggle()
           this.$q.localStorage.set('lnbits.darkMode', true)
         }
-        const gradientStyle = `linear-gradient(to bottom right, ${LNbits.utils.hexDarken(String(primaryColor), -70)}, #0a0a0a)`
-        document.body.style.setProperty(
-          'background-image',
-          gradientStyle,
-          'important'
-        )
-        const gradientStyleCards = `background-color: ${LNbits.utils.hexAlpha(String(darkBgColor), 0.4)} !important; backdrop-filter: blur(6px);`
-        const style = document.createElement('style')
-        style.innerHTML =
-          `body[data-theme="${this.themeChoice}"] .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark), body.body${this.$q.dark.isActive ? '--dark' : ''} .q-header, body.body${this.$q.dark.isActive ? '--dark' : ''} .q-drawer { ${gradientStyleCards} }` +
-          `body[data-theme="${this.themeChoice}"].body--dark{background: ${LNbits.utils.hexDarken(String(primaryColor), -88)} !important; }` +
-          `[data-theme="${this.themeChoice}"] .q-card--dark{background: ${String(darkBgColor)} !important;} }`
-        document.head.appendChild(style)
       } else {
+        document.body.classList.remove('gradient-bg')
         this.$q.localStorage.set('lnbits.gradientBg', false)
       }
+    },
+    applyBackgroundImage() {
+      if (this.bgimageChoice == '') {
+        document.body.classList.remove('bg-image')
+      } else {
+        document.body.classList.add('bg-image')
+        document.body.style.setProperty(
+          '--background',
+          `url(${this.bgimageChoice})`
+        )
+      }
+      this.$q.localStorage.set('lnbits.backgroundImage', this.bgimageChoice)
+    },
+    applyBorder() {
+      // Remove any existing border classes
+      document.body.classList.forEach(cls => {
+        if (cls.endsWith('-border')) {
+          document.body.classList.remove(cls)
+        }
+      })
+      this.$q.localStorage.setItem('lnbits.border', this.borderChoice)
+      document.body.classList.add(this.borderChoice)
     },
     toggleDarkMode() {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
       if (!this.$q.dark.isActive) {
-        this.bgimageSelection = 'null'
         this.$q.localStorage.set('lnbits.gradientBg', false)
-        this.$q.localStorage.set('lnbits.backgroundImage', 'null')
-        window.location.hash = '#theme'
-        window.location.reload()
       }
-    },
-    applyBackgroundImage() {
-      if (this.bgimageSelection) {
-        this.$q.localStorage.set(
-          'lnbits.backgroundImage',
-          this.bgimageSelection
-        )
-        this.bgimageChoice = this.bgimageSelection
-      }
-      if (
-        this.bgimageChoice &&
-        this.bgimageChoice !== 'null' &&
-        this.bgimageChoice !== 'none' &&
-        this.bgimageChoice !== ''
-      ) {
-        this.gradientChoice = true
-        this.applyGradient()
-        const style = document.createElement('style')
-        style.innerHTML = `
-        body[data-theme="${this.themeChoice}"]::before {
-          content: '';
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: url(${this.bgimageChoice});
-          background-size: cover;
-          filter: blur(8px);
-          z-index: -1;
-          background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
-        }
-        body[data-theme="${this.themeChoice}"] .q-page-container {
-          backdrop-filter: none; /* Ensure the page content is not affected */
-        }`
-        document.head.appendChild(style)
-      }
-    },
-    applyBorder() {
-      if (this.borderSelection) {
-        this.$q.localStorage.setItem('lnbits.border', this.borderSelection)
-        this.borderChoice = this.$q.localStorage.getItem('lnbits.border')
-      }
-      let borderStyleCSS
-      if (this.borderChoice == 'hard-border') {
-        borderStyleCSS = `box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #ffffff47; border: none;`
-      }
-      if (this.borderChoice == 'neon-border') {
-        borderStyleCSS = `border: 2px solid ${this.$q.localStorage.getItem('lnbits.primaryColor')}; box-shadow: none;`
-      }
-      if (this.borderChoice == 'no-border') {
-        borderStyleCSS = `box-shadow: none; border: none;`
-      }
-      if (this.borderChoice == 'retro-border') {
-        borderStyleCSS = `border: none; border-color: rgba(255, 255, 255, 0.28); box-shadow: 0 1px 5px rgba(255, 255, 255, 0.2), 0 2px 2px rgba(255, 255, 255, 0.14), 0 3px 1px -2px rgba(255, 255, 255, 0.12);`
-      }
-      let style = document.createElement('style')
-      style.innerHTML = `
-        body[data-theme="${this.themeChoice}"] .q-card,
-        body[data-theme="${this.themeChoice}"] .q-card.q-card--dark,
-        body[data-theme="${this.themeChoice}"] .q-date,
-        body[data-theme="${this.themeChoice}"] .q-date--dark {
-          ${borderStyleCSS}
-        }
-      `
-      document.head.appendChild(style)
-    },
-    setColors() {
-      this.$q.localStorage.set(
-        'lnbits.primaryColor',
-        LNbits.utils.getPaletteColor('primary')
-      )
-      this.$q.localStorage.set(
-        'lnbits.secondaryColor',
-        LNbits.utils.getPaletteColor('secondary')
-      )
-      this.$q.localStorage.set(
-        'lnbits.darkBgColor',
-        LNbits.utils.getPaletteColor('dark')
-      )
-      document.documentElement.style.setProperty(
-        '--q-primary',
-        LNbits.utils.getPaletteColor('primary')
-      )
-      document.documentElement.style.setProperty(
-        '--q-secondary',
-        LNbits.utils.getPaletteColor('secondary')
-      )
     },
     copyText(text, message, position) {
       Quasar.copyToClipboard(text).then(() => {
@@ -835,7 +728,7 @@ window.windowMixin = {
 
         if (
           theme &&
-          this.g.allowedThemes.includes(theme.trim().toLowerCase())
+          LNBITS_THEME_OPTIONS.includes(theme.trim().toLowerCase())
         ) {
           const normalizedTheme = theme.trim().toLowerCase()
           document.body.setAttribute('data-theme', normalizedTheme)
@@ -866,8 +759,6 @@ window.windowMixin = {
 
         window.history.replaceState(null, null, url.pathname)
       }
-
-      this.setColors()
     },
     refreshRoute() {
       const path = window.location.pathname
@@ -879,7 +770,6 @@ window.windowMixin = {
     }
   },
   async created() {
-    this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
     this.$q.dark.set(
       this.$q.localStorage.has('lnbits.darkMode')
         ? this.$q.localStorage.getItem('lnbits.darkMode')

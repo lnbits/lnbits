@@ -368,89 +368,89 @@
                   </div>
                   <div class="col-8">
                     <q-btn
-                      v-if="g.allowedThemes.includes('classic')"
+                      v-if="LNBITS_THEME_OPTIONS.includes('classic')"
                       dense
                       flat
-                      @click="themeChoiceFunc('classic')"
+                      @click="changeTheme('classic')"
                       icon="circle"
                       color="deep-purple"
                       size="md"
                       ><q-tooltip>classic</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="g.allowedThemes.includes('bitcoin')"
+                      v-if="LNBITS_THEME_OPTIONS.includes('bitcoin')"
                       dense
                       flat
-                      @click="themeChoiceFunc('bitcoin')"
+                      @click="changeTheme('bitcoin')"
                       icon="circle"
                       color="deep-orange"
                       size="md"
                       ><q-tooltip>bitcoin</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="g.allowedThemes.includes('mint')"
+                      v-if="LNBITS_THEME_OPTIONS.includes('mint')"
                       dense
                       flat
-                      @click="themeChoiceFunc('mint')"
+                      @click="changeTheme('mint')"
                       icon="circle"
                       color="green"
                       size="md"
                       ><q-tooltip>mint</q-tooltip> </q-btn
                     ><q-btn
-                      v-if="g.allowedThemes.includes('autumn')"
+                      v-if="LNBITS_THEME_OPTIONS.includes('autumn')"
                       dense
                       flat
-                      @click="themeChoiceFunc('autumn')"
+                      @click="changeTheme('autumn')"
                       icon="circle"
                       color="brown"
                       size="md"
                       ><q-tooltip>autumn</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="g.allowedThemes.includes('monochrome')"
+                      v-if="LNBITS_THEME_OPTIONS.includes('monochrome')"
                       dense
                       flat
-                      @click="themeChoiceFunc('monochrome')"
+                      @click="changeTheme('monochrome')"
                       icon="circle"
                       color="grey"
                       size="md"
                       ><q-tooltip>monochrome</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="g.allowedThemes.includes('salvador')"
+                      v-if="LNBITS_THEME_OPTIONS.includes('salvador')"
                       dense
                       flat
-                      @click="themeChoiceFunc('salvador')"
+                      @click="changeTheme('salvador')"
                       icon="circle"
                       color="blue-10"
                       size="md"
                       ><q-tooltip>elSalvador</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="g.allowedThemes.includes('freedom')"
+                      v-if="LNBITS_THEME_OPTIONS.includes('freedom')"
                       dense
                       flat
-                      @click="themeChoiceFunc('freedom')"
+                      @click="changeTheme('freedom')"
                       icon="circle"
                       color="pink-13"
                       size="md"
                       ><q-tooltip>freedom</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="g.allowedThemes.includes('cyber')"
+                      v-if="LNBITS_THEME_OPTIONS.includes('cyber')"
                       dense
                       flat
-                      @click="themeChoiceFunc('cyber')"
+                      @click="changeTheme('cyber')"
                       icon="circle"
                       color="light-green-9"
                       size="md"
                       ><q-tooltip>cyber</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="g.allowedThemes.includes('flamingo')"
+                      v-if="LNBITS_THEME_OPTIONS.includes('flamingo')"
                       dense
                       flat
-                      @click="themeChoiceFunc('flamingo')"
+                      @click="changeTheme('flamingo')"
                       icon="circle"
                       color="pink-3"
                       size="md"
@@ -464,9 +464,9 @@
                   </div>
                   <div class="col-8">
                     <q-input
-                      v-model="bgimageSelection"
+                      v-model="bgimageChoice"
                       :label="$t('background_image')"
-                      @update:model-value="bgimageChoiceFunc"
+                      @update:model-value="applyBackgroundImage"
                     >
                       <q-tooltip
                         ><span v-text="$t('background_image')"></span
@@ -520,7 +520,7 @@
                   </div>
                   <div class="col-8">
                     <q-select
-                      v-model="borderSelection"
+                      v-model="borderChoice"
                       :options="borderOptions"
                       label="Borders"
                       @update:model-value="applyBorder"
@@ -548,7 +548,7 @@
                   </div>
                   <div class="col-8">
                     <q-select
-                      v-model="reactionSelection"
+                      v-model="reactionChoice"
                       :options="reactionOptions"
                       label="Reactions"
                       @update:model-value="reactionChoiceFunc"
