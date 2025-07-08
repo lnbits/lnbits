@@ -29,12 +29,6 @@ from .base import (
 )
 
 
-def generate_label() -> str:
-    """Generate a unique label for the invoice."""
-    random_uuid = base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode()
-    return f"LNbits_{random_uuid}"
-
-
 class CLNRestWallet(Wallet):
     def __init__(self):
         if not settings.clnrest_url:
@@ -111,7 +105,7 @@ class CLNRestWallet(Wallet):
         # 401: Unauthorized. Probably a rune issue
 
         self.pay_failure_error_codes = [-32602, 203, 205, 206, 207, 210, 401]
-        self.client = self.create_client()
+        self.client = self._create_client()
         self.last_pay_index = settings.clnrest_last_pay_index
         self.statuses = {
             "paid": True,
@@ -119,63 +113,6 @@ class CLNRestWallet(Wallet):
             "failed": False,
             "pending": None,
         }
-
-    def create_client(self) -> httpx.AsyncClient:
-        """Create an HTTP client with specified headers and SSL configuration."""
-
-        parsed_url = urlparse(self.url)
-
-        # Validate the URL scheme
-        if parsed_url.scheme == "http":
-            if parsed_url.hostname in ("localhost", "127.0.0.1", "::1"):
-                logger.warning("Not using SSL for connection to CLNRestWallet")
-            else:
-                raise ValueError(
-                    "Insecure HTTP connections are only allowed for localhost or "
-                    "equivalent IP addresses. Set CLNREST_URL to https:// for external "
-                    "connections or use localhost."
-                )
-            return httpx.AsyncClient(base_url=self.url)
-
-        elif parsed_url.scheme == "https":
-            logger.info(f"Using SSL to connect to {self.url}")
-
-            # Check for CA certificate
-            if not settings.clnrest_ca:
-                logger.warning(
-                    "No CA certificate provided for CLNRestWallet. "
-                    "This setup requires a CA certificate for server authentication "
-                    "and trust. Set CLNREST_CA to the CA certificate file path or the "
-                    "contents of the certificate."
-                )
-                raise ValueError("CA certificate is required for secure communication.")
-            else:
-                logger.info(f"CA Certificate provided: {settings.clnrest_ca}")
-
-            # Create an SSL context and load the CA certificate
-            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-
-            # Load CA certificate
-            if os.path.isfile(settings.clnrest_ca):
-                logger.info(f"Using CA certificate file: {settings.clnrest_ca}")
-                ssl_context.load_verify_locations(cafile=settings.clnrest_ca)
-            else:
-                logger.info("Using CA certificate from PEM string: ")
-                ca_content = settings.clnrest_ca.replace("\\n", "\n")
-                logger.info(ca_content)
-                ssl_context.load_verify_locations(cadata=ca_content)
-
-            # Optional: Disable hostname checking if necessary
-            # especially for ip addresses
-            ssl_context.check_hostname = False
-
-            # Create the HTTP client without a client certificate
-            client = httpx.AsyncClient(base_url=self.url, verify=ssl_context)
-
-            return client
-
-        else:
-            raise ValueError("CLNREST_URL must start with http:// or https://")
 
     async def cleanup(self):
         try:
@@ -248,7 +185,7 @@ class CLNRestWallet(Wallet):
         data: dict = {
             "amount_msat": int(amount * 1000),
             "description": memo,
-            "label": generate_label(),
+            "label": _generate_label(),
         }
 
         if description_hash and not unhashed_description:
@@ -328,7 +265,7 @@ class CLNRestWallet(Wallet):
             )
 
         data = {
-            "label": generate_label(),
+            "label": _generate_label(),
             "description": invoice.description,
             "maxfee": fee_limit_msat,
         }
@@ -493,3 +430,66 @@ class CLNRestWallet(Wallet):
                     "reconnecting..."
                 )
                 await asyncio.sleep(0.02)
+
+    def _create_client(self) -> httpx.AsyncClient:
+        """Create an HTTP client with specified headers and SSL configuration."""
+
+        parsed_url = urlparse(self.url)
+
+        # Validate the URL scheme
+        if parsed_url.scheme == "http":
+            if parsed_url.hostname in ("localhost", "127.0.0.1", "::1"):
+                logger.warning("Not using SSL for connection to CLNRestWallet")
+            else:
+                raise ValueError(
+                    "Insecure HTTP connections are only allowed for localhost or "
+                    "equivalent IP addresses. Set CLNREST_URL to https:// for external "
+                    "connections or use localhost."
+                )
+            return httpx.AsyncClient(base_url=self.url)
+
+        elif parsed_url.scheme == "https":
+            logger.info(f"Using SSL to connect to {self.url}")
+
+            # Check for CA certificate
+            if not settings.clnrest_ca:
+                logger.warning(
+                    "No CA certificate provided for CLNRestWallet. "
+                    "This setup requires a CA certificate for server authentication "
+                    "and trust. Set CLNREST_CA to the CA certificate file path or the "
+                    "contents of the certificate."
+                )
+                raise ValueError("CA certificate is required for secure communication.")
+            else:
+                logger.info(f"CA Certificate provided: {settings.clnrest_ca}")
+
+            # Create an SSL context and load the CA certificate
+            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+
+            # Load CA certificate
+            if os.path.isfile(settings.clnrest_ca):
+                logger.info(f"Using CA certificate file: {settings.clnrest_ca}")
+                ssl_context.load_verify_locations(cafile=settings.clnrest_ca)
+            else:
+                logger.info("Using CA certificate from PEM string: ")
+                ca_content = settings.clnrest_ca.replace("\\n", "\n")
+                logger.info(ca_content)
+                ssl_context.load_verify_locations(cadata=ca_content)
+
+            # Optional: Disable hostname checking if necessary
+            # especially for ip addresses
+            ssl_context.check_hostname = False
+
+            # Create the HTTP client without a client certificate
+            client = httpx.AsyncClient(base_url=self.url, verify=ssl_context)
+
+            return client
+
+        else:
+            raise ValueError("CLNREST_URL must start with http:// or https://")
+
+
+def _generate_label() -> str:
+    """Generate a unique label for the invoice."""
+    random_uuid = base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode()
+    return f"LNbits_{random_uuid}"
