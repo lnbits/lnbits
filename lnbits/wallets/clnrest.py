@@ -293,6 +293,18 @@ class CLNRestWallet(Wallet):
 
             r.raise_for_status()
             data = r.json()
+
+            if "payment_preimage" not in data:
+                error_message = data.get("error", "No payment preimage in response")
+                logger.warning(error_message)
+                return PaymentResponse(error_message=error_message)
+
+            return PaymentResponse(
+                ok=self.statuses.get(data["status"]),
+                checking_id=data["payment_hash"],
+                fee_msat=data["amount_sent_msat"] - data["amount_msat"],
+                preimage=data["payment_preimage"],
+            )
         except httpx.HTTPStatusError as exc:
             try:
                 data = exc.response.json()
@@ -312,18 +324,6 @@ class CLNRestWallet(Wallet):
             logger.warning(exc)
             error_message = f"Unable to connect to {self.url}. Exception: {exc!s}"
             return PaymentResponse(error_message=error_message)
-
-        if "payment_preimage" not in data:
-            error_message = data.get("error", "No payment preimage in response")
-            logger.warning(error_message)
-            return PaymentResponse(error_message=error_message)
-
-        return PaymentResponse(
-            ok=self.statuses.get(data["status"]),
-            checking_id=data["payment_hash"],
-            fee_msat=data["amount_sent_msat"] - data["amount_msat"],
-            preimage=data["payment_preimage"],
-        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         data: dict = {"payment_hash": checking_id}
