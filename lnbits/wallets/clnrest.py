@@ -16,6 +16,7 @@ from loguru import logger
 from lnbits.exceptions import UnsupportedError
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
+from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
     InvoiceResponse,
@@ -28,6 +29,12 @@ from .base import (
 )
 
 
+def generate_label() -> str:
+    """Generate a unique label for the invoice."""
+    random_uuid = base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode()
+    return f"LNbits_{random_uuid}"
+
+
 class CLNRestWallet(Wallet):
     def __init__(self):
         if not settings.clnrest_url:
@@ -37,11 +44,6 @@ class CLNRestWallet(Wallet):
             raise ValueError(
                 "cannot initialize CLNRestWallet: " "missing clnrest_readonly_rune"
             )
-
-        logger.debug(
-            "TODO: validate and check permissions of readonly_rune: "
-            f"{settings.clnrest_readonly_rune[:4]}"
-        )
 
         self.url = normalize_endpoint(settings.clnrest_url)
 
@@ -75,10 +77,6 @@ class CLNRestWallet(Wallet):
             hasattr(settings, "clnrest_invoice_rune")
             and settings.clnrest_invoice_rune is not None
         ):
-            logger.debug(
-                "TODO: decode this invoice_rune and make sure that it has the "
-                f"correct permissions: {settings.clnrest_invoice_rune[:4]}"
-            )
             self.invoice_headers = {
                 **self.base_headers,
                 "rune": settings.clnrest_invoice_rune,
@@ -93,10 +91,6 @@ class CLNRestWallet(Wallet):
             hasattr(settings, "clnrest_pay_rune")
             and settings.clnrest_pay_rune is not None
         ):
-            logger.debug(
-                "TODO: decode this pay_rune and make sure that it has the "
-                f"correct permissions: {settings.clnrest_pay_rune[:4]}"
-            )
             self.pay_headers = {**self.base_headers, "rune": settings.clnrest_pay_rune}
         else:
             logger.warning(
@@ -107,10 +101,6 @@ class CLNRestWallet(Wallet):
             hasattr(settings, "clnrest_renepay_rune")
             and settings.clnrest_renepay_rune is not None
         ):
-            logger.debug(
-                "TODO: decode this renepay_rune and make sure that it has the "
-                f"correct permissions: {settings.clnrest_renepay_rune[:4]}"
-            )
             self.renepay_headers = {
                 **self.base_headers,
                 "rune": settings.clnrest_renepay_rune,
@@ -124,7 +114,7 @@ class CLNRestWallet(Wallet):
         # https://docs.corelightning.org/reference/lightning-pay
         # -32602: Invalid bolt11: Prefix bc is not for regtest
         # -1: Catchall nonspecific error.
-        # 201: Already paid
+        ## 201: Already paid
         # 203: Permanent failure at destination.
         # 205: Unable to find a route.
         # 206: Route too expensive.
@@ -132,12 +122,9 @@ class CLNRestWallet(Wallet):
         # 210: Payment timed out without a payment in progress.
         # 401: Unauthorized. Probably a rune issue
 
-        self.pay_failure_error_codes = [-32602, 201, 203, 205, 206, 207, 210, 401]
-
+        self.pay_failure_error_codes = [-32602, 203, 205, 206, 207, 210, 401]
         self.client = self.create_client()
-
         self.last_pay_index = settings.clnrest_last_pay_index
-
         self.statuses = {
             "paid": True,
             "complete": True,
@@ -267,38 +254,32 @@ class CLNRestWallet(Wallet):
 
         if not settings.clnrest_invoice_rune:
             return InvoiceResponse(
-                False, None, None, "Unable to invoice without an invoice rune"
+                ok=False, error_message="Unable to invoice without an invoice rune"
             )
-
-        random_uuid = (
-            base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode("utf-8")
-        )
-        label = f"LNbits_{random_uuid}"
 
         data: dict = {
             "amount_msat": int(amount * 1000),
             "description": memo,
-            "label": label,
+            "label": generate_label(),
         }
-        logger.error(data)
 
         if description_hash and not unhashed_description:
             raise UnsupportedError(
                 "'description_hash' unsupported by CoreLightningRest, "
                 "provide 'unhashed_description'"
-                "TODO: find out if this is also the case with CLNRest"
             )
 
         if unhashed_description:
-            data["description"] = unhashed_description.decode("utf-8")
+            data["description"] = unhashed_description.decode()
 
         if kwargs.get("expiry"):
             data["expiry"] = kwargs["expiry"]
 
         if kwargs.get("preimage"):
             data["preimage"] = kwargs["preimage"]
-
-        logger.debug(f"REQUEST to /v1/invoice: {json.dumps(data)}")
+        else:
+            preimage, _ = random_secret_and_hash()
+            data["preimage"] = preimage
 
         try:
             r = await self.client.post(
@@ -307,113 +288,77 @@ class CLNRestWallet(Wallet):
                 headers=self.invoice_headers,
             )
             r.raise_for_status()
-
             response_data = r.json()
 
             if "error" in response_data:
                 return InvoiceResponse(
-                    False, None, None, f"Server error: '{response_data['error']}'"
+                    ok=False, error_message=f"Server error: '{response_data['error']}'"
                 )
 
             if "payment_hash" not in response_data or "bolt11" not in response_data:
                 return InvoiceResponse(
-                    False, None, None, "Server error: 'missing required fields'"
+                    ok=False, error_message="Server error: 'missing required fields'"
                 )
-
             return InvoiceResponse(
-                True, response_data["payment_hash"], response_data["bolt11"], None
+                ok=True,
+                checking_id=response_data["payment_hash"],
+                payment_request=response_data["bolt11"],
+                preimage=data["preimage"],
             )
 
         except json.JSONDecodeError:
             return InvoiceResponse(
-                False, None, None, "Server error: 'invalid json response'"
+                ok=False, error_message="Server error: 'invalid json response'"
             )
         except Exception as exc:
             logger.warning(f"Unable to connect to {self.url}: {exc}")
             return InvoiceResponse(
-                False, None, None, f"Unable to connect to {self.url}."
+                ok=False, error_message=f"Unable to connect to {self.url}."
             )
 
-    async def pay_invoice(  # noqa: C901
+    async def pay_invoice(
         self,
         bolt11: str,
         fee_limit_msat: int,
-        **kwargs,
+        **_,
     ) -> PaymentResponse:
-
-        random_uuid = base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode()
-        label = (f"LNbits_{random_uuid}",)
 
         try:
             invoice = decode(bolt11)
         except Bolt11Exception as exc:
             return PaymentResponse(ok=False, error_message=str(exc))
 
-        # Determine the endpoint based on the use_rene flag
-        default_to_renepay = True
-        if (
-            invoice.description is not None
-            and settings.clnrest_renepay_rune
-            and default_to_renepay
-        ):
-            payment_endpoint = "v1/renepay"
-        elif settings.clnrest_pay_rune:
-            payment_endpoint = "v1/pay"
-        else:
-            return PaymentResponse(
-                ok=False,
-                error_message="Unable to pay invoice without a pay or renepay rune",
-            )
-
-        # TODO: rune restrictions will not be enforced for payments that are internal
-        # to LNbits. maybe there should be a way to disable internal invoice settlement
-        # to always force settlement to the backing wallet
-
-        logger.debug(
-            f"Pay invoice with parameters: bolt11={bolt11}, "
-            f"label_prefix=LNbits, kwargs={kwargs}"
-        )
-
         if not invoice.amount_msat or invoice.amount_msat <= 0:
             return PaymentResponse(
                 ok=False, error_message="0 amount invoices are not allowed"
             )
 
+        if not settings.clnrest_pay_rune and not settings.clnrest_renepay_rune:
+            return PaymentResponse(
+                ok=False,
+                error_message="Unable to pay invoice without a pay or renepay rune",
+            )
+
         data = {
-            "label": label,
+            "label": generate_label(),
             "description": invoice.description,
             "maxfee": fee_limit_msat,
         }
 
-        if payment_endpoint == "v1/renepay":
-            if not settings.clnrest_renepay_rune:
-                return PaymentResponse(
-                    ok=False,
-                    error_message="Unable to invoice without a valid renepay rune",
-                )
+        if settings.clnrest_renepay_rune:
+            endpoint = "/v1/renepay"
+            headers = self.renepay_headers
             data["invstring"] = bolt11
-            header_to_use_for_payment = self.renepay_headers
-
-        elif payment_endpoint == "v1/pay":
-            if not settings.clnrest_pay_rune:
-                return PaymentResponse(
-                    ok=False, error_message="Unable to invoice without a valid pay rune"
-                )
-            data["bolt11"] = bolt11
-            header_to_use_for_payment = self.pay_headers
-
         else:
-            raise UnsupportedError(
-                f"{payment_endpoint} is not supported by CLNRestWallet"
-            )
-
-        logger.debug(f"REQUEST to {payment_endpoint}: {json.dumps(data)}")
+            endpoint = "/v1/pay"
+            headers = self.pay_headers
+            data["bolt11"] = bolt11
 
         try:
             r = await self.client.post(
-                payment_endpoint,
+                endpoint,
                 json=data,
-                headers=header_to_use_for_payment,
+                headers=headers,
                 timeout=None,
             )
 
@@ -425,19 +370,13 @@ class CLNRestWallet(Wallet):
                 error = data.get("error", {})
                 error_code = int(error.get("code", 0))
                 error_message = error.get("message", "Unknown error")
-
                 if error_code in self.pay_failure_error_codes:
-                    # TODO: which error codes indicate that the payment failed and which
-                    # indicate that it is still pending or already happended
-                    error_message = f"Payment failed: {error_message}"
                     return PaymentResponse(ok=False, error_message=error_message)
                 else:
-                    error_message = f"REST failed with {error_message}."
                     return PaymentResponse(error_message=error_message)
             except Exception:
-                # Any other exception during parsing
                 error_message = f"Error parsing response from {self.url}: {exc!s}"
-                logger.warning(error_message)
+                logger.error(error_message)
                 return PaymentResponse(error_message=error_message)
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
@@ -450,17 +389,15 @@ class CLNRestWallet(Wallet):
             logger.error(error_message)
             return PaymentResponse(error_message=error_message)
 
-        checking_id = data["payment_hash"]
-        preimage = data["payment_preimage"]
-        fee_msat = data["amount_sent_msat"] - data["amount_msat"]
-        status = self.statuses.get(data["status"])
         return PaymentResponse(
-            ok=status, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            ok=self.statuses.get(data["status"]),
+            checking_id=data["payment_hash"],
+            fee_msat=data["amount_sent_msat"] - data["amount_msat"],
+            preimage=data["payment_preimage"],
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         data: dict = {"payment_hash": checking_id}
-        logger.debug(f"REQUEST to /v1/listinvoices: {json.dumps(data)}")
         r = await self.client.post(
             "/v1/listinvoices",
             json=data,
@@ -469,22 +406,23 @@ class CLNRestWallet(Wallet):
         try:
             r.raise_for_status()
             data = r.json()
-
             if r.is_error or "error" in data or data.get("invoices") is None:
                 raise Exception("error in cln response")
-            logger.debug(
-                f"invoice with payment_hash {data['invoices'][0]['payment_hash']} "
-                f"has status {data['invoices'][0]['status']}"
+            status = self.statuses.get(data["invoices"][0]["status"])
+            fee_msat = data["invoices"][0].get("amount_received_msat", 0) - data[
+                "invoices"
+            ][0].get("amount_msat", 0)
+            return PaymentStatus(
+                paid=status,
+                preimage=data["invoices"][0].get("preimage"),
+                fee_msat=fee_msat,
             )
-            return PaymentStatus(self.statuses.get(data["invoices"][0]["status"]))
         except Exception as exc:
             logger.error(f"Error getting invoice status: {exc}")
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         data: dict = {"payment_hash": checking_id}
-
-        logger.debug(f"REQUEST to /v1/listpays: {json.dumps(data)}")
         r = await self.client.post(
             "/v1/listpays",
             json=data,
@@ -500,11 +438,9 @@ class CLNRestWallet(Wallet):
 
             pays_list = data.get("pays", [])
             if not pays_list:
-                logger.debug(
-                    f"No payments found for payment hash {checking_id}. "
-                    "Payment is pending."
-                )
-                return PaymentStatus(self.statuses.get("pending"))
+                msg = f"No payments found for payment hash {checking_id}."
+                logger.debug(msg)
+                return PaymentPendingStatus()
 
             if len(pays_list) != 1:
                 error_message = (
@@ -559,35 +495,9 @@ class CLNRestWallet(Wallet):
                             continue
                         logger.debug(f"paid invoice: {inv}")
 
-                        # NOTE: use payment_hash when corelightning-rest returns it
-                        # when using waitanyinvoice
-
                         if "payment_hash" in inv:
                             payment_hash_from_waitanyinvoice = inv["payment_hash"]
                             yield payment_hash_from_waitanyinvoice
-                            continue
-
-                        logger.error("if error never shows up, the code can be removed")
-                        # TODO: explain why this would ever happen. It appears this is
-                        # not necessary to run as the above code should be sufficient?
-                        # corelightningrest.py has the same logic if we need this logic
-                        # we should maybe use the get_invoice_status function instead of
-                        # rewriting it hack to return payment_hash if the above
-                        # shouldn't work
-                        json_data = {"label": inv["label"]}
-                        r = await self.client.post(
-                            "/v1/listinvoices",
-                            json=json_data,
-                            headers=self.readonly_headers,
-                        )
-                        paid_invoice = r.json()
-                        logger.trace(f"paid invoice: {paid_invoice}")
-                        assert self.statuses[
-                            paid_invoice["invoices"][-1]["status"]
-                        ], "streamed invoice not paid"
-                        assert "invoices" in paid_invoice, "no invoices in response"
-                        assert len(paid_invoice["invoices"]), "no invoices in response"
-                        yield paid_invoice["invoices"][0]["payment_hash"]
 
             except Exception as exc:
                 logger.debug(
