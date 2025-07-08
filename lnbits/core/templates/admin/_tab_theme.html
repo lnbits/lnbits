@@ -145,7 +145,9 @@
             type="text"
             :label="$t('ad_slots_label')"
             :hint="$t('ad_slots_hint')"
-          >
+            ><q-tooltip>
+              format {url};{img-light};{img-dark},{url};{img-light};{img-dark}"
+            </q-tooltip>
           </q-input>
           <q-toggle
             v-model="formData.lnbits_ad_space_enabled"
