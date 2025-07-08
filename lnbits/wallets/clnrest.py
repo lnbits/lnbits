@@ -132,7 +132,7 @@ class CLNRestWallet(Wallet):
             response_data = r.json()
 
             if not response_data:
-                logger.error("Received empty response data")
+                logger.warning("Received empty response data")
                 return StatusResponse("no data", 0)
 
             channels = response_data.get("channels", [])
@@ -143,11 +143,11 @@ class CLNRestWallet(Wallet):
             return StatusResponse(None, total_our_amount_msat)
 
         except json.JSONDecodeError as exc:
-            logger.error(f"JSON decode error: {exc!s}")
+            logger.warning(f"JSON decode error: {exc!s}")
             return StatusResponse(f"Failed to decode JSON response from {self.url}", 0)
 
         except httpx.ReadTimeout:
-            logger.error(
+            logger.warning(
                 "Timeout error: The server did not respond in time. This can happen if "
                 "the server is running HTTPS but the client is using HTTP."
             )
@@ -349,7 +349,7 @@ class CLNRestWallet(Wallet):
                 fee_msat=fee_msat,
             )
         except Exception as exc:
-            logger.error(f"Error getting invoice status: {exc}")
+            logger.warning(f"Error getting invoice status: {exc}")
             return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
@@ -385,7 +385,7 @@ class CLNRestWallet(Wallet):
                 return PaymentSuccessStatus(fee_msat=fee_msat, preimage=pay["preimage"])
 
         except Exception as exc:
-            logger.error(f"Error getting payment status: {exc}")
+            logger.warning(f"Error getting payment status: {exc}")
 
         return PaymentPendingStatus()
 
@@ -411,7 +411,7 @@ class CLNRestWallet(Wallet):
                     async for line in r.aiter_lines():
                         inv = json.loads(line)
                         if "error" in inv and "message" in inv["error"]:
-                            logger.error("Error in paid_invoices_stream:", inv)
+                            logger.warning("Error in paid_invoices_stream:", inv)
                             raise Exception(inv["error"]["message"])
                         try:
                             paid = inv["status"] == "paid"
