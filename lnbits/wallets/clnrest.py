@@ -337,7 +337,8 @@ class CLNRestWallet(Wallet):
             r.raise_for_status()
             data = r.json()
             if r.is_error or "error" in data or data.get("invoices") is None:
-                raise Exception("error in cln response") # todo: pending status
+                logger.warning(f"error in cln response '{checking_id}'")
+                return PaymentPendingStatus()
             status = self.statuses.get(data["invoices"][0]["status"])
             fee_msat = data["invoices"][0].get("amount_received_msat", 0) - data[
                 "invoices"
@@ -363,24 +364,19 @@ class CLNRestWallet(Wallet):
             data = r.json()
 
             if r.is_error or "error" in data:
-                logger.error(f"API response error: {data}")
-                raise Exception("Error in corelightning-rest response") # todo: pending status
+                logger.warning(f"API response error: {data}")
+                return PaymentPendingStatus()
 
             pays_list = data.get("pays", [])
             if not pays_list:
-                msg = f"No payments found for payment hash {checking_id}."
-                logger.debug(msg)
+                logger.warning(f"No payments found for payment hash {checking_id}.")
                 return PaymentPendingStatus()
 
             if len(pays_list) != 1:
-                error_message = (
-                    f"Expected one payment status, but found {len(pays_list)}"
-                )
-                logger.warning(error_message)
-                raise Exception(error_message) # todo: pending status
+                logger.warning( f"Expected one payment status, but found {len(pays_list)}")
+                return PaymentPendingStatus()
 
             pay = pays_list[-1]
-            logger.trace(f"Payment status from API: {pay['status']}")
 
             if pay["status"] == "complete":
                 fee_msat = pay["amount_sent_msat"] - pay["amount_msat"]
