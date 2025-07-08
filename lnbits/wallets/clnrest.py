@@ -156,17 +156,20 @@ class CLNRestWallet(Wallet):
             )
 
         except (httpx.ConnectError, httpx.RequestError) as exc:
-            logger.error(f"Connection error: {exc}")
+            logger.warning(f"Connection error: {exc}")
             return StatusResponse("Unable to connect to 'v1/listfunds'", 0)
 
         except httpx.HTTPStatusError as exc:
-            logger.error(
+            logger.warning(
                 f"HTTP error: {exc.response.status_code} {exc.response.reason_phrase} "
                 f"while accessing {exc.request.url}"
             )
             return StatusResponse(
                 f"Failed with HTTP {exc.response.status_code} on 'v1/listfunds'", 0
             )
+        except Exception as exc:
+            logger.warning(exc)
+            return StatusResponse(f"Unable to connect to {self.url}.", 0)
 
     async def create_invoice(
         self,
