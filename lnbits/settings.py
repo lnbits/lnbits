@@ -449,6 +449,18 @@ class ClicheFundingSource(LNbitsSettings):
     cliche_endpoint: str | None = Field(default=None)
 
 
+class CLNRestFundingSource(LNbitsSettings):
+    clnrest_url: str | None = Field(default=None)
+    clnrest_ca: str | None = Field(default=None)
+    clnrest_cert: str | None = Field(default=None)
+    clnrest_readonly_rune: str | None = Field(default=None)
+    clnrest_invoice_rune: str | None = Field(default=None)
+    clnrest_pay_rune: str | None = Field(default=None)
+    clnrest_renepay_rune: str | None = Field(default=None)
+    clnrest_last_pay_index: str | None = Field(default=None)
+    clnrest_nodeid: str | None = Field(default=None)
+
+
 class CoreLightningFundingSource(LNbitsSettings):
     corelightning_rpc: str | None = Field(default=None)
     corelightning_pay_command: str = Field(default="pay")
@@ -608,6 +620,7 @@ class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
     ClicheFundingSource,
+    CLNRestFundingSource,
     CoreLightningFundingSource,
     CoreLightningRestFundingSource,
     EclairFundingSource,
@@ -933,6 +946,7 @@ class SuperUserSettings(LNbitsSettings):
             "BlinkWallet",
             "BreezSdkWallet",
             "BreezLiquidSdkWallet",
+            "CLNRestWallet",
             "CoreLightningRestWallet",
             "CoreLightningWallet",
             "EclairWallet",
