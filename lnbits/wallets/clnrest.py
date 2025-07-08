@@ -373,7 +373,9 @@ class CLNRestWallet(Wallet):
                 return PaymentPendingStatus()
 
             if len(pays_list) != 1:
-                logger.warning( f"Expected one payment status, but found {len(pays_list)}")
+                logger.warning(
+                    f"Expected one payment status, but found {len(pays_list)}"
+                )
                 return PaymentPendingStatus()
 
             pay = pays_list[-1]
@@ -449,7 +451,7 @@ class CLNRestWallet(Wallet):
                 )
             return httpx.AsyncClient(base_url=self.url)
 
-        elif parsed_url.scheme == "https":
+        if parsed_url.scheme == "https":
             logger.info(f"Using SSL to connect to {self.url}")
 
             # Check for CA certificate
@@ -461,8 +463,8 @@ class CLNRestWallet(Wallet):
                     "contents of the certificate."
                 )
                 raise ValueError("CA certificate is required for secure communication.")
-            else:
-                logger.info(f"CA Certificate provided: {settings.clnrest_ca}")
+
+            logger.info(f"CA Certificate provided: {settings.clnrest_ca}")
 
             # Create an SSL context and load the CA certificate
             ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
