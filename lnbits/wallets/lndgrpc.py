@@ -231,7 +231,7 @@ class LndWallet(Wallet):
                 # that use different checking_id formats
                 raise ValueError
 
-            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
+            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))  # type: ignore
             if resp.settled:
                 return PaymentSuccessStatus(preimage=resp.r_preimage.hex())
 
@@ -309,16 +309,16 @@ class LndWallet(Wallet):
     async def create_hold_invoice(
         self,
         amount: int,
-        rhash: str,
+        payment_hash: str,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {
+        data: dict = {
             "description_hash": b"",
             "value": amount,
-            "hash": rhash,
+            "hash": payment_hash,
             "private": True,
             "memo": memo or "",
         }
@@ -327,59 +327,59 @@ class LndWallet(Wallet):
         if description_hash:
             data["description_hash"] = description_hash
         elif unhashed_description:
-            data["description_hash"] = hashlib.sha256(
-                unhashed_description
-            ).digest()  # as bytes directly
-
+            data["description_hash"] = sha256(unhashed_description).digest()
         try:
             req = invoices.AddHoldInvoiceRequest(**data)  # type: ignore
-            resp = await self.invoicesrpc.AddHoldInvoice(req)
-
+            res = await self.invoicesrpc.AddHoldInvoice(req)
+            logger.debug(f"AddHoldInvoice response: {res}")
         except Exception as exc:
             logger.warning(exc)
             error_message = str(exc)
-            return InvoiceResponse(False, None, None, error_message)
+            return InvoiceResponse(ok=False, error_message=error_message)
+        return InvoiceResponse(
+            ok=True, checking_id=payment_hash, payment_request=str(res.payment_request)
+        )
 
-        checking_id = rhash
-        payment_request = str(resp.payment_request)
-        return InvoiceResponse(True, checking_id, payment_request, None)
-
-    async def settle_hold_invoice(self, preimage: str) -> PaymentResponse:
+    async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
         try:
             req = invoices.SettleInvoiceMsg(preimage=preimage)  # type: ignore
-            await self.invoicesrpc.SettleInvoice(req)
-
+            res = await self.invoicesrpc.SettleInvoice(req)
+            logger.debug(f"SettleInvoice response: {res}")
         except Exception as exc:
             logger.warning(exc)
             error_message = str(exc)
-            return PaymentResponse(False, None, None, None, error_message)
+            return InvoiceResponse(ok=False, error_message=error_message)
+        return InvoiceResponse(ok=True, preimage=preimage)
 
-        return PaymentResponse(True, None, None, None, None)
-
-    async def cancel_hold_invoice(self, payment_hash: str) -> PaymentResponse:
+    async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
         try:
-            req = invoices.CancelInvoiceMsg(payment_hash=payment_hash)
-            await self.invoicesrpc.CancelInvoice(req)
-
+            req = invoices.CancelInvoiceMsg(payment_hash=payment_hash)  # type: ignore
+            res = await self.invoicesrpc.CancelInvoice(req)
+            logger.debug(f"CancelInvoice response: {res}")
         except Exception as exc:
             logger.warning(exc)
-            error_message = str(exc)
-            return PaymentResponse(False, None, None, None, error_message)
+            return InvoiceResponse(
+                ok=False, checking_id=payment_hash, error_message=str(exc)
+            )
+        # If we reach here, the invoice was successfully canceled
+        return InvoiceResponse(True, checking_id=payment_hash)
 
-        return PaymentResponse(True, None, None, None, None)
-
-    async def hold_invoices_stream(self, payment_hash: str, webhook: str):
+    async def hold_invoices_stream(
+        self, payment_hash: str, webhook: str
+    ) -> AsyncGenerator[str, None]:
         rhash = base64.urlsafe_b64encode(bytes.fromhex(payment_hash))
         request = invoicesrpc.SubscribeSingleInvoiceRequest(r_hash=rhash)  # type: ignore
         async for response in self.invoicesrpc.SubscribeSingleInvoice(request):
             if response.state not in ["ACCEPTED", "CANCELED"]:
                 continue
-            await self.dispatch_hold_webhook(webhook, response)
-
-    async def dispatch_hold_webhook(self, webhook, inv):
-        async with httpx.AsyncClient() as client:
-            try:
-                logger.debug("sending hold webhook", webhook, str(inv))
-                await client.post(webhook, json=inv, timeout=40)  # type: ignore
-            except (httpx.ConnectError, httpx.RequestError):
-                logger.debug("error sending hold webhook")
+            logger.debug(
+                f"Hold invoice state changed: {response.state}, "
+                f"payment_hash: {payment_hash}"
+            )
+            async with httpx.AsyncClient() as client:
+                try:
+                    logger.debug("sending hold webhook", webhook, str(response))
+                    await client.post(webhook, json=response, timeout=10)
+                except (httpx.ConnectError, httpx.RequestError):
+                    logger.debug("error sending hold webhook")
+            yield payment_hash

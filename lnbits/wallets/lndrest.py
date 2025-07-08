@@ -324,7 +324,7 @@ class LndRestWallet(Wallet):
     async def create_hold_invoice(
         self,
         amount: int,
-        rhash: str,
+        payment_hash: str,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
@@ -333,7 +333,7 @@ class LndRestWallet(Wallet):
         data: dict = {
             "value": amount,
             "private": True,
-            "hash": base64.b64encode(bytes.fromhex(rhash)).decode("ascii"),
+            "hash": base64.b64encode(bytes.fromhex(payment_hash)).decode("ascii"),
         }
         if description_hash:
             data["description_hash"] = base64.b64encode(description_hash).decode(
@@ -351,26 +351,27 @@ class LndRestWallet(Wallet):
             r.raise_for_status()
             data = r.json()
         except httpx.HTTPStatusError as exc:
-            return InvoiceResponse(False, None, None, exc.response.text)
+            return InvoiceResponse(ok=False, error_message=exc.response.text)
 
         payment_request = data["payment_request"]
-        payment_hash = base64.b64encode(bytes.fromhex(rhash)).decode("ascii")
-        checking_id = payment_hash
+        payment_hash = base64.b64encode(bytes.fromhex(payment_hash)).decode("ascii")
 
-        return InvoiceResponse(True, checking_id, payment_request, None)
+        return InvoiceResponse(
+            ok=True, checking_id=payment_hash, payment_request=payment_request
+        )
 
-    async def settle_hold_invoice(self, preimage: str) -> PaymentResponse:
+    async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
         data: dict = {
             "preimage": base64.b64encode(bytes.fromhex(preimage)).decode("ascii")
         }
         try:
             r = await self.client.post(url="/v2/invoices/settle", json=data)
             r.raise_for_status()
-            return PaymentResponse(True, None, None, None, None)
+            return InvoiceResponse(ok=True, preimage=preimage)
         except httpx.HTTPStatusError as exc:
-            return PaymentResponse(False, None, None, None, exc.response.text)
+            return InvoiceResponse(ok=False, error_message=exc.response.text)
 
-    async def cancel_hold_invoice(self, payment_hash: str) -> PaymentResponse:
+    async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
         rhash = bytes.fromhex(payment_hash)
         try:
             r = await self.client.post(
@@ -378,11 +379,14 @@ class LndRestWallet(Wallet):
                 json={"payment_hash": base64.b64encode(rhash).decode("ascii")},
             )
             r.raise_for_status()
-            return PaymentResponse(True, None, None, None, None)
+            logger.debug(f"Cancel hold invoice response: {r.text}")
+            return InvoiceResponse(ok=True, checking_id=payment_hash)
         except httpx.HTTPStatusError as exc:
-            return PaymentResponse(False, None, None, None, exc.response.text)
+            return InvoiceResponse(ok=False, error_message=exc.response.text)
 
-    async def hold_invoices_stream(self, payment_hash: str, webhook: str):
+    async def hold_invoices_stream(
+        self, payment_hash: str, webhook: str
+    ) -> AsyncGenerator[str, None]:
         try:
             print(webhook)
             rhash_hex = bytes.fromhex(payment_hash)
@@ -394,11 +398,13 @@ class LndRestWallet(Wallet):
                         inv = json.loads(line)["result"]
                         if inv["state"] not in ["ACCEPTED", "CANCELED"]:
                             continue
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(exc)
                         continue
 
                     # dispatch webhook
                     inv["payment_hash"] = payment_hash
+                    yield payment_hash
                     # await LndRestWallet.dispatch_hold_webhook(webhook, inv)
 
         except Exception as exc:

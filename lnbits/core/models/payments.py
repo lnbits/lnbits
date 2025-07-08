@@ -278,10 +278,10 @@ class CreateHoldInvoice(BaseModel):
     unit: str = "sat"
     amount: float = Query(None, ge=0)
     preimage_hash: str
-    memo: Optional[str] = None
-    description_hash: Optional[str] = None
-    extra: Optional[dict] = None
-    webhook: Optional[str] = None
+    memo: str | None = None
+    description_hash: str | None = None
+    extra: dict | None = None
+    webhook: str | None = None
 
     @validator("unit")
     @classmethod

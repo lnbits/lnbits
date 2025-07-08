@@ -16,7 +16,7 @@ from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
-from lnbits.exceptions import InvoiceError, PaymentError
+from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
 from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
@@ -29,7 +29,6 @@ from lnbits.wallets.base import (
     PaymentResponse,
     PaymentStatus,
     PaymentSuccessStatus,
-    UnsupportedError,
 )
 
 from ..crud import (
@@ -957,11 +956,11 @@ async def create_hold_invoice(
     wallet_id: str,
     amount: int,  # in satoshis
     memo: str,
-    rhash: str,  # Hash the HTLC of the hold invoice is locked to.
-    description_hash: Optional[bytes] = None,
-    extra: Optional[dict] = None,
-    webhook: Optional[str] = None,
-    conn: Optional[Connection] = None,
+    payment_hash: str,  # Hash the HTLC of the hold invoice is locked to.
+    description_hash: bytes | None = None,
+    extra: dict | None = None,
+    webhook: str | None = None,
+    conn: Connection | None = None,
 ) -> Payment:
     invoice_memo = None if description_hash else memo
 
@@ -970,7 +969,7 @@ async def create_hold_invoice(
         res = await funding_source.create_hold_invoice(
             amount=amount,
             memo=invoice_memo,
-            rhash=rhash,
+            payment_hash=payment_hash,
             description_hash=description_hash,
         )
     except UnsupportedError as exc:
@@ -978,13 +977,21 @@ async def create_hold_invoice(
 
     if not res.ok:
         raise InvoiceError(
-            res.error_message or "Unexpected backend error.", status="failed")
+            res.error_message or "Unexpected backend error.", status="failed"
+        )
     if not res.payment_request:
         raise InvoiceError("no payment request.", status="failed")
     if not res.checking_id:
         raise InvoiceError("no checking id.", status="failed")
 
-    invoice = bolt11_decode(res.payment_request)
+    try:
+        invoice = bolt11_decode(res.payment_request)
+    except Exception as exc:
+        raise InvoiceError("Bolt11 decoding failed.", status="failed") from exc
+
+    extra = extra or {}
+    extra["hold_invoice"] = True
+
     amount_msat = amount * 1000
     create_payment_model = CreatePayment(
         wallet_id=wallet_id,
@@ -1005,10 +1012,7 @@ async def create_hold_invoice(
 
 # TODO: should return payment
 # TODO: update payment status to success
-async def settle_hold_invoice(
-    *,
-    preimage: str,
-) -> bool:
+async def settle_hold_invoice(*, preimage: str):  # -> Payment:
     if len(bytes.fromhex(preimage)) != 32:
         raise InvoiceError(
             "Invalid preimage length. Must be 32 bytes",
@@ -1025,7 +1029,7 @@ async def settle_hold_invoice(
     if not response.ok:
         raise InvoiceError("Unexpected backend error.", status="failed")
 
-    return True
+    # return payment
 
 
 async def cancel_hold_invoice(payment_hash: str) -> Payment:
@@ -1045,21 +1049,3 @@ async def cancel_hold_invoice(payment_hash: str) -> Payment:
     payment.status = PaymentState.FAILED
     await update_payment(payment)
     return payment
-
-
-async def subscribe_hold_invoice(payment_hash: str) -> bool:
-    payment = await get_standalone_payment(payment_hash, incoming=True)
-    if not payment:
-        raise InvoiceError("Payment not found.", status="failed")
-    # funding_source = get_funding_source()
-    try:
-        # if payment.webhook:
-        #     asyncio. create_task(
-        #         funding_source.hold_invoices_stream(
-        #             payment_hash=payment_hash, webhook=payment.webhook
-        #         )
-        #     )
-        pass
-    except UnsupportedError as exc:
-        raise InvoiceError(str(exc), status="failed") from exc
-    return True

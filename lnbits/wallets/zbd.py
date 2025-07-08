@@ -7,6 +7,7 @@ import httpx
 from bolt11 import decode as bolt11_decode
 from loguru import logger
 
+from lnbits.exceptions import UnsupportedError
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
@@ -16,7 +17,6 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    UnsupportedError,
     Wallet,
 )
 
@@ -27,13 +27,13 @@ class ZBDWallet(Wallet):
     async def create_hold_invoice(self, *_, **__) -> InvoiceResponse:
         raise UnsupportedError("Hold invoices are not supported by this wallet.")
 
-    async def settle_hold_invoice(self, *_, **__) -> PaymentResponse:
+    async def settle_hold_invoice(self, *_, **__) -> InvoiceResponse:
         raise UnsupportedError("Hold invoices are not supported by this wallet.")
 
-    async def cancel_hold_invoice(self, *_, **__) -> PaymentResponse:
+    async def cancel_hold_invoice(self, *_, **__) -> InvoiceResponse:
         raise UnsupportedError("Hold invoices are not supported by this wallet.")
 
-    async def hold_invoices_stream(self, *_, **__) -> None:
+    def hold_invoices_stream(self, *_, **__) -> AsyncGenerator[str, None]:
         raise UnsupportedError("Hold invoices are not supported by this wallet.")
 
     def __init__(self):
