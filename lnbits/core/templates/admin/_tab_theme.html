@@ -156,9 +156,9 @@
           <br />
         </div>
       </div>
-      <p><span v-text="$t('ui_default_theme')"></span></p>
-      <div class="row q-col-gutter-md">
-        <div class="col">
+      <div class="row q-col-gutter-md q-my-md">
+        <div class="col-12" v-text="$t('ui_default_theme')"></div>
+        <div class="col-12 col-sm-6 col-lg-3">
           <q-select
             v-model="formData.lnbits_default_border"
             :options="globalBorderOptions"
@@ -167,7 +167,7 @@
           >
           </q-select>
         </div>
-        <div class="col">
+        <div class="col-12 col-sm-6 col-lg-3">
           <q-select
             v-model="formData.lnbits_default_theme"
             :options="lnbits_theme_options"
@@ -176,7 +176,7 @@
           >
           </q-select>
         </div>
-        <div class="col">
+        <div class="col-12 col-sm-6 col-lg-3">
           <q-select
             v-model="formData.lnbits_default_reaction"
             :options="reactionOptions"
@@ -185,7 +185,7 @@
           >
           </q-select>
         </div>
-        <div class="col">
+        <div class="col-12 col-sm-6 col-lg-3">
           <q-input
             type="text"
             v-model="formData.lnbits_default_bgimage"
@@ -195,7 +195,7 @@
           >
           </q-input>
         </div>
-        <div class="col">
+        <div class="col-12 col-sm-6 col-lg-3">
           <q-toggle
             type="bool"
             v-model="formData.lnbits_default_gradient"
