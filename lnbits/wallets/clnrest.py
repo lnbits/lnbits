@@ -219,9 +219,9 @@ class CLNRestWallet(Wallet):
             response_data = r.json()
 
             if "error" in response_data:
-                return InvoiceResponse(
-                    ok=False, error_message=f"Server error: '{response_data['error']}'"
-                )
+                error_message = response_data["error"]
+                logger.debug(f"Error creating invoice: {error_message}")
+                return InvoiceResponse(ok=False, error_message=error_message)
 
             if "payment_hash" not in response_data or "bolt11" not in response_data:
                 return InvoiceResponse(
@@ -234,7 +234,8 @@ class CLNRestWallet(Wallet):
                 preimage=data["preimage"],
             )
 
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as exc:
+            logger.warning(exc)
             return InvoiceResponse(
                 ok=False, error_message="Server error: 'invalid json response'"
             )
@@ -304,7 +305,7 @@ class CLNRestWallet(Wallet):
                     return PaymentResponse(error_message=error_message)
             except Exception:
                 error_message = f"Error parsing response from {self.url}: {exc!s}"
-                logger.error(error_message)
+                logger.warning(error_message)
                 return PaymentResponse(error_message=error_message)
         except Exception as exc:
             logger.info(f"Failed to pay invoice {bolt11}")
@@ -314,7 +315,7 @@ class CLNRestWallet(Wallet):
 
         if "payment_preimage" not in data:
             error_message = data.get("error", "No payment preimage in response")
-            logger.error(error_message)
+            logger.warning(error_message)
             return PaymentResponse(error_message=error_message)
 
         return PaymentResponse(
