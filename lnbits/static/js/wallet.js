@@ -40,7 +40,8 @@ window.WalletPageLogic = {
         data: {
           amount: null,
           memo: '',
-          internalMemo: null
+          internalMemo: null,
+          payment_hash: null
         }
       },
       invoiceQrCode: '',
@@ -200,6 +201,7 @@ window.WalletPageLogic = {
       this.receive.data.amount = null
       this.receive.data.memo = null
       this.receive.data.internalMemo = null
+      this.receive.data.payment_hash = null
       this.receive.unit = this.isFiatPriority
         ? this.g.wallet.currency || 'sat'
         : 'sat'

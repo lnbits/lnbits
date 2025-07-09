@@ -1014,11 +1014,15 @@ async def cancel_hold_invoice(payment_hash: str) -> Payment:
         response = await funding_source.cancel_hold_invoice(payment_hash=payment_hash)
     except UnsupportedError as exc:
         raise InvoiceError(str(exc), status="failed") from exc
-    if not response.ok:
+
+    # ok means invoice couldnt be cancelled
+    if response.ok:
         raise InvoiceError(
             response.error_message or "Unexpected backend error.", status="failed"
         )
+
     payment.status = PaymentState.FAILED
     payment.extra["hold_invoice_cancelled"] = True
     await update_payment(payment)
+
     return payment

@@ -347,6 +347,8 @@ class LndWallet(Wallet):
         except Exception as exc:
             logger.warning(exc)
             error_message = str(exc)
+            # If we cannot settle the invoice, we return an error message
+            # and False for ok that should be ignored by the service
             return InvoiceResponse(ok=False, error_message=error_message)
         return InvoiceResponse(ok=True, preimage=preimage)
 
@@ -357,8 +359,10 @@ class LndWallet(Wallet):
             logger.debug(f"CancelInvoice response: {res}")
         except Exception as exc:
             logger.warning(exc)
+            # If we cannot cancel the invoice, we return an error message
+            # and True for ok that should be ignored by the service
             return InvoiceResponse(
-                ok=False, checking_id=payment_hash, error_message=str(exc)
+                ok=True, checking_id=payment_hash, error_message=str(exc)
             )
-        # If we reach here, the invoice was successfully canceled
-        return InvoiceResponse(True, checking_id=payment_hash)
+        # If we reach here, the invoice was successfully canceled and payment failed
+        return InvoiceResponse(False, checking_id=payment_hash)
