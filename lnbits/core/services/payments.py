@@ -288,6 +288,7 @@ async def create_invoice(
                 payment_hash=payment_hash,
                 description_hash=description_hash,
             )
+            extra["hold_invoice"] = True
         except UnsupportedError as exc:
             raise InvoiceError(
                 "Hold invoices are not supported by the funding source.",

@@ -496,9 +496,7 @@ async def api_payments_settle(data: SettleInvoice) -> Payment:
     return payment
 
 
-payment_router.post("/cancel", dependencies=[Depends(require_admin_key)])
-
-
+@payment_router.post("/cancel", dependencies=[Depends(require_admin_key)])
 async def api_payments_cancel(data: CancelInvoice) -> Payment:
     # Validate payment_hash length (32 bytes = 64 hex characters)
     if len(data.payment_hash) != 64:

@@ -1028,6 +1028,28 @@
               </div>
             </q-card-section>
             <q-card-section>
+              <div
+                class="row q-gutter-x-sm q-mb-md"
+                v-if="
+                  props.row.isIn &&
+                  props.row.isPending &&
+                  props.row.extra.hold_invoice
+                "
+                class="hold-buttons"
+              >
+                <q-btn
+                  outline
+                  color="grey"
+                  @click="settleInvoice(props.row.payment_hash)"
+                  :label="$t('settle_invoice')"
+                ></q-btn>
+                <q-btn
+                  outline
+                  color="danger"
+                  @click="cancelInvoice(props.row.payment_hash)"
+                  :label="$t('cancel_invoice')"
+                ></q-btn>
+              </div>
               <div class="row q-gutter-x-sm">
                 <q-btn
                   v-if="

@@ -223,6 +223,30 @@ window.app.component('payment-list', {
         })
         .catch(LNbits.utils.notifyApiError)
     },
+    cancelInvoice(payment_hash) {
+      LNbits.api
+        .cancelInvoice(this.g.wallet, payment_hash)
+        .then(() => {
+          this.update = !this.update
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('invoice_cancelled')
+          })
+        })
+        .catch(LNbits.utils.notifyApiError)
+    },
+    settleInvoice(payment_hash) {
+      LNbits.api
+        .settleInvoice(this.g.wallet, payment_hash)
+        .then(() => {
+          this.update = !this.update
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('invoice_settled')
+          })
+        })
+        .catch(LNbits.utils.notifyApiError)
+    },
     paymentTableRowKey(row) {
       return row.payment_hash + row.amount
     },

@@ -318,7 +318,7 @@ class LndWallet(Wallet):
         data: dict = {
             "description_hash": b"",
             "value": amount,
-            "hash": payment_hash,
+            "hash": hex_to_bytes(payment_hash),
             "private": True,
             "memo": memo or "",
         }
@@ -342,7 +342,7 @@ class LndWallet(Wallet):
 
     async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
         try:
-            req = invoices.SettleInvoiceMsg(preimage=preimage)  # type: ignore
+            req = invoices.SettleInvoiceMsg(preimage=hex_to_bytes(preimage))  # type: ignore
             res = await self.invoicesrpc.SettleInvoice(req)
             logger.debug(f"SettleInvoice response: {res}")
         except Exception as exc:
@@ -353,7 +353,7 @@ class LndWallet(Wallet):
 
     async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
         try:
-            req = invoices.CancelInvoiceMsg(payment_hash=payment_hash)  # type: ignore
+            req = invoices.CancelInvoiceMsg(payment_hash=hex_to_bytes(payment_hash))  # type: ignore
             res = await self.invoicesrpc.CancelInvoice(req)
             logger.debug(f"CancelInvoice response: {res}")
         except Exception as exc:

@@ -177,6 +177,8 @@ window.localisation.en = {
   min_version: 'Minimum (included)',
   max_version: 'Maximum (excluded)',
   payment_hash: 'Payment Hash',
+  invoice_cancelled: 'Invoice Cancelled',
+  invoice_settled: 'Invoice Settled',
   hold_invoice_payment_hash: '(optional) Payment hash for hold invoice',
   fee: 'Fee',
   amount: 'Amount',
