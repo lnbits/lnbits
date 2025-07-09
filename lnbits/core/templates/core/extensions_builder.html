@@ -15,9 +15,10 @@
         :done="step > 1"
         style="min-height: 200px"
       >
-        For each ad campaign that you create, you can control how much you're
-        willing to spend on clicks and conversions, which networks and
-        geographical locations you want your ads to show on, and more.
+        <!-- style="max-height: 200px" -->
+        <q-img
+          :src="'{{ static_url_for('static', 'images/builder/build_01.png') }}'"
+        ></q-img>
       </q-step>
 
       <q-step
@@ -27,8 +28,9 @@
         :done="step > 2"
         style="min-height: 200px"
       >
-        An ad group contains one or more ads which target a shared set of
-        keywords.
+        <q-img
+          :src="'{{ static_url_for('static', 'images/builder/build_02.png') }}'"
+        ></q-img>
       </q-step>
 
       <q-step
@@ -109,13 +111,26 @@
       </template>
 
       <template v-slot:message>
-        <q-banner v-if="step === 1" class="bg-purple-8 text-white q-px-lg">
-          Campaign settings are important...
+        <q-banner v-if="step === 1" class="bg-grey-8 text-white q-px-lg">
+          <span>
+            Tell us soomething about your extensions. This is the first step,
+            you can return and change it.
+          </span>
         </q-banner>
-        <q-banner v-else-if="step === 2" class="bg-orange-8 text-white q-px-lg">
-          The ad group helps you to...
+        <q-banner
+          v-else-if="step === 2"
+          class="bg-grey-8 text-white q-px-lg"
+        >
+          <span>
+            Define what settings your extension will have. You can choose if
+            each user has its own settings or if these are global settings set
+            by the admin.
+          </span>
         </q-banner>
-        <q-banner v-else-if="step === 3" class="bg-green-8 text-white q-px-lg">
+        <q-banner
+          v-else-if="step === 3"
+          class="bg-secondary text-white q-px-lg"
+        >
           The Ad template is disabled - this won't be displayed
         </q-banner>
         <q-banner v-else class="bg-blue-8 text-white q-px-lg">
