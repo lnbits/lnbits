@@ -19,7 +19,7 @@ from ..helpers import funding_source, is_fake
     funding_source.__class__.__name__ in ["LndRestWallet", "LndWallet"],
     reason="this should not raise for lnd",
 )
-async def test_pay_raise_unsupported():
+async def test_pay_raise_unsupported(app):
     payment_hash = "0" * 32
     with pytest.raises(InvoiceError):
         await create_invoice(
@@ -40,7 +40,7 @@ async def test_pay_raise_unsupported():
     funding_source.__class__.__name__ not in ["LndRestWallet"],
     reason="this only works for lndrest",
 )
-async def test_pay_real_hold_invoice(from_wallet):
+async def test_pay_real_hold_invoice(app, from_wallet):
 
     preimage = os.urandom(32)
     preimage_hash = hashlib.sha256(preimage).hexdigest()
