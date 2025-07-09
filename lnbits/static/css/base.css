@@ -62,14 +62,6 @@ body[data-theme=monochrome].neon-border .q-date--dark {
   box-shadow: none;
 }
 
-body[data-theme=salvador].neon-border .q-card,
-body[data-theme=salvador].neon-border .q-card.q-card--dark,
-body[data-theme=salvador].neon-border .q-date,
-body[data-theme=salvador].neon-border .q-date--dark {
-  border: 2px solid #1976d2;
-  box-shadow: none;
-}
-
 body.hard-border .q-card,
 body.hard-border .q-card.q-card--dark,
 body.hard-border .q-date,
@@ -117,21 +109,21 @@ body[data-theme=bitcoin] [data-theme=bitcoin] .q-stepper--dark {
 body[data-theme=freedom] {
   --q-primary: #e22156;
   --q-secondary: #b91a45;
-  --q-dark-page: #462f36;
+  --q-dark-page: #0a0a0a;
 }
 body[data-theme=freedom] [data-theme=freedom] .q-card--dark,
 body[data-theme=freedom] [data-theme=freedom] .q-stepper--dark {
-  background: #47393d !important;
+  background: #1b1b1b !important;
 }
 
 body[data-theme=cyber] {
   --q-primary: #7cb342;
   --q-secondary: #558b2f;
-  --q-dark-page: #000;
+  --q-dark-page: #0a0a0a;
 }
 body[data-theme=cyber] [data-theme=cyber] .q-card--dark,
 body[data-theme=cyber] [data-theme=cyber] .q-stepper--dark {
-  background: #1f2915 !important;
+  background: #1b1b1b !important;
 }
 
 body[data-theme=mint] {
@@ -172,16 +164,6 @@ body[data-theme=monochrome] {
 body[data-theme=monochrome] [data-theme=monochrome] .q-card--dark,
 body[data-theme=monochrome] [data-theme=monochrome] .q-stepper--dark {
   background: rgb(39, 39, 39) !important;
-}
-
-body[data-theme=salvador] {
-  --q-primary: #1976d2;
-  --q-secondary: #26a69a;
-  --q-dark-page: #253647;
-}
-body[data-theme=salvador] [data-theme=salvador] .q-card--dark,
-body[data-theme=salvador] [data-theme=salvador] .q-stepper--dark {
-  background: #343d47 !important;
 }
 
 body.gradient-bg {
