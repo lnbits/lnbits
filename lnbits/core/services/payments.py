@@ -1010,9 +1010,7 @@ async def create_hold_invoice(
     )
 
 
-# TODO: should return payment
-# TODO: update payment status to success
-async def settle_hold_invoice(*, preimage: str):  # -> Payment:
+async def settle_hold_invoice(*, preimage: str) -> Payment:
     if len(bytes.fromhex(preimage)) != 32:
         raise InvoiceError(
             "Invalid preimage length. Must be 32 bytes",
@@ -1029,7 +1027,18 @@ async def settle_hold_invoice(*, preimage: str):  # -> Payment:
     if not response.ok:
         raise InvoiceError("Unexpected backend error.", status="failed")
 
-    # return payment
+    if not response.checking_id:
+        raise InvoiceError("No checking id returned.", status="failed")
+
+    payment = await get_standalone_payment(response.checking_id, incoming=True)
+    if not payment:
+        raise InvoiceError("Payment not found.", status="failed")
+
+    payment.preimage = preimage
+    payment.status = PaymentState.SUCCESS
+    payment.extra["hold_invoice_settled"] = True
+    await update_payment(payment)
+    return payment
 
 
 async def cancel_hold_invoice(payment_hash: str) -> Payment:
@@ -1047,5 +1056,6 @@ async def cancel_hold_invoice(payment_hash: str) -> Payment:
             response.error_message or "Unexpected backend error.", status="failed"
         )
     payment.status = PaymentState.FAILED
+    payment.extra["hold_invoice_cancelled"] = True
     await update_payment(payment)
     return payment

@@ -19,7 +19,6 @@ from lnbits.core.services.payments import (
     cancel_hold_invoice,
     create_hold_invoice,
     settle_hold_invoice,
-    subscribe_hold_invoice,
 )
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -73,16 +72,16 @@ async def api_hold_invoice_create(
             payment = await create_hold_invoice(
                 wallet_id=wallet.wallet.id,
                 amount=amount,
-                rhash=data.preimage_hash,
+                payment_hash=data.preimage_hash,
                 memo=memo,
                 description_hash=description_hash,
                 extra=data.extra,
                 webhook=data.webhook,
                 conn=conn,
             )
-            await subscribe_hold_invoice_internal(
-                payment_hash=data.preimage_hash,
-            )
+            # await subscribe_hold_invoice_internal(
+            #     payment_hash=data.preimage_hash,
+            # )
             return payment
         except InvoiceError as e:
             raise HTTPException(status_code=520, detail=str(e)) from e
@@ -160,19 +159,19 @@ async def api_hold_invoice_cancel(data: CancelInvoice = Body(...)):
     }
 
 
-# Subscribe to a hold invoice is not exposed to the public API but only for
-# internal use. It fetches the payment from the database and then reports to
-# webhook which was supplied in the create_hold_invoice call.
-async def subscribe_hold_invoice_internal(
-    payment_hash: str,
-):
-    try:
-        subscribe_result = await subscribe_hold_invoice(
-            payment_hash=payment_hash,
-        )
-    except Exception as exc:
-        raise exc
+# # Subscribe to a hold invoice is not exposed to the public API but only for
+# # internal use. It fetches the payment from the database and then reports to
+# # webhook which was supplied in the create_hold_invoice call.
+# async def subscribe_hold_invoice_internal(
+#     payment_hash: str,
+# ):
+#     try:
+#         subscribe_result = await subscribe_hold_invoice(
+#             payment_hash=payment_hash,
+#         )
+#     except Exception as exc:
+#         raise exc
 
-    return {
-        "subscribe_result": str(subscribe_result),
-    }
+#     return {
+#         "subscribe_result": str(subscribe_result),
+#     }

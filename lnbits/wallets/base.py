@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, NamedTuple
 
 from loguru import logger
 
+from lnbits.exceptions import UnsupportedError
 from lnbits.settings import settings
 
 if TYPE_CHECKING:
@@ -124,18 +125,6 @@ class Wallet(ABC):
         pass
 
     @abstractmethod
-    def create_hold_invoice(
-        self,
-        amount: int,
-        payment_hash: str,
-        memo: str | None = None,
-        description_hash: bytes | None = None,
-        unhashed_description: bytes | None = None,
-        **kwargs,
-    ) -> Coroutine[None, None, InvoiceResponse]:
-        pass
-
-    @abstractmethod
     def pay_invoice(
         self, bolt11: str, fee_limit_msat: int
     ) -> Coroutine[None, None, PaymentResponse]:
@@ -153,23 +142,27 @@ class Wallet(ABC):
     ) -> Coroutine[None, None, PaymentStatus]:
         pass
 
-    @abstractmethod
-    def settle_hold_invoice(
-        self, preimage: str
-    ) -> Coroutine[None, None, InvoiceResponse]:
-        pass
+    async def create_hold_invoice(
+        self,
+        amount: int,
+        payment_hash: str,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
+        **kwargs,
+    ) -> InvoiceResponse:
+        raise UnsupportedError()
 
-    @abstractmethod
-    def cancel_hold_invoice(
-        self, payment_hash: str
-    ) -> Coroutine[None, None, InvoiceResponse]:
-        pass
+    async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
+        raise UnsupportedError()
 
-    @abstractmethod
-    def hold_invoices_stream(
+    async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
+        raise UnsupportedError()
+
+    async def hold_invoices_stream(
         self, payment_hash: str, webhook: str
     ) -> AsyncGenerator[str, None]:
-        pass
+        raise UnsupportedError()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:

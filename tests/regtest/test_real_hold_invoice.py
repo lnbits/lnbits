@@ -20,18 +20,18 @@ from ..helpers import funding_source, is_fake
     reason="this should not raise for lnd",
 )
 async def test_pay_raise_unsupported():
-    rhash = "0" * 32
+    payment_hash = "0" * 32
     with pytest.raises(InvoiceError):
         await create_hold_invoice(
             wallet_id="fake_wallet_id",
             amount=1000,
             memo="fake_holdinvoice",
-            rhash=rhash,
+            payment_hash=payment_hash,
         )
     with pytest.raises(InvoiceError):
-        await settle_hold_invoice(preimage=rhash)
+        await settle_hold_invoice(preimage=payment_hash)
     with pytest.raises(InvoiceError):
-        await cancel_hold_invoice(rhash)
+        await cancel_hold_invoice(payment_hash)
 
 
 @pytest.mark.anyio
@@ -48,7 +48,7 @@ async def test_pay_real_hold_invoice(from_wallet):
         wallet_id=from_wallet.id,
         amount=1000,
         memo="test_holdinvoice",
-        rhash=preimage_hash,
+        payment_hash=preimage_hash,
     )
     assert payment.amount == 1000 * 1000
     assert payment.memo == "test_holdinvoice"
