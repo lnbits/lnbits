@@ -62,7 +62,7 @@ class NWCWallet(Wallet):
         # interval in seconds between checks for pending payments
         self.pending_payments_lookup_interval = 10
         # track paid invoices for paid_invoices_stream
-        self.paid_invoices_queue: asyncio.Queue = asyncio.Queue(0)
+        self.paid_invoices_queue = asyncio.Queue(0)
         # This task periodically checks if pending payments have been settled
         self.pending_payments_lookup_task = asyncio.create_task(
             self._handle_pending_payments()
