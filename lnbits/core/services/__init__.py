@@ -6,6 +6,7 @@ from .lnurl import perform_lnurlauth, redeem_lnurl_withdraw
 from .notifications import enqueue_notification, send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
+    cancel_hold_invoice,
     check_transaction_status,
     check_wallet_limits,
     create_fiat_invoice,
@@ -17,6 +18,7 @@ from .payments import (
     get_payments_daily_stats,
     pay_invoice,
     service_fee,
+    settle_hold_invoice,
     update_pending_payment,
     update_pending_payments,
     update_wallet_balance,
@@ -65,4 +67,6 @@ __all__ = [
     "update_wallet_balance",
     "websocket_manager",
     "websocket_updater",
+    "cancel_hold_invoice",
+    "settle_hold_invoice",
 ]

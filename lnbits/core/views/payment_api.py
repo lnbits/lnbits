@@ -22,6 +22,7 @@ from lnbits.core.crud.payments import (
     get_wallets_stats,
 )
 from lnbits.core.models import (
+    CancelInvoice,
     CreateInvoice,
     CreateLnurl,
     DecodePayment,
@@ -34,6 +35,7 @@ from lnbits.core.models import (
     PaymentFilters,
     PaymentHistoryPoint,
     PaymentWalletStats,
+    SettleInvoice,
 )
 from lnbits.core.models.users import User
 from lnbits.db import Filters, Page
@@ -62,10 +64,12 @@ from ..crud import (
     get_wallet_for_key,
 )
 from ..services import (
+    cancel_hold_invoice,
     create_payment_request,
     fee_reserve_total,
     get_payments_daily_stats,
     pay_invoice,
+    settle_hold_invoice,
     update_pending_payment,
     update_pending_payments,
 )
@@ -476,3 +480,49 @@ async def api_payment_pay_with_nfc(
 
         except Exception as e:
             return JSONResponse({"success": False, "detail": f"Unexpected error: {e}"})
+
+
+@payment_router.post("/settle", dependencies=[Depends(require_admin_key)])
+async def api_payments_settle(data: SettleInvoice) -> Payment:
+    # Validate preimage length (32 bytes = 64 hex characters)
+    if len(data.preimage) != 64:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invalid preimage length. Must be 32 bytes (64 hex characters)",
+        )
+    payment = await settle_hold_invoice(
+        preimage=data.preimage,
+    )
+    return payment
+
+
+payment_router.post("/cancel", dependencies=[Depends(require_admin_key)])
+
+
+async def api_payments_cancel(data: CancelInvoice) -> Payment:
+    # Validate payment_hash length (32 bytes = 64 hex characters)
+    if len(data.payment_hash) != 64:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invalid payment hash length. Must be 32 bytes (64 hex characters)",
+        )
+    payment = await cancel_hold_invoice(payment_hash=data.payment_hash)
+    return payment
+
+
+# # Subscribe to a hold invoice is not exposed to the public API but only for
+# # internal use. It fetches the payment from the database and then reports to
+# # webhook which was supplied in the create_hold_invoice call.
+# async def subscribe_hold_invoice_internal(
+#     payment_hash: str,
+# ):
+#     try:
+#         subscribe_result = await subscribe_hold_invoice(
+#             payment_hash=payment_hash,
+#         )
+#     except Exception as exc:
+#         raise exc
+
+#     return {
+#         "subscribe_result": str(subscribe_result),
+#     }

@@ -252,6 +252,7 @@ class CreateInvoice(BaseModel):
     memo: str | None = Query(None, max_length=640)
     description_hash: str | None = None
     unhashed_description: str | None = None
+    payment_hash: str | None = None
     expiry: int | None = None
     extra: dict | None = None
     webhook: str | None = None
@@ -272,24 +273,6 @@ class PaymentsStatusCount(BaseModel):
     outgoing: int = 0
     failed: int = 0
     pending: int = 0
-
-
-class CreateHoldInvoice(BaseModel):
-    unit: str = "sat"
-    amount: float = Query(None, ge=0)
-    preimage_hash: str
-    memo: str | None = None
-    description_hash: str | None = None
-    extra: dict | None = None
-    webhook: str | None = None
-
-    @validator("unit")
-    @classmethod
-    def unit_is_from_allowed_currencies(cls, v):
-        if v != "sat" and v not in allowed_currencies():
-            raise ValueError("The provided unit is not supported")
-
-        return v
 
 
 class SettleInvoice(BaseModel):

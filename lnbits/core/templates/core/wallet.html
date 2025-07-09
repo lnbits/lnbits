@@ -661,7 +661,12 @@
               :readonly="receive.lnurl && receive.lnurl.fixed"
             ></q-input>
             {% endif %}
-
+            <q-input
+              filled
+              dense
+              v-model.number="receive.data.payment_hash"
+              :label="$t('hold_invoice_payment_hash')"
+            ></q-input>
             <q-input
               filled
               dense
