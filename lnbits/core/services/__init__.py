@@ -38,6 +38,7 @@ from .websockets import websocket_manager, websocket_updater
 
 __all__ = [
     "calculate_fiat_amounts",
+    "cancel_hold_invoice",
     "check_admin_settings",
     "check_transaction_status",
     "check_wallet_limits",
@@ -58,6 +59,7 @@ __all__ = [
     "redeem_lnurl_withdraw",
     "send_payment_notification",
     "service_fee",
+    "settle_hold_invoice",
     "switch_to_voidwallet",
     "update_cached_settings",
     "update_pending_payment",
@@ -67,6 +69,4 @@ __all__ = [
     "update_wallet_balance",
     "websocket_manager",
     "websocket_updater",
-    "cancel_hold_invoice",
-    "settle_hold_invoice",
 ]

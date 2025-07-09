@@ -200,6 +200,7 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
         extra=data.extra,
         webhook=data.webhook,
         internal=data.internal,
+        payment_hash=data.payment_hash,
     )
 
     # lnurl_response is not saved in the database
@@ -240,6 +241,7 @@ async def create_invoice(
     extra: Optional[dict] = None,
     webhook: Optional[str] = None,
     internal: Optional[bool] = False,
+    payment_hash: str | None = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
     if not amount > 0:
@@ -273,39 +275,58 @@ async def create_invoice(
             status="failed",
         )
 
-    payment_response = await funding_source.create_invoice(
-        amount=amount_sat,
-        memo=invoice_memo,
-        description_hash=description_hash,
-        unhashed_description=unhashed_description,
-        expiry=expiry or settings.lightning_invoice_expiry,
-    )
+    if payment_hash:
+        if len(bytes.fromhex(payment_hash)) != 32:
+            raise InvoiceError(
+                "Invalid payment_hash length. Must be 32 bytes",
+                status="failed",
+            )
+        try:
+            invoice_response = await funding_source.create_hold_invoice(
+                amount=amount_sat,
+                memo=invoice_memo,
+                payment_hash=payment_hash,
+                description_hash=description_hash,
+            )
+        except UnsupportedError as exc:
+            raise InvoiceError(
+                "Hold invoices are not supported by the funding source.",
+                status="failed",
+            ) from exc
+    else:
+        invoice_response = await funding_source.create_invoice(
+            amount=amount_sat,
+            memo=invoice_memo,
+            description_hash=description_hash,
+            unhashed_description=unhashed_description,
+            expiry=expiry or settings.lightning_invoice_expiry,
+        )
     if (
-        not payment_response.ok
-        or not payment_response.payment_request
-        or not payment_response.checking_id
+        not invoice_response.ok
+        or not invoice_response.payment_request
+        or not invoice_response.checking_id
     ):
         raise InvoiceError(
-            message=payment_response.error_message or "unexpected backend error.",
+            message=invoice_response.error_message or "unexpected backend error.",
             status="pending",
         )
-    invoice = bolt11_decode(payment_response.payment_request)
+    invoice = bolt11_decode(invoice_response.payment_request)
 
     create_payment_model = CreatePayment(
         wallet_id=wallet_id,
-        bolt11=payment_response.payment_request,
+        bolt11=invoice_response.payment_request,
         payment_hash=invoice.payment_hash,
-        preimage=payment_response.preimage,
+        preimage=invoice_response.preimage,
         amount_msat=amount_sat * 1000,
         expiry=invoice.expiry_date,
         memo=memo,
         extra=extra,
         webhook=webhook,
-        fee=payment_response.fee_msat or 0,
+        fee=invoice_response.fee_msat or 0,
     )
 
     payment = await create_payment(
-        checking_id=payment_response.checking_id,
+        checking_id=invoice_response.checking_id,
         data=create_payment_model,
         conn=conn,
     )
@@ -949,65 +970,6 @@ async def _check_fiat_invoice_limits(
                 f"The amount exceeds the '{fiat_provider_name}'"
                 "faucet wallet balance.",
             )
-
-
-async def create_hold_invoice(
-    *,
-    wallet_id: str,
-    amount: int,  # in satoshis
-    memo: str,
-    payment_hash: str,  # Hash the HTLC of the hold invoice is locked to.
-    description_hash: bytes | None = None,
-    extra: dict | None = None,
-    webhook: str | None = None,
-    conn: Connection | None = None,
-) -> Payment:
-    invoice_memo = None if description_hash else memo
-
-    funding_source = get_funding_source()
-    try:
-        res = await funding_source.create_hold_invoice(
-            amount=amount,
-            memo=invoice_memo,
-            payment_hash=payment_hash,
-            description_hash=description_hash,
-        )
-    except UnsupportedError as exc:
-        raise InvoiceError(str(exc), status="failed") from exc
-
-    if not res.ok:
-        raise InvoiceError(
-            res.error_message or "Unexpected backend error.", status="failed"
-        )
-    if not res.payment_request:
-        raise InvoiceError("no payment request.", status="failed")
-    if not res.checking_id:
-        raise InvoiceError("no checking id.", status="failed")
-
-    try:
-        invoice = bolt11_decode(res.payment_request)
-    except Exception as exc:
-        raise InvoiceError("Bolt11 decoding failed.", status="failed") from exc
-
-    extra = extra or {}
-    extra["hold_invoice"] = True
-
-    amount_msat = amount * 1000
-    create_payment_model = CreatePayment(
-        wallet_id=wallet_id,
-        bolt11=res.payment_request,
-        payment_hash=invoice.payment_hash,
-        amount_msat=amount_msat,
-        expiry=invoice.expiry_date,
-        memo=invoice.description or "",
-        webhook=webhook,
-        extra=extra,
-    )
-    return await create_payment(
-        data=create_payment_model,
-        checking_id=res.checking_id,
-        conn=conn,
-    )
 
 
 async def settle_hold_invoice(*, preimage: str) -> Payment:

@@ -9,6 +9,7 @@ from .misc import (
     SimpleStatus,
 )
 from .payments import (
+    CancelInvoice,
     CreateInvoice,
     CreatePayment,
     DecodePayment,
@@ -23,6 +24,7 @@ from .payments import (
     PaymentsStatusCount,
     PaymentState,
     PaymentWalletStats,
+    SettleInvoice,
 )
 from .tinyurl import TinyURL
 from .users import (
@@ -57,6 +59,7 @@ __all__ = [
     "BalanceDelta",
     "BaseWallet",
     "Callback",
+    "CancelInvoice",
     "ConversionData",
     "CoreAppExtra",
     "CreateInvoice",
@@ -85,6 +88,7 @@ __all__ = [
     "PaymentsStatusCount",
     "RegisterUser",
     "ResetUserPassword",
+    "SettleInvoice",
     "SimpleStatus",
     "TinyURL",
     "UpdateBalance",

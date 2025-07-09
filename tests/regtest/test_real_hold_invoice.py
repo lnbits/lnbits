@@ -5,7 +5,7 @@ import pytest
 
 from lnbits.core.services.payments import (
     cancel_hold_invoice,
-    create_hold_invoice,
+    create_invoice,
     settle_hold_invoice,
 )
 from lnbits.exceptions import InvoiceError
@@ -22,7 +22,7 @@ from ..helpers import funding_source, is_fake
 async def test_pay_raise_unsupported():
     payment_hash = "0" * 32
     with pytest.raises(InvoiceError):
-        await create_hold_invoice(
+        await create_invoice(
             wallet_id="fake_wallet_id",
             amount=1000,
             memo="fake_holdinvoice",
@@ -44,7 +44,7 @@ async def test_pay_real_hold_invoice(from_wallet):
 
     preimage = os.urandom(32)
     preimage_hash = hashlib.sha256(preimage).hexdigest()
-    payment = await create_hold_invoice(
+    payment = await create_invoice(
         wallet_id=from_wallet.id,
         amount=1000,
         memo="test_holdinvoice",
