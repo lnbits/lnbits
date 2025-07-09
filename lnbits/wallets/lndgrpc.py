@@ -6,7 +6,6 @@ from os import environ
 from typing import Optional
 
 import grpc
-import httpx
 from loguru import logger
 
 import lnbits.wallets.lnd_grpc_files.invoices_pb2 as invoices
@@ -363,23 +362,3 @@ class LndWallet(Wallet):
             )
         # If we reach here, the invoice was successfully canceled
         return InvoiceResponse(True, checking_id=payment_hash)
-
-    async def hold_invoices_stream(
-        self, payment_hash: str, webhook: str
-    ) -> AsyncGenerator[str, None]:
-        rhash = base64.urlsafe_b64encode(bytes.fromhex(payment_hash))
-        request = invoicesrpc.SubscribeSingleInvoiceRequest(r_hash=rhash)  # type: ignore
-        async for response in self.invoicesrpc.SubscribeSingleInvoice(request):
-            if response.state not in ["ACCEPTED", "CANCELED"]:
-                continue
-            logger.debug(
-                f"Hold invoice state changed: {response.state}, "
-                f"payment_hash: {payment_hash}"
-            )
-            async with httpx.AsyncClient() as client:
-                try:
-                    logger.debug("sending hold webhook", webhook, str(response))
-                    await client.post(webhook, json=response, timeout=10)
-                except (httpx.ConnectError, httpx.RequestError):
-                    logger.debug("error sending hold webhook")
-            yield payment_hash
