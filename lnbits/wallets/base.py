@@ -159,7 +159,7 @@ class Wallet(ABC):
     async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
         raise UnsupportedError()
 
-    async def hold_invoices_stream(
+    def hold_invoices_stream(
         self, payment_hash: str, webhook: str
     ) -> AsyncGenerator[str, None]:
         raise UnsupportedError()
