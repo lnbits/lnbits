@@ -60,6 +60,7 @@ from ..crud import (
     get_payments_paginated,
     get_standalone_payment,
     get_wallet_for_key,
+    update_payment_extra,
 )
 from ..services import (
     create_payment_request,
@@ -261,6 +262,38 @@ async def api_payments_create(
 
     # If the payment is not outgoing, we can create a new invoice.
     return await create_payment_request(wallet_id, invoice_data)
+
+
+@payment_router.patch(
+    "/extra/{payment_hash}", description="Update extra data for a payment"
+)
+async def api_payments_update_extra(
+    payment_hash: str,
+    extra: dict,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+) -> Payment:
+    payment = await get_standalone_payment(payment_hash, wallet_id=wallet.wallet.id)
+    if payment is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
+        )
+    if not isinstance(extra, dict):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Extra data must be a dictionary.",
+        )
+    if payment.extra is None:
+        payment.extra = {}
+
+    for key, value in extra.items():
+        if key in payment.extra:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Key '{key}' already exists in extra data.",
+            )
+        payment.extra[key] = value
+
+    return await update_payment_extra(payment)
 
 
 @payment_router.get("/fee-reserve")

@@ -19,8 +19,13 @@ from ..models import (
 )
 
 
-def update_payment_extra():
-    pass
+async def update_payment_extra(
+    payment: Payment, conn: Optional[Connection] = None
+) -> Payment:
+    return await (conn or db).execute(
+        "UPDATE apipayments SET extra = :extra WHERE checking_id = :checking_id",
+        {"extra": payment.extra, "checking_id": payment.checking_id},
+    )
 
 
 async def get_payment(checking_id: str, conn: Optional[Connection] = None) -> Payment:
@@ -380,7 +385,6 @@ async def get_payment_count_stats(
     user_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> list[PaymentCountStat]:
-
     if not filters:
         filters = Filters()
     extra_stmts = []
@@ -413,7 +417,6 @@ async def get_daily_stats(
     user_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
-
     if not filters:
         filters = Filters()
 
@@ -463,7 +466,6 @@ async def get_wallets_stats(
     user_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> list[PaymentWalletStats]:
-
     if not filters:
         filters = Filters()
 
