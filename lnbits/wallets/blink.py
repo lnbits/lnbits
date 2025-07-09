@@ -7,7 +7,7 @@ from typing import Optional
 import httpx
 from loguru import logger
 from pydantic import BaseModel
-from websockets.legacy.client import WebSocketClientProtocol, connect
+from websockets.legacy.client import connect
 from websockets.typing import Subprotocol
 
 from lnbits import bolt11
@@ -48,7 +48,7 @@ class BlinkWallet(Wallet):
             "payload": {"X-API-KEY": settings.blink_token},
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
-        self.ws: Optional[WebSocketClientProtocol] = None
+        self.ws = None
         self._wallet_id = None
 
     @property

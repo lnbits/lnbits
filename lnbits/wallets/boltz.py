@@ -63,7 +63,7 @@ class BoltzWallet(Wallet):
             channel = grpc.aio.insecure_channel(settings.boltz_client_endpoint)
 
         self.rpc = boltzrpc_pb2_grpc.BoltzStub(channel)
-        self.wallet_id: int = 0
+        self.wallet_id = 0
 
         # Auto-create wallet if running in Docker mode
         async def _init_boltz_wallet():

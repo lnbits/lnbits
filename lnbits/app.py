@@ -448,7 +448,7 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     app.include_router(router=ext_route, prefix=prefix)
 
 
-async def check_and_register_extensions(app: FastAPI):
+async def check_and_register_extensions(app: FastAPI) -> None:
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:
@@ -458,7 +458,7 @@ async def check_and_register_extensions(app: FastAPI):
             logger.error(f"Could not load extension `{ext.code}`: {exc!s}")
 
 
-def register_async_tasks():
+def register_async_tasks() -> None:
 
     create_permanent_task(wait_for_audit_data)
     create_permanent_task(wait_notification_messages)

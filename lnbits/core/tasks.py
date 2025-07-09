@@ -13,7 +13,6 @@ from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.payments import get_payments_status_count
 from lnbits.core.crud.users import get_accounts
 from lnbits.core.crud.wallets import get_wallets_count
-from lnbits.core.models import AuditEntry
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.funding_source import (
@@ -103,13 +102,13 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
             await send_payment_notification(wallet, payment)
 
 
-async def wait_for_audit_data():
+async def wait_for_audit_data() -> None:
     """
     Waits for audit entries to be pushed to the queue.
     Then it inserts the entries into the DB.
     """
     while settings.lnbits_running:
-        data: AuditEntry = await audit_queue.get()
+        data = await audit_queue.get()
         try:
             await create_audit_entry(data)
         except Exception as ex:

@@ -27,7 +27,7 @@ class TokenBucket:
     Token bucket rate limiter for Strike API endpoints.
     """
 
-    def __init__(self, rate: int, period_seconds: int):
+    def __init__(self, rate: int, period_seconds: int) -> None:
         """
         Initialize a token bucket.
 
@@ -77,7 +77,7 @@ class StrikeWallet(Wallet):
     # construction / teardown                                               #
     # --------------------------------------------------------------------- #
 
-    def __init__(self):
+    def __init__(self) -> None:
         if not settings.strike_api_endpoint:
             raise ValueError("Missing strike_api_endpoint")
         if not settings.strike_api_key:
@@ -120,7 +120,7 @@ class StrikeWallet(Wallet):
         self._cached_balance_ts: float = 0.0
         self._cache_ttl = 30  # seconds
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         try:
             await self.client.aclose()
         except Exception:
