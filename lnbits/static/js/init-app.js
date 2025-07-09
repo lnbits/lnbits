@@ -186,10 +186,10 @@ const routes = [
   },
   {
     path: '/extensions/builder',
-    name: 'Extensions',
+    name: 'ExtensionsBuilder',
     component: DynamicComponent,
     props: {
-      fetchUrl: '/extensions',
+      fetchUrl: '/extensions/builder',
       scripts: ['/static/js/extensions_builder.js']
     }
   },

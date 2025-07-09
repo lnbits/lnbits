@@ -3,7 +3,8 @@ from importlib.util import find_spec
 
 from lnbits.exceptions import UnsupportedError
 
-if not find_spec("breez_sdk"):
+print("#### find_spec", find_spec("breez_sdk"))
+if not False:
 
     class BreezSdkWallet:  # pyright: ignore
         def __init__(self):
