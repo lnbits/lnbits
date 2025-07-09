@@ -479,19 +479,18 @@
                     <span v-text="$t('gradient_background')"></span>
                   </div>
                   <div class="col-8">
-                    <q-btn
+                    <q-toggle
                       dense
                       flat
                       round
-                      @click="toggleGradient"
                       icon="gradient"
-                      size="sm"
                       v-model="gradientChoice"
+                      @update:model-value="applyGradient"
                     >
                       <q-tooltip
                         ><span v-text="$t('toggle_gradient')"></span
                       ></q-tooltip>
-                    </q-btn>
+                    </q-toggle>
                   </div>
                 </div>
 
@@ -500,10 +499,11 @@
                     <span v-text="$t('toggle_darkmode')"></span>
                   </div>
                   <div class="col-8">
-                    <q-btn
+                    <q-toggle
                       dense
                       flat
                       round
+                      v-model="darkChoice"
                       @click="toggleDarkMode"
                       :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
                       size="sm"
@@ -511,7 +511,7 @@
                       <q-tooltip
                         ><span v-text="$t('toggle_darkmode')"></span
                       ></q-tooltip>
-                    </q-btn>
+                    </q-toggle>
                   </div>
                 </div>
                 <div class="row q-mb-md">

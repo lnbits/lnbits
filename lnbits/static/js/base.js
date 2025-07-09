@@ -497,6 +497,9 @@ window.windowMixin = {
       isUserAuthorized: false,
       isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
       walletEventListeners: [],
+      darkChoice: this.$q.localStorage.has('lnbits.darkMode')
+        ? this.$q.localStorage.getItem('lnbits.darkMode')
+        : true,
       borderChoice: this.$q.localStorage.has('lnbits.border')
         ? this.$q.localStorage.getItem('lnbits.border')
         : USE_DEFAULT_BORDER,
@@ -626,8 +629,7 @@ window.windowMixin = {
         this.$q.localStorage.set('lnbits.gradientBg', true)
         // Ensure dark mode is enabled when gradient background is applied
         if (!this.$q.dark.isActive) {
-          this.$q.dark.toggle()
-          this.$q.localStorage.set('lnbits.darkMode', true)
+          this.toggleDarkMode()
         }
       } else {
         document.body.classList.remove('gradient-bg')
@@ -658,9 +660,11 @@ window.windowMixin = {
     },
     toggleDarkMode() {
       this.$q.dark.toggle()
+      this.darkChoice = this.$q.dark.isActive
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
       if (!this.$q.dark.isActive) {
-        this.$q.localStorage.set('lnbits.gradientBg', false)
+        this.gradientChoice = false
+        this.applyGradient()
       }
     },
     copyText(text, message, position) {
