@@ -731,10 +731,7 @@ window.windowMixin = {
         const gradient = params.get('gradient')
         const border = params.get('border')
 
-        if (
-          theme &&
-          LNBITS_THEME_OPTIONS.includes(theme.trim().toLowerCase())
-        ) {
+        if (theme && this.allowedThemes.includes(theme.trim().toLowerCase())) {
           const normalizedTheme = theme.trim().toLowerCase()
           document.body.setAttribute('data-theme', normalizedTheme)
           this.$q.localStorage.set('lnbits.theme', normalizedTheme)
