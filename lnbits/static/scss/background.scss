@@ -1,0 +1,62 @@
+@use 'sass:color';
+
+@each $theme, $colors in $themes {
+  body[data-theme='#{$theme}'] {
+    @each $name, $color in $colors {
+      @if $name== 'dark' {
+        --q-dark-page: #{$color};
+      }
+      @if $name== 'primary' {
+        --q-primary: #{$color};
+      }
+      @if $name== 'secondary' {
+        --q-secondary: #{$color};
+      }
+      @if $name== 'info' {
+        [data-theme='#{$theme}'] .q-card--dark,
+        [data-theme='#{$theme}'] .q-stepper--dark {
+          background: $color !important;
+        }
+      }
+    }
+  }
+}
+
+body.gradient-bg {
+  background-image: linear-gradient(
+    to bottom right,
+    var(--q-dark-page),
+    #0a0a0a
+  );
+  background-attachment: fixed;
+}
+
+body.bg-image {
+  &::before {
+    content: '';
+    position: fixed;
+    z-index: -1;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    filter: blur(8px);
+    background-image: var(--background);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .q-page-container {
+    backdrop-filter: none; /* Ensure the page content is not affected */
+  }
+}
+// transparent background for specific elements
+body.body--dark {
+  .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark),
+  .q-header,
+  .q-drawer {
+    --q-dark: #{color.adjust(#1d1d1d, $alpha: -0.7)};
+    background-color: var(--q-dark);
+    backdrop-filter: blur(6px);
+  }
+}
