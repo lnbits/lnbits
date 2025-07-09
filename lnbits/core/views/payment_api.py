@@ -506,21 +506,3 @@ async def api_payments_cancel(data: CancelInvoice) -> Payment:
         )
     payment = await cancel_hold_invoice(payment_hash=data.payment_hash)
     return payment
-
-
-# # Subscribe to a hold invoice is not exposed to the public API but only for
-# # internal use. It fetches the payment from the database and then reports to
-# # webhook which was supplied in the create_hold_invoice call.
-# async def subscribe_hold_invoice_internal(
-#     payment_hash: str,
-# ):
-#     try:
-#         subscribe_result = await subscribe_hold_invoice(
-#             payment_hash=payment_hash,
-#         )
-#     except Exception as exc:
-#         raise exc
-
-#     return {
-#         "subscribe_result": str(subscribe_result),
-#     }
