@@ -496,6 +496,7 @@ window.windowMixin = {
       showAddWalletDialog: {show: false},
       isUserAuthorized: false,
       isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
+      allowedThemes: WINDOW_SETTINGS['LNBITS_THEME_OPTIONS'],
       walletEventListeners: [],
       darkChoice: this.$q.localStorage.has('lnbits.darkMode')
         ? this.$q.localStorage.getItem('lnbits.darkMode')

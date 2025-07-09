@@ -368,7 +368,7 @@
                   </div>
                   <div class="col-8">
                     <q-btn
-                      v-if="LNBITS_THEME_OPTIONS.includes('classic')"
+                      v-if="allowedThemes.includes('classic')"
                       dense
                       flat
                       @click="changeTheme('classic')"
@@ -378,7 +378,7 @@
                       ><q-tooltip>classic</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="LNBITS_THEME_OPTIONS.includes('bitcoin')"
+                      v-if="allowedThemes.includes('bitcoin')"
                       dense
                       flat
                       @click="changeTheme('bitcoin')"
@@ -388,7 +388,7 @@
                       ><q-tooltip>bitcoin</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="LNBITS_THEME_OPTIONS.includes('mint')"
+                      v-if="allowedThemes.includes('mint')"
                       dense
                       flat
                       @click="changeTheme('mint')"
@@ -397,7 +397,7 @@
                       size="md"
                       ><q-tooltip>mint</q-tooltip> </q-btn
                     ><q-btn
-                      v-if="LNBITS_THEME_OPTIONS.includes('autumn')"
+                      v-if="allowedThemes.includes('autumn')"
                       dense
                       flat
                       @click="changeTheme('autumn')"
@@ -407,7 +407,7 @@
                       ><q-tooltip>autumn</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="LNBITS_THEME_OPTIONS.includes('monochrome')"
+                      v-if="allowedThemes.includes('monochrome')"
                       dense
                       flat
                       @click="changeTheme('monochrome')"
@@ -417,7 +417,7 @@
                       ><q-tooltip>monochrome</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="LNBITS_THEME_OPTIONS.includes('salvador')"
+                      v-if="allowedThemes.includes('salvador')"
                       dense
                       flat
                       @click="changeTheme('salvador')"
@@ -427,7 +427,7 @@
                       ><q-tooltip>elSalvador</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="LNBITS_THEME_OPTIONS.includes('freedom')"
+                      v-if="allowedThemes.includes('freedom')"
                       dense
                       flat
                       @click="changeTheme('freedom')"
@@ -437,7 +437,7 @@
                       ><q-tooltip>freedom</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="LNBITS_THEME_OPTIONS.includes('cyber')"
+                      v-if="allowedThemes.includes('cyber')"
                       dense
                       flat
                       @click="changeTheme('cyber')"
@@ -447,7 +447,7 @@
                       ><q-tooltip>cyber</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="LNBITS_THEME_OPTIONS.includes('flamingo')"
+                      v-if="allowedThemes.includes('flamingo')"
                       dense
                       flat
                       @click="changeTheme('flamingo')"
