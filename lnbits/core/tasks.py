@@ -13,6 +13,7 @@ from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.payments import get_payments_status_count
 from lnbits.core.crud.users import get_accounts
 from lnbits.core.crud.wallets import get_wallets_count
+from lnbits.core.models.audit import AuditEntry
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.funding_source import (
@@ -30,10 +31,10 @@ from lnbits.settings import settings
 from lnbits.tasks import create_unique_task
 from lnbits.utils.exchange_rates import btc_rates
 
-audit_queue: asyncio.Queue = asyncio.Queue()
+audit_queue: asyncio.Queue[AuditEntry] = asyncio.Queue()
 
 
-async def run_by_the_minute_tasks():
+async def run_by_the_minute_tasks() -> None:
     minute_counter = 0
     while settings.lnbits_running:
         status_minutes = settings.lnbits_notification_server_status_hours * 60
@@ -68,7 +69,7 @@ async def run_by_the_minute_tasks():
         await asyncio.sleep(60)
 
 
-async def _notify_server_status():
+async def _notify_server_status() -> None:
     accounts = await get_accounts(filters=Filters(limit=0))
     wallets_count = await get_wallets_count()
     payments = await get_payments_status_count()
@@ -89,7 +90,7 @@ async def _notify_server_status():
     enqueue_notification(NotificationType.server_status, values)
 
 
-async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
+async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue) -> None:
     """
     This worker dispatches events to all extensions and dispatches webhooks.
     """
@@ -116,7 +117,7 @@ async def wait_for_audit_data() -> None:
             await asyncio.sleep(3)
 
 
-async def wait_notification_messages():
+async def wait_notification_messages() -> None:
 
     while settings.lnbits_running:
         try:
@@ -126,7 +127,7 @@ async def wait_notification_messages():
             await asyncio.sleep(3)
 
 
-async def purge_audit_data():
+async def purge_audit_data() -> None:
     """
     Remove audit entries which have passed their retention period.
     """
@@ -140,7 +141,7 @@ async def purge_audit_data():
         await asyncio.sleep(60 * 60)
 
 
-async def collect_exchange_rates_data():
+async def collect_exchange_rates_data() -> None:
     """
     Collect exchange rates data. Used for monitoring only.
     """
