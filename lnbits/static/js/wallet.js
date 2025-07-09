@@ -115,8 +115,6 @@ window.WalletPageLogic = {
       isFiatPriority: false,
       formattedFiatAmount: 0,
       formattedExchange: null,
-      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
-      secondaryColor: this.$q.localStorage.getItem('lnbits.secondaryColor'),
       chartData: [],
       chartDataPointCount: 0,
       chartConfig: {
@@ -970,11 +968,11 @@ window.WalletPageLogic = {
                     label: 'Balance',
                     data: data.map(s => s.balance),
                     pointStyle: false,
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.primaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('primary'),
                       0.3
                     ),
-                    borderColor: this.primaryColor,
+                    borderColor: Quasar.colors.getPaletteColor('primary'),
                     borderWidth: 2,
                     fill: true,
                     tension: 0.7,
@@ -984,11 +982,11 @@ window.WalletPageLogic = {
                     label: 'Fees',
                     data: data.map(s => s.fee),
                     pointStyle: false,
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.secondaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('secondary'),
                       0.3
                     ),
-                    borderColor: this.secondaryColor,
+                    borderColor: Quasar.colors.getPaletteColor('secondary'),
                     borderWidth: 1,
                     fill: true,
                     tension: 0.7,
@@ -1029,8 +1027,8 @@ window.WalletPageLogic = {
                     label: 'Balance In',
                     borderRadius: 5,
                     data: data.map(s => s.balance_in),
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.primaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('primary'),
                       0.3
                     )
                   },
@@ -1038,8 +1036,8 @@ window.WalletPageLogic = {
                     label: 'Balance Out',
                     borderRadius: 5,
                     data: data.map(s => s.balance_out),
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.secondaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('secondary'),
                       0.3
                     )
                   }
@@ -1078,16 +1076,16 @@ window.WalletPageLogic = {
                   {
                     label: 'Payments In',
                     data: data.map(s => s.count_in),
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.primaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('primary'),
                       0.3
                     )
                   },
                   {
                     label: 'Payments Out',
                     data: data.map(s => -s.count_out),
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.secondaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('secondary'),
                       0.3
                     )
                   }
