@@ -155,6 +155,20 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
 
 
 @generic_router.get(
+    "/extensions/builder", name="extensions builder", response_class=HTMLResponse
+)
+async def extensions_builder(request: Request, user: User = Depends(check_user_exists)):
+    return template_renderer().TemplateResponse(
+        request,
+        "core/extensions_builder.html",
+        {
+            "user": user.json(),
+            "ajax": _is_ajax_request(request),
+        },
+    )
+
+
+@generic_router.get(
     "/wallet",
     response_class=HTMLResponse,
     description="show wallet page",
