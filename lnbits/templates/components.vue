@@ -1107,11 +1107,18 @@
               </q-btn>
               <q-btn
                 v-close-popup
+                outline
+                color="grey"
+                class="q-ml-sm"
+                @click="cancelHoldInvoice(hodlInvoice.payment.payment_hash)"
+                :label="$t('cancel_invoice')"
+              ></q-btn>
+              <q-btn
+                v-close-popup
                 flat
                 color="grey"
                 class="q-ml-auto"
-                @click="cancelHoldInvoice(hodlInvoice.payment.payment_hash)"
-                :label="$t('cancel_invoice')"
+                :label="$t('close')"
               ></q-btn>
             </q-card-section>
           </q-card>
