@@ -120,6 +120,11 @@ window.app.component('payment-list', {
         ],
         preimage: null,
         loading: false
+      },
+      hodlInvoice: {
+        show: false,
+        payment: null,
+        preimage: null
       }
     }
   },
@@ -224,7 +229,12 @@ window.app.component('payment-list', {
         })
         .catch(LNbits.utils.notifyApiError)
     },
-    cancelInvoice(payment_hash) {
+    showHoldInvoiceDialog(payment) {
+      this.hodlInvoice.show = true
+      this.hodlInvoice.preimage = ''
+      this.hodlInvoice.payment = payment
+    },
+    cancelHoldInvoice(payment_hash) {
       LNbits.api
         .cancelInvoice(this.g.wallet, payment_hash)
         .then(() => {
@@ -236,7 +246,7 @@ window.app.component('payment-list', {
         })
         .catch(LNbits.utils.notifyApiError)
     },
-    settleInvoice(preimage) {
+    settleHoldInvoice(preimage) {
       LNbits.api
         .settleInvoice(this.g.wallet, preimage)
         .then(() => {
