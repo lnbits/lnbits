@@ -18,8 +18,7 @@ from pydantic.schema import field_schema
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
-from lnbits.wallets import has_feature
-from lnbits.wallets.base import Feature
+from lnbits.wallets import Feature, has_feature
 
 from .db import FilterModel
 
