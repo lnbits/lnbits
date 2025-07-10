@@ -276,8 +276,18 @@ class PaymentsStatusCount(BaseModel):
 
 
 class SettleInvoice(BaseModel):
-    preimage: str
+    preimage: str = Field(
+        ...,
+        description="The preimage of the payment hash to settle the invoice.",
+        min_length=64,
+        max_length=64,
+    )
 
 
 class CancelInvoice(BaseModel):
-    payment_hash: str
+    payment_hash: str = Field(
+        ...,
+        description="The payment hash of the invoice to cancel.",
+        min_length=64,
+        max_length=64,
+    )

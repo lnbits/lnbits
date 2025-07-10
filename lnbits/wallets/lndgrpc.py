@@ -343,12 +343,13 @@ class LndWallet(Wallet):
         try:
             req = invoices.SettleInvoiceMsg(preimage=hex_to_bytes(preimage))  # type: ignore
             await self.invoicesrpc.SettleInvoice(req)
+        except grpc.aio.AioRpcError as exc:
+            return InvoiceResponse(
+                ok=False, error_message=exc.details() or "unknown grpc exception"
+            )
         except Exception as exc:
             logger.warning(exc)
-            error_message = str(exc)
-            # If we cannot settle the invoice, we return an error message
-            # and False for ok that should be ignored by the service
-            return InvoiceResponse(ok=False, error_message=error_message)
+            return InvoiceResponse(ok=False, error_message=str(exc))
         return InvoiceResponse(ok=True, preimage=preimage)
 
     async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:

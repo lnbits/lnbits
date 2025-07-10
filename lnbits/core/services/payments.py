@@ -2,7 +2,6 @@ import asyncio
 import json
 import time
 from datetime import datetime, timedelta, timezone
-from hashlib import sha256
 from typing import Optional
 
 import httpx
@@ -26,6 +25,7 @@ from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
+    InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
@@ -974,7 +974,7 @@ async def _check_fiat_invoice_limits(
             )
 
 
-async def settle_hold_invoice(*, preimage: str) -> Payment:
+async def settle_hold_invoice(*, preimage: str) -> InvoiceResponse:
     if len(bytes.fromhex(preimage)) != 32:
         raise InvoiceError(
             "Invalid preimage length. Must be 32 bytes",
@@ -982,7 +982,6 @@ async def settle_hold_invoice(*, preimage: str) -> Payment:
         )
 
     funding_source = get_funding_source()
-
     try:
         response = await funding_source.settle_hold_invoice(preimage=preimage)
     except UnsupportedError as exc:
@@ -991,19 +990,10 @@ async def settle_hold_invoice(*, preimage: str) -> Payment:
     if not response.ok:
         raise InvoiceError("Unexpected backend error.", status="failed")
 
-    payment_hash = sha256(bytes.fromhex(preimage)).hexdigest()
-    payment = await get_standalone_payment(payment_hash, incoming=True)
-    if not payment:
-        raise InvoiceError("Payment not found.", status="failed")
-
-    payment.preimage = preimage
-    payment.status = PaymentState.SUCCESS
-    payment.extra["hold_invoice_settled"] = True
-    await update_payment(payment)
-    return payment
+    return response
 
 
-async def cancel_hold_invoice(payment_hash: str) -> Payment:
+async def cancel_hold_invoice(payment_hash: str) -> InvoiceResponse:
     payment = await get_standalone_payment(payment_hash, incoming=True)
     if not payment:
         raise InvoiceError("Payment not found.", status="failed")
@@ -1020,8 +1010,4 @@ async def cancel_hold_invoice(payment_hash: str) -> Payment:
             response.error_message or "Unexpected backend error.", status="failed"
         )
 
-    payment.status = PaymentState.FAILED
-    payment.extra["hold_invoice_cancelled"] = True
-    await update_payment(payment)
-
-    return payment
+    return response
