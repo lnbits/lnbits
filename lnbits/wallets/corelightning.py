@@ -14,6 +14,7 @@ from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -37,6 +38,9 @@ class CoreLightningWallet(Wallet):
         pass
 
     def __init__(self):
+
+        self.features = [Feature.nodemanager]
+
         rpc = settings.corelightning_rpc or settings.clightning_rpc
         if not rpc:
             raise ValueError(
@@ -74,7 +78,10 @@ class CoreLightningWallet(Wallet):
                 return StatusResponse("no data", 0)
 
             return StatusResponse(
-                None, sum([int(ch["our_amount_msat"]) for ch in funds["channels"]])
+                error_message="",
+                balance_msat=sum(
+                    [int(ch["our_amount_msat"]) for ch in funds["channels"]]
+                ),
             )
         except RpcError as exc:
             logger.warning(exc)

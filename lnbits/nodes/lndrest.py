@@ -11,7 +11,6 @@ from httpx import HTTPStatusError
 from loguru import logger
 
 from lnbits.db import Filters, Page
-from lnbits.nodes import Node
 from lnbits.nodes.base import (
     ChannelBalance,
     ChannelPoint,
@@ -28,6 +27,7 @@ from lnbits.nodes.base import (
     PublicNodeInfo,
 )
 from lnbits.utils.cache import cache
+from lnbits.wallets.base import Node
 
 if TYPE_CHECKING:
     from lnbits.wallets import LndRestWallet

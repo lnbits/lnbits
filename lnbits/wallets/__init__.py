@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import importlib
 
-from lnbits.nodes import set_node_class
 from lnbits.settings import settings
-from lnbits.wallets.base import Wallet
+from lnbits.wallets.base import Feature, Wallet
 
 from .alby import AlbyWallet
 from .blink import BlinkWallet
@@ -35,17 +34,19 @@ from .void import VoidWallet
 from .zbd import ZBDWallet
 
 
-def set_funding_source(class_name: str | None = None):
+def set_funding_source(class_name: str | None = None) -> None:
     backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
     funding_source_constructor = getattr(wallets_module, backend_wallet_class)
     global funding_source
     funding_source = funding_source_constructor()
-    if funding_source.__node_cls__:
-        set_node_class(funding_source.__node_cls__(funding_source))
 
 
 def get_funding_source() -> Wallet:
     return funding_source
+
+
+def has_feature(feature: Feature) -> bool:
+    return funding_source.features is not None and feature in funding_source.features
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
