@@ -118,6 +118,7 @@ window.app.component('payment-list', {
             field: row => row.extra.wallet_fiat_amount
           }
         ],
+        preimage: null,
         loading: false
       }
     }
@@ -235,9 +236,9 @@ window.app.component('payment-list', {
         })
         .catch(LNbits.utils.notifyApiError)
     },
-    settleInvoice(payment_hash) {
+    settleInvoice(preimage) {
       LNbits.api
-        .settleInvoice(this.g.wallet, payment_hash)
+        .settleInvoice(this.g.wallet, preimage)
         .then(() => {
           this.update = !this.update
           Quasar.Notify.create({

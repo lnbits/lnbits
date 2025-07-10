@@ -88,7 +88,7 @@ window.LNbits = {
       })
     },
     settleInvoice(wallet, preimage) {
-      return this.request('put', `/api/v1/payments/settle`, wallet.adminkey, {
+      return this.request('post', `/api/v1/payments/settle`, wallet.adminkey, {
         preimage: preimage
       })
     },

@@ -342,8 +342,7 @@ class LndWallet(Wallet):
     async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
         try:
             req = invoices.SettleInvoiceMsg(preimage=hex_to_bytes(preimage))  # type: ignore
-            res = await self.invoicesrpc.SettleInvoice(req)
-            logger.debug(f"SettleInvoice response: {res}")
+            await self.invoicesrpc.SettleInvoice(req)
         except Exception as exc:
             logger.warning(exc)
             error_message = str(exc)

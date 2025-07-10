@@ -2,6 +2,7 @@ import asyncio
 import json
 import time
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 from typing import Optional
 
 import httpx
@@ -990,10 +991,8 @@ async def settle_hold_invoice(*, preimage: str) -> Payment:
     if not response.ok:
         raise InvoiceError("Unexpected backend error.", status="failed")
 
-    if not response.checking_id:
-        raise InvoiceError("No checking id returned.", status="failed")
-
-    payment = await get_standalone_payment(response.checking_id, incoming=True)
+    payment_hash = sha256(bytes.fromhex(preimage)).hexdigest()
+    payment = await get_standalone_payment(payment_hash, incoming=True)
     if not payment:
         raise InvoiceError("Payment not found.", status="failed")
 

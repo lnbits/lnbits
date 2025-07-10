@@ -1037,12 +1037,19 @@
                 "
                 class="hold-buttons"
               >
-                <q-btn
-                  outline
-                  color="grey"
-                  @click="settleInvoice(props.row.payment_hash)"
-                  :label="$t('settle_invoice')"
-                ></q-btn>
+                <q-btn outline color="grey" :label="$t('settle_invoice')">
+                  <q-popup-edit class="text-white" v-slot="scope">
+                    <q-input
+                      filled
+                      :label="$t('preimage')"
+                      v-model="scope.value"
+                      dense
+                      autofocus
+                      @keyup.enter="settleInvoice(scope.value)"
+                    >
+                    </q-input>
+                  </q-popup-edit>
+                </q-btn>
                 <q-btn
                   outline
                   color="danger"
