@@ -18,7 +18,6 @@ from pydantic.schema import field_schema
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
-from lnbits.wallets import Feature, has_feature
 
 from .db import FilterModel
 
@@ -64,8 +63,6 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
     t = Jinja2Templates(loader=jinja2.FileSystemLoader(folders))
     t.env.globals["static_url_for"] = static_url_for
 
-    has_nodemanager = has_feature(Feature.nodemanager)
-
     window_settings = {
         "AD_SPACE": settings.lnbits_ad_space.split(","),
         "AD_SPACE_ENABLED": settings.lnbits_ad_space_enabled,
@@ -85,8 +82,8 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         "LNBITS_CUSTOM_BADGE_COLOR": settings.lnbits_custom_badge_color,
         "LNBITS_EXTENSIONS_DEACTIVATE_ALL": settings.lnbits_extensions_deactivate_all,
         "LNBITS_NEW_ACCOUNTS_ALLOWED": settings.new_accounts_allowed,
-        "LNBITS_NODE_UI": settings.lnbits_node_ui and has_nodemanager,
-        "LNBITS_NODE_UI_AVAILABLE": has_nodemanager,
+        "LNBITS_NODE_UI": settings.lnbits_node_ui and settings.has_nodemanager,
+        "LNBITS_NODE_UI_AVAILABLE": settings.has_nodemanager,
         "LNBITS_QR_LOGO": settings.lnbits_qr_logo,
         "LNBITS_SERVICE_FEE": settings.lnbits_service_fee,
         "LNBITS_SERVICE_FEE_MAX": settings.lnbits_service_fee_max,

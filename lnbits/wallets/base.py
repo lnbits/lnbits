@@ -109,6 +109,10 @@ class Wallet(ABC):
     __node_cls__: type[Node] | None = None
     features: list[Feature] | None = None
 
+    def has_feature(self, feature: str) -> bool:
+        feat = Feature(feature)
+        return self.features is not None and feat in self.features
+
     def __init__(self) -> None:
         self.pending_invoices: list[str] = []
 

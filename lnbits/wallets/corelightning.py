@@ -32,14 +32,15 @@ async def run_sync(func) -> Any:
 
 
 class CoreLightningWallet(Wallet):
+    """Core Lightning RPC implementation."""
+
     __node_cls__ = CoreLightningNode
+    features = [Feature.nodemanager]
 
     async def cleanup(self):
         pass
 
     def __init__(self):
-
-        self.features = [Feature.nodemanager]
 
         rpc = settings.corelightning_rpc or settings.clightning_rpc
         if not rpc:

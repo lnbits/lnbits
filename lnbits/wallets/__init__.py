@@ -39,6 +39,10 @@ def set_funding_source(class_name: str | None = None) -> None:
     funding_source_constructor = getattr(wallets_module, backend_wallet_class)
     global funding_source
     funding_source = funding_source_constructor()
+    settings.has_nodemanager = (
+        funding_source.features is not None
+        and Feature.nodemanager in funding_source.features
+    )
 
 
 def get_funding_source() -> Wallet:

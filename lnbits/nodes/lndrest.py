@@ -16,6 +16,7 @@ from lnbits.nodes.base import (
     ChannelPoint,
     ChannelState,
     ChannelStats,
+    Node,
     NodeChannel,
     NodeFees,
     NodeInfoResponse,
@@ -27,7 +28,6 @@ from lnbits.nodes.base import (
     PublicNodeInfo,
 )
 from lnbits.utils.cache import cache
-from lnbits.wallets.base import Node
 
 if TYPE_CHECKING:
     from lnbits.wallets import LndRestWallet

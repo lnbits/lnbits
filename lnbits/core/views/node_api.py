@@ -27,11 +27,12 @@ from ...nodes.base import (
 from ...utils.cache import cache
 
 
-def require_node() -> None:
+def require_node() -> Node:
     funding_source = get_funding_source()
     if (
         not funding_source.features
         or Feature.nodemanager not in funding_source.features
+        or not funding_source.__node_cls__
     ):
         raise HTTPException(
             status_code=HTTPStatus.NOT_IMPLEMENTED,
@@ -42,6 +43,7 @@ def require_node() -> None:
             status_code=HTTPStatus.SERVICE_UNAVAILABLE,
             detail="Not enabled",
         )
+    return funding_source.__node_cls__(funding_source)
 
 
 def check_public():
