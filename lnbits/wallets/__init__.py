@@ -49,10 +49,6 @@ def get_funding_source() -> Wallet:
     return funding_source
 
 
-def has_feature(feature: Feature) -> bool:
-    return funding_source.features is not None and feature in funding_source.features
-
-
 wallets_module = importlib.import_module("lnbits.wallets")
 fake_wallet = FakeWallet()
 
