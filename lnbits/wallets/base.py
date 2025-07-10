@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Coroutine
-from enum import StrEnum
+from enum import Enum
 from typing import TYPE_CHECKING, NamedTuple
 
 from loguru import logger
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from lnbits.nodes.base import Node
 
 
-class Feature(StrEnum):
+class Feature(Enum):
     nodemanager = "nodemanager"
     # hold = "hold"
     # bolt12 = "bolt12"
