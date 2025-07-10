@@ -65,7 +65,7 @@ environ["GRPC_SSL_CIPHER_SUITES"] = "HIGH+ECDSA"
 
 
 class LndWallet(Wallet):
-    features = [Feature.hold]
+    features = [Feature.holdinvoice]
 
     def __init__(self):
         if not settings.lnd_grpc_endpoint:

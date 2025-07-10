@@ -31,7 +31,7 @@ class LndRestWallet(Wallet):
     """https://api.lightning.community/#lnd-rest-api-reference"""
 
     __node_cls__ = LndRestNode
-    features = [Feature.nodemanager, Feature.hold]
+    features = [Feature.nodemanager, Feature.holdinvoice]
 
     def __init__(self):
         if not settings.lnd_rest_endpoint:

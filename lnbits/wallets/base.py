@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 class Feature(Enum):
     nodemanager = "nodemanager"
-    hold = "hold"
+    holdinvoice = "holdinvoice"
     # bolt12 = "bolt12"
 
 
