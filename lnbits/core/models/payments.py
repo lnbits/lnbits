@@ -252,13 +252,24 @@ class CreateInvoice(BaseModel):
     memo: str | None = Query(None, max_length=640)
     description_hash: str | None = None
     unhashed_description: str | None = None
-    payment_hash: str | None = None
+    payment_hash: str | None = Query(
+        None,
+        description="The payment hash of the hold invoice.",
+        min_length=64,
+        max_length=64,
+    )
     expiry: int | None = None
     extra: dict | None = None
     webhook: str | None = None
     bolt11: str | None = None
     lnurl_callback: str | None = None
     fiat_provider: str | None = None
+
+    @validator("payment_hash")
+    def check_hex(cls, v):
+        if v:
+            _ = bytes.fromhex(v)
+        return v
 
     @validator("unit")
     @classmethod
@@ -283,6 +294,11 @@ class SettleInvoice(BaseModel):
         max_length=64,
     )
 
+    @validator("preimage")
+    def check_hex(cls, v):
+        _ = bytes.fromhex(v)
+        return v
+
 
 class CancelInvoice(BaseModel):
     payment_hash: str = Field(
@@ -291,3 +307,8 @@ class CancelInvoice(BaseModel):
         min_length=64,
         max_length=64,
     )
+
+    @validator("payment_hash")
+    def check_hex(cls, v):
+        _ = bytes.fromhex(v)
+        return v
