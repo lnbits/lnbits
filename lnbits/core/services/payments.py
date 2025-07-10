@@ -277,11 +277,6 @@ async def create_invoice(
         )
 
     if payment_hash:
-        if len(bytes.fromhex(payment_hash)) != 32:
-            raise InvoiceError(
-                "Invalid payment_hash length. Must be 32 bytes",
-                status="failed",
-            )
         try:
             invoice_response = await funding_source.create_hold_invoice(
                 amount=amount_sat,
