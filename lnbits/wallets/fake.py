@@ -43,22 +43,6 @@ class FakeWallet(Wallet):
     async def cleanup(self):
         pass
 
-    async def create_hold_invoice(self, *_, **__) -> InvoiceResponse:
-        return InvoiceResponse(
-            ok=False, error_message="Hold invoices are not supported in FakeWallet."
-        )
-
-    async def settle_hold_invoice(self, *_, **__) -> InvoiceResponse:
-        return InvoiceResponse(
-            ok=False, error_message="Hold invoices are not supported in FakeWallet."
-        )
-
-    async def cancel_hold_invoice(self, *_, **__) -> InvoiceResponse:
-        return InvoiceResponse(
-            ok=False,
-            error_message="Hold invoices are not supported in FakeWallet.",
-        )
-
     async def status(self) -> StatusResponse:
         logger.info(
             "FakeWallet funding source is for using LNbits as a centralised,"
