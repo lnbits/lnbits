@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
 
 class Feature(StrEnum):
-    # Features that are supported by the wallet
     nodemanager = "nodemanager"
     # hold = "hold"
     # bolt12 = "bolt12"
