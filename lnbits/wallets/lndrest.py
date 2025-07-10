@@ -351,7 +351,11 @@ class LndRestWallet(Wallet):
             r.raise_for_status()
             data = r.json()
         except httpx.HTTPStatusError as exc:
+            logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=exc.response.text)
+        except Exception as exc:
+            logger.error(exc)
+            return InvoiceResponse(ok=False, error_message=str(exc))
 
         payment_request = data["payment_request"]
         payment_hash = base64.b64encode(bytes.fromhex(payment_hash)).decode("ascii")
@@ -369,7 +373,11 @@ class LndRestWallet(Wallet):
             r.raise_for_status()
             return InvoiceResponse(ok=True, preimage=preimage)
         except httpx.HTTPStatusError as exc:
+            logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=exc.response.text)
+        except Exception as exc:
+            logger.error(exc)
+            return InvoiceResponse(ok=False, error_message=str(exc))
 
     async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
         rhash = bytes.fromhex(payment_hash)
@@ -383,3 +391,6 @@ class LndRestWallet(Wallet):
             return InvoiceResponse(ok=True, checking_id=payment_hash)
         except httpx.HTTPStatusError as exc:
             return InvoiceResponse(ok=False, error_message=exc.response.text)
+        except Exception as exc:
+            logger.error(exc)
+            return InvoiceResponse(ok=False, error_message=str(exc))

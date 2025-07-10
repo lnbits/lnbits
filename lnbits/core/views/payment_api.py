@@ -497,7 +497,7 @@ async def api_payments_settle(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Payment does not exist or does not belong to this wallet.",
         )
-    return await settle_hold_invoice(preimage=data.preimage)
+    return await settle_hold_invoice(payment, data.preimage)
 
 
 @payment_router.post("/cancel")
@@ -512,4 +512,4 @@ async def api_payments_cancel(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Payment does not exist or does not belong to this wallet.",
         )
-    return await cancel_hold_invoice(payment_hash=data.payment_hash)
+    return await cancel_hold_invoice(payment)

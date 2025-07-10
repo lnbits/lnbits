@@ -362,7 +362,7 @@ class LndWallet(Wallet):
             # If we cannot cancel the invoice, we return an error message
             # and True for ok that should be ignored by the service
             return InvoiceResponse(
-                ok=True, checking_id=payment_hash, error_message=str(exc)
+                ok=False, checking_id=payment_hash, error_message=str(exc)
             )
         # If we reach here, the invoice was successfully canceled and payment failed
-        return InvoiceResponse(False, checking_id=payment_hash)
+        return InvoiceResponse(True, checking_id=payment_hash)

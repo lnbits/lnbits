@@ -21,7 +21,7 @@ from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 from lnbits.tasks import create_task, internal_invoice_queue_put
-from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
+from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_preimage
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
@@ -974,40 +974,38 @@ async def _check_fiat_invoice_limits(
             )
 
 
-async def settle_hold_invoice(*, preimage: str) -> InvoiceResponse:
-    if len(bytes.fromhex(preimage)) != 32:
-        raise InvoiceError(
-            "Invalid preimage length. Must be 32 bytes",
-            status="failed",
-        )
+async def settle_hold_invoice(payment: Payment, preimage: str) -> InvoiceResponse:
+    if verify_preimage(preimage, payment.payment_hash) is False:
+        raise InvoiceError("Invalid preimage.", status="failed")
 
     funding_source = get_funding_source()
-    try:
-        response = await funding_source.settle_hold_invoice(preimage=preimage)
-    except UnsupportedError as exc:
-        raise InvoiceError(str(exc), status="failed") from exc
+    response = await funding_source.settle_hold_invoice(preimage=preimage)
 
     if not response.ok:
-        raise InvoiceError("Unexpected backend error.", status="failed")
+        raise InvoiceError(
+            response.error_message or "Unexpected backend error.", status="failed"
+        )
+
+    payment.preimage = preimage
+    payment.extra["hold_invoice_settled"] = True
+    await update_payment(payment)
 
     return response
 
 
-async def cancel_hold_invoice(payment_hash: str) -> InvoiceResponse:
-    payment = await get_standalone_payment(payment_hash, incoming=True)
-    if not payment:
-        raise InvoiceError("Payment not found.", status="failed")
-
+async def cancel_hold_invoice(payment: Payment) -> InvoiceResponse:
     funding_source = get_funding_source()
-    try:
-        response = await funding_source.cancel_hold_invoice(payment_hash=payment_hash)
-    except UnsupportedError as exc:
-        raise InvoiceError(str(exc), status="failed") from exc
+    response = await funding_source.cancel_hold_invoice(
+        payment_hash=payment.payment_hash
+    )
 
-    # ok means invoice couldnt be cancelled
-    if response.ok:
+    if not response.ok:
         raise InvoiceError(
             response.error_message or "Unexpected backend error.", status="failed"
         )
+
+    payment.status = PaymentState.FAILED
+    payment.extra["hold_invoice_cancelled"] = True
+    await update_payment(payment)
 
     return response

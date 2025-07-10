@@ -59,9 +59,6 @@ class FakeWallet(Wallet):
             error_message="Hold invoices are not supported in FakeWallet.",
         )
 
-    def hold_invoices_stream(self, *_, **__):
-        raise NotImplementedError()
-
     async def status(self) -> StatusResponse:
         logger.info(
             "FakeWallet funding source is for using LNbits as a centralised,"

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, NamedTuple
 
 from loguru import logger
 
-from lnbits.exceptions import UnsupportedError
+from lnbits.exceptions import InvoiceError
 from lnbits.settings import settings
 
 if TYPE_CHECKING:
@@ -151,13 +151,19 @@ class Wallet(ABC):
         unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
-        raise UnsupportedError()
+        raise InvoiceError(
+            message="Hold invoices are not supported by this wallet.", status="failed"
+        )
 
     async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
-        raise UnsupportedError()
+        raise InvoiceError(
+            message="Hold invoices are not supported by this wallet.", status="failed"
+        )
 
     async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
-        raise UnsupportedError()
+        raise InvoiceError(
+            message="Hold invoices are not supported by this wallet.", status="failed"
+        )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:
