@@ -79,10 +79,7 @@ class CoreLightningWallet(Wallet):
                 return StatusResponse("no data", 0)
 
             return StatusResponse(
-                error_message="",
-                balance_msat=sum(
-                    [int(ch["our_amount_msat"]) for ch in funds["channels"]]
-                ),
+                None, sum([int(ch["our_amount_msat"]) for ch in funds["channels"]])
             )
         except RpcError as exc:
             logger.warning(exc)
