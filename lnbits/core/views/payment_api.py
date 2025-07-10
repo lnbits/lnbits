@@ -1,5 +1,6 @@
 import json
 import ssl
+from hashlib import sha256
 from http import HTTPStatus
 from math import ceil
 from typing import Optional
@@ -22,6 +23,7 @@ from lnbits.core.crud.payments import (
     get_wallets_stats,
 )
 from lnbits.core.models import (
+    CancelInvoice,
     CreateInvoice,
     CreateLnurl,
     DecodePayment,
@@ -34,6 +36,7 @@ from lnbits.core.models import (
     PaymentFilters,
     PaymentHistoryPoint,
     PaymentWalletStats,
+    SettleInvoice,
 )
 from lnbits.core.models.users import User
 from lnbits.db import Filters, Page
@@ -52,6 +55,7 @@ from lnbits.helpers import (
 from lnbits.lnurl import decode as lnurl_decode
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from lnbits.wallets.base import InvoiceResponse
 
 from ..crud import (
     DateTrunc,
@@ -62,10 +66,12 @@ from ..crud import (
     get_wallet_for_key,
 )
 from ..services import (
+    cancel_hold_invoice,
     create_payment_request,
     fee_reserve_total,
     get_payments_daily_stats,
     pay_invoice,
+    settle_hold_invoice,
     update_pending_payment,
     update_pending_payments,
 )
@@ -476,3 +482,34 @@ async def api_payment_pay_with_nfc(
 
         except Exception as e:
             return JSONResponse({"success": False, "detail": f"Unexpected error: {e}"})
+
+
+@payment_router.post("/settle")
+async def api_payments_settle(
+    data: SettleInvoice, key_type: WalletTypeInfo = Depends(require_admin_key)
+) -> InvoiceResponse:
+    payment_hash = sha256(bytes.fromhex(data.preimage)).hexdigest()
+    payment = await get_standalone_payment(
+        payment_hash, incoming=True, wallet_id=key_type.wallet.id
+    )
+    if not payment:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Payment does not exist or does not belong to this wallet.",
+        )
+    return await settle_hold_invoice(payment, data.preimage)
+
+
+@payment_router.post("/cancel")
+async def api_payments_cancel(
+    data: CancelInvoice, key_type: WalletTypeInfo = Depends(require_admin_key)
+) -> InvoiceResponse:
+    payment = await get_standalone_payment(
+        data.payment_hash, incoming=True, wallet_id=key_type.wallet.id
+    )
+    if not payment:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Payment does not exist or does not belong to this wallet.",
+        )
+    return await cancel_hold_invoice(payment)

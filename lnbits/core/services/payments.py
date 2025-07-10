@@ -16,15 +16,16 @@ from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
-from lnbits.exceptions import InvoiceError, PaymentError
+from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
 from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 from lnbits.tasks import create_task, internal_invoice_queue_put
-from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
+from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_preimage
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
+    InvoiceResponse,
     PaymentPendingStatus,
     PaymentResponse,
     PaymentStatus,
@@ -200,6 +201,7 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
         extra=data.extra,
         webhook=data.webhook,
         internal=data.internal,
+        payment_hash=data.payment_hash,
     )
 
     # lnurl_response is not saved in the database
@@ -240,6 +242,7 @@ async def create_invoice(
     extra: Optional[dict] = None,
     webhook: Optional[str] = None,
     internal: Optional[bool] = False,
+    payment_hash: str | None = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
     if not amount > 0:
@@ -273,39 +276,54 @@ async def create_invoice(
             status="failed",
         )
 
-    payment_response = await funding_source.create_invoice(
-        amount=amount_sat,
-        memo=invoice_memo,
-        description_hash=description_hash,
-        unhashed_description=unhashed_description,
-        expiry=expiry or settings.lightning_invoice_expiry,
-    )
+    if payment_hash:
+        try:
+            invoice_response = await funding_source.create_hold_invoice(
+                amount=amount_sat,
+                memo=invoice_memo,
+                payment_hash=payment_hash,
+                description_hash=description_hash,
+            )
+            extra["hold_invoice"] = True
+        except UnsupportedError as exc:
+            raise InvoiceError(
+                "Hold invoices are not supported by the funding source.",
+                status="failed",
+            ) from exc
+    else:
+        invoice_response = await funding_source.create_invoice(
+            amount=amount_sat,
+            memo=invoice_memo,
+            description_hash=description_hash,
+            unhashed_description=unhashed_description,
+            expiry=expiry or settings.lightning_invoice_expiry,
+        )
     if (
-        not payment_response.ok
-        or not payment_response.payment_request
-        or not payment_response.checking_id
+        not invoice_response.ok
+        or not invoice_response.payment_request
+        or not invoice_response.checking_id
     ):
         raise InvoiceError(
-            message=payment_response.error_message or "unexpected backend error.",
+            message=invoice_response.error_message or "unexpected backend error.",
             status="pending",
         )
-    invoice = bolt11_decode(payment_response.payment_request)
+    invoice = bolt11_decode(invoice_response.payment_request)
 
     create_payment_model = CreatePayment(
         wallet_id=wallet_id,
-        bolt11=payment_response.payment_request,
+        bolt11=invoice_response.payment_request,
         payment_hash=invoice.payment_hash,
-        preimage=payment_response.preimage,
+        preimage=invoice_response.preimage,
         amount_msat=amount_sat * 1000,
         expiry=invoice.expiry_date,
         memo=memo,
         extra=extra,
         webhook=webhook,
-        fee=payment_response.fee_msat or 0,
+        fee=invoice_response.fee_msat or 0,
     )
 
     payment = await create_payment(
-        checking_id=payment_response.checking_id,
+        checking_id=invoice_response.checking_id,
         data=create_payment_model,
         conn=conn,
     )
@@ -949,3 +967,40 @@ async def _check_fiat_invoice_limits(
                 f"The amount exceeds the '{fiat_provider_name}'"
                 "faucet wallet balance.",
             )
+
+
+async def settle_hold_invoice(payment: Payment, preimage: str) -> InvoiceResponse:
+    if verify_preimage(preimage, payment.payment_hash) is False:
+        raise InvoiceError("Invalid preimage.", status="failed")
+
+    funding_source = get_funding_source()
+    response = await funding_source.settle_hold_invoice(preimage=preimage)
+
+    if not response.ok:
+        raise InvoiceError(
+            response.error_message or "Unexpected backend error.", status="failed"
+        )
+
+    payment.preimage = preimage
+    payment.extra["hold_invoice_settled"] = True
+    await update_payment(payment)
+
+    return response
+
+
+async def cancel_hold_invoice(payment: Payment) -> InvoiceResponse:
+    funding_source = get_funding_source()
+    response = await funding_source.cancel_hold_invoice(
+        payment_hash=payment.payment_hash
+    )
+
+    if not response.ok:
+        raise InvoiceError(
+            response.error_message or "Unexpected backend error.", status="failed"
+        )
+
+    payment.status = PaymentState.FAILED
+    payment.extra["hold_invoice_cancelled"] = True
+    await update_payment(payment)
+
+    return response
