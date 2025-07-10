@@ -19,6 +19,7 @@ from lnbits.utils.crypto import random_secret_and_hash
 from lnbits.wallets.lnd_grpc_files.router_pb2_grpc import RouterStub
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -64,6 +65,8 @@ environ["GRPC_SSL_CIPHER_SUITES"] = "HIGH+ECDSA"
 
 
 class LndWallet(Wallet):
+    features = [Feature.hold]
+
     def __init__(self):
         if not settings.lnd_grpc_endpoint:
             raise ValueError("cannot initialize LndWallet: missing lnd_grpc_endpoint")

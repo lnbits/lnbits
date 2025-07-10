@@ -40,6 +40,7 @@ def set_funding_source(class_name: str | None = None) -> None:
     global funding_source
     funding_source = funding_source_constructor()
     settings.has_nodemanager = funding_source.has_feature(Feature.nodemanager)
+    settings.has_holdinvoice = funding_source.has_feature(Feature.hold)
 
 
 def get_funding_source() -> Wallet:
