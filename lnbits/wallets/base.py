@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Coroutine
+from enum import Enum
 from typing import TYPE_CHECKING, NamedTuple
 
 from loguru import logger
@@ -11,6 +12,12 @@ from lnbits.settings import settings
 
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
+
+
+class Feature(Enum):
+    nodemanager = "nodemanager"
+    # hold = "hold"
+    # bolt12 = "bolt12"
 
 
 class StatusResponse(NamedTuple):
@@ -100,6 +107,10 @@ class PaymentPendingStatus(PaymentStatus):
 class Wallet(ABC):
 
     __node_cls__: type[Node] | None = None
+    features: list[Feature] | None = None
+
+    def has_feature(self, feature: Feature) -> bool:
+        return self.features is not None and feature in self.features
 
     def __init__(self) -> None:
         self.pending_invoices: list[str] = []

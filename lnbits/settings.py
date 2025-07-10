@@ -987,6 +987,8 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
 
     server_startup_time: int = Field(default=time())
 
+    has_nodemanager: bool = Field(default=False)
+
     @property
     def lnbits_server_up_time(self) -> str:
         up_time = int(time() - self.server_startup_time)

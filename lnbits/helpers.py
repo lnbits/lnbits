@@ -16,7 +16,6 @@ from packaging import version
 from pydantic.schema import field_schema
 
 from lnbits.jinja2_templating import Jinja2Templates
-from lnbits.nodes import get_node_class
 from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
 
@@ -83,8 +82,8 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         "LNBITS_CUSTOM_BADGE_COLOR": settings.lnbits_custom_badge_color,
         "LNBITS_EXTENSIONS_DEACTIVATE_ALL": settings.lnbits_extensions_deactivate_all,
         "LNBITS_NEW_ACCOUNTS_ALLOWED": settings.new_accounts_allowed,
-        "LNBITS_NODE_UI": settings.lnbits_node_ui and get_node_class() is not None,
-        "LNBITS_NODE_UI_AVAILABLE": get_node_class() is not None,
+        "LNBITS_NODE_UI": settings.lnbits_node_ui and settings.has_nodemanager,
+        "LNBITS_NODE_UI_AVAILABLE": settings.has_nodemanager,
         "LNBITS_QR_LOGO": settings.lnbits_qr_logo,
         "LNBITS_SERVICE_FEE": settings.lnbits_service_fee,
         "LNBITS_SERVICE_FEE_MAX": settings.lnbits_service_fee_max,

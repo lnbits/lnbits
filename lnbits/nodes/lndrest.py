@@ -11,12 +11,12 @@ from httpx import HTTPStatusError
 from loguru import logger
 
 from lnbits.db import Filters, Page
-from lnbits.nodes import Node
 from lnbits.nodes.base import (
     ChannelBalance,
     ChannelPoint,
     ChannelState,
     ChannelStats,
+    Node,
     NodeChannel,
     NodeFees,
     NodeInfoResponse,
