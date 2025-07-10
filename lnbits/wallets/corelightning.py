@@ -14,6 +14,7 @@ from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -31,12 +32,16 @@ async def run_sync(func) -> Any:
 
 
 class CoreLightningWallet(Wallet):
+    """Core Lightning RPC implementation."""
+
     __node_cls__ = CoreLightningNode
+    features = [Feature.nodemanager]
 
     async def cleanup(self):
         pass
 
     def __init__(self):
+
         rpc = settings.corelightning_rpc or settings.clightning_rpc
         if not rpc:
             raise ValueError(

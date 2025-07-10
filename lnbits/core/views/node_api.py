@@ -7,8 +7,9 @@ from pydantic import BaseModel
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
 from lnbits.decorators import check_admin, check_super_user, parse_filters
-from lnbits.nodes import get_node_class
 from lnbits.settings import settings
+from lnbits.wallets import get_funding_source
+from lnbits.wallets.base import Feature
 
 from ...db import Filters, Page
 from ...nodes.base import (
@@ -26,9 +27,13 @@ from ...nodes.base import (
 from ...utils.cache import cache
 
 
-def require_node():
-    node_class = get_node_class()
-    if not node_class:
+def require_node() -> Node:
+    funding_source = get_funding_source()
+    if (
+        not funding_source.features
+        or Feature.nodemanager not in funding_source.features
+        or not funding_source.__node_cls__
+    ):
         raise HTTPException(
             status_code=HTTPStatus.NOT_IMPLEMENTED,
             detail="Active backend does not implement Node API",
@@ -38,7 +43,7 @@ def require_node():
             status_code=HTTPStatus.SERVICE_UNAVAILABLE,
             detail="Not enabled",
         )
-    return node_class
+    return funding_source.__node_cls__(funding_source)
 
 
 def check_public():

@@ -14,6 +14,7 @@ from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
 from .base import (
+    Feature,
     InvoiceResponse,
     PaymentFailedStatus,
     PaymentPendingStatus,
@@ -30,6 +31,7 @@ class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
 
     __node_cls__ = LndRestNode
+    features = [Feature.nodemanager]
 
     def __init__(self):
         if not settings.lnd_rest_endpoint:
