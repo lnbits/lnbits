@@ -8,13 +8,15 @@ from typing import Optional
 import grpc
 from loguru import logger
 
+import lnbits.wallets.lnd_grpc_files.invoices_pb2 as invoices
+import lnbits.wallets.lnd_grpc_files.invoices_pb2_grpc as invoicesrpc
 import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
 import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 import lnbits.wallets.lnd_grpc_files.router_pb2 as router
-import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
+from lnbits.wallets.lnd_grpc_files.router_pb2_grpc import RouterStub
 
 from .base import (
     InvoiceResponse,
@@ -98,7 +100,8 @@ class LndWallet(Wallet):
             f"{self.endpoint}:{self.port}", composite_creds
         )
         self.rpc = lnrpc.LightningStub(channel)
-        self.routerpc = routerrpc.RouterStub(channel)
+        self.routerpc = RouterStub(channel)
+        self.invoicesrpc = invoicesrpc.InvoicesStub(channel)
 
     def metadata_callback(self, _, callback):
         callback([("macaroon", self.macaroon)], None)
@@ -108,7 +111,7 @@ class LndWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())
+            resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())  # type: ignore
         except Exception as exc:
             return StatusResponse(f"Unable to connect, got: '{exc}'", 0)
 
@@ -144,7 +147,7 @@ class LndWallet(Wallet):
         data["r_hash"] = bytes.fromhex(payment_hash)
         data["r_preimage"] = bytes.fromhex(preimage)
         try:
-            req = ln.Invoice(**data)
+            req = ln.Invoice(**data)  # type: ignore
             resp = await self.rpc.AddInvoice(req)
             # response model
             # {
@@ -168,7 +171,7 @@ class LndWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
-        req = router.SendPaymentRequest(
+        req = router.SendPaymentRequest(  # type: ignore
             payment_request=bolt11,
             fee_limit_msat=fee_limit_msat,
             timeout_seconds=30,
@@ -227,7 +230,7 @@ class LndWallet(Wallet):
                 # that use different checking_id formats
                 raise ValueError
 
-            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
+            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))  # type: ignore
             if resp.settled:
                 return PaymentSuccessStatus(preimage=resp.r_preimage.hex())
 
@@ -271,7 +274,7 @@ class LndWallet(Wallet):
 
         try:
             resp = self.routerpc.TrackPaymentV2(
-                router.TrackPaymentRequest(payment_hash=r_hash)
+                router.TrackPaymentRequest(payment_hash=r_hash)  # type: ignore
             )
             async for payment in resp:
                 if len(payment.htlcs) and statuses[payment.status]:
@@ -288,7 +291,7 @@ class LndWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:
             try:
-                request = ln.InvoiceSubscription()
+                request = ln.InvoiceSubscription()  # type: ignore
                 async for i in self.rpc.SubscribeInvoices(request):
                     if not i.settled:
                         continue
@@ -301,3 +304,65 @@ class LndWallet(Wallet):
                     "retrying in 5 seconds"
                 )
                 await asyncio.sleep(5)
+
+    async def create_hold_invoice(
+        self,
+        amount: int,
+        payment_hash: str,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
+    ) -> InvoiceResponse:
+        data: dict = {
+            "description_hash": b"",
+            "value": amount,
+            "hash": hex_to_bytes(payment_hash),
+            "private": True,
+            "memo": memo or "",
+        }
+        if kwargs.get("expiry"):
+            data["expiry"] = kwargs["expiry"]
+        if description_hash:
+            data["description_hash"] = description_hash
+        elif unhashed_description:
+            data["description_hash"] = sha256(unhashed_description).digest()
+        try:
+            req = invoices.AddHoldInvoiceRequest(**data)  # type: ignore
+            res = await self.invoicesrpc.AddHoldInvoice(req)
+            logger.debug(f"AddHoldInvoice response: {res}")
+        except Exception as exc:
+            logger.warning(exc)
+            error_message = str(exc)
+            return InvoiceResponse(ok=False, error_message=error_message)
+        return InvoiceResponse(
+            ok=True, checking_id=payment_hash, payment_request=str(res.payment_request)
+        )
+
+    async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
+        try:
+            req = invoices.SettleInvoiceMsg(preimage=hex_to_bytes(preimage))  # type: ignore
+            await self.invoicesrpc.SettleInvoice(req)
+        except grpc.aio.AioRpcError as exc:
+            return InvoiceResponse(
+                ok=False, error_message=exc.details() or "unknown grpc exception"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return InvoiceResponse(ok=False, error_message=str(exc))
+        return InvoiceResponse(ok=True, preimage=preimage)
+
+    async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
+        try:
+            req = invoices.CancelInvoiceMsg(payment_hash=hex_to_bytes(payment_hash))  # type: ignore
+            res = await self.invoicesrpc.CancelInvoice(req)
+            logger.debug(f"CancelInvoice response: {res}")
+        except Exception as exc:
+            logger.warning(exc)
+            # If we cannot cancel the invoice, we return an error message
+            # and True for ok that should be ignored by the service
+            return InvoiceResponse(
+                ok=False, checking_id=payment_hash, error_message=str(exc)
+            )
+        # If we reach here, the invoice was successfully canceled and payment failed
+        return InvoiceResponse(True, checking_id=payment_hash)

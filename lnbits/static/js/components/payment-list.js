@@ -118,7 +118,13 @@ window.app.component('payment-list', {
             field: row => row.extra.wallet_fiat_amount
           }
         ],
+        preimage: null,
         loading: false
+      },
+      hodlInvoice: {
+        show: false,
+        payment: null,
+        preimage: null
       }
     }
   },
@@ -220,6 +226,35 @@ window.app.component('payment-list', {
               message: this.$t('payment_pending')
             })
           }
+        })
+        .catch(LNbits.utils.notifyApiError)
+    },
+    showHoldInvoiceDialog(payment) {
+      this.hodlInvoice.show = true
+      this.hodlInvoice.preimage = ''
+      this.hodlInvoice.payment = payment
+    },
+    cancelHoldInvoice(payment_hash) {
+      LNbits.api
+        .cancelInvoice(this.g.wallet, payment_hash)
+        .then(() => {
+          this.update = !this.update
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('invoice_cancelled')
+          })
+        })
+        .catch(LNbits.utils.notifyApiError)
+    },
+    settleHoldInvoice(preimage) {
+      LNbits.api
+        .settleInvoice(this.g.wallet, preimage)
+        .then(() => {
+          this.update = !this.update
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('invoice_settled')
+          })
         })
         .catch(LNbits.utils.notifyApiError)
     },
