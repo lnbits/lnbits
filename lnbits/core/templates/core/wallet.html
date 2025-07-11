@@ -662,6 +662,7 @@
             ></q-input>
             {% endif %}
             <q-input
+              v-if="has_holdinvoice"
               filled
               dense
               v-model="receive.data.payment_hash"
