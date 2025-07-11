@@ -987,6 +987,7 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
 
     server_startup_time: int = Field(default=time())
 
+    has_holdinvoice: bool = Field(default=False)
     has_nodemanager: bool = Field(default=False)
 
     @property

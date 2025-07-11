@@ -104,6 +104,7 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
             if settings.lnbits_denomination == "FakeWallet"
             else "sats"
         ),
+        "has_holdinvoice": settings.has_holdinvoice,
     }
 
     t.env.globals["WINDOW_SETTINGS"] = window_settings
