@@ -22,7 +22,7 @@ from lnbits.core.crud import (
     get_standalone_payment,
     update_payment,
 )
-from lnbits.core.models import Payment, PaymentState
+from lnbits.core.models import Payment, PaymentState, CreatePayment
 from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
@@ -215,41 +215,41 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
                     logger.warning(f"No offer found for '{invoice_status.offer_id}'.")
                     return
 
-               logger.info(f"Offer {invoice_status.offer_id} was found in db") 
-               data = await funding_source.decode_invoice(invoice_status.string)
+                logger.info(f"Offer {invoice_status.offer_id} was found in db") 
+                data = await funding_source.decode_invoice(invoice_status.string)
 
-               if not data:
-                   logger.error(f"Invoice {checking_id} could not be decoded")
-               elif not data.offer_id:
-                   logger.error(f"Decoded invoice {checking_id} does not have an offer_id")
-               elif data.offer_id != invoice_status.offer_id:
-                   logger.error(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
-               else:
-                   description = data.description or f"Offer {data.offer_id} payment" if data.offer_id else f"Payment for invoice {data.payment_hash}"
-                   create_payment_model = CreatePayment(
-                       wallet_id=offer.wallet_id,
-                       bolt11=data.bolt11,
-                       payment_hash=data.payment_hash,
-                       preimage=invoice_status.payment_preimage,
-                       amount_msat=data.amount_msat,
-                       offer_id=data.offer_id,
-                       expiry=data.invoice_created_at+data.invoice_relative_expiry if data.invoice_relative_expiry else None,
-                       memo=description,
-                   )
-
-                   if offer.is_unused:
-                       await update_offer_used(data.offer_id, True)
-
-                   payment = await create_payment(
-                       checking_id=checking_id,
-                       data=create_payment_model,
-                       created_at=data.invoice_created_at,
-                       updated_at=invoice_status.paid_at or datetime.now(timezone.utc),
-                       status = PaymentState.SUCCESS
-                   )
-
-                   internal = "internal" if is_internal else ""
-                   logger.success(f"{internal} invoice {checking_id} settled")
-                   for name, send_chan in invoice_listeners.items():
-                       logger.trace(f"invoice listeners: sending to `{name}`")
-                       await send_chan.put(payment)
+                if not data:
+                    logger.error(f"Invoice {checking_id} could not be decoded")
+                elif not data.offer_id:
+                    logger.error(f"Decoded invoice {checking_id} does not have an offer_id")
+                elif data.offer_id != invoice_status.offer_id:
+                    logger.error(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
+                else:
+                    description = data.description or f"Offer {data.offer_id} payment" if data.offer_id else f"Payment for invoice {data.payment_hash}"
+                    create_payment_model = CreatePayment(
+                        wallet_id=offer.wallet_id,
+                        bolt11=data.bolt11,
+                        payment_hash=data.payment_hash,
+                        preimage=invoice_status.payment_preimage,
+                        amount_msat=data.amount_msat,
+                        offer_id=data.offer_id,
+                        expiry=data.invoice_created_at+data.invoice_relative_expiry if data.invoice_relative_expiry else None,
+                        memo=description,
+                    )
+ 
+                    if offer.is_unused:
+                        await update_offer_used(data.offer_id, True)
+ 
+                    payment = await create_payment(
+                        checking_id=checking_id,
+                        data=create_payment_model,
+                        created_at=data.invoice_created_at,
+                        updated_at=invoice_status.paid_at or datetime.now(timezone.utc),
+                        status = PaymentState.SUCCESS
+                    )
+ 
+                    internal = "internal" if is_internal else ""
+                    logger.success(f"{internal} invoice {checking_id} settled")
+                    for name, send_chan in invoice_listeners.items():
+                        logger.trace(f"invoice listeners: sending to `{name}`")
+                        await send_chan.put(payment)

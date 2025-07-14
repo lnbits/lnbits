@@ -3,7 +3,7 @@ from collections.abc import AsyncGenerator
 from secrets import token_urlsafe
 from typing import Any, Optional
 
-from bolt11 import decode as bolt11_decode
+from bolt11.decode import decode as bolt11_decode
 from bolt11.exceptions import Bolt11Exception
 from loguru import logger
 from pyln.client import LightningRpc, RpcError
