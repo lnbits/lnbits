@@ -1,11 +1,13 @@
 import asyncio
 import hashlib
 import json
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 import httpx
 from loguru import logger
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -27,7 +29,7 @@ class AlbyWallet(Wallet):
         if not settings.alby_access_token:
             raise ValueError("cannot initialize AlbyWallet: missing alby_access_token")
 
-        self.endpoint = self.normalize_endpoint(settings.alby_api_endpoint)
+        self.endpoint = normalize_endpoint(settings.alby_api_endpoint)
         self.auth = {
             "Authorization": "Bearer " + settings.alby_access_token,
             "User-Agent": settings.user_agent,

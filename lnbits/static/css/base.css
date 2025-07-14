@@ -1,617 +1,218 @@
-body[data-theme=classic].body--light {
-  background-color: #f4f4f4;
+body[data-theme=classic].neon-border .q-card,
+body[data-theme=classic].neon-border .q-card.q-card--dark,
+body[data-theme=classic].neon-border .q-date,
+body[data-theme=classic].neon-border .q-date--dark {
+  border: 2px solid #673ab7;
+  box-shadow: none;
 }
 
-body[data-theme=classic].body--light {
-  background-color: #f4f4f4;
+body[data-theme=bitcoin].neon-border .q-card,
+body[data-theme=bitcoin].neon-border .q-card.q-card--dark,
+body[data-theme=bitcoin].neon-border .q-date,
+body[data-theme=bitcoin].neon-border .q-date--dark {
+  border: 2px solid #ea611d;
+  box-shadow: none;
 }
 
-[data-theme=classic] .q-drawer--dark,
-body[data-theme=classic].body--dark,
-[data-theme=classic] .q-menu--dark {
-  background: #1f2234 !important;
+body[data-theme=freedom].neon-border .q-card,
+body[data-theme=freedom].neon-border .q-card.q-card--dark,
+body[data-theme=freedom].neon-border .q-date,
+body[data-theme=freedom].neon-border .q-date--dark {
+  border: 2px solid #e22156;
+  box-shadow: none;
 }
 
-/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
-// set a darker body bg for all themes, when in "dark mode"
-body[data-theme='classic'].body--dark {
-  background: scale-color($color, $lightness: -60%);
-}
-*/
-body[data-theme=classic].body--light {
-  background-color: #f4f4f4;
+body[data-theme=cyber].neon-border .q-card,
+body[data-theme=cyber].neon-border .q-card.q-card--dark,
+body[data-theme=cyber].neon-border .q-date,
+body[data-theme=cyber].neon-border .q-date--dark {
+  border: 2px solid #7cb342;
+  box-shadow: none;
 }
 
-[data-theme=classic] .q-card--dark,
-[data-theme=classic] .q-stepper--dark {
+body[data-theme=mint].neon-border .q-card,
+body[data-theme=mint].neon-border .q-card.q-card--dark,
+body[data-theme=mint].neon-border .q-date,
+body[data-theme=mint].neon-border .q-date--dark {
+  border: 2px solid #3ab77d;
+  box-shadow: none;
+}
+
+body[data-theme=autumn].neon-border .q-card,
+body[data-theme=autumn].neon-border .q-card.q-card--dark,
+body[data-theme=autumn].neon-border .q-date,
+body[data-theme=autumn].neon-border .q-date--dark {
+  border: 2px solid #b7763a;
+  box-shadow: none;
+}
+
+body[data-theme=flamingo].neon-border .q-card,
+body[data-theme=flamingo].neon-border .q-card.q-card--dark,
+body[data-theme=flamingo].neon-border .q-date,
+body[data-theme=flamingo].neon-border .q-date--dark {
+  border: 2px solid #ff00ff;
+  box-shadow: none;
+}
+
+body[data-theme=monochrome].neon-border .q-card,
+body[data-theme=monochrome].neon-border .q-card.q-card--dark,
+body[data-theme=monochrome].neon-border .q-date,
+body[data-theme=monochrome].neon-border .q-date--dark {
+  border: 2px solid #494949;
+  box-shadow: none;
+}
+
+body[data-theme=salvador].neon-border .q-card,
+body[data-theme=salvador].neon-border .q-card.q-card--dark,
+body[data-theme=salvador].neon-border .q-date,
+body[data-theme=salvador].neon-border .q-date--dark {
+  border: 2px solid #1976d2;
+  box-shadow: none;
+}
+
+body.hard-border .q-card,
+body.hard-border .q-card.q-card--dark,
+body.hard-border .q-date,
+body.hard-border .q-date--dark {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.2784313725);
+  border: none;
+}
+
+body.retro-border .q-card,
+body.retro-border .q-card.q-card--dark,
+body.retro-border .q-date,
+body.retro-border .q-date--dark {
+  border: none;
+  box-shadow: 0 1px 5px rgba(255, 255, 255, 0.2), 0 2px 2px rgba(255, 255, 255, 0.14), 0 3px 1px -2px rgba(255, 255, 255, 0.12);
+}
+
+body.no-border .q-card,
+body.no-border .q-card.q-card--dark,
+body.no-border .q-date,
+body.no-border .q-date--dark {
+  border: none;
+  box-shadow: none;
+}
+
+body[data-theme=classic] {
+  --q-primary: #673ab7;
+  --q-secondary: #9c27b0;
+  --q-dark-page: #1f2234;
+}
+body[data-theme=classic] [data-theme=classic] .q-card--dark,
+body[data-theme=classic] [data-theme=classic] .q-stepper--dark {
   background: #333646 !important;
 }
 
-body[data-theme=classic].body--light {
-  background-color: #f4f4f4;
+body[data-theme=bitcoin] {
+  --q-primary: #ea611d;
+  --q-secondary: #e56f35;
+  --q-dark-page: #2d293b;
 }
-
-body[data-theme=classic].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=classic] .bg-primary {
-  background: #673ab7 !important;
-}
-[data-theme=classic] .text-primary {
-  color: #673ab7 !important;
-}
-[data-theme=classic] .bg-secondary {
-  background: #9c27b0 !important;
-}
-[data-theme=classic] .text-secondary {
-  color: #9c27b0 !important;
-}
-[data-theme=classic] .bg-dark {
-  background: #1f2234 !important;
-}
-[data-theme=classic] .text-dark {
-  color: #1f2234 !important;
-}
-[data-theme=classic] .bg-info {
-  background: #333646 !important;
-}
-[data-theme=classic] .text-info {
-  color: #333646 !important;
-}
-[data-theme=classic] .bg-marginal-bg {
-  background: #1f2234 !important;
-}
-[data-theme=classic] .text-marginal-bg {
-  color: #1f2234 !important;
-}
-[data-theme=classic] .bg-marginal-text {
-  background: #fff !important;
-}
-[data-theme=classic] .text-marginal-text {
-  color: #fff !important;
-}
-
-body[data-theme=bitcoin].body--light {
-  background-color: #f4f4f4;
-}
-
-body[data-theme=bitcoin].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=bitcoin] .q-drawer--dark,
-body[data-theme=bitcoin].body--dark,
-[data-theme=bitcoin] .q-menu--dark {
-  background: #2d293b !important;
-}
-
-/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
-// set a darker body bg for all themes, when in "dark mode"
-body[data-theme='bitcoin'].body--dark {
-  background: scale-color($color, $lightness: -60%);
-}
-*/
-body[data-theme=bitcoin].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=bitcoin] .q-card--dark,
-[data-theme=bitcoin] .q-stepper--dark {
+body[data-theme=bitcoin] [data-theme=bitcoin] .q-card--dark,
+body[data-theme=bitcoin] [data-theme=bitcoin] .q-stepper--dark {
   background: #333646 !important;
 }
 
-body[data-theme=bitcoin].body--light {
-  background-color: #f4f4f4;
+body[data-theme=freedom] {
+  --q-primary: #e22156;
+  --q-secondary: #b91a45;
+  --q-dark-page: #462f36;
+}
+body[data-theme=freedom] [data-theme=freedom] .q-card--dark,
+body[data-theme=freedom] [data-theme=freedom] .q-stepper--dark {
+  background: #47393d !important;
 }
 
-body[data-theme=bitcoin].body--light {
-  background-color: #f4f4f4;
+body[data-theme=cyber] {
+  --q-primary: #7cb342;
+  --q-secondary: #558b2f;
+  --q-dark-page: #000;
+}
+body[data-theme=cyber] [data-theme=cyber] .q-card--dark,
+body[data-theme=cyber] [data-theme=cyber] .q-stepper--dark {
+  background: #1f2915 !important;
 }
 
-[data-theme=bitcoin] .bg-primary {
-  background: #ea611d !important;
+body[data-theme=mint] {
+  --q-primary: #3ab77d;
+  --q-secondary: #27b065;
+  --q-dark-page: #1f342b;
 }
-[data-theme=bitcoin] .text-primary {
-  color: #ea611d !important;
-}
-[data-theme=bitcoin] .bg-secondary {
-  background: #e56f35 !important;
-}
-[data-theme=bitcoin] .text-secondary {
-  color: #e56f35 !important;
-}
-[data-theme=bitcoin] .bg-dark {
-  background: #2d293b !important;
-}
-[data-theme=bitcoin] .text-dark {
-  color: #2d293b !important;
-}
-[data-theme=bitcoin] .bg-info {
-  background: #333646 !important;
-}
-[data-theme=bitcoin] .text-info {
-  color: #333646 !important;
-}
-[data-theme=bitcoin] .bg-marginal-bg {
-  background: #000000 !important;
-}
-[data-theme=bitcoin] .text-marginal-bg {
-  color: #000000 !important;
-}
-[data-theme=bitcoin] .bg-marginal-text {
-  background: #fff !important;
-}
-[data-theme=bitcoin] .text-marginal-text {
-  color: #fff !important;
-}
-
-body[data-theme=freedom].body--light {
-  background-color: #f4f4f4;
-}
-
-body[data-theme=freedom].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=freedom] .q-drawer--dark,
-body[data-theme=freedom].body--dark,
-[data-theme=freedom] .q-menu--dark {
-  background: #0a0a0a !important;
-}
-
-/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
-// set a darker body bg for all themes, when in "dark mode"
-body[data-theme='freedom'].body--dark {
-  background: scale-color($color, $lightness: -60%);
-}
-*/
-body[data-theme=freedom].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=freedom] .q-card--dark,
-[data-theme=freedom] .q-stepper--dark {
-  background: #1b1b1b !important;
-}
-
-body[data-theme=freedom].body--light {
-  background-color: #f4f4f4;
-}
-
-body[data-theme=freedom].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=freedom] .bg-primary {
-  background: #e22156 !important;
-}
-[data-theme=freedom] .text-primary {
-  color: #e22156 !important;
-}
-[data-theme=freedom] .bg-secondary {
-  background: #b91a45 !important;
-}
-[data-theme=freedom] .text-secondary {
-  color: #b91a45 !important;
-}
-[data-theme=freedom] .bg-dark {
-  background: #0a0a0a !important;
-}
-[data-theme=freedom] .text-dark {
-  color: #0a0a0a !important;
-}
-[data-theme=freedom] .bg-info {
-  background: #1b1b1b !important;
-}
-[data-theme=freedom] .text-info {
-  color: #1b1b1b !important;
-}
-[data-theme=freedom] .bg-marginal-bg {
-  background: #2d293b !important;
-}
-[data-theme=freedom] .text-marginal-bg {
-  color: #2d293b !important;
-}
-[data-theme=freedom] .bg-marginal-text {
-  background: #fff !important;
-}
-[data-theme=freedom] .text-marginal-text {
-  color: #fff !important;
-}
-
-body[data-theme=cyber].body--light {
-  background-color: #f4f4f4;
-}
-
-body[data-theme=cyber].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=cyber] .q-drawer--dark,
-body[data-theme=cyber].body--dark,
-[data-theme=cyber] .q-menu--dark {
-  background: #0a0a0a !important;
-}
-
-/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
-// set a darker body bg for all themes, when in "dark mode"
-body[data-theme='cyber'].body--dark {
-  background: scale-color($color, $lightness: -60%);
-}
-*/
-body[data-theme=cyber].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=cyber] .q-card--dark,
-[data-theme=cyber] .q-stepper--dark {
-  background: #1b1b1b !important;
-}
-
-body[data-theme=cyber].body--light {
-  background-color: #f4f4f4;
-}
-
-body[data-theme=cyber].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=cyber] .bg-primary {
-  background: #7cb342 !important;
-}
-[data-theme=cyber] .text-primary {
-  color: #7cb342 !important;
-}
-[data-theme=cyber] .bg-secondary {
-  background: #558b2f !important;
-}
-[data-theme=cyber] .text-secondary {
-  color: #558b2f !important;
-}
-[data-theme=cyber] .bg-dark {
-  background: #0a0a0a !important;
-}
-[data-theme=cyber] .text-dark {
-  color: #0a0a0a !important;
-}
-[data-theme=cyber] .bg-info {
-  background: #1b1b1b !important;
-}
-[data-theme=cyber] .text-info {
-  color: #1b1b1b !important;
-}
-[data-theme=cyber] .bg-marginal-bg {
-  background: #2d293b !important;
-}
-[data-theme=cyber] .text-marginal-bg {
-  color: #2d293b !important;
-}
-[data-theme=cyber] .bg-marginal-text {
-  background: #fff !important;
-}
-[data-theme=cyber] .text-marginal-text {
-  color: #fff !important;
-}
-
-body[data-theme=mint].body--light {
-  background-color: #f4f4f4;
-}
-
-body[data-theme=mint].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=mint] .q-drawer--dark,
-body[data-theme=mint].body--dark,
-[data-theme=mint] .q-menu--dark {
-  background: #1f342b !important;
-}
-
-/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
-// set a darker body bg for all themes, when in "dark mode"
-body[data-theme='mint'].body--dark {
-  background: scale-color($color, $lightness: -60%);
-}
-*/
-body[data-theme=mint].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=mint] .q-card--dark,
-[data-theme=mint] .q-stepper--dark {
+body[data-theme=mint] [data-theme=mint] .q-card--dark,
+body[data-theme=mint] [data-theme=mint] .q-stepper--dark {
   background: #334642 !important;
 }
 
-body[data-theme=mint].body--light {
-  background-color: #f4f4f4;
+body[data-theme=autumn] {
+  --q-primary: #b7763a;
+  --q-secondary: #b07927;
+  --q-dark-page: #34291f;
 }
-
-body[data-theme=mint].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=mint] .bg-primary {
-  background: #3ab77d !important;
-}
-[data-theme=mint] .text-primary {
-  color: #3ab77d !important;
-}
-[data-theme=mint] .bg-secondary {
-  background: #27b065 !important;
-}
-[data-theme=mint] .text-secondary {
-  color: #27b065 !important;
-}
-[data-theme=mint] .bg-dark {
-  background: #1f342b !important;
-}
-[data-theme=mint] .text-dark {
-  color: #1f342b !important;
-}
-[data-theme=mint] .bg-info {
-  background: #334642 !important;
-}
-[data-theme=mint] .text-info {
-  color: #334642 !important;
-}
-[data-theme=mint] .bg-marginal-bg {
-  background: #1f342b !important;
-}
-[data-theme=mint] .text-marginal-bg {
-  color: #1f342b !important;
-}
-[data-theme=mint] .bg-marginal-text {
-  background: #fff !important;
-}
-[data-theme=mint] .text-marginal-text {
-  color: #fff !important;
-}
-
-body[data-theme=autumn].body--light {
-  background-color: #f4f4f4;
-}
-
-body[data-theme=autumn].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=autumn] .q-drawer--dark,
-body[data-theme=autumn].body--dark,
-[data-theme=autumn] .q-menu--dark {
-  background: #34291f !important;
-}
-
-/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
-// set a darker body bg for all themes, when in "dark mode"
-body[data-theme='autumn'].body--dark {
-  background: scale-color($color, $lightness: -60%);
-}
-*/
-body[data-theme=autumn].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=autumn] .q-card--dark,
-[data-theme=autumn] .q-stepper--dark {
+body[data-theme=autumn] [data-theme=autumn] .q-card--dark,
+body[data-theme=autumn] [data-theme=autumn] .q-stepper--dark {
   background: #463f33 !important;
 }
 
-body[data-theme=autumn].body--light {
-  background-color: #f4f4f4;
+body[data-theme=flamingo] {
+  --q-primary: #ff00ff;
+  --q-secondary: #fda3fd;
+  --q-dark-page: #2f032f;
 }
-
-body[data-theme=autumn].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=autumn] .bg-primary {
-  background: #b7763a !important;
-}
-[data-theme=autumn] .text-primary {
-  color: #b7763a !important;
-}
-[data-theme=autumn] .bg-secondary {
-  background: #b07927 !important;
-}
-[data-theme=autumn] .text-secondary {
-  color: #b07927 !important;
-}
-[data-theme=autumn] .bg-dark {
-  background: #34291f !important;
-}
-[data-theme=autumn] .text-dark {
-  color: #34291f !important;
-}
-[data-theme=autumn] .bg-info {
-  background: #463f33 !important;
-}
-[data-theme=autumn] .text-info {
-  color: #463f33 !important;
-}
-[data-theme=autumn] .bg-marginal-bg {
-  background: #342a1f !important;
-}
-[data-theme=autumn] .text-marginal-bg {
-  color: #342a1f !important;
-}
-[data-theme=autumn] .bg-marginal-text {
-  background: rgb(255, 255, 255) !important;
-}
-[data-theme=autumn] .text-marginal-text {
-  color: rgb(255, 255, 255) !important;
-}
-
-body[data-theme=flamingo].body--light {
-  background-color: #f4f4f4;
-}
-
-body[data-theme=flamingo].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=flamingo] .q-drawer--dark,
-body[data-theme=flamingo].body--dark,
-[data-theme=flamingo] .q-menu--dark {
-  background: #2f032f !important;
-}
-
-/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
-// set a darker body bg for all themes, when in "dark mode"
-body[data-theme='flamingo'].body--dark {
-  background: scale-color($color, $lightness: -60%);
-}
-*/
-body[data-theme=flamingo].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=flamingo] .q-card--dark,
-[data-theme=flamingo] .q-stepper--dark {
+body[data-theme=flamingo] [data-theme=flamingo] .q-card--dark,
+body[data-theme=flamingo] [data-theme=flamingo] .q-stepper--dark {
   background: #bc23bc !important;
 }
 
-body[data-theme=flamingo].body--light {
-  background-color: #f4f4f4;
+body[data-theme=monochrome] {
+  --q-primary: #494949;
+  --q-secondary: #6b6b6b;
+  --q-dark-page: #000;
 }
-
-body[data-theme=flamingo].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=flamingo] .bg-primary {
-  background: #ff00ff !important;
-}
-[data-theme=flamingo] .text-primary {
-  color: #ff00ff !important;
-}
-[data-theme=flamingo] .bg-secondary {
-  background: #fda3fd !important;
-}
-[data-theme=flamingo] .text-secondary {
-  color: #fda3fd !important;
-}
-[data-theme=flamingo] .bg-dark {
-  background: #2f032f !important;
-}
-[data-theme=flamingo] .text-dark {
-  color: #2f032f !important;
-}
-[data-theme=flamingo] .bg-info {
-  background: #bc23bc !important;
-}
-[data-theme=flamingo] .text-info {
-  color: #bc23bc !important;
-}
-[data-theme=flamingo] .bg-marginal-bg {
-  background: #311231 !important;
-}
-[data-theme=flamingo] .text-marginal-bg {
-  color: #311231 !important;
-}
-[data-theme=flamingo] .bg-marginal-text {
-  background: rgb(255, 255, 255) !important;
-}
-[data-theme=flamingo] .text-marginal-text {
-  color: rgb(255, 255, 255) !important;
-}
-
-body[data-theme=monochrome].body--light {
-  background-color: #f4f4f4;
-}
-
-body[data-theme=monochrome].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=monochrome] .q-drawer--dark,
-body[data-theme=monochrome].body--dark,
-[data-theme=monochrome] .q-menu--dark {
-  background: #000 !important;
-}
-
-/* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
-// set a darker body bg for all themes, when in "dark mode"
-body[data-theme='monochrome'].body--dark {
-  background: scale-color($color, $lightness: -60%);
-}
-*/
-body[data-theme=monochrome].body--light {
-  background-color: #f4f4f4;
-}
-
-[data-theme=monochrome] .q-card--dark,
-[data-theme=monochrome] .q-stepper--dark {
+body[data-theme=monochrome] [data-theme=monochrome] .q-card--dark,
+body[data-theme=monochrome] [data-theme=monochrome] .q-stepper--dark {
   background: rgb(39, 39, 39) !important;
 }
 
-body[data-theme=monochrome].body--light {
-  background-color: #f4f4f4;
+body[data-theme=salvador] {
+  --q-primary: #1976d2;
+  --q-secondary: #26a69a;
+  --q-dark-page: #253647;
+}
+body[data-theme=salvador] [data-theme=salvador] .q-card--dark,
+body[data-theme=salvador] [data-theme=salvador] .q-stepper--dark {
+  background: #343d47 !important;
 }
 
-body[data-theme=monochrome].body--light {
-  background-color: #f4f4f4;
+body.gradient-bg {
+  background-image: linear-gradient(to bottom right, var(--q-dark-page), #0a0a0a);
+  background-attachment: fixed;
 }
 
-[data-theme=monochrome] .bg-primary {
-  background: #494949 !important;
+body.bg-image::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  filter: blur(8px);
+  background-image: var(--background);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
-[data-theme=monochrome] .text-primary {
-  color: #494949 !important;
-}
-[data-theme=monochrome] .bg-secondary {
-  background: #6b6b6b !important;
-}
-[data-theme=monochrome] .text-secondary {
-  color: #6b6b6b !important;
-}
-[data-theme=monochrome] .bg-dark {
-  background: #000 !important;
-}
-[data-theme=monochrome] .text-dark {
-  color: #000 !important;
-}
-[data-theme=monochrome] .bg-info {
-  background: rgb(39, 39, 39) !important;
-}
-[data-theme=monochrome] .text-info {
-  color: rgb(39, 39, 39) !important;
-}
-[data-theme=monochrome] .bg-marginal-bg {
-  background: #000 !important;
-}
-[data-theme=monochrome] .text-marginal-bg {
-  color: #000 !important;
-}
-[data-theme=monochrome] .bg-marginal-text {
-  background: rgb(255, 255, 255) !important;
-}
-[data-theme=monochrome] .text-marginal-text {
-  color: rgb(255, 255, 255) !important;
+body.bg-image .q-page-container {
+  backdrop-filter: none; /* Ensure the page content is not affected */
 }
 
-[data-theme=freedom] .q-drawer--dark {
-  background: #0a0a0a !important;
-}
-
-[data-theme=freedom] .q-header {
-  background: #0a0a0a !important;
-}
-
-[data-theme=cyber] .q-drawer--dark {
-  background: #0a0a0a !important;
-}
-
-[data-theme=cyber] .q-header {
-  background: #0a0a0a !important;
-}
-
-[data-theme=salvador] .q-drawer--dark {
-  background: #242424 !important;
-}
-
-[data-theme=salvador] .q-header {
-  background: #0f47af !important;
+body.body--dark .q-card:not(.q-dialog .q-card, .lnbits__dialog-card, .q-dialog-plugin--dark),
+body.body--dark .q-header,
+body.body--dark .q-drawer {
+  --q-dark: rgba(29, 29, 29, 0.3);
+  background-color: var(--q-dark);
+  backdrop-filter: blur(6px);
 }
 
 [v-cloak] {

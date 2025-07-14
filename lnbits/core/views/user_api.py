@@ -2,7 +2,7 @@ import base64
 import json
 import time
 from http import HTTPStatus
-from typing import List, Optional
+from typing import Optional
 from uuid import uuid4
 
 import shortuuid
@@ -100,6 +100,7 @@ async def api_create_user(data: CreateUser) -> CreateUser:
         username=data.username,
         email=data.email,
         pubkey=data.pubkey,
+        external_id=data.external_id,
         extra=data.extra,
     )
     account.validate_fields()
@@ -132,6 +133,7 @@ async def api_update_user(
         username=data.username,
         email=data.email,
         pubkey=data.pubkey,
+        external_id=data.external_id,
         extra=data.extra or UserExtra(),
     )
     await update_user_account(account)
@@ -185,7 +187,8 @@ async def api_users_reset_password(user_id: str) -> str:
     reset_data = ["reset", user_id, int(time.time())]
     reset_data_json = json.dumps(reset_data, separators=(",", ":"), ensure_ascii=False)
     reset_key = encrypt_internal_message(reset_data_json)
-    assert reset_key, "Cannot generate reset key."
+    if not reset_key:
+        raise ValueError("Cannot generate reset key.")
     reset_key_b64 = base64.b64encode(reset_key.encode()).decode()
     return f"reset_key_{reset_key_b64}"
 
@@ -214,7 +217,7 @@ async def api_users_toggle_admin(user_id: str) -> SimpleStatus:
 
 
 @users_router.get("/user/{user_id}/wallet", name="Get wallets for user")
-async def api_users_get_user_wallet(user_id: str) -> List[Wallet]:
+async def api_users_get_user_wallet(user_id: str) -> list[Wallet]:
     return await get_wallets(user_id)
 
 

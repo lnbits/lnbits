@@ -1,0 +1,74 @@
+$themes: (
+  'classic': (
+    primary: #673ab7,
+    secondary: #9c27b0,
+    dark: #1f2234,
+    info: #333646,
+    marginal-bg: #1f2234,
+    marginal-text: #fff
+  ),
+  'bitcoin': (
+    primary: #ea611d,
+    secondary: #e56f35,
+    dark: #2d293b,
+    info: #333646,
+    marginal-bg: #000000,
+    marginal-text: #fff
+  ),
+  'freedom': (
+    primary: #e22156,
+    secondary: #b91a45,
+    dark: #462f36,
+    info: #47393d,
+    marginal-bg: #2d293b,
+    marginal-text: #fff
+  ),
+  'cyber': (
+    primary: #7cb342,
+    secondary: #558b2f,
+    dark: #000,
+    info: #1f2915,
+    marginal-bg: #2d293b,
+    marginal-text: #fff
+  ),
+  'mint': (
+    primary: #3ab77d,
+    secondary: #27b065,
+    dark: #1f342b,
+    info: #334642,
+    marginal-bg: #1f342b,
+    marginal-text: #fff
+  ),
+  'autumn': (
+    primary: #b7763a,
+    secondary: #b07927,
+    dark: #34291f,
+    info: #463f33,
+    marginal-bg: #342a1f,
+    marginal-text: rgb(255, 255, 255)
+  ),
+  'flamingo': (
+    primary: #ff00ff,
+    secondary: #fda3fd,
+    dark: #2f032f,
+    info: #bc23bc,
+    marginal-bg: #311231,
+    marginal-text: rgb(255, 255, 255)
+  ),
+  'monochrome': (
+    primary: #494949,
+    secondary: #6b6b6b,
+    dark: #000,
+    info: rgb(39, 39, 39),
+    marginal-bg: #000,
+    marginal-text: rgb(255, 255, 255)
+  ),
+  'salvador': (
+    primary: #1976d2,
+    secondary: #26a69a,
+    dark: #253647,
+    info: #343d47,
+    marginal-bg: #0d1620,
+    marginal-text: rgb(255, 255, 255)
+  )
+);

@@ -211,7 +211,8 @@ class ExtensionRelease(BaseModel):
         self, amount: int | None = None
     ) -> ReleasePaymentInfo | None:
         url = f"{self.pay_link}?amount={amount}" if amount else self.pay_link
-        assert url, "Missing URL for payment info."
+        if not url:
+            raise ValueError("Missing URL for payment info.")
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(url)
@@ -376,9 +377,8 @@ class InstallableExtension(BaseModel):
         if ext_zip_file.is_file():
             os.remove(ext_zip_file)
         try:
-            assert (
-                self.meta and self.meta.installed_release
-            ), "installed_release is none."
+            if not self.meta or not self.meta.installed_release:
+                raise ValueError("No installed release.")
 
             self._restore_payment_info()
 

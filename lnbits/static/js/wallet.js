@@ -14,6 +14,7 @@ window.WalletPageLogic = {
           request: '',
           amount: 0,
           comment: '',
+          internalMemo: null,
           unit: 'sat'
         },
         paymentChecker: null,
@@ -35,9 +36,12 @@ window.WalletPageLogic = {
         lnurl: null,
         units: ['sat'],
         unit: 'sat',
+        fiatProvider: '',
         data: {
           amount: null,
-          memo: ''
+          memo: '',
+          internalMemo: null,
+          payment_hash: null
         }
       },
       invoiceQrCode: '',
@@ -114,8 +118,6 @@ window.WalletPageLogic = {
       isFiatPriority: false,
       formattedFiatAmount: 0,
       formattedExchange: null,
-      primaryColor: this.$q.localStorage.getItem('lnbits.primaryColor'),
-      secondaryColor: this.$q.localStorage.getItem('lnbits.secondaryColor'),
       chartData: [],
       chartDataPointCount: 0,
       chartConfig: {
@@ -198,6 +200,8 @@ window.WalletPageLogic = {
       this.receive.paymentHash = null
       this.receive.data.amount = null
       this.receive.data.memo = null
+      this.receive.data.internalMemo = null
+      this.receive.data.payment_hash = null
       this.receive.unit = this.isFiatPriority
         ? this.g.wallet.currency || 'sat'
         : 'sat'
@@ -219,6 +223,7 @@ window.WalletPageLogic = {
         window.isSecureContext && navigator.clipboard?.readText !== undefined
       this.parse.data.request = ''
       this.parse.data.comment = ''
+      this.parse.data.internalMemo = null
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
       this.focusInput('textArea')
@@ -253,12 +258,17 @@ window.WalletPageLogic = {
           this.receive.data.amount,
           this.receive.data.memo,
           this.receive.unit,
-          this.receive.lnurl && this.receive.lnurl.callback
+          this.receive.lnurl && this.receive.lnurl.callback,
+          this.receive.fiatProvider,
+          this.receive.data.internalMemo,
+          this.receive.data.payment_hash
         )
         .then(response => {
           this.g.updatePayments = !this.g.updatePayments
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.bolt11
+          this.receive.fiatPaymentReq =
+            response.data.extra?.fiat_payment_request
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
           if (!this.receive.lnurl) {
@@ -338,9 +348,6 @@ window.WalletPageLogic = {
           '/api/v1/lnurlscan/' + this.parse.data.request,
           this.g.wallet.adminkey
         )
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
         .then(response => {
           const data = response.data
 
@@ -377,6 +384,9 @@ window.WalletPageLogic = {
               fixed: data.fixed
             }
           }
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
         })
     },
     decodeQR(res) {
@@ -475,7 +485,11 @@ window.WalletPageLogic = {
       })
 
       LNbits.api
-        .payInvoice(this.g.wallet, this.parse.data.request)
+        .payInvoice(
+          this.g.wallet,
+          this.parse.data.request,
+          this.parse.data.internalMemo
+        )
         .then(response => {
           dismissPaymentMsg()
           this.updatePayments = !this.updatePayments
@@ -513,7 +527,8 @@ window.WalletPageLogic = {
           this.parse.data.amount * 1000,
           this.parse.lnurlpay.description.slice(0, 120),
           this.parse.data.comment,
-          this.parse.data.unit
+          this.parse.data.unit,
+          this.parse.data.internalMemo
         )
         .then(response => {
           this.parse.show = false
@@ -820,6 +835,9 @@ window.WalletPageLogic = {
     },
     swapBalancePriority() {
       this.isFiatPriority = !this.isFiatPriority
+      this.receive.unit = this.isFiatPriority
+        ? this.g.wallet.currency || 'sat'
+        : 'sat'
       this.$q.localStorage.setItem('lnbits.isFiatPriority', this.isFiatPriority)
     },
     handleFiatTracking() {
@@ -963,11 +981,11 @@ window.WalletPageLogic = {
                     label: 'Balance',
                     data: data.map(s => s.balance),
                     pointStyle: false,
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.primaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('primary'),
                       0.3
                     ),
-                    borderColor: this.primaryColor,
+                    borderColor: Quasar.colors.getPaletteColor('primary'),
                     borderWidth: 2,
                     fill: true,
                     tension: 0.7,
@@ -977,11 +995,11 @@ window.WalletPageLogic = {
                     label: 'Fees',
                     data: data.map(s => s.fee),
                     pointStyle: false,
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.secondaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('secondary'),
                       0.3
                     ),
-                    borderColor: this.secondaryColor,
+                    borderColor: Quasar.colors.getPaletteColor('secondary'),
                     borderWidth: 1,
                     fill: true,
                     tension: 0.7,
@@ -1022,8 +1040,8 @@ window.WalletPageLogic = {
                     label: 'Balance In',
                     borderRadius: 5,
                     data: data.map(s => s.balance_in),
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.primaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('primary'),
                       0.3
                     )
                   },
@@ -1031,8 +1049,8 @@ window.WalletPageLogic = {
                     label: 'Balance Out',
                     borderRadius: 5,
                     data: data.map(s => s.balance_out),
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.secondaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('secondary'),
                       0.3
                     )
                   }
@@ -1071,16 +1089,16 @@ window.WalletPageLogic = {
                   {
                     label: 'Payments In',
                     data: data.map(s => s.count_in),
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.primaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('primary'),
                       0.3
                     )
                   },
                   {
                     label: 'Payments Out',
                     data: data.map(s => -s.count_out),
-                    backgroundColor: LNbits.utils.hexAlpha(
-                      this.secondaryColor,
+                    backgroundColor: Quasar.colors.changeAlpha(
+                      Quasar.colors.getPaletteColor('secondary'),
                       0.3
                     )
                   }

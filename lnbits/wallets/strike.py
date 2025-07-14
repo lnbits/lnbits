@@ -1,11 +1,13 @@
 import asyncio
 import time
+from collections.abc import AsyncGenerator
 from decimal import Decimal
-from typing import Any, AsyncGenerator, Dict, Optional
+from typing import Any, Optional
 
 import httpx
 from loguru import logger
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -25,7 +27,7 @@ class TokenBucket:
     Token bucket rate limiter for Strike API endpoints.
     """
 
-    def __init__(self, rate: int, period_seconds: int):
+    def __init__(self, rate: int, period_seconds: int) -> None:
         """
         Initialize a token bucket.
 
@@ -75,7 +77,7 @@ class StrikeWallet(Wallet):
     # construction / teardown                                               #
     # --------------------------------------------------------------------- #
 
-    def __init__(self):
+    def __init__(self) -> None:
         if not settings.strike_api_endpoint:
             raise ValueError("Missing strike_api_endpoint")
         if not settings.strike_api_key:
@@ -94,7 +96,7 @@ class StrikeWallet(Wallet):
         self._general_limiter = TokenBucket(1000, 600)
 
         self.client = httpx.AsyncClient(
-            base_url=self.normalize_endpoint(settings.strike_api_endpoint),
+            base_url=normalize_endpoint(settings.strike_api_endpoint),
             headers={
                 "Authorization": f"Bearer {settings.strike_api_key}",
                 "Content-Type": "application/json",
@@ -110,15 +112,15 @@ class StrikeWallet(Wallet):
 
         # runtime state
         self.pending_invoices: list[str] = []  # Keep it as a list
-        self.pending_payments: Dict[str, str] = {}
-        self.failed_payments: Dict[str, str] = {}
+        self.pending_payments: dict[str, str] = {}
+        self.failed_payments: dict[str, str] = {}
 
         # balance cache
         self._cached_balance: Optional[int] = None
         self._cached_balance_ts: float = 0.0
         self._cache_ttl = 30  # seconds
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         try:
             await self.client.aclose()
         except Exception:
@@ -182,7 +184,7 @@ class StrikeWallet(Wallet):
             if btc and "available" in btc:
                 available_btc = Decimal(btc["available"])  # Get available BTC amount.
                 msats = int(
-                    available_btc * Decimal(1e11)
+                    available_btc * Decimal("1e11")
                 )  # Convert BTC to millisatoshis.
                 self._cached_balance = msats
                 self._cached_balance_ts = now
@@ -203,10 +205,10 @@ class StrikeWallet(Wallet):
         **kwargs,
     ) -> InvoiceResponse:
         try:
-            btc_amt = (Decimal(amount) / Decimal(1e8)).quantize(
+            btc_amt = (Decimal(amount) / Decimal("1e8")).quantize(
                 Decimal("0.00000001")
             )  # Convert amount from millisatoshis to BTC.
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "bolt11": {
                     "amount": {
                         "currency": "BTC",
@@ -269,7 +271,7 @@ class StrikeWallet(Wallet):
             # Network fee → msat.
             fee_obj = data.get("lightningNetworkFee") or data.get("totalFee") or {}
             fee_btc = Decimal(fee_obj.get("amount", "0"))
-            fee_msat = int(fee_btc * Decimal(1e11))  # millisatoshis.
+            fee_msat = int(fee_btc * Decimal("1e11"))  # millisatoshis.
 
             if state in {"SUCCEEDED", "COMPLETED"}:
                 preimage = data.get("preimage") or data.get("preImage")
@@ -426,9 +428,9 @@ class StrikeWallet(Wallet):
         orderby: Optional[str] = None,
         skip: Optional[int] = None,
         top: Optional[int] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         try:
-            params: Dict[str, Any] = {}
+            params: dict[str, Any] = {}
             if filters:
                 params["$filter"] = filters
             if orderby:
@@ -464,7 +466,7 @@ class StrikeWallet(Wallet):
             try:
                 if currency_str == "BTC":
                     fee_btc_decimal = Decimal(amount_str)
-                    fee_msat = int(fee_btc_decimal * Decimal(1e11))
+                    fee_msat = int(fee_btc_decimal * Decimal("1e11"))
                 elif currency_str == "SAT":
                     fee_sat_decimal = Decimal(amount_str)
                     fee_msat = int(fee_sat_decimal * 1000)
@@ -485,7 +487,7 @@ class StrikeWallet(Wallet):
 
         return None
 
-    async def _get_payment_status_by_checking_id(
+    async def _get_payment_status_by_checking_id(  # noqa: C901
         self, checking_id: str
     ) -> PaymentStatus:
         r_payment = await self._get(f"/payments/{checking_id}")

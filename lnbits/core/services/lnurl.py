@@ -67,16 +67,16 @@ async def redeem_lnurl_withdraw(
             external=True,
             wal=wallet_id,
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug(exc)
 
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
         try:
             check_callback_url(res["callback"])
             await client.get(res["callback"], params=params)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug(exc)
 
 
 async def perform_lnurlauth(
@@ -136,7 +136,8 @@ async def perform_lnurlauth(
 
     headers = {"User-Agent": settings.user_agent}
     async with httpx.AsyncClient(headers=headers) as client:
-        assert key.verifying_key, "LNURLauth verifying_key does not exist"
+        if not key.verifying_key:
+            raise ValueError("LNURLauth verifying_key does not exist")
         check_callback_url(callback)
         r = await client.get(
             callback,

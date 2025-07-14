@@ -2,14 +2,14 @@ import base64
 import hashlib
 import json
 import time
-from typing import Dict, cast
+from typing import cast
 
 import pytest
 import secp256k1
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
-from websockets.server import serve as ws_serve
+from websockets.legacy.server import serve as ws_serve
 
 from lnbits.wallets.nwc import NWCWallet
 from tests.wallets.helpers import (
@@ -49,7 +49,7 @@ def decrypt_content(priv_key, source_pub_key, content):
 
 
 def json_dumps(data):
-    if isinstance(data, Dict):
+    if isinstance(data, dict):
         data = {k: v for k, v in data.items() if v is not None}
     return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
 
@@ -74,7 +74,7 @@ def sign_event(pub_key, priv_key, event):
     return event
 
 
-async def handle(wallet, mock_settings, data, websocket, path):
+async def handle(wallet, mock_settings, data, websocket, path):  # noqa: C901
     async for message in websocket:
         if not wallet:
             continue

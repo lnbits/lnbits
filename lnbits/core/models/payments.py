@@ -8,6 +8,13 @@ from fastapi import Query
 from pydantic import BaseModel, Field, validator
 
 from lnbits.db import FilterModel
+from lnbits.fiat import get_fiat_provider
+from lnbits.fiat.base import (
+    FiatPaymentFailedStatus,
+    FiatPaymentPendingStatus,
+    FiatPaymentStatus,
+    FiatPaymentSuccessStatus,
+)
 from lnbits.utils.exchange_rates import allowed_currencies
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import (
@@ -69,6 +76,8 @@ class Payment(BaseModel):
     amount: int
     fee: int
     bolt11: str
+    # payment_request: str | None
+    fiat_provider: str | None = None
     status: str = PaymentState.PENDING
     offer_id: str | None = None
     memo: str | None = None
@@ -118,14 +127,23 @@ class Payment(BaseModel):
 
     @property
     def is_internal(self) -> bool:
-        return self.checking_id.startswith("internal_")
+        return self.checking_id.startswith("internal_") or self.checking_id.startswith(
+            "fiat_"
+        )
 
-    async def check_status(self) -> PaymentStatus:
+    async def check_status(
+        self, skip_internal_payment_notifications: bool | None = False
+    ) -> PaymentStatus:
         if self.is_internal:
             if self.success:
                 return PaymentSuccessStatus()
             if self.failed:
                 return PaymentFailedStatus()
+            if self.is_in and self.fiat_provider:
+                fiat_status = await self.check_fiat_status(
+                    skip_internal_payment_notifications
+                )
+                return PaymentStatus(paid=fiat_status.paid)
             return PaymentPendingStatus()
         funding_source = get_funding_source()
         if self.is_out:
@@ -133,6 +151,39 @@ class Payment(BaseModel):
         else:
             status = await funding_source.get_invoice_status(self.checking_id)
         return status
+
+    async def check_fiat_status(
+        self, skip_internal_payment_notifications: bool | None = False
+    ) -> FiatPaymentStatus:
+        if not self.is_internal:
+            return FiatPaymentPendingStatus()
+        if self.success:
+            return FiatPaymentSuccessStatus()
+        if self.failed:
+            return FiatPaymentFailedStatus()
+
+        if not self.fiat_provider:
+            return FiatPaymentPendingStatus()
+
+        checking_id = self.extra.get("fiat_checking_id")
+        if not checking_id:
+            return FiatPaymentPendingStatus()
+
+        fiat_provider = await get_fiat_provider(self.fiat_provider)
+        if not fiat_provider:
+            return FiatPaymentPendingStatus()
+        fiat_status = await fiat_provider.get_invoice_status(checking_id)
+
+        if skip_internal_payment_notifications:
+            return fiat_status
+
+        if fiat_status.success:
+            # notify receivers asynchronously
+            from lnbits.tasks import internal_invoice_queue
+
+            await internal_invoice_queue.put(self.checking_id)
+
+        return fiat_status
 
 
 class PaymentFilters(FilterModel):
@@ -212,11 +263,24 @@ class CreateInvoice(BaseModel):
     memo: str | None = Query(None, max_length=640)
     description_hash: str | None = None
     unhashed_description: str | None = None
+    payment_hash: str | None = Query(
+        None,
+        description="The payment hash of the hold invoice.",
+        min_length=64,
+        max_length=64,
+    )
     expiry: int | None = None
     extra: dict | None = None
     webhook: str | None = None
     bolt11: str | None = None
     lnurl_callback: str | None = None
+    fiat_provider: str | None = None
+
+    @validator("payment_hash")
+    def check_hex(cls, v):
+        if v:
+            _ = bytes.fromhex(v)
+        return v
 
     @validator("unit")
     @classmethod
@@ -231,3 +295,31 @@ class PaymentsStatusCount(BaseModel):
     outgoing: int = 0
     failed: int = 0
     pending: int = 0
+
+
+class SettleInvoice(BaseModel):
+    preimage: str = Field(
+        ...,
+        description="The preimage of the payment hash to settle the invoice.",
+        min_length=64,
+        max_length=64,
+    )
+
+    @validator("preimage")
+    def check_hex(cls, v):
+        _ = bytes.fromhex(v)
+        return v
+
+
+class CancelInvoice(BaseModel):
+    payment_hash: str = Field(
+        ...,
+        description="The payment hash of the invoice to cancel.",
+        min_length=64,
+        max_length=64,
+    )
+
+    @validator("payment_hash")
+    def check_hex(cls, v):
+        _ = bytes.fromhex(v)
+        return v

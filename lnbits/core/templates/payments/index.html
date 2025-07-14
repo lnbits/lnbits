@@ -232,15 +232,57 @@
                     />
                   </template>
                 </q-input>
-                <q-select
+                <q-btn
                   v-else-if="['status'].includes(col.name)"
-                  v-model="searchData[col.name]"
-                  :options="searchOptions[col.name]"
-                  @update:model-value="searchPaymentsBy()"
-                  :label="col.label"
-                  clearable
-                  style="width: 100px"
-                ></q-select>
+                  flat
+                  dense
+                  :label="$q.screen.gt.md ? 'Status' : null"
+                  icon="filter_alt"
+                  color="grey"
+                  class="text-capitalize"
+                >
+                  <q-menu anchor="top right" self="top start">
+                    <q-item dense>
+                      <q-checkbox
+                        v-model="statusFilters.success"
+                        @click="handleFilterChanged"
+                        label="Success Payments"
+                      ></q-checkbox>
+                    </q-item>
+                    <q-item dense>
+                      <q-checkbox
+                        v-model="statusFilters.pending"
+                        @click="handleFilterChanged"
+                        label="Pending Payments"
+                      ></q-checkbox>
+                    </q-item>
+                    <q-item dense>
+                      <q-checkbox
+                        v-model="statusFilters.failed"
+                        @click="handleFilterChanged"
+                        label="Failed Payments"
+                      ></q-checkbox>
+                    </q-item>
+                    <q-separator></q-separator>
+                    <q-item dense>
+                      <q-checkbox
+                        v-model="statusFilters.incoming"
+                        @click="handleFilterChanged"
+                        label="Incoming Payments"
+                      ></q-checkbox>
+                    </q-item>
+                    <q-item dense>
+                      <q-checkbox
+                        v-model="statusFilters.outgoing"
+                        @click="handleFilterChanged"
+                        label="Outgoing Payments"
+                      ></q-checkbox>
+                    </q-item>
+                  </q-menu>
+                  <q-tooltip>
+                    <span v-text="$t('filter_payments')"></span>
+                  </q-tooltip>
+                </q-btn>
                 <q-select
                   v-else-if="['tag'].includes(col.name)"
                   v-model="searchData[col.name]"

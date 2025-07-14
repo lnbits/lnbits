@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Annotated, Literal, Optional, Type, Union
+from typing import Annotated, Literal, Optional, Union
 
 import jwt
 from fastapi import Cookie, Depends, Query, Request, Security
@@ -28,7 +28,7 @@ from lnbits.core.models import (
     WalletTypeInfo,
 )
 from lnbits.db import Connection, Filter, Filters, TFilterModel
-from lnbits.helpers import path_segments
+from lnbits.helpers import normalize_path, path_segments
 from lnbits.settings import AuthMethods, settings
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -223,7 +223,7 @@ async def check_super_user(user: Annotated[User, Depends(check_user_exists)]) ->
     return user
 
 
-def parse_filters(model: Type[TFilterModel]):
+def parse_filters(model: type[TFilterModel]):
     """
     Parses the query params as filters.
     :param model: model used for validation of filter values
@@ -346,3 +346,16 @@ async def _check_account_api_access(
         raise HTTPException(HTTPStatus.FORBIDDEN, "Path not allowed.")
     if not endpoint.supports_method(method):
         raise HTTPException(HTTPStatus.FORBIDDEN, "Method not allowed.")
+
+
+def url_for_interceptor(original_method):
+    def normalize_url(self, *args, **kwargs):
+        url = original_method(self, *args, **kwargs)
+        return url.replace(path=normalize_path(url.path))
+
+    return normalize_url
+
+
+# Upgraded extensions modify the path.
+# This interceptor ensures that the path is normalized.
+Request.url_for = url_for_interceptor(Request.url_for)  # type: ignore[method-assign]

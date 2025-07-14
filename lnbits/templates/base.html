@@ -423,9 +423,6 @@
       Object.keys(WINDOW_SETTINGS).forEach(key => {
         window[key] = WINDOW_SETTINGS[key]
       })
-      if (LNBITS_THEME_OPTIONS && LNBITS_THEME_OPTIONS.length) {
-        window.allowedThemes = LNBITS_THEME_OPTIONS.map(str => str.trim())
-      }
     </script>
     {% include('components.vue') %} {% block vue_templates %}{% endblock %} {%
     for url in INCLUDED_JS %}

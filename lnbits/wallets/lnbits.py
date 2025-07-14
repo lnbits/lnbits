@@ -1,11 +1,13 @@
 import asyncio
 import json
-from typing import AsyncGenerator, Dict, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 import httpx
 from loguru import logger
-from websockets.client import connect
+from websockets.legacy.client import connect
 
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -36,7 +38,7 @@ class LNbitsWallet(Wallet):
                 "cannot initialize LNbitsWallet: "
                 "missing lnbits_key or lnbits_admin_key or lnbits_invoice_key"
             )
-        self.endpoint = self.normalize_endpoint(settings.lnbits_endpoint)
+        self.endpoint = normalize_endpoint(settings.lnbits_endpoint)
         self.ws_url = f"{self.endpoint.replace('http', 'ws', 1)}/api/v1/ws/{key}"
         self.headers = {"X-Api-Key": key, "User-Agent": settings.user_agent}
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
@@ -74,7 +76,7 @@ class LNbitsWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {"out": False, "amount": amount, "memo": memo or ""}
+        data: dict = {"out": False, "amount": amount, "memo": memo or ""}
         if kwargs.get("expiry"):
             data["expiry"] = kwargs["expiry"]
         if description_hash:

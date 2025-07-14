@@ -19,10 +19,10 @@ from lnbits.core.crud import (
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
 from lnbits.core.models.users import UpdateSuperuserPassword
 from lnbits.core.services import create_user_account, update_wallet_balance
+from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.views.auth_api import first_install
-from lnbits.core.views.payment_api import _api_payments_create_invoice
 from lnbits.db import DB_TYPE, SQLITE, Database
-from lnbits.settings import AuthMethods, Settings
+from lnbits.settings import AuthMethods, FiatProviderLimits, Settings
 from lnbits.settings import settings as lnbits_settings
 from lnbits.wallets.fake import FakeWallet
 from tests.helpers import (
@@ -255,7 +255,7 @@ async def adminkey_headers_to(to_wallet):
 async def invoice(to_wallet):
     data = await get_random_invoice_data()
     invoice_data = CreateInvoice(**data)
-    invoice = await _api_payments_create_invoice(invoice_data, to_wallet)
+    invoice = await create_wallet_invoice(to_wallet.id, invoice_data)
     yield invoice
     del invoice
 
@@ -307,8 +307,10 @@ def _settings_cleanup(settings: Settings):
     settings.lnbits_reserve_fee_percent = 1
     settings.lnbits_reserve_fee_min = 2000
     settings.lnbits_service_fee = 0
+    settings.lnbits_reserve_fee_percent = 0
     settings.lnbits_wallet_limit_daily_max_withdraw = 0
     settings.lnbits_admin_extensions = []
     settings.lnbits_admin_users = []
     settings.lnbits_max_outgoing_payment_amount_sats = 10_000_000_100
     settings.lnbits_max_incoming_payment_amount_sats = 10_000_000_200
+    settings.stripe_limits = FiatProviderLimits()

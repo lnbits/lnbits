@@ -1,7 +1,7 @@
 import asyncio
 import json
-import random
 from collections.abc import AsyncGenerator
+from secrets import token_urlsafe
 from typing import Optional
 
 import httpx
@@ -9,6 +9,8 @@ from bolt11 import Bolt11Exception
 from bolt11.decode import decode
 from loguru import logger
 
+from lnbits.exceptions import UnsupportedError
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
 
@@ -18,7 +20,6 @@ from .base import (
     PaymentResponse,
     PaymentStatus,
     StatusResponse,
-    UnsupportedError,
     Wallet,
 )
 from .macaroon import load_macaroon
@@ -43,7 +44,7 @@ class CoreLightningRestWallet(Wallet):
                 "invalid corelightning_rest_macaroon provided"
             )
 
-        self.url = self.normalize_endpoint(settings.corelightning_rest_url)
+        self.url = normalize_endpoint(settings.corelightning_rest_url)
         headers = {
             "macaroon": macaroon,
             "encodingtype": "hex",
@@ -110,7 +111,7 @@ class CoreLightningRestWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
         **kwargs,
     ) -> InvoiceResponse:
-        label = kwargs.get("label", f"lbl{random.random()}")
+        label = kwargs.get("label", f"lbl{token_urlsafe(16)}")
         data: dict = {
             "amount": amount * 1000,
             "description": memo,
@@ -217,7 +218,7 @@ class CoreLightningRestWallet(Wallet):
                 data = exc.response.json()
                 error_code = int(data["error"]["code"])
                 if error_code in self.pay_failure_error_codes:
-                    error_message = f"Payment failed: {data['error']['message']}"
+                    error_message = data["error"]["message"]
                     return PaymentResponse(ok=False, error_message=error_message)
                 error_message = f"REST failed with {data['error']['message']}."
                 return PaymentResponse(error_message=error_message)
@@ -297,7 +298,8 @@ class CoreLightningRestWallet(Wallet):
                             self.last_pay_index = inv["pay_index"]
                             if not paid:
                                 continue
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(exc)
                             continue
                         logger.trace(f"paid invoice: {inv}")
 
@@ -312,11 +314,12 @@ class CoreLightningRestWallet(Wallet):
                         )
                         paid_invoice = r.json()
                         logger.trace(f"paid invoice: {paid_invoice}")
-                        assert self.statuses[
-                            paid_invoice["invoices"][0]["status"]
-                        ], "streamed invoice not paid"
-                        assert "invoices" in paid_invoice, "no invoices in response"
-                        assert len(paid_invoice["invoices"]), "no invoices in response"
+                        if not self.statuses[paid_invoice["invoices"][0]["status"]]:
+                            raise ValueError("streamed invoice not paid")
+                        if "invoices" not in paid_invoice:
+                            raise ValueError("no invoices in response")
+                        if not len(paid_invoice["invoices"]):
+                            raise ValueError("no invoices in response")
                         yield paid_invoice["invoices"][0]["payment_hash"]
 
             except Exception as exc:

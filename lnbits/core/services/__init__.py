@@ -6,17 +6,24 @@ from .lnurl import perform_lnurlauth, redeem_lnurl_withdraw
 from .notifications import enqueue_notification, send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
+    cancel_hold_invoice,
     check_transaction_status,
     check_wallet_limits,
     create_offer,
     enable_offer,
     disable_offer,
     fetch_invoice,
+    create_fiat_invoice,
     create_invoice,
+    create_payment_request,
+    create_wallet_invoice,
     fee_reserve,
     fee_reserve_total,
+    get_payments_daily_stats,
     pay_invoice,
     service_fee,
+    settle_hold_invoice,
+    update_pending_payment,
     update_pending_payments,
     update_wallet_balance,
 )
@@ -34,36 +41,36 @@ from .users import (
 from .websockets import websocket_manager, websocket_updater
 
 __all__ = [
-    # funding source
-    "get_balance_delta",
-    "switch_to_voidwallet",
-    # lnurl
-    "redeem_lnurl_withdraw",
-    "perform_lnurlauth",
-    # notifications
-    "enqueue_notification",
-    "send_payment_notification",
-    # payments
     "calculate_fiat_amounts",
+    "cancel_hold_invoice",
+    "check_admin_settings",
     "check_transaction_status",
     "check_wallet_limits",
-    "create_invoice",
-    "fee_reserve",
-    "fee_reserve_total",
-    "pay_invoice",
-    "service_fee",
-    "update_pending_payments",
-    "update_wallet_balance",
-    # settings
     "check_webpush_settings",
-    "update_cached_settings",
-    # users
-    "check_admin_settings",
+    "create_fiat_invoice",
+    "create_invoice",
+    "create_payment_request",
     "create_user_account",
     "create_user_account_no_ckeck",
+    "create_wallet_invoice",
+    "enqueue_notification",
+    "fee_reserve",
+    "fee_reserve_total",
+    "get_balance_delta",
+    "get_payments_daily_stats",
+    "pay_invoice",
+    "perform_lnurlauth",
+    "redeem_lnurl_withdraw",
+    "send_payment_notification",
+    "service_fee",
+    "settle_hold_invoice",
+    "switch_to_voidwallet",
+    "update_cached_settings",
+    "update_pending_payment",
+    "update_pending_payments",
     "update_user_account",
     "update_user_extensions",
-    # websockets
+    "update_wallet_balance",
     "websocket_manager",
     "websocket_updater",
 ]

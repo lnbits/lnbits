@@ -9,16 +9,13 @@ from .decorators import (
 from .exceptions import InvoiceError, PaymentError
 
 __all__ = [
-    # decorators
-    "require_admin_key",
-    "require_invoice_key",
+    "InvoiceError",
+    "PaymentError",
     "check_admin",
     "check_super_user",
     "check_user_exists",
-    # services
-    "pay_invoice",
     "create_invoice",
-    # exceptions
-    "PaymentError",
-    "InvoiceError",
+    "pay_invoice",
+    "require_admin_key",
+    "require_invoice_key",
 ]

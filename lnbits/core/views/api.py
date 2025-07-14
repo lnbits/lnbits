@@ -93,7 +93,7 @@ async def api_create_account(data: CreateWallet) -> Wallet:
 
 
 @api_router.get("/api/v1/lnurlscan/{code}")
-async def api_lnurlscan(
+async def api_lnurlscan(  # noqa: C901
     code: str, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
     try:
@@ -124,20 +124,27 @@ async def api_lnurlscan(
         params.update(callback=url)  # with k1 already in it
 
         lnurlauth_key = wallet.wallet.lnurlauth_key(domain)
-        assert lnurlauth_key.verifying_key
+        if not lnurlauth_key.verifying_key:
+            raise ValueError("LNURL auth key not found for this domain.")
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         headers = {"User-Agent": settings.user_agent}
         async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
             check_callback_url(url)
-            r = await client.get(url, timeout=5)
-            r.raise_for_status()
-            if r.is_error:
+            try:
+                r = await client.get(url, timeout=5)
+                r.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code == 404:
+                    raise HTTPException(HTTPStatus.NOT_FOUND, "Not found") from exc
+
                 raise HTTPException(
                     status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                    detail={"domain": domain, "message": "failed to get parameters"},
-                )
-
+                    detail={
+                        "domain": domain,
+                        "message": "failed to get parameters",
+                    },
+                ) from exc
         try:
             data = json.loads(r.text)
         except json.decoder.JSONDecodeError as exc:

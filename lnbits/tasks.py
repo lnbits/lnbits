@@ -3,11 +3,9 @@ import time
 from datetime import datetime, timezone
 import traceback
 import uuid
+from collections.abc import Coroutine
 from typing import (
     Callable,
-    Coroutine,
-    Dict,
-    List,
     Optional,
 )
 
@@ -24,12 +22,13 @@ from lnbits.core.crud import (
     get_standalone_payment,
     update_payment,
 )
-from lnbits.core.models import Payment, PaymentState, CreatePayment
+from lnbits.core.models import Payment, PaymentState
+from lnbits.core.services.fiat_providers import handle_fiat_payment_confirmation
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 
-tasks: List[asyncio.Task] = []
-unique_tasks: Dict[str, asyncio.Task] = {}
+tasks: list[asyncio.Task] = []
+unique_tasks: dict[str, asyncio.Task] = {}
 
 
 def create_task(coro: Coroutine) -> asyncio.Task:
@@ -89,7 +88,7 @@ async def catch_everything_and_restart(
         return await catch_everything_and_restart(func, name)
 
 
-invoice_listeners: Dict[str, asyncio.Queue] = {}
+invoice_listeners: dict[str, asyncio.Queue] = {}
 
 
 # TODO: name should not be optional
@@ -111,6 +110,13 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = No
 
 
 internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
+
+
+async def internal_invoice_queue_put(checking_id: str) -> None:
+    """
+    A method to call when it wants to notify about an internal invoice payment.
+    """
+    await internal_invoice_queue.put(checking_id)
 
 
 async def internal_invoice_listener() -> None:
@@ -154,51 +160,18 @@ def wait_for_paid_invoices(
     return wrapper
 
 
-async def check_pending_payments():
-    """
-    check_pending_payments is called during startup to check for pending payments with
-    the backend and also to delete expired invoices. Incoming payments will be
-    checked only once, outgoing pending payments will be checked regularly.
-    """
-    sleep_time = 60 * 30  # 30 minutes
+def run_interval(
+    interval_seconds: int,
+    func: Callable[[], Coroutine],
+) -> Callable[[], Coroutine]:
+    """Run a function at a specified interval in seconds, while the server is running"""
 
-    while settings.lnbits_running:
-        funding_source = get_funding_source()
-        if funding_source.__class__.__name__ == "VoidWallet":
-            logger.warning("Task: skipping pending check for VoidWallet")
-            await asyncio.sleep(sleep_time)
-            continue
-        start_time = time.time()
-        pending_payments = await get_payments(
-            since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
-            complete=False,
-            pending=True,
-            exclude_uncheckable=True,
-        )
-        count = len(pending_payments)
-        if count > 0:
-            logger.info(f"Task: checking {count} pending payments of last 15 days...")
-            for i, payment in enumerate(pending_payments):
-                status = await payment.check_status()
-                prefix = f"payment ({i+1} / {count})"
-                if status.failed:
-                    payment.status = PaymentState.FAILED
-                    await update_payment(payment)
-                    logger.debug(f"{prefix} failed {payment.checking_id}")
-                elif status.success:
-                    payment.fee = status.fee_msat or 0
-                    payment.preimage = status.preimage
-                    payment.status = PaymentState.SUCCESS
-                    await update_payment(payment)
-                    logger.debug(f"{prefix} success {payment.checking_id}")
-                else:
-                    logger.debug(f"{prefix} pending {payment.checking_id}")
-                await asyncio.sleep(0.01)  # to avoid complete blocking
-            logger.info(
-                f"Task: pending check finished for {count} payments"
-                f" (took {time.time() - start_time:0.3f} s)"
-            )
-        await asyncio.sleep(sleep_time)
+    async def wrapper() -> None:
+        while settings.lnbits_running:
+            await func()
+            await asyncio.sleep(interval_seconds)
+
+    return wrapper
 
 
 async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = False):
@@ -208,18 +181,23 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
     """
     payment = await get_standalone_payment(checking_id, incoming=True)
     if payment:
-        if payment.is_in:
-            status = await payment.check_status()
-            payment.fee = status.fee_msat or 0
-            # only overwrite preimage if status.preimage provides it
-            payment.preimage = status.preimage or payment.preimage
-            payment.status = PaymentState.SUCCESS
-            await update_payment(payment)
-            internal = "internal" if is_internal else ""
-            logger.success(f"{internal} invoice {checking_id} settled")
-            for name, send_chan in invoice_listeners.items():
-                logger.trace(f"invoice listeners: sending to `{name}`")
-                await send_chan.put(payment)
+        if not payment.is_in:
+            logger.warning(f"Payment '{checking_id}' is not incoming, skipping.")
+            return
+    
+        status = await payment.check_status(skip_internal_payment_notifications=True)
+        payment.fee = status.fee_msat or payment.fee
+        # only overwrite preimage if status.preimage provides it
+        payment.preimage = status.preimage or payment.preimage
+        payment.status = PaymentState.SUCCESS
+        await update_payment(payment)
+        if payment.fiat_provider:
+            await handle_fiat_payment_confirmation(payment)
+        internal = "internal" if is_internal else ""
+        logger.success(f"{internal} invoice {checking_id} settled")
+        for name, send_chan in invoice_listeners.items():
+            logger.trace(f"invoice listeners: sending to `{name}`")
+            await send_chan.put(payment)
     else:
         funding_source = get_funding_source()
         invoice_status = await funding_source.get_invoice_extended_status(checking_id)
@@ -233,42 +211,45 @@ async def invoice_callback_dispatcher(checking_id: str, is_internal: bool = Fals
             if invoice_status.offer_id:
                 offer = await get_standalone_offer(invoice_status.offer_id)
 
-                if offer:
-                    logger.info(f"Offer {invoice_status.offer_id} was found in db") 
-                    data = await funding_source.decode_invoice(invoice_status.string)
+                if not offer:
+                    logger.warning(f"No offer found for '{invoice_status.offer_id}'.")
+                    return
 
-                    if not data:
-                        logger.error(f"Invoice {checking_id} could not be decoded")
-                    elif not data.offer_id:
-                        logger.error(f"Decoded invoice {checking_id} does not have an offer_id")
-                    elif data.offer_id != invoice_status.offer_id:
-                        logger.error(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
-                    else:
-                        description = data.description or f"Offer {data.offer_id} payment" if data.offer_id else f"Payment for invoice {data.payment_hash}"
-                        create_payment_model = CreatePayment(
-                            wallet_id=offer.wallet_id,
-                            bolt11=data.bolt11,
-                            payment_hash=data.payment_hash,
-                            preimage=invoice_status.payment_preimage,
-                            amount_msat=data.amount_msat,
-                            offer_id=data.offer_id,
-                            expiry=data.invoice_created_at+data.invoice_relative_expiry if data.invoice_relative_expiry else None,
-                            memo=description,
-                        )
+               logger.info(f"Offer {invoice_status.offer_id} was found in db") 
+               data = await funding_source.decode_invoice(invoice_status.string)
 
-                        if offer.is_unused:
-                            await update_offer_used(data.offer_id, True)
+               if not data:
+                   logger.error(f"Invoice {checking_id} could not be decoded")
+               elif not data.offer_id:
+                   logger.error(f"Decoded invoice {checking_id} does not have an offer_id")
+               elif data.offer_id != invoice_status.offer_id:
+                   logger.error(f"The offer_id for decoded invoice {checking_id} ({data.offer_id}) does not match the offer_id from the invoice's extended status ({invoice_status.offer_id})")
+               else:
+                   description = data.description or f"Offer {data.offer_id} payment" if data.offer_id else f"Payment for invoice {data.payment_hash}"
+                   create_payment_model = CreatePayment(
+                       wallet_id=offer.wallet_id,
+                       bolt11=data.bolt11,
+                       payment_hash=data.payment_hash,
+                       preimage=invoice_status.payment_preimage,
+                       amount_msat=data.amount_msat,
+                       offer_id=data.offer_id,
+                       expiry=data.invoice_created_at+data.invoice_relative_expiry if data.invoice_relative_expiry else None,
+                       memo=description,
+                   )
 
-                        payment = await create_payment(
-                            checking_id=checking_id,
-                            data=create_payment_model,
-                            created_at=data.invoice_created_at,
-                            updated_at=invoice_status.paid_at or datetime.now(timezone.utc),
-                            status = PaymentState.SUCCESS
-                        )
+                   if offer.is_unused:
+                       await update_offer_used(data.offer_id, True)
 
-                        internal = "internal" if is_internal else ""
-                        logger.success(f"{internal} invoice {checking_id} settled")
-                        for name, send_chan in invoice_listeners.items():
-                            logger.trace(f"invoice listeners: sending to `{name}`")
-                            await send_chan.put(payment)
+                   payment = await create_payment(
+                       checking_id=checking_id,
+                       data=create_payment_model,
+                       created_at=data.invoice_created_at,
+                       updated_at=invoice_status.paid_at or datetime.now(timezone.utc),
+                       status = PaymentState.SUCCESS
+                   )
+
+                   internal = "internal" if is_internal else ""
+                   logger.success(f"{internal} invoice {checking_id} settled")
+                   for name, send_chan in invoice_listeners.items():
+                       logger.trace(f"invoice listeners: sending to `{name}`")
+                       await send_chan.put(payment)

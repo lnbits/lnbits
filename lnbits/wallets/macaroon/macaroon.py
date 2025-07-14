@@ -2,6 +2,8 @@ import base64
 from getpass import getpass
 from typing import Optional
 
+from loguru import logger
+
 from lnbits.utils.crypto import AESCipher
 
 
@@ -20,7 +22,8 @@ def load_macaroon(
         aes = AESCipher(key.encode())
         return aes.decrypt(encrypted_macaroon)
 
-    assert macaroon, "macaroon must be set here"
+    if not macaroon:
+        raise ValueError("macaroon must be set here")
 
     # if the macaroon is a file path, load it and return hex version
     if macaroon.split(".")[-1] == "macaroon":
@@ -39,7 +42,7 @@ def load_macaroon(
     try:
         macaroon = base64.b64decode(macaroon).hex()
         return macaroon
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug(exc)
 
     return macaroon

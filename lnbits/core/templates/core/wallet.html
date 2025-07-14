@@ -211,7 +211,12 @@
         </q-card>
         <div id="hiddenQrCodeContainer" style="display: none">
           <lnbits-qrcode
-            :value="'lightning:' + this.receive.paymentReq"
+            v-if="receive.fiatPaymentReq"
+            :value="receive.fiatPaymentReq"
+          ></lnbits-qrcode>
+          <lnbits-qrcode
+            v-else
+            :value="'lightning:' + (this.receive.paymentReq || '').toUpperCase()"
           ></lnbits-qrcode>
         </div>
       </div>
@@ -619,14 +624,30 @@
               :readonly="receive.lnurl && receive.lnurl.fixed"
             ></q-input>
             {% else %}
-            <q-select
-              filled
-              dense
-              v-model="receive.unit"
-              type="text"
-              :label="$t('unit')"
-              :options="receive.units"
-            ></q-select>
+            <div class="row">
+              <div class="col-10">
+                <q-select
+                  filled
+                  dense
+                  v-model="receive.unit"
+                  type="text"
+                  :label="$t('unit')"
+                  :options="receive.units"
+                ></q-select>
+              </div>
+              <div class="col-2">
+                <q-btn
+                  v-if="g.fiatTracking"
+                  @click="swapBalancePriority"
+                  class="float-right"
+                  color="primary"
+                  flat
+                  dense
+                  icon="swap_vert"
+                ></q-btn>
+              </div>
+            </div>
+
             <q-input
               ref="setAmount"
               filled
@@ -640,13 +661,97 @@
               :readonly="receive.lnurl && receive.lnurl.fixed"
             ></q-input>
             {% endif %}
-
+            <q-input
+              v-if="has_holdinvoice"
+              filled
+              dense
+              v-model="receive.data.payment_hash"
+              :label="$t('hold_invoice_payment_hash')"
+            ></q-input>
             <q-input
               filled
               dense
-              v-model.trim="receive.data.memo"
+              type="textarea"
+              rows="2"
+              v-model="receive.data.memo"
               :label="$t('memo')"
+            >
+              <template v-if="receive.data.internalMemo === null" v-slot:append>
+                <q-icon
+                  name="add_comment"
+                  @click.stop.prevent="receive.data.internalMemo = ''"
+                  class="cursor-pointer"
+                ></q-icon>
+                <q-tooltip>
+                  <span v-text="$t('internal_memo')"></span>
+                </q-tooltip>
+              </template>
+            </q-input>
+            <q-input
+              v-if="receive.data.internalMemo !== null"
+              autogrow
+              filled
+              dense
+              v-model="receive.data.internalMemo"
+              class="q-mb-lg"
+              :label="$t('internal_memo')"
+              :hint="$t('internal_memo_hint_receive')"
+              :rules="[ val => !val || val.length <= 512 || 'Please use maximum 512 characters' ]"
+              ><template v-slot:append>
+                <q-icon
+                  name="cancel"
+                  @click.stop.prevent="receive.data.internalMemo = null"
+                  class="cursor-pointer"
+                /> </template
             ></q-input>
+            <div v-if="g.user.fiat_providers?.length" class="q-mt-md">
+              <q-list bordered dense class="rounded-borders">
+                <q-item-label dense header>
+                  <span v-text="$t('select_payment_provider')"></span>
+                </q-item-label>
+                <q-separator></q-separator>
+                <q-item
+                  :active="!receive.fiatProvider"
+                  @click="receive.fiatProvider = ''"
+                  active-class="bg-teal-1 text-grey-8 text-weight-bold"
+                  clickable
+                  v-ripple
+                >
+                  <q-item-section avatar>
+                    <q-avatar square>
+                      <img
+                        :src="'{{ static_url_for('static', 'images/logos/lnbits.png') }}'"
+                      />
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <span
+                      v-text="$t('pay_with', {provider: 'Lightning Network'})"
+                    ></span>
+                  </q-item-section>
+                </q-item>
+                <q-separator></q-separator>
+                <q-item
+                  :active="receive.fiatProvider === 'stripe'"
+                  @click="receive.fiatProvider = 'stripe'"
+                  active-class="bg-teal-1 text-grey-8 text-weight-bold"
+                  clickable
+                  v-ripple
+                >
+                  <q-item-section avatar>
+                    <q-avatar>
+                      <img
+                        :src="'{{ static_url_for('static', 'images/stripe_logo.ico') }}'"
+                      />
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <span v-text="$t('pay_with', {provider: 'Stripe'})"></span>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+
             <div v-if="receive.status == 'pending'" class="row q-mt-lg">
               <q-btn
                 unelevated
@@ -680,7 +785,14 @@
           class="q-pa-lg q-pt-xl lnbits__dialog-card"
         >
           <div class="text-center q-mb-lg">
-            <a :href="'lightning:' + receive.paymentReq">
+            <a
+              v-if="receive.fiatPaymentReq"
+              :href="receive.fiatPaymentReq"
+              target="_blank"
+            >
+              <div v-html="invoiceQrCode"></div>
+            </a>
+            <a v-else :href="'lightning:' + receive.paymentReq">
               <div v-html="invoiceQrCode"></div>
             </a>
           </div>
@@ -691,25 +803,27 @@
             <h5 v-if="receive.unit != 'sat'" class="q-mt-none q-mb-sm">
               <span v-text="formattedSatAmount"></span>
             </h5>
-            <q-chip v-if="hasNfc" outline square color="positive">
-              <q-avatar
-                icon="nfc"
-                color="positive"
-                text-color="white"
-              ></q-avatar>
-              <span v-text="$t('nfc_supported')"></span>
-            </q-chip>
-            <span
-              v-else
-              class="text-caption text-grey"
-              v-text="$t('nfc_not_supported')"
-            ></span>
+            <div v-if="!receive.fiatPaymentReq">
+              <q-chip v-if="hasNfc" outline square color="positive">
+                <q-avatar
+                  icon="nfc"
+                  color="positive"
+                  text-color="white"
+                ></q-avatar>
+                <span v-text="$t('nfc_supported')"></span>
+              </q-chip>
+              <span
+                v-else
+                class="text-caption text-grey"
+                v-text="$t('nfc_not_supported')"
+              ></span>
+            </div>
           </div>
           <div class="row q-mt-lg">
             <q-btn
               outline
               color="grey"
-              @click="copyText(receive.paymentReq)"
+              @click="copyText(receive.fiatPaymentReq || receive.paymentReq)"
               :label="$t('copy_invoice')"
             ></q-btn>
             <q-btn
@@ -768,6 +882,21 @@
             </div>
             <q-separator></q-separator>
             <h6 class="text-center" v-text="parse.invoice.description"></h6>
+            <q-input
+              autogrow
+              filled
+              dense
+              v-model="parse.data.internalMemo"
+              :label="$t('internal_memo')"
+              :hint="$t('internal_memo_hint_pay')"
+              class="q-mb-lg"
+              :rules="[ val => !val || val.length <= 512 || 'Please use maximum 512 characters' ]"
+              ><template v-if="parse.data.internalMemo" v-slot:append>
+                <q-icon
+                  name="cancel"
+                  @click.stop.prevent="parse.data.internalMemo = null"
+                  class="cursor-pointer" /></template
+            ></q-input>
             <q-list separator bordered dense class="q-mb-md">
               <q-expansion-item expand-separator icon="info" label="Details">
                 <q-list separator>
@@ -961,7 +1090,7 @@
                 </p>
               </div>
               <div class="row">
-                <div class="col">
+                <div class="col q-mb-lg">
                   <q-select
                     filled
                     dense
@@ -995,9 +1124,39 @@
                     filled
                     dense
                     v-model="parse.data.comment"
-                    :type="parse.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
+                    :type="parse.lnurlpay.commentAllowed > 512 ? 'textarea' : 'text'"
                     label="Comment (optional)"
                     :maxlength="parse.lnurlpay.commentAllowed"
+                    ><template
+                      v-if="parse.data.internalMemo === null"
+                      v-slot:append
+                    >
+                      <q-icon
+                        name="add_comment"
+                        @click.stop.prevent="parse.data.internalMemo = ''"
+                        class="cursor-pointer"
+                      ></q-icon>
+                      <q-tooltip>
+                        <span v-text="$t('internal_memo')"></span>
+                      </q-tooltip> </template
+                  ></q-input>
+                  <br />
+                  <q-input
+                    v-if="parse.data.internalMemo !== null"
+                    autogrow
+                    filled
+                    dense
+                    v-model="parse.data.internalMemo"
+                    :label="$t('internal_memo')"
+                    :hint="$t('internal_memo_hint_pay')"
+                    class=""
+                    :rules="[ val => !val || val.length <= 512 || 'Please use maximum 512 characters' ]"
+                    ><template v-slot:append>
+                      <q-icon
+                        name="cancel"
+                        @click.stop.prevent="parse.data.internalMemo = null"
+                        class="cursor-pointer"
+                      /> </template
                   ></q-input>
                 </div>
               </div>

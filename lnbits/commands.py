@@ -320,9 +320,8 @@ async def extensions_list():
     from lnbits.app import build_all_installed_extensions_list
 
     for ext in await build_all_installed_extensions_list():
-        assert (
-            ext.meta and ext.meta.installed_release
-        ), f"Extension {ext.id} has no installed_release"
+        if not ext.meta or not ext.meta.installed_release:
+            raise ValueError(f"Extension {ext.id} has no installed_release")
         click.echo(f"  - {ext.id} ({ext.meta.installed_release.version})")
 
 
@@ -353,7 +352,7 @@ async def extensions_list():
     help="Admin user ID (must have permissions to install extensions).",
 )
 @coro
-async def extensions_update(
+async def extensions_update(  # noqa: C901
     extension: Optional[str] = None,
     all_extensions: Optional[bool] = False,
     repo_index: Optional[str] = None,
@@ -608,9 +607,10 @@ async def update_extension(
 
         click.echo(f"Current '{extension}' version: {installed_ext.installed_version}.")
 
-        assert (
-            installed_ext.meta and installed_ext.meta.installed_release
-        ), "Cannot find previously installed release. Please uninstall first."
+        if not installed_ext.meta or not installed_ext.meta.installed_release:
+            raise ValueError(
+                "Cannot find previously installed release. Please uninstall first."
+            )
 
         release = await _select_release(extension, repo_index, source_repo)
         if not release:

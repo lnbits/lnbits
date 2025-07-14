@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import importlib
 
-from lnbits.nodes import set_node_class
 from lnbits.settings import settings
-from lnbits.wallets.base import Wallet
+from lnbits.wallets.base import Feature, Wallet
 
 from .alby import AlbyWallet
 from .blink import BlinkWallet
 from .boltz import BoltzWallet
 from .breez import BreezSdkWallet
+from .breez_liquid import BreezLiquidSdkWallet
 from .cliche import ClicheWallet
+from .clnrest import CLNRestWallet
 from .corelightning import CoreLightningWallet
 
 # The following import is intentional to keep backwards compatibility
@@ -33,13 +34,13 @@ from .void import VoidWallet
 from .zbd import ZBDWallet
 
 
-def set_funding_source(class_name: str | None = None):
+def set_funding_source(class_name: str | None = None) -> None:
     backend_wallet_class = class_name or settings.lnbits_backend_wallet_class
     funding_source_constructor = getattr(wallets_module, backend_wallet_class)
     global funding_source
     funding_source = funding_source_constructor()
-    if funding_source.__node_cls__:
-        set_node_class(funding_source.__node_cls__(funding_source))
+    settings.has_nodemanager = funding_source.has_feature(Feature.nodemanager)
+    settings.has_holdinvoice = funding_source.has_feature(Feature.holdinvoice)
 
 
 def get_funding_source() -> Wallet:
@@ -57,18 +58,20 @@ __all__ = [
     "AlbyWallet",
     "BlinkWallet",
     "BoltzWallet",
+    "BreezLiquidSdkWallet",
     "BreezSdkWallet",
-    "ClicheWallet",
-    "CoreLightningWallet",
+    "CLNRestWallet",
     "CLightningWallet",
+    "ClicheWallet",
     "CoreLightningRestWallet",
+    "CoreLightningWallet",
     "EclairWallet",
     "FakeWallet",
-    "LNbitsWallet",
-    "LndWallet",
-    "LndRestWallet",
     "LNPayWallet",
+    "LNbitsWallet",
     "LnTipsWallet",
+    "LndRestWallet",
+    "LndWallet",
     "NWCWallet",
     "OpenNodeWallet",
     "PhoenixdWallet",

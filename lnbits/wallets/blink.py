@@ -1,15 +1,17 @@
 import asyncio
 import hashlib
 import json
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Optional
 
 import httpx
 from loguru import logger
 from pydantic import BaseModel
-from websockets.client import WebSocketClientProtocol, connect
+from websockets.legacy.client import connect
 from websockets.typing import Subprotocol
 
 from lnbits import bolt11
+from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 
 from .base import (
@@ -34,19 +36,19 @@ class BlinkWallet(Wallet):
         if not settings.blink_token:
             raise ValueError("cannot initialize BlinkWallet: missing blink_token")
 
-        self.endpoint = self.normalize_endpoint(settings.blink_api_endpoint)
+        self.endpoint = normalize_endpoint(settings.blink_api_endpoint)
 
         self.auth = {
             "X-API-KEY": settings.blink_token,
             "User-Agent": settings.user_agent,
         }
-        self.ws_endpoint = self.normalize_endpoint(settings.blink_ws_endpoint)
+        self.ws_endpoint = normalize_endpoint(settings.blink_ws_endpoint)
         self.ws_auth = {
             "type": "connection_init",
             "payload": {"X-API-KEY": settings.blink_token},
         }
         self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.auth)
-        self.ws: Optional[WebSocketClientProtocol] = None
+        self.ws = None
         self._wallet_id = None
 
     @property
@@ -250,7 +252,8 @@ class BlinkWallet(Wallet):
             response = await self._graphql_query(data)
 
             response_data = response.get("data")
-            assert response_data is not None
+            if response_data is None:
+                raise ValueError("No data found in response.")
             txs_data = (
                 response_data.get("me", {})
                 .get("defaultAccount", {})
@@ -258,7 +261,8 @@ class BlinkWallet(Wallet):
                 .get("transactionsByPaymentHash", [])
             )
             tx_data = next((t for t in txs_data if t.get("direction") == "SEND"), None)
-            assert tx_data, "No SEND data found."
+            if not tx_data:
+                raise ValueError("No SEND data found.")
             fee = tx_data.get("settlementFee")
             preimage = tx_data.get("settlementVia", {}).get("preImage")
             status = tx_data.get("status")
@@ -282,9 +286,8 @@ class BlinkWallet(Wallet):
                     await ws.send(json.dumps(self.ws_auth))
                     confirmation = await ws.recv()
                     ack = json.loads(confirmation)
-                    assert (
-                        ack.get("type") == "connection_ack"
-                    ), "Websocket connection not acknowledged."
+                    if ack.get("type") != "connection_ack":
+                        raise ValueError("Websocket connection not acknowledged.")
 
                     logger.info("Websocket connection acknowledged.")
                     subscription_req = {

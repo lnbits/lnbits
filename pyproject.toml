@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnbits"
-version = "1.1.0"
+version = "1.2.0"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = ["Alan Bits <alan@lnbits.com>"]
 readme = "README.md"
@@ -14,71 +14,74 @@ packages = [
 [tool.poetry.dependencies]
 python = "~3.12 | ~3.11 | ~3.10"
 bech32 = "1.2.0"
-click = "8.1.7"
-ecdsa = "0.19.0"
-fastapi = "0.115.2"
+click = "8.2.1"
+ecdsa = "0.19.1"
+fastapi = "0.115.13"
 httpx = "0.27.0"
-jinja2 = "3.1.4"
+jinja2 = "3.1.6"
 lnurl = "0.5.3"
 pydantic = "1.10.18"
 pyqrcode = "1.2.1"
 shortuuid = "1.0.13"
-sse-starlette = "1.8.2"
-typing-extensions = "4.12.2"
-uvicorn = "0.34.2"
+sse-starlette = "2.3.6"
+typing-extensions = "4.14.0"
+uvicorn = "0.34.3"
 sqlalchemy = "1.4.54"
-aiosqlite = "0.20.0"
+aiosqlite = "0.21.0"
 asyncpg = "0.30.0"
 uvloop = "0.21.0"
-websockets = "11.0.3"
-loguru = "0.7.2"
+websockets = "15.0.1"
+loguru = "0.7.3"
 grpcio = "1.69.0"
-protobuf = "5.28.0"
-pyln-client = "24.11"
-pywebpush = "1.14.1"
+protobuf = "5.29.5"
+pyln-client = "25.5"
+pywebpush = "2.0.3"
 slowapi = "0.1.9"
 websocket-client = "1.8.0"
-pycryptodomex = "3.20.0"
-packaging = "24.0"
-bolt11 = "2.1.0"
-# needed for new login methods: username-password, google-auth, github-auth
-bcrypt = "4.2.0"
-pyjwt = "2.9.0"
+pycryptodomex = "3.23.0"
+packaging = "25.0"
+bolt11 = "2.1.1"
+pyjwt = "2.10.1"
 passlib = "1.7.4"
 itsdangerous = "2.2.0"
-fastapi-sso = "0.15.0"
+fastapi-sso = "0.18.0"
 # needed for boltz, lnurldevice, watchonly extensions
 embit = "0.8.0"
 # needed for cashu, lnurlp, nostrclient, nostrmarket, nostrrelay extensions
 secp256k1 = "0.14.0"
 # keep for backwards compatibility with lnurlp and cashu
-environs = "9.5.0"
+environs = "14.2.0"
 # needed for scheduler extension
 python-crontab = "3.2.0"
 # needed for liquid support boltz
-wallycore = {version = "1.3.0", optional = true}
+wallycore = {version = "1.4.0", optional = true}
 # needed for breez funding source
-breez-sdk = {version = "0.6.6", optional = true}
+breez-sdk = {version = "0.8.0", optional = true}
+breez-sdk-liquid = {version = "0.9.1", optional = true}
+# needed for migration tests
+psycopg2-binary = {version = "2.9.10", optional = true}
 
 jsonpath-ng = "^1.7.0"
 pynostr = "^0.6.2"
 python-multipart = "^0.0.20"
 filetype = "^1.2.0"
+nostr-sdk = "^0.42.1"
 
 [tool.poetry.extras]
-breez = ["breez-sdk"]
+breez = ["breez-sdk", "breez-sdk-liquid"]
 liquid = ["wallycore"]
+migration = ["psycopg2-binary"]
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.8.0"
+black = "^25.1.0"
 mypy = "^1.11.2"
-types-protobuf = "^5.27.0.20240626"
-pre-commit = "^3.8.0"
+types-protobuf = "^6.30.2.20250516"
+pre-commit = "^4.2.0"
 openapi-spec-validator = "^0.7.1"
-ruff = "^0.6.4"
+ruff = "^0.12.0"
 types-passlib = "^1.7.7.20240327"
 openai = "^1.39.0"
-json5 = "^0.9.25"
+json5 = "^0.12.0"
 asgi-lifespan = "^2.1.0"
 anyio = "^4.7.0"
 pytest = "^8.3.4"
@@ -148,6 +151,8 @@ module = [
   "json5.*",
   "jsonpath_ng.*",
   "filetype.*",
+  "breez_sdk.*",
+  "breez_sdk_liquid.*",
 ]
 ignore_missing_imports = "True"
 
@@ -192,7 +197,8 @@ extend-exclude = [
 # UP - pyupgrade
 # RUF - ruff specific rules
 # B - bugbear
-select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B"]
+# S - bandit
+select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B", "S"]
 # UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
 # RUF012: mutable-class-default
 ignore = ["RUF012"]
@@ -211,9 +217,27 @@ classmethod-decorators = [
     "validator",
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# S101: Use of assert detected. mostly for tests...
+# S105: Use of hard-coded password. mostly for tests...
+# S106: Possible hardcoded password: 'password'.
+# S307 Use of possibly insecure function; consider using `ast.literal_eval
+# S602 `subprocess` call with `shell=True` identified, security issue
+# S603 `subprocess` call: check for execution of untrusted input
+# S607: Starting a process with a partial executable path
+# S608: Possible SQL injection vector through string-based query construction
+# S324 Probable use of insecure hash functions in `hashlib`: `md5`
+# TODO: remove S101 ignore
+"lnbits/*" = ["S101"]
+"lnbits/core/views/admin_api.py" = ["S602", "S603", "S607"]
+"crypto.py" = ["S324"]
+"test*.py" = ["S101", "S105", "S106", "S307"]
+"tools*.py" = ["S101", "S608"]
+"tests/*" = ["S311"]
+"tests/regtest/helpers.py" = ["S603"]
+
 [tool.ruff.lint.mccabe]
-# TODO: Decrease this to 10.
-max-complexity = 16
+max-complexity = 10
 
 [tool.ruff.lint.flake8-bugbear]
 # Allow default arguments like, e.g., `data: List[str] = fastapi.Query(None)`.

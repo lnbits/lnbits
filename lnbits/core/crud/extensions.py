@@ -50,7 +50,8 @@ async def drop_extension_db(ext_id: str, conn: Optional[Connection] = None) -> N
         {"id": ext_id},
     )
     # Check that 'ext_id' is a valid extension id and not a malicious string
-    assert row, f"Extension '{ext_id}' db version cannot be found"
+    if not row:
+        raise Exception(f"Extension '{ext_id}' db version cannot be found")
 
     is_file_based_db = await Database.clean_ext_db_files(ext_id)
     if is_file_based_db:
@@ -78,10 +79,13 @@ async def get_installed_extensions(
     active: Optional[bool] = None,
     conn: Optional[Connection] = None,
 ) -> list[InstallableExtension]:
-    where = "WHERE active = :active" if active is not None else ""
+    query = "SELECT * FROM installed_extensions"
+    if active is not None:
+        query += " WHERE active = :active"
+
     values = {"active": active} if active is not None else {}
     all_extensions = await (conn or db).fetchall(
-        f"SELECT * FROM installed_extensions {where}",
+        query,
         values,
         model=InstallableExtension,
     )

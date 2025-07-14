@@ -4,7 +4,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http import HTTPStatus
-from typing import Optional, Tuple
+from typing import Optional
 
 import httpx
 from loguru import logger
@@ -28,7 +28,7 @@ from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
 from lnbits.utils.nostr import normalize_private_key
 
-notifications_queue: asyncio.Queue = asyncio.Queue()
+notifications_queue: asyncio.Queue[NotificationMessage] = asyncio.Queue()
 
 
 def enqueue_notification(message_type: NotificationType, values: dict) -> None:
@@ -42,8 +42,8 @@ def enqueue_notification(message_type: NotificationType, values: dict) -> None:
         logger.error(f"Error enqueuing notification: {e}")
 
 
-async def process_next_notification():
-    notification_message: NotificationMessage = await notifications_queue.get()
+async def process_next_notification() -> None:
+    notification_message = await notifications_queue.get()
     message_type, text = _notification_message_to_text(notification_message)
     await send_notification(text, message_type)
 
@@ -186,7 +186,7 @@ def is_message_type_enabled(message_type: NotificationType) -> bool:
 
 def _notification_message_to_text(
     notification_message: NotificationMessage,
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     message_type = notification_message.message_type.value
     meesage_value = NOTIFICATION_TEMPLATES.get(message_type, message_type)
     try:

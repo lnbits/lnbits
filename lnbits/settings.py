@@ -201,10 +201,11 @@ class InstalledExtensionsSettings(LNbitsSettings):
             if r.find_in_conflict(ext_redirect_paths)
         }
 
-        assert len(existing_redirects) == 0, (
-            f"Cannot redirect for extension '{ext_id}'."
-            f" Already mapped by {existing_redirects}."
-        )
+        if len(existing_redirects) != 0:
+            raise ValueError(
+                f"Cannot redirect for extension '{ext_id}'."
+                f" Already mapped by {existing_redirects}."
+            )
 
         self._remove_extension_redirects(ext_id)
         self.lnbits_extensions_redirects += ext_redirect_paths
@@ -255,7 +256,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_custom_image: str | None = Field(default="/static/images/logos/lnbits.svg")
     lnbits_ad_space_title: str = Field(default="Supported by")
     lnbits_ad_space: str = Field(
-        default="https://shop.lnbits.com/;/static/images/bitcoin-shop-banner.png;/static/images/bitcoin-shop-banner.png,https://affil.trezor.io/aff_c?offer_id=169&aff_id=33845;/static/images/bitcoin-hardware-wallet.png;/static/images/bitcoin-hardware-wallet.png,https://opensats.org/;/static/images/open-sats.png;/static/images/open-sats.png"
+        default="https://shop.lnbits.com/;/static/images/bitcoin-shop-banner.png;/static/images/bitcoin-shop-banner.png,https://affil.trezor.io/aff_c?offer_id=169&aff_id=33845;/static/images/bitcoin-hardware-wallet.png;/static/images/bitcoin-hardware-wallet.png,https://firefish.io/?ref=lnbits;/static/images/firefish.png;/static/images/firefish.png,https://opensats.org/;/static/images/open-sats.png;/static/images/open-sats.png"
     )  # sneaky sneaky
     lnbits_ad_space_enabled: bool = Field(default=False)
     lnbits_allowed_currencies: list[str] = Field(default=[])
@@ -305,7 +306,7 @@ class FeeSettings(LNbitsSettings):
             return 0
         reserve_min = self.lnbits_reserve_fee_min
         reserve_percent = self.lnbits_reserve_fee_percent
-        return max(int(reserve_min), int(amount_msat * reserve_percent / 100.0))
+        return max(int(reserve_min), int(abs(amount_msat) * reserve_percent / 100.0))
 
 
 class ExchangeProvidersSettings(LNbitsSettings):
@@ -448,6 +449,18 @@ class ClicheFundingSource(LNbitsSettings):
     cliche_endpoint: str | None = Field(default=None)
 
 
+class CLNRestFundingSource(LNbitsSettings):
+    clnrest_url: str | None = Field(default=None)
+    clnrest_ca: str | None = Field(default=None)
+    clnrest_cert: str | None = Field(default=None)
+    clnrest_readonly_rune: str | None = Field(default=None)
+    clnrest_invoice_rune: str | None = Field(default=None)
+    clnrest_pay_rune: str | None = Field(default=None)
+    clnrest_renepay_rune: str | None = Field(default=None)
+    clnrest_last_pay_index: str | None = Field(default=None)
+    clnrest_nodeid: str | None = Field(default=None)
+
+
 class CoreLightningFundingSource(LNbitsSettings):
     corelightning_rpc: str | None = Field(default=None)
     corelightning_pay_command: str = Field(default="pay")
@@ -549,11 +562,19 @@ class BreezSdkFundingSource(LNbitsSettings):
     breez_use_trampoline: bool = Field(default=True)
 
 
+class BreezLiquidSdkFundingSource(LNbitsSettings):
+    breez_liquid_api_key: str | None = Field(default=None)
+    breez_liquid_seed: str | None = Field(default=None)
+    breez_liquid_fee_offset_sat: int = Field(default=50)
+
+
 class BoltzFundingSource(LNbitsSettings):
     boltz_client_endpoint: str | None = Field(default="127.0.0.1:9002")
     boltz_client_macaroon: str | None = Field(default=None)
     boltz_client_wallet: str | None = Field(default="lnbits")
+    boltz_client_password: str = Field(default="")
     boltz_client_cert: str | None = Field(default=None)
+    boltz_mnemonic: str | None = Field(default=None)
 
 
 class StrikeFundingSource(LNbitsSettings):
@@ -561,6 +582,34 @@ class StrikeFundingSource(LNbitsSettings):
         default="https://api.strike.me/v1", env="STRIKE_API_ENDPOINT"
     )
     strike_api_key: str | None = Field(default=None, env="STRIKE_API_KEY")
+
+
+class FiatProviderLimits(BaseModel):
+    # empty list means all users are allowed to receive payments via Stripe
+    allowed_users: list[str] = Field(default=[])
+
+    service_max_fee_sats: int = Field(default=0)
+    service_fee_percent: float = Field(default=0)
+    service_fee_wallet_id: str | None = Field(default=None)
+
+    service_min_amount_sats: int = Field(default=0)
+    service_max_amount_sats: int = Field(default=0)
+    service_faucet_wallet_id: str | None = Field(default="")
+
+
+class StripeFiatProvider(LNbitsSettings):
+    stripe_enabled: bool = Field(default=False)
+    stripe_api_endpoint: str = Field(default="https://api.stripe.com")
+    stripe_api_secret_key: str | None = Field(default=None)
+    stripe_payment_success_url: str = Field(default="https://lnbits.com")
+
+    stripe_payment_webhook_url: str = Field(
+        default="https://your-lnbits-domain-here.com/api/v1/callback/stripe"
+    )
+    # Use this secret to verify that events come from Stripe.
+    stripe_webhook_signing_secret: str | None = Field(default=None)
+
+    stripe_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
 
 
 class LightningSettings(LNbitsSettings):
@@ -571,6 +620,7 @@ class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
     ClicheFundingSource,
+    CLNRestFundingSource,
     CoreLightningFundingSource,
     CoreLightningRestFundingSource,
     EclairFundingSource,
@@ -588,11 +638,46 @@ class FundingSourcesSettings(
     NWCFundingSource,
     BreezSdkFundingSource,
     StrikeFundingSource,
+    BreezLiquidSdkFundingSource,
 ):
     lnbits_backend_wallet_class: str = Field(default="VoidWallet")
     # How long to wait for the payment to be confirmed before returning a pending status
     # It will not fail the payment, it will make it return pending after the timeout
     lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
+
+
+class FiatProvidersSettings(StripeFiatProvider):
+
+    def is_fiat_provider_enabled(self, provider: str | None) -> bool:
+        """
+        Checks if a specific fiat provider is enabled.
+        """
+        if not provider:
+            return False
+        if provider == "stripe":
+            return self.stripe_enabled
+        # Add checks for other fiat providers here as needed
+        return False
+
+    def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
+        """
+        Returns a list of fiat payment methods allowed for the user.
+        """
+        allowed_providers = []
+        if self.stripe_enabled and (
+            not self.stripe_limits.allowed_users
+            or user_id in self.stripe_limits.allowed_users
+        ):
+            allowed_providers.append("stripe")
+
+        # Add other fiat providers here as needed
+        return allowed_providers
+
+    def get_fiat_provider_limits(self, provider_name: str) -> FiatProviderLimits | None:
+        """
+        Returns the limits for a specific fiat provider.
+        """
+        return getattr(self, provider_name + "_limits", None)
 
 
 class WebPushSettings(LNbitsSettings):
@@ -612,7 +697,7 @@ class NodeUISettings(LNbitsSettings):
 
 class AuthMethods(Enum):
     user_id_only = "user-id-only"
-    username_and_password = "username-password"
+    username_and_password = "username-password"  # noqa: S105
     nostr_auth_nip98 = "nostr-auth-nip98"
     google_auth = "google-auth"
     github_auth = "github-auth"
@@ -767,6 +852,7 @@ class EditableSettings(
     SecuritySettings,
     NotificationsSettings,
     FundingSourcesSettings,
+    FiatProvidersSettings,
     LightningSettings,
     WebPushSettings,
     NodeUISettings,
@@ -859,6 +945,8 @@ class SuperUserSettings(LNbitsSettings):
             "BoltzWallet",
             "BlinkWallet",
             "BreezSdkWallet",
+            "BreezLiquidSdkWallet",
+            "CLNRestWallet",
             "CoreLightningRestWallet",
             "CoreLightningWallet",
             "EclairWallet",
@@ -898,6 +986,9 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     lnbits_all_extensions_ids: set[str] = Field(default=[])
 
     server_startup_time: int = Field(default=time())
+
+    has_holdinvoice: bool = Field(default=False)
+    has_nodemanager: bool = Field(default=False)
 
     @property
     def lnbits_server_up_time(self) -> str:
@@ -960,6 +1051,12 @@ class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettin
 
     def is_installed_extension_id(self, ext_id: str) -> bool:
         return ext_id in self.lnbits_installed_extensions_ids
+
+    def is_ready_to_install_extension_id(self, ext_id: str) -> bool:
+        return (
+            ext_id not in self.lnbits_installed_extensions_ids
+            and ext_id in self.lnbits_all_extensions_ids
+        )
 
 
 class SuperSettings(EditableSettings):

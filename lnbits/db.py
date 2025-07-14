@@ -252,7 +252,7 @@ class Connection(Compat):
                         {clause}
                         {group_by_string}
                     ) as count
-                    """,
+                    """,  # noqa: S608
                     parsed_values,
                 )
                 row = result.mappings().first()
@@ -597,7 +597,7 @@ def insert_query(table_name: str, model: BaseModel) -> str:
     # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
     fields = ", ".join([f'"{key}"' for key in keys])
     values = ", ".join(placeholders)
-    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"
+    return f"INSERT INTO {table_name} ({fields}) VALUES ({values})"  # noqa: S608
 
 
 def update_query(
@@ -615,7 +615,7 @@ def update_query(
         # add quotes to keys to avoid SQL conflicts (e.g. `user` is a reserved keyword)
         fields.append(f'"{field}" = {placeholder}')
     query = ", ".join(fields)
-    return f"UPDATE {table_name} SET {query} {where}"
+    return f"UPDATE {table_name} SET {query} {where}"  # noqa: S608
 
 
 def model_to_dict(model: BaseModel) -> dict:
@@ -658,7 +658,7 @@ def dict_to_submodel(model: type[TModel], value: dict | str) -> TModel | None:
     return dict_to_model(_subdict, model)
 
 
-def dict_to_model(_row: dict, model: type[TModel]) -> TModel:
+def dict_to_model(_row: dict, model: type[TModel]) -> TModel:  # noqa: C901
     """
     Convert a dictionary with JSON-encoded nested models to a Pydantic model
     :param _dict: Dictionary from database

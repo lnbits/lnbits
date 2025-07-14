@@ -68,6 +68,7 @@ async def get_accounts(
             accounts.username,
             accounts.email,
             accounts.pubkey,
+            accounts.external_id,
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
             ), 0)) as balance_msat,
@@ -109,6 +110,7 @@ async def delete_accounts_no_wallets(
 ) -> None:
     delta = int(time()) - time_delta
     await (conn or db).execute(
+        # Timestamp placeholder is safe from SQL injection (not user input)
         f"""
         DELETE FROM accounts
         WHERE NOT EXISTS (
@@ -117,7 +119,7 @@ async def delete_accounts_no_wallets(
             (updated_at is null AND created_at < :delta)
             OR updated_at < {db.timestamp_placeholder("delta")}
         )
-        """,
+        """,  # noqa: S608
         {"delta": delta},
     )
 
@@ -128,8 +130,8 @@ async def get_account_by_username(
     if len(username) == 0:
         return None
     return await (conn or db).fetchone(
-        "SELECT * FROM accounts WHERE username = :username",
-        {"username": username},
+        "SELECT * FROM accounts WHERE LOWER(username) = :username",
+        {"username": username.lower()},
         Account,
     )
 
@@ -138,8 +140,8 @@ async def get_account_by_pubkey(
     pubkey: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
     return await (conn or db).fetchone(
-        "SELECT * FROM accounts WHERE pubkey = :pubkey",
-        {"pubkey": pubkey},
+        "SELECT * FROM accounts WHERE LOWER(pubkey) = :pubkey",
+        {"pubkey": pubkey.lower()},
         Account,
     )
 
@@ -150,8 +152,8 @@ async def get_account_by_email(
     if len(email) == 0:
         return None
     return await (conn or db).fetchone(
-        "SELECT * FROM accounts WHERE email = :email",
-        {"email": email},
+        "SELECT * FROM accounts WHERE LOWER(email) = :email",
+        {"email": email.lower()},
         Account,
     )
 
@@ -160,8 +162,11 @@ async def get_account_by_username_or_email(
     username_or_email: str, conn: Optional[Connection] = None
 ) -> Optional[Account]:
     return await (conn or db).fetchone(
-        "SELECT * FROM accounts WHERE email = :value or username = :value",
-        {"value": username_or_email},
+        """
+            SELECT * FROM accounts
+            WHERE LOWER(email) = :value or LOWER(username) = :value
+        """,
+        {"value": username_or_email.lower()},
         Account,
     )
 
@@ -183,6 +188,7 @@ async def get_user_from_account(
         email=account.email,
         username=account.username,
         pubkey=account.pubkey,
+        external_id=account.external_id,
         extra=account.extra,
         created_at=account.created_at,
         updated_at=account.updated_at,
@@ -190,6 +196,7 @@ async def get_user_from_account(
         wallets=wallets,
         admin=account.is_admin,
         super_user=account.is_super_user,
+        fiat_providers=account.fiat_providers,
         has_password=account.password_hash is not None,
     )
 

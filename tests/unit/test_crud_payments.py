@@ -81,7 +81,7 @@ async def test_crud_search_payments():
 
     user = await create_user_account()
     wallet = await create_wallet(user_id=user.id)
-    filters: Filters = Filters(
+    filters = Filters(
         search="",
         model=PaymentFilters,
     )

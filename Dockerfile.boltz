@@ -1,0 +1,30 @@
+FROM boltz/boltz-client:latest AS boltz
+
+FROM lnbits/lnbits:latest
+
+COPY --from=boltz /bin/boltzd /bin/boltzcli /usr/local/bin/
+RUN ls -l /usr/local/bin/boltzd
+RUN apt-get update && apt-get -y upgrade && \
+    apt-get install -y netcat-openbsd
+
+# Reinstall dependencies just in case (needed for CMD usage)
+ARG POETRY_INSTALL_ARGS="--only main"
+RUN poetry install ${POETRY_INSTALL_ARGS}
+
+# LNbits + boltzd configuration
+ENV LNBITS_PORT="5000"
+ENV LNBITS_HOST="0.0.0.0"
+ENV LNBITS_BACKEND_WALLET_CLASS="BoltzWallet"
+ENV FUNDING_SOURCE_MAX_RETRIES=10
+ENV BOLTZ_CLIENT_ENDPOINT="127.0.0.1:9002"
+ENV BOLTZ_CLIENT_MACAROON="/root/.boltz/macaroons/admin.macaroon"
+ENV BOLTZ_CLIENT_CERT="/root/.boltz/tls.cert"
+ENV BOLTZ_CLIENT_WALLET="lnbits"
+
+EXPOSE 5000
+
+# Entrypoint to start boltzd and LNbits
+COPY dockerboltz.sh /dockerboltz.sh
+RUN chmod +x /dockerboltz.sh
+
+CMD ["/dockerboltz.sh"]

@@ -338,7 +338,7 @@ window.localisation.br = {
   node_balance: 'Saldo do Nó: {balance} sats',
   lnbits_balance: 'Saldo do LNbits: {balance} sats',
   funding_reserve_percent: 'Reserve Percentual: {percent} %',
-  node_managment: 'Gerenciamento de Nós',
+  node_management: 'Gerenciamento de Nós',
   node_management_not_supported:
     'Gerenciamento de nó não suportado pela fonte de financiamento ativa',
   toggle_node_ui: 'Interface do Nó',

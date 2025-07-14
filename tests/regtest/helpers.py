@@ -3,7 +3,6 @@ import json
 import os
 import time
 from subprocess import PIPE, Popen, TimeoutExpired
-from typing import Tuple
 
 from loguru import logger
 
@@ -36,6 +35,17 @@ docker_lightning_unconnected_cli = [
     "--network",
     "regtest",
     "--rpcserver=lnd-2",
+]
+
+
+docker_lightning_noroute_cli = [
+    "docker",
+    "exec",
+    "lnbits-lnd-4-1",
+    "lncli",
+    "--network",
+    "regtest",
+    "--rpcserver=lnd-4",
 ]
 
 
@@ -73,7 +83,7 @@ def run_cmd_json(cmd: list) -> dict:
         raise
 
 
-def get_hold_invoice(sats: int) -> Tuple[str, dict]:
+def get_hold_invoice(sats: int) -> tuple[str, dict]:
     preimage = os.urandom(32)
     preimage_hash = hashlib.sha256(preimage).hexdigest()
     cmd = docker_lightning_cli.copy()
@@ -96,6 +106,12 @@ def cancel_invoice(preimage_hash: str) -> str:
 
 def get_real_invoice(sats: int) -> dict:
     cmd = docker_lightning_cli.copy()
+    cmd.extend(["addinvoice", str(sats)])
+    return run_cmd_json(cmd)
+
+
+def get_real_invoice_noroute(sats: int) -> dict:
+    cmd = docker_lightning_noroute_cli.copy()
     cmd.extend(["addinvoice", str(sats)])
     return run_cmd_json(cmd)
 

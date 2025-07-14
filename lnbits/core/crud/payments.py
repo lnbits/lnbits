@@ -1,6 +1,6 @@
 from time import time
 from datetime import datetime, timezone
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 from lnbits.core.crud.wallets import get_total_balance, get_wallet, get_wallets_ids
 from lnbits.core.db import db
@@ -51,11 +51,13 @@ async def get_standalone_payment(
         clause = f"({clause}) AND wallet_id = :wallet_id"
 
     row = await (conn or db).fetchone(
+        # This query is safe from SQL injection
+        # The `clause` is constructed from sanitized inputs
         f"""
         SELECT * FROM apipayments
         WHERE {clause}
         ORDER BY amount LIMIT 1
-        """,
+        """,  # noqa: S608
         values,
         Payment,
     )
@@ -81,19 +83,25 @@ async def get_latest_payments_by_extension(
     ext_name: str, ext_id: str, limit: int = 5
 ) -> list[Payment]:
     return await db.fetchall(
+        # This query is safe from SQL injection
+        # The limtit is an integer and not user input
         f"""
         SELECT * FROM apipayments
-        WHERE status = '{PaymentState.SUCCESS}'
+        WHERE status = :status
         AND extra LIKE :ext_name
         AND extra LIKE :ext_id
         ORDER BY time DESC LIMIT {int(limit)}
-        """,
-        {"ext_name": f"%{ext_name}%", "ext_id": f"%{ext_id}%"},
+        """,  # noqa: S608
+        {
+            "status": f"{PaymentState.SUCCESS}",
+            "ext_name": f"%{ext_name}%",
+            "ext_id": f"%{ext_id}%",
+        },
         Payment,
     )
 
 
-async def get_payments_paginated(
+async def get_payments_paginated(  # noqa: C901
     *,
     wallet_id: Optional[str] = None,
     user_id: Optional[str] = None,
@@ -228,21 +236,23 @@ async def delete_expired_invoices(
     # first we delete all invoices older than one month
 
     await (conn or db).execute(
+        # Timestamp placeholder is safe from SQL injection (not user input)
         f"""
         DELETE FROM apipayments
-        WHERE status = '{PaymentState.PENDING}' AND amount > 0
+        WHERE status = :status AND amount > 0
         AND time < {db.timestamp_placeholder("delta")}
-        """,
-        {"delta": int(time() - 2592000)},
+        """,  # noqa: S608
+        {"status": f"{PaymentState.PENDING}", "delta": int(time() - 2592000)},
     )
     # then we delete all invoices whose expiry date is in the past
     await (conn or db).execute(
+        # Timestamp placeholder is safe from SQL injection (not user input)
         f"""
         DELETE FROM apipayments
-        WHERE status = '{PaymentState.PENDING}' AND amount > 0
+        WHERE status = :status AND amount > 0
         AND expiry < {db.timestamp_placeholder("now")}
-        """,
-        {"now": int(time())},
+        """,  # noqa: S608
+        {"status": f"{PaymentState.PENDING}", "now": int(time())},
     )
 
 
@@ -257,7 +267,8 @@ async def create_payment(
     # we don't allow the creation of the same invoice twice
     # note: this can be removed if the db uniqueness constraints are set appropriately
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
-    assert previous_payment is None or previous_payment.checking_id != checking_id , "Payment already exists"
+    if previous_payment is not None or previous_payment.checking_id != checking_id:
+        raise ValueError("Payment already exists")
     extra = data.extra or {}
 
     payment = Payment(
@@ -328,16 +339,20 @@ async def get_payments_history(
         )
         """
     ]
+    clause = filters.where(where)
     transactions: list[dict] = await db.fetchall(
+        # This query is safe from SQL injection:
+        # - `date_trunc` is a static string, not user input
+        # - `clause` is generated from filters, which are validated and sanitized
         f"""
         SELECT {date_trunc} date,
                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) income,
                SUM(CASE WHEN amount < 0 THEN abs(amount) + abs(fee) ELSE 0 END) spending
         FROM apipayments
-        {filters.where(where)}
+        {clause}
         GROUP BY date
         ORDER BY date DESC
-        """,
+        """,  # noqa: S608
         filters.values(values),
     )
     if wallet_id:
@@ -383,13 +398,16 @@ async def get_payment_count_stats(
 
     clause = filters.where(extra_stmts)
     data = await (conn or db).fetchall(
+        # SQL injection vectors safety:
+        # - `field` is a static string, not user input
+        # - `clause` is generated from filters, which are validated and sanitized
         query=f"""
             SELECT {field} as field, count(*) as total
             FROM apipayments
             {clause}
             GROUP BY {field}
             ORDER BY {field}
-        """,
+        """,  # noqa: S608
         values=filters.values(),
         model=PaymentCountStat,
     )
@@ -401,7 +419,7 @@ async def get_daily_stats(
     filters: Optional[Filters[PaymentFilters]] = None,
     user_id: Optional[str] = None,
     conn: Optional[Connection] = None,
-) -> Tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
+) -> tuple[list[PaymentDailyStats], list[PaymentDailyStats]]:
 
     if not filters:
         filters = Filters()
@@ -475,6 +493,8 @@ async def get_wallets_stats(
     clauses = filters.where(where_stmts)
 
     data = await (conn or db).fetchall(
+        # This query is safe from SQL injection
+        # The `clauses` is constructed from sanitized inputs
         query=f"""
             SELECT apipayments.wallet_id,
                     MAX(wallets.name) AS wallet_name,
@@ -486,7 +506,7 @@ async def get_wallets_stats(
             {clauses}
             GROUP BY apipayments.wallet_id
             ORDER BY payments_count
-        """,
+        """,  # noqa: S608
         values=filters.values(),
         model=PaymentWalletStats,
     )
@@ -511,11 +531,11 @@ async def check_internal(
     otherwise None
     """
     return await (conn or db).fetchone(
-        f"""
+        """
         SELECT * FROM apipayments
-        WHERE payment_hash = :hash AND status = '{PaymentState.PENDING}' AND amount > 0
+        WHERE payment_hash = :hash AND status = :status AND amount > 0
         """,
-        {"hash": payment_hash},
+        {"status": f"{PaymentState.PENDING}", "hash": payment_hash},
         Payment,
     )
 

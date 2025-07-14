@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncGenerator, Coroutine, NamedTuple
+from collections.abc import AsyncGenerator, Coroutine
+from enum import Enum
+from typing import TYPE_CHECKING, NamedTuple
 
 from bolt11 import Bolt11, Tags
 from bolt11 import decode as bolt11_decode
@@ -12,10 +14,17 @@ from bolt11.exceptions import Bolt11Bech32InvalidException
 from loguru import logger
 
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash
+from lnbits.exceptions import InvoiceError
 from lnbits.settings import settings
 
 if TYPE_CHECKING:
     from lnbits.nodes.base import Node
+
+
+class Feature(Enum):
+    nodemanager = "nodemanager"
+    holdinvoice = "holdinvoice"
+    # bolt12 = "bolt12"
 
 
 class StatusResponse(NamedTuple):
@@ -117,6 +126,7 @@ class InvoiceResponse(NamedTuple):
     payment_request: str | None = None
     error_message: str | None = None
     preimage: str | None = None
+    fee_msat: int | None = None
 
     @property
     def success(self) -> bool:
@@ -212,6 +222,10 @@ class PaymentPendingStatus(PaymentStatus):
 class Wallet(ABC):
 
     __node_cls__: type[Node] | None = None
+    features: list[Feature] | None = None
+
+    def has_feature(self, feature: Feature) -> bool:
+        return self.features is not None and feature in self.features
 
     def __init__(self) -> None:
         self.pending_invoices: list[str] = []
@@ -284,8 +298,31 @@ class Wallet(ABC):
             ) -> Optional[InvoiceExtendedStatus]:
         return None
 
+    async def create_hold_invoice(
+        self,
+        amount: int,
+        payment_hash: str,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
+        **kwargs,
+    ) -> InvoiceResponse:
+        raise InvoiceError(
+            message="Hold invoices are not supported by this wallet.", status="failed"
+        )
+
+    async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
+        raise InvoiceError(
+            message="Hold invoices are not supported by this wallet.", status="failed"
+        )
+
+    async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
+        raise InvoiceError(
+            message="Hold invoices are not supported by this wallet.", status="failed"
+        )
+
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        while True:
+        while settings.lnbits_running:
             for invoice in self.pending_invoices:
                 try:
                     status = await self.get_invoice_status(invoice)

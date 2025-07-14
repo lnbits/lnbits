@@ -32,6 +32,10 @@ class InvoiceError(Exception):
         self.status = status
 
 
+class UnsupportedError(Exception):
+    pass
+
+
 def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     # Only the browser sends "text/html" request
     # not fail proof, but everything else get's a JSON response
@@ -71,7 +75,7 @@ def render_html_error(request: Request, exc: Exception) -> Optional[Response]:
     )
 
 
-def register_exception_handlers(app: FastAPI):
+def register_exception_handlers(app: FastAPI):  # noqa: C901
     """Register exception handlers for the FastAPI app"""
 
     @app.exception_handler(Exception)
@@ -153,7 +157,7 @@ def register_exception_handlers(app: FastAPI):
         status_code = HTTPStatus.NOT_FOUND
         message: str = "Page not found."
 
-        if path in settings.lnbits_all_extensions_ids:
+        if settings.is_ready_to_install_extension_id(path):
             status_code = HTTPStatus.FORBIDDEN
             message = f"Extension '{path}' not installed. Ask the admin to install it."
 

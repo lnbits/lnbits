@@ -8,6 +8,10 @@ window.app.component('lnbits-funding-sources', {
         fundingSource => fundingSource[0] === item
       )
       return fundingSource ? fundingSource[1] : item
+    },
+    showQRValue(value) {
+      this.qrValue = value
+      this.showQRDialog = true
     }
   },
   computed: {
@@ -17,7 +21,8 @@ window.app.component('lnbits-funding-sources', {
         const tmpObj = {}
         if (obj !== null) {
           for (let [k, v] of Object.entries(obj)) {
-            tmpObj[k] = {label: v, value: null}
+            tmpObj[k] =
+              typeof v === 'string' ? {label: v, value: null} : v || {}
           }
         }
         tmp.push([key, tmpObj])
@@ -31,6 +36,8 @@ window.app.component('lnbits-funding-sources', {
   data() {
     return {
       hideInput: true,
+      showQRDialog: false,
+      qrValue: '',
       rawFundingSources: [
         ['VoidWallet', 'Void Wallet', null],
         [
@@ -39,6 +46,22 @@ window.app.component('lnbits-funding-sources', {
           {
             fake_wallet_secret: 'Secret',
             lnbits_denomination: '"sats" or 3 Letter Custom Denomination'
+          }
+        ],
+        [
+          'CLNRestWallet',
+          'Core Lightning Rest (plugin)',
+          {
+            clnrest_url: 'Endpoint',
+            clnrest_ca: 'ca.pem',
+            clnrest_cert: 'server.pem',
+            clnrest_readonly_rune: 'Rune used for readonly requests',
+            clnrest_invoice_rune: 'Rune used for creating invoices',
+            clnrest_pay_rune: 'Rune used for paying invoices using pay',
+            clnrest_renepay_rune: 'Rune used for paying invoices using renepay',
+            clnrest_last_pay_index:
+              'Ignores any invoices paid prior to or including this index. 0 is equivalent to not specifying and negative value is invalid.',
+            clnrest_nodeid: 'Node id'
           }
         ],
         [
@@ -51,7 +74,7 @@ window.app.component('lnbits-funding-sources', {
         ],
         [
           'CoreLightningRestWallet',
-          'Core Lightning Rest',
+          'Core Lightning Rest (legacy)',
           {
             corelightning_rest_url: 'Endpoint',
             corelightning_rest_cert: 'Certificate',
@@ -138,7 +161,14 @@ window.app.component('lnbits-funding-sources', {
             boltz_client_endpoint: 'Endpoint',
             boltz_client_macaroon: 'Admin Macaroon path or hex',
             boltz_client_cert: 'Certificate path or hex',
-            boltz_client_wallet: 'Wallet Name'
+            boltz_client_wallet: 'Wallet Name',
+            boltz_client_password: 'Wallet Password (can be empty)',
+            boltz_mnemonic: {
+              label: 'Liquid mnemonic (copy into greenwallet)',
+              readonly: true,
+              copy: true,
+              qrcode: true
+            }
           }
         ],
         [
@@ -204,6 +234,16 @@ window.app.component('lnbits-funding-sources', {
           {
             strike_api_endpoint: 'API Endpoint',
             strike_api_key: 'API Key'
+          }
+        ],
+        [
+          'BreezLiquidSdkWallet',
+          'Breez Liquid SDK',
+          {
+            breez_liquid_api_key: 'Breez API Key (can be empty)',
+            breez_liquid_seed: 'Liquid seed phrase',
+            breez_liquid_fee_offset_sat:
+              'Offset amount in sats to increase fee limit'
           }
         ]
       ]
