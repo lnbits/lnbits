@@ -27,6 +27,7 @@ class UserExtra(BaseModel):
     display_name: str | None = None
     nostr_notification_identifiers: list[str] = []
     telegram_chat_id: str | None = None
+    notifications_excluded_wallets: list[str] = []
     picture: str | None = None
     # Auth provider, possible values:
     # - "env": the user was created automatically by the system

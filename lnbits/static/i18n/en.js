@@ -52,6 +52,7 @@ window.localisation.en = {
   wallet: 'Wallet: ',
   wallet_name: 'Wallet name',
   wallets: 'Wallets',
+  exclude_wallets: 'Exclude Wallets',
   add_wallet: 'Add wallet',
   add_new_wallet: 'Add a new wallet',
   pin_wallet: 'Pin wallet',
@@ -240,7 +241,8 @@ window.localisation.en = {
   notifications_telegram_access_token_desc: 'Access token for the bot',
   notifications_chat_id: 'Telegram Chat ID',
   notifications_chat_id_desc: 'Telegram Chat ID to send the notifications to',
-
+  notifications_excluded_wallets_desc:
+    'Do not send notifications for these wallets',
   notifications_email_config: 'Email Configuration',
   notifications_enable_email: 'Enable Email',
   notifications_enable_email_desc: 'Send notifications over email',

@@ -401,17 +401,18 @@ window.AccountPageLogic = {
       }
     },
     addNostrNotificationIdentifier() {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(this.notifications.nostr.identifier)) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'Invalid email format.'
+        })
+        return
+      }
       const identifier = this.user.extra.nostr_notification_identifiers.find(
         i => i === this.notifications.nostr.identifier
       )
       if (identifier) {
-        return
-      }
-      if (!this.notifications.nostr.identifier) {
-        Quasar.Notify.create({
-          type: 'warning',
-          message: 'Identifier cannot be empty.'
-        })
         return
       }
       this.user.extra.nostr_notification_identifiers.push(

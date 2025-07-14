@@ -621,6 +621,26 @@
                       />
                     </div>
                   </div>
+                  <div class="row q-mb-md">
+                    <div class="col-4">
+                      <span v-text="$t('exclude_wallets')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-select
+                        filled
+                        dense
+                        emit-value
+                        map-options
+                        multiple
+                        v-model="user.extra.notifications_excluded_wallets"
+                        :options="g.user.walletOptions"
+                        :label="$t('exclude_wallets')"
+                        :hint="$t('notifications_excluded_wallets_desc')"
+                        class="q-mt-sm"
+                      >
+                      </q-select>
+                    </div>
+                  </div>
                 </q-card-section>
                 <q-card-section>
                   <q-separator></q-separator>
