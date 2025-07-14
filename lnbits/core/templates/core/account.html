@@ -596,7 +596,7 @@
                       </q-input>
                       <div>
                         <q-chip
-                          v-for="identifier in notifications.nostr.identifiers"
+                          v-for="identifier in user.extra.nostr_notification_identifiers"
                           :key="identifier"
                           removable
                           @remove="removeNostrNotificationIdentifier(identifier)"
@@ -616,10 +616,18 @@
                       <q-input
                         filled
                         dense
-                        v-model="notifications.telegram.chatId"
+                        v-model="user.extra.telegram_chat_id"
                         :hint="$t('notifications_chat_id_desc')"
                       />
                     </div>
+                  </div>
+                </q-card-section>
+                <q-card-section>
+                  <q-separator></q-separator>
+                  <div class="row q-mb-md q-mt-md">
+                    <q-btn @click="updateAccount" unelevated color="primary">
+                      <span v-text="$t('update_account')"></span>
+                    </q-btn>
                   </div>
                 </q-card-section>
               </q-tab-panel>

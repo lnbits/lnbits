@@ -83,11 +83,7 @@ window.AccountPageLogic = {
       },
       notifications: {
         nostr: {
-          identifier: '',
-          identifiers: []
-        },
-        telegram: {
-          chatId: null
+          identifier: ''
         }
       }
     }
@@ -405,7 +401,7 @@ window.AccountPageLogic = {
       }
     },
     addNostrNotificationIdentifier() {
-      const identifier = this.notifications.nostr.identifiers.find(
+      const identifier = this.user.extra.nostr_notification_identifiers.find(
         i => i === this.notifications.nostr.identifier
       )
       if (identifier) {
@@ -418,14 +414,16 @@ window.AccountPageLogic = {
         })
         return
       }
-      this.notifications.nostr.identifiers.push(
+      this.user.extra.nostr_notification_identifiers.push(
         this.notifications.nostr.identifier
       )
       this.notifications.nostr.identifier = ''
     },
     removeNostrNotificationIdentifier(identifier) {
-      this.notifications.nostr.identifiers =
-        this.notifications.nostr.identifiers.filter(i => i !== identifier)
+      this.user.extra.nostr_notification_identifiers =
+        this.user.extra.nostr_notification_identifiers.filter(
+          i => i !== identifier
+        )
     }
   },
 
