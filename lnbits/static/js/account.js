@@ -80,6 +80,15 @@ window.AccountPageLogic = {
         token_id_list: [],
         allRead: false,
         allWrite: false
+      },
+      notifications: {
+        nostr: {
+          identifier: '',
+          identifiers: []
+        },
+        telegram: {
+          chatId: null
+        }
       }
     }
   },
@@ -394,8 +403,32 @@ window.AccountPageLogic = {
       } finally {
         this.apiAcl.password = ''
       }
+    },
+    addNostrNotificationIdentifier() {
+      const identifier = this.notifications.nostr.identifiers.find(
+        i => i === this.notifications.nostr.identifier
+      )
+      if (identifier) {
+        return
+      }
+      if (!this.notifications.nostr.identifier) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: 'Identifier cannot be empty.'
+        })
+        return
+      }
+      this.notifications.nostr.identifiers.push(
+        this.notifications.nostr.identifier
+      )
+      this.notifications.nostr.identifier = ''
+    },
+    removeNostrNotificationIdentifier(identifier) {
+      this.notifications.nostr.identifiers =
+        this.notifications.nostr.identifiers.filter(i => i !== identifier)
     }
   },
+
   async created() {
     try {
       const {data} = await LNbits.api.getAuthenticatedUser()
