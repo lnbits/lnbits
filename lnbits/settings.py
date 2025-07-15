@@ -432,6 +432,18 @@ class NotificationsSettings(LNbitsSettings):
         default=1_000_000, ge=0
     )
 
+    def is_nostr_notifications_configured(self) -> bool:
+        return (
+            self.lnbits_nostr_notifications_enabled
+            and self.lnbits_nostr_notifications_private_key is not None
+        )
+
+    def is_telegram_notifications_configured(self) -> bool:
+        return (
+            self.lnbits_telegram_notifications_enabled
+            and self.lnbits_telegram_notifications_access_token is not None
+        )
+
 
 class FakeWalletFundingSource(LNbitsSettings):
     fake_wallet_secret: str = Field(default="ToTheMoon1")

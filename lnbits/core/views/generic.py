@@ -206,11 +206,15 @@ async def account(
     request: Request,
     user: User = Depends(check_user_exists),
 ):
+    nostr_configured = settings.is_nostr_notifications_configured()
+    telegram_configured = settings.is_telegram_notifications_configured()
     return template_renderer().TemplateResponse(
         request,
         "core/account.html",
         {
             "user": user.json(),
+            "nostr_configured": nostr_configured,
+            "telegram_configured": telegram_configured,
             "ajax": _is_ajax_request(request),
         },
     )
@@ -361,7 +365,6 @@ async def node_public(request: Request):
         request,
         "node/public.html",
         {
-            "settings": settings.dict(),
             "balance": balance,
         },
     )
@@ -398,7 +401,6 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
         {
             "request": request,
             "user": user.json(),
-            "settings": settings.dict(),
             "currencies": list(currencies.keys()),
             "ajax": _is_ajax_request(request),
         },
