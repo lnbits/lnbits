@@ -21,6 +21,11 @@
               @update="val => tab = val.name"
             ></q-tab>
             <q-tab
+              name="notifications"
+              :label="$t('notifications')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
               name="api_acls"
               :label="$t('access_control_list')"
               @update="val => tab = val.name"
@@ -565,6 +570,86 @@
                     <span v-text="$t('update_account')"></span>
                   </q-btn>
                 </div>
+              </q-tab-panel>
+              <q-tab-panel name="notifications">
+                <q-card-section>
+                  <div class="row q-mb-md">
+                    <div class="col-4">
+                      <span
+                        v-text="$t('notifications_nostr_identifiers')"
+                      ></span>
+                    </div>
+                    <div class="col-8">
+                      <q-input
+                        filled
+                        dense
+                        v-model="notifications.nostr.identifier"
+                        :hint="$t('notifications_nostr_identifiers_desc')"
+                        @keydown.enter="addNostrNotificationIdentifier"
+                      >
+                        <q-btn
+                          @click="addNostrNotificationIdentifier()"
+                          dense
+                          flat
+                          icon="add"
+                        ></q-btn>
+                      </q-input>
+                      <div>
+                        <q-chip
+                          v-for="identifier in user.extra.nostr_notification_identifiers"
+                          :key="identifier"
+                          removable
+                          @remove="removeNostrNotificationIdentifier(identifier)"
+                          color="primary"
+                          text-color="white"
+                          ><span class="ellipsis" v-text="identifier"></span
+                        ></q-chip>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row q-mb-md">
+                    <div class="col-4">
+                      <span v-text="$t('notifications_chat_id')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-input
+                        filled
+                        dense
+                        v-model="user.extra.telegram_chat_id"
+                        :hint="$t('notifications_chat_id_desc')"
+                      />
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col-4">
+                      <span v-text="$t('exclude_wallets')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-select
+                        filled
+                        dense
+                        emit-value
+                        map-options
+                        multiple
+                        v-model="user.extra.notifications_excluded_wallets"
+                        :options="g.user.walletOptions"
+                        :label="$t('exclude_wallets')"
+                        :hint="$t('notifications_excluded_wallets_desc')"
+                        class="q-mt-sm"
+                      >
+                      </q-select>
+                    </div>
+                  </div>
+                </q-card-section>
+                <q-card-section>
+                  <q-separator></q-separator>
+                  <div class="row q-mb-md q-mt-md">
+                    <q-btn @click="updateAccount" unelevated color="primary">
+                      <span v-text="$t('update_account')"></span>
+                    </q-btn>
+                  </div>
+                </q-card-section>
               </q-tab-panel>
               <q-tab-panel name="api_acls">
                 <div class="row q-mb-md">
