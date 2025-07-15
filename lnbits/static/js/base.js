@@ -22,8 +22,7 @@ window.LNbits = {
       lnurlWithdraw = null,
       fiatProvider = null,
       internalMemo = null,
-      payment_hash = null,
-      fiatProvider = null
+      payment_hash = null
     ) {
       const data = {
         out: false,

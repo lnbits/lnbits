@@ -258,10 +258,10 @@ window.WalletPageLogic = {
           this.receive.data.amount,
           this.receive.data.memo,
           this.receive.unit,
-          this.receive.data.internalMemo,
-          this.receive.data.payment_hash,
           this.receive.lnurlWithdraw,
-          this.receive.fiatProvider
+          this.receive.fiatProvider,
+          this.receive.data.internalMemo,
+          this.receive.data.payment_hash
         )
         .then(response => {
           this.g.updatePayments = !this.g.updatePayments
