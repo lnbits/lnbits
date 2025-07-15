@@ -4,6 +4,7 @@ import importlib
 import os
 import shutil
 import sys
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Callable, Optional
@@ -70,8 +71,9 @@ from .tasks import internal_invoice_listener, invoice_listener, run_interval
 
 
 async def startup(app: FastAPI):
+    logger.info(f"Starting LNbits Version: {settings.version}")
+    start = time.perf_counter()
     settings.lnbits_running = True
-
     # wait till migration is done
     await migrate_databases()
 
@@ -109,6 +111,9 @@ async def startup(app: FastAPI):
             "up_time": settings.lnbits_server_up_time,
         },
     )
+
+    end = time.perf_counter()
+    logger.success(f"LNbits started in {end - start:.2f} seconds.")
 
 
 async def shutdown():
