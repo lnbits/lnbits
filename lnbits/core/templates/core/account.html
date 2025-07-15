@@ -642,6 +642,38 @@
                   </div>
                   <div class="row q-mb-md">
                     <div class="col-4">
+                      <span v-text="$t('notification_outgoing_payment')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-input
+                        filled
+                        dense
+                        type="number"
+                        min="0"
+                        step="1"
+                        v-model="user.extra.notifications_outgoing_payments_sats"
+                        :hint="$t('notification_outgoing_payment_desc')"
+                      />
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col-4">
+                      <span v-text="$t('notification_incoming_payment')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-input
+                        filled
+                        dense
+                        type="number"
+                        min="0"
+                        step="1"
+                        v-model="user.extra.notifications_incoming_payments_sats"
+                        :hint="$t('notification_incoming_payment_desc')"
+                      />
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col-4">
                       <span v-text="$t('exclude_wallets')"></span>
                     </div>
                     <div class="col-8">
