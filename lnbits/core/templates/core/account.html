@@ -29,32 +29,48 @@
             <q-tab
               name="user"
               icon="person"
-              :label="$t('account_settings')"
+              :label="$q.screen.gt.sm ? $t('account_settings') : ''"
               @update="val => tab = val.name"
-            ></q-tab>
+            >
+              <q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('account_settings')"></span
+              ></q-tooltip>
+            </q-tab>
 
             <q-tab
               name="notifications"
               icon="notifications"
-              :label="$t('notifications')"
+              :label="$q.screen.gt.sm ? $t('notifications') : ''"
               @update="val => tab = val.name"
-            ></q-tab>
+            >
+              <q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('notifications')"></span
+              ></q-tooltip>
+            </q-tab>
             <q-tab
               name="theme"
               icon="palette"
-              :label="$t('look_and_feel')"
+              :label="$q.screen.gt.sm ? $t('look_and_feel') : ''"
               @update="val => tab = val.name"
-            ></q-tab>
+            >
+              <q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('look_and_feel')"></span
+              ></q-tooltip>
+            </q-tab>
             <q-tab
               name="api_acls"
               icon="lock"
-              :label="$t('access_control_list')"
+              :label="$q.screen.gt.sm ? $t('access_control_list') : ''"
               @update="val => tab = val.name"
-            ></q-tab>
+            >
+              <q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('access_control_list')"></span
+              ></q-tooltip>
+            </q-tab>
           </q-tabs>
         </template>
         <template v-slot:after>
-          <q-scroll-area style="height: 100vh">
+          <q-scroll-area style="height: 80vh">
             <q-tab-panels v-if="user" v-model="tab">
               <q-tab-panel name="user">
                 <div v-if="credentialsData.show">
