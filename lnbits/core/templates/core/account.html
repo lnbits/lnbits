@@ -7,43 +7,55 @@
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-12">
     <q-card>
-      <div>
-        <div class="q-gutter-y-md">
-          <q-tabs v-model="tab" align="left">
-            <q-tab
-              name="user"
-              :label="$t('account_settings')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="theme"
-              :label="$t('look_and_feel')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="notifications"
-              :label="$t('notifications')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="api_acls"
-              :label="$t('access_control_list')"
-              @update="val => tab = val.name"
-            ></q-tab>
-          </q-tabs>
+      <div class="q-pa-sm">
+        <div class="row items-center justify-between q-gutter-xs">
+          <div class="col">
+            <q-btn @click="updateAccount" unelevated color="primary">
+              <span v-text="$t('update_account')"></span>
+            </q-btn>
+          </div>
         </div>
       </div>
     </q-card>
   </div>
 </div>
 
-<div class="row q-col-gutter-md">
-  <div v-if="user" class="col-md-12 col-lg-6 q-gutter-y-md">
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-12">
     <q-card>
-      <q-card-section>
-        <div class="row">
-          <div class="col">
-            <q-tab-panels v-model="tab">
+      <q-splitter>
+        <template v-slot:before>
+          <q-tabs v-model="tab" vertical active-color="primary">
+            <q-tab
+              name="user"
+              icon="person"
+              :label="$t('account_settings')"
+              @update="val => tab = val.name"
+            ></q-tab>
+
+            <q-tab
+              name="notifications"
+              icon="notifications"
+              :label="$t('notifications')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="theme"
+              icon="palette"
+              :label="$t('look_and_feel')"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="api_acls"
+              icon="lock"
+              :label="$t('access_control_list')"
+              @update="val => tab = val.name"
+            ></q-tab>
+          </q-tabs>
+        </template>
+        <template v-slot:after>
+          <q-scroll-area style="height: 100vh">
+            <q-tab-panels v-if="user" v-model="tab">
               <q-tab-panel name="user">
                 <div v-if="credentialsData.show">
                   <q-card-section>
@@ -298,9 +310,6 @@
                   </q-card-section>
                   <q-separator></q-separator>
                   <q-card-section>
-                    <q-btn @click="updateAccount" unelevated color="primary">
-                      <span v-text="$t('update_account')"></span>
-                    </q-btn>
                     <q-btn
                       @click="showUpdateCredentials()"
                       :label="$t('change_password')"
@@ -564,12 +573,6 @@
                     </q-select>
                   </div>
                 </div>
-                <q-separator></q-separator>
-                <div class="row q-mb-md q-mt-md">
-                  <q-btn @click="updateAccount" unelevated color="primary">
-                    <span v-text="$t('update_account')"></span>
-                  </q-btn>
-                </div>
               </q-tab-panel>
               <q-tab-panel name="notifications">
                 <q-card-section>
@@ -640,14 +643,6 @@
                       >
                       </q-select>
                     </div>
-                  </div>
-                </q-card-section>
-                <q-card-section>
-                  <q-separator></q-separator>
-                  <div class="row q-mb-md q-mt-md">
-                    <q-btn @click="updateAccount" unelevated color="primary">
-                      <span v-text="$t('update_account')"></span>
-                    </q-btn>
                   </div>
                 </q-card-section>
               </q-tab-panel>
@@ -876,16 +871,9 @@
                 </q-card-section>
               </q-tab-panel>
             </q-tab-panels>
-          </div>
-        </div>
-      </q-card-section>
-    </q-card>
-  </div>
-  <div v-else class="col-12 col-md-6 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        <h4 class="q-my-none"><span v-text="$t('account')"></span></h4>
-      </q-card-section>
+          </q-scroll-area>
+        </template>
+      </q-splitter>
     </q-card>
   </div>
 </div>
