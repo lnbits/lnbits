@@ -650,6 +650,7 @@ window.windowMixin = {
       }
     },
     applyBackgroundImage() {
+      if (this.bgimageChoice == 'null') this.bgimageChoice = ''
       if (this.bgimageChoice == '') {
         document.body.classList.remove('bg-image')
       } else {
