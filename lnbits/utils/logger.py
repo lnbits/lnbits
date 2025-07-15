@@ -13,7 +13,7 @@ from lnbits.settings import settings
 
 
 def log_server_info():
-    logger.info("Starting LNbits")
+    logger.info("LNbits Info")
     logger.info(f"Version: {settings.version}")
     logger.info(f"Baseurl: {settings.lnbits_baseurl}")
     logger.info(f"Host: {settings.host}")
