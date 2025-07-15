@@ -19,6 +19,20 @@ from .extensions import (
     update_installed_extension_state,
     update_user_extension,
 )
+from .offers import (
+    create_offer,
+    delete_expired_offers,
+    delete_wallet_offer,
+    enable_offer,
+    disable_offer,
+    get_offer,
+    get_offers,
+    get_offers_paginated,
+    get_standalone_offer,
+    mark_webhook_offer_sent,
+    update_offer_used,
+    update_offer,
+)
 from .payments import (
     DateTrunc,
     check_internal,

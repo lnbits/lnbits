@@ -735,3 +735,32 @@ async def m032_add_external_id_to_accounts(db: Connection):
 
 async def m033_update_payment_table(db: Connection):
     await db.execute("ALTER TABLE apipayments ADD COLUMN fiat_provider TEXT")
+
+
+async def m034_create_offer_table(db: Connection):
+    await db.execute("ALTER TABLE apipayments ADD COLUMN payer_note TEXT")
+    await db.execute("ALTER TABLE apipayments ADD COLUMN offer_id TEXT")
+    await db.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS apioffers (
+            offer_id TEXT NOT NULL,
+            amount INT,
+            wallet_id TEXT NOT NULL,
+            memo TEXT,
+            bolt12 TEXT,
+            extra TEXT,
+            webhook TEXT,
+            webhook_status TEXT,
+            expiry TIMESTAMP,
+            active BOOLEAN NOT NULL DEFAULT false, 
+            single_use BOOLEAN NOT NULL DEFAULT false, 
+            used BOOLEAN NOT NULL DEFAULT false, 
+            tag TEXT,
+            extension TEXT,
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP,
+            UNIQUE (wallet_id, offer_id)
+        )
+        """
+    )
+    await db.execute("CREATE INDEX by_offer ON apioffers (offer_id)")
