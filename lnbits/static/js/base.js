@@ -62,11 +62,6 @@ window.LNbits = {
         preimage: preimage
       })
     },
-    authLnurl(wallet, callback) {
-      return this.request('post', '/api/v1/lnurlauth', wallet.adminkey, {
-        callback
-      })
-    },
     createAccount(name) {
       return this.request('post', '/api/v1/account', null, {
         name: name

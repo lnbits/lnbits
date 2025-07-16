@@ -128,13 +128,19 @@ async def api_perform_lnurlauth(
     data: LnurlAuthResponse, key_type: WalletTypeInfo = Depends(require_admin_key)
 ) -> LnurlResponseModel:
     check_callback_url(data.callback)
-    res = await lnurlauth(
-        res=data,
-        seed=key_type.wallet.adminkey,
-        user_agent=settings.user_agent,
-        timeout=5,
-    )
-    return res
+    try:
+        res = await lnurlauth(
+            res=data,
+            seed=key_type.wallet.adminkey,
+            user_agent=settings.user_agent,
+            timeout=5,
+        )
+        return res
+    except LnurlResponseException as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
 
 
 @api_router.post("/api/v1/payments/lnurl")

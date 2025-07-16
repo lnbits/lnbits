@@ -567,9 +567,13 @@ window.WalletPageLogic = {
         timeout: 10,
         message: 'Performing authentication...'
       })
-
       LNbits.api
-        .authLnurl(this.g.wallet, this.parse.lnurlauth.callback)
+        .request(
+          'post',
+          '/api/v1/lnurlauth',
+          wallet.adminkey,
+          this.parse.lnurlauth
+        )
         .then(_ => {
           dismissAuthMsg()
           Quasar.Notify.create({
@@ -582,7 +586,7 @@ window.WalletPageLogic = {
         .catch(err => {
           if (err.response.data.reason) {
             Quasar.Notify.create({
-              message: `Authentication failed. ${this.parse.lnurlauth.domain} says:`,
+              message: `Authentication failed. ${this.parse.lnurlauth.callback} says:`,
               caption: err.response.data.reason,
               type: 'warning',
               timeout: 5000

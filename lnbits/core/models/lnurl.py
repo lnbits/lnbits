@@ -12,9 +12,5 @@ class CreateLnurlPayment(BaseModel):
     internal_memo: Optional[str] = None
 
 
-# class CreateLnurlAuth(BaseModel):
-#     callback: str
-
-
 class CreateLnurlWithdraw(BaseModel):
     lnurl_w: str
