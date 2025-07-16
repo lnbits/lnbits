@@ -153,16 +153,15 @@ async def api_payments_pay_lnurl(
 async def api_payment_pay_with_nfc(
     payment_request: str,
     lnurl_data: CreateLnurlWithdraw,
-) -> LnurlSuccessResponse | LnurlErrorResponse:
+) -> LnurlErrorResponse | LnurlSuccessResponse:
     try:
         res = await lnurl_handle(
             lnurl_data.lnurl_w.callback_url, user_agent=settings.user_agent, timeout=10
         )
-    except LnurlResponseException as exc:
+    except (LnurlResponseException, Exception) as exc:
         logger.warning(exc)
-        return LnurlErrorResponse(
-            reason=f"Failed to connect to {lnurl_data.lnurl_w.callback_url}: {exc!s}"
-        )
+        return LnurlErrorResponse(reason=str(exc))
+
     if not isinstance(res, LnurlWithdrawResponse):
         return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
     try:
@@ -174,11 +173,9 @@ async def api_payment_pay_with_nfc(
         res2 = await lnurl_withdraw(
             res, payment_request, user_agent=settings.user_agent, timeout=10
         )
-    except LnurlResponseException as exc:
+    except (LnurlResponseException, Exception) as exc:
         logger.warning(exc)
-        return LnurlErrorResponse(
-            reason=f"Failed to connect to {lnurl_data.lnurl_w.callback_url}: {exc!s}"
-        )
+        return LnurlErrorResponse(reason=str(exc))
     if not isinstance(res2, (LnurlSuccessResponse, LnurlErrorResponse)):
         return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
 

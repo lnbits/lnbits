@@ -1,5 +1,6 @@
 import hashlib
 from http import HTTPStatus
+from json import JSONDecodeError
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -597,75 +598,84 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
                 "status": "OK",
             },
         ),
-        # # Error loading LNURL request
-        #  (
-        #      "error_loading_lnurl",
-        #      None,
-        #      {
-        #          "status": "ERROR",
-        #      },
-        #  ),
+        # Error loading LNURL request
+        (
+            "error_loading_lnurl",
+            None,
+            {
+                "status": "ERROR",
+                "reason": "Error loading callback request",
+            },
+        ),
         # LNURL response with error status
-        # (
-        #     {
-        #         "status": "ERROR",
-        #     },
-        #     None,
-        #     {
-        #         "status": "ERROR",
-        #     },
-        # ),
-        # Invalid LNURL-withdraw
-        # (
-        #     {
-        #         "tag": "payRequest",
-        #         "callback": "https://example.com/callback",
-        #         "k1": "randomk1value",
-        #     },
-        #     None,
-        #     {
-        #         "status": "ERROR",
-        #         "reason": "Invalid LNURL-withdraw response.",
-        #     },
-        # ),
-        # # Error loading callback request
-        # (
-        #     {
-        #         "tag": "withdrawRequest",
-        #         "callback": "https://example.com/callback",
-        #         "k1": "randomk1value",
-        #     },
-        #     "error_loading_callback",
-        #     {
-        #         "success": False,
-        #         "detail": "Error loading callback request",
-        #     },
-        # ),
-        # # Callback response with error status
-        # (
-        #     {
-        #         "tag": "withdrawRequest",
-        #         "callback": "https://example.com/callback",
-        #         "k1": "randomk1value",
-        #     },
-        #     {
-        #         "status": "ERROR",
-        #         "reason": "Callback failed",
-        #     },
-        #     {
-        #         "success": False,
-        #         "detail": "Callback failed",
-        #     },
-        # ),
+        (
+            {
+                "status": "ERROR",
+            },
+            None,
+            {
+                "status": "ERROR",
+                "reason": "Invalid LNURL-withdraw response.",
+            },
+        ),
+        # Invalid LNURL-withdraw pay request
+        (
+            {
+                "tag": "payRequest",
+                "callback": "https://example.com/callback",
+                "k1": "randomk1value",
+                "minSendable": 1000,
+                "maxSendable": 1_500_000,
+                "metadata": '[["text/plain", "Payment to yo"]]',
+            },
+            None,
+            {
+                "status": "ERROR",
+                "reason": "Invalid LNURL-withdraw response.",
+            },
+        ),
+        # Error loading callback request
+        (
+            {
+                "tag": "withdrawRequest",
+                "callback": "https://example.com/callback",
+                "k1": "randomk1value",
+                "minWithdrawable": 1000,
+                "maxWithdrawable": 1_500_000,
+            },
+            "error_loading_callback",
+            {
+                "status": "ERROR",
+                "reason": "Error loading callback request",
+            },
+        ),
+        # Callback response with error status
+        (
+            {
+                "tag": "withdrawRequest",
+                "callback": "https://example.com/callback",
+                "k1": "randomk1value",
+                "minWithdrawable": 1000,
+                "maxWithdrawable": 1_500_000,
+            },
+            {
+                "status": "ERROR",
+                "reason": "Callback failed",
+            },
+            {
+                "status": "ERROR",
+                "reason": "Callback failed",
+            },
+        ),
         # Unexpected exception during LNURL response JSON parsing
-        # (
-        #     "exception_in_lnurl_response_json",
-        #     None,
-        #     {
-        #         "success": False,
-        #         "detail": "Unexpected error: Simulated exception",
-        #     },
-        # ),
+        (
+            "exception_in_lnurl_response_json",
+            None,
+            {
+                "status": "ERROR",
+                "reason": "JSONDecodeError: line 1 column 1 (char 0)",
+            },
+        ),
     ],
 )
 async def test_api_payment_pay_with_nfc(
@@ -694,11 +704,16 @@ async def test_api_payment_pay_with_nfc(
                 response = Mock()
                 response.is_error = True
                 response.status_code = 500
+                response.raise_for_status.side_effect = Exception(
+                    "Error loading callback request"
+                )
                 return response
             elif lnurl_response_data == "exception_in_lnurl_response_json":
                 response = Mock()
                 response.is_error = False
-                response.json.side_effect = Exception("Simulated exception")
+                response.json.side_effect = JSONDecodeError(
+                    doc="Simulated exception", pos=0, msg="JSONDecodeError"
+                )
                 return response
             elif isinstance(lnurl_response_data, dict):
                 response = Mock()
@@ -710,14 +725,18 @@ async def test_api_payment_pay_with_nfc(
                 response = Mock()
                 response.is_error = True
                 response.status_code = 500
+                response.raise_for_status.side_effect = Exception(
+                    "Error loading callback request"
+                )
                 return response
         elif url == "https://example.com/callback":
-            print(url)
-            print("!!! url/callback")
             if callback_response_data == "error_loading_callback":
                 response = Mock()
                 response.is_error = True
                 response.status_code = 500
+                response.raise_for_status.side_effect = Exception(
+                    "Error loading callback request"
+                )
                 return response
             elif isinstance(callback_response_data, dict):
                 response = Mock()
@@ -728,10 +747,16 @@ async def test_api_payment_pay_with_nfc(
                 # Handle cases where callback is not called
                 response = Mock()
                 response.is_error = True
+                response.raise_for_status.side_effect = Exception(
+                    "Error loading callback request"
+                )
                 return response
         else:
             response = Mock()
             response.is_error = True
+            response.raise_for_status.side_effect = Exception(
+                "Error loading callback request"
+            )
             return response
 
     mock_async_client.get.side_effect = mock_get
