@@ -22,7 +22,7 @@ from lnbits.core.services.funding_source import (
     get_balance_delta,
 )
 from lnbits.core.services.notifications import (
-    enqueue_notification,
+    enqueue_admin_notification,
     process_next_notification,
     send_payment_notification,
 )
@@ -87,7 +87,7 @@ async def _notify_server_status() -> None:
         "lnbits_balance_sats": status.lnbits_balance_sats,
         "node_balance_sats": status.node_balance_sats,
     }
-    enqueue_notification(NotificationType.server_status, values)
+    enqueue_admin_notification(NotificationType.server_status, values)
 
 
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue) -> None:

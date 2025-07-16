@@ -16,7 +16,7 @@ from lnbits.core.models import User
 from lnbits.core.models.misc import Image, SimpleStatus
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services import (
-    enqueue_notification,
+    enqueue_admin_notification,
     get_balance_delta,
     update_cached_settings,
 )
@@ -82,7 +82,9 @@ async def api_get_settings(
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings(data: UpdateSettings, user: User = Depends(check_admin)):
-    enqueue_notification(NotificationType.settings_update, {"username": user.username})
+    enqueue_admin_notification(
+        NotificationType.settings_update, {"username": user.username}
+    )
     await update_admin_settings(data)
     admin_settings = await get_admin_settings(user.super_user)
     if not admin_settings:
@@ -113,7 +115,9 @@ async def api_reset_settings(field_name: str):
 
 @admin_router.delete("/api/v1/settings", status_code=HTTPStatus.OK)
 async def api_delete_settings(user: User = Depends(check_super_user)) -> None:
-    enqueue_notification(NotificationType.settings_update, {"username": user.username})
+    enqueue_admin_notification(
+        NotificationType.settings_update, {"username": user.username}
+    )
     await reset_core_settings()
     server_restart.set()
 
