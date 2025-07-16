@@ -615,7 +615,7 @@
                       </q-input>
                       <div>
                         <q-chip
-                          v-for="identifier in user.extra.nostr_notification_identifiers"
+                          v-for="identifier in user.extra.notifications_nostr_identifiers"
                           :key="identifier"
                           removable
                           @remove="removeNostrNotificationIdentifier(identifier)"
@@ -635,7 +635,7 @@
                       <q-input
                         filled
                         dense
-                        v-model="user.extra.telegram_chat_id"
+                        v-model="user.extra.notofications_telegram_chat_id"
                         :hint="$t('notifications_chat_id_desc')"
                       />
                     </div>

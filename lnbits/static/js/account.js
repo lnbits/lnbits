@@ -409,20 +409,20 @@ window.AccountPageLogic = {
         })
         return
       }
-      const identifier = this.user.extra.nostr_notification_identifiers.find(
+      const identifier = this.user.extra.notifications_nostr_identifiers.find(
         i => i === this.notifications.nostr.identifier
       )
       if (identifier) {
         return
       }
-      this.user.extra.nostr_notification_identifiers.push(
+      this.user.extra.notifications_nostr_identifiers.push(
         this.notifications.nostr.identifier
       )
       this.notifications.nostr.identifier = ''
     },
     removeNostrNotificationIdentifier(identifier) {
-      this.user.extra.nostr_notification_identifiers =
-        this.user.extra.nostr_notification_identifiers.filter(
+      this.user.extra.notifications_nostr_identifiers =
+        this.user.extra.notifications_nostr_identifiers.filter(
           i => i !== identifier
         )
     }

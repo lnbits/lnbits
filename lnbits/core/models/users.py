@@ -25,8 +25,9 @@ class UserExtra(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     display_name: str | None = None
-    nostr_notification_identifiers: list[str] = []
-    telegram_chat_id: str | None = None
+    notifications_nostr_identifiers: list[str] = []
+    notofications_telegram_chat_id: str | None = None
+    notifications_email_address: str | None = None
     notifications_excluded_wallets: list[str] = []
     notifications_outgoing_payments_sats: int = 0
     notifications_incoming_payments_sats: int = 0
