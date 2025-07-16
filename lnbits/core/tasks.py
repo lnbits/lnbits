@@ -123,7 +123,7 @@ async def wait_notification_messages() -> None:
         try:
             await process_next_notification()
         except Exception as ex:
-            logger.log("error", ex)
+            logger.warning("Payment notification error", ex)
             await asyncio.sleep(3)
 
 
