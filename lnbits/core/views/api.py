@@ -141,7 +141,10 @@ async def api_payments_pay_lnurl(
     check_callback_url(data.res.callback)
 
     if data.unit and data.unit != "sat":
-        amount_msat = await fiat_amount_as_satoshis(data.amount, data.unit) * 1000
+        # shift to float with 2 decimal places
+        amount = round(data.amount / 1000, 2)
+        amount_msat = await fiat_amount_as_satoshis(amount, data.unit)
+        amount_msat *= 1000
     else:
         amount_msat = data.amount
 
