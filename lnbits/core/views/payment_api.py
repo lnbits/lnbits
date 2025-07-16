@@ -10,10 +10,7 @@ from fastapi import (
     Query,
 )
 from fastapi.responses import JSONResponse
-from lnurl import LnurlErrorResponse, LnurlSuccessResponse, LnurlWithdrawResponse
 from lnurl import decode as lnurl_decode
-from lnurl import execute_withdraw as lnurl_withdraw
-from lnurl import handle as lnurl_handle
 
 from lnbits import bolt11
 from lnbits.core.crud.payments import (
@@ -23,7 +20,6 @@ from lnbits.core.crud.payments import (
 from lnbits.core.models import (
     CancelInvoice,
     CreateInvoice,
-    CreateLnurlWithdraw,
     DecodePayment,
     KeyType,
     Payment,
@@ -45,11 +41,9 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import (
-    check_callback_url,
     filter_dict_keys,
     generate_filter_params_openapi,
 )
-from lnbits.settings import settings
 from lnbits.wallets.base import InvoiceResponse
 
 from ..crud import (
@@ -335,30 +329,6 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
             {"message": f"Failed to decode: {exc!s}"},
             status_code=HTTPStatus.BAD_REQUEST,
         )
-
-
-@payment_router.post("/{payment_request}/pay-with-nfc", status_code=HTTPStatus.OK)
-async def api_payment_pay_with_nfc(
-    payment_request: str,
-    lnurl_data: CreateLnurlWithdraw,
-) -> LnurlSuccessResponse | LnurlErrorResponse:
-    res = await lnurl_handle(
-        lnurl_data.lnurl_w, user_agent=settings.user_agent, timeout=10
-    )
-    if not isinstance(res, LnurlWithdrawResponse):
-        return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
-    try:
-        check_callback_url(res.callback)
-    except ValueError as exc:
-        return LnurlErrorResponse(reason=f"Invalid callback URL: {exc!s}")
-
-    res2 = await lnurl_withdraw(
-        res, payment_request, user_agent=settings.user_agent, timeout=10
-    )
-    if not isinstance(res2, (LnurlSuccessResponse, LnurlErrorResponse)):
-        return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
-
-    return res2
 
 
 @payment_router.post("/settle")
