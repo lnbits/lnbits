@@ -29,7 +29,7 @@
     "nostr-tools": "^2.7.2",
     "underscore": "^1.13.7",
     "vue": "3.5.8",
-    "vue-i18n": "^10.0.6",
+    "vue-i18n": "^10.0.8",
     "vue-qrcode-reader": "^5.5.10",
     "vue-router": "4.4.5",
     "vuex": "4.1.0"
