@@ -172,8 +172,8 @@ async def create_fiat_invoice(
 
 
 async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
-    description_hash = b""
-    unhashed_description = b""
+    description_hash = None
+    unhashed_description = None
     memo = data.memo or settings.lnbits_site_title
     if data.description_hash or data.unhashed_description:
         if data.description_hash:
@@ -221,10 +221,12 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
                 payment.status = "failed"
             elif isinstance(res, LnurlSuccessResponse):
                 payment.extra["lnurl_response"] = True
+                payment.status = "success"
         except Exception as exc:
             payment.extra["lnurl_response"] = str(exc)
             payment.status = "failed"
-        await update_payment(payment)
+        # updating to payment here would run into a race condition
+        # with the payment listeners and they will overwrite each other
 
     return payment
 

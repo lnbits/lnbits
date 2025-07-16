@@ -517,10 +517,6 @@ window.WalletPageLogic = {
         })
     },
     payLnurl() {
-      const dismissPaymentMsg = Quasar.Notify.create({
-        timeout: 0,
-        message: 'Processing payment...'
-      })
       LNbits.api
         .request('post', '/api/v1/payments/lnurl', this.g.wallet.adminkey, {
           res: this.parse.lnurlpay,
@@ -531,69 +527,39 @@ window.WalletPageLogic = {
         })
         .then(response => {
           this.parse.show = false
-
-          clearInterval(this.parse.paymentChecker)
-          setTimeout(() => {
-            clearInterval(this.parse.paymentChecker)
-          }, 40000)
-          this.parse.paymentChecker = setInterval(() => {
-            LNbits.api
-              .getPayment(this.g.wallet, response.data.payment_hash)
-              .then(res => {
-                if (res.data.paid) {
-                  dismissPaymentMsg()
-                  clearInterval(this.parse.paymentChecker)
-                  // show lnurlpay success action
-                  const extra = response.data.extra
-                  if (extra.success_action) {
-                    switch (extra.success_action.tag) {
-                      case 'url':
-                        Quasar.Notify.create({
-                          message: `<a target="_blank" style="color: inherit" href="${extra.success_action.url}">${extra.success_action.url}</a>`,
-                          caption: extra.success_action.description,
-                          html: true,
-                          type: 'positive',
-                          timeout: 0,
-                          closeBtn: true
-                        })
-                        break
-                      case 'message':
-                        Quasar.Notify.create({
-                          message: extra.success_action.message,
-                          type: 'positive',
-                          timeout: 0,
-                          closeBtn: true
-                        })
-                        break
-                      case 'aes':
-                        LNbits.api
-                          .getPayment(this.g.wallet, response.data.payment_hash)
-                          .then(({data: payment}) =>
-                            decryptLnurlPayAES(
-                              extra.success_action,
-                              payment.preimage
-                            )
-                          )
-                          .then(value => {
-                            Quasar.Notify.create({
-                              message: value,
-                              caption: extra.success_action.description,
-                              html: true,
-                              type: 'positive',
-                              timeout: 0,
-                              closeBtn: true
-                            })
-                          })
-                        break
-                    }
-                  }
-                }
-              })
-          }, 2000)
-        })
-        .catch(err => {
-          dismissPaymentMsg()
-          LNbits.utils.notifyApiError(err)
+          if (response.data.extra.success_action) {
+            const action = JSON.parse(response.data.extra.success_action)
+            switch (action.tag) {
+              case 'url':
+                Quasar.Notify.create({
+                  message: `<a target="_blank" style="color: inherit" href="${action.url}">${action.url}</a>`,
+                  caption: action.description,
+                  html: true,
+                  type: 'positive',
+                  timeout: 0,
+                  closeBtn: true
+                })
+                break
+              case 'message':
+                Quasar.Notify.create({
+                  message: action.message,
+                  type: 'positive',
+                  timeout: 0,
+                  closeBtn: true
+                })
+                break
+              case 'aes':
+                decryptLnurlPayAES(action, response.data.preimage)
+                Quasar.Notify.create({
+                  message: value,
+                  caption: extra.success_action.description,
+                  html: true,
+                  type: 'positive',
+                  timeout: 0,
+                  closeBtn: true
+                })
+            }
+          }
         })
     },
     authLnurl() {

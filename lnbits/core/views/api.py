@@ -111,12 +111,16 @@ async def api_create_account(data: CreateWallet) -> Wallet:
     | LnurlErrorResponse,
 )
 async def api_lnurlscan(code: str) -> LnurlResponseModel:
-    lnurl_response = await lnurl_handle(code, user_agent=settings.user_agent, timeout=5)
-    if isinstance(
-        lnurl_response, (LnurlPayResponse, LnurlWithdrawResponse, LnurlAuthResponse)
-    ):
-        check_callback_url(lnurl_response.callback)
-    return lnurl_response
+    try:
+        res = await lnurl_handle(code, user_agent=settings.user_agent, timeout=5)
+    except LnurlResponseException as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
+
+    if isinstance(res, (LnurlPayResponse, LnurlWithdrawResponse, LnurlAuthResponse)):
+        check_callback_url(res.callback)
+    return res
 
 
 @api_router.post("/api/v1/lnurlauth")
