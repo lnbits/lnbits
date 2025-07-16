@@ -148,8 +148,6 @@ async def api_payments_pay_lnurl(
     data: CreateLnurlPayment, wallet: WalletTypeInfo = Depends(require_admin_key)
 ) -> Payment:
 
-    check_callback_url(data.res.callback)
-
     if data.unit and data.unit != "sat":
         # shift to float with 2 decimal places
         amount = round(data.amount / 1000, 2)
@@ -166,9 +164,9 @@ async def api_payments_pay_lnurl(
             timeout=5,
         )
     except LnurlResponseException as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
+        logger.debug(str(exc))
+        msg = f"Failed to connect to {data.res.callback}."
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=msg) from exc
 
     if not isinstance(res, LnurlPayActionResponse):
         msg = f"lnurl response is not a LnurlPayActionResponse: {res}"
