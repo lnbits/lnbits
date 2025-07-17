@@ -228,41 +228,6 @@ async def send_email(
         return True
 
 
-def _is_message_type_enabled(message_type: NotificationType) -> bool:
-    if message_type == NotificationType.balance_update:
-        return settings.lnbits_notification_credit_debit
-    if message_type == NotificationType.settings_update:
-        return settings.lnbits_notification_settings_update
-    if message_type == NotificationType.watchdog_check:
-        return settings.lnbits_notification_watchdog
-    if message_type == NotificationType.balance_delta:
-        return settings.notification_balance_delta_changed
-    if message_type == NotificationType.server_start_stop:
-        return settings.lnbits_notification_server_start_stop
-    if message_type == NotificationType.server_status:
-        return settings.lnbits_notification_server_status_hours > 0
-    if message_type == NotificationType.incoming_payment:
-        return settings.lnbits_notification_incoming_payment_amount_sats > 0
-    if message_type == NotificationType.outgoing_payment:
-        return settings.lnbits_notification_outgoing_payment_amount_sats > 0
-
-    return False
-
-
-def _notification_message_to_text(
-    notification_message: NotificationMessage,
-) -> tuple[str, str]:
-    message_type = notification_message.message_type.value
-    meesage_value = NOTIFICATION_TEMPLATES.get(message_type, message_type)
-    try:
-        text = meesage_value.format(**notification_message.values)
-    except Exception as e:
-        logger.warning(f"Error formatting notification message: {e}")
-        text = meesage_value
-    text = f"""[{settings.lnbits_site_title}]\n{text}"""
-    return message_type, text
-
-
 async def dispatch_webhook(payment: Payment):
     """
     Dispatches the webhook to the webhook url.
@@ -408,3 +373,38 @@ async def send_push_notification(subscription, title, body, url=""):
                 f"failed sending push notification: "
                 f"{e.response.text if e.response else e}"
             )
+
+
+def _is_message_type_enabled(message_type: NotificationType) -> bool:
+    if message_type == NotificationType.balance_update:
+        return settings.lnbits_notification_credit_debit
+    if message_type == NotificationType.settings_update:
+        return settings.lnbits_notification_settings_update
+    if message_type == NotificationType.watchdog_check:
+        return settings.lnbits_notification_watchdog
+    if message_type == NotificationType.balance_delta:
+        return settings.notification_balance_delta_changed
+    if message_type == NotificationType.server_start_stop:
+        return settings.lnbits_notification_server_start_stop
+    if message_type == NotificationType.server_status:
+        return settings.lnbits_notification_server_status_hours > 0
+    if message_type == NotificationType.incoming_payment:
+        return settings.lnbits_notification_incoming_payment_amount_sats > 0
+    if message_type == NotificationType.outgoing_payment:
+        return settings.lnbits_notification_outgoing_payment_amount_sats > 0
+
+    return False
+
+
+def _notification_message_to_text(
+    notification_message: NotificationMessage,
+) -> tuple[str, str]:
+    message_type = notification_message.message_type.value
+    meesage_value = NOTIFICATION_TEMPLATES.get(message_type, message_type)
+    try:
+        text = meesage_value.format(**notification_message.values)
+    except Exception as e:
+        logger.warning(f"Error formatting notification message: {e}")
+        text = meesage_value
+    text = f"""[{settings.lnbits_site_title}]\n{text}"""
+    return message_type, text
