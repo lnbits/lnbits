@@ -673,7 +673,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             None,
             {
                 "status": "ERROR",
-                "reason": "JSONDecodeError: line 1 column 1 (char 0)",
+                "reason": "Invalid JSON response from https://example.com/lnurl",
             },
         ),
     ],
