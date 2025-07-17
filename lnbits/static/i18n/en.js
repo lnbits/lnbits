@@ -649,5 +649,7 @@ window.localisation.en = {
     'Signing secret for the webhook. Messages will be signed with this secret.',
   callback_success_url: 'Callback Success URL',
   callback_success_url_hint:
-    'The user will be redirected to this URL after the payment is successful'
+    'The user will be redirected to this URL after the payment is successful',
+  connected: 'Connected',
+  not_connected: 'Not Connected'
 }

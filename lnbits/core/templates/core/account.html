@@ -597,6 +597,10 @@
                       <span
                         v-text="$t('notifications_nostr_identifier')"
                       ></span>
+                      {%if not nostr_configured%}
+                      <br />
+                      <q-badge v-text="$t('not_connected')"></q-badge>
+                      {%endif%}
                     </div>
                     <div class="col-8">
                       <q-input
@@ -612,6 +616,10 @@
                   <div class="row q-mb-md">
                     <div class="col-4">
                       <span v-text="$t('notifications_chat_id')"></span>
+                      {%if not telegram_configured%}
+                      <br />
+                      <q-badge v-text="$t('not_connected')"></q-badge>
+                      {%endif%}
                     </div>
                     <div class="col-8">
                       <q-input
