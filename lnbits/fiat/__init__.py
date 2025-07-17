@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 from enum import Enum
 
+from loguru import logger
+
 from lnbits.fiat.base import FiatProvider
 from lnbits.settings import settings
 
@@ -15,7 +17,7 @@ class FiatProviderType(Enum):
     stripe = "StripeWallet"
 
 
-async def get_fiat_provider(name: str) -> FiatProvider:
+async def get_fiat_provider(name: str) -> FiatProvider | None:
     if name not in FiatProviderType.__members__:
         raise ValueError(f"Fiat provider '{name}' is not supported.")
 
@@ -27,13 +29,18 @@ async def get_fiat_provider(name: str) -> FiatProvider:
             del fiat_providers[name]
         else:
             return fiat_provider
-    fiat_providers[name] = _init_fiat_provider(FiatProviderType[name])
+    _provider = _init_fiat_provider(FiatProviderType[name])
+    if not _provider:
+        return None
+
+    fiat_providers[name] = _provider
     return fiat_providers[name]
 
 
-def _init_fiat_provider(fiat_provider: FiatProviderType) -> FiatProvider:
+def _init_fiat_provider(fiat_provider: FiatProviderType) -> FiatProvider | None:
     if not settings.is_fiat_provider_enabled(fiat_provider.name):
-        raise ValueError(f"Fiat provider '{fiat_provider.name}' not enabled.")
+        logger.warning(f"Fiat provider '{fiat_provider.name}' not enabled.")
+        return None
     provider_constructor = getattr(fiat_module, fiat_provider.value)
     return provider_constructor()
 
