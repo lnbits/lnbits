@@ -9,7 +9,7 @@ from typing import Any, Optional
 import httpx
 from httpx import RequestError, TimeoutException
 from loguru import logger
-from websockets.legacy.client import connect
+from websockets import connect
 
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
@@ -300,7 +300,9 @@ class PhoenixdWallet(Wallet):
             try:
                 async with connect(
                     self.ws_url,
-                    extra_headers=[("Authorization", self.headers["Authorization"])],
+                    additional_headers=[
+                        ("Authorization", self.headers["Authorization"])
+                    ],
                 ) as ws:
                     logger.info("connected to phoenixd invoices stream")
                     while settings.lnbits_running:

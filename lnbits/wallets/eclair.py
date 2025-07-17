@@ -9,7 +9,7 @@ from typing import Any, Optional
 
 import httpx
 from loguru import logger
-from websockets.legacy.client import connect
+from websockets import connect
 
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
@@ -245,7 +245,9 @@ class EclairWallet(Wallet):
             try:
                 async with connect(
                     self.ws_url,
-                    extra_headers=[("Authorization", self.headers["Authorization"])],
+                    additional_headers=[
+                        ("Authorization", self.headers["Authorization"])
+                    ],
                 ) as ws:
                     while settings.lnbits_running:
                         message = await ws.recv()
