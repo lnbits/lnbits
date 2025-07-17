@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
+from bcrypt import checkpw, gensalt, hashpw
 from fastapi import Query
-from passlib.context import CryptContext
 from pydantic import BaseModel, Field
 
 from lnbits.core.models.misc import SimpleItem
@@ -123,16 +123,18 @@ class Account(BaseModel):
 
     def hash_password(self, password: str) -> str:
         """sets and returns the hashed password"""
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        self.password_hash = pwd_context.hash(password)
+        salt = gensalt()
+        hashed_pw = hashpw(password.encode(), salt)
+        if not hashed_pw:
+            raise ValueError("Password hashing failed.")
+        self.password_hash = hashed_pw.decode()
         return self.password_hash
 
     def verify_password(self, password: str) -> bool:
         """returns True if the password matches the hash"""
         if not self.password_hash:
             return False
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        return pwd_context.verify(password, self.password_hash)
+        return checkpw(password.encode(), self.password_hash.encode())
 
     def validate_fields(self):
         if self.username and not is_valid_username(self.username):

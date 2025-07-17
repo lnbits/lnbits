@@ -42,7 +42,6 @@ pycryptodomex = "3.23.0"
 packaging = "25.0"
 bolt11 = "2.1.1"
 pyjwt = "2.10.1"
-passlib = "1.7.4"
 itsdangerous = "2.2.0"
 fastapi-sso = "0.18.0"
 # needed for boltz, lnurldevice, watchonly extensions
@@ -66,6 +65,7 @@ pynostr = "^0.6.2"
 python-multipart = "^0.0.20"
 filetype = "^1.2.0"
 nostr-sdk = "^0.42.1"
+bcrypt = "^4.3.0"
 
 [tool.poetry.extras]
 breez = ["breez-sdk", "breez-sdk-liquid"]
