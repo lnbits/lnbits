@@ -86,9 +86,8 @@ async def api_payments_pay_lnurl(
         res = await fetch_lnurl_pay_request(data=data)
     except LnurlResponseException as exc:
         logger.warning(exc)
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
+        msg = f"Failed to connect to {data.res.callback}."
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=msg) from exc
 
     extra: dict[str, Any] = {}
     if res.success_action:
