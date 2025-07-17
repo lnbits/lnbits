@@ -1,5 +1,5 @@
 from .audit import AuditEntry, AuditFilters
-from .lnurl import CreateLnurl, CreateLnurlAuth, PayLnurlWData
+from .lnurl import CreateLnurlPayment, CreateLnurlWithdraw
 from .misc import (
     BalanceDelta,
     Callback,
@@ -63,8 +63,8 @@ __all__ = [
     "ConversionData",
     "CoreAppExtra",
     "CreateInvoice",
-    "CreateLnurl",
-    "CreateLnurlAuth",
+    "CreateLnurlPayment",
+    "CreateLnurlWithdraw",
     "CreatePayment",
     "CreateUser",
     "CreateWallet",
@@ -75,7 +75,6 @@ __all__ = [
     "LoginUsernamePassword",
     "LoginUsr",
     "PayInvoice",
-    "PayLnurlWData",
     "Payment",
     "PaymentCountField",
     "PaymentCountStat",

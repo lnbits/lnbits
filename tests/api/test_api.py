@@ -1,5 +1,6 @@
 import hashlib
 from http import HTTPStatus
+from json import JSONDecodeError
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -587,13 +588,14 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
                 "tag": "withdrawRequest",
                 "callback": "https://example.com/callback",
                 "k1": "randomk1value",
+                "minWithdrawable": 1000,
+                "maxWithdrawable": 1_500_000,
             },
             {
                 "status": "OK",
             },
             {
-                "success": True,
-                "detail": {"status": "OK"},
+                "status": "OK",
             },
         ),
         # Error loading LNURL request
@@ -601,33 +603,35 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             "error_loading_lnurl",
             None,
             {
-                "success": False,
-                "detail": "Error loading LNURL request",
+                "status": "ERROR",
+                "reason": "Error loading callback request",
             },
         ),
         # LNURL response with error status
         (
             {
                 "status": "ERROR",
-                "reason": "LNURL request failed",
             },
             None,
             {
-                "success": False,
-                "detail": "LNURL request failed",
+                "status": "ERROR",
+                "reason": "Invalid LNURL-withdraw response.",
             },
         ),
-        # Invalid LNURL-withdraw
+        # Invalid LNURL-withdraw pay request
         (
             {
                 "tag": "payRequest",
                 "callback": "https://example.com/callback",
                 "k1": "randomk1value",
+                "minSendable": 1000,
+                "maxSendable": 1_500_000,
+                "metadata": '[["text/plain", "Payment to yo"]]',
             },
             None,
             {
-                "success": False,
-                "detail": "Invalid LNURL-withdraw",
+                "status": "ERROR",
+                "reason": "Invalid LNURL-withdraw response.",
             },
         ),
         # Error loading callback request
@@ -636,11 +640,13 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
                 "tag": "withdrawRequest",
                 "callback": "https://example.com/callback",
                 "k1": "randomk1value",
+                "minWithdrawable": 1000,
+                "maxWithdrawable": 1_500_000,
             },
             "error_loading_callback",
             {
-                "success": False,
-                "detail": "Error loading callback request",
+                "status": "ERROR",
+                "reason": "Error loading callback request",
             },
         ),
         # Callback response with error status
@@ -649,14 +655,16 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
                 "tag": "withdrawRequest",
                 "callback": "https://example.com/callback",
                 "k1": "randomk1value",
+                "minWithdrawable": 1000,
+                "maxWithdrawable": 1_500_000,
             },
             {
                 "status": "ERROR",
                 "reason": "Callback failed",
             },
             {
-                "success": False,
-                "detail": "Callback failed",
+                "status": "ERROR",
+                "reason": "Callback failed",
             },
         ),
         # Unexpected exception during LNURL response JSON parsing
@@ -664,8 +672,8 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             "exception_in_lnurl_response_json",
             None,
             {
-                "success": False,
-                "detail": "Unexpected error: Simulated exception",
+                "status": "ERROR",
+                "reason": "Invalid JSON response from https://example.com/lnurl",
             },
         ),
     ],
@@ -677,25 +685,35 @@ async def test_api_payment_pay_with_nfc(
     callback_response_data,
     expected_response,
 ):
-    payment_request = "lnbc1..."
+    payment_request = (
+        "lnbc15u1p3xnhl2pp5jptserfk3zk4qy42tlucycrfwxhydvlemu9pqr93tuzlv9cc7g3sdq"
+        "svfhkcap3xyhx7un8cqzpgxqzjcsp5f8c52y2stc300gl6s4xswtjpc37hrnnr3c9wvtgjfu"
+        "vqmpm35evq9qyyssqy4lgd8tj637qcjp05rdpxxykjenthxftej7a2zzmwrmrl70fyj9hvj0"
+        "rewhzj7jfyuwkwcg9g2jpwtk3wkjtwnkdks84hsnu8xps5vsq4gj5hs"
+    )
     lnurl = "lnurlw://example.com/lnurl"
-    lnurl_data = {"lnurl_w": lnurl}
 
     # Create a mock for httpx.AsyncClient
     mock_async_client = AsyncMock()
     mock_async_client.__aenter__.return_value = mock_async_client
 
     # Mock the get method
-    async def mock_get(url, *args, **kwargs):
+    async def mock_get(url, *_, **__):
         if url == "https://example.com/lnurl":
             if lnurl_response_data == "error_loading_lnurl":
                 response = Mock()
                 response.is_error = True
+                response.status_code = 500
+                response.raise_for_status.side_effect = Exception(
+                    "Error loading callback request"
+                )
                 return response
             elif lnurl_response_data == "exception_in_lnurl_response_json":
                 response = Mock()
                 response.is_error = False
-                response.json.side_effect = Exception("Simulated exception")
+                response.json.side_effect = JSONDecodeError(
+                    doc="Simulated exception", pos=0, msg="JSONDecodeError"
+                )
                 return response
             elif isinstance(lnurl_response_data, dict):
                 response = Mock()
@@ -706,11 +724,19 @@ async def test_api_payment_pay_with_nfc(
                 # Handle unexpected data
                 response = Mock()
                 response.is_error = True
+                response.status_code = 500
+                response.raise_for_status.side_effect = Exception(
+                    "Error loading callback request"
+                )
                 return response
         elif url == "https://example.com/callback":
             if callback_response_data == "error_loading_callback":
                 response = Mock()
                 response.is_error = True
+                response.status_code = 500
+                response.raise_for_status.side_effect = Exception(
+                    "Error loading callback request"
+                )
                 return response
             elif isinstance(callback_response_data, dict):
                 response = Mock()
@@ -721,10 +747,16 @@ async def test_api_payment_pay_with_nfc(
                 # Handle cases where callback is not called
                 response = Mock()
                 response.is_error = True
+                response.raise_for_status.side_effect = Exception(
+                    "Error loading callback request"
+                )
                 return response
         else:
             response = Mock()
             response.is_error = True
+            response.raise_for_status.side_effect = Exception(
+                "Error loading callback request"
+            )
             return response
 
     mock_async_client.get.side_effect = mock_get
@@ -734,7 +766,7 @@ async def test_api_payment_pay_with_nfc(
 
     response = await client.post(
         f"/api/v1/payments/{payment_request}/pay-with-nfc",
-        json=lnurl_data,
+        json={"lnurl_w": lnurl},
     )
 
     assert response.status_code == HTTPStatus.OK
@@ -743,27 +775,32 @@ async def test_api_payment_pay_with_nfc(
 
 @pytest.mark.anyio
 async def test_api_payments_pay_lnurl(client, adminkey_headers_from):
-    valid_lnurl_data = {
-        "description_hash": "randomhash",
-        "callback": "https://xxxxxxx.lnbits.com",
+    lnurl_data = {
+        "res": {
+            "callback": "https://xxxxxxx.lnbits.com",
+            "minSendable": 1000,
+            "maxSendable": 1_500_000,
+            "metadata": '[["text/plain", "Payment to yo"]]',
+        },
         "amount": 1000,
         "unit": "sat",
         "comment": "test comment",
         "description": "test description",
     }
 
-    invalid_lnurl_data = {**valid_lnurl_data, "callback": "invalid_url"}
-
     # Test with valid callback URL
     response = await client.post(
-        "/api/v1/payments/lnurl", json=valid_lnurl_data, headers=adminkey_headers_from
+        "/api/v1/payments/lnurl", json=lnurl_data, headers=adminkey_headers_from
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Failed to connect to xxxxxxx.lnbits.com."
+    assert (
+        response.json()["detail"] == "Failed to connect to https://xxxxxxx.lnbits.com."
+    )
 
     # Test with invalid callback URL
+    lnurl_data["res"]["callback"] = "invalid-url.lnbits.com"
     response = await client.post(
-        "/api/v1/payments/lnurl", json=invalid_lnurl_data, headers=adminkey_headers_from
+        "/api/v1/payments/lnurl", json=lnurl_data, headers=adminkey_headers_from
     )
     assert response.status_code == 400
-    assert "Callback not allowed." in response.json()["detail"]
+    assert "value_error.url.scheme" in response.json()["detail"]

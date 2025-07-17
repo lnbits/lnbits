@@ -258,7 +258,7 @@ window.WalletPageLogic = {
           this.receive.data.amount,
           this.receive.data.memo,
           this.receive.unit,
-          this.receive.lnurl && this.receive.lnurl.callback,
+          this.receive.lnurlWithdraw,
           this.receive.fiatProvider,
           this.receive.data.internalMemo,
           this.receive.data.payment_hash
@@ -276,24 +276,24 @@ window.WalletPageLogic = {
           }
           // TODO: lnurl_callback and lnurl_response
           // WITHDRAW
-          if (response.data.lnurl_response !== null) {
-            if (response.data.lnurl_response === false) {
-              response.data.lnurl_response = `Unable to connect`
+          if (response.data.extra.lnurl_response !== null) {
+            if (response.data.extra.lnurl_response === false) {
+              response.data.extra.lnurl_response = `Unable to connect`
             }
 
-            if (typeof response.data.lnurl_response === 'string') {
+            if (typeof response.data.extra.lnurl_response === 'string') {
               // failure
               Quasar.Notify.create({
                 timeout: 5000,
                 type: 'warning',
                 message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
-                caption: response.data.lnurl_response
+                caption: response.data.extra.lnurl_response
               })
               return
-            } else if (response.data.lnurl_response === true) {
+            } else if (response.data.extra.lnurl_response === true) {
               // success
               Quasar.Notify.create({
-                timeout: 5000,
+                timeout: 3000,
                 message: `Invoice sent to ${this.receive.lnurl.domain}!`,
                 spinner: true
               })
@@ -361,14 +361,15 @@ window.WalletPageLogic = {
             return
           }
 
-          if (data.kind === 'pay') {
+          if (data.tag === 'payRequest') {
             this.parse.lnurlpay = Object.freeze(data)
             this.parse.data.amount = data.minSendable / 1000
-          } else if (data.kind === 'auth') {
+          } else if (data.tag === 'login') {
             this.parse.lnurlauth = Object.freeze(data)
-          } else if (data.kind === 'withdraw') {
+          } else if (data.tag === 'withdrawRequest') {
             this.parse.show = false
             this.receive.show = true
+            this.receive.lnurlWithdraw = Object.freeze(data)
             this.receive.status = 'pending'
             this.receive.paymentReq = null
             this.receive.paymentHash = null
@@ -378,8 +379,9 @@ window.WalletPageLogic = {
               data.minWithdrawable / 1000,
               data.maxWithdrawable / 1000
             ]
+            const domain = data.callback.split('/')[2]
             this.receive.lnurl = {
-              domain: data.domain,
+              domain: domain,
               callback: data.callback,
               fixed: data.fixed
             }
@@ -515,86 +517,49 @@ window.WalletPageLogic = {
         })
     },
     payLnurl() {
-      const dismissPaymentMsg = Quasar.Notify.create({
-        timeout: 0,
-        message: 'Processing payment...'
-      })
       LNbits.api
-        .payLnurl(
-          this.g.wallet,
-          this.parse.lnurlpay.callback,
-          this.parse.lnurlpay.description_hash,
-          this.parse.data.amount * 1000,
-          this.parse.lnurlpay.description.slice(0, 120),
-          this.parse.data.comment,
-          this.parse.data.unit,
-          this.parse.data.internalMemo
-        )
+        .request('post', '/api/v1/payments/lnurl', this.g.wallet.adminkey, {
+          res: this.parse.lnurlpay,
+          unit: this.parse.data.unit,
+          amount: this.parse.data.amount * 1000,
+          comment: this.parse.data.comment,
+          internalMemo: this.parse.data.internalMemo
+        })
         .then(response => {
           this.parse.show = false
-
-          clearInterval(this.parse.paymentChecker)
-          setTimeout(() => {
-            clearInterval(this.parse.paymentChecker)
-          }, 40000)
-          this.parse.paymentChecker = setInterval(() => {
-            LNbits.api
-              .getPayment(this.g.wallet, response.data.payment_hash)
-              .then(res => {
-                if (res.data.paid) {
-                  dismissPaymentMsg()
-                  clearInterval(this.parse.paymentChecker)
-                  // show lnurlpay success action
-                  const extra = response.data.extra
-                  if (extra.success_action) {
-                    switch (extra.success_action.tag) {
-                      case 'url':
-                        Quasar.Notify.create({
-                          message: `<a target="_blank" style="color: inherit" href="${extra.success_action.url}">${extra.success_action.url}</a>`,
-                          caption: extra.success_action.description,
-                          html: true,
-                          type: 'positive',
-                          timeout: 0,
-                          closeBtn: true
-                        })
-                        break
-                      case 'message':
-                        Quasar.Notify.create({
-                          message: extra.success_action.message,
-                          type: 'positive',
-                          timeout: 0,
-                          closeBtn: true
-                        })
-                        break
-                      case 'aes':
-                        LNbits.api
-                          .getPayment(this.g.wallet, response.data.payment_hash)
-                          .then(({data: payment}) =>
-                            decryptLnurlPayAES(
-                              extra.success_action,
-                              payment.preimage
-                            )
-                          )
-                          .then(value => {
-                            Quasar.Notify.create({
-                              message: value,
-                              caption: extra.success_action.description,
-                              html: true,
-                              type: 'positive',
-                              timeout: 0,
-                              closeBtn: true
-                            })
-                          })
-                        break
-                    }
-                  }
-                }
-              })
-          }, 2000)
-        })
-        .catch(err => {
-          dismissPaymentMsg()
-          LNbits.utils.notifyApiError(err)
+          if (response.data.extra.success_action) {
+            const action = JSON.parse(response.data.extra.success_action)
+            switch (action.tag) {
+              case 'url':
+                Quasar.Notify.create({
+                  message: `<a target="_blank" style="color: inherit" href="${action.url}">${action.url}</a>`,
+                  caption: action.description,
+                  html: true,
+                  type: 'positive',
+                  timeout: 0,
+                  closeBtn: true
+                })
+                break
+              case 'message':
+                Quasar.Notify.create({
+                  message: action.message,
+                  type: 'positive',
+                  timeout: 0,
+                  closeBtn: true
+                })
+                break
+              case 'aes':
+                decryptLnurlPayAES(action, response.data.preimage)
+                Quasar.Notify.create({
+                  message: value,
+                  caption: extra.success_action.description,
+                  html: true,
+                  type: 'positive',
+                  timeout: 0,
+                  closeBtn: true
+                })
+            }
+          }
         })
     },
     authLnurl() {
@@ -602,9 +567,13 @@ window.WalletPageLogic = {
         timeout: 10,
         message: 'Performing authentication...'
       })
-
       LNbits.api
-        .authLnurl(this.g.wallet, this.parse.lnurlauth.callback)
+        .request(
+          'post',
+          '/api/v1/lnurlauth',
+          wallet.adminkey,
+          this.parse.lnurlauth
+        )
         .then(_ => {
           dismissAuthMsg()
           Quasar.Notify.create({
@@ -615,10 +584,9 @@ window.WalletPageLogic = {
           this.parse.show = false
         })
         .catch(err => {
-          dismissAuthMsg()
           if (err.response.data.reason) {
             Quasar.Notify.create({
-              message: `Authentication failed. ${this.parse.lnurlauth.domain} says:`,
+              message: `Authentication failed. ${this.parse.lnurlauth.callback} says:`,
               caption: err.response.data.reason,
               type: 'warning',
               timeout: 5000

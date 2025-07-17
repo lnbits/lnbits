@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Literal
 
 from fastapi import Query
+from lnurl import LnurlWithdrawResponse
 from pydantic import BaseModel, Field, validator
 
 from lnbits.db import FilterModel
@@ -262,7 +263,7 @@ class CreateInvoice(BaseModel):
     extra: dict | None = None
     webhook: str | None = None
     bolt11: str | None = None
-    lnurl_callback: str | None = None
+    lnurl_withdraw: LnurlWithdrawResponse | None = None
     fiat_provider: str | None = None
 
     @validator("payment_hash")

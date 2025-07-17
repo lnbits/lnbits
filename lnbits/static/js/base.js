@@ -19,7 +19,7 @@ window.LNbits = {
       amount,
       memo,
       unit = 'sat',
-      lnurlCallback = null,
+      lnurlWithdraw = null,
       fiatProvider = null,
       internalMemo = null,
       payment_hash = null
@@ -29,7 +29,7 @@ window.LNbits = {
         amount: amount,
         memo: memo,
         unit: unit,
-        lnurl_callback: lnurlCallback,
+        lnurl_withdraw: lnurlWithdraw,
         fiat_provider: fiatProvider,
         payment_hash: payment_hash
       }
@@ -52,36 +52,6 @@ window.LNbits = {
       }
       return this.request('post', '/api/v1/payments', wallet.adminkey, data)
     },
-    payLnurl(
-      wallet,
-      callback,
-      description_hash,
-      amount,
-      description = '',
-      comment = '',
-      unit = '',
-      internalMemo = null
-    ) {
-      const data = {
-        callback,
-        description_hash,
-        amount,
-        comment,
-        description,
-        unit
-      }
-
-      if (internalMemo) {
-        data.internal_memo = String(internalMemo)
-      }
-
-      return this.request(
-        'post',
-        '/api/v1/payments/lnurl',
-        wallet.adminkey,
-        data
-      )
-    },
     cancelInvoice(wallet, paymentHash) {
       return this.request('post', '/api/v1/payments/cancel', wallet.adminkey, {
         payment_hash: paymentHash
@@ -90,11 +60,6 @@ window.LNbits = {
     settleInvoice(wallet, preimage) {
       return this.request('post', `/api/v1/payments/settle`, wallet.adminkey, {
         preimage: preimage
-      })
-    },
-    authLnurl(wallet, callback) {
-      return this.request('post', '/api/v1/lnurlauth', wallet.adminkey, {
-        callback
       })
     },
     createAccount(name) {
