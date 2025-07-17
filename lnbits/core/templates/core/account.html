@@ -595,35 +595,17 @@
                   <div class="row q-mb-md">
                     <div class="col-4">
                       <span
-                        v-text="$t('notifications_nostr_identifiers')"
+                        v-text="$t('notifications_nostr_identifier')"
                       ></span>
                     </div>
                     <div class="col-8">
                       <q-input
                         filled
                         dense
-                        v-model="notifications.nostr.identifier"
-                        :hint="$t('notifications_nostr_identifiers_desc')"
-                        @keydown.enter="addNostrNotificationIdentifier"
+                        v-model="user.extra.notifications.nostr_identifier"
+                        :hint="$t('notifications_nostr_identifier_desc')"
                       >
-                        <q-btn
-                          @click="addNostrNotificationIdentifier()"
-                          dense
-                          flat
-                          icon="add"
-                        ></q-btn>
                       </q-input>
-                      <div>
-                        <q-chip
-                          v-for="identifier in user.extra.notifications_nostr_identifiers"
-                          :key="identifier"
-                          removable
-                          @remove="removeNostrNotificationIdentifier(identifier)"
-                          color="primary"
-                          text-color="white"
-                          ><span class="ellipsis" v-text="identifier"></span
-                        ></q-chip>
-                      </div>
                     </div>
                   </div>
 
@@ -635,11 +617,12 @@
                       <q-input
                         filled
                         dense
-                        v-model="user.extra.notifications_telegram_chat_id"
+                        v-model="user.extra.notifications.telegram_chat_id"
                         :hint="$t('notifications_chat_id_desc')"
                       />
                     </div>
                   </div>
+                  <q-separator class="q-mb-md"></q-separator>
                   <div class="row q-mb-md">
                     <div class="col-4">
                       <span v-text="$t('notification_outgoing_payment')"></span>
@@ -651,7 +634,7 @@
                         type="number"
                         min="0"
                         step="1"
-                        v-model="user.extra.notifications_outgoing_payments_sats"
+                        v-model="user.extra.notifications.outgoing_payments_sats"
                         :hint="$t('notification_outgoing_payment_desc')"
                       />
                     </div>
@@ -667,7 +650,7 @@
                         type="number"
                         min="0"
                         step="1"
-                        v-model="user.extra.notifications_incoming_payments_sats"
+                        v-model="user.extra.notifications.incoming_payments_sats"
                         :hint="$t('notification_incoming_payment_desc')"
                       />
                     </div>
@@ -683,7 +666,7 @@
                         emit-value
                         map-options
                         multiple
-                        v-model="user.extra.notifications_excluded_wallets"
+                        v-model="user.extra.notifications.excluded_wallets"
                         :options="g.user.walletOptions"
                         :label="$t('exclude_wallets')"
                         :hint="$t('notifications_excluded_wallets_desc')"

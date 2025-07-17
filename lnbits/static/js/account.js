@@ -399,32 +399,6 @@ window.AccountPageLogic = {
       } finally {
         this.apiAcl.password = ''
       }
-    },
-    addNostrNotificationIdentifier() {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(this.notifications.nostr.identifier)) {
-        Quasar.Notify.create({
-          type: 'warning',
-          message: 'Invalid email format.'
-        })
-        return
-      }
-      const identifier = this.user.extra.notifications_nostr_identifiers.find(
-        i => i === this.notifications.nostr.identifier
-      )
-      if (identifier) {
-        return
-      }
-      this.user.extra.notifications_nostr_identifiers.push(
-        this.notifications.nostr.identifier
-      )
-      this.notifications.nostr.identifier = ''
-    },
-    removeNostrNotificationIdentifier(identifier) {
-      this.user.extra.notifications_nostr_identifiers =
-        this.user.extra.notifications_nostr_identifiers.filter(
-          i => i !== identifier
-        )
     }
   },
 

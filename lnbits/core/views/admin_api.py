@@ -65,7 +65,9 @@ async def api_monitor():
 )
 async def api_test_email():
     return await send_email_notification(
-        "This is a LNbits test email.", "LNbits Test Email"
+        settings.lnbits_email_notifications_to_emails,
+        "This is a LNbits test email.",
+        "LNbits Test Email",
     )
 
 

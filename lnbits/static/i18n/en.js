@@ -230,6 +230,9 @@ window.localisation.en = {
   notifications_nostr_private_key: 'Nostr Private Key',
   notifications_nostr_private_key_desc:
     'Private key (hex or nsec) to sign the messages sent to Nostr',
+  notifications_nostr_identifier: 'Nostr Identifier',
+  notifications_nostr_identifier_desc:
+    'Nip5 identifier to send notifications to',
   notifications_nostr_identifiers: 'Nostr Identifiers',
   notifications_nostr_identifiers_desc:
     'List of identifiers to send notifications to',

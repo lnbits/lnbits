@@ -20,17 +20,20 @@ from lnbits.settings import settings
 from .wallets import Wallet
 
 
+class UserNotifications(BaseModel):
+    nostr_identifier: str | None = None
+    telegram_chat_id: str | None = None
+    email_address: str | None = None
+    excluded_wallets: list[str] = []
+    outgoing_payments_sats: int = 0
+    incoming_payments_sats: int = 0
+
+
 class UserExtra(BaseModel):
     email_verified: bool | None = False
     first_name: str | None = None
     last_name: str | None = None
     display_name: str | None = None
-    notifications_nostr_identifiers: list[str] = []
-    notifications_telegram_chat_id: str | None = None
-    notifications_email_address: str | None = None
-    notifications_excluded_wallets: list[str] = []
-    notifications_outgoing_payments_sats: int = 0
-    notifications_incoming_payments_sats: int = 0
     picture: str | None = None
     # Auth provider, possible values:
     # - "env": the user was created automatically by the system
@@ -40,6 +43,8 @@ class UserExtra(BaseModel):
 
     # how many wallets are shown in the user interface
     visible_wallet_count: int | None = 10
+
+    notifications: UserNotifications = UserNotifications()
 
 
 class EndpointAccess(BaseModel):

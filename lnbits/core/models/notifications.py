@@ -2,7 +2,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-from lnbits.core.models.users import User
+from lnbits.core.models.users import UserNotifications
 
 
 class NotificationType(Enum):
@@ -20,7 +20,7 @@ class NotificationType(Enum):
 class NotificationMessage(BaseModel):
     message_type: NotificationType
     values: dict
-    for_user: User | None = None
+    user_notifications: UserNotifications | None = None
 
 
 NOTIFICATION_TEMPLATES = {

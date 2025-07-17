@@ -23,7 +23,7 @@ from lnbits.core.models.notifications import (
     NotificationMessage,
     NotificationType,
 )
-from lnbits.core.models.users import User
+from lnbits.core.models.users import UserNotifications
 from lnbits.core.services.nostr import fetch_nip5_details, send_nostr_dm
 from lnbits.core.services.websockets import websocket_manager
 from lnbits.helpers import check_callback_url, is_valid_email_address
@@ -45,11 +45,15 @@ def enqueue_admin_notification(message_type: NotificationType, values: dict) -> 
 
 
 def enqueue_user_notification(
-    message_type: NotificationType, values: dict, user: User
+    message_type: NotificationType, values: dict, user_notifications: UserNotifications
 ) -> None:
     try:
         notifications_queue.put_nowait(
-            NotificationMessage(message_type=message_type, values=values, for_user=user)
+            NotificationMessage(
+                message_type=message_type,
+                values=values,
+                user_notifications=user_notifications,
+            )
         )
     except Exception as e:
         logger.error(f"Error enqueuing notification: {e}")
@@ -58,9 +62,9 @@ def enqueue_user_notification(
 async def process_next_notification() -> None:
     notification_message = await notifications_queue.get()
     message_type, text = _notification_message_to_text(notification_message)
-    user = notification_message.for_user
-    if user:
-        await send_user_notification(user, text, message_type)
+    user_notifications = notification_message.user_notifications
+    if user_notifications:
+        await send_user_notification(user_notifications, text, message_type)
     else:
         await send_admin_notification(text, message_type)
 
@@ -79,18 +83,22 @@ async def send_admin_notification(
 
 
 async def send_user_notification(
-    user: User,
+    user_notifications: UserNotifications,
     message: str,
     message_type: Optional[str] = None,
 ) -> None:
+
     email_address = (
-        [user.extra.notifications_email_address]
-        if user.extra.notifications_email_address
+        [user_notifications.email_address] if user_notifications.email_address else []
+    )
+    nostr_identifiers = (
+        [user_notifications.nostr_identifier]
+        if user_notifications.nostr_identifier
         else []
     )
     return await send_notification(
-        user.extra.notifications_telegram_chat_id,
-        user.extra.notifications_nostr_identifiers,
+        user_notifications.telegram_chat_id,
+        nostr_identifiers,
         email_address,
         message,
         message_type,
@@ -98,18 +106,15 @@ async def send_user_notification(
 
 
 async def send_notification(
-    notifications_telegram_chat_id: str | None,
+    telegram_chat_id: str | None,
     nostr_identifiers: list[str] | None,
     email_addresses: list[str] | None,
     message: str,
     message_type: Optional[str] = None,
 ) -> None:
     try:
-        if (
-            notifications_telegram_chat_id
-            and settings.is_telegram_notifications_configured()
-        ):
-            await send_telegram_notification(notifications_telegram_chat_id, message)
+        if telegram_chat_id and settings.is_telegram_notifications_configured():
+            await send_telegram_notification(telegram_chat_id, message)
             logger.debug(f"Sent telegram notification: {message_type}")
     except Exception as e:
         logger.error(f"Error sending telegram notification {message_type}: {e}")
@@ -333,7 +338,6 @@ async def send_chat_payment_notification(wallet: Wallet, payment: Payment):
     values: dict = {
         "wallet_id": wallet.id,
         "wallet_name": wallet.name,
-        "wallet_balance": wallet.balance,
         "amount_sats": amount_sats,
         "fiat_value_fmt": "",
     }
@@ -342,8 +346,6 @@ async def send_chat_payment_notification(wallet: Wallet, payment: Payment):
         currency = payment.extra.get("wallet_fiat_currency", None)
         values["fiat_value_fmt"] = f"`{amount_fiat}`*{currency}* / "
 
-    print("#### send_chat_payment_notification", payment.is_out, amount_sats)
-
     if payment.is_out:
         if amount_sats >= settings.lnbits_notification_outgoing_payment_amount_sats:
             enqueue_admin_notification(NotificationType.outgoing_payment, values)
@@ -351,13 +353,18 @@ async def send_chat_payment_notification(wallet: Wallet, payment: Payment):
         enqueue_admin_notification(NotificationType.incoming_payment, values)
 
     user = await get_user(wallet.user)
-    if user and wallet.id not in user.extra.notifications_excluded_wallets:
-        out_limit = user.extra.notifications_outgoing_payments_sats
-        in_limit = user.extra.notifications_incoming_payments_sats
+    user_notifications = user.extra.notifications if user else None
+    if user_notifications and wallet.id not in user_notifications.excluded_wallets:
+        out_limit = user_notifications.outgoing_payments_sats
+        in_limit = user_notifications.incoming_payments_sats
         if payment.is_out and (amount_sats >= out_limit):
-            enqueue_user_notification(NotificationType.outgoing_payment, values, user)
+            enqueue_user_notification(
+                NotificationType.outgoing_payment, values, user_notifications
+            )
         elif amount_sats >= in_limit:
-            enqueue_user_notification(NotificationType.incoming_payment, values, user)
+            enqueue_user_notification(
+                NotificationType.incoming_payment, values, user_notifications
+            )
 
 
 async def send_payment_push_notification(wallet: Wallet, payment: Payment):
