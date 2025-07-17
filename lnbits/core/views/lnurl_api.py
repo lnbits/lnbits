@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import Any
 
 from fastapi import (
     APIRouter,
@@ -31,7 +32,7 @@ from lnbits.decorators import (
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 
-from ..services import pay_lnurl
+from ..services import fetch_lnurl_pay_request, pay_invoice
 
 lnurl_router = APIRouter(tags=["LNURL"])
 
@@ -82,15 +83,30 @@ async def api_payments_pay_lnurl(
     data: CreateLnurlPayment, wallet: WalletTypeInfo = Depends(require_admin_key)
 ) -> Payment:
     try:
-        return await pay_lnurl(
-            wallet_id=wallet.wallet.id,
-            data=data,
-        )
+        res = await fetch_lnurl_pay_request(data=data)
     except LnurlResponseException as exc:
         logger.warning(exc)
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
         ) from exc
+
+    extra: dict[str, Any] = {}
+    if res.success_action:
+        extra["success_action"] = res.success_action.json()
+    if data.comment:
+        extra["comment"] = data.comment
+    if data.unit and data.unit != "sat":
+        extra["fiat_currency"] = data.unit
+        extra["fiat_amount"] = data.amount / 1000
+
+    payment = await pay_invoice(
+        wallet_id=wallet.wallet.id,
+        payment_request=str(res.pr),
+        description=data.res.metadata.text,
+        extra=extra,
+    )
+
+    return payment
 
 
 @lnurl_router.post(
