@@ -52,6 +52,7 @@ __all__ = [
     "enqueue_notification",
     "fee_reserve",
     "fee_reserve_total",
+    "fetch_lnurl_pay_request",
     "get_balance_delta",
     "get_payments_daily_stats",
     "pay_invoice",
@@ -67,5 +68,4 @@ __all__ = [
     "update_wallet_balance",
     "websocket_manager",
     "websocket_updater",
-    "fetch_lnurl_pay_request",
 ]
