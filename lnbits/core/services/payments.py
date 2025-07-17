@@ -136,6 +136,9 @@ async def create_fiat_invoice(
     internal_payment = await create_wallet_invoice(wallet_id, invoice_data)
 
     fiat_provider = await get_fiat_provider(fiat_provider_name)
+    if not fiat_provider:
+        raise InvoiceError("No fiat provider found.", status="failed")
+
     fiat_invoice = await fiat_provider.create_invoice(
         amount=invoice_data.amount,
         payment_hash=internal_payment.payment_hash,

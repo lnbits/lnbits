@@ -176,6 +176,11 @@ async def test_connection(provider: str) -> SimpleStatus:
     This function should be called when setting up or testing the Stripe integration.
     """
     fiat_provider = await get_fiat_provider(provider)
+    if not fiat_provider:
+        return SimpleStatus(
+            success=False,
+            message=f"Fiat provider '{provider}' not found.",
+        )
     status = await fiat_provider.status()
     if status.error_message:
         return SimpleStatus(
