@@ -7,43 +7,71 @@
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-12">
     <q-card>
-      <div>
-        <div class="q-gutter-y-md">
-          <q-tabs v-model="tab" align="left">
-            <q-tab
-              name="user"
-              :label="$t('account_settings')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="theme"
-              :label="$t('look_and_feel')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="notifications"
-              :label="$t('notifications')"
-              @update="val => tab = val.name"
-            ></q-tab>
-            <q-tab
-              name="api_acls"
-              :label="$t('access_control_list')"
-              @update="val => tab = val.name"
-            ></q-tab>
-          </q-tabs>
+      <div class="q-pa-sm">
+        <div class="row items-center justify-between q-gutter-xs">
+          <div class="col">
+            <q-btn @click="updateAccount" unelevated color="primary">
+              <span v-text="$t('update_account')"></span>
+            </q-btn>
+          </div>
         </div>
       </div>
     </q-card>
   </div>
 </div>
 
-<div class="row q-col-gutter-md">
-  <div v-if="user" class="col-md-12 col-lg-6 q-gutter-y-md">
+<div class="row q-col-gutter-md q-mb-md">
+  <div class="col-12">
     <q-card>
-      <q-card-section>
-        <div class="row">
-          <div class="col">
-            <q-tab-panels v-model="tab">
+      <q-splitter>
+        <template v-slot:before>
+          <q-tabs v-model="tab" vertical active-color="primary">
+            <q-tab
+              name="user"
+              icon="person"
+              :label="$q.screen.gt.sm ? $t('account_settings') : ''"
+              @update="val => tab = val.name"
+            >
+              <q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('account_settings')"></span
+              ></q-tooltip>
+            </q-tab>
+
+            <q-tab
+              name="notifications"
+              icon="notifications"
+              :label="$q.screen.gt.sm ? $t('notifications') : ''"
+              @update="val => tab = val.name"
+            >
+              <q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('notifications')"></span
+              ></q-tooltip>
+            </q-tab>
+            <q-tab
+              name="theme"
+              icon="palette"
+              :label="$q.screen.gt.sm ? $t('look_and_feel') : ''"
+              @update="val => tab = val.name"
+            >
+              <q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('look_and_feel')"></span
+              ></q-tooltip>
+            </q-tab>
+            <q-tab
+              name="api_acls"
+              icon="lock"
+              :label="$q.screen.gt.sm ? $t('access_control_list') : ''"
+              @update="val => tab = val.name"
+            >
+              <q-tooltip v-if="!$q.screen.gt.sm"
+                ><span v-text="$t('access_control_list')"></span
+              ></q-tooltip>
+            </q-tab>
+          </q-tabs>
+        </template>
+        <template v-slot:after>
+          <q-scroll-area style="height: 80vh">
+            <q-tab-panels v-if="user" v-model="tab">
               <q-tab-panel name="user">
                 <div v-if="credentialsData.show">
                   <q-card-section>
@@ -298,9 +326,6 @@
                   </q-card-section>
                   <q-separator></q-separator>
                   <q-card-section>
-                    <q-btn @click="updateAccount" unelevated color="primary">
-                      <span v-text="$t('update_account')"></span>
-                    </q-btn>
                     <q-btn
                       @click="showUpdateCredentials()"
                       :label="$t('change_password')"
@@ -564,60 +589,77 @@
                     </q-select>
                   </div>
                 </div>
-                <q-separator></q-separator>
-                <div class="row q-mb-md q-mt-md">
-                  <q-btn @click="updateAccount" unelevated color="primary">
-                    <span v-text="$t('update_account')"></span>
-                  </q-btn>
-                </div>
               </q-tab-panel>
               <q-tab-panel name="notifications">
                 <q-card-section>
                   <div class="row q-mb-md">
                     <div class="col-4">
                       <span
-                        v-text="$t('notifications_nostr_identifiers')"
+                        v-text="$t('notifications_nostr_identifier')"
                       ></span>
+                      {%if not nostr_configured%}
+                      <br />
+                      <q-badge v-text="$t('not_connected')"></q-badge>
+                      {%endif%}
                     </div>
                     <div class="col-8">
                       <q-input
                         filled
                         dense
-                        v-model="notifications.nostr.identifier"
-                        :hint="$t('notifications_nostr_identifiers_desc')"
-                        @keydown.enter="addNostrNotificationIdentifier"
+                        v-model="user.extra.notifications.nostr_identifier"
+                        :hint="$t('notifications_nostr_identifier_desc')"
                       >
-                        <q-btn
-                          @click="addNostrNotificationIdentifier()"
-                          dense
-                          flat
-                          icon="add"
-                        ></q-btn>
                       </q-input>
-                      <div>
-                        <q-chip
-                          v-for="identifier in user.extra.nostr_notification_identifiers"
-                          :key="identifier"
-                          removable
-                          @remove="removeNostrNotificationIdentifier(identifier)"
-                          color="primary"
-                          text-color="white"
-                          ><span class="ellipsis" v-text="identifier"></span
-                        ></q-chip>
-                      </div>
                     </div>
                   </div>
 
                   <div class="row q-mb-md">
                     <div class="col-4">
                       <span v-text="$t('notifications_chat_id')"></span>
+                      {%if not telegram_configured%}
+                      <br />
+                      <q-badge v-text="$t('not_connected')"></q-badge>
+                      {%endif%}
                     </div>
                     <div class="col-8">
                       <q-input
                         filled
                         dense
-                        v-model="user.extra.telegram_chat_id"
+                        v-model="user.extra.notifications.telegram_chat_id"
                         :hint="$t('notifications_chat_id_desc')"
+                      />
+                    </div>
+                  </div>
+                  <q-separator class="q-mb-md"></q-separator>
+                  <div class="row q-mb-md">
+                    <div class="col-4">
+                      <span v-text="$t('notification_outgoing_payment')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-input
+                        filled
+                        dense
+                        type="number"
+                        min="0"
+                        step="1"
+                        v-model="user.extra.notifications.outgoing_payments_sats"
+                        :hint="$t('notification_outgoing_payment_desc')"
+                      />
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col-4">
+                      <span v-text="$t('notification_incoming_payment')"></span>
+                    </div>
+                    <div class="col-8">
+                      <q-input
+                        filled
+                        dense
+                        type="number"
+                        min="0"
+                        step="1"
+                        v-model="user.extra.notifications.incoming_payments_sats"
+                        :hint="$t('notification_incoming_payment_desc')"
                       />
                     </div>
                   </div>
@@ -632,7 +674,7 @@
                         emit-value
                         map-options
                         multiple
-                        v-model="user.extra.notifications_excluded_wallets"
+                        v-model="user.extra.notifications.excluded_wallets"
                         :options="g.user.walletOptions"
                         :label="$t('exclude_wallets')"
                         :hint="$t('notifications_excluded_wallets_desc')"
@@ -640,14 +682,6 @@
                       >
                       </q-select>
                     </div>
-                  </div>
-                </q-card-section>
-                <q-card-section>
-                  <q-separator></q-separator>
-                  <div class="row q-mb-md q-mt-md">
-                    <q-btn @click="updateAccount" unelevated color="primary">
-                      <span v-text="$t('update_account')"></span>
-                    </q-btn>
                   </div>
                 </q-card-section>
               </q-tab-panel>
@@ -876,16 +910,9 @@
                 </q-card-section>
               </q-tab-panel>
             </q-tab-panels>
-          </div>
-        </div>
-      </q-card-section>
-    </q-card>
-  </div>
-  <div v-else class="col-12 col-md-6 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        <h4 class="q-my-none"><span v-text="$t('account')"></span></h4>
-      </q-card-section>
+          </q-scroll-area>
+        </template>
+      </q-splitter>
     </q-card>
   </div>
 </div>

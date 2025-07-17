@@ -3,7 +3,7 @@ from .funding_source import (
     switch_to_voidwallet,
 )
 from .lnurl import fetch_lnurl_pay_request
-from .notifications import enqueue_notification, send_payment_notification
+from .notifications import enqueue_admin_notification, send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
     cancel_hold_invoice,
@@ -49,7 +49,7 @@ __all__ = [
     "create_user_account",
     "create_user_account_no_ckeck",
     "create_wallet_invoice",
-    "enqueue_notification",
+    "enqueue_admin_notification",
     "fee_reserve",
     "fee_reserve_total",
     "fetch_lnurl_pay_request",

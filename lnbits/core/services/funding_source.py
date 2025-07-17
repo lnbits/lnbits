@@ -1,7 +1,7 @@
 from loguru import logger
 
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.services.notifications import enqueue_notification
+from lnbits.core.services.notifications import enqueue_admin_notification
 from lnbits.settings import settings
 from lnbits.wallets import get_funding_source, set_funding_source
 
@@ -51,7 +51,7 @@ async def check_server_balance_against_node():
         f"Balance delta reached: {status.delta_sats} sats."
         f" Switch to void wallet: {use_voidwallet}."
     )
-    enqueue_notification(
+    enqueue_admin_notification(
         NotificationType.watchdog_check,
         {
             "delta_sats": status.delta_sats,
@@ -71,7 +71,7 @@ async def check_balance_delta_changed():
         settings.latest_balance_delta_sats = status.delta_sats
         return
     if status.delta_sats != settings.latest_balance_delta_sats:
-        enqueue_notification(
+        enqueue_admin_notification(
             NotificationType.balance_delta,
             {
                 "delta_sats": status.delta_sats,

@@ -230,6 +230,9 @@ window.localisation.en = {
   notifications_nostr_private_key: 'Nostr Private Key',
   notifications_nostr_private_key_desc:
     'Private key (hex or nsec) to sign the messages sent to Nostr',
+  notifications_nostr_identifier: 'Nostr Identifier',
+  notifications_nostr_identifier_desc:
+    'Nip5 identifier to send notifications to',
   notifications_nostr_identifiers: 'Nostr Identifiers',
   notifications_nostr_identifiers_desc:
     'List of identifiers to send notifications to',
@@ -646,5 +649,7 @@ window.localisation.en = {
     'Signing secret for the webhook. Messages will be signed with this secret.',
   callback_success_url: 'Callback Success URL',
   callback_success_url_hint:
-    'The user will be redirected to this URL after the payment is successful'
+    'The user will be redirected to this URL after the payment is successful',
+  connected: 'Connected',
+  not_connected: 'Not Connected'
 }

@@ -345,7 +345,6 @@ async def node(request: Request, user: User = Depends(check_admin)):
         "node/index.html",
         {
             "user": user.json(),
-            "settings": settings.dict(),
             "balance": balance,
             "wallets": user.wallets[0].json(),
             "ajax": _is_ajax_request(request),
@@ -383,7 +382,6 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
         "admin/index.html",
         {
             "user": user.json(),
-            "settings": settings.dict(),
             "balance": balance,
             "currencies": list(currencies.keys()),
             "ajax": _is_ajax_request(request),
