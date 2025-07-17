@@ -2,6 +2,9 @@ from .funding_source import (
     get_balance_delta,
     switch_to_voidwallet,
 )
+from .lnurl import (
+    pay_lnurl,
+)
 from .notifications import enqueue_notification, send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
@@ -66,4 +69,5 @@ __all__ = [
     "update_wallet_balance",
     "websocket_manager",
     "websocket_updater",
+    "pay_lnurl",
 ]

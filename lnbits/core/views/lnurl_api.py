@@ -1,7 +1,5 @@
 from http import HTTPStatus
-from typing import Any
 
-from bolt11 import decode as bolt11_decode
 from fastapi import (
     APIRouter,
     Depends,
@@ -12,13 +10,11 @@ from lnurl import (
     LnurlSuccessResponse,
 )
 from lnurl import execute_login as lnurlauth
-from lnurl import execute_pay_request as lnurlp
 from lnurl import execute_withdraw as lnurl_withdraw
 from lnurl import handle as lnurl_handle
 from lnurl.models import (
     LnurlAuthResponse,
     LnurlErrorResponse,
-    LnurlPayActionResponse,
     LnurlPayResponse,
     LnurlResponseModel,
     LnurlWithdrawResponse,
@@ -34,9 +30,8 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
-from ..services import pay_invoice
+from ..services import pay_lnurl
 
 lnurl_router = APIRouter(tags=["LNURL"])
 
@@ -86,65 +81,16 @@ async def api_perform_lnurlauth(
 async def api_payments_pay_lnurl(
     data: CreateLnurlPayment, wallet: WalletTypeInfo = Depends(require_admin_key)
 ) -> Payment:
-
-    if data.unit and data.unit != "sat":
-        # shift to float with 2 decimal places
-        amount = round(data.amount / 1000, 2)
-        amount_msat = await fiat_amount_as_satoshis(amount, data.unit)
-        amount_msat *= 1000
-    else:
-        amount_msat = data.amount
-
     try:
-        res = await lnurlp(
-            data.res,
-            msat=str(amount_msat),
-            user_agent=settings.user_agent,
-            timeout=5,
+        return await pay_lnurl(
+            wallet_id=wallet.wallet.id,
+            data=data,
         )
     except LnurlResponseException as exc:
-        logger.debug(str(exc))
-        msg = f"Failed to connect to {data.res.callback}."
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=msg) from exc
-
-    if not isinstance(res, LnurlPayActionResponse):
-        msg = f"lnurl response is not a LnurlPayActionResponse: {res}"
-        logger.warning(msg)
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=msg)
-
-    invoice = bolt11_decode(res.pr)
-
-    if invoice.amount_msat != amount_msat:
+        logger.warning(exc)
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=(
-                f"{data.res.callback} returned an invalid invoice. Expected"
-                f" {amount_msat} msat, got {invoice.amount_msat}."
-            ),
-        )
-
-    if invoice.description:
-        description = invoice.description
-    else:
-        # If the invoice description is empty, use the metadata from the lnurl response
-        description = data.res.metadata.text
-
-    extra: dict[str, Any] = {}
-    if res.success_action:
-        extra["success_action"] = res.success_action.json()
-    if data.comment:
-        extra["comment"] = data.comment
-    if data.unit and data.unit != "sat":
-        extra["fiat_currency"] = data.unit
-        extra["fiat_amount"] = data.amount / 1000
-
-    payment = await pay_invoice(
-        wallet_id=wallet.wallet.id,
-        payment_request=str(res.pr),
-        description=description,
-        extra=extra,
-    )
-    return payment
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
 
 
 @lnurl_router.post(
