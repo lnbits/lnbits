@@ -274,19 +274,19 @@ window.WalletPageLogic = {
           if (!this.receive.lnurl) {
             this.readNfcTag()
           }
-          // TODO: lnurl_callback and lnurl_response
           // WITHDRAW
           if (response.data.extra.lnurl_response !== null) {
             if (response.data.extra.lnurl_response === false) {
               response.data.extra.lnurl_response = `Unable to connect`
             }
+            const domain = this.receive.lnurl.callback.split('/')[2]
 
             if (typeof response.data.extra.lnurl_response === 'string') {
               // failure
               Quasar.Notify.create({
                 timeout: 5000,
                 type: 'warning',
-                message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
+                message: `${domain} lnurl-withdraw call failed.`,
                 caption: response.data.extra.lnurl_response
               })
               return
@@ -294,7 +294,7 @@ window.WalletPageLogic = {
               // success
               Quasar.Notify.create({
                 timeout: 3000,
-                message: `Invoice sent to ${this.receive.lnurl.domain}!`,
+                message: `Invoice sent to ${domain}!`,
                 spinner: true
               })
             }
