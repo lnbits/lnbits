@@ -280,7 +280,6 @@ window.WalletPageLogic = {
               response.data.extra.lnurl_response = `Unable to connect`
             }
             const domain = this.receive.lnurl.callback.split('/')[2]
-
             if (typeof response.data.extra.lnurl_response === 'string') {
               // failure
               Quasar.Notify.create({
@@ -350,12 +349,11 @@ window.WalletPageLogic = {
         )
         .then(response => {
           const data = response.data
-
           if (data.status === 'ERROR') {
             Quasar.Notify.create({
               timeout: 5000,
               type: 'warning',
-              message: `${data.domain} lnurl call failed.`,
+              message: `lnurl scan failed.`,
               caption: data.reason
             })
             return
