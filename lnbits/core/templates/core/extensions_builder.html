@@ -156,15 +156,115 @@
         <q-separator class="q-mt-sm"></q-separator>
         <div class="row q-mt-lg">
           <div class="col-12">
-            <q-toggle size="md" color="green" label="User Settings" />
-            <span class="text-caption q-ml-md"
+            <q-toggle
+              v-model="isUserSettings"
+              size="md"
+              color="green"
+              label="User Settings"
+            />
+            <span v-if="isUserSettings" class="text-caption q-ml-md"
               >(Each user can set their own settings for this extension)</span
             >
-            <!-- <span class="text-caption q-ml-md">(These settings are set by the admin and apply to all users of the extension)</span> -->
+            <span v-else class="text-caption q-ml-md"
+              >(These settings are set by the admin and apply to all users of
+              the extension)</span
+            >
           </div>
         </div>
         <div class="row q-mt-lg">
-          <div class="col-12"><span> Settings Fields</span><br /></div>
+          <div class="col-12">
+            <q-table
+              :rows="fields"
+              row-key="name"
+              :columns="fieldsTable.columns"
+              v-model:pagination="fieldsTable.pagination"
+            >
+              <template v-slot:top>
+                <div class="row">
+                  <div class="col">
+                    <q-btn
+                      @click="addField"
+                      label="Add Field"
+                      color="primary"
+                      class="float-right"
+                    />
+                  </div>
+                </div>
+              </template>
+
+              <template v-slot:header="props">
+                <q-tr :props="props">
+                  <q-th auto-width></q-th>
+                  <q-th
+                    v-for="col in props.cols"
+                    :key="col.name"
+                    :props="props"
+                  >
+                    <span v-text="col.label"></span>
+                  </q-th>
+                </q-tr>
+              </template>
+              <template v-slot:body="props">
+                <q-tr :props="props">
+                  <q-td>
+                    <!-- @click="removeExchangeProvider(props.row)" -->
+                    <q-btn
+                      @click="removeField(props.row)"
+                      round
+                      icon="delete"
+                      size="sm"
+                      color="negative"
+                      class="q-ml-xs"
+                    >
+                    </q-btn>
+                  </q-td>
+                  <q-td full-width>
+                    <q-input dense filled v-model="props.row.name" type="text">
+                    </q-input>
+                  </q-td>
+                  <q-td>
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
+                      v-model="props.row.type"
+                      :options="fieldTypes"
+                    ></q-select>
+                  </q-td>
+                  <q-td>
+                    <q-input dense filled v-model="props.row.label" type="text">
+                    </q-input>
+                  </q-td>
+                  <q-td>
+                    <q-input dense filled v-model="props.row.hint" type="text">
+                    </q-input>
+                  </q-td>
+                  <q-td>
+                    <q-toggle
+                      v-model="props.row.optional"
+                      size="md"
+                      color="green"
+                    />
+                  </q-td>
+                  <q-td>
+                    <q-toggle
+                      v-model="props.row.sortable"
+                      size="md"
+                      color="green"
+                    />
+                  </q-td>
+                  <q-td>
+                    <q-toggle
+                      v-model="props.row.searchable"
+                      size="md"
+                      color="green"
+                    />
+                  </q-td>
+                </q-tr>
+              </template>
+            </q-table>
+          </div>
         </div>
       </q-step>
 
