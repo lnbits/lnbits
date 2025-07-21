@@ -18,8 +18,8 @@
         <q-img
           :src="'{{ static_url_for('static', 'images/builder/build_01.png') }}'"
         ></q-img>
-        <div class="row">
-          <div class="col-md-6 col-sm-12">
+        <div class="row q-col-gutter-md q-mt-md">
+          <div class="col-md-4 col-sm-12">
             <q-input
               filled
               label="Extension Name"
@@ -27,7 +27,7 @@
             >
             </q-input>
           </div>
-          <div class="col-md-6 col-sm-12">
+          <div class="col-md-4 col-sm-12">
             <q-input
               filled
               label="Extension ID"
@@ -35,9 +35,7 @@
             >
             </q-input>
           </div>
-        </div>
-        <div class="row">
-          <div class="col-md-6 col-sm-12">
+          <div class="col-md-4 col-sm-12">
             <q-input
               filled
               label="Short description"
@@ -45,11 +43,16 @@
             >
             </q-input>
           </div>
-          <div class="col-md-6 col-sm-12">
+        </div>
+        <div class="row q-mt-lg">
+          <div class="col-12">
             <q-input
               filled
               label="Description"
               hint="A detailed description of your extension."
+              type="textarea"
+              rows="3"
+              maxlength="1000"
             >
             </q-input>
           </div>
@@ -66,6 +69,19 @@
         <q-img
           :src="'{{ static_url_for('static', 'images/builder/build_02.png') }}'"
         ></q-img>
+        <div class="row q-mt-lg">
+          <div class="col-12">
+            <q-toggle
+              size="md"
+              checked-icon="check"
+              color="green"
+              label="Global Settings"
+            />
+          </div>
+        </div>
+        <div class="row q-mt-lg">
+          <div class="col-12"><span> Settings Fields</span><br /></div>
+        </div>
       </q-step>
 
       <q-step
@@ -74,7 +90,6 @@
         icon="list"
         style="min-height: 200px"
       >
-        This step won't show up because it is disabled.
       </q-step>
 
       <q-step
@@ -160,11 +175,11 @@
             by the admin.
           </span>
         </q-banner>
-        <q-banner
-          v-else-if="step === 3"
-          class="bg-secondary text-white q-px-lg"
-        >
-          The Ad template is disabled - this won't be displayed
+        <q-banner v-else-if="step ===3" class="bg-grey-8 text-white q-px-lg">
+          <span>
+            Define the top objects of your extension. These are the main
+            components that will be used in your extension.
+          </span>
         </q-banner>
         <q-banner v-else class="bg-blue-8 text-white q-px-lg">
           The final step is creating the ad...
