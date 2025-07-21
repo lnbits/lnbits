@@ -1,9 +1,33 @@
-from lnurl import LnurlPayActionResponse
-from lnurl import execute_pay_request as lnurlp
+from lnurl import (
+    LnurlPayActionResponse,
+    LnurlPayResponse,
+    LnurlResponseException,
+    execute_pay_request,
+    handle,
+)
 
 from lnbits.core.models import CreateLnurlPayment
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+
+
+async def get_pr_from_lnurl(lnurl: str, amount_msat: int) -> str:
+    res = await handle(lnurl, user_agent=settings.user_agent, timeout=10)
+    if not isinstance(res, LnurlPayResponse):
+        raise LnurlResponseException(
+            "Invalid LNURL response. Expected LnurlPayResponse."
+        )
+    res2 = await execute_pay_request(
+        res,
+        msat=str(amount_msat),
+        user_agent=settings.user_agent,
+        timeout=10,
+    )
+    if not isinstance(res, LnurlPayActionResponse):
+        raise LnurlResponseException(
+            "Invalid LNURL pay response. Expected LnurlPayActionResponse."
+        )
+    return res2.pr
 
 
 async def fetch_lnurl_pay_request(data: CreateLnurlPayment) -> LnurlPayActionResponse:
@@ -21,9 +45,9 @@ async def fetch_lnurl_pay_request(data: CreateLnurlPayment) -> LnurlPayActionRes
     else:
         amount_msat = data.amount
 
-    return await lnurlp(
+    return await execute_pay_request(
         data.res,
         msat=str(amount_msat),
         user_agent=settings.user_agent,
-        timeout=5,
+        timeout=10,
     )

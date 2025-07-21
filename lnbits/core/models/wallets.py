@@ -7,11 +7,11 @@ from datetime import datetime, timezone
 from enum import Enum
 
 from ecdsa import SECP256k1, SigningKey
+from lnurl import encode as lnurl_encode
 from pydantic import BaseModel, Field
 
 from lnbits.db import FilterModel
 from lnbits.helpers import url_for
-from lnbits.lnurl import encode as lnurl_encode
 from lnbits.settings import settings
 
 
