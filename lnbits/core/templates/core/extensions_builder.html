@@ -15,10 +15,45 @@
         :done="step > 1"
         style="min-height: 200px"
       >
-        <!-- style="max-height: 200px" -->
         <q-img
           :src="'{{ static_url_for('static', 'images/builder/build_01.png') }}'"
         ></q-img>
+        <div class="row">
+          <div class="col-md-6 col-sm-12">
+            <q-input
+              filled
+              label="Extension Name"
+              hint="The name of your extension"
+            >
+            </q-input>
+          </div>
+          <div class="col-md-6 col-sm-12">
+            <q-input
+              filled
+              label="Extension ID"
+              hint="The ID of your extension. Lowercase letters, numbers, and underscores only (snake_case)."
+            >
+            </q-input>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 col-sm-12">
+            <q-input
+              filled
+              label="Short description"
+              hint="A brief description that is shown in the extension list."
+            >
+            </q-input>
+          </div>
+          <div class="col-md-6 col-sm-12">
+            <q-input
+              filled
+              label="Description"
+              hint="A detailed description of your extension."
+            >
+            </q-input>
+          </div>
+        </div>
       </q-step>
 
       <q-step
@@ -95,7 +130,8 @@
               <q-btn
                 v-if="step > 1"
                 flat
-                color="primary"
+                color="grey-8"
+                class="q-mr-sm"
                 @click="$refs.stepper.previous()"
                 label="Back"
               />
@@ -117,10 +153,7 @@
             you can return and change it.
           </span>
         </q-banner>
-        <q-banner
-          v-else-if="step === 2"
-          class="bg-grey-8 text-white q-px-lg"
-        >
+        <q-banner v-else-if="step === 2" class="bg-grey-8 text-white q-px-lg">
           <span>
             Define what settings your extension will have. You can choose if
             each user has its own settings or if these are global settings set
