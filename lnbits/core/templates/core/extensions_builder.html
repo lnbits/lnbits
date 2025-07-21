@@ -5,7 +5,7 @@
 {% block scripts %} {{ window_vars(user, wallet, extensions, extension_data)
 }}{% endblock %} {% block page %}
 
-<div class="row q-col-gutter-md q-mb-md">
+<div class="row">
   <div class="col-12">
     <q-stepper v-model="step" ref="stepper" color="primary" animated>
       <q-step
@@ -15,9 +15,20 @@
         :done="step > 1"
         style="min-height: 200px"
       >
-        <q-img
-          :src="'{{ static_url_for('static', 'images/builder/build_01.png') }}'"
-        ></q-img>
+        <div class="row q-col-gutter-md">
+          <div class="col-md-8 col-sm-12">
+            <q-img
+              :src="'{{ static_url_for('static', 'images/builder/build_01.png') }}'"
+            ></q-img>
+          </div>
+          <div class="col-md-4 col-sm-12">
+            <span>
+              Tell us soomething about your extensions. This is the first step,
+              you can return and change it.
+            </span>
+          </div>
+        </div>
+        <q-separator class="q-mt-sm"></q-separator>
         <div class="row q-col-gutter-md q-mt-md">
           <div class="col-md-4 col-sm-12">
             <q-input
@@ -66,9 +77,21 @@
         :done="step > 2"
         style="min-height: 200px"
       >
-        <q-img
-          :src="'{{ static_url_for('static', 'images/builder/build_02.png') }}'"
-        ></q-img>
+        <div class="row q-col-gutter-md q-mt-md">
+          <div class="col-md-8 col-sm-12">
+            <q-img
+              :src="'{{ static_url_for('static', 'images/builder/build_02.png') }}'"
+            ></q-img>
+          </div>
+          <div class="col-md-4 col-sm-12">
+            <span
+              >Define what settings your extension will have. You can choose if
+              each user has its own settings or if these are global settings set
+              by the admin.
+            </span>
+          </div>
+        </div>
+        <q-separator class="q-mt-sm"></q-separator>
         <div class="row q-mt-lg">
           <div class="col-12">
             <q-toggle
@@ -90,6 +113,20 @@
         icon="list"
         style="min-height: 200px"
       >
+        <div class="row q-col-gutter-md q-mt-md">
+          <div class="col-md-8 col-sm-12">
+            <q-img
+              :src="'{{ static_url_for('static', 'images/builder/build_03.png') }}'"
+            ></q-img>
+          </div>
+          <div class="col-md-4 col-sm-12">
+            <span>
+              Define the top objects of your extension. These are the main
+              components that will be used in your extension.</span
+            >
+          </div>
+        </div>
+        <q-separator class="q-mt-sm"></q-separator>
       </q-step>
 
       <q-step
@@ -98,10 +135,17 @@
         icon="blur_linear"
         style="min-height: 200px"
       >
-        Try out different ad text to see what brings in the most customers, and
-        learn how to enhance your ads using features like ad extensions. If you
-        run into any problems with your ads, find out how to tell if they're
-        running and how to resolve approval issues.
+        <div class="row q-col-gutter-md q-mt-md">
+          <div class="col-md-8 col-sm-12">
+            <q-img
+              :src="'{{ static_url_for('static', 'images/builder/build_04.png') }}'"
+            ></q-img>
+          </div>
+          <div class="col-md-4 col-sm-12">
+            <span> Runtime... </span>
+          </div>
+        </div>
+        <q-separator class="q-mt-sm"></q-separator>
       </q-step>
 
       <q-step
@@ -139,8 +183,9 @@
       </q-step>
 
       <template v-slot:navigation>
+        <q-separator></q-separator>
         <div class="row">
-          <div class="col q-pa-md">
+          <div class="col q-pr-md q-pb-md">
             <q-stepper-navigation class="float-right">
               <q-btn
                 v-if="step > 1"
@@ -159,31 +204,6 @@
             </q-stepper-navigation>
           </div>
         </div>
-      </template>
-
-      <template v-slot:message>
-        <q-banner v-if="step === 1" class="bg-grey-8 text-white q-px-lg">
-          <span>
-            Tell us soomething about your extensions. This is the first step,
-            you can return and change it.
-          </span>
-        </q-banner>
-        <q-banner v-else-if="step === 2" class="bg-grey-8 text-white q-px-lg">
-          <span>
-            Define what settings your extension will have. You can choose if
-            each user has its own settings or if these are global settings set
-            by the admin.
-          </span>
-        </q-banner>
-        <q-banner v-else-if="step ===3" class="bg-grey-8 text-white q-px-lg">
-          <span>
-            Define the top objects of your extension. These are the main
-            components that will be used in your extension.
-          </span>
-        </q-banner>
-        <q-banner v-else class="bg-blue-8 text-white q-px-lg">
-          The final step is creating the ad...
-        </q-banner>
       </template>
     </q-stepper>
   </div>
