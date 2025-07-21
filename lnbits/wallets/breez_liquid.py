@@ -1,7 +1,8 @@
 # Based on breez.py
 
+from importlib.util import find_spec
 
-if not False:
+if not find_spec("breez_sdk_liquid"):
 
     class BreezLiquidSdkWallet:  # pyright: ignore
         def __init__(self):
