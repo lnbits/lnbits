@@ -1,7 +1,7 @@
 window.ExtensionsBuilderPageLogic = {
   data: function () {
     return {
-      step: 1
+      step: 0
     }
   },
 
