@@ -18,16 +18,16 @@ $themes: (
   'freedom': (
     primary: #e22156,
     secondary: #b91a45,
-    dark: #0a0a0a,
-    info: #1b1b1b,
+    dark: #462f36,
+    info: #47393d,
     marginal-bg: #2d293b,
     marginal-text: #fff
   ),
   'cyber': (
     primary: #7cb342,
     secondary: #558b2f,
-    dark: #0a0a0a,
-    info: #1b1b1b,
+    dark: #000,
+    info: #1f2915,
     marginal-bg: #2d293b,
     marginal-text: #fff
   ),
@@ -61,6 +61,14 @@ $themes: (
     dark: #000,
     info: rgb(39, 39, 39),
     marginal-bg: #000,
+    marginal-text: rgb(255, 255, 255)
+  ),
+  'salvador': (
+    primary: #1976d2,
+    secondary: #26a69a,
+    dark: #253647,
+    info: #343d47,
+    marginal-bg: #0d1620,
     marginal-text: rgb(255, 255, 255)
   )
 );
