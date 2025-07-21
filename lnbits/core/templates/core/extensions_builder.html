@@ -2,18 +2,80 @@
 <!---->
 {% from "macros.jinja" import window_vars with context %}
 <!---->
-{% block scripts %} {{ window_vars(user, wallet, extensions, extension_data)
-}}{% endblock %} {% block page %}
+{% block scripts %} {{ window_vars(user) }}{% endblock %} {% block page %}
 
 <div class="row">
   <div class="col-12">
-    <q-stepper v-model="step" ref="stepper" color="primary" animated>
+    <q-stepper
+      v-model="step"
+      ref="stepper"
+      color="primary"
+      animated
+      class="q-pt-sm"
+    >
+      <q-step
+        :name="0"
+        title="Intro"
+        icon="home"
+        :done="step > 0"
+        style="min-height: 100px"
+      >
+        <div class="row">
+          <div class="col-12">
+            <span>
+              In order to better understand the terms used by the
+              <q-badge>Extension Builder</q-badge> we are going to use the
+              <q-badge outline>Campaign Donations Extension</q-badge> as an
+              example.
+            </span>
+          </div>
+          <div class="col-12">
+            <span>The story is like this:</span>
+            <ul>
+              <li>
+                An LNbits user wants to create a campaign to receive donations
+                for a cause.
+              </li>
+              <li>
+                The user creates a campaign with a name, description, goal
+                amount and a deadline (it can create multiple campaigns).
+              </li>
+              <li>
+                The user can share the campaign link with others to receive
+                donations.
+              </li>
+              <li>
+                People can donate to the campaign and view the total amount
+                received using a public page (no need to login).
+              </li>
+              <li>
+                Donors can leave their nostr nip5 indentifier and be notified
+                when their payment has been processed.
+              </li>
+              <li>
+                The user can view the list of donors and the amounts they
+                donated.
+              </li>
+            </ul>
+          </div>
+          <div class="col-12">
+            <span>
+              In the following steps the
+              <q-badge outline>Campaign Donations</q-badge> fields will be used
+              as placeholders for the <code>inputs</code> in order to guide
+              you.</span
+            >
+            <strong>You must fill in your own values.</strong>
+          </div>
+        </div>
+      </q-step>
+
       <q-step
         :name="1"
         title="Describe"
-        icon="create_new_folder"
+        icon="info"
         :done="step > 1"
-        style="min-height: 200px"
+        style="min-height: 100px"
       >
         <div class="row q-col-gutter-md">
           <div class="col-md-8 col-sm-12">
@@ -33,7 +95,7 @@
           <div class="col-md-4 col-sm-12">
             <q-input
               filled
-              label="Extension Name"
+              label="Campaign Donations"
               hint="The name of your extension"
             >
             </q-input>
@@ -41,7 +103,7 @@
           <div class="col-md-4 col-sm-12">
             <q-input
               filled
-              label="Extension ID"
+              label="campaign_donations"
               hint="The ID of your extension. Lowercase letters, numbers, and underscores only (snake_case)."
             >
             </q-input>
@@ -49,7 +111,7 @@
           <div class="col-md-4 col-sm-12">
             <q-input
               filled
-              label="Short description"
+              label="Track, manage, and analyze donations for any fundraising campaign easily."
               hint="A brief description that is shown in the extension list."
             >
             </q-input>
@@ -75,7 +137,7 @@
         title="Settings"
         icon="settings"
         :done="step > 2"
-        style="min-height: 200px"
+        style="min-height: 100px"
       >
         <div class="row q-col-gutter-md q-mt-md">
           <div class="col-md-8 col-sm-12">
@@ -94,12 +156,11 @@
         <q-separator class="q-mt-sm"></q-separator>
         <div class="row q-mt-lg">
           <div class="col-12">
-            <q-toggle
-              size="md"
-              checked-icon="check"
-              color="green"
-              label="Global Settings"
-            />
+            <q-toggle size="md" color="green" label="User Settings" />
+            <span class="text-caption q-ml-md"
+              >(Each user can set their own settings for this extension)</span
+            >
+            <!-- <span class="text-caption q-ml-md">(These settings are set by the admin and apply to all users of the extension)</span> -->
           </div>
         </div>
         <div class="row q-mt-lg">
@@ -109,9 +170,10 @@
 
       <q-step
         :name="3"
-        title="Top Objects"
+        :done="step > 3"
+        title="Owner Data"
         icon="list"
-        style="min-height: 200px"
+        style="min-height: 100px"
       >
         <div class="row q-col-gutter-md q-mt-md">
           <div class="col-md-8 col-sm-12">
@@ -121,8 +183,8 @@
           </div>
           <div class="col-md-4 col-sm-12">
             <span>
-              Define the top objects of your extension. These are the main
-              components that will be used in your extension.</span
+              The owner of the extension manages this data. It can create,
+              update and delete it.</span
             >
           </div>
         </div>
@@ -131,9 +193,9 @@
 
       <q-step
         :name="4"
-        title="Runtime Objects"
+        title="Customer Data"
         icon="blur_linear"
-        style="min-height: 200px"
+        style="min-height: 100px"
       >
         <div class="row q-col-gutter-md q-mt-md">
           <div class="col-md-8 col-sm-12">
@@ -142,7 +204,14 @@
             ></q-img>
           </div>
           <div class="col-md-4 col-sm-12">
-            <span> Runtime... </span>
+            <span>
+              This data is created by users of the extension. Usually when they
+              submit a form or make a payment.</span
+            ><br />
+            <span>
+              The owner of the extension can view this data, but should not
+              modify it.
+            </span>
           </div>
         </div>
         <q-separator class="q-mt-sm"></q-separator>
@@ -152,7 +221,7 @@
         :name="5"
         title="Public Pages"
         icon="link"
-        style="min-height: 200px"
+        style="min-height: 100px"
       >
         Try out different ad text to see what brings in the most customers, and
         learn how to enhance your ads using features like ad extensions. If you
@@ -163,7 +232,7 @@
         :name="6"
         title="Review"
         icon="how_to_reg"
-        style="min-height: 200px"
+        style="min-height: 100px"
       >
         Try out different ad text to see what brings in the most customers, and
         learn how to enhance your ads using features like ad extensions. If you
@@ -174,7 +243,7 @@
         :name="7"
         title="Publish"
         icon="publish"
-        style="min-height: 200px"
+        style="min-height: 100px"
       >
         Try out different ad text to see what brings in the most customers, and
         learn how to enhance your ads using features like ad extensions. If you
@@ -188,7 +257,7 @@
           <div class="col q-pr-md q-pb-md">
             <q-stepper-navigation class="float-right">
               <q-btn
-                v-if="step > 1"
+                v-if="step > 0"
                 flat
                 color="grey-8"
                 class="q-mr-sm"
@@ -204,6 +273,15 @@
             </q-stepper-navigation>
           </div>
         </div>
+      </template>
+      <template v-slot:message>
+        <q-banner v-if="step === 0" class="bg-grey-8 text-white q-px-lg">
+          <span class="text-h5">New LNbits Extension</span><br />
+          <span class="text-caption">
+            This is a step-by-step guide to help you build your own LNbits
+            extension.
+          </span>
+        </q-banner>
       </template>
     </q-stepper>
   </div>
