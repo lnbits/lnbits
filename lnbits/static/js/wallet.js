@@ -276,7 +276,10 @@ window.WalletPageLogic = {
             this.readNfcTag()
           }
           // WITHDRAW
-          if (response.data.extra.lnurl_response !== null) {
+          if (
+            this.receive.lnurl &&
+            response.data.extra?.lnurl_response !== null
+          ) {
             if (response.data.extra.lnurl_response === false) {
               response.data.extra.lnurl_response = `Unable to connect`
             }
