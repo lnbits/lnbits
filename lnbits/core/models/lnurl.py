@@ -14,3 +14,7 @@ class CreateLnurlPayment(BaseModel):
 
 class CreateLnurlWithdraw(BaseModel):
     lnurl_w: Lnurl
+
+
+class LnurlScan(BaseModel):
+    lnurl: Lnurl
