@@ -141,6 +141,7 @@ window.WalletPageLogic = {
     },
     canPay() {
       if (!this.parse.invoice) return false
+      if (this.parse.invoice.expired) return false
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
     formattedAmount() {
