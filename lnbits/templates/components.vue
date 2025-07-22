@@ -1673,23 +1673,25 @@
 </template>
 
 <template id="lnbits-data-fields">
+  <span v-text="fields.length"></span>
   <q-table
     :rows="fields"
     row-key="name"
     :columns="fieldsTable.columns"
     v-model:pagination="fieldsTable.pagination"
   >
-    <template v-slot:top>
-      <div class="row">
-        <div class="col">
+    <template v-slot:bottom-row>
+      <q-tr>
+        <q-td colspan="100%">
           <q-btn
             @click="addField"
-            label="Add Field"
-            color="primary"
-            class="float-right"
+            icon="add"
+            size="sm"
+            color="grey"
+            class="q-ml-xs"
           />
-        </div>
-      </div>
+        </q-td>
+      </q-tr>
     </template>
 
     <template v-slot:header="props">
@@ -1703,8 +1705,8 @@
     <template v-slot:body="props">
       <q-tr :props="props">
         <q-td>
-          <!-- @click="removeExchangeProvider(props.row)" -->
           <q-btn
+            v-if="props.row.readonly !== true"
             @click="removeField(props.row)"
             round
             icon="delete"
@@ -1715,7 +1717,14 @@
           </q-btn>
         </q-td>
         <q-td full-width>
-          <q-input dense filled v-model="props.row.name" type="text"> </q-input>
+          <q-input
+            dense
+            filled
+            v-model="props.row.name"
+            :readonly="props.row.readonly === true"
+            type="text"
+          >
+          </q-input>
         </q-td>
         <q-td>
           <q-select
@@ -1725,6 +1734,7 @@
             map-options
             v-model="props.row.type"
             :options="fieldTypes"
+            :readonly="props.row.readonly === true"
           ></q-select>
         </q-td>
         <q-td>
@@ -1737,11 +1747,31 @@
         <q-td>
           <q-toggle v-model="props.row.optional" size="md" color="green" />
         </q-td>
-        <q-td>
-          <q-toggle v-model="props.row.sortable" size="md" color="green" />
+        <q-td v-if="!hideAdvanced">
+          <q-toggle
+            v-if="props.row.type !== 'json'"
+            v-model="props.row.sortable"
+            size="md"
+            color="green"
+          />
         </q-td>
-        <q-td>
-          <q-toggle v-model="props.row.searchable" size="md" color="green" />
+        <q-td v-if="!hideAdvanced">
+          <q-toggle
+            v-if="props.row.type !== 'json'"
+            v-model="props.row.searchable"
+            size="md"
+            color="green"
+          />
+        </q-td>
+      </q-tr>
+      <q-tr v-if="props.row.type === 'json'" :props="props">
+        <q-td></q-td>
+        <q-td></q-td>
+        <q-td colspan="100%">
+          <lnbits-data-fields
+            :fields="props.row.fields"
+            :hide-advanced="true"
+          ></lnbits-data-fields>
         </q-td>
       </q-tr>
     </template>
