@@ -2,28 +2,6 @@ window.app.component('lnbits-data-fields', {
   name: 'lnbits-data-fields',
   template: '#lnbits-data-fields',
   props: ['fields', 'hide-advanced'],
-  methods: {
-    addField: function () {
-      this.fields.push({
-        name: '',
-        type: 'text',
-        label: '',
-        hint: '',
-        optional: false,
-        sortable: true,
-        searchable: true
-      })
-    },
-    removeField: function (field) {
-      const index = this.fields.indexOf(field)
-      if (index > -1) {
-        this.fields.splice(index, 1)
-      }
-    }
-  },
-  async created() {
-    console.log('lnbits-data-fields component created', this.fields)
-  },
   data() {
     return {
       fieldTypes: [
@@ -73,20 +51,6 @@ window.app.component('lnbits-data-fields', {
             label: 'Optional',
             field: 'optional',
             sortable: false
-          },
-          {
-            name: 'sortable',
-            align: 'left',
-            label: 'Sortable',
-            field: 'sortable',
-            sortable: false
-          },
-          {
-            name: 'searchable',
-            align: 'left',
-            label: 'Searchable',
-            field: 'searchable',
-            sortable: false
           }
         ],
         pagination: {
@@ -99,5 +63,46 @@ window.app.component('lnbits-data-fields', {
         hideEmpty: true
       }
     }
+  },
+  methods: {
+    addField: function () {
+      this.fields.push({
+        name: '',
+        type: 'text',
+        label: '',
+        hint: '',
+        optional: false,
+        sortable: true,
+        searchable: true,
+        fields: [] // For nested fields in JSON type
+      })
+    },
+    removeField: function (field) {
+      const index = this.fields.indexOf(field)
+      if (index > -1) {
+        this.fields.splice(index, 1)
+      }
+    }
+  },
+  async created() {
+    if (!this.hideAdvanced) {
+      this.fieldsTable.columns.push(
+        {
+          name: 'sortable',
+          align: 'left',
+          label: 'Sortable',
+          field: 'sortable',
+          sortable: false
+        },
+        {
+          name: 'searchable',
+          align: 'left',
+          label: 'Searchable',
+          field: 'searchable',
+          sortable: false
+        }
+      )
+    }
+    console.log('lnbits-data-fields component created', this.fields)
   }
 })
