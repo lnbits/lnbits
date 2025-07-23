@@ -1622,7 +1622,6 @@
 </template>
 
 <template id="lnbits-data-fields">
-  <span v-text="fields.length"></span>
   <q-table
     :rows="fields"
     row-key="name"
@@ -1694,11 +1693,17 @@
           <q-input dense filled v-model="props.row.hint" type="text"> </q-input>
         </q-td>
         <q-td>
-          <q-toggle v-model="props.row.optional" size="md" color="green" />
+          <q-toggle
+            v-model="props.row.optional"
+            :readonly="props.row.readonly === true"
+            size="md"
+            color="green"
+          />
         </q-td>
         <q-td v-if="!hideAdvanced">
           <q-toggle
             v-if="props.row.type !== 'json'"
+            :readonly="props.row.readonly === true"
             v-model="props.row.sortable"
             size="md"
             color="green"
@@ -1707,6 +1712,7 @@
         <q-td v-if="!hideAdvanced">
           <q-toggle
             v-if="props.row.type !== 'json'"
+            :readonly="props.row.readonly === true"
             v-model="props.row.searchable"
             size="md"
             color="green"
