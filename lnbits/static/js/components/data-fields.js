@@ -67,7 +67,7 @@ window.app.component('lnbits-data-fields', {
   methods: {
     addField: function () {
       this.fields.push({
-        name: '',
+        name: 'field_name_' + (this.fields.length + 1),
         type: 'text',
         label: '',
         hint: '',

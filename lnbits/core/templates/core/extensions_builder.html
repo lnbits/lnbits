@@ -146,6 +146,13 @@
             ></q-img>
           </div>
           <div class="col-md-4 col-sm-12">
+            <q-toggle
+              v-model="generate.settings"
+              label="Generate Settings Fields"
+              size="md"
+              color="green"
+            />
+            <br />
             <span
               >Define what settings your extension will have. You can choose if
               each user has its own settings or if these are global settings set
@@ -153,27 +160,35 @@
             </span>
           </div>
         </div>
-        <q-separator class="q-mt-sm"></q-separator>
-        <div class="row q-mt-lg">
-          <div class="col-12">
-            <q-toggle
-              v-model="isUserSettings"
-              size="md"
-              color="green"
-              label="User Settings"
-            />
-            <span v-if="isUserSettings" class="text-caption q-ml-md"
-              >(Each user can set their own settings for this extension)</span
+
+        <q-separator v-if="generate.settings" class="q-mt-sm"></q-separator>
+        <div v-if="generate.settings" class="row q-mt-lg">
+          <div class="col-md-2 col-sm-12">
+            <q-select
+              filled
+              dense
+              emit-value
+              map-options
+              v-model="settingsType"
+              :options="settingsTypes"
+            ></q-select>
+          </div>
+          <div class="col-md-10 col-sm-12 q-pt-sm">
+            <span v-if="settingsType === 'user'" class="text-caption q-ml-md"
+              >Each user can set their own settings for this extension</span
             >
             <span v-else class="text-caption q-ml-md"
-              >(These settings are set by the admin and apply to all users of
-              the extension)</span
+              >These settings are set by the admin and apply to all users of the
+              extension</span
             >
           </div>
         </div>
-        <div class="row q-mt-lg">
+        <div v-if="generate.settings" class="row q-mt-lg">
           <div class="col-12">
-            <lnbits-data-fields :fields="fields"></lnbits-data-fields>
+            <lnbits-data-fields
+              :fields="settingsFields"
+              :hide-advanced="true"
+            ></lnbits-data-fields>
           </div>
         </div>
       </q-step>
@@ -192,17 +207,30 @@
             ></q-img>
           </div>
           <div class="col-md-4 col-sm-12">
+            <q-toggle
+              v-model="generate.owner"
+              label="Generate Owner Fields"
+              size="md"
+              color="green"
+            />
+            <br />
             <span>
               The owner of the extension manages this data. It can create,
               update and delete it.</span
             >
           </div>
         </div>
-        <q-separator class="q-mt-sm"></q-separator>
+        <q-separator v-if="generate.owner" class="q-mt-sm"></q-separator>
+        <div v-if="generate.owner" class="row q-mt-lg">
+          <div class="col-12">
+            <lnbits-data-fields :fields="ownerFields"></lnbits-data-fields>
+          </div>
+        </div>
       </q-step>
 
       <q-step
         :name="4"
+        :done="step > 4"
         title="Customer Data"
         icon="blur_linear"
         style="min-height: 100px"
@@ -214,6 +242,13 @@
             ></q-img>
           </div>
           <div class="col-md-4 col-sm-12">
+            <q-toggle
+              v-model="generate.customer"
+              label="Generate Customer Fields"
+              size="md"
+              color="green"
+            />
+            <br />
             <span>
               This data is created by users of the extension. Usually when they
               submit a form or make a payment.</span
@@ -224,11 +259,17 @@
             </span>
           </div>
         </div>
-        <q-separator class="q-mt-sm"></q-separator>
+        <q-separator v-if="generate.customer" class="q-mt-sm"></q-separator>
+        <div v-if="generate.customer" class="row q-mt-lg">
+          <div class="col-12">
+            <lnbits-data-fields :fields="customerFields"></lnbits-data-fields>
+          </div>
+        </div>
       </q-step>
 
       <q-step
         :name="5"
+        :done="step > 5"
         title="Public Pages"
         icon="link"
         style="min-height: 100px"
@@ -240,6 +281,7 @@
       </q-step>
       <q-step
         :name="6"
+        :done="step > 6"
         title="Review"
         icon="how_to_reg"
         style="min-height: 100px"
@@ -251,6 +293,7 @@
       </q-step>
       <q-step
         :name="7"
+        :done="step > 7"
         title="Publish"
         icon="publish"
         style="min-height: 100px"

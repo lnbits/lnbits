@@ -420,6 +420,7 @@ window.localisation.en = {
   admin_settings: 'Admin Settings',
   extension_cost: 'This release requires a payment of minimum {cost} sats.',
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
+  create_extension: 'Create Extension',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
   pay_with: 'Pay with {provider}',

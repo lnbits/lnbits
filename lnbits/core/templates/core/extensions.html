@@ -24,6 +24,9 @@
               v-text="$t('only_admins_can_install')"
             ></i>
             <q-space></q-space>
+            <q-btn flat no-caps icon="architecture" to="/extensions/builder"
+              ><span v-text="$t('create_extension')"></span
+            ></q-btn>
             <q-input
               :label="$t('search_extensions')"
               :dense="dense"
