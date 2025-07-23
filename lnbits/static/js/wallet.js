@@ -404,7 +404,7 @@ window.WalletPageLogic = {
     decodeRequest() {
       this.parse.show = true
       this.parse.data.request = this.parse.data.request.trim()
-      let req = this.parse.data.request.toLowerCase()
+      const req = this.parse.data.request.toLowerCase()
       if (req.startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
       } else if (req.startsWith('lnurl:')) {
