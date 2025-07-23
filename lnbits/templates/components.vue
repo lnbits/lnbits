@@ -1755,6 +1755,15 @@
           <q-toggle
             v-if="props.row.type !== 'json'"
             :readonly="props.row.readonly === true"
+            v-model="props.row.editable"
+            size="md"
+            color="green"
+          />
+        </q-td>
+        <q-td v-if="!hideAdvanced">
+          <q-toggle
+            v-if="props.row.type !== 'json'"
+            :readonly="props.row.readonly === true"
             v-model="props.row.sortable"
             size="md"
             color="green"

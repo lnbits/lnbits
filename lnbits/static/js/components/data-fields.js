@@ -74,6 +74,7 @@ window.app.component('lnbits-data-fields', {
         optional: false,
         sortable: true,
         searchable: true,
+        editable: true,
         fields: [] // For nested fields in JSON type
       })
     },
@@ -87,6 +88,13 @@ window.app.component('lnbits-data-fields', {
   async created() {
     if (!this.hideAdvanced) {
       this.fieldsTable.columns.push(
+        {
+          name: 'editable',
+          align: 'left',
+          label: 'UI Editable',
+          field: 'editable',
+          sortable: false
+        },
         {
           name: 'sortable',
           align: 'left',
