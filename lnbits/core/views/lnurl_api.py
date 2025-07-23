@@ -23,7 +23,7 @@ from lnurl.models import (
 from loguru import logger
 
 from lnbits.core.models import CreateLnurlWithdraw, Payment
-from lnbits.core.models.lnurl import CreateLnurlPayment
+from lnbits.core.models.lnurl import CreateLnurlPayment, LnurlScan
 from lnbits.decorators import (
     WalletTypeInfo,
     require_admin_key,
@@ -40,6 +40,7 @@ lnurl_router = APIRouter(tags=["LNURL"])
 @lnurl_router.get(
     "/api/v1/lnurlscan/{code}",
     dependencies=[Depends(require_invoice_key)],
+    deprecated=True,
     response_model=LnurlPayResponse
     | LnurlWithdrawResponse
     | LnurlAuthResponse
@@ -55,6 +56,24 @@ async def api_lnurlscan(code: str) -> LnurlResponseModel:
 
     if isinstance(res, (LnurlPayResponse, LnurlWithdrawResponse, LnurlAuthResponse)):
         check_callback_url(res.callback)
+    return res
+
+
+@lnurl_router.post(
+    "/api/v1/lnurlscan",
+    dependencies=[Depends(require_invoice_key)],
+    response_model=LnurlPayResponse
+    | LnurlWithdrawResponse
+    | LnurlAuthResponse
+    | LnurlErrorResponse,
+)
+async def api_lnurlscan_post(scan: LnurlScan) -> LnurlResponseModel:
+    try:
+        res = await lnurl_handle(scan.lnurl, user_agent=settings.user_agent, timeout=5)
+    except LnurlResponseException as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
     return res
 
 

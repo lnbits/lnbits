@@ -352,11 +352,9 @@ window.WalletPageLogic = {
     },
     lnurlScan() {
       LNbits.api
-        .request(
-          'GET',
-          '/api/v1/lnurlscan/' + this.parse.data.request,
-          this.g.wallet.adminkey
-        )
+        .request('POST', '/api/v1/lnurlscan', this.g.wallet.adminkey, {
+          lnurl: this.parse.data.request
+        })
         .then(response => {
           const data = response.data
           if (data.status === 'ERROR') {
@@ -404,19 +402,29 @@ window.WalletPageLogic = {
       this.decodeRequest()
       this.parse.camera.show = false
     },
+    isLnurl(req) {
+      return (
+        req.toLowerCase().startsWith('lnurl1') ||
+        req.startsWith('lnurlp://') ||
+        req.startsWith('lnurlw://') ||
+        req.startsWith('lnurlauth://') ||
+        req.match(/[\w.+-~_]+@[\w.+-~_]/)
+      )
+    },
     decodeRequest() {
       this.parse.show = true
-      this.parse.data.request = this.parse.data.request.trim().toLowerCase()
-      let req = this.parse.data.request
+      this.parse.data.request = this.parse.data.request.trim()
+      const req = this.parse.data.request.toLowerCase()
       if (req.startsWith('lightning:')) {
-        this.parse.data.request = req.slice(10)
+        this.parse.data.request = this.parse.data.request.slice(10)
       } else if (req.startsWith('lnurl:')) {
-        this.parse.data.request = req.slice(6)
+        this.parse.data.request = this.parse.data.request.slice(6)
       } else if (req.includes('lightning=lnurl1')) {
-        this.parse.data.request = req.split('lightning=')[1].split('&')[0]
+        this.parse.data.request = this.parse.data.request
+          .split('lightning=')[1]
+          .split('&')[0]
       }
-      req = this.parse.data.request
-      if (req.startsWith('lnurl1') || req.match(/[\w.+-~_]+@[\w.+-~_]/)) {
+      if (this.isLnurl(this.parse.data.request)) {
         this.lnurlScan()
         return
       }
