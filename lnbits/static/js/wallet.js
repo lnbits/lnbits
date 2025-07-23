@@ -1,5 +1,3 @@
-const {default: Quasar} = require('quasar')
-
 window.WalletPageLogic = {
   mixins: [window.windowMixin],
   data() {
