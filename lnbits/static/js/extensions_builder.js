@@ -23,6 +23,7 @@ window.ExtensionsBuilderPageLogic = {
           hint: 'The date and time when the record was created.',
           optional: false,
           sortable: true,
+          editable: false,
           searchable: true,
           readonly: true,
           fields: []
@@ -35,6 +36,7 @@ window.ExtensionsBuilderPageLogic = {
           optional: false,
           sortable: true,
           searchable: true,
+          editable: false,
           readonly: true,
           fields: []
         },
@@ -47,6 +49,7 @@ window.ExtensionsBuilderPageLogic = {
           optional: false,
           sortable: true,
           searchable: true,
+          editable: false,
           readonly: true,
           fields: [] // For nested fields in JSON type
         }
