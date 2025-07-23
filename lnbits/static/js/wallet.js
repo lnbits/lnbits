@@ -1,3 +1,5 @@
+const {default: Quasar} = require('quasar')
+
 window.WalletPageLogic = {
   mixins: [window.windowMixin],
   data() {
@@ -141,7 +143,13 @@ window.WalletPageLogic = {
     },
     canPay() {
       if (!this.parse.invoice) return false
-      if (this.parse.invoice.expired) return false
+      if (this.parse.invoice.expired) {
+        Quasar.Notify.create({
+          message: 'Invoice has expired',
+          color: 'negative'
+        })
+        return false
+      }
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
     formattedAmount() {
