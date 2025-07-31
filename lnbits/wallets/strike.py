@@ -111,10 +111,14 @@ class StrikeWallet(Wallet):
         )
 
         # runtime state
-        import os, json
+        import json
+        import os
+
         self.pending_invoices: list[str] = []  # Keep it as a list
         # path for persisting pending invoices
-        self.state_path = os.path.join(settings.lnbits_data_folder, "strike_pending_invoices.json")
+        self.state_path = os.path.join(
+            settings.lnbits_data_folder, "strike_pending_invoices.json"
+        )
         # load persisted pending invoices
         try:
             with open(self.state_path) as f:
@@ -131,6 +135,7 @@ class StrikeWallet(Wallet):
 
     def _persist_pending(self):
         import json
+
         try:
             with open(self.state_path, "w") as f:
                 json.dump(self.pending_invoices, f)
@@ -389,7 +394,9 @@ class StrikeWallet(Wallet):
             logger.debug(f"Error while fetching payment {checking_id}.")
             return PaymentPendingStatus()
 
-    async def _get_invoices_status_batch(self, invoice_ids: list[str]) -> dict[str, PaymentStatus]:
+    async def _get_invoices_status_batch(
+        self, invoice_ids: list[str]
+    ) -> dict[str, PaymentStatus]:
         out: dict[str, PaymentStatus] = {}
         if not invoice_ids:
             return out
@@ -401,7 +408,11 @@ class StrikeWallet(Wallet):
         items = r.json().get("items") or r.json().get("value") or []
         completed = {item.get("receiveRequestId") for item in items}
         for inv in invoice_ids:
-            out[inv] = PaymentSuccessStatus(fee_msat=0) if inv in completed else PaymentPendingStatus()
+            out[inv] = (
+                PaymentSuccessStatus(fee_msat=0)
+                if inv in completed
+                else PaymentPendingStatus()
+            )
         return out
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
@@ -424,7 +435,7 @@ class StrikeWallet(Wallet):
             req_budget = max(
                 1, rate_limit * sleep_s // 60
             )  # Calculate request budget based on sleep time.
-            batch = list(self.pending_invoices)[:int(req_budget)]
+            batch = list(self.pending_invoices)[: int(req_budget)]
             processed = 0
             if batch:
                 statuses = await self._get_invoices_status_batch(batch)
