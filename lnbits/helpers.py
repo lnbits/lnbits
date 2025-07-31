@@ -18,7 +18,6 @@ from pydantic.schema import field_schema
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
-from lnbits.utils.nostr import normalize_public_key
 
 from .db import FilterModel
 
@@ -203,10 +202,13 @@ def is_valid_external_id(external_id: str) -> bool:
 
 
 def is_valid_pubkey(pubkey: str) -> bool:
-    key = normalize_public_key(pubkey)
-    if key:
+    if len(pubkey) != 64:
+        return False
+    try:
+        int(pubkey, 16)
         return True
-    return False
+    except Exception as _:
+        return False
 
 
 def create_access_token(data: dict, token_expire_minutes: int | None = None) -> str:
