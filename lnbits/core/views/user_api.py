@@ -48,6 +48,7 @@ from lnbits.helpers import (
 )
 from lnbits.settings import EditableSettings, settings
 from lnbits.utils.exchange_rates import allowed_currencies
+from lnbits.utils.nostr import normalize_public_key
 
 users_router = APIRouter(
     prefix="/users/api/v1", dependencies=[Depends(check_admin)], tags=["Users"]
@@ -99,7 +100,7 @@ async def api_create_user(data: CreateUser) -> CreateUser:
         id=uuid4().hex,
         username=data.username,
         email=data.email,
-        pubkey=data.pubkey,
+        pubkey=normalize_public_key(data.pubkey) if data.pubkey else None,
         external_id=data.external_id,
         extra=data.extra,
     )
@@ -132,7 +133,7 @@ async def api_update_user(
         id=user_id,
         username=data.username,
         email=data.email,
-        pubkey=data.pubkey,
+        pubkey=normalize_public_key(data.pubkey) if data.pubkey else None,
         external_id=data.external_id,
         extra=data.extra or UserExtra(),
     )
