@@ -101,8 +101,7 @@ class CLNSocketWallet(Wallet):
         self.pay_failure_error_codes = [-32602, 203, 205, 206, 207, 210, 401]
 
         try:
-            self.client = LNSocket()
-            self.client.Init(settings.clnsocket_nodeid, settings.clnsocket_host)
+            self.client = LNSocket(settings.clnsocket_nodeid, settings.clnsocket_host)
         except RuntimeError as exc:
             logger.warning(f"Error initialising LNSocket: {exc}")
 
