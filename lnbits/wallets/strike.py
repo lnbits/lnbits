@@ -1,5 +1,7 @@
 import asyncio
 import time
+import json
+import os
 from collections.abc import AsyncGenerator
 from decimal import Decimal
 from typing import Any, Optional
@@ -110,10 +112,6 @@ class StrikeWallet(Wallet):
             ),
         )
 
-        # runtime state
-        import json
-        import os
-
         self.pending_invoices: list[str] = []  # Keep it as a list
         # path for persisting pending invoices
         self.state_path = os.path.join(
@@ -134,8 +132,6 @@ class StrikeWallet(Wallet):
         self._cache_ttl = 30  # seconds
 
     def _persist_pending(self):
-        import json
-
         try:
             with open(self.state_path, "w") as f:
                 json.dump(self.pending_invoices, f)
