@@ -95,11 +95,14 @@ async def api_create_user(data: CreateUser) -> CreateUser:
     data.extra = data.extra or UserExtra()
     data.extra.provider = data.extra.provider or "lnbits"
 
+    if data.pubkey:
+        data.pubkey = normalize_public_key(data.pubkey)
+
     account = Account(
         id=uuid4().hex,
         username=data.username,
         email=data.email,
-        pubkey=normalize_public_key(data.pubkey) if data.pubkey else None,
+        pubkey=data.pubkey,
         external_id=data.external_id,
         extra=data.extra,
     )
@@ -128,11 +131,14 @@ async def api_update_user(
             HTTPStatus.BAD_REQUEST, "Use 'reset password' functionality."
         )
 
+    if data.pubkey:
+        data.pubkey = normalize_public_key(data.pubkey)
+
     account = Account(
         id=user_id,
         username=data.username,
         email=data.email,
-        pubkey=normalize_public_key(data.pubkey) if data.pubkey else None,
+        pubkey=data.pubkey,
         external_id=data.external_id,
         extra=data.extra or UserExtra(),
     )
