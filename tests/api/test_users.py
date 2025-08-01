@@ -443,17 +443,21 @@ async def test_update_user_npub_success(http_client: AsyncClient, superuser_toke
 @pytest.mark.anyio
 async def test_create_user_invalid_npub(http_client: AsyncClient, superuser_token):
     tiny_id = shortuuid.uuid()[:8]
-    invalid_npub = "npub1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcde"
-    data = {
-        "username": f"user_{tiny_id}",
-        "password": "secret1234",
-        "password_repeat": "secret1234",
-        "email": f"user_{tiny_id}@lnbits.com",
-        "pubkey": invalid_npub,
-    }
-    create_resp = await http_client.post(
-        "/users/api/v1/user",
-        json=data,
-        headers={"Authorization": f"Bearer {superuser_token}"},
-    )
-    assert create_resp.status_code == 400
+    invalid_pubkeys = [
+        "npub1flrz7qu87n8y04jwy6r74z44pczcwaesumth08uxrusv4sm7efs83zq8z",
+        "4fc62f0387f4ce47d64e2687ea89f5a8702c3bb98736bbbcf30f906561bf653",
+    ]
+    for invalid_pubkey in invalid_pubkeys:
+        data = {
+            "username": f"user_{tiny_id}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+            "email": f"user_{tiny_id}@lnbits.com",
+            "pubkey": invalid_pubkey,
+        }
+        create_resp = await http_client.post(
+            "/users/api/v1/user",
+            json=data,
+            headers={"Authorization": f"Bearer {superuser_token}"},
+        )
+        assert create_resp.status_code == 400
