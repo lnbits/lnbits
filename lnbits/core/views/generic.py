@@ -7,7 +7,7 @@ from fastapi import Cookie, Depends, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.routing import APIRouter
-from lnurl import decode as lnurl_decode
+from lnurl import url_decode
 from pydantic.types import UUID4
 
 from lnbits.core.helpers import to_valid_user_id
@@ -456,7 +456,7 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     if not settings.lnbits_allow_new_accounts:
         return {"status": "ERROR", "reason": "New accounts are not allowed."}
 
-    lnurl = lnurl_decode(lightning)
+    lnurl = url_decode(lightning)
 
     async with httpx.AsyncClient() as client:
         check_callback_url(lnurl)
