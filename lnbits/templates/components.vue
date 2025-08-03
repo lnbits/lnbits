@@ -370,7 +370,12 @@
       v-if="extras.length"
     >
       <template v-for="entry in extras">
-        <q-item v-if="!!entry.value" key="entry.key" class="text-grey-4">
+        <q-item
+          v-if="!!entry.value"
+          key="entry.key"
+          class="text-grey-4"
+          style="white-space: normal; word-break: break-all"
+        >
           <q-item-section>
             <q-item-label v-text="entry.key"></q-item-label>
             <q-item-label caption v-text="entry.value"></q-item-label>
