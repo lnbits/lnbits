@@ -1,6 +1,6 @@
 from typing import Optional
 
-from lnurl import Lnurl, LnurlPayResponse
+from lnurl import LnAddress, Lnurl, LnurlPayResponse
 from pydantic import BaseModel
 
 
@@ -17,4 +17,4 @@ class CreateLnurlWithdraw(BaseModel):
 
 
 class LnurlScan(BaseModel):
-    lnurl: Lnurl
+    lnurl: Lnurl | LnAddress
