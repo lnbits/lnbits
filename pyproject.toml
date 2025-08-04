@@ -16,7 +16,6 @@ python = "~3.12 | ~3.11 | ~3.10"
 bech32 = "1.2.0"
 click = "8.2.1"
 ecdsa = "0.19.1"
-fastapi = "0.116.1"
 starlette = "0.47.1"
 httpx = "0.27.0"
 jinja2 = "3.1.6"
@@ -65,8 +64,10 @@ jsonpath-ng = "^1.7.0"
 pynostr = "^0.6.2"
 python-multipart = "^0.0.20"
 filetype = "^1.2.0"
-nostr-sdk = "^0.42.1"
 bcrypt = "^4.3.0"
+fastapi = "^0.116.1"
+greenlet = "^3.2.3"
+pylnsocket = {git = "https://github.com/21M4TW/pylnsocket"}
 
 [tool.poetry.extras]
 breez = ["breez-sdk", "breez-sdk-liquid"]
