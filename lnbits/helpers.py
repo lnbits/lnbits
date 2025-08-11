@@ -101,7 +101,7 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         "WEBPUSH_PUBKEY": settings.lnbits_webpush_pubkey,
         "LNBITS_DENOMINATION": (
             settings.lnbits_denomination
-            if settings.lnbits_denomination == "FakeWallet"
+            if settings.lnbits_denomination != "sats"
             else "sats"
         ),
         "has_holdinvoice": settings.has_holdinvoice,
