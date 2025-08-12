@@ -419,7 +419,7 @@ class StrikeWallet(Wallet):
         """
         min_poll, max_poll = 0.2, 3  # Increase polling frequency (was 1, 15)
         # 1,000 requests / 10 minutes = ~100 requests/minute.
-        rate_limit = 100
+        rate_limit = 250
         sleep_s = min_poll
         # Main loop for polling invoices.
         self._running = True
