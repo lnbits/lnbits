@@ -136,7 +136,7 @@ async def api_payment_pay_with_nfc(
 ) -> LnurlErrorResponse | LnurlSuccessResponse:
     try:
         res = await lnurl_handle(
-            lnurl_data.lnurl_w.callback_url, user_agent=settings.user_agent, timeout=10
+            lnurl_data.lnurl_w.url, user_agent=settings.user_agent, timeout=10
         )
     except (LnurlResponseException, Exception) as exc:
         logger.warning(exc)
