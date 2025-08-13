@@ -729,7 +729,7 @@ class AuthMethods(Enum):
 
 class AuthSettings(LNbitsSettings):
     auth_token_expire_minutes: int = Field(default=525600, gt=0)
-    auth_all_methods: list = [a.value for a in AuthMethods]
+    auth_all_methods: list[str] = [a.value for a in AuthMethods]
     auth_allowed_methods: list[str] = Field(
         default=[
             AuthMethods.user_id_only.value,
