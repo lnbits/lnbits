@@ -231,7 +231,7 @@ async def api_disable_extension(
         return SimpleStatus(
             success=True, message=f"Extension '{ext_id}' already disabled."
         )
-    logger.info(f"Disabeling extension: {ext_id}.")
+    logger.info(f"Disabling extension: {ext_id}.")
     user_ext.active = False
     await update_user_extension(user_ext)
     return SimpleStatus(success=True, message=f"Extension '{ext_id}' disabled.")
