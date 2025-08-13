@@ -75,7 +75,7 @@ migration = ["psycopg2-binary"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
-mypy = "^1.11.2"
+mypy = "^1.17.1"
 types-protobuf = "^6.30.2.20250516"
 pre-commit = "^4.2.0"
 openapi-spec-validator = "^0.7.1"
@@ -127,6 +127,13 @@ exclude = [
   "^lnbits/extensions",
   "^lnbits/upgrades",
 ]
+plugins = "pydantic.mypy"
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
 
 [[tool.mypy.overrides]]
 module = [

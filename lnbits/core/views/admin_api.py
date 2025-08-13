@@ -147,7 +147,7 @@ async def api_download_backup() -> FileResponse:
     pg_backup_filename = f"{settings.lnbits_data_folder}/lnbits-database.dmp"
     is_pg = db_url and db_url.startswith("postgres://")
 
-    if is_pg:
+    if is_pg and db_url:
         p = urlparse(db_url)
         command = (
             f"pg_dump --host={p.hostname} "
