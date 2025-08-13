@@ -623,7 +623,6 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             {
                 "tag": "payRequest",
                 "callback": "https://example.com/callback",
-                "k1": "randomk1value",
                 "minSendable": 1000,
                 "maxSendable": 1_500_000,
                 "metadata": '[["text/plain", "Payment to yo"]]',
