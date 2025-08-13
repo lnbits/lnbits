@@ -444,8 +444,8 @@ async def test_update_user_npub_success(http_client: AsyncClient, superuser_toke
 @pytest.mark.parametrize(
     "invalid_pubkey",
     [
-        "npub1flrz7qu87n8y04jwy6r74z44pczcwaesumth08uxrusv4sm7efs83zq8z",  # too short
-        "4fc62f0387f4ce47d64e2687ea89f5a8702c3bb98736bbbcf30f906561bf653",  # not a valid npub
+        "npub1flrz7qu87n8y04jwy6r74z44pczcwaesumth08uxrusv4sm7efs83zq8z",
+        "4fc62f0387f4ce47d64e2687ea89f5a8702c3bb98736bbbcf30f906561bf653",
     ],
 )
 async def test_create_user_invalid_npub(
