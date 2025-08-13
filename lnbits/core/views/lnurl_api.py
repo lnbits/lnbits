@@ -139,9 +139,8 @@ async def api_payment_pay_with_nfc(
     try:
         url = lnurl_data.lnurl_w.lud17
         res = await lnurl_handle(url, user_agent=settings.user_agent, timeout=10)
-    except (LnurlResponseException, Exception) as exc:
-        logger.warning(exc)
-        return LnurlErrorResponse(reason=str(exc))
+    except (LnurlResponseException, Exception):
+        return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
 
     if not isinstance(res, LnurlWithdrawResponse):
         return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
