@@ -134,10 +134,11 @@ async def api_payment_pay_with_nfc(
     payment_request: str,
     lnurl_data: CreateLnurlWithdraw,
 ) -> LnurlErrorResponse | LnurlSuccessResponse:
+    if not lnurl_data.lnurl_w.lud17:
+        return LnurlErrorResponse(reason="LNURL-withdraw lud17 not provided.")
     try:
-        res = await lnurl_handle(
-            lnurl_data.lnurl_w.url, user_agent=settings.user_agent, timeout=10
-        )
+        url = lnurl_data.lnurl_w.lud17
+        res = await lnurl_handle(url, user_agent=settings.user_agent, timeout=10)
     except (LnurlResponseException, Exception) as exc:
         logger.warning(exc)
         return LnurlErrorResponse(reason=str(exc))
