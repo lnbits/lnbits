@@ -99,11 +99,7 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         "USE_DEFAULT_BGIMAGE": settings.lnbits_default_bgimage,
         "VOIDWALLET": settings.lnbits_backend_wallet_class == "VoidWallet",
         "WEBPUSH_PUBKEY": settings.lnbits_webpush_pubkey,
-        "LNBITS_DENOMINATION": (
-            settings.lnbits_denomination
-            if settings.lnbits_denomination == "FakeWallet"
-            else "sats"
-        ),
+        "LNBITS_DENOMINATION": settings.lnbits_denomination,
         "has_holdinvoice": settings.has_holdinvoice,
     }
 
