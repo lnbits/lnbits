@@ -10,7 +10,7 @@ from fastapi import (
     Query,
 )
 from fastapi.responses import JSONResponse
-from lnurl import decode as lnurl_decode
+from lnurl import url_decode
 
 from lnbits import bolt11
 from lnbits.core.crud.payments import (
@@ -318,7 +318,7 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
     payment_str = data.data
     try:
         if payment_str[:5] == "LNURL":
-            url = str(lnurl_decode(payment_str))
+            url = str(url_decode(payment_str))
             return JSONResponse({"domain": url})
         else:
             invoice = bolt11.decode(payment_str)
