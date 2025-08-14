@@ -142,14 +142,14 @@ class ExchangeRateProvider(BaseModel):
 
 class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
-    lnbits_deactivated_extensions: set[str] = Field(default=[])
+    lnbits_deactivated_extensions: set[str] = Field(default=set())
     # upgraded extensions that require API redirects
     lnbits_upgraded_extensions: dict[str, str] = Field(default={})
     # list of redirects that extensions want to perform
     lnbits_extensions_redirects: list[RedirectPath] = Field(default=[])
 
     # list of all extension ids
-    lnbits_installed_extensions_ids: set[str] = Field(default=[])
+    lnbits_installed_extensions_ids: set[str] = Field(default=set())
 
     def find_extension_redirect(
         self, path: str, req_headers: list[tuple[bytes, bytes]]
@@ -266,7 +266,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_default_theme: str = Field(default="salvador")
     lnbits_default_border: str = Field(default="hard-border")
     lnbits_default_gradient: bool = Field(default=True)
-    lnbits_default_bgimage: str = Field(default=None)
+    lnbits_default_bgimage: str | None = Field(default=None)
 
 
 class OpsSettings(LNbitsSettings):
@@ -729,7 +729,7 @@ class AuthMethods(Enum):
 
 class AuthSettings(LNbitsSettings):
     auth_token_expire_minutes: int = Field(default=525600, gt=0)
-    auth_all_methods = [a.value for a in AuthMethods]
+    auth_all_methods: list[str] = [a.value for a in AuthMethods]
     auth_allowed_methods: list[str] = Field(
         default=[
             AuthMethods.user_id_only.value,
@@ -947,7 +947,7 @@ class EnvSettings(LNbitsSettings):
 
 class PersistenceSettings(LNbitsSettings):
     lnbits_data_folder: str = Field(default="./data")
-    lnbits_database_url: str = Field(default=None)
+    lnbits_database_url: str | None = Field(default=None)
 
 
 class SuperUserSettings(LNbitsSettings):
@@ -993,11 +993,11 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     lnbits_running: bool = Field(default=True)
 
     # Remember the latest balance delta in order to compare with the current one
-    latest_balance_delta_sats: int = Field(default=None)
+    latest_balance_delta_sats: int = Field(default=0)
 
-    lnbits_all_extensions_ids: set[str] = Field(default=[])
+    lnbits_all_extensions_ids: set[str] = Field(default=set())
 
-    server_startup_time: int = Field(default=time())
+    server_startup_time: int = Field(default=int(time()))
 
     has_holdinvoice: bool = Field(default=False)
     has_nodemanager: bool = Field(default=False)

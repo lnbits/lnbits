@@ -281,15 +281,19 @@ class Database(Compat):
         self.schema = self.name
         self.type = DB_TYPE
 
-        if DB_TYPE == SQLITE:
+        if self.type == POSTGRES and settings.lnbits_database_url:
+            database_uri = settings.lnbits_database_url.replace(
+                "postgres://", "postgresql+asyncpg://"
+            )
+        elif self.type == COCKROACH and settings.lnbits_database_url:
+            database_uri = settings.lnbits_database_url.replace(
+                "cockroachdb://", "cockroachdb+asyncpg://"
+            )
+        else:
             self.path = os.path.join(
                 settings.lnbits_data_folder, f"{self.name}.sqlite3"
             )
             database_uri = f"sqlite+aiosqlite:///{self.path}"
-        else:
-            database_uri = settings.lnbits_database_url.replace(
-                "postgres://", "postgresql+asyncpg://"
-            )
 
         if self.name.startswith("ext_"):
             self.schema = self.name[4:]
