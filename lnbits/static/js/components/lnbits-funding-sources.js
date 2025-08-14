@@ -49,6 +49,21 @@ window.app.component('lnbits-funding-sources', {
           }
         ],
         [
+          'CLNSocketWallet',
+          'Core Lightning Socket',
+          {
+	    clnsocket_host: 'Host:port',
+            clnsocket_readonly_rune: 'Rune used for readonly requests',
+            clnsocket_invoice_rune: 'Rune used for creating invoices',
+            clnsocket_pay_rune: 'Rune used for paying invoices using pay',
+            clnsocket_renepay_rune: 'Rune used for paying invoices using renepay',
+            clnsocket_xpay_rune: 'Rune used for paying invoices using xpay',
+            clnsocketlast_pay_index:
+              'Ignores any invoices paid prior to or including this index. 0 is equivalent to not specifying and negative value is invalid.',
+            clnsocket_nodeid: 'Node id'
+          }
+        ],
+        [
           'CLNRestWallet',
           'Core Lightning Rest (plugin)',
           {

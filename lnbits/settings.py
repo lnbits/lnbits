@@ -461,6 +461,17 @@ class ClicheFundingSource(LNbitsSettings):
     cliche_endpoint: str | None = Field(default=None)
 
 
+class CLNSocketFundingSource(LNbitsSettings):
+    clnsocket_nodeid: str | None = Field(default=None)
+    clnsocket_host: str | None = Field(default=None)
+    clnsocket_readonly_rune: str | None = Field(default=None)
+    clnsocket_invoice_rune: str | None = Field(default=None)
+    clnsocket_pay_rune: str | None = Field(default=None)
+    clnsocket_renepay_rune: str | None = Field(default=None)
+    clnsocket_xpay_rune: str | None = Field(default=None)
+    clnsocket_last_pay_index: str | None = Field(default=0)
+
+
 class CLNRestFundingSource(LNbitsSettings):
     clnrest_url: str | None = Field(default=None)
     clnrest_ca: str | None = Field(default=None)
@@ -632,6 +643,7 @@ class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
     ClicheFundingSource,
+    CLNSocketFundingSource,
     CLNRestFundingSource,
     CoreLightningFundingSource,
     CoreLightningRestFundingSource,

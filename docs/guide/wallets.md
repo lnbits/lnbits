@@ -18,6 +18,18 @@ You can [compare the LNbits compatible Lightning Network funding sources here](w
 
 Should also work with the [Rust version of CLNRest](https://github.com/daywalker90/clnrest-rs)
 
+### CLNSocket
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **CLNSocketWallet**
+- `CLNSOCKET_HOST`: `127.0.0.1:9735`
+- `CLNSOCKET_READONLY_RUNE`: `lightning-cli createrune restrictions='[["method=listfunds", "method=listpays", "method=listinvoices", "method=getinfo", "method=summary", "method=waitanyinvoice"]]' | jq -r .rune`
+- `CLNSOCKET_INVOICE_RUNE`: `lightning-cli createrune restrictions='[["method=invoice"], ["pnameamount_msat<1000001"], ["pnamelabel^LNbits"], ["rate=60"]]' | jq -r .rune`
+- `CLNSOCKET_PAY_RUNE`: `lightning-cli createrune restrictions='[["method=pay"], ["pinvbolt11_amount<1001"], ["pnamelabel^LNbits"], ["rate=1"]]' | jq -r .rune`
+- `CLNSOCKET_RENEPAY_RUNE`: `lightning-cli createrune restrictions='[["method=renepay"], ["pinvinvstring_amount<1001"], ["pnamelabel^LNbits"], ["rate=1"]]' | jq -r .rune`
+- `CLNSOCKET_XPAY_RUNE`: `lightning-cli createrune restrictions='[["method=xpay"], ["pinvinvstring_amount<1001"], ["rate=1"]]' | jq -r .rune`
+- `CLNSOCKET_LAST_PAY_INDEX`: `lightning-cli listinvoices | jq -r '.invoices | map(.created_index) | max' `
+- `CLNSOCKET_NODEID`: `lightning-cli getinfo | jq -r .id` (only required for v23.08)
+
 - `LNBITS_BACKEND_WALLET_CLASS`: **CLNRestWallet**
 - `CLNREST_URL`: `https://127.0.0.1:3010`
 - `CLNREST_CA`: `/home/lightningd/.lightning/bitcoin/ca.pem` (or the content of the `ca.pem` file)
