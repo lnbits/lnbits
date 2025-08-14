@@ -17,6 +17,7 @@ async def get_pr_from_lnurl(lnurl: str, amount_msat: int) -> str:
     if isinstance(res, LnurlErrorResponse):
         raise LnurlResponseException(res.reason)
     if not isinstance(res, LnurlPayResponse):
+
         raise LnurlResponseException(
             "Invalid LNURL response. Expected LnurlPayResponse."
         )
@@ -26,6 +27,8 @@ async def get_pr_from_lnurl(lnurl: str, amount_msat: int) -> str:
         user_agent=settings.user_agent,
         timeout=10,
     )
+    if isinstance(res2, LnurlErrorResponse):
+        raise LnurlResponseException(res2.reason)
     if not isinstance(res, LnurlPayActionResponse):
         raise LnurlResponseException(
             "Invalid LNURL pay response. Expected LnurlPayActionResponse."
