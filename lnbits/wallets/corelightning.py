@@ -174,8 +174,9 @@ class CoreLightningWallet(Wallet):
                 "description": invoice.description,
             }
 
-            # FIX: Use the explicit "pay" command instead of the configurable self.pay
-            r = await run_sync(lambda: self.ln.call("pay", payload))
+            # Use configured pay command (e.g. xpay), but default to "pay"
+            pay_command = self.pay or "pay"
+            r = await run_sync(lambda: self.ln.call(pay_command, payload))
 
             fee_msat = -int(r["amount_sent_msat"] - r["amount_msat"])
             return PaymentResponse(
