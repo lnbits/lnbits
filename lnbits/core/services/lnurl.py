@@ -12,7 +12,9 @@ from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 
-async def get_pr_from_lnurl(lnurl: str, amount_msat: int) -> str:
+async def get_pr_from_lnurl(
+    lnurl: str, amount_msat: int, comment: str | None = None
+) -> str:
     res = await handle(lnurl, user_agent=settings.user_agent, timeout=10)
     if isinstance(res, LnurlErrorResponse):
         raise LnurlResponseException(res.reason)
@@ -22,7 +24,8 @@ async def get_pr_from_lnurl(lnurl: str, amount_msat: int) -> str:
         )
     res2 = await execute_pay_request(
         res,
-        msat=str(amount_msat),
+        msat=amount_msat,
+        comment=comment,
         user_agent=settings.user_agent,
         timeout=10,
     )
@@ -48,7 +51,8 @@ async def fetch_lnurl_pay_request(data: CreateLnurlPayment) -> LnurlPayActionRes
 
     return await execute_pay_request(
         data.res,
-        msat=str(amount_msat),
+        msat=amount_msat,
+        comment=data.comment,
         user_agent=settings.user_agent,
         timeout=10,
     )
