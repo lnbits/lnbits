@@ -32,17 +32,16 @@ from lnbits.wallets.base import (
     PaymentSuccessStatus,
 )
 
-# --- CHANGE 1: Added 'delete_wallet_payment' to the import list ---
 from ..crud import (
     check_internal,
     create_payment,
-    delete_wallet_payment,
     get_payments,
     get_standalone_payment,
     get_wallet,
     get_wallet_payment,
     is_internal_status_success,
     update_payment,
+    update_payment_checking_id,
 )
 from ..models import (
     CreatePayment,
@@ -340,35 +339,41 @@ async def update_pending_payments(wallet_id: str):
         await update_pending_payment(payment)
 
 
-# --- CHANGE 2: Replaced the function with the final, robust, self-healing version ---
 async def update_pending_payment(payment: Payment) -> Payment:
     """
     Checks the status of a pending payment and updates its status in the database.
     Includes self-healing logic to fix legacy data inconsistencies.
     """
     try:
-        # Self-healing logic for legacy records with inconsistent checking_id
+        # --- CONSOLIDATION LOGIC ---
+        # Before doing anything, ensure this is the only record for this payment_hash
+        # by deleting any other legacy duplicates. This handles all forms of duplication.
+        await db.execute(
+            """
+            DELETE FROM apipayments
+            WHERE
+                wallet_id = :wallet_id AND
+                payment_hash = :payment_hash AND
+                checking_id != :current_checking_id
+            """,
+            {
+                "wallet_id": payment.wallet_id,
+                "payment_hash": payment.payment_hash,
+                "current_checking_id": payment.checking_id,
+            },
+        )
+
+        # --- HEALING LOGIC for UUIDs ---
+        # Now that we're sure there are no duplicates, we can safely fix the record
+        # if it's a legacy record with a UUID checking_id.
         if payment.checking_id != payment.payment_hash and not payment.is_internal:
-            # This is a potentially buggy record. Check if a correct record for this
-            # payment hash already exists.
-            correct_payment = await get_wallet_payment(
-                payment.wallet_id, payment.payment_hash
+            logger.info(
+                f"Repairing legacy payment record: {payment.checking_id} -> {payment.payment_hash}"
             )
-
-            if correct_payment:
-                # A correct record exists, so this buggy one is a duplicate. Delete it.
-                logger.info(
-                    f"Deleting duplicate buggy payment record with checking_id: {payment.checking_id}"
-                )
-                await delete_wallet_payment(payment.checking_id, payment.wallet_id)
-                # We've cleaned up, so we can stop processing this buggy record.
-                # The correct record will be processed in due course if it's still pending.
-                return correct_payment
-
-            # No correct record exists, so this is the only one.
-            # Fix it in-memory before proceeding to check its status.
+            await update_payment_checking_id(payment.checking_id, payment.payment_hash)
             payment.checking_id = payment.payment_hash
 
+        # --- NORMAL STATUS CHECK ---
         status = await payment.check_status()
 
         if status.success:
