@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from lnurl import (
     LnAddress,
     Lnurl,
@@ -104,7 +106,18 @@ async def store_paylink(
     else:
         stored_paylink = StoredPayLink(lnurl=lnurl, label=res.metadata.text)
 
-    # skip if its already stored
+    # update last_used if its already stored
+    for pl in wallet.stored_paylinks:
+        if pl.lnurl == stored_paylink.lnurl:
+            pl.last_used = datetime.now(timezone.utc)
+            await update_wallet(wallet)
+            logger.debug(
+                "Updated last used time for LNURL "
+                f"pay link {stored_paylink.lnurl} in wallet {wallet.id}."
+            )
+            return
+
+    # if not already stored, append it
     if not any(stored_paylink.lnurl == pl.lnurl for pl in wallet.stored_paylinks):
         wallet.stored_paylinks.append(stored_paylink)
         await update_wallet(wallet)
