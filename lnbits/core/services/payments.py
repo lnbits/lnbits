@@ -32,9 +32,11 @@ from lnbits.wallets.base import (
     PaymentSuccessStatus,
 )
 
+# --- CHANGE 1: Added 'delete_wallet_payment' to the import list ---
 from ..crud import (
     check_internal,
     create_payment,
+    delete_wallet_payment,
     get_payments,
     get_standalone_payment,
     get_wallet,
@@ -338,13 +340,51 @@ async def update_pending_payments(wallet_id: str):
         await update_pending_payment(payment)
 
 
+# --- CHANGE 2: Replaced the function with the final, robust, self-healing version ---
 async def update_pending_payment(payment: Payment) -> Payment:
-    status = await payment.check_status()
-    if status.failed:
-        payment.status = PaymentState.FAILED
-        await update_payment(payment)
-    elif status.success:
-        payment = await update_payment_success_status(payment, status)
+    """
+    Checks the status of a pending payment and updates its status in the database.
+    Includes self-healing logic to fix legacy data inconsistencies.
+    """
+    try:
+        # Self-healing logic for legacy records with inconsistent checking_id
+        if payment.checking_id != payment.payment_hash and not payment.is_internal:
+            # This is a potentially buggy record. Check if a correct record for this
+            # payment hash already exists.
+            correct_payment = await get_wallet_payment(
+                payment.wallet_id, payment.payment_hash
+            )
+
+            if correct_payment:
+                # A correct record exists, so this buggy one is a duplicate. Delete it.
+                logger.info(
+                    f"Deleting duplicate buggy payment record with checking_id: {payment.checking_id}"
+                )
+                await delete_wallet_payment(payment.checking_id, payment.wallet_id)
+                # We've cleaned up, so we can stop processing this buggy record.
+                # The correct record will be processed in due course if it's still pending.
+                return correct_payment
+
+            # No correct record exists, so this is the only one.
+            # Fix it in-memory before proceeding to check its status.
+            payment.checking_id = payment.payment_hash
+
+        status = await payment.check_status()
+
+        if status.success:
+            payment.status = PaymentState.SUCCESS
+            payment.preimage = status.preimage
+            await update_payment(payment)
+        elif status.failed:
+            payment.status = PaymentState.FAILED
+            await update_payment(payment)
+        # If still pending, do nothing to the database.
+
+    except Exception as e:
+        logger.error(f"Error processing pending payment {payment.checking_id}: {e}")
+        # Return the original payment object to avoid further issues in the calling loop
+        return payment
+
     return payment
 
 
