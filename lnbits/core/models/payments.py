@@ -6,7 +6,7 @@ from typing import Literal
 
 from fastapi import Query
 from lnurl import LnurlWithdrawResponse
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, validator
 
 from lnbits.db import FilterModel
 from lnbits.fiat import get_fiat_provider
@@ -82,20 +82,6 @@ class Payment(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     extra: dict = {}
-
-    @root_validator(pre=True)
-    def set_checking_id_from_hash(cls, values):
-        """
-        This validator ensures that the 'checking_id' which is used for
-        status checks is ALWAYS the real payment hash, not the internal DB id.
-        This fixes the bug where UUIDs are sent to the backend.
-        It runs before standard validation (pre=True) to ensure checking_id
-        is correct before any other checks might use it.
-        """
-        payment_hash = values.get("payment_hash")
-        if payment_hash:
-            values["checking_id"] = payment_hash
-        return values
 
     @property
     def pending(self) -> bool:
