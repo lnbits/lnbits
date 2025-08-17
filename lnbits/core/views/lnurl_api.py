@@ -37,6 +37,18 @@ from ..services import fetch_lnurl_pay_request, pay_invoice
 lnurl_router = APIRouter(tags=["LNURL"])
 
 
+async def _handle(lnurl: str) -> LnurlResponseModel:
+    try:
+        res = await lnurl_handle(lnurl, user_agent=settings.user_agent, timeout=5)
+        if isinstance(res, LnurlErrorResponse):
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=res.reason)
+    except LnurlResponseException as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
+    return res
+
+
 @lnurl_router.get(
     "/api/v1/lnurlscan/{code}",
     dependencies=[Depends(require_invoice_key)],
@@ -47,13 +59,7 @@ lnurl_router = APIRouter(tags=["LNURL"])
     | LnurlErrorResponse,
 )
 async def api_lnurlscan(code: str) -> LnurlResponseModel:
-    try:
-        res = await lnurl_handle(code, user_agent=settings.user_agent, timeout=5)
-    except LnurlResponseException as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
-
+    res = await _handle(code)
     if isinstance(res, (LnurlPayResponse, LnurlWithdrawResponse, LnurlAuthResponse)):
         check_callback_url(res.callback)
     return res
@@ -68,13 +74,7 @@ async def api_lnurlscan(code: str) -> LnurlResponseModel:
     | LnurlErrorResponse,
 )
 async def api_lnurlscan_post(scan: LnurlScan) -> LnurlResponseModel:
-    try:
-        res = await lnurl_handle(scan.lnurl, user_agent=settings.user_agent, timeout=5)
-    except LnurlResponseException as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
-    return res
+    return await _handle(scan.lnurl)
 
 
 @lnurl_router.post("/api/v1/lnurlauth")
@@ -101,16 +101,27 @@ async def api_perform_lnurlauth(
 async def api_payments_pay_lnurl(
     data: CreateLnurlPayment, wallet: WalletTypeInfo = Depends(require_admin_key)
 ) -> Payment:
+    """
+    Pay an LNURL payment request.
+    Either provice `res` (LnurlPayResponse) or `lnurl` (str) in the `data` object.
+    """
+    if not data.res and not data.lnurl:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Missing LNURL or LnurlPayResponse data.",
+        )
+
     try:
-        res = await fetch_lnurl_pay_request(data=data)
+        res, res2 = await fetch_lnurl_pay_request(data=data, wallet=wallet.wallet)
     except LnurlResponseException as exc:
         logger.warning(exc)
-        msg = f"Failed to connect to {data.res.callback}."
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=msg) from exc
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
 
     extra: dict[str, Any] = {}
-    if res.success_action:
-        extra["success_action"] = res.success_action.json()
+    if res2.success_action:
+        extra["success_action"] = res2.success_action.json()
     if data.comment:
         extra["comment"] = data.comment
     if data.unit and data.unit != "sat":
@@ -119,8 +130,8 @@ async def api_payments_pay_lnurl(
 
     payment = await pay_invoice(
         wallet_id=wallet.wallet.id,
-        payment_request=str(res.pr),
-        description=data.res.metadata.text,
+        payment_request=str(res2.pr),
+        description=res.metadata.text,
         extra=extra,
     )
 

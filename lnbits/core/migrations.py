@@ -735,3 +735,11 @@ async def m032_add_external_id_to_accounts(db: Connection):
 
 async def m033_update_payment_table(db: Connection):
     await db.execute("ALTER TABLE apipayments ADD COLUMN fiat_provider TEXT")
+
+
+async def m034_add_stored_paylinks_to_wallet(db: Connection):
+    await db.execute(
+        """
+        ALTER TABLE wallets ADD COLUMN stored_paylinks TEXT
+        """
+    )
