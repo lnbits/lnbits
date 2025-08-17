@@ -41,7 +41,6 @@ from ..crud import (
     get_wallet_payment,
     is_internal_status_success,
     update_payment,
-    update_payment_checking_id,
 )
 from ..models import (
     CreatePayment,
@@ -340,56 +339,12 @@ async def update_pending_payments(wallet_id: str):
 
 
 async def update_pending_payment(payment: Payment) -> Payment:
-    """
-    Checks the status of a pending payment and updates its status in the database.
-    Includes self-healing logic to fix legacy data inconsistencies.
-    """
-    try:
-        # --- CONSOLIDATION LOGIC ---
-        # Before doing anything, ensure this is the only record for this payment_hash
-        # by deleting any other legacy duplicates. This handles all forms of duplication.
-        await db.execute(
-            """
-            DELETE FROM apipayments
-            WHERE
-                wallet_id = :wallet_id AND
-                payment_hash = :payment_hash AND
-                checking_id != :current_checking_id
-            """,
-            {
-                "wallet_id": payment.wallet_id,
-                "payment_hash": payment.payment_hash,
-                "current_checking_id": payment.checking_id,
-            },
-        )
-
-        # --- HEALING LOGIC for UUIDs ---
-        # Now that we're sure there are no duplicates, we can safely fix the record
-        # if it's a legacy record with a UUID checking_id.
-        if payment.checking_id != payment.payment_hash and not payment.is_internal:
-            logger.info(
-                f"Repairing legacy payment record: {payment.checking_id} -> {payment.payment_hash}"
-            )
-            await update_payment_checking_id(payment.checking_id, payment.payment_hash)
-            payment.checking_id = payment.payment_hash
-
-        # --- NORMAL STATUS CHECK ---
-        status = await payment.check_status()
-
-        if status.success:
-            payment.status = PaymentState.SUCCESS
-            payment.preimage = status.preimage
-            await update_payment(payment)
-        elif status.failed:
-            payment.status = PaymentState.FAILED
-            await update_payment(payment)
-        # If still pending, do nothing to the database.
-
-    except Exception as e:
-        logger.error(f"Error processing pending payment {payment.checking_id}: {e}")
-        # Return the original payment object to avoid further issues in the calling loop
-        return payment
-
+    status = await payment.check_status()
+    if status.failed:
+        payment.status = PaymentState.FAILED
+        await update_payment(payment)
+    elif status.success:
+        payment = await update_payment_success_status(payment, status)
     return payment
 
 
