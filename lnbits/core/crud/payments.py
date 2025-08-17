@@ -63,6 +63,7 @@ async def get_standalone_payment(
     return row
 
 
+# --- CHANGE 1: Corrected a latent typo in the SQL query and params ---
 async def get_wallet_payment(
     wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
 ) -> Optional[Payment]:
@@ -70,9 +71,9 @@ async def get_wallet_payment(
         """
         SELECT *
         FROM apipayments
-        WHERE wallet_id = :wallet AND payment_hash = :hash
+        WHERE wallet_id = :wallet_id AND payment_hash = :hash
         """,
-        {"wallet": wallet_id, "hash": payment_hash},
+        {"wallet_id": wallet_id, "hash": payment_hash},
         Payment,
     )
     return payment
@@ -507,12 +508,13 @@ async def get_wallets_stats(
     return data
 
 
+# --- CHANGE 2: Corrected the final typo in the SQL query and params ---
 async def delete_wallet_payment(
     checking_id: str, wallet_id: str, conn: Optional[Connection] = None
 ) -> None:
     await (conn or db).execute(
-        "DELETE FROM apipayments WHERE checking_id = :checking_id AND wallet = :wallet",
-        {"checking_id": checking_id, "wallet": wallet_id},
+        "DELETE FROM apipayments WHERE checking_id = :checking_id AND wallet_id = :wallet_id",
+        {"checking_id": checking_id, "wallet_id": wallet_id},
     )
 
 
