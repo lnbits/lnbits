@@ -5,6 +5,7 @@ window.WalletPageLogic = {
       origin: window.location.origin,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
       websocketUrl: `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`,
+      stored_paylinks: [],
       parse: {
         show: false,
         invoice: null,
@@ -177,6 +178,10 @@ window.WalletPageLogic = {
     }
   },
   methods: {
+    dateFromNow(unix) {
+      const date = new Date(unix * 1000)
+      return moment.utc(date).fromNow()
+    },
     formatFiatAmount(amount, currency) {
       this.update.currency = currency
       this.formattedFiatAmount = LNbits.utils.formatCurrency(
@@ -1101,6 +1106,7 @@ window.WalletPageLogic = {
     }
   },
   created() {
+    this.stored_paylinks = wallet.stored_paylinks.links
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
       this.parse.data.request =

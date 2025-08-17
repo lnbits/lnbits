@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from time import time
 
 from lnurl import (
     LnAddress,
@@ -89,27 +89,37 @@ async def store_paylink(
     wallet: Wallet,
     lnurl: LnAddress | Lnurl | None = None,
 ) -> None:
+
     if res2.disposable is not False:
         return  # do not store disposable LNURL pay links
+
+    logger.debug(f"storing lnurl pay link for wallet {wallet.id}. ")
 
     stored_paylink = None
     # If we have only a LnurlPayResponse, we can use its lnaddress
     # because the lnurl is not available.
     if not lnurl:
-        for _data in res.metadata:
+        for _data in res.metadata.list():
             if _data[0] == "text/identifier":
                 stored_paylink = StoredPayLink(
                     lnurl=LnAddress(_data[1]), label=res.metadata.text
                 )
         if not stored_paylink:
+            logger.warning(
+                "No lnaddress found in metadata for LNURL pay link. "
+                "Skipping storage."
+            )
             return  # skip if lnaddress not found in metadata
     else:
-        stored_paylink = StoredPayLink(lnurl=lnurl, label=res.metadata.text)
+        _lnurl = str(lnurl)
+        if not isinstance(lnurl, LnAddress):
+            _lnurl = str(lnurl.lud17 or lnurl.bech32)
+        stored_paylink = StoredPayLink(lnurl=_lnurl, label=res.metadata.text)
 
     # update last_used if its already stored
-    for pl in wallet.stored_paylinks:
+    for pl in wallet.stored_paylinks.links:
         if pl.lnurl == stored_paylink.lnurl:
-            pl.last_used = datetime.now(timezone.utc)
+            pl.last_used = int(time())
             await update_wallet(wallet)
             logger.debug(
                 "Updated last used time for LNURL "
@@ -118,8 +128,8 @@ async def store_paylink(
             return
 
     # if not already stored, append it
-    if not any(stored_paylink.lnurl == pl.lnurl for pl in wallet.stored_paylinks):
-        wallet.stored_paylinks.append(stored_paylink)
+    if not any(stored_paylink.lnurl == pl.lnurl for pl in wallet.stored_paylinks.links):
+        wallet.stored_paylinks.links.append(stored_paylink)
         await update_wallet(wallet)
         logger.debug(
             f"Stored LNURL pay link {stored_paylink.lnurl} for wallet {wallet.id}."

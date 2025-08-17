@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from time import time
 from typing import Optional
 
 from lnurl import LnAddress, Lnurl, LnurlPayResponse
@@ -23,6 +23,10 @@ class LnurlScan(BaseModel):
 
 
 class StoredPayLink(BaseModel):
-    lnurl: Lnurl | LnAddress
+    lnurl: str
     label: str
-    last_used: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_used: int = Field(default_factory=lambda: int(time()))
+
+
+class StoredPayLinks(BaseModel):
+    links: list[StoredPayLink] = []

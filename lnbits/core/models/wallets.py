@@ -7,7 +7,7 @@ from enum import Enum
 from lnurl import encode as lnurl_encode
 from pydantic import BaseModel, Field
 
-from lnbits.core.models.lnurl import StoredPayLink
+from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.db import FilterModel
 from lnbits.helpers import url_for
 from lnbits.settings import settings
@@ -39,7 +39,7 @@ class Wallet(BaseModel):
     currency: str | None = None
     balance_msat: int = Field(default=0, no_database=True)
     extra: WalletExtra = WalletExtra()
-    stored_paylinks: list[StoredPayLink] = []
+    stored_paylinks: StoredPayLinks = StoredPayLinks()
 
     @property
     def balance(self) -> int:
