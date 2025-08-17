@@ -6,7 +6,8 @@ from typing import Literal
 
 from fastapi import Query
 from lnurl import LnurlWithdrawResponse
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, root_validator, validator
+from loguru import logger
 
 from lnbits.db import FilterModel
 from lnbits.fiat import get_fiat_provider
@@ -82,6 +83,27 @@ class Payment(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     extra: dict = {}
+
+    @root_validator(pre=True)
+    def fix_inconsistent_checking_id(cls, values):
+        """
+        This validator addresses a legacy bug where the checking_id could be a
+        UUID instead of the payment_hash. It ensures that, for the lifetime of
+        this object in the application, checking_id is always the correct
+        payment_hash for external payments, preventing errors with the funding source.
+
+        This does NOT write to the database; it only corrects the object in memory.
+        """
+        # The payment_hash is the single source of truth for checking payments.
+        # If it exists, it should always be the checking_id for external payments.
+        if "payment_hash" in values and values.get("payment_hash"):
+            if values.get("checking_id") != values["payment_hash"]:
+                if not values.get("checking_id", "").startswith(("internal_", "fiat_")):
+                    logger.debug(
+                        f"Correcting inconsistent checking_id in memory for payment_hash: {values['payment_hash']}"
+                    )
+                    values["checking_id"] = values["payment_hash"]
+        return values
 
     @property
     def pending(self) -> bool:
