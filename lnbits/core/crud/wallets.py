@@ -33,7 +33,7 @@ async def create_wallet(
 async def update_wallet(
     wallet: Wallet,
     conn: Optional[Connection] = None,
-) -> Optional[Wallet]:
+) -> Wallet:
     wallet.updated_at = datetime.now(timezone.utc)
     await (conn or db).update("wallets", wallet)
     return wallet

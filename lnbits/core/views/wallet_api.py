@@ -10,11 +10,11 @@ from fastapi import (
 )
 
 from lnbits.core.crud.wallets import get_wallets_paginated
-from lnbits.core.models import CreateWallet, KeyType, User, Wallet
+from lnbits.core.models import CreateWallet, KeyType, User, Wallet, WalletTypeInfo
+from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
 from lnbits.core.models.wallets import WalletsFilters
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
-    WalletTypeInfo,
     check_user_exists,
     parse_filters,
     require_admin_key,
@@ -91,6 +91,21 @@ async def api_reset_wallet_keys(
     wallet.inkey = uuid4().hex
     await update_wallet(wallet)
     return wallet
+
+
+@wallet_router.put("/stored_paylinks/{wallet_id}")
+async def api_put_stored_paylinks(
+    wallet_id: str,
+    data: StoredPayLinks,
+    key_info: WalletTypeInfo = Depends(require_admin_key),
+) -> list[StoredPayLink]:
+    if key_info.wallet.id != wallet_id:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="You cannot modify this wallet"
+        )
+    key_info.wallet.stored_paylinks.links = data.links
+    wallet = await update_wallet(key_info.wallet)
+    return wallet.stored_paylinks.links
 
 
 @wallet_router.patch("")

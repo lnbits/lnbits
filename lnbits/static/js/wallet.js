@@ -541,6 +541,7 @@ window.WalletPageLogic = {
       LNbits.api
         .request('post', '/api/v1/payments/lnurl', this.g.wallet.adminkey, {
           res: this.parse.lnurlpay,
+          lnurl: this.parse.data.request,
           unit: this.parse.data.unit,
           amount: this.parse.data.amount * 1000,
           comment: this.parse.data.comment,
@@ -1103,6 +1104,47 @@ window.WalletPageLogic = {
     saveChartsPreferences() {
       this.$q.localStorage.set('lnbits.wallets.chartConfig', this.chartConfig)
       this.refreshCharts()
+    },
+    updatePaylinks() {
+      LNbits.api
+        .request(
+          'PUT',
+          `/api/v1/wallet/stored_paylinks/${this.g.wallet.id}`,
+          this.g.wallet.adminkey,
+          {
+            links: this.stored_paylinks
+          }
+        )
+        .then(() => {
+          Quasar.Notify.create({
+            message: 'Paylinks updated.',
+            type: 'positive',
+            timeout: 3500
+          })
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
+    },
+    sendToPaylink(lnurl) {
+      this.parse.data.request = lnurl
+      this.parse.show = true
+      this.lnurlScan()
+    },
+    editPaylink() {
+      this.$nextTick(() => {
+        this.updatePaylinks()
+      })
+    },
+    deletePaylink(lnurl) {
+      const links = []
+      this.stored_paylinks.forEach(link => {
+        if (link.lnurl !== lnurl) {
+          links.push(link)
+        }
+      })
+      this.stored_paylinks = links
+      this.updatePaylinks()
     }
   },
   created() {
