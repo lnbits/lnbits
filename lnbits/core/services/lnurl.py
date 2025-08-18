@@ -113,7 +113,7 @@ async def store_paylink(
             return  # skip if lnaddress not found in metadata
     else:
         if isinstance(lnurl, Lnurl):
-            _lnurl = str(lnurl.bech32)
+            _lnurl = str(lnurl.lud17 or lnurl.bech32)
         else:
             _lnurl = str(lnurl)
         stored_paylink = StoredPayLink(lnurl=_lnurl, label=res.metadata.text)
