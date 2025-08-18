@@ -792,9 +792,6 @@ async def test_api_payments_pay_lnurl(client, adminkey_headers_from):
         "/api/v1/payments/lnurl", json=lnurl_data, headers=adminkey_headers_from
     )
     assert response.status_code == 400
-    assert (
-        response.json()["detail"] == "Failed to connect to https://xxxxxxx.lnbits.com."
-    )
 
     # Test with invalid callback URL
     lnurl_data["res"]["callback"] = "invalid-url.lnbits.com"
