@@ -46,6 +46,7 @@ async def fetch_lnurl_pay_request(
 ) -> tuple[LnurlPayResponse, LnurlPayActionResponse]:
     """
     Pay an LNURL payment request.
+    optional `wallet` is used to store the pay link in the wallet's stored links.
 
     raises `LnurlResponseException` if pay request fails
     """
