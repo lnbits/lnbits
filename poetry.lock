@@ -2133,14 +2133,14 @@ valkey = ["valkey (>=6)"]
 
 [[package]]
 name = "lnurl"
-version = "0.6.8"
+version = "0.7.2"
 description = "LNURL implementation for Python."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "lnurl-0.6.8-py3-none-any.whl", hash = "sha256:4fff53efcdd401cf4169676bd1ab85e9e241a762a9a5407ee11e6a6e120e8279"},
-    {file = "lnurl-0.6.8.tar.gz", hash = "sha256:de64a47179980a4b52cd6b89ad377cda14502f1998f53724490683f6f5c4ed90"},
+    {file = "lnurl-0.7.2-py3-none-any.whl", hash = "sha256:4323ac398d49e5b883000c166b4c2448df2acad2eddca99f656c67f7b97cd80f"},
+    {file = "lnurl-0.7.2.tar.gz", hash = "sha256:9f0881cb5909512cadb35d238c27347d6a8afcec10b2b7aadd560083fd210c0b"},
 ]
 
 [package.dependencies]
@@ -4573,4 +4573,4 @@ migration = ["psycopg2-binary"]
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.12 | ~3.11 | ~3.10"
-content-hash = "c1714a4df0e8f7d8702fffe9c57b21fc39effb194631741b4718466c18b73d8f"
+content-hash = "7100b67d94f82cb53ceb8f4e47ae8a4aa426408feabeb0746c323d09f229c242"
