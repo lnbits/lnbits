@@ -651,13 +651,6 @@
       <q-tab name="lud17" icon="link" label="url (lud17)"></q-tab>
     </q-tabs>
     <lnbits-qrcode :value="lnurl" class="rounded-borders"></lnbits-qrcode>
-    <q-btn
-      outline
-      color="grey"
-      @click="copyText(lnurl, 'Copied LNURL to clipboard!')"
-      class="q-ml-sm q-mt-md"
-      v-text="cLabel"
-    ></q-btn>
   </div>
 </template>
 

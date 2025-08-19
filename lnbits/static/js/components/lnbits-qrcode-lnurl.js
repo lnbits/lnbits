@@ -1,10 +1,9 @@
 window.app.component('lnbits-qrcode-lnurl', {
   template: '#lnbits-qrcode-lnurl',
   mixins: [window.windowMixin],
-  props: ['url', 'label'],
+  props: ['url'],
   data() {
     return {
-      cLabel: 'Copy LNURL',
       tab: 'bech32',
       lnurl: ''
     }
@@ -18,6 +17,7 @@ window.app.component('lnbits-qrcode-lnurl', {
       } else if (this.tab == 'lud17') {
         this.lnurl = this.url.replace('https://', 'lnurlp://')
       }
+      this.$emit('update:lnurl', this.lnurl)
     }
   },
   watch: {
@@ -29,9 +29,6 @@ window.app.component('lnbits-qrcode-lnurl', {
     }
   },
   created() {
-    if (this.label !== undefined) {
-      this.cLabel = this.label
-    }
     this.setLnurl()
   }
 })
