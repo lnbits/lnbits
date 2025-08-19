@@ -145,11 +145,13 @@ max-complexity = 10
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends","fastapi.Query","fastapi.Body","lnbits.decorators.parse_filters"]
 
-# Build backend: hatchling is the simplest choice for PEP 621
 [build-system]
-requires = ["hatchling>=1.25"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
 
-# Ensure py.typed is included in sdists/wheels
-[tool.hatch.build]
-include = ["lnbits/**", "lnbits/py.typed"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lnbits*"]
+
+[tool.setuptools.package-data]
+lnbits = ["py.typed"]
