@@ -656,8 +656,8 @@
       color="grey"
       @click="copyText(lnurl, 'Copied LNURL to clipboard!')"
       class="q-ml-sm"
-      >Copy LNURL</q-btn
-    >
+      v-text="label"
+    ></q-btn>
   </div>
 </template>
 

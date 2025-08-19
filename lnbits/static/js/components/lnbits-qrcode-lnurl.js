@@ -1,7 +1,7 @@
 window.app.component('lnbits-funding-sources', {
   template: '#lnbits-qrcode-lnurl',
   mixins: [window.windowMixin],
-  props: ['url'],
+  props: ['url', 'label'],
   methods: {
     setLnurl() {
       if (this.tab == 'bech32') {
@@ -24,6 +24,7 @@ window.app.component('lnbits-funding-sources', {
   data() {
     return {
       tab: 'bech32',
+      label: 'Copy LNURL',
       lnurl: ''
     }
   }
