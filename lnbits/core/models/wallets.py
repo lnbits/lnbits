@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-import hashlib
-import hmac
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 
-from ecdsa import SECP256k1, SigningKey
 from lnurl import encode as lnurl_encode
 from pydantic import BaseModel, Field
 
+from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.db import FilterModel
 from lnbits.helpers import url_for
 from lnbits.settings import settings
@@ -41,6 +39,7 @@ class Wallet(BaseModel):
     currency: str | None = None
     balance_msat: int = Field(default=0, no_database=True)
     extra: WalletExtra = WalletExtra()
+    stored_paylinks: StoredPayLinks = StoredPayLinks()
 
     @property
     def balance(self) -> int:
@@ -57,14 +56,6 @@ class Wallet(BaseModel):
             return lnurl_encode(url)
         except Exception:
             return ""
-
-    def lnurlauth_key(self, domain: str) -> SigningKey:
-        hashing_key = hashlib.sha256(self.id.encode()).digest()
-        linking_key = hmac.digest(hashing_key, domain.encode(), "sha256")
-
-        return SigningKey.from_string(
-            linking_key, curve=SECP256k1, hashfunc=hashlib.sha256
-        )
 
 
 class CreateWallet(BaseModel):

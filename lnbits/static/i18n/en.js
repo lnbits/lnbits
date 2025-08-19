@@ -49,6 +49,7 @@ window.localisation.en = {
   export_to_phone_desc:
     'This QR code contains your wallet URL with full access. You can scan it from your phone to open your wallet from there.',
   access_wallet_on_mobile: 'Mobile Access',
+  stored_paylinks: 'Stored LNURL pay links',
   wallet: 'Wallet: ',
   wallet_name: 'Wallet name',
   wallets: 'Wallets',
