@@ -1,7 +1,16 @@
 window.app.component('lnbits-qrcode-lnurl', {
   template: '#lnbits-qrcode-lnurl',
   mixins: [window.windowMixin],
-  props: ['url'],
+  props: {
+    url: {
+      required: true,
+      type: String
+    },
+    prefix: {
+      type: String,
+      default: 'lnurlp'
+    }
+  },
   data() {
     return {
       tab: 'bech32',
@@ -15,7 +24,7 @@ window.app.component('lnbits-qrcode-lnurl', {
         const bech32 = NostrTools.nip19.encodeBytes('lnurl', bytes)
         this.lnurl = `lightning:${bech32.toUpperCase()}`
       } else if (this.tab == 'lud17') {
-        this.lnurl = this.url.replace('https://', 'lnurlp://')
+        this.lnurl = this.url.replace('https://', this.prefix + '://')
       }
       this.$emit('update:lnurl', this.lnurl)
     }
