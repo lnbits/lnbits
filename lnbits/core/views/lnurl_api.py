@@ -120,6 +120,8 @@ async def api_payments_pay_lnurl(
         ) from exc
 
     extra: dict[str, Any] = {}
+    if res2.disposable is False:
+        extra["stored"] = True
     if res2.success_action:
         extra["success_action"] = res2.success_action.json()
     if data.comment:
