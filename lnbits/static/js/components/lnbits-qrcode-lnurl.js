@@ -1,7 +1,14 @@
-window.app.component('lnbits-funding-sources', {
+window.app.component('lnbits-qrcode-lnurl', {
   template: '#lnbits-qrcode-lnurl',
   mixins: [window.windowMixin],
   props: ['url', 'label'],
+  data() {
+    return {
+      cLabel: 'Copy LNURL',
+      tab: 'bech32',
+      lnurl: ''
+    }
+  },
   methods: {
     setLnurl() {
       if (this.tab == 'bech32') {
@@ -21,11 +28,10 @@ window.app.component('lnbits-funding-sources', {
       this.setLnurl()
     }
   },
-  data() {
-    return {
-      tab: 'bech32',
-      label: 'Copy LNURL',
-      lnurl: ''
+  created() {
+    if (this.label !== undefined) {
+      this.cLabel = this.label
     }
+    this.setLnurl()
   }
 })

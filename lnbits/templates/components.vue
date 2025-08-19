@@ -640,7 +640,7 @@
     <q-tabs
       v-model="tab"
       dense
-      class="text-grey"
+      class="text-grey q-mb-md"
       active-color="primary"
       indicator-color="primary"
       align="justify"
@@ -655,8 +655,8 @@
       outline
       color="grey"
       @click="copyText(lnurl, 'Copied LNURL to clipboard!')"
-      class="q-ml-sm"
-      v-text="label"
+      class="q-ml-sm q-mt-md"
+      v-text="cLabel"
     ></q-btn>
   </div>
 </template>
