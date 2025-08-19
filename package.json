@@ -90,6 +90,8 @@
       "js/bolt11-decoder.js"
     ],
     "components": [
+      "js/components/lnbits-qrcode.js",
+      "js/components/lnbits-qrcode-lnurl.js",
       "js/components/lnbits-funding-sources.js",
       "js/components/extension-settings.js",
       "js/components/payment-list.js",

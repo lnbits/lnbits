@@ -635,6 +635,25 @@
   </div>
 </template>
 
+<template id="lnbits-qrcode-lnurl">
+  <div class="qrcode_lnurl__wrapper">
+    <q-tabs
+      v-model="tab"
+      dense
+      class="text-grey q-mb-md"
+      active-color="primary"
+      indicator-color="primary"
+      align="justify"
+      narrow-indicator
+      inline-label
+    >
+      <q-tab name="bech32" icon="qr_code" label="bech32"></q-tab>
+      <q-tab name="lud17" icon="link" label="url (lud17)"></q-tab>
+    </q-tabs>
+    <lnbits-qrcode :value="lnurl" class="rounded-borders"></lnbits-qrcode>
+  </div>
+</template>
+
 <template id="lnbits-lnurlpay-success-action">
   <div>
     <p
