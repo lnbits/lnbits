@@ -25,57 +25,60 @@
 
           python = pkgs.python312;
 
+          # Read uv.lock / pyproject via uv2nix
           workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
 
+          # Prefer wheels when available
           uvLockedOverlay = workspace.mkPyprojectOverlay { sourcePreference = "wheel"; };
 
-          myOverrides =
-            let
-              plus = a: b: lib.unique (a ++ b);
-            in
-            (final: prev: {
-              embit = prev.embit.overrideAttrs (old: {
-                nativeBuildInputs = plus (old.nativeBuildInputs or []) [ prev.setuptools ];
-              });
+          # Helper for extending lists safely (works if a is null)
+          plus = a: b: lib.unique (((if a == null then [] else a)) ++ b);
 
-              "http-ece" = prev."http-ece".overrideAttrs (old: {
-                nativeBuildInputs = plus (old.nativeBuildInputs or []) [ prev.setuptools ];
-              });
-
-              pyqrcode = prev.pyqrcode.overrideAttrs (old: {
-                nativeBuildInputs = plus (old.nativeBuildInputs or []) [ prev.setuptools ];
-              });
-
-              # <<< UPDATED HERE
-              secp256k1 = prev.secp256k1.overrideAttrs (old: {
-                nativeBuildInputs = plus (old.nativeBuildInputs or []) [
-                  prev.setuptools
-                  pkgs.pkg-config
-                  prev.cffi
-                  prev.pycparser
-                ];
-                buildInputs = plus (old.buildInputs or []) [
-                  pkgs.secp256k1
-                ];
-                propagatedBuildInputs = plus (old.propagatedBuildInputs or []) [
-                  prev.cffi
-                  prev.pycparser
-                ];
-                env = (old.env or { }) // {
-                  PKG_CONFIG = "${pkgs.pkg-config}/bin/pkg-config";
-                };
-              });
-              # >>>
-
-              tlv8 = prev.tlv8.overrideAttrs (old: {
-                nativeBuildInputs = plus (old.nativeBuildInputs or []) [ prev.setuptools ];
-              });
-
-              pynostr = prev.pynostr.overrideAttrs (old: {
-                nativeBuildInputs = plus (old.nativeBuildInputs or []) [ prev.setuptools-scm ];
-              });
+          # Extra build inputs for troublesome sdists
+          myOverrides = (final: prev: {
+            # embit needs setuptools at build time
+            embit = prev.embit.overrideAttrs (old: {
+              nativeBuildInputs = plus (old.nativeBuildInputs or []) [ prev.setuptools ];
             });
 
+            # http-ece (pywebpush dep) needs setuptools
+            "http-ece" = prev."http-ece".overrideAttrs (old: {
+              nativeBuildInputs = plus (old.nativeBuildInputs or []) [ prev.setuptools ];
+            });
+
+            # pyqrcode needs setuptools
+            pyqrcode = prev.pyqrcode.overrideAttrs (old: {
+              nativeBuildInputs = plus (old.nativeBuildInputs or []) [ prev.setuptools ];
+            });
+
+            # tlv8 needs setuptools
+            tlv8 = prev.tlv8.overrideAttrs (old: {
+              nativeBuildInputs = plus (old.nativeBuildInputs or []) [ prev.setuptools ];
+            });
+
+            # secp256k1 Python binding:
+            #  - setuptools, pkg-config
+            #  - cffi + pycparser
+            #  - system libsecp256k1 for headers/libs
+            secp256k1 = prev.secp256k1.overrideAttrs (old: {
+              nativeBuildInputs = plus (old.nativeBuildInputs or []) [
+                prev.setuptools
+                pkgs.pkg-config
+                prev.cffi
+                prev.pycparser
+              ];
+              buildInputs = plus (old.buildInputs or []) [ pkgs.secp256k1 ];
+              propagatedBuildInputs = plus (old.propagatedBuildInputs or []) [ prev.cffi prev.pycparser ];
+              env = (old.env or { }) // { PKG_CONFIG = "${pkgs.pkg-config}/bin/pkg-config"; };
+            });
+
+            # pynostr uses setuptools-scm for versioning
+            pynostr = prev.pynostr.overrideAttrs (old: {
+              nativeBuildInputs = plus (old.nativeBuildInputs or []) [ prev.setuptools-scm ];
+            });
+          });
+
+          # Compose Python package set honoring uv.lock
           pythonSet =
             (pkgs.callPackage pyproject-nix.build.packages { inherit python; })
               .overrideScope (lib.composeManyExtensions [
@@ -85,18 +88,40 @@
               ]);
 
           projectName = "lnbits";
-          thisProject = pythonSet.${projectName};
 
+          # Build a venv from the locked spec (this installs the resolved wheels)
           runtimeVenv = pythonSet.mkVirtualEnv "${projectName}-env" workspace.deps.default;
-          appDrv = pythonSet.toPythonApplication thisProject;
+
+          # Wrapper so `nix run` behaves like `uv run` (use local source tree for templates/static/extensions)
+          lnbitsApp = pkgs.writeShellApplication {
+            name = "lnbits";
+            text = ''
+              export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+              export REQUESTS_CA_BUNDLE=$SSL_CERT_FILE
+              export PYTHONPATH="$PWD:${PYTHONPATH:-}"
+              exec ${runtimeVenv}/bin/lnbits "$@"
+            '';
+          };
+
+          lnbitsCliApp = pkgs.writeShellApplication {
+            name = "lnbits-cli";
+            text = ''
+              export PYTHONPATH="$PWD:${PYTHONPATH:-}"
+              exec ${runtimeVenv}/bin/lnbits-cli "$@"
+            '';
+          };
         in
         {
+          # nix build → produces the venv in ./result
           packages.default = runtimeVenv;
           packages.${projectName} = runtimeVenv;
 
-          apps.default = { type = "app"; program = "${appDrv}/bin/lnbits"; };
+          # nix run . → launches via wrapper that imports from source tree
+          apps.default = { type = "app"; program = "${lnbitsApp}/bin/lnbits"; };
           apps.${projectName} = self.apps.${system}.default;
+          apps."${projectName}-cli" = { type = "app"; program = "${lnbitsCliApp}/bin/lnbits-cli"; };
 
+          # dev shell with locked deps + tools
           devShells.default = pkgs.mkShell {
             packages = [
               runtimeVenv
