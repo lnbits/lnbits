@@ -20,7 +20,7 @@ jobs:
         db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
-      custom-pytest: "poetry run pytest tests/api"
+      custom-pytest: "uv run pytest tests/api"
       python-version: ${{ matrix.python-version }}
       db-url: ${{ matrix.db-url }}
     secrets:
@@ -34,7 +34,7 @@ jobs:
         db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
-      custom-pytest: "poetry run pytest tests/wallets"
+      custom-pytest: "uv run pytest tests/wallets"
       python-version: ${{ matrix.python-version }}
       db-url: ${{ matrix.db-url }}
     secrets:
@@ -48,7 +48,7 @@ jobs:
         db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
-      custom-pytest: "poetry run pytest tests/unit"
+      custom-pytest: "uv run pytest tests/unit"
       python-version: ${{ matrix.python-version }}
       db-url: ${{ matrix.db-url }}
     secrets:
@@ -77,7 +77,7 @@ jobs:
         python-version: ["3.10"]
         backend-wallet-class: ["LndRestWallet", "LndWallet", "CoreLightningWallet", "CoreLightningRestWallet", "LNbitsWallet", "EclairWallet"]
     with:
-      custom-pytest: "poetry run pytest tests/regtest"
+      custom-pytest: "uv run pytest tests/regtest"
       python-version: ${{ matrix.python-version }}
       backend-wallet-class: ${{ matrix.backend-wallet-class }}
     secrets:

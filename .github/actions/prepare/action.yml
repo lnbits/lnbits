@@ -21,29 +21,21 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
-        # cache poetry install via pip
         cache: "pip"
 
-    - name: Set up Poetry
-      uses: abatilo/actions-poetry@v2
-
-    - name: Setup a local virtual environment (if no poetry.toml file)
-      shell: bash
-      run: |
-        poetry config virtualenvs.create true --local
-        poetry config virtualenvs.in-project true --local
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
 
     - uses: actions/cache@v4
       name: Define a cache for the virtual environment based on the dependencies lock file
       with:
         path: ./.venv
-        key: venv-${{ hashFiles('poetry.lock') }}
+        key: venv-${{ hashFiles('uv.lock') }}
 
     - name: Install the project dependencies
       shell: bash
       run: |
-        poetry env use python${{ inputs.python-version }}
-        poetry install --all-extras
+        uv sync --all-extras
 
     - name: Use Node.js ${{ inputs.node-version }}
       if: ${{ (inputs.npm == 'true') }}

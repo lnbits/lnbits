@@ -8,8 +8,7 @@ RUN apt-get update && apt-get -y upgrade && \
     apt-get install -y netcat-openbsd
 
 # Reinstall dependencies just in case (needed for CMD usage)
-ARG POETRY_INSTALL_ARGS="--only main"
-RUN poetry install ${POETRY_INSTALL_ARGS}
+RUN uv sync --all-extras
 
 # LNbits + boltzd configuration
 ENV LNBITS_PORT="5000"
