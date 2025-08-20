@@ -5,6 +5,7 @@ RUN apt-get update
 RUN apt-get install -y curl pkg-config build-essential libnss-myhostname
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
@@ -28,6 +29,7 @@ RUN apt-get update && apt-get -y upgrade && \
     apt-get clean all && rm -rf /var/lib/apt/lists/*
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
