@@ -26,7 +26,7 @@ jobs:
     runs-on: ${{ matrix.os-version }}
     steps:
       - uses: actions/checkout@v4
-      - uses: lnbits/lnbits/.github/actions/prepare@dev
+      - uses: lnbits/lnbits/.github/actions/prepare@feat/uv
         with:
           python-version: ${{ inputs.python-version }}
           node-version: ${{ matrix.node-version }}
