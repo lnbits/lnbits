@@ -1,6 +1,5 @@
 import asyncio
 import importlib
-from typing import Optional
 
 from loguru import logger
 
@@ -145,7 +144,7 @@ async def start_extension_background_work(ext_id: str) -> bool:
 
 
 async def get_valid_extensions(
-    include_deactivated: Optional[bool] = True,
+    include_deactivated: bool | None = True,
 ) -> list[Extension]:
     installed_extensions = await get_installed_extensions()
     valid_extensions = [Extension.from_installable_ext(e) for e in installed_extensions]
@@ -164,8 +163,8 @@ async def get_valid_extensions(
 
 
 async def get_valid_extension(
-    ext_id: str, include_deactivated: Optional[bool] = True
-) -> Optional[Extension]:
+    ext_id: str, include_deactivated: bool | None = True
+) -> Extension | None:
     ext = await get_installed_extension(ext_id)
     if not ext:
         return None

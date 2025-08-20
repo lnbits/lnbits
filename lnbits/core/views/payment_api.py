@@ -1,6 +1,5 @@
 from hashlib import sha256
 from http import HTTPStatus
-from typing import Optional
 
 from fastapi import (
     APIRouter,
@@ -275,7 +274,7 @@ async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONRespo
 
 # TODO: refactor this route into a public and admin one
 @payment_router.get("/{payment_hash}")
-async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
+async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
     wallet = await get_wallet_for_key(x_api_key) if isinstance(x_api_key, str) else None

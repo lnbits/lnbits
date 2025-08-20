@@ -1,9 +1,9 @@
 import base64
 import importlib
 import json
+from collections.abc import Callable
 from http import HTTPStatus
 from time import time
-from typing import Callable, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -238,7 +238,7 @@ async def api_delete_user_api_token(
 
 @auth_router.get("/{provider}", description="SSO Provider")
 async def login_with_sso_provider(
-    request: Request, provider: str, user_id: Optional[str] = None
+    request: Request, provider: str, user_id: str | None = None
 ):
     provider_sso = _new_sso(provider)
     if not provider_sso:
@@ -319,7 +319,7 @@ async def update_pubkey(
     data: UpdateUserPubkey,
     user: User = Depends(check_user_exists),
     payload: AccessTokenPayload = Depends(access_token_payload),
-) -> Optional[User]:
+) -> User | None:
     if data.user_id != user.id:
         raise ValueError("Invalid user ID.")
 
@@ -345,7 +345,7 @@ async def update_password(
     data: UpdateUserPassword,
     user: User = Depends(check_user_exists),
     payload: AccessTokenPayload = Depends(access_token_payload),
-) -> Optional[User]:
+) -> User | None:
     _validate_auth_timeout(payload.auth_time)
     if data.user_id != user.id:
         raise ValueError("Invalid user ID.")
@@ -419,7 +419,7 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
 @auth_router.put("/update")
 async def update(
     data: UpdateUser, user: User = Depends(check_user_exists)
-) -> Optional[User]:
+) -> User | None:
     if data.user_id != user.id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid user ID.")
     if data.username and not is_valid_username(data.username):
@@ -461,7 +461,7 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     return _auth_success_response(account.username, account.id, account.email)
 
 
-async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = None):
+async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = None):
     email = userinfo.email
     if not email or not is_valid_email_address(email):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
@@ -490,9 +490,9 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: Optional[str] = 
 
 
 def _auth_success_response(
-    username: Optional[str] = None,
-    user_id: Optional[str] = None,
-    email: Optional[str] = None,
+    username: str | None = None,
+    user_id: str | None = None,
+    email: str | None = None,
 ) -> JSONResponse:
     payload = AccessTokenPayload(
         sub=username or "", usr=user_id, email=email, auth_time=int(time())
@@ -533,7 +533,7 @@ def _auth_redirect_response(path: str, email: str) -> RedirectResponse:
     return response
 
 
-def _new_sso(provider: str) -> Optional[SSOBase]:
+def _new_sso(provider: str) -> SSOBase | None:
     try:
         if not settings.is_auth_method_allowed(AuthMethods(f"{provider}-auth")):
             return None
@@ -610,7 +610,7 @@ def _nostr_nip98_event(request: Request) -> dict:
 
 
 def _check_nostr_event_tags(event: dict):
-    method: Optional[str] = next((v for k, v in event["tags"] if k == "method"), None)
+    method: str | None = next((v for k, v in event["tags"] if k == "method"), None)
     if not method:
         raise ValueError("Tag 'method' is missing.")
     if not method.upper() == "POST":
@@ -625,7 +625,7 @@ def _check_nostr_event_tags(event: dict):
         raise ValueError(f"Invalid value for tag 'u': '{url}'.")
 
 
-def _validate_auth_timeout(auth_time: Optional[int] = 0):
+def _validate_auth_timeout(auth_time: int | None = 0):
     if abs(time() - (auth_time or 0)) > settings.auth_credetials_update_threshold:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST,

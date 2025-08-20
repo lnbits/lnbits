@@ -16,7 +16,6 @@ else:
     import asyncio
     from collections.abc import AsyncGenerator
     from pathlib import Path
-    from typing import Optional
 
     from bolt11 import Bolt11Exception
     from bolt11 import decode as bolt11_decode
@@ -66,7 +65,7 @@ else:
             ):
                 breez_incoming_queue.put_nowait(e.details)
 
-    def load_bytes(source: str, extension: str) -> Optional[bytes]:
+    def load_bytes(source: str, extension: str) -> bytes | None:
         # first check if it can be read from a file
         if source.split(".")[-1] == extension:
             with open(source, "rb") as f:
@@ -85,7 +84,7 @@ else:
                 logger.debug(exc)
         return None
 
-    def load_greenlight_credentials() -> Optional[GreenlightCredentials]:
+    def load_greenlight_credentials() -> GreenlightCredentials | None:
         if (
             settings.breez_greenlight_device_key
             and settings.breez_greenlight_device_cert
@@ -168,9 +167,9 @@ else:
         async def create_invoice(
             self,
             amount: int,
-            memo: Optional[str] = None,
-            description_hash: Optional[bytes] = None,
-            unhashed_description: Optional[bytes] = None,
+            memo: str | None = None,
+            description_hash: bytes | None = None,
+            unhashed_description: bytes | None = None,
             **kwargs,
         ) -> InvoiceResponse:
             # if description_hash or unhashed_description:

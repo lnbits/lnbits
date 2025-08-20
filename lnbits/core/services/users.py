@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 from uuid import uuid4
 
 from loguru import logger
@@ -37,7 +36,7 @@ from .settings import update_cached_settings
 
 
 async def create_user_account(
-    account: Optional[Account] = None, wallet_name: Optional[str] = None
+    account: Account | None = None, wallet_name: str | None = None
 ) -> User:
     if not settings.new_accounts_allowed:
         raise ValueError("Account creation is disabled.")
@@ -46,9 +45,9 @@ async def create_user_account(
 
 
 async def create_user_account_no_ckeck(
-    account: Optional[Account] = None,
-    wallet_name: Optional[str] = None,
-    default_exts: Optional[list[str]] = None,
+    account: Account | None = None,
+    wallet_name: str | None = None,
+    default_exts: list[str] | None = None,
 ) -> User:
 
     if account:
@@ -170,7 +169,7 @@ async def check_admin_settings():
         )
 
 
-async def init_admin_settings(super_user: Optional[str] = None) -> SuperSettings:
+async def init_admin_settings(super_user: str | None = None) -> SuperSettings:
     account = None
     if super_user:
         account = await get_account(super_user)

@@ -1,6 +1,5 @@
 from base64 import b64decode, b64encode, urlsafe_b64decode, urlsafe_b64encode
 from hashlib import md5, pbkdf2_hmac, sha256
-from typing import Union
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
@@ -40,7 +39,7 @@ class AESCipher:
     AES.decrypt(encrypted, password).toString(Utf8);
     """
 
-    def __init__(self, key: Union[bytes, str], block_size: int = 16):
+    def __init__(self, key: bytes | str, block_size: int = 16):
         self.block_size = block_size
         if isinstance(key, bytes):
             self.key = key

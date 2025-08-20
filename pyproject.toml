@@ -5,6 +5,7 @@ requires-python = ">=3.10,<3.13"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = [{ name = "Alan Bits", email = "alan@lnbits.com" }]
 urls = { Homepage = "https://lnbits.com", Repository = "https://github.com/lnbits/lnbits" }
+readme = "README.md"
 dependencies = [
     "bech32==1.2.0",
     "click==8.2.1",
@@ -87,7 +88,6 @@ dev-dependencies = [
 ]
 
 [tool.poetry]
-readme = "README.md"
 packages = [
   {include = "lnbits"},
   {include = "lnbits/py.typed"},

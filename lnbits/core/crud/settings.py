@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional
+from typing import Any
 
 from loguru import logger
 
@@ -14,7 +14,7 @@ from lnbits.settings import (
 )
 
 
-async def get_super_settings() -> Optional[SuperSettings]:
+async def get_super_settings() -> SuperSettings | None:
     data = await get_settings_by_tag("core")
     if data:
         super_user = await get_settings_field("super_user")
@@ -24,7 +24,7 @@ async def get_super_settings() -> Optional[SuperSettings]:
     return None
 
 
-async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSettings]:
+async def get_admin_settings(is_super_user: bool = False) -> AdminSettings | None:
     sets = await get_super_settings()
     if not sets:
         return None
@@ -41,7 +41,7 @@ async def get_admin_settings(is_super_user: bool = False) -> Optional[AdminSetti
 
 
 async def update_admin_settings(
-    data: EditableSettings, tag: Optional[str] = "core"
+    data: EditableSettings, tag: str | None = "core"
 ) -> None:
     editable_settings = await get_settings_by_tag("core") or {}
     editable_settings.update(data.dict(exclude_unset=True))
@@ -61,7 +61,7 @@ async def update_super_user(super_user: str) -> SuperSettings:
     return settings
 
 
-async def delete_admin_settings(tag: Optional[str] = "core") -> None:
+async def delete_admin_settings(tag: str | None = "core") -> None:
     await db.execute(
         "DELETE FROM system_settings WHERE tag = :tag",
         {"tag": tag},
@@ -93,8 +93,8 @@ async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSet
 
 
 async def get_settings_field(
-    id_: str, tag: Optional[str] = "core"
-) -> Optional[SettingsField]:
+    id_: str, tag: str | None = "core"
+) -> SettingsField | None:
 
     row: dict = await db.fetchone(
         """
@@ -108,9 +108,7 @@ async def get_settings_field(
     return SettingsField(id=row["id"], value=json.loads(row["value"]), tag=row["tag"])
 
 
-async def set_settings_field(
-    id_: str, value: Optional[Any], tag: Optional[str] = "core"
-):
+async def set_settings_field(id_: str, value: Any | None, tag: str | None = "core"):
     value = json.dumps(value) if value is not None else None
     await db.execute(
         """
@@ -122,7 +120,7 @@ async def set_settings_field(
     )
 
 
-async def get_settings_by_tag(tag: str) -> Optional[dict[str, Any]]:
+async def get_settings_by_tag(tag: str) -> dict[str, Any] | None:
     rows: list[dict] = await db.fetchall(
         "SELECT * FROM system_settings WHERE tag = :tag", {"tag": tag}
     )

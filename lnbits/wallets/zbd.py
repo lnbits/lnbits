@@ -1,7 +1,6 @@
 import asyncio
 import hashlib
 from collections.abc import AsyncGenerator
-from typing import Optional
 
 import httpx
 from bolt11 import decode as bolt11_decode
@@ -60,9 +59,9 @@ class ZBDWallet(Wallet):
     async def create_invoice(
         self,
         amount: int,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
-        unhashed_description: Optional[bytes] = None,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
         **_,
     ) -> InvoiceResponse:
         # https://api.zebedee.io/v0/charges

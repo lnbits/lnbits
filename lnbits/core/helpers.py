@@ -1,6 +1,6 @@
 import importlib
 import re
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -20,7 +20,7 @@ from lnbits.settings import settings
 
 
 async def migrate_extension_database(
-    ext: InstallableExtension, current_version: Optional[DbVersion] = None
+    ext: InstallableExtension, current_version: DbVersion | None = None
 ):
 
     try:
@@ -38,7 +38,7 @@ async def run_migration(
     db: Connection,
     migrations_module: Any,
     db_name: str,
-    current_version: Optional[DbVersion] = None,
+    current_version: DbVersion | None = None,
 ):
     matcher = re.compile(r"^m(\d\d\d)_")
 

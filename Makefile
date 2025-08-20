@@ -9,34 +9,34 @@ check: mypy pyright checkblack checkruff checkprettier checkbundle
 test: test-unit test-wallets test-api test-regtest
 
 prettier:
-	poetry run ./node_modules/.bin/prettier --write .
+	uv run ./node_modules/.bin/prettier --write .
 
 pyright:
-	poetry run ./node_modules/.bin/pyright
+	uv run ./node_modules/.bin/pyright
 
 mypy:
-	poetry run mypy
+	uv run mypy
 
 black:
-	poetry run black .
+	uv run black .
 
 ruff:
-	poetry run ruff check . --fix
+	uv run ruff check . --fix
 
 checkruff:
-	poetry run ruff check .
+	uv run ruff check .
 
 checkprettier:
-	poetry run ./node_modules/.bin/prettier --check .
+	uv run ./node_modules/.bin/prettier --check .
 
 checkblack:
-	poetry run black --check .
+	uv run black --check .
 
 checkeditorconfig:
 	editorconfig-checker
 
 dev:
-	poetry run lnbits --reload
+	uv run lnbits --reload
 
 docker:
 	docker build -t lnbits/lnbits .
@@ -46,27 +46,27 @@ test-wallets:
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
-	poetry run pytest tests/wallets
+	uv run pytest tests/wallets
 
 test-unit:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
-	poetry run pytest tests/unit
+	uv run pytest tests/unit
 
 test-api:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
-	poetry run pytest tests/api
+	uv run pytest tests/api
 
 test-regtest:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
-	poetry run pytest tests/regtest
+	uv run pytest tests/regtest
 
 test-migration:
 	LNBITS_ADMIN_UI=True \
@@ -74,18 +74,18 @@ test-migration:
 	HOST=0.0.0.0 \
 	PORT=5002 \
 	LNBITS_DATA_FOLDER="./tests/data" \
-	timeout 5s poetry run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+	timeout 5s uv run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
 	HOST=0.0.0.0 \
 	PORT=5002 \
 	LNBITS_DATABASE_URL="postgres://lnbits:lnbits@localhost:5432/migration" \
 	LNBITS_ADMIN_UI=False \
-	timeout 5s poetry run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+	timeout 5s uv run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
 	LNBITS_DATA_FOLDER="./tests/data" \
 	LNBITS_DATABASE_URL="postgres://lnbits:lnbits@localhost:5432/migration" \
-	poetry run python tools/conv.py
+	uv run python tools/conv.py
 
 migration:
-	poetry run python tools/conv.py
+	uv run python tools/conv.py
 
 openapi:
 	LNBITS_ADMIN_UI=False \
@@ -94,9 +94,9 @@ openapi:
 	PYTHONUNBUFFERED=1 \
 	HOST=0.0.0.0 \
 	PORT=5003 \
-	poetry run lnbits &
+	uv run lnbits &
 	sleep 15
-	curl -s http://0.0.0.0:5003/openapi.json | poetry run openapi-spec-validator --errors=all -
+	curl -s http://0.0.0.0:5003/openapi.json | uv run openapi-spec-validator --errors=all -
 	# kill -9 %1
 
 bak:
@@ -109,7 +109,7 @@ sass:
 bundle:
 	npm install
 	npm run bundle
-	poetry run ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
+	uv run ./node_modules/.bin/prettier -w ./lnbits/static/vendor.json
 
 checkbundle:
 	cp lnbits/static/bundle.min.js lnbits/static/bundle.min.js.old
@@ -126,8 +126,8 @@ checkbundle:
 
 install-pre-commit-hook:
 	@echo "Installing pre-commit hook to git"
-	@echo "Uninstall the hook with poetry run pre-commit uninstall"
-	poetry run pre-commit install
+	@echo "Uninstall the hook with uv run pre-commit uninstall"
+	uv run pre-commit install
 
 pre-commit:
-	poetry run pre-commit run --all-files
+	uv run pre-commit run --all-files

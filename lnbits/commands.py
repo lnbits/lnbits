@@ -5,7 +5,6 @@ import time
 from functools import wraps
 from getpass import getpass
 from pathlib import Path
-from typing import Optional
 from uuid import uuid4
 
 import click
@@ -96,7 +95,7 @@ def decrypt():
     """
 
 
-def get_super_user() -> Optional[str]:
+def get_super_user() -> str | None:
     """Get the superuser"""
     superuser_file = Path(settings.lnbits_data_folder, ".super_user")
     if not superuser_file.exists() or not superuser_file.is_file():
@@ -155,7 +154,7 @@ async def db_versions():
 @db.command("cleanup-wallets")
 @click.argument("days", type=int, required=False)
 @coro
-async def database_cleanup_wallets(days: Optional[int] = None):
+async def database_cleanup_wallets(days: int | None = None):
     """Delete all wallets that never had any transaction"""
     async with core_db.connect() as conn:
         delta = days or settings.cleanup_wallets_days
@@ -212,10 +211,10 @@ async def database_revert_payment(checking_id: str):
 @click.option("-v", "--verbose", is_flag=True, help="Detailed log.")
 @coro
 async def check_invalid_payments(
-    days: Optional[int] = None,
-    limit: Optional[int] = None,
-    wallet: Optional[str] = None,
-    verbose: Optional[bool] = False,
+    days: int | None = None,
+    limit: int | None = None,
+    wallet: str | None = None,
+    verbose: bool | None = False,
 ):
     """Check payments that are settled in the DB but pending on the Funding Source"""
     await check_admin_settings()
@@ -303,7 +302,7 @@ async def create_user(username: str, password: str):
 @users.command("cleanup-accounts")
 @click.argument("days", type=int, required=False)
 @coro
-async def database_cleanup_accounts(days: Optional[int] = None):
+async def database_cleanup_accounts(days: int | None = None):
     """Delete all accounts that have no wallets"""
     async with core_db.connect() as conn:
         delta = days or settings.cleanup_wallets_days
@@ -353,12 +352,12 @@ async def extensions_list():
 )
 @coro
 async def extensions_update(  # noqa: C901
-    extension: Optional[str] = None,
-    all_extensions: Optional[bool] = False,
-    repo_index: Optional[str] = None,
-    source_repo: Optional[str] = None,
-    url: Optional[str] = None,
-    admin_user: Optional[str] = None,
+    extension: str | None = None,
+    all_extensions: bool | None = False,
+    repo_index: str | None = None,
+    source_repo: str | None = None,
+    url: str | None = None,
+    admin_user: str | None = None,
 ):
     """
     Update extension to the latest version.
@@ -443,10 +442,10 @@ async def extensions_update(  # noqa: C901
 @coro
 async def extensions_install(
     extension: str,
-    repo_index: Optional[str] = None,
-    source_repo: Optional[str] = None,
-    url: Optional[str] = None,
-    admin_user: Optional[str] = None,
+    repo_index: str | None = None,
+    source_repo: str | None = None,
+    url: str | None = None,
+    admin_user: str | None = None,
 ):
     """Install a extension"""
     click.echo(f"Installing {extension}... {repo_index}")
@@ -473,7 +472,7 @@ async def extensions_install(
 )
 @coro
 async def extensions_uninstall(
-    extension: str, url: Optional[str] = None, admin_user: Optional[str] = None
+    extension: str, url: str | None = None, admin_user: str | None = None
 ):
     """Uninstall a extension"""
     click.echo(f"Uninstalling '{extension}'...")
@@ -562,10 +561,10 @@ if __name__ == "__main__":
 
 async def install_extension(
     extension: str,
-    repo_index: Optional[str] = None,
-    source_repo: Optional[str] = None,
-    url: Optional[str] = None,
-    admin_user: Optional[str] = None,
+    repo_index: str | None = None,
+    source_repo: str | None = None,
+    url: str | None = None,
+    admin_user: str | None = None,
 ) -> tuple[bool, str]:
     try:
         release = await _select_release(extension, repo_index, source_repo)
@@ -591,10 +590,10 @@ async def install_extension(
 
 async def update_extension(
     extension: str,
-    repo_index: Optional[str] = None,
-    source_repo: Optional[str] = None,
-    url: Optional[str] = None,
-    admin_user: Optional[str] = None,
+    repo_index: str | None = None,
+    source_repo: str | None = None,
+    url: str | None = None,
+    admin_user: str | None = None,
 ) -> tuple[bool, str]:
     try:
         click.echo(f"Updating '{extension}' extension.")
@@ -644,9 +643,9 @@ async def update_extension(
 
 async def _select_release(
     extension: str,
-    repo_index: Optional[str] = None,
-    source_repo: Optional[str] = None,
-) -> Optional[ExtensionRelease]:
+    repo_index: str | None = None,
+    source_repo: str | None = None,
+) -> ExtensionRelease | None:
     all_releases = await InstallableExtension.get_extension_releases(extension)
     if len(all_releases) == 0:
         click.echo(f"No repository found for extension '{extension}'.")
@@ -706,7 +705,7 @@ def _get_latest_release_per_repo(all_releases):
 
 
 async def _call_install_extension(
-    data: CreateExtension, url: Optional[str], user_id: Optional[str] = None
+    data: CreateExtension, url: str | None, user_id: str | None = None
 ):
     if url:
         user_id = user_id or get_super_user()
@@ -720,7 +719,7 @@ async def _call_install_extension(
 
 
 async def _call_uninstall_extension(
-    extension: str, url: Optional[str], user_id: Optional[str] = None
+    extension: str, url: str | None, user_id: str | None = None
 ):
     if url:
         user_id = user_id or get_super_user()
@@ -756,7 +755,7 @@ async def _can_run_operation(url) -> bool:
     return True
 
 
-async def _is_lnbits_started(url: Optional[str]):
+async def _is_lnbits_started(url: str | None):
     try:
         url = url or f"http://{settings.host}:{settings.port}/api/v1/health"
         async with httpx.AsyncClient() as client:

@@ -7,7 +7,6 @@ import argparse
 import os
 import sqlite3
 import sys
-from typing import Optional
 
 from lnbits.settings import settings
 
@@ -108,7 +107,7 @@ def insert_to_pg(query, data):
     connection.close()
 
 
-def migrate_core(file: str, exclude_tables: Optional[list[str]] = None):
+def migrate_core(file: str, exclude_tables: list[str] | None = None):
     if exclude_tables is None:
         exclude_tables = []
     print(f"Migrating core: {file}")
@@ -124,7 +123,7 @@ def migrate_ext(file: str):
     print(f"✅ Migrated ext: {schema}")
 
 
-def migrate_db(file: str, schema: str, exclude_tables: Optional[list[str]] = None):
+def migrate_db(file: str, schema: str, exclude_tables: list[str] | None = None):
     # first we check if this file exists:
     if exclude_tables is None:
         exclude_tables = []

@@ -3,7 +3,6 @@ import base64
 from collections.abc import AsyncGenerator
 from hashlib import sha256
 from os import environ
-from typing import Optional
 
 import grpc
 from loguru import logger
@@ -123,9 +122,9 @@ class LndWallet(Wallet):
     async def create_invoice(
         self,
         amount: int,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
-        unhashed_description: Optional[bytes] = None,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
         data: dict = {
@@ -312,9 +311,9 @@ class LndWallet(Wallet):
         self,
         amount: int,
         payment_hash: str,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
-        unhashed_description: Optional[bytes] = None,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
         data: dict = {
