@@ -46,6 +46,12 @@ dependencies = [
     "environs==14.2.0",
     # needed for scheduler extension
     "python-crontab==3.2.0",
+    "pynostr==0.6.2",
+    "python-multipart==0.0.20",
+    "filetype==1.2.0",
+    "nostr-sdk==0.42.1",
+    "bcrypt==4.3.0",
+    "jsonpath-ng==1.7.0",
 ]
 
 [tool.poetry]
@@ -67,17 +73,10 @@ lnbits-cli = "lnbits.commands:main"
 # # needed for migration tests
 # psycopg2-binary = {version = "2.9.10", optional = true}
 
-jsonpath-ng = "^1.7.0"
-pynostr = "^0.6.2"
-python-multipart = "^0.0.20"
-filetype = "^1.2.0"
-nostr-sdk = "^0.42.1"
-bcrypt = "^4.3.0"
-
 [project.optional-dependencies]
-breez = ["breez-sdk", "breez-sdk-liquid"]
-liquid = ["wallycore"]
-migration = ["psycopg2-binary"]
+breez = ["breez-sdk==0.8.0", "breez-sdk-liquid==0.9.1"]
+liquid = ["wallycore==1.4.0"]
+migration = ["psycopg2-binary==2.9.10"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
