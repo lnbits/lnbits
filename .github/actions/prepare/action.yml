@@ -30,7 +30,7 @@ runs:
         python-version: ${{ inputs.python-version }}
 
     - name: Install the project dependencies
-      shell: "bash"
+      shell: bash
       run: uv sync --locked --all-extras --dev
 
     - name: Use Node.js ${{ inputs.node-version }}
