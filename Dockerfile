@@ -2,7 +2,7 @@ FROM python:3.12-slim-bookworm AS builder
 
 RUN apt-get clean
 RUN apt-get update
-RUN apt-get install -y curl pkg-config build-essential libnss-myhostname
+RUN apt-get install -y curl pkg-config build-essential libnss-myhostname automake
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
