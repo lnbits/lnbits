@@ -7,6 +7,9 @@ RUN ls -l /usr/local/bin/boltzd
 RUN apt-get update && apt-get -y upgrade && \
     apt-get install -y netcat-openbsd
 
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
 # Reinstall dependencies just in case (needed for CMD usage)
 RUN uv sync --all-extras
 
