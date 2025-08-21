@@ -122,8 +122,8 @@ async def api_payments_pay_lnurl(
     extra: dict[str, Any] = {}
     if res2.disposable is False:
         extra["stored"] = True
-    if res2.success_action:
-        extra["success_action"] = res2.success_action.json()
+    if res2.successAction:
+        extra["success_action"] = res2.successAction.json()
     if data.comment:
         extra["comment"] = data.comment
     if data.unit and data.unit != "sat":
