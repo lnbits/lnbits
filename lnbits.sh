@@ -13,10 +13,9 @@ if [ ! -d lnbits/data ]; then
   # Install Python 3.10 and distutils non-interactively
   sudo apt install -y python3.10 python3.10-distutils
 
-  # Install Poetry
-  curl -sSL https://install.python-poetry.org | python3.10 -
+  # Install UV
+  curl -LsSf https://astral.sh/uv/install.sh | sh
 
-  # Add Poetry to PATH for the current session
   export PATH="/home/$USER/.local/bin:$PATH"
 
   if [ ! -d lnbits/wallets ]; then
@@ -42,13 +41,13 @@ elif [ ! -d lnbits/wallets ]; then
   cd lnbits || { echo "Failed to cd into lnbits ... FAIL"; exit 1; }
 fi
 
-# Install the dependencies using Poetry
-poetry env use python3.9
-poetry install --only main
+# Install the dependencies using UV
+uv sync --all-extras
+
 
 # Set environment variables for LNbits
 export LNBITS_ADMIN_UI=true
 export HOST=0.0.0.0
 
 # Run LNbits
-poetry run lnbits
+uv run lnbits

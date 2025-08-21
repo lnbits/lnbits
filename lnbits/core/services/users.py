@@ -164,7 +164,7 @@ async def check_admin_settings():
             settings.first_install = True
 
         logger.success(
-            "✔️ Admin UI is enabled. run `poetry run lnbits-cli superuser` "
+            "✔️ Admin UI is enabled. run `uv run lnbits-cli superuser` "
             "to get the superuser."
         )
 

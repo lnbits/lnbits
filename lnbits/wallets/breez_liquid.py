@@ -8,7 +8,7 @@ if not find_spec("breez_sdk_liquid"):
         def __init__(self):
             raise RuntimeError(
                 "Breez Liquid SDK is not installed. "
-                "Ask admin to run `poetry add -E breez` to install it."
+                "Ask admin to run `uv sync --extra breez` to install it."
             )
 
 else:
