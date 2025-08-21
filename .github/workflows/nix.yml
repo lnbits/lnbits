@@ -25,7 +25,6 @@ on:
 
 jobs:
   nix:
-    if: false # temporarly disable nix support until the `uv2nix` issue is resolved
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
