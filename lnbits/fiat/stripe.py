@@ -171,3 +171,35 @@ class StripeWallet(FiatProvider):
         return "-".join(
             [str(settings.stripe_api_endpoint), str(settings.stripe_api_secret_key)]
         )
+
+class StripeTerminalService:
+    def __init__(self, api_key: str, endpoint: str = "https://api.stripe.com"):
+        self.endpoint = endpoint
+        self.headers = {"Authorization": f"Bearer {api_key}"}
+        self.client = httpx.AsyncClient(base_url=self.endpoint, headers=self.headers)
+
+    async def aclose(self):
+        await self.client.aclose()
+
+    async def create_connection_token(self, location_id: str | None = None) -> dict:
+        data = {}
+        if location_id:
+            data["location"] = location_id
+        r = await self.client.post("/v1/terminal/connection_tokens", data=data)
+        r.raise_for_status()
+        return r.json()
+
+    async def create_card_present_payment_intent(
+        self, amount: int, currency: str, **metadata
+    ) -> dict:
+        data = {
+            "amount": amount,
+            "currency": currency,
+            "payment_method_types[]": "card_present",
+            "capture_method": "automatic",
+        }
+        for k, v in metadata.items():
+            data[f"metadata[{k}]"] = v
+        r = await self.client.post("/v1/payment_intents", data=data)
+        r.raise_for_status()
+        return r.json()
