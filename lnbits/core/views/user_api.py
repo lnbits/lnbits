@@ -47,6 +47,7 @@ from lnbits.helpers import (
 )
 from lnbits.settings import EditableSettings, settings
 from lnbits.utils.exchange_rates import allowed_currencies
+from lnbits.utils.nostr import normalize_public_key
 
 users_router = APIRouter(
     prefix="/users/api/v1", dependencies=[Depends(check_admin)], tags=["Users"]
@@ -94,6 +95,9 @@ async def api_create_user(data: CreateUser) -> CreateUser:
     data.extra = data.extra or UserExtra()
     data.extra.provider = data.extra.provider or "lnbits"
 
+    if data.pubkey:
+        data.pubkey = normalize_public_key(data.pubkey)
+
     account = Account(
         id=uuid4().hex,
         username=data.username,
@@ -126,6 +130,9 @@ async def api_update_user(
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Use 'reset password' functionality."
         )
+
+    if data.pubkey:
+        data.pubkey = normalize_public_key(data.pubkey)
 
     account = Account(
         id=user_id,
