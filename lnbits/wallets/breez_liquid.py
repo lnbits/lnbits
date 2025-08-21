@@ -8,7 +8,7 @@ if not find_spec("breez_sdk_liquid"):
         def __init__(self):
             raise RuntimeError(
                 "Breez Liquid SDK is not installed. "
-                "Ask admin to run `poetry add -E breez` to install it."
+                "Ask admin to run `uv sync --extra breez` to install it."
             )
 
 else:
@@ -16,7 +16,6 @@ else:
     from asyncio import Queue
     from collections.abc import AsyncGenerator
     from pathlib import Path
-    from typing import Optional
 
     from bolt11 import decode as bolt11_decode
     from breez_sdk_liquid import (
@@ -128,9 +127,9 @@ else:
         async def create_invoice(
             self,
             amount: int,
-            memo: Optional[str] = None,
-            description_hash: Optional[bytes] = None,
-            unhashed_description: Optional[bytes] = None,
+            memo: str | None = None,
+            description_hash: bytes | None = None,
+            unhashed_description: bytes | None = None,
             **_,
         ) -> InvoiceResponse:
             try:

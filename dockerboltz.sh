@@ -23,4 +23,4 @@ if ! nc -z localhost 9002; then
 fi
 
 echo "Starting LNbits on $LNBITS_HOST:$LNBITS_PORT..."
-exec poetry run lnbits --port "$LNBITS_PORT" --host "$LNBITS_HOST" --forwarded-allow-ips='*'
+exec uv run lnbits --port "$LNBITS_PORT" --host "$LNBITS_HOST" --forwarded-allow-ips='*'

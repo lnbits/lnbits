@@ -1,77 +1,97 @@
-[tool.poetry]
+[project]
 name = "lnbits"
 version = "1.3.0-rc4"
+requires-python = ">=3.10,<3.13"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
-authors = ["Alan Bits <alan@lnbits.com>"]
+authors = [{ name = "Alan Bits", email = "alan@lnbits.com" }]
+urls = { Homepage = "https://lnbits.com", Repository = "https://github.com/lnbits/lnbits" }
 readme = "README.md"
-repository = "https://github.com/lnbits/lnbits"
-homepage = "https://lnbits.com"
+dependencies = [
+    "bech32==1.2.0",
+    "click==8.2.1",
+    "ecdsa==0.19.1",
+    "fastapi==0.116.1",
+    "starlette==0.47.1",
+    "httpx==0.27.0",
+    "jinja2==3.1.6",
+    "lnurl==0.7.3",
+    "pydantic==1.10.22",
+    "pyqrcode==1.2.1",
+    "shortuuid==1.0.13",
+    "sse-starlette==2.3.6",
+    "typing-extensions==4.14.0",
+    "uvicorn==0.34.3",
+    "sqlalchemy==1.4.54",
+    "aiosqlite==0.21.0",
+    "asyncpg==0.30.0",
+    "uvloop==0.21.0",
+    "websockets==15.0.1",
+    "loguru==0.7.3",
+    "grpcio==1.69.0",
+    "protobuf==5.29.5",
+    "pyln-client==25.5",
+    "pywebpush==2.0.3",
+    "slowapi==0.1.9",
+    "websocket-client==1.8.0",
+    "pycryptodomex==3.23.0",
+    "packaging==25.0",
+    "bolt11==2.1.1",
+    "pyjwt==2.10.1",
+    "itsdangerous==2.2.0",
+    "fastapi-sso==0.18.0",
+    # needed for boltz, lnurldevice, watchonly extensions
+    "embit==0.8.0",
+    # needed for lnurlp, nostrclient, nostrmarket
+    "secp256k1==0.14.0",
+    # keep for backwards compatibility with lnurlp
+    "environs==14.2.0",
+    # needed for scheduler extension
+    "python-crontab==3.2.0",
+    "pynostr==0.6.2",
+    "python-multipart==0.0.20",
+    "filetype==1.2.0",
+    "nostr-sdk==0.42.1",
+    "bcrypt==4.3.0",
+    "jsonpath-ng==1.7.0",
+]
+
+[project.scripts]
+lnbits = "lnbits.server:main"
+lnbits-cli = "lnbits.commands:main"
+
+[project.optional-dependencies]
+breez = ["breez-sdk==0.8.0", "breez-sdk-liquid==0.9.1"]
+liquid = ["wallycore==1.4.0"]
+migration = ["psycopg2-binary==2.9.10"]
+
+[tool.uv]
+dev-dependencies = [
+  "black>=25.1.0,<26.0.0",
+  "mypy>=1.11.2,<2.0.0",
+  "types-protobuf>=6.30.2.20250516,<7.0.0",
+  "pre-commit>=4.2.0,<5.0.0",
+  "openapi-spec-validator>=0.7.1,<1.0.0",
+  "ruff>=0.12.0,<1.0.0",
+  "types-passlib>=1.7.7.20240327,<2.0.0",
+  "openai>=1.39.0,<2.0.0",
+  "json5>=0.12.0,<1.0.0",
+  "asgi-lifespan>=2.1.0,<3.0.0",
+  "anyio>=4.7.0,<5.0.0",
+  "pytest>=8.3.4,<9.0.0",
+  "pytest-cov>=6.0.0,<7.0.0",
+  "pytest-md>=0.2.0,<0.3.0",
+  "pytest-httpserver>=1.1.0,<2.0.0",
+  "pytest-mock>=3.14.0,<4.0.0",
+  "types-mock>=5.1.0.20240425,<6.0.0",
+  "mock>=5.1.0,<6.0.0",
+  "grpcio-tools>=1.69.0,<2.0.0"
+]
+
+[tool.poetry]
 packages = [
   {include = "lnbits"},
   {include = "lnbits/py.typed"},
 ]
-
-[tool.poetry.dependencies]
-python = "~3.12 | ~3.11 | ~3.10"
-bech32 = "1.2.0"
-click = "8.2.1"
-ecdsa = "0.19.1"
-fastapi = "0.116.1"
-starlette = "0.47.1"
-httpx = "0.27.0"
-jinja2 = "3.1.6"
-lnurl = "0.7.3"
-pydantic = "1.10.22"
-pyqrcode = "1.2.1"
-shortuuid = "1.0.13"
-sse-starlette = "2.3.6"
-typing-extensions = "4.14.0"
-uvicorn = "0.34.3"
-sqlalchemy = "1.4.54"
-aiosqlite = "0.21.0"
-asyncpg = "0.30.0"
-uvloop = "0.21.0"
-websockets = "15.0.1"
-loguru = "0.7.3"
-grpcio = "1.69.0"
-protobuf = "5.29.5"
-pyln-client = "25.5"
-pywebpush = "2.0.3"
-slowapi = "0.1.9"
-websocket-client = "1.8.0"
-pycryptodomex = "3.23.0"
-packaging = "25.0"
-bolt11 = "2.1.1"
-pyjwt = "2.10.1"
-itsdangerous = "2.2.0"
-fastapi-sso = "0.18.0"
-# needed for boltz, lnurldevice, watchonly extensions
-embit = "0.8.0"
-# needed for cashu, lnurlp, nostrclient, nostrmarket, nostrrelay extensions
-secp256k1 = "0.14.0"
-# keep for backwards compatibility with lnurlp and cashu
-environs = "14.2.0"
-# needed for scheduler extension
-python-crontab = "3.2.0"
-# needed for liquid support boltz
-wallycore = {version = "1.4.0", optional = true}
-# needed for breez funding source
-breez-sdk = {version = "0.8.0", optional = true}
-breez-sdk-liquid = {version = "0.9.1", optional = true}
-# needed for migration tests
-psycopg2-binary = {version = "2.9.10", optional = true}
-
-jsonpath-ng = "^1.7.0"
-pynostr = "^0.6.2"
-python-multipart = "^0.0.20"
-filetype = "^1.2.0"
-nostr-sdk = "^0.42.1"
-bcrypt = "^4.3.0"
-
-[tool.poetry.extras]
-breez = ["breez-sdk", "breez-sdk-liquid"]
-liquid = ["wallycore"]
-migration = ["psycopg2-binary"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
@@ -93,14 +113,6 @@ pytest-mock = "^3.14.0"
 types-mock = "^5.1.0.20240425"
 mock = "^5.1.0"
 grpcio-tools = "^1.69.0"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
-lnbits = "lnbits.server:main"
-lnbits-cli = "lnbits.commands:main"
 
 [tool.pyright]
 include = [
@@ -255,3 +267,10 @@ extend-immutable-calls = [
     "fastapi.Body",
     "lnbits.decorators.parse_filters"
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["lnbits"]

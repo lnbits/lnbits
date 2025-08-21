@@ -5,9 +5,9 @@ import os
 import shutil
 import sys
 import time
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Callable, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -280,7 +280,7 @@ async def check_installed_extensions(app: FastAPI):
 
 
 async def build_all_installed_extensions_list(  # noqa: C901
-    include_deactivated: Optional[bool] = True,
+    include_deactivated: bool | None = True,
 ) -> list[InstallableExtension]:
     """
     Returns a list of all the installed extensions plus the extensions that

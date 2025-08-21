@@ -1,6 +1,5 @@
 import base64
 from getpass import getpass
-from typing import Optional
 
 from loguru import logger
 
@@ -8,8 +7,8 @@ from lnbits.utils.crypto import AESCipher
 
 
 def load_macaroon(
-    macaroon: Optional[str] = None,
-    encrypted_macaroon: Optional[str] = None,
+    macaroon: str | None = None,
+    encrypted_macaroon: str | None = None,
 ) -> str:
     """Returns hex version of a macaroon encoded in base64 or the file path."""
 

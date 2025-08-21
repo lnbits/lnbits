@@ -1,5 +1,3 @@
-from typing import Optional
-
 from lnbits.core.db import db
 from lnbits.core.models import AuditEntry, AuditFilters
 from lnbits.core.models.audit import AuditCountStat
@@ -8,14 +6,14 @@ from lnbits.db import Connection, Filters, Page
 
 async def create_audit_entry(
     entry: AuditEntry,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> None:
     await (conn or db).insert("audit", entry)
 
 
 async def get_audit_entries(
-    filters: Optional[Filters[AuditFilters]] = None,
-    conn: Optional[Connection] = None,
+    filters: Filters[AuditFilters] | None = None,
+    conn: Connection | None = None,
 ) -> Page[AuditEntry]:
     return await (conn or db).fetch_page(
         "SELECT * from audit",
@@ -27,7 +25,7 @@ async def get_audit_entries(
 
 
 async def delete_expired_audit_entries(
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ):
     await (conn or db).execute(
         # Timestamp placeholder is safe from SQL injection (not user input)
@@ -40,8 +38,8 @@ async def delete_expired_audit_entries(
 
 async def get_count_stats(
     field: str,
-    filters: Optional[Filters[AuditFilters]] = None,
-    conn: Optional[Connection] = None,
+    filters: Filters[AuditFilters] | None = None,
+    conn: Connection | None = None,
 ) -> list[AuditCountStat]:
     if field not in ["request_method", "component", "response_code"]:
         return []
@@ -67,8 +65,8 @@ async def get_count_stats(
 
 
 async def get_long_duration_stats(
-    filters: Optional[Filters[AuditFilters]] = None,
-    conn: Optional[Connection] = None,
+    filters: Filters[AuditFilters] | None = None,
+    conn: Connection | None = None,
 ) -> list[AuditCountStat]:
     if not filters:
         filters = Filters()

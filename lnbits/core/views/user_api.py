@@ -2,7 +2,6 @@ import base64
 import json
 import time
 from http import HTTPStatus
-from typing import Optional
 from uuid import uuid4
 
 import shortuuid
@@ -223,7 +222,7 @@ async def api_users_get_user_wallet(user_id: str) -> list[Wallet]:
 
 @users_router.post("/user/{user_id}/wallet", name="Create a new wallet for user")
 async def api_users_create_user_wallet(
-    user_id: str, name: Optional[str] = Body(None), currency: Optional[str] = Body(None)
+    user_id: str, name: str | None = Body(None), currency: str | None = Body(None)
 ):
     if currency and currency not in allowed_currencies():
         raise ValueError(f"Currency '{currency}' not allowed.")

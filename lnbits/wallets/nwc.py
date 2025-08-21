@@ -4,7 +4,7 @@ import json
 import random
 import time
 from collections.abc import AsyncGenerator
-from typing import Optional, Union, cast
+from typing import cast
 from urllib.parse import parse_qs, unquote, urlparse
 
 import secp256k1
@@ -130,9 +130,9 @@ class NWCWallet(Wallet):
     async def create_invoice(
         self,
         amount: int,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
-        unhashed_description: Optional[bytes] = None,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
         **_,
     ) -> InvoiceResponse:
         desc = ""
@@ -360,7 +360,7 @@ class NWCConnection:
         """
         return self.shutdown or not settings.lnbits_running
 
-    async def _send(self, data: list[Union[str, dict]]):
+    async def _send(self, data: list[str | dict]):
         """
         Sends data to the NWC relay.
 
@@ -396,7 +396,7 @@ class NWCConnection:
 
     async def _close_subscription_by_subid(
         self, sub_id: str, send_event: bool = True
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """
         Closes a subscription by its sub_id.
 
@@ -427,7 +427,7 @@ class NWCConnection:
 
     async def _close_subscription_by_eventid(
         self, event_id, send_event=True
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """
         Closes a subscription associated to an event_id.
 
@@ -514,7 +514,7 @@ class NWCConnection:
             if subscription:  # Check if the subscription exists first
                 subscription["future"].set_exception(Exception(info))
 
-    async def _on_event_message(self, msg: list[Union[str, dict]]):  # noqa: C901
+    async def _on_event_message(self, msg: list[str | dict]):  # noqa: C901
         """
         Handles EVENT messages from the relay.
         """

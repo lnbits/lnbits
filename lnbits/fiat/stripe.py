@@ -2,7 +2,6 @@ import asyncio
 import json
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -49,7 +48,7 @@ class StripeWallet(FiatProvider):
             logger.warning(f"Error closing stripe wallet connection: {e}")
 
     async def status(
-        self, only_check_settings: Optional[bool] = False
+        self, only_check_settings: bool | None = False
     ) -> FiatStatusResponse:
         if only_check_settings:
             if self._settings_fields != self._settings_connection_fields():
@@ -76,7 +75,7 @@ class StripeWallet(FiatProvider):
         amount: float,
         payment_hash: str,
         currency: str,
-        memo: Optional[str] = None,
+        memo: str | None = None,
         **kwargs,
     ) -> FiatInvoiceResponse:
         amount_cents = int(amount * 100)

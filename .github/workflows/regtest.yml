@@ -32,6 +32,10 @@ jobs:
         run: |
           docker build -t lnbits/lnbits .
 
+      - uses: ./.github/actions/prepare
+        with:
+          python-version: ${{ inputs.python-version }}
+
       - name: Setup Regtest
         run: |
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
@@ -39,10 +43,6 @@ jobs:
           chmod +x ./tests
           ./tests
           sudo chmod -R a+rwx .
-
-      - uses: ./.github/actions/prepare
-        with:
-          python-version: ${{ inputs.python-version }}
 
       - name: Run pytest
         uses: pavelzw/pytest-action@v2

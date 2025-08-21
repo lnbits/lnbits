@@ -1,7 +1,6 @@
 import asyncio
 import hashlib
 from collections.abc import AsyncGenerator
-from typing import Optional
 
 import httpx
 from loguru import logger
@@ -75,9 +74,9 @@ class LNPayWallet(Wallet):
     async def create_invoice(
         self,
         amount: int,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
-        unhashed_description: Optional[bytes] = None,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
         **_,
     ) -> InvoiceResponse:
         data: dict = {"num_satoshis": f"{amount}"}
