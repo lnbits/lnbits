@@ -25,17 +25,12 @@ runs:
 
     - name: Install uv
       uses: astral-sh/setup-uv@v6
-
-    - uses: actions/cache@v4
-      name: Define a cache for the virtual environment based on the dependencies lock file
       with:
-        path: ./.venv
-        key: venv-${{ hashFiles('uv.lock') }}
+        enable-cache: true
+        python-version: ${{ inputs.python-version }}
 
     - name: Install the project dependencies
-      shell: bash
-      run: |
-        uv sync --all-extras
+      run: uv sync --locked --all-extras --dev
 
     - name: Use Node.js ${{ inputs.node-version }}
       if: ${{ (inputs.npm == 'true') }}
