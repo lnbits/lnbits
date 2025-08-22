@@ -16,6 +16,7 @@ from lnbits.helpers import (
     is_valid_username,
 )
 from lnbits.settings import settings
+from lnbits.utils.fiat_provider import get_fiat_providers_for_user
 
 from .wallets import Wallet
 
@@ -127,7 +128,7 @@ class Account(BaseModel):
         super().__init__(**data)
         self.is_super_user = settings.is_super_user(self.id)
         self.is_admin = settings.is_admin_user(self.id)
-        self.fiat_providers = settings.get_fiat_providers_for_user(self.id)
+        self.fiat_providers = get_fiat_providers_for_user(self.id)
 
     def hash_password(self, password: str) -> str:
         """sets and returns the hashed password"""
