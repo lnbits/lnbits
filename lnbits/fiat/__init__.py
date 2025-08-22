@@ -6,7 +6,7 @@ from enum import Enum
 from loguru import logger
 
 from lnbits.fiat.base import FiatProvider
-from lnbits.settings import settings
+from lnbits.utils.fiat_provider import is_fiat_provider_enabled
 
 from .stripe import StripeWallet
 
@@ -38,7 +38,7 @@ async def get_fiat_provider(name: str) -> FiatProvider | None:
 
 
 def _init_fiat_provider(fiat_provider: FiatProviderType) -> FiatProvider | None:
-    if not settings.is_fiat_provider_enabled(fiat_provider.name):
+    if not is_fiat_provider_enabled(fiat_provider.name):
         logger.warning(f"Fiat provider '{fiat_provider.name}' not enabled.")
         return None
     provider_constructor = getattr(fiat_module, fiat_provider.value)

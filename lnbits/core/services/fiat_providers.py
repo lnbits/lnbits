@@ -10,7 +10,7 @@ from lnbits.core.models import CreatePayment, Payment, PaymentState
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.db import Connection
 from lnbits.fiat import get_fiat_provider
-from lnbits.settings import settings
+from lnbits.utils.fiat_provider import get_fiat_provider_limits
 
 
 async def handle_fiat_payment_confirmation(
@@ -36,7 +36,7 @@ async def _credit_fiat_service_fee_wallet(
     if payment.fee == 0:
         return
 
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
+    limits = get_fiat_provider_limits(fiat_provider_name)
     if not limits:
         return
 
@@ -71,7 +71,7 @@ async def _debit_fiat_service_faucet_wallet(
     if not fiat_provider_name:
         return
 
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
+    limits = get_fiat_provider_limits(fiat_provider_name)
     if not limits:
         return
 
