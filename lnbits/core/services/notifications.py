@@ -277,7 +277,7 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
 
 async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
     # TODO: websocket message should be a clean payment model
-    # await websocket_manager.send_data(payment.json(), wallet.inkey)
+    # await websocket_manager.send(wallet.inkey, payment.json())
     # TODO: figure out why we send the balance with the payment here.
     # cleaner would be to have a separate message for the balance
     # and send it with the id of the wallet so wallets can subscribe to it
@@ -288,12 +288,11 @@ async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
             "payment": json.loads(payment.json()),
         },
     )
-    await websocket_manager.send_data(payment_notification, wallet.inkey)
-    await websocket_manager.send_data(payment_notification, wallet.adminkey)
-
-    await websocket_manager.send_data(
-        json.dumps({"pending": payment.pending, "status": payment.status}),
+    await websocket_manager.send(wallet.inkey, payment_notification)
+    await websocket_manager.send(wallet.adminkey, payment_notification)
+    await websocket_manager.send(
         payment.payment_hash,
+        json.dumps({"pending": payment.pending, "status": payment.status}),
     )
 
 
