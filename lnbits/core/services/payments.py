@@ -22,6 +22,10 @@ from lnbits.settings import settings
 from lnbits.tasks import create_task, internal_invoice_queue_put
 from lnbits.utils.crypto import fake_privkey, random_secret_and_hash, verify_preimage
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis, satoshis_amount_as_fiat
+from lnbits.utils.fiat_provider import (
+    get_fiat_provider_limits,
+    is_fiat_provider_enabled,
+)
 from lnbits.wallets import fake_wallet, get_funding_source
 from lnbits.wallets.base import (
     InvoiceResponse,
@@ -110,11 +114,11 @@ async def create_payment_request(
 
 async def create_fiat_invoice(
     wallet_id: str, invoice_data: CreateInvoice, conn: Connection | None = None
-):
+) -> Payment:
     fiat_provider_name = invoice_data.fiat_provider
     if not fiat_provider_name:
         raise ValueError("Fiat provider is required for fiat invoices.")
-    if not settings.is_fiat_provider_enabled(fiat_provider_name):
+    if not is_fiat_provider_enabled(fiat_provider_name):
         raise ValueError(
             f"Fiat provider '{fiat_provider_name}' is not enabled.",
         )
@@ -408,7 +412,7 @@ def service_fee_fiat(amount_msat: int, fiat_provider_name: str) -> int:
     Calculate the service fee for a fiat provider based on the amount in msat.
     Return the fee in msat.
     """
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
+    limits = get_fiat_provider_limits(fiat_provider_name)
     if not limits:
         return 0
     amount_msat = abs(amount_msat)
@@ -928,7 +932,7 @@ async def _credit_service_fee_wallet(
 async def _check_fiat_invoice_limits(
     amount_sat: int, fiat_provider_name: str, conn: Connection | None = None
 ):
-    limits = settings.get_fiat_provider_limits(fiat_provider_name)
+    limits = get_fiat_provider_limits(fiat_provider_name)
     if not limits:
         raise ValueError(
             f"Fiat provider '{fiat_provider_name}' does not have limits configured.",
