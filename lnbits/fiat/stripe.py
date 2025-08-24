@@ -109,8 +109,8 @@ class StripeWallet(FiatProvider):
         amount: float,
         payment_hash: str,
         currency: str,
-        memo: Optional[str] = None,
-        extra: Optional[dict] = None,
+        extra: dict[str, Any] | None = None,
+        memo: str | None = None,
         **kwargs,
     ) -> FiatInvoiceResponse:
         amount_cents = int(amount * 100)
