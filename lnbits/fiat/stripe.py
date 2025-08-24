@@ -2,10 +2,12 @@ import asyncio
 import json
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
+from typing import Any, Literal
 from urllib.parse import urlencode
 
 import httpx
 from loguru import logger
+from pydantic import BaseModel, Field, ValidationError
 
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
@@ -21,6 +23,34 @@ from .base import (
     FiatStatusResponse,
 )
 
+FiatMethod = Literal["checkout", "terminal"]
+
+
+class StripeTerminalOptions(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    capture_method: Literal["automatic", "manual"] = "automatic"
+    metadata: dict[str, str] = Field(default_factory=dict)
+
+
+class StripeCheckoutOptions(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    success_url: str | None = None
+    metadata: dict[str, str] = Field(default_factory=dict)
+    line_item_name: str | None = None
+
+
+class StripeCreateInvoiceOptions(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    fiat_method: FiatMethod = "checkout"
+    terminal: StripeTerminalOptions | None = None
+    checkout: StripeCheckoutOptions | None = None
+
 
 class StripeWallet(FiatProvider):
     """https://docs.stripe.com/api"""
@@ -30,9 +60,9 @@ class StripeWallet(FiatProvider):
         self._settings_fields = self._settings_connection_fields()
         if not settings.stripe_api_endpoint:
             raise ValueError("Cannot initialize StripeWallet: missing endpoint.")
-
         if not settings.stripe_api_secret_key:
             raise ValueError("Cannot initialize StripeWallet: missing API secret key.")
+
         self.endpoint = normalize_endpoint(settings.stripe_api_endpoint)
         self.headers = {
             "Authorization": f"Bearer {settings.stripe_api_secret_key}",
@@ -60,8 +90,10 @@ class StripeWallet(FiatProvider):
             r.raise_for_status()
             data = r.json()
 
-            available_balance = data.get("available", [{}])[0].get("amount", 0)
-            # pending_balance = data.get("pending", {}).get("amount", 0)
+            available = data.get("available") or []
+            available_balance = 0
+            if available and isinstance(available, list):
+                available_balance = int(available[0].get("amount", 0))
 
             return FiatStatusResponse(balance=available_balance)
         except json.JSONDecodeError:
@@ -70,55 +102,72 @@ class StripeWallet(FiatProvider):
             logger.warning(exc)
             return FiatStatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
-    async def create_invoice(
+    def _build_headers_form(self) -> dict[str, str]:
+        return {**self.headers, "Content-Type": "application/x-www-form-urlencoded"}
+
+    def _encode_metadata(
+        self, prefix: str, md: dict[str, Any]
+    ) -> list[tuple[str, str]]:
+        out: list[tuple[str, str]] = []
+        for k, v in (md or {}).items():
+            out.append((f"{prefix}[{k}]", str(v)))
+        return out
+
+    def _parse_create_opts(
+        self, raw_opts: dict[str, Any]
+    ) -> StripeCreateInvoiceOptions | None:
+        try:
+            return StripeCreateInvoiceOptions.parse_obj(raw_opts)
+        except ValidationError as e:
+            logger.warning(f"Invalid Stripe options: {e}")
+            return None
+
+    async def _create_checkout_invoice(
         self,
-        amount: float,
-        payment_hash: str,
+        amount_cents: int,
         currency: str,
-        memo: str | None = None,
-        **kwargs,
+        payment_hash: str,
+        memo: str | None,
+        opts: StripeCreateInvoiceOptions,
     ) -> FiatInvoiceResponse:
-        amount_cents = int(amount * 100)
-        form_data = [
+        co = opts.checkout or StripeCheckoutOptions()
+        success_url = (
+            co.success_url
+            or settings.stripe_payment_success_url
+            or "https://lnbits.com"
+        )
+        line_item_name = co.line_item_name or memo or "LNbits Invoice"
+
+        form_data: list[tuple[str, str]] = [
             ("mode", "payment"),
-            (
-                "success_url",
-                settings.stripe_payment_success_url or "https://lnbits.com",
-            ),
+            ("success_url", success_url),
             ("metadata[payment_hash]", payment_hash),
             ("line_items[0][price_data][currency]", currency.lower()),
-            ("line_items[0][price_data][product_data][name]", memo or "LNbits Invoice"),
-            ("line_items[0][price_data][unit_amount]", amount_cents),
+            ("line_items[0][price_data][product_data][name]", line_item_name),
+            ("line_items[0][price_data][unit_amount]", str(amount_cents)),
             ("line_items[0][quantity]", "1"),
         ]
-        encoded_data = urlencode(form_data)
+        form_data += self._encode_metadata("metadata", co.metadata)
 
         try:
-            headers = self.headers.copy()
-            headers["Content-Type"] = "application/x-www-form-urlencoded"
             r = await self.client.post(
-                url="/v1/checkout/sessions", headers=headers, content=encoded_data
+                "/v1/checkout/sessions",
+                headers=self._build_headers_form(),
+                content=urlencode(form_data),
             )
             r.raise_for_status()
             data = r.json()
-
-            session_id = data.get("id")
-            if not session_id:
+            session_id, url = data.get("id"), data.get("url")
+            if not session_id or not url:
                 return FiatInvoiceResponse(
-                    ok=False, error_message="Server error: 'missing session id'"
+                    ok=False, error_message="Server error: missing id or url"
                 )
-            payment_request = data.get("url")
-            if not payment_request:
-                return FiatInvoiceResponse(
-                    ok=False, error_message="Server error: 'missing payment URL'"
-                )
-
             return FiatInvoiceResponse(
-                ok=True, checking_id=session_id, payment_request=payment_request
+                ok=True, checking_id=session_id, payment_request=url
             )
         except json.JSONDecodeError:
             return FiatInvoiceResponse(
-                ok=False, error_message="Server error: 'invalid json response'"
+                ok=False, error_message="Server error: invalid json response"
             )
         except Exception as exc:
             logger.warning(exc)
@@ -126,31 +175,123 @@ class StripeWallet(FiatProvider):
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
+    async def _create_terminal_invoice(
+        self,
+        amount_cents: int,
+        currency: str,
+        payment_hash: str,
+        opts: StripeCreateInvoiceOptions,
+    ) -> FiatInvoiceResponse:
+        term = opts.terminal or StripeTerminalOptions()
+        data: dict[str, str] = {
+            "amount": str(amount_cents),
+            "currency": currency.lower(),
+            "payment_method_types[]": "card_present",
+            "capture_method": term.capture_method,
+            "metadata[payment_hash]": payment_hash,
+            "metadata[source]": "lnbits",
+        }
+        for k, v in (term.metadata or {}).items():
+            data[f"metadata[{k}]"] = str(v)
+
+        try:
+            r = await self.client.post("/v1/payment_intents", data=data)
+            r.raise_for_status()
+            pi = r.json()
+            pi_id, client_secret = pi.get("id"), pi.get("client_secret")
+            if not pi_id or not client_secret:
+                return FiatInvoiceResponse(
+                    ok=False,
+                    error_message="Error: missing PaymentIntent or client_secret",
+                )
+            return FiatInvoiceResponse(
+                ok=True, checking_id=pi_id, payment_request=client_secret
+            )
+        except json.JSONDecodeError:
+            return FiatInvoiceResponse(
+                ok=False, error_message="Error: invalid json response"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return FiatInvoiceResponse(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
+
+    async def create_invoice(
+        self,
+        amount: float,
+        payment_hash: str,
+        currency: str,
+        memo: str | None = None,
+        extra: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> FiatInvoiceResponse:
+        amount_cents = int(amount * 100)
+        opts = self._parse_create_opts(extra or {})
+        if not opts:
+            return FiatInvoiceResponse(ok=False, error_message="Invalid Stripe options")
+
+        if opts.fiat_method == "checkout":
+            return await self._create_checkout_invoice(
+                amount_cents, currency, payment_hash, memo, opts
+            )
+        elif opts.fiat_method == "terminal":
+            return await self._create_terminal_invoice(
+                amount_cents, currency, payment_hash, opts
+            )
+        else:
+            return FiatInvoiceResponse(
+                ok=False, error_message=f"Unsupported fiat_method: {opts.fiat_method}"
+            )
+
+    async def create_terminal_connection_token(
+        self, location_id: str | None = None
+    ) -> dict:
+        data = {}
+        if location_id:
+            data["location"] = location_id
+        r = await self.client.post("/v1/terminal/connection_tokens", data=data)
+        r.raise_for_status()
+        return r.json()
+
     async def pay_invoice(self, payment_request: str) -> FiatPaymentResponse:
         raise NotImplementedError("Stripe does not support paying invoices directly.")
 
     async def get_invoice_status(self, checking_id: str) -> FiatPaymentStatus:
         try:
-            r = await self.client.get(
-                url=f"/v1/checkout/sessions/{checking_id}",
-            )
-            r.raise_for_status()
+            if checking_id.startswith("cs_"):
+                r = await self.client.get(f"/v1/checkout/sessions/{checking_id}")
+                r.raise_for_status()
+                data = r.json()
 
-            data = r.json()
-            payment_status = data.get("payment_status")
-            if not payment_status:
+                payment_status = data.get("payment_status")
+                if payment_status == "paid":
+                    return FiatPaymentSuccessStatus()
+
+                expires_at = data.get("expires_at")
+                _24h_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+                if expires_at and float(expires_at) < _24h_ago.timestamp():
+                    return FiatPaymentFailedStatus()
+
                 return FiatPaymentPendingStatus()
-            if payment_status == "paid":
-                # todo: handle fee
-                return FiatPaymentSuccessStatus()
 
-            expires_at = data.get("expires_at")
-            _24_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
-            if expires_at and expires_at < _24_hours_ago.timestamp():
-                # be defensive: add a 24 hour buffer
-                return FiatPaymentFailedStatus()
+            elif checking_id.startswith("pi_"):
+                r = await self.client.get(f"/v1/payment_intents/{checking_id}")
+                r.raise_for_status()
+                pi = r.json()
+                status = pi.get("status")
 
-            return FiatPaymentPendingStatus()
+                if status == "succeeded":
+                    return FiatPaymentSuccessStatus()
+                if status in ("canceled",):
+                    return FiatPaymentFailedStatus()
+
+                return FiatPaymentPendingStatus()
+
+            else:
+                logger.debug(f"Unknown Stripe id prefix: {checking_id}")
+                return FiatPaymentPendingStatus()
+
         except Exception as exc:
             logger.debug(f"Error getting invoice status: {exc}")
             return FiatPaymentPendingStatus()
