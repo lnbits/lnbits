@@ -144,7 +144,7 @@ async def create_fiat_invoice(
         payment_hash=internal_payment.payment_hash,
         currency=invoice_data.unit,
         memo=invoice_data.memo,
-        extra=provider_kwargs
+        extra=provider_kwargs,
     )
 
     if fiat_invoice.failed:
