@@ -25,22 +25,32 @@ from .base import (
 
 FiatMethod = Literal["checkout", "terminal"]
 
+
 class StripeTerminalOptions(BaseModel):
-    class Config: extra = "ignore"
+    class Config:
+        extra = "ignore"
+
     capture_method: Literal["automatic", "manual"] = "automatic"
     metadata: Dict[str, str] = Field(default_factory=dict)
 
+
 class StripeCheckoutOptions(BaseModel):
-    class Config: extra = "ignore"
+    class Config:
+        extra = "ignore"
+
     success_url: Optional[str] = None
     metadata: Dict[str, str] = Field(default_factory=dict)
     line_item_name: Optional[str] = None
 
+
 class StripeCreateInvoiceOptions(BaseModel):
-    class Config: extra = "ignore"
+    class Config:
+        extra = "ignore"
+
     fiat_method: FiatMethod = "checkout"
     terminal: Optional[StripeTerminalOptions] = None
     checkout: Optional[StripeCheckoutOptions] = None
+
 
 class StripeWallet(FiatProvider):
     """https://docs.stripe.com/api"""
@@ -111,8 +121,9 @@ class StripeWallet(FiatProvider):
             opts = StripeCreateInvoiceOptions.parse_obj(raw_opts)  # pydantic v1
         except ValidationError as e:
             logger.warning(f"Invalid Stripe options: {e}")
-            return FiatInvoiceResponse(ok=False, error_message=f"Invalid Stripe options: {e}")
-
+            return FiatInvoiceResponse(
+                ok=False, error_message=f"Invalid Stripe options: {e}"
+            )
 
         fiat_method: FiatMethod = opts.fiat_method
 
@@ -143,24 +154,37 @@ class StripeWallet(FiatProvider):
 
             encoded_data = urlencode(form_data)
             try:
-                headers = {**self.headers, "Content-Type": "application/x-www-form-urlencoded"}
-                r = await self.client.post("/v1/checkout/sessions", headers=headers, content=encoded_data)
+                headers = {
+                    **self.headers,
+                    "Content-Type": "application/x-www-form-urlencoded",
+                }
+                r = await self.client.post(
+                    "/v1/checkout/sessions", headers=headers, content=encoded_data
+                )
                 r.raise_for_status()
                 data = r.json()
 
                 session_id = data.get("id")
                 url = data.get("url")
                 if not session_id or not url:
-                    return FiatInvoiceResponse(ok=False, error_message="Server error: missing id or url")
+                    return FiatInvoiceResponse(
+                        ok=False, error_message="Server error: missing id or url"
+                    )
 
                 # checking_id is the Stripe object id to poll later
-                return FiatInvoiceResponse(ok=True, checking_id=session_id, payment_request=url)
+                return FiatInvoiceResponse(
+                    ok=True, checking_id=session_id, payment_request=url
+                )
 
             except json.JSONDecodeError:
-                return FiatInvoiceResponse(ok=False, error_message="Server error: invalid json response")
+                return FiatInvoiceResponse(
+                    ok=False, error_message="Server error: invalid json response"
+                )
             except Exception as exc:
                 logger.warning(exc)
-                return FiatInvoiceResponse(ok=False, error_message=f"Unable to connect to {self.endpoint}.")
+                return FiatInvoiceResponse(
+                    ok=False, error_message=f"Unable to connect to {self.endpoint}."
+                )
 
         elif fiat_method == "terminal":
             # Apply defaults for terminal options
@@ -172,7 +196,7 @@ class StripeWallet(FiatProvider):
                     "payment_method_types[]": "card_present",
                     "capture_method": term.capture_method,
                     "metadata[payment_hash]": payment_hash,
-                    "metadata[source]": "lnbits"  # optional, but useful to identify
+                    "metadata[source]": "lnbits",  # optional, but useful to identify
                 }
                 if term.metadata:
                     for k, v in term.metadata.items():
@@ -185,21 +209,34 @@ class StripeWallet(FiatProvider):
                 pi_id = pi.get("id")
                 client_secret = pi.get("client_secret")
                 if not pi_id or not client_secret:
-                    return FiatInvoiceResponse(ok=False, error_message="Server error: missing PaymentIntent or client_secret")
+                    return FiatInvoiceResponse(
+                        ok=False,
+                        error_message="Server error: missing PaymentIntent or client_secret",
+                    )
 
                 # For Terminal, return the client_secret as payment_request for the SDK flow.
-                return FiatInvoiceResponse(ok=True, checking_id=pi_id, payment_request=client_secret)
+                return FiatInvoiceResponse(
+                    ok=True, checking_id=pi_id, payment_request=client_secret
+                )
 
             except json.JSONDecodeError:
-                return FiatInvoiceResponse(ok=False, error_message="Server error: invalid json response")
+                return FiatInvoiceResponse(
+                    ok=False, error_message="Server error: invalid json response"
+                )
             except Exception as exc:
                 logger.warning(exc)
-                return FiatInvoiceResponse(ok=False, error_message=f"Unable to connect to {self.endpoint}.")
+                return FiatInvoiceResponse(
+                    ok=False, error_message=f"Unable to connect to {self.endpoint}."
+                )
 
         else:
-            return FiatInvoiceResponse(ok=False, error_message=f"Unsupported fiat_method: {fiat_method}")
+            return FiatInvoiceResponse(
+                ok=False, error_message=f"Unsupported fiat_method: {fiat_method}"
+            )
 
-    async def create_terminal_connection_token(self, location_id: Optional[str] = None) -> dict:
+    async def create_terminal_connection_token(
+        self, location_id: Optional[str] = None
+    ) -> dict:
         data = {}
         if location_id:
             data["location"] = location_id

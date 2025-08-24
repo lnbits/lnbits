@@ -1,14 +1,16 @@
 from http import HTTPStatus
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.services.fiat_providers import test_connection
-from lnbits.fiat import get_fiat_provider, StripeWallet
 from lnbits.decorators import check_admin
+from lnbits.fiat import StripeWallet, get_fiat_provider
 from lnbits.settings import settings
 
 fiat_router = APIRouter(tags=["Fiat API"], prefix="/api/v1/fiat")
+
 
 @fiat_router.put(
     "/check/{provider}",
@@ -17,6 +19,7 @@ fiat_router = APIRouter(tags=["Fiat API"], prefix="/api/v1/fiat")
 )
 async def api_test_fiat_provider(provider: str) -> SimpleStatus:
     return await test_connection(provider)
+
 
 @fiat_router.post(
     "/stripe/terminal/connection_token",
