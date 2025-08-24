@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Coroutine
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 if TYPE_CHECKING:
     pass
@@ -106,6 +106,7 @@ class FiatProvider(ABC):
         payment_hash: str,
         currency: str,
         memo: str | None = None,
+        extra: dict[str, Any] | None = None,
         **kwargs,
     ) -> Coroutine[None, None, FiatInvoiceResponse]:
         pass
