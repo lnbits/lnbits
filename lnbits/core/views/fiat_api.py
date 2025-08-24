@@ -29,17 +29,28 @@ async def api_test_fiat_provider(provider: str) -> SimpleStatus:
 async def stripe_terminal_connection_token():
     wallet = await get_fiat_provider("stripe")
     if not isinstance(wallet, StripeWallet):
-        raise HTTPException(500, "Stripe wallet/provider not configured")
+        raise HTTPException(
+            status_code=500, detail="Stripe wallet/provider not configured"
+        )
 
     try:
         location_id = getattr(settings, "stripe_terminal_location_id", None)
         tok = await wallet.create_terminal_connection_token(location_id=location_id)
         secret = tok.get("secret")
         if not secret:
-            raise HTTPException(502, "Stripe returned no connection token")
+            raise HTTPException(
+                status_code=502, detail="Stripe returned no connection token"
+            )
         return {"secret": secret}
+
     except httpx.HTTPStatusError as e:
-        # surface Stripe error body if present
-        raise HTTPException(e.response.status_code, e.response.text)
+        status = (
+            e.response.status_code if getattr(e, "response", None) is not None else 502
+        )
+        detail = e.response.text if getattr(e, "response", None) is not None else str(e)
+        raise HTTPException(status_code=status, detail=detail) from e
+
     except Exception as e:
-        raise HTTPException(500, f"Failed to create connection token: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create connection token: {e}"
+        ) from e
