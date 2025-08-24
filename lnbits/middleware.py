@@ -2,7 +2,7 @@ import asyncio
 import json
 from datetime import datetime, timezone
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -62,7 +62,7 @@ class InstalledExtensionMiddleware:
 
     def _response_by_accepted_type(
         self, scope: Scope, headers: list[Any], msg: str, status_code: HTTPStatus
-    ) -> Union[HTMLResponse, JSONResponse]:
+    ) -> HTMLResponse | JSONResponse:
         """
         Build an HTTP response containing the `msg` as HTTP body and the `status_code`
         as HTTP code. If the `accept` HTTP header is present int the request and
@@ -127,7 +127,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         start_time = datetime.now(timezone.utc)
         request_details = await self._request_details(request)
-        response: Optional[Response] = None
+        response: Response | None = None
 
         try:
             response = await call_next(request)
@@ -140,13 +140,13 @@ class AuditMiddleware(BaseHTTPMiddleware):
     async def _log_audit(
         self,
         request: Request,
-        response: Optional[Response],
+        response: Response | None,
         duration: float,
-        request_details: Optional[str],
+        request_details: str | None,
     ):
         try:
             http_method = request.scope.get("method", None)
-            path: Optional[str] = getattr(request.scope.get("route", {}), "path", None)
+            path: str | None = getattr(request.scope.get("route", {}), "path", None)
             response_code = str(response.status_code) if response else None
             if not settings.audit_http_request(http_method, path, response_code):
                 return None
@@ -178,7 +178,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
         except Exception as ex:
             logger.warning(ex)
 
-    async def _request_details(self, request: Request) -> Optional[str]:
+    async def _request_details(self, request: Request) -> str | None:
         if not settings.audit_http_request_details():
             return None
 

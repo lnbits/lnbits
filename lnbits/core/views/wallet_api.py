@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from typing import Optional
 from uuid import uuid4
 
 from fastapi import (
@@ -110,11 +109,11 @@ async def api_put_stored_paylinks(
 
 @wallet_router.patch("")
 async def api_update_wallet(
-    name: Optional[str] = Body(None),
-    icon: Optional[str] = Body(None),
-    color: Optional[str] = Body(None),
-    currency: Optional[str] = Body(None),
-    pinned: Optional[bool] = Body(None),
+    name: str | None = Body(None),
+    icon: str | None = Body(None),
+    color: str | None = Body(None),
+    currency: str | None = Body(None),
+    pinned: bool | None = Body(None),
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
     wallet = await get_wallet(key_info.wallet.id)

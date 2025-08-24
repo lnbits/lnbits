@@ -53,7 +53,7 @@ $ sudo nano .env
 Now start LNbits once in the terminal window
 
 ```
-$ poetry run lnbits
+$ uv run lnbits
 ```
 
 You can now `cat` the Super User ID:

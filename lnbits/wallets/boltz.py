@@ -1,6 +1,5 @@
 import asyncio
 from collections.abc import AsyncGenerator
-from typing import Optional
 
 from bolt11.decode import decode
 from grpc.aio import AioRpcError
@@ -107,9 +106,9 @@ class BoltzWallet(Wallet):
     async def create_invoice(
         self,
         amount: int,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
-        unhashed_description: Optional[bytes] = None,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
         **_,
     ) -> InvoiceResponse:
         pair = boltzrpc_pb2.Pair(to=boltzrpc_pb2.LBTC)
@@ -254,7 +253,7 @@ class BoltzWallet(Wallet):
                 )
                 await asyncio.sleep(5)
 
-    async def _fetch_wallet(self, wallet_name: str) -> Optional[str]:
+    async def _fetch_wallet(self, wallet_name: str) -> str | None:
         try:
             request = boltzrpc_pb2.GetWalletRequest(name=wallet_name)
             response = await self.rpc.GetWallet(request, metadata=self.metadata)

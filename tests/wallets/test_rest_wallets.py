@@ -1,5 +1,4 @@
 import json
-from typing import Union
 from urllib.parse import urlencode
 
 import pytest
@@ -59,7 +58,7 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
 
 
 def _apply_mock(httpserver: HTTPServer, mock: Mock):
-    request_data: dict[str, Union[str, dict, list]] = {}
+    request_data: dict[str, str | dict | list] = {}
     request_type = getattr(mock.dict(), "request_type", None)
     # request_type = mock.request_type <--- this des not work for whatever reason!!!
 
@@ -81,7 +80,7 @@ def _apply_mock(httpserver: HTTPServer, mock: Mock):
         **request_data,  # type: ignore
     )
 
-    server_response: Union[str, dict, list, Response] = mock.response
+    server_response: str | dict | list | Response = mock.response
     response_type = mock.response_type
     if response_type == "response":
         assert isinstance(server_response, dict), "server response must be JSON"

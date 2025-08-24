@@ -1,6 +1,5 @@
 import random
 import string
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -14,13 +13,13 @@ class FakeError(Exception):
 class DbTestModel(BaseModel):
     id: int
     name: str
-    value: Optional[str] = None
+    value: str | None = None
 
 
 class DbTestModel2(BaseModel):
     id: int
     label: str
-    description: Optional[str] = None
+    description: str | None = None
     child: DbTestModel
     child_list: list[DbTestModel]
 

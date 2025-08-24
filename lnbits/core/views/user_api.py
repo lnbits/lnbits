@@ -2,7 +2,6 @@ import base64
 import json
 import time
 from http import HTTPStatus
-from typing import Optional
 from uuid import uuid4
 
 import shortuuid
@@ -48,6 +47,7 @@ from lnbits.helpers import (
 )
 from lnbits.settings import EditableSettings, settings
 from lnbits.utils.exchange_rates import allowed_currencies
+from lnbits.utils.nostr import normalize_public_key
 
 users_router = APIRouter(
     prefix="/users/api/v1", dependencies=[Depends(check_admin)], tags=["Users"]
@@ -95,6 +95,9 @@ async def api_create_user(data: CreateUser) -> CreateUser:
     data.extra = data.extra or UserExtra()
     data.extra.provider = data.extra.provider or "lnbits"
 
+    if data.pubkey:
+        data.pubkey = normalize_public_key(data.pubkey)
+
     account = Account(
         id=uuid4().hex,
         username=data.username,
@@ -127,6 +130,9 @@ async def api_update_user(
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Use 'reset password' functionality."
         )
+
+    if data.pubkey:
+        data.pubkey = normalize_public_key(data.pubkey)
 
     account = Account(
         id=user_id,
@@ -223,7 +229,7 @@ async def api_users_get_user_wallet(user_id: str) -> list[Wallet]:
 
 @users_router.post("/user/{user_id}/wallet", name="Create a new wallet for user")
 async def api_users_create_user_wallet(
-    user_id: str, name: Optional[str] = Body(None), currency: Optional[str] = Body(None)
+    user_id: str, name: str | None = Body(None), currency: str | None = Body(None)
 ):
     if currency and currency not in allowed_currencies():
         raise ValueError(f"Currency '{currency}' not allowed.")

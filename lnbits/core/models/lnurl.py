@@ -1,5 +1,4 @@
 from time import time
-from typing import Optional
 
 from lnurl import LnAddress, Lnurl, LnurlPayResponse
 from pydantic import BaseModel, Field
@@ -9,9 +8,9 @@ class CreateLnurlPayment(BaseModel):
     res: LnurlPayResponse | None = None
     lnurl: Lnurl | LnAddress | None = None
     amount: int
-    comment: Optional[str] = None
-    unit: Optional[str] = None
-    internal_memo: Optional[str] = None
+    comment: str | None = None
+    unit: str | None = None
+    internal_memo: str | None = None
 
 
 class CreateLnurlWithdraw(BaseModel):

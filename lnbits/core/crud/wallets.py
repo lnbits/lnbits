@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 from time import time
-from typing import Optional
 from uuid import uuid4
 
 from lnbits.core.db import db
@@ -14,8 +13,8 @@ from ..models import Wallet
 async def create_wallet(
     *,
     user_id: str,
-    wallet_name: Optional[str] = None,
-    conn: Optional[Connection] = None,
+    wallet_name: str | None = None,
+    conn: Connection | None = None,
 ) -> Wallet:
     wallet_id = uuid4().hex
     wallet = Wallet(
@@ -32,7 +31,7 @@ async def create_wallet(
 
 async def update_wallet(
     wallet: Wallet,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> Wallet:
     wallet.updated_at = datetime.now(timezone.utc)
     await (conn or db).update("wallets", wallet)
@@ -44,7 +43,7 @@ async def delete_wallet(
     user_id: str,
     wallet_id: str,
     deleted: bool = True,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> None:
     now = int(time())
     await (conn or db).execute(
@@ -58,9 +57,7 @@ async def delete_wallet(
     )
 
 
-async def force_delete_wallet(
-    wallet_id: str, conn: Optional[Connection] = None
-) -> None:
+async def force_delete_wallet(wallet_id: str, conn: Connection | None = None) -> None:
     await (conn or db).execute(
         "DELETE FROM wallets WHERE id = :wallet",
         {"wallet": wallet_id},
@@ -68,8 +65,8 @@ async def force_delete_wallet(
 
 
 async def delete_wallet_by_id(
-    wallet_id: str, conn: Optional[Connection] = None
-) -> Optional[int]:
+    wallet_id: str, conn: Connection | None = None
+) -> int | None:
     now = int(time())
     result = await (conn or db).execute(
         # Timestamp placeholder is safe from SQL injection (not user input)
@@ -83,13 +80,13 @@ async def delete_wallet_by_id(
     return result.rowcount
 
 
-async def remove_deleted_wallets(conn: Optional[Connection] = None) -> None:
+async def remove_deleted_wallets(conn: Connection | None = None) -> None:
     await (conn or db).execute("DELETE FROM wallets WHERE deleted = true")
 
 
 async def delete_unused_wallets(
     time_delta: int,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> None:
     delta = int(time()) - time_delta
     await (conn or db).execute(
@@ -107,8 +104,8 @@ async def delete_unused_wallets(
 
 
 async def get_wallet(
-    wallet_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
-) -> Optional[Wallet]:
+    wallet_id: str, deleted: bool | None = None, conn: Connection | None = None
+) -> Wallet | None:
     query = """
             SELECT *, COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
@@ -125,7 +122,7 @@ async def get_wallet(
 
 
 async def get_wallets(
-    user_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
+    user_id: str, deleted: bool | None = None, conn: Connection | None = None
 ) -> list[Wallet]:
     query = """
             SELECT *, COALESCE((
@@ -144,9 +141,9 @@ async def get_wallets(
 
 async def get_wallets_paginated(
     user_id: str,
-    deleted: Optional[bool] = None,
-    filters: Optional[Filters[WalletsFilters]] = None,
-    conn: Optional[Connection] = None,
+    deleted: bool | None = None,
+    filters: Filters[WalletsFilters] | None = None,
+    conn: Connection | None = None,
 ) -> Page[Wallet]:
     if deleted is None:
         deleted = False
@@ -166,7 +163,7 @@ async def get_wallets_paginated(
 
 
 async def get_wallets_ids(
-    user_id: str, deleted: Optional[bool] = None, conn: Optional[Connection] = None
+    user_id: str, deleted: bool | None = None, conn: Connection | None = None
 ) -> list[str]:
     query = """SELECT id FROM wallets  WHERE "user" = :user"""
     if deleted is not None:
@@ -186,8 +183,8 @@ async def get_wallets_count():
 
 async def get_wallet_for_key(
     key: str,
-    conn: Optional[Connection] = None,
-) -> Optional[Wallet]:
+    conn: Connection | None = None,
+) -> Wallet | None:
     return await (conn or db).fetchone(
         """
         SELECT *, COALESCE((
@@ -201,7 +198,7 @@ async def get_wallet_for_key(
     )
 
 
-async def get_total_balance(conn: Optional[Connection] = None):
+async def get_total_balance(conn: Connection | None = None):
     result = await (conn or db).execute("SELECT SUM(balance) as balance FROM balances")
     row = result.mappings().first()
     return row.get("balance", 0) or 0

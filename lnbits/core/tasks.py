@@ -1,7 +1,6 @@
 import asyncio
 import traceback
-from collections.abc import Coroutine
-from typing import Callable
+from collections.abc import Callable, Coroutine
 
 from loguru import logger
 

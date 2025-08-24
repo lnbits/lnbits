@@ -2,7 +2,7 @@ import asyncio
 import time
 from collections.abc import AsyncGenerator
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from loguru import logger
@@ -116,7 +116,7 @@ class StrikeWallet(Wallet):
         self.failed_payments: dict[str, str] = {}
 
         # balance cache
-        self._cached_balance: Optional[int] = None
+        self._cached_balance: int | None = None
         self._cached_balance_ts: float = 0.0
         self._cache_ttl = 30  # seconds
 
@@ -199,8 +199,8 @@ class StrikeWallet(Wallet):
     async def create_invoice(
         self,
         amount: int,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
         unhashed_description: bytes | None = None,  # Add this parameter
         **kwargs,
     ) -> InvoiceResponse:
@@ -424,10 +424,10 @@ class StrikeWallet(Wallet):
 
     async def get_invoices(
         self,
-        filters: Optional[str] = None,
-        orderby: Optional[str] = None,
-        skip: Optional[int] = None,
-        top: Optional[int] = None,
+        filters: str | None = None,
+        orderby: str | None = None,
+        skip: int | None = None,
+        top: int | None = None,
     ) -> dict[str, Any]:
         try:
             params: dict[str, Any] = {}
@@ -450,7 +450,7 @@ class StrikeWallet(Wallet):
 
     async def _get_payment_status_by_quote_id(
         self, checking_id: str, quote_id: str
-    ) -> Optional[PaymentStatus]:
+    ) -> PaymentStatus | None:
         resp = await self._get(f"/payment-quotes/{quote_id}")
         resp.raise_for_status()
 

@@ -60,7 +60,7 @@ async def _handle(lnurl: str) -> LnurlResponseModel:
 )
 async def api_lnurlscan(code: str) -> LnurlResponseModel:
     res = await _handle(code)
-    if isinstance(res, (LnurlPayResponse, LnurlWithdrawResponse, LnurlAuthResponse)):
+    if isinstance(res, LnurlPayResponse | LnurlWithdrawResponse | LnurlAuthResponse):
         check_callback_url(res.callback)
     return res
 
@@ -122,8 +122,8 @@ async def api_payments_pay_lnurl(
     extra: dict[str, Any] = {}
     if res2.disposable is False:
         extra["stored"] = True
-    if res2.success_action:
-        extra["success_action"] = res2.success_action.json()
+    if res2.successAction:
+        extra["success_action"] = res2.successAction.json()
     if data.comment:
         extra["comment"] = data.comment
     if data.unit and data.unit != "sat":
@@ -169,7 +169,7 @@ async def api_payment_pay_with_nfc(
     except (LnurlResponseException, Exception) as exc:
         logger.warning(exc)
         return LnurlErrorResponse(reason=str(exc))
-    if not isinstance(res2, (LnurlSuccessResponse, LnurlErrorResponse)):
+    if not isinstance(res2, LnurlSuccessResponse | LnurlErrorResponse):
         return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
 
     return res2

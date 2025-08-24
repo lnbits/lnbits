@@ -23,15 +23,15 @@ LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 ./LNbits-latest.AppImage # most syst
 
 LNbits will create a folder for db and extension files in the folder the AppImage runs from.
 
-## Option 2: Poetry (recommended for developers)
+## Option 2: UV (recommended for developers)
 
-It is recommended to use the latest version of Poetry. Make sure you have Python version `3.12` installed.
+It is recommended to use the latest version of UV. Make sure you have Python version `3.12` installed.
 
 ### Install Python 3.12
 
-## Option 2 (recommended): Poetry
+## Option 2 (recommended): UV
 
-It is recommended to use the latest version of Poetry. Make sure you have Python version 3.9 or higher installed.
+It is recommended to use the latest version of UV. Make sure you have Python version 3.10 or higher installed.
 
 ### Verify Python version
 
@@ -39,11 +39,19 @@ It is recommended to use the latest version of Poetry. Make sure you have Python
 python3 --version
 ```
 
-### Install Poetry
+### Install UV
+
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### (old) Install Poetry
 
 ```sh
 # If path 'export PATH="$HOME/.local/bin:$PATH"' fails, use the path echoed by the install
-curl -sSL https://install.python-poetry.org | python3 - && export PATH="$HOME/.local/bin:$PATH"
+curl -sSL https://install.python-poetry.org | python3 -
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ### install LNbits
@@ -51,9 +59,13 @@ curl -sSL https://install.python-poetry.org | python3 - && export PATH="$HOME/.l
 ```sh
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
-poetry env use 3.12
 git checkout main
-poetry install --only main
+uv sync --all-extras
+
+# or poetry
+# poetry env use 3.12
+# poetry install --only main
+
 cp .env.example .env
 # Optional: to set funding source amongst other options via the env `nano .env`
 ```
@@ -61,8 +73,11 @@ cp .env.example .env
 #### Running the server
 
 ```sh
-poetry run lnbits
-# To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
+uv run lnbits
+# To change port/host pass 'uv run lnbits --port 9000 --host 0.0.0.0'
+
+# or poetry
+# poetry run lnbits
 # adding --debug in the start-up command above to help your troubleshooting and generate a more verbose output
 # Note that you have to add the line DEBUG=true in your .env file, too.
 ```
@@ -71,7 +86,7 @@ poetry run lnbits
 
 ```sh
 # A very useful terminal client for getting the supersuer ID, updating extensions, etc
-poetry run lnbits-cli --help
+uv run lnbits-cli --help
 ```
 
 #### Updating the server
@@ -85,15 +100,18 @@ cd lnbits
 git pull --rebase
 
 # Check your poetry version with
-poetry env list
+# poetry env list
 # If version is less 3.12, update it by running
-poetry env use python3.12
-poetry env remove python3.9
-poetry env list
+# poetry env use python3.12
+# poetry env remove python3.9
+# poetry env list
 
 # Run install and start LNbits with
-poetry install --only main
-poetry run lnbits
+# poetry install --only main
+# poetry run lnbits
+
+uv sync --all-extras
+uv run lnbits
 
 # use LNbits admin UI Extensions page function "Update All" do get extensions onto proper level
 ```
@@ -108,13 +126,13 @@ chmod +x lnbits.sh &&
 
 Now visit `0.0.0.0:5000` to make a super-user account.
 
-`./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `poetry run lnbits` (see previous option).
+`./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `uv run lnbits` (see previous option).
 
 ## Option 3: Nix
 
 ```sh
 # Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
-sh <(curl -L https://nixos.org/nix/install) --daemon
+sh <(c&url -L https://nixos.org/nix/install) --daemon
 
 # Enable nix-command and flakes experimental features for nix:
 echo 'experimental-features = nix-command flakes' >> /etc/nix/nix.conf
@@ -332,7 +350,7 @@ LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
 
 # START LNbits
 # STOP LNbits
-poetry run python tools/conv.py
+uv run python tools/conv.py
 # or
 make migration
 ```
@@ -357,8 +375,8 @@ Description=LNbits
 [Service]
 # replace with the absolute path of your lnbits installation
 WorkingDirectory=/home/lnbits/lnbits
-# same here. run `which poetry` if you can't find the poetry binary
-ExecStart=/home/lnbits/.local/bin/poetry run lnbits
+# same here. run `which uv` if you can't find the poetry binary
+ExecStart=/home/lnbits/.local/bin/uv run lnbits
 # replace with the user that you're running lnbits on
 User=lnbits
 Restart=always

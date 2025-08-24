@@ -4,7 +4,6 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http import HTTPStatus
-from typing import Optional
 
 import httpx
 from loguru import logger
@@ -71,7 +70,7 @@ async def process_next_notification() -> None:
 
 async def send_admin_notification(
     message: str,
-    message_type: Optional[str] = None,
+    message_type: str | None = None,
 ) -> None:
     return await send_notification(
         settings.lnbits_telegram_notifications_chat_id,
@@ -85,7 +84,7 @@ async def send_admin_notification(
 async def send_user_notification(
     user_notifications: UserNotifications,
     message: str,
-    message_type: Optional[str] = None,
+    message_type: str | None = None,
 ) -> None:
 
     email_address = (
@@ -110,7 +109,7 @@ async def send_notification(
     nostr_identifiers: list[str] | None,
     email_addresses: list[str] | None,
     message: str,
-    message_type: Optional[str] = None,
+    message_type: str | None = None,
 ) -> None:
     try:
         if telegram_chat_id and settings.is_telegram_notifications_configured():

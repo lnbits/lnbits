@@ -1,30 +1,28 @@
-from typing import Optional, Union
-
 from pydantic import BaseModel
 
 
 class FundingSourceConfig(BaseModel):
     name: str
-    skip: Optional[bool]
+    skip: bool | None
     wallet_class: str
     settings: dict
-    mock_settings: Optional[dict]
+    mock_settings: dict | None
 
 
 class FunctionMock(BaseModel):
-    uri: Optional[str]
-    query_params: Optional[dict]
-    headers: Optional[dict]
-    method: Optional[str]
+    uri: str | None
+    query_params: dict | None
+    headers: dict | None
+    method: str | None
 
 
 class TestMock(BaseModel):
-    skip: Optional[bool]
-    description: Optional[str]
-    request_type: Optional[str]
-    request_body: Optional[dict]
+    skip: bool | None
+    description: str | None
+    request_type: str | None
+    request_body: dict | None
     response_type: str
-    response: Union[str, dict, list]
+    response: str | dict | list
 
 
 class Mock(FunctionMock, TestMock):
@@ -62,13 +60,13 @@ class FunctionData(BaseModel):
 
 
 class WalletTest(BaseModel):
-    skip: Optional[bool]
+    skip: bool | None
     function: str
     description: str
     funding_source: FundingSourceConfig
-    call_params: Optional[dict] = {}
-    expect: Optional[dict]
-    expect_error: Optional[dict]
+    call_params: dict | None = {}
+    expect: dict | None
+    expect_error: dict | None
     mocks: list[Mock] = []
 
     @staticmethod

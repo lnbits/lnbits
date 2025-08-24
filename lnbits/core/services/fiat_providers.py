@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import time
-from typing import Optional
 
 from loguru import logger
 
@@ -15,7 +14,7 @@ from lnbits.settings import settings
 
 
 async def handle_fiat_payment_confirmation(
-    payment: Payment, conn: Optional[Connection] = None
+    payment: Payment, conn: Connection | None = None
 ):
     try:
         await _credit_fiat_service_fee_wallet(payment, conn=conn)
@@ -29,7 +28,7 @@ async def handle_fiat_payment_confirmation(
 
 
 async def _credit_fiat_service_fee_wallet(
-    payment: Payment, conn: Optional[Connection] = None
+    payment: Payment, conn: Connection | None = None
 ):
     fiat_provider_name = payment.fiat_provider
     if not fiat_provider_name:
@@ -66,7 +65,7 @@ async def _credit_fiat_service_fee_wallet(
 
 
 async def _debit_fiat_service_faucet_wallet(
-    payment: Payment, conn: Optional[Connection] = None
+    payment: Payment, conn: Connection | None = None
 ):
     fiat_provider_name = payment.fiat_provider
     if not fiat_provider_name:
@@ -129,8 +128,8 @@ async def handle_stripe_event(event: dict):
 
 def check_stripe_signature(
     payload: bytes,
-    sig_header: Optional[str],
-    secret: Optional[str],
+    sig_header: str | None,
+    secret: str | None,
     tolerance_seconds=300,
 ):
     if not sig_header:

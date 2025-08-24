@@ -1,5 +1,3 @@
-from typing import Optional
-
 from lnbits.core.db import db
 from lnbits.db import Connection
 
@@ -7,8 +5,8 @@ from ..models import DbVersion
 
 
 async def get_db_version(
-    ext_id: str, conn: Optional[Connection] = None
-) -> Optional[DbVersion]:
+    ext_id: str, conn: Connection | None = None
+) -> DbVersion | None:
     return await (conn or db).fetchone(
         "SELECT * FROM dbversions WHERE db = :ext_id",
         {"ext_id": ext_id},
@@ -16,7 +14,7 @@ async def get_db_version(
     )
 
 
-async def get_db_versions(conn: Optional[Connection] = None) -> list[DbVersion]:
+async def get_db_versions(conn: Connection | None = None) -> list[DbVersion]:
     return await (conn or db).fetchall("SELECT * FROM dbversions", model=DbVersion)
 
 
@@ -30,7 +28,7 @@ async def update_migration_version(conn, db_name, version):
     )
 
 
-async def delete_dbversion(*, ext_id: str, conn: Optional[Connection] = None) -> None:
+async def delete_dbversion(*, ext_id: str, conn: Connection | None = None) -> None:
     await (conn or db).execute(
         """
         DELETE FROM dbversions WHERE db = :ext

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Annotated, Optional, Union
+from typing import Annotated
 from urllib.parse import urlencode, urlparse
 
 import httpx
@@ -161,9 +161,9 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
 )
 async def wallet(
     request: Request,
-    lnbits_last_active_wallet: Annotated[Union[str, None], Cookie()] = None,
+    lnbits_last_active_wallet: Annotated[str | None, Cookie()] = None,
     user: User = Depends(check_user_exists),
-    wal: Optional[UUID4] = Query(None),
+    wal: UUID4 | None = Query(None),
 ):
     if wal:
         wallet = await get_wallet(wal.hex)

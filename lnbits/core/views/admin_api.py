@@ -5,7 +5,7 @@ from pathlib import Path
 from shutil import make_archive, move
 from subprocess import Popen
 from tempfile import NamedTemporaryFile
-from typing import IO, Optional
+from typing import IO
 from urllib.parse import urlparse
 
 import filetype
@@ -71,10 +71,10 @@ async def api_test_email():
     )
 
 
-@admin_router.get("/api/v1/settings", response_model=Optional[AdminSettings])
+@admin_router.get("/api/v1/settings")
 async def api_get_settings(
     user: User = Depends(check_admin),
-) -> Optional[AdminSettings]:
+) -> AdminSettings | None:
     admin_settings = await get_admin_settings(user.super_user)
     return admin_settings
 

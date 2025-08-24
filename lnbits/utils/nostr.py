@@ -2,7 +2,6 @@ import base64
 import hashlib
 import json
 import re
-from typing import Union
 from urllib.parse import urlparse
 
 import secp256k1
@@ -149,7 +148,7 @@ def sign_event(
     return event
 
 
-def json_dumps(data: Union[dict, list]) -> str:
+def json_dumps(data: dict | list) -> str:
     """
     Converts a Python dictionary to a JSON string with compact encoding.
 

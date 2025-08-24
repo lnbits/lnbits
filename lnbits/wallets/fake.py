@@ -3,7 +3,6 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 from hashlib import sha256
 from os import urandom
-from typing import Optional
 
 from bolt11 import (
     Bolt11,
@@ -53,11 +52,11 @@ class FakeWallet(Wallet):
     async def create_invoice(
         self,
         amount: int,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
-        unhashed_description: Optional[bytes] = None,
-        expiry: Optional[int] = None,
-        payment_secret: Optional[bytes] = None,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
+        expiry: int | None = None,
+        payment_secret: bytes | None = None,
         **_,
     ) -> InvoiceResponse:
         tags = Tags()
