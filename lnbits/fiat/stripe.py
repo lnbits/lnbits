@@ -109,7 +109,7 @@ class StripeWallet(FiatProvider):
         amount: float,
         payment_hash: str,
         currency: str,
-        extra: dict[str, Any] | None = None
+        extra: dict[str, Any] | None = None,
         memo: str | None = None,
         **kwargs,
     ) -> FiatInvoiceResponse:
