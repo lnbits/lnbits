@@ -19,7 +19,7 @@ window.app.component('lnbits-qrcode', {
     },
     href: {
       type: String,
-      default: '#'
+      default: ''
     },
     margin: {
       type: Number,
@@ -41,13 +41,13 @@ window.app.component('lnbits-qrcode', {
     }
   },
   methods: {
-    clickQrCode() {
-      if (this.href === '#') {
+    clickQrCode(event) {
+      if (this.href === '') {
         this.copyText(this.value)
-      } else {
-        window.open(this.href, '_blank')
+        event.preventDefault()
+        event.stopPropagation()
+        return false
       }
-      return false
     },
     async writeNfcTag() {
       try {
