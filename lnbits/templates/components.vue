@@ -622,7 +622,12 @@
     :style="`margin: 13px auto; max-width: ${maxWidth}px`"
   >
     <div ref="qrWrapper" class="qrcode__wrapper">
-      <a :href="href" @click="clickQrCode" class="no-link full-width">
+      <a
+        :href="href"
+        :title="href === '' ? value : href"
+        @click="clickQrCode"
+        class="no-link full-width"
+      >
         <qrcode-vue
           ref="qrCode"
           :value="value"
@@ -631,7 +636,9 @@
           level="Q"
           render-as="svg"
           class="rounded-borders q-mb-sm"
-        ></qrcode-vue>
+        >
+          <q-tooltip :model-value="href === '' ? value : href"></q-tooltip>
+        </qrcode-vue>
       </a>
       <img
         :src="logo"
