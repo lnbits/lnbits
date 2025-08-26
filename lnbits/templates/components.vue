@@ -619,6 +619,7 @@
 <template id="lnbits-qrcode">
   <div class="qrcode__wrapper">
     <qrcode-vue
+      ref="qrCode"
       :value="value"
       level="Q"
       render-as="svg"
@@ -631,6 +632,9 @@
       class="qrcode__image"
       :src="custom.logo"
       alt="qrcode icon"
+      @click="downloadSVG"
+      tooltip="Click to download SVG"
+      style="cursor: pointer"
     />
   </div>
 </template>
