@@ -629,13 +629,46 @@
     ></qrcode-vue>
     <img
       v-if="custom.logo"
-      class="qrcode__image"
       :src="custom.logo"
+      class="qrcode__image"
       alt="qrcode icon"
-      @click="downloadSVG"
-      tooltip="Click to download SVG"
-      style="cursor: pointer"
     />
+  </div>
+  <div class="q-my-sm flex justify-center">
+    <q-btn
+      v-if="custom.logo"
+      flat
+      dense
+      @click="copyText(value)"
+      :label="$t('copy')"
+      class="text-grey"
+      icon="content_copy"
+    >
+      <q-tooltip>Copy</q-tooltip>
+    </q-btn>
+    <q-btn
+      v-if="custom.logo"
+      flat
+      dense
+      class="text-grey"
+      icon="download"
+      @click="downloadSVG"
+      :label="$t('download')"
+    >
+      <q-tooltip>Download SVG</q-tooltip>
+    </q-btn>
+    <q-btn
+      v-if="nfc && nfcSupported"
+      :disabled="nfcTagWriting"
+      flat
+      dense
+      color="grey"
+      icon="nfc"
+      label="NFC"
+      @click="writeNfcTag"
+    >
+      <q-tooltip>Write NFC Tag</q-tooltip>
+    </q-btn>
   </div>
 </template>
 
@@ -654,7 +687,7 @@
       <q-tab name="bech32" icon="qr_code" label="bech32"></q-tab>
       <q-tab name="lud17" icon="link" label="url (lud17)"></q-tab>
     </q-tabs>
-    <lnbits-qrcode :value="lnurl" class="rounded-borders"></lnbits-qrcode>
+    <lnbits-qrcode :value="lnurl" :nfc="nfc"></lnbits-qrcode>
   </div>
 </template>
 

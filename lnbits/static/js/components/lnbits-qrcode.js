@@ -9,10 +9,16 @@ window.app.component('lnbits-qrcode', {
       type: String,
       required: true
     },
+    nfc: {
+      type: Boolean,
+      default: false
+    },
     options: Object
   },
   data() {
     return {
+      nfcTagWriting: false,
+      nfcSupported: typeof NDEFReader != 'undefined',
       custom: {
         margin: 3,
         width: 350,
@@ -22,6 +28,42 @@ window.app.component('lnbits-qrcode', {
     }
   },
   methods: {
+    async writeNfcTag() {
+      try {
+        if (!this.nfcSupported) {
+          throw {
+            toString: function () {
+              return 'NFC not supported on this device or browser.'
+            }
+          }
+        }
+
+        const ndef = new NDEFReader()
+
+        this.nfcTagWriting = true
+        this.$q.notify({
+          message: 'Tap your NFC tag to write the LNURL-withdraw link to it.'
+        })
+
+        await ndef.write({
+          records: [{recordType: 'url', data: this.value, lang: 'en'}]
+        })
+
+        this.nfcTagWriting = false
+        this.$q.notify({
+          type: 'positive',
+          message: 'NFC tag written successfully.'
+        })
+      } catch (error) {
+        this.nfcTagWriting = false
+        this.$q.notify({
+          type: 'negative',
+          message: error
+            ? error.toString()
+            : 'An unexpected error has occurred.'
+        })
+      }
+    },
     downloadSVG() {
       const filename = 'qrcode.svg'
       const svg = this.$refs.qrCode.$el
