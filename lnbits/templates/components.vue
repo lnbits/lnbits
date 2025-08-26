@@ -617,58 +617,54 @@
 </template>
 
 <template id="lnbits-qrcode">
-  <div class="qrcode__wrapper">
-    <qrcode-vue
-      ref="qrCode"
-      :value="value"
-      level="Q"
-      render-as="svg"
-      :margin="custom.margin"
-      :size="custom.width"
-      class="rounded-borders"
-    ></qrcode-vue>
-    <img
-      v-if="custom.logo"
-      :src="custom.logo"
-      class="qrcode__image"
-      alt="qrcode icon"
-    />
-  </div>
-  <div class="q-my-sm flex justify-center">
-    <q-btn
-      v-if="custom.logo"
-      flat
-      dense
-      @click="copyText(value)"
-      :label="$t('copy')"
-      class="text-grey"
-      icon="content_copy"
-    >
-      <q-tooltip>Copy</q-tooltip>
-    </q-btn>
-    <q-btn
-      v-if="custom.logo"
-      flat
-      dense
-      class="text-grey"
-      icon="download"
-      @click="downloadSVG"
-      :label="$t('download')"
-    >
-      <q-tooltip>Download SVG</q-tooltip>
-    </q-btn>
-    <q-btn
-      v-if="nfc && nfcSupported"
-      :disabled="nfcTagWriting"
-      flat
-      dense
-      color="grey"
-      icon="nfc"
-      label="NFC"
-      @click="writeNfcTag"
-    >
-      <q-tooltip>Write NFC Tag</q-tooltip>
-    </q-btn>
+  <div
+    class="qrcode__outer"
+    :style="`margin: 13px auto; max-width: ${maxWidth}px`"
+  >
+    <div ref="qrWrapper" class="qrcode__wrapper">
+      <a :href="href" @click="clickQrCode" class="no-link full-width">
+        <qrcode-vue
+          ref="qrCode"
+          :value="value"
+          :margin="margin"
+          :size="size"
+          level="Q"
+          render-as="svg"
+          class="rounded-borders q-mb-sm"
+        ></qrcode-vue>
+      </a>
+      <img
+        :src="logo"
+        class="qrcode__image"
+        alt="qrcode icon"
+        style="pointer-events: none"
+      />
+    </div>
+    <div v-if="buttons" class="qrcode__buttons row q-gutter-x-sm">
+      <q-btn
+        outline
+        class="text-grey"
+        @click="copyText(value)"
+        :label="$t('copy')"
+        icon="content_copy"
+      >
+        <q-tooltip>Copy</q-tooltip>
+      </q-btn>
+      <q-btn flat dense class="text-grey" icon="download" @click="downloadSVG">
+        <q-tooltip>Download SVG</q-tooltip>
+      </q-btn>
+      <q-btn
+        v-if="nfc && nfcSupported"
+        :disabled="nfcTagWriting"
+        flat
+        dense
+        class="text-grey"
+        icon="nfc"
+        @click="writeNfcTag"
+      >
+        <q-tooltip>Write NFC Tag</q-tooltip>
+      </q-btn>
+    </div>
   </div>
 </template>
 
@@ -677,17 +673,16 @@
     <q-tabs
       v-model="tab"
       dense
-      class="text-grey q-mb-md"
+      class="text-grey"
       active-color="primary"
       indicator-color="primary"
       align="justify"
-      narrow-indicator
       inline-label
     >
       <q-tab name="bech32" icon="qr_code" label="bech32"></q-tab>
       <q-tab name="lud17" icon="link" label="url (lud17)"></q-tab>
     </q-tabs>
-    <lnbits-qrcode :value="lnurl" :nfc="nfc"></lnbits-qrcode>
+    <lnbits-qrcode :value="lnurl" nfc="true"></lnbits-qrcode>
   </div>
 </template>
 
@@ -1081,42 +1076,23 @@
 
               <div
                 v-if="props.row.isIn && props.row.isPending && props.row.bolt11"
-                class="text-center q-my-lg"
               >
                 <div v-if="props.row.extra.fiat_payment_request">
-                  <a
+                  <lnbits-qrcode
+                    :value="props.row.extra.fiat_payment_request"
                     :href="props.row.extra.fiat_payment_request"
-                    target="_blank"
-                  >
-                    <lnbits-qrcode
-                      :value="props.row.extra.fiat_payment_request"
-                    ></lnbits-qrcode>
-                  </a>
+                    buttons="false"
+                  ></lnbits-qrcode>
                 </div>
                 <div v-else>
-                  <a :href="'lightning:' + props.row.bolt11">
-                    <lnbits-qrcode
-                      :value="'lightning:' + props.row.bolt11.toUpperCase()"
-                    ></lnbits-qrcode>
-                  </a>
+                  <lnbits-qrcode
+                    :value="'lightning:' + props.row.bolt11.toUpperCase()"
+                    :href="'lightning:' + props.row.bolt11"
+                    buttons="false"
+                  ></lnbits-qrcode>
                 </div>
               </div>
-            </q-card-section>
-            <q-card-section>
-              <div class="row q-gutter-x-sm">
-                <q-btn
-                  v-if="
-                    props.row.isIn && props.row.isPending && props.row.bolt11
-                  "
-                  outline
-                  color="grey"
-                  @click="
-                    copyText(
-                      props.row.extra.fiat_payment_request || props.row.bolt11
-                    )
-                  "
-                  :label="$t('copy_invoice')"
-                ></q-btn>
+              <div class="row q-mt-md">
                 <q-btn
                   outline
                   color="grey"
@@ -1319,7 +1295,7 @@
     <q-dialog v-model="showQRDialog">
       <q-card class="q-pa-md">
         <q-card-section>
-          <lnbits-qrcode :value="qrValue" :size="200"></lnbits-qrcode>
+          <lnbits-qrcode :value="qrValue"></lnbits-qrcode>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Close" v-close-popup />

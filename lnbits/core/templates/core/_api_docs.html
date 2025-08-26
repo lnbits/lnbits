@@ -51,11 +51,7 @@
             <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
               <q-popup-proxy>
                 <div class="q-pa-md">
-                  <lnbits-qrcode
-                    :value="wallet.adminkey"
-                    :options="{ width: 250 }"
-                    class="rounded-borders"
-                  ></lnbits-qrcode>
+                  <lnbits-qrcode :value="wallet.adminkey"></lnbits-qrcode>
                 </div>
               </q-popup-proxy>
             </q-icon>
@@ -84,11 +80,7 @@
             <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
               <q-popup-proxy>
                 <div class="q-pa-md">
-                  <lnbits-qrcode
-                    :value="wallet.inkey"
-                    :options="{ width: 250 }"
-                    class="rounded-borders"
-                  ></lnbits-qrcode>
+                  <lnbits-qrcode :value="wallet.inkey"></lnbits-qrcode>
                 </div>
               </q-popup-proxy>
             </q-icon>

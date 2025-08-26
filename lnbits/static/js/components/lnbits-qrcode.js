@@ -13,21 +13,42 @@ window.app.component('lnbits-qrcode', {
       type: Boolean,
       default: false
     },
-    options: Object
+    buttons: {
+      type: Boolean,
+      default: true
+    },
+    href: {
+      type: String,
+      default: '#'
+    },
+    margin: {
+      type: Number,
+      default: 3
+    },
+    maxWidth: {
+      type: Number,
+      default: 450
+    },
+    logo: {
+      type: String,
+      default: LNBITS_QR_LOGO
+    }
   },
   data() {
     return {
       nfcTagWriting: false,
-      nfcSupported: typeof NDEFReader != 'undefined',
-      custom: {
-        margin: 3,
-        width: 350,
-        size: 350,
-        logo: LNBITS_QR_LOGO
-      }
+      nfcSupported: typeof NDEFReader != 'undefined'
     }
   },
   methods: {
+    clickQrCode() {
+      if (this.href === '#') {
+        this.copyText(this.value)
+      } else {
+        window.open(this.href, '_blank')
+      }
+      return false
+    },
     async writeNfcTag() {
       try {
         if (!this.nfcSupported) {
@@ -102,7 +123,9 @@ window.app.component('lnbits-qrcode', {
       URL.revokeObjectURL(url)
     }
   },
-  created() {
-    this.custom = {...this.custom, ...this.options}
+  mounted() {
+    this.$refs.qrCode.$el.style.maxWidth = this.maxWidth + 'px'
+    this.$refs.qrCode.$el.setAttribute('width', '100%')
+    this.$refs.qrCode.$el.setAttribute('height', null)
   }
 })

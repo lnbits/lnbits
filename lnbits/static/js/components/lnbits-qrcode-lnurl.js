@@ -9,10 +9,6 @@ window.app.component('lnbits-qrcode-lnurl', {
     prefix: {
       type: String,
       default: 'lnurlp'
-    },
-    nfc: {
-      type: Boolean,
-      default: false
     }
   },
   data() {
