@@ -268,11 +268,10 @@
                 >
                   <q-card>
                     <q-card-section>
-                      <a href="lightning:{{wallet.lnurlwithdraw_full}}">
-                        <lnbits-qrcode
-                          :value="lightning:{{wallet.lnurlwithdraw_full}}"
-                        ></lnbits-qrcode>
-                      </a>
+                      <lnbits-qrcode
+                        value="lightning:{{wallet.lnurlwithdraw_full}}"
+                        href="lightning:{{wallet.lnurlwithdraw_full}}"
+                      ></lnbits-qrcode>
                       <p
                         class="text-center"
                         v-text="$t('drain_funds_desc')"
