@@ -134,17 +134,12 @@ async def create_fiat_invoice(
     if not fiat_provider:
         raise InvoiceError("No fiat provider found.", status="failed")
 
-    # Provider-agnostic: pass through provider-specific options from `extra`
-    provider_kwargs = invoice_data.extra or {}
-    if not isinstance(provider_kwargs, dict):
-        raise ValueError("`extra` must be a JSON object (dictionary).")
-    logger.debug(f"Creating fiat invoice with options: {provider_kwargs}")
     fiat_invoice = await fiat_provider.create_invoice(
         amount=invoice_data.amount,
         payment_hash=internal_payment.payment_hash,
         currency=invoice_data.unit,
         memo=invoice_data.memo,
-        extra=provider_kwargs,
+        extra=invoice_data.extra or {},
     )
 
     if fiat_invoice.failed:
