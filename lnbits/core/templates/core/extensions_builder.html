@@ -229,10 +229,19 @@
               color="green"
             />
             <br />
+            <q-input
+              v-if="generate.owner"
+              filled
+              label="Owner TableName"
+              hint="CamelCase name for the owner data table (e.g. Campaign, PoS, etc.)"
+              class="q-mb-xl"
+            >
+            </q-input>
+
             <ul>
               <li>
-                The owner of the extension manages this data. It can create,
-                update and delete it.
+                The owner of the extension manages this data. It can add, remove
+                and update instances of it.
               </li>
 
               <li>
@@ -272,6 +281,14 @@
               color="green"
             />
             <br />
+            <q-input
+              v-if="generate.customer"
+              filled
+              label="Customer Table Name"
+              hint="CamelCase name for the customer data table (e.g. Donation, Payment, etc.)"
+              class="q-mb-xl"
+            >
+            </q-input>
             <ul>
               <li>
                 This data is created by users of the extension. Usually when
