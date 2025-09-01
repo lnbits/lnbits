@@ -84,18 +84,28 @@
             ></q-img>
           </div>
           <div class="col-md-4 col-sm-12">
-            <span>
-              Tell us soomething about your extensions. This is the first step,
-              you can return and change it.
-            </span>
+            <span> Tell us something about your extension: </span>
+            <ul>
+              <li>This is the first step, you can return and change it.</li>
+              <li>
+                The <code>`name`</code> and
+                <code>`sort description`</code> fields are what the users will
+                see when browsing the list of extensions.
+              </li>
+              <li>
+                The <code>`id`</code> field is used internally and in the URL of
+                your extension.
+              </li>
+            </ul>
           </div>
+          <!-- todo: add icon -->
         </div>
         <q-separator class="q-mt-sm"></q-separator>
         <div class="row q-col-gutter-md q-mt-md">
           <div class="col-md-4 col-sm-12">
             <q-input
               filled
-              label="Campaign Donations"
+              label="Eg: Campaign Donations"
               hint="The name of your extension"
             >
             </q-input>
@@ -103,7 +113,7 @@
           <div class="col-md-4 col-sm-12">
             <q-input
               filled
-              label="campaigns"
+              label="Eg: campaigns"
               hint="The ID of your extension. Lowercase letters, numbers, and underscores only (snake_case)."
             >
             </q-input>
@@ -111,8 +121,8 @@
           <div class="col-md-4 col-sm-12">
             <q-input
               filled
-              label="Track, manage, and analyze donations for any fundraising campaign easily."
-              hint="A brief description that is shown in the extension list."
+              label="Eg: Track, manage, and analyze donations for any fundraising campaign easily."
+              hint="A short description that is shown in the extension list."
             >
             </q-input>
           </div>
@@ -153,9 +163,12 @@
               color="green"
             />
             <br />
-            <ul></ul>
+            <ul>
               <li>Define what settings your extension will have.</li>
-              <li>You can choose if each user has its own settings or if the settings are global (set by the admin).</li>
+              <li>
+                You can choose if each user has its own settings or if the
+                settings are global (set by the admin).
+              </li>
             </ul>
           </div>
         </div>
@@ -173,7 +186,10 @@
             ></q-select>
           </div>
           <div class="col-md-10 col-sm-12 q-pt-sm">
-            <q-badge v-if="settingsType === 'user'" outline class="text-caption q-ml-md"
+            <q-badge
+              v-if="settingsType === 'user'"
+              outline
+              class="text-caption q-ml-md"
               >Each user can set its own settings for this extension.</q-badge
             >
             <q-badge v-else outline class="text-caption q-ml-md"
@@ -214,13 +230,17 @@
             />
             <br />
             <ul>
-              <li>The owner of the extension manages this data. It can create,
-              update and delete it.</li>
+              <li>
+                The owner of the extension manages this data. It can create,
+                update and delete it.
+              </li>
 
-            <li>
-              Some fileds are present by default, like  <code>created_at</code>, <code>updated_at</code> and <code>extra</code>.
-            </li>
-             </ul>
+              <li>
+                Some fileds are present by default, like
+                <code>created_at</code>, <code>updated_at</code> and
+                <code>extra</code>.
+              </li>
+            </ul>
           </div>
         </div>
         <q-separator v-if="generate.owner" class="q-mt-sm"></q-separator>
@@ -253,14 +273,14 @@
             />
             <br />
             <ul>
-            <li>
-              This data is created by users of the extension. Usually when they
-              submit a form or make a payment.</li
-            >
-            <li>
-              The owner of the extension can view this data, but should not
-              modify it.
-            </li>
+              <li>
+                This data is created by users of the extension. Usually when
+                they submit a form or make a payment.
+              </li>
+              <li>
+                The owner of the extension can view this data, but should not
+                modify it.
+              </li>
             </ul>
           </div>
         </div>
@@ -279,10 +299,7 @@
         icon="link"
         style="min-height: 100px"
       >
-        Try out different ad text to see what brings in the most customers, and
-        learn how to enhance your ads using features like ad extensions. If you
-        run into any problems with your ads, find out how to tell if they're
-        running and how to resolve approval issues.
+        Public pages that clients access without being logged in.
       </q-step>
       <q-step
         :name="6"
@@ -291,10 +308,7 @@
         icon="how_to_reg"
         style="min-height: 100px"
       >
-        Try out different ad text to see what brings in the most customers, and
-        learn how to enhance your ads using features like ad extensions. If you
-        run into any problems with your ads, find out how to tell if they're
-        running and how to resolve approval issues.
+        This is how your extension will look like.
       </q-step>
       <q-step
         :name="7"
@@ -303,10 +317,10 @@
         icon="publish"
         style="min-height: 100px"
       >
-        Try out different ad text to see what brings in the most customers, and
-        learn how to enhance your ads using features like ad extensions. If you
-        run into any problems with your ads, find out how to tell if they're
-        running and how to resolve approval issues.
+        Admins can publish to this server.
+        <br />
+        Regular users can download a zip file to install it in their own
+        servers.
       </q-step>
 
       <template v-slot:navigation>

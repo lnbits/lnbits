@@ -1681,13 +1681,15 @@
   >
     <template v-slot:bottom-row>
       <q-tr>
+        <q-td auto-width></q-td>
         <q-td colspan="100%">
           <q-btn
             @click="addField"
             icon="add"
             size="sm"
-            color="grey"
+            color="primary"
             class="q-ml-xs"
+            :label="$t('add_field')"
           />
         </q-td>
       </q-tr>
