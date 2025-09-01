@@ -768,7 +768,7 @@
                   class="cursor-pointer"
                 /> </template
             ></q-input>
-            <div v-if="g.user.fiat_providers?.length" class="q-mt-md">
+            <div v-if="!receive.lnurl && g.user.fiat_providers?.length" class="q-mt-md">
               <q-list bordered dense class="rounded-borders">
                 <q-item-label dense header>
                   <span v-text="$t('select_payment_provider')"></span>
