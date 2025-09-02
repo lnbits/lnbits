@@ -647,7 +647,7 @@
         style="pointer-events: none"
       />
     </div>
-    <div v-if="hideButtons !== true" class="qrcode__buttons row q-gutter-x-sm">
+    <div v-if="showButtons" class="qrcode__buttons row q-gutter-x-sm">
       <q-btn
         outline
         class="text-grey"
@@ -1088,14 +1088,14 @@
                   <lnbits-qrcode
                     :value="props.row.extra.fiat_payment_request"
                     :href="props.row.extra.fiat_payment_request"
-                    :hideButtons="true"
+                    :showButtons="false"
                   ></lnbits-qrcode>
                 </div>
                 <div v-else>
                   <lnbits-qrcode
                     :value="'lightning:' + props.row.bolt11.toUpperCase()"
                     :href="'lightning:' + props.row.bolt11"
-                    :hideButtons="true"
+                    :showButtons="false"
                   ></lnbits-qrcode>
                 </div>
               </div>
