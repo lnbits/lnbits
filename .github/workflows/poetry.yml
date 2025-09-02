@@ -1,7 +1,8 @@
 name: poetry
 
 on:
-  workflow_call:
+  workflow_dispatch:
+    inputs:
       python-version:
         description: "python version"
         type: string
