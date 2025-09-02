@@ -850,14 +850,14 @@
         >
           <lnbits-qrcode
             v-if="receive.fiatPaymentReq"
-            buttons="false"
+            :hideButtons="true"
             :href="receive.fiatPaymentReq"
             :value="receive.fiatPaymentReq"
           >
           </lnbits-qrcode>
           <lnbits-qrcode
             v-else
-            buttons="false"
+            :hideButtons="true"
             :href="'lightning:' + receive.paymentReq"
             :value="'lightning:' + receive.paymentReq"
           >

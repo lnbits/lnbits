@@ -13,9 +13,9 @@ window.app.component('lnbits-qrcode', {
       type: Boolean,
       default: false
     },
-    buttons: {
+    hideButtons: {
       type: Boolean,
-      default: true
+      default: false
     },
     href: {
       type: String,
