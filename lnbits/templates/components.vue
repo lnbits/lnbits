@@ -1088,14 +1088,14 @@
                   <lnbits-qrcode
                     :value="props.row.extra.fiat_payment_request"
                     :href="props.row.extra.fiat_payment_request"
-                    :showButtons="false"
+                    :show-buttons="false"
                   ></lnbits-qrcode>
                 </div>
                 <div v-else>
                   <lnbits-qrcode
                     :value="'lightning:' + props.row.bolt11.toUpperCase()"
                     :href="'lightning:' + props.row.bolt11"
-                    :showButtons="false"
+                    :show-buttons="false"
                   ></lnbits-qrcode>
                 </div>
               </div>
