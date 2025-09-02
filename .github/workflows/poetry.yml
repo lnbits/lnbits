@@ -1,0 +1,24 @@
+name: poetry
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "python version"
+        type: string
+        default: "3.10"
+
+jobs:
+  poetry:
+    name: run poetry install to check lock file
+    runs-on: "ubuntu-24.04"
+    steps:
+      - uses: actions/checkout@v4
+      - name: set up python ${{ inputs.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: install poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          poetry install
