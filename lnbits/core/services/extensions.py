@@ -79,6 +79,7 @@ async def activate_extension(ext: Extension):
 async def deactivate_extension(ext_id: str):
     settings.deactivate_extension_paths(ext_id)
     await update_installed_extension_state(ext_id=ext_id, active=False)
+    await stop_extension_background_work(ext_id)
 
 
 async def stop_extension_background_work(ext_id: str) -> bool:
