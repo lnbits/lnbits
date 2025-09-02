@@ -45,7 +45,6 @@ window.WalletPageLogic = {
           payment_hash: null
         }
       },
-      invoiceQrCode: '',
       disclaimerDialog: {
         show: false,
         location: window.location
@@ -313,13 +312,6 @@ window.WalletPageLogic = {
               })
             }
           }
-
-          // Hack as rendering in dialog causes reactivity issues. Does speed up, as only rendering lnbits-qrcode once.
-          this.$nextTick(() => {
-            this.invoiceQrCode = document.getElementById(
-              'hiddenQrCodeContainer'
-            ).innerHTML
-          })
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)

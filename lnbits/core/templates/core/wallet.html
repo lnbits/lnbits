@@ -209,16 +209,6 @@
             ></payment-list>
           </q-card-section>
         </q-card>
-        <div id="hiddenQrCodeContainer" style="display: none">
-          <lnbits-qrcode
-            v-if="receive.fiatPaymentReq"
-            :value="receive.fiatPaymentReq"
-          ></lnbits-qrcode>
-          <lnbits-qrcode
-            v-else
-            :value="'lightning:' + (this.receive.paymentReq || '').toUpperCase()"
-          ></lnbits-qrcode>
-        </div>
       </div>
       {% if HIDE_API %}
       <div class="col-12 col-md-4 q-gutter-y-md">
@@ -277,13 +267,15 @@
                   :label="$t('drain_funds')"
                 >
                   <q-card>
-                    <q-card-section class="text-center">
-                      <a href="lightning:{{wallet.lnurlwithdraw_full}}">
-                        <lnbits-qrcode
-                          :value="lightning:{{wallet.lnurlwithdraw_full}}"
-                        ></lnbits-qrcode>
-                      </a>
-                      <p v-text="$t('drain_funds_desc')"></p>
+                    <q-card-section>
+                      <lnbits-qrcode
+                        value="lightning:{{wallet.lnurlwithdraw_full}}"
+                        href="lightning:{{wallet.lnurlwithdraw_full}}"
+                      ></lnbits-qrcode>
+                      <p
+                        class="text-center"
+                        v-text="$t('drain_funds_desc')"
+                      ></p>
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
@@ -411,21 +403,15 @@
                         :label="$t('export_to_phone')"
                       >
                         <q-card>
-                          <q-card-section class="text-center">
-                            <p v-text="$t('export_to_phone_desc')"></p>
+                          <q-card-section>
+                            <p
+                              class="text-center"
+                              v-text="$t('export_to_phone_desc')"
+                            ></p>
                             <lnbits-qrcode
                               :value="`${baseUrl}wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
                             ></lnbits-qrcode>
                           </q-card-section>
-                          <span v-text="exportWalletQR"></span>
-                          <q-card-actions class="flex-center q-pb-md">
-                            <q-btn
-                              outline
-                              color="grey"
-                              :label="$t('copy_wallet_url')"
-                              @click="copyText(`${baseUrl}wallet?usr=${g.user.id}&wal=${g.wallet.id}`)"
-                            ></q-btn>
-                          </q-card-actions>
                         </q-card>
                       </q-expansion-item>
                     </q-card-section>
@@ -862,18 +848,19 @@
           v-else-if="receive.paymentReq && receive.lnurl == null"
           class="q-pa-lg q-pt-xl lnbits__dialog-card"
         >
-          <div class="text-center q-mb-lg">
-            <a
-              v-if="receive.fiatPaymentReq"
-              :href="receive.fiatPaymentReq"
-              target="_blank"
-            >
-              <div v-html="invoiceQrCode"></div>
-            </a>
-            <a v-else :href="'lightning:' + receive.paymentReq">
-              <div v-html="invoiceQrCode"></div>
-            </a>
-          </div>
+          <lnbits-qrcode
+            v-if="receive.fiatPaymentReq"
+            :show-buttons="false"
+            :href="receive.fiatPaymentReq"
+            :value="receive.fiatPaymentReq"
+          >
+          </lnbits-qrcode>
+          <lnbits-qrcode
+            v-else
+            :href="'lightning:' + receive.paymentReq"
+            :value="'lightning:' + receive.paymentReq"
+          >
+          </lnbits-qrcode>
           <div class="text-center">
             <h3 class="q-my-md">
               <span v-text="formattedAmount"></span>
@@ -898,12 +885,6 @@
             </div>
           </div>
           <div class="row q-mt-lg">
-            <q-btn
-              outline
-              color="grey"
-              @click="copyText(receive.fiatPaymentReq || receive.paymentReq)"
-              :label="$t('copy_invoice')"
-            ></q-btn>
             <q-btn
               v-close-popup
               flat

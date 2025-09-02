@@ -53,8 +53,7 @@
                 <div class="q-pa-md">
                   <lnbits-qrcode
                     :value="wallet.adminkey"
-                    :options="{ width: 250 }"
-                    class="rounded-borders"
+                    :show-buttons="false"
                   ></lnbits-qrcode>
                 </div>
               </q-popup-proxy>
@@ -86,8 +85,7 @@
                 <div class="q-pa-md">
                   <lnbits-qrcode
                     :value="wallet.inkey"
-                    :options="{ width: 250 }"
-                    class="rounded-borders"
+                    :show-buttons="false"
                   ></lnbits-qrcode>
                 </div>
               </q-popup-proxy>
