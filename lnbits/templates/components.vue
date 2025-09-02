@@ -647,19 +647,11 @@
         style="pointer-events: none"
       />
     </div>
-    <div v-if="showButtons" class="qrcode__buttons row q-gutter-x-sm">
-      <q-btn
-        outline
-        class="text-grey"
-        @click="copyText(value)"
-        :label="$t('copy')"
-        icon="content_copy"
-      >
-        <q-tooltip>Copy</q-tooltip>
-      </q-btn>
-      <q-btn flat dense class="text-grey" icon="download" @click="downloadSVG">
-        <q-tooltip>Download SVG</q-tooltip>
-      </q-btn>
+    <div
+      v-if="showButtons"
+      class="qrcode__buttons row q-gutter-x-sm"
+      style="justify-content: flex-end"
+    >
       <q-btn
         v-if="nfc && nfcSupported"
         :disabled="nfcTagWriting"
@@ -670,6 +662,18 @@
         @click="writeNfcTag"
       >
         <q-tooltip>Write NFC Tag</q-tooltip>
+      </q-btn>
+      <q-btn flat dense class="text-grey" icon="download" @click="downloadSVG">
+        <q-tooltip>Download SVG</q-tooltip>
+      </q-btn>
+      <q-btn
+        flat
+        dense
+        class="text-grey"
+        @click="copyText(value)"
+        icon="content_copy"
+      >
+        <q-tooltip>Copy</q-tooltip>
       </q-btn>
     </div>
   </div>
@@ -1095,24 +1099,23 @@
                   <lnbits-qrcode
                     :value="'lightning:' + props.row.bolt11.toUpperCase()"
                     :href="'lightning:' + props.row.bolt11"
-                    :show-buttons="false"
                   ></lnbits-qrcode>
                 </div>
               </div>
               <div class="row q-mt-md">
+                <q-btn
+                  v-close-popup
+                  flat
+                  color="grey"
+                  class="q-mr-auto"
+                  :label="$t('close')"
+                ></q-btn>
                 <q-btn
                   outline
                   color="grey"
                   @click="checkPayment(props.row.payment_hash)"
                   icon="refresh"
                   :label="$t('payment_check')"
-                ></q-btn>
-                <q-btn
-                  v-close-popup
-                  flat
-                  color="grey"
-                  class="q-ml-auto"
-                  :label="$t('close')"
                 ></q-btn>
               </div>
             </q-card-section>
@@ -1216,9 +1219,13 @@
           :endpoint="endpoint"
         >
           <template v-slot:actions>
-            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-              >Close</q-btn
-            >
+            <q-btn
+              v-close-popup
+              flat
+              color="grey"
+              class="q-ml-auto"
+              :label="$t('close')"
+            ></q-btn>
           </template>
         </lnbits-extension-settings-form>
       </q-card>
@@ -1305,7 +1312,7 @@
           <lnbits-qrcode :value="qrValue"></lnbits-qrcode>
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Close" v-close-popup />
+          <q-btn flat :label="$t('close')" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
