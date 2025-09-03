@@ -575,6 +575,7 @@ window.WalletPageLogic = {
             }
           }
         })
+        .catch(LNbits.utils.notifyApiError)
     },
     authLnurl() {
       const dismissAuthMsg = Quasar.Notify.create({
