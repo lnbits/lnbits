@@ -5,10 +5,10 @@ window.app.component('lnbits-data-fields', {
   data() {
     return {
       fieldTypes: [
-        {label: 'Text', value: 'text'},
+        {label: 'Text', value: 'str'},
         {label: 'Integer', value: 'int'},
         {label: 'Float', value: 'float'},
-        {label: 'Boolean', value: 'boolean'},
+        {label: 'Boolean', value: 'bool'},
         {label: 'Date Time', value: 'datetime'},
         {label: 'JSON', value: 'json'},
         {label: 'Wallet Select', value: 'wallet'},
