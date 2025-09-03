@@ -1363,7 +1363,7 @@ requires-dist = [
     { name = "itsdangerous", specifier = "==2.2.0" },
     { name = "jinja2", specifier = "==3.1.6" },
     { name = "jsonpath-ng", specifier = "==1.7.0" },
-    { name = "lnurl", specifier = "==0.8.1" },
+    { name = "lnurl", specifier = "==0.8.2" },
     { name = "loguru", specifier = "==0.7.3" },
     { name = "nostr-sdk", specifier = "==0.42.1" },
     { name = "packaging", specifier = "==25.0" },
@@ -1418,7 +1418,7 @@ dev = [
 
 [[package]]
 name = "lnurl"
-version = "0.8.1"
+version = "0.8.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bech32" },
@@ -1429,9 +1429,9 @@ dependencies = [
     { name = "pycryptodomex" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ce/32/b611804e96fd1e76e9bdf306395e4a9e52f9343994b65fd9646e48318107/lnurl-0.8.1.tar.gz", hash = "sha256:7d2412c309227a3148510cbed92c3500c9366c624354eef2fc205bdf30d4655c", size = 17096, upload-time = "2025-08-27T05:50:19.948Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a1/ea/d91146233ad56a855c58811255e162aca015cb39a28e7ce88224a1c13cdf/lnurl-0.8.2.tar.gz", hash = "sha256:eeea661e54be996629838f5a8b9764ad472494d27d8a74bd6ae23478460332f3", size = 17170, upload-time = "2025-09-03T12:58:17.326Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ce/bf/6061b01bfc62ad3d1f82d8546dc543fc2ccc391f0911d5718abe578b0661/lnurl-0.8.1-py3-none-any.whl", hash = "sha256:a451f1b78c62146fda7a17954e2eaa1de994092a19266b5c64c25577ecd66eae", size = 17382, upload-time = "2025-08-27T05:50:19.013Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/04/7190c84f8c54427e75d3a2954abccaa9c56dd7f72a4dba5e5113f6cf411a/lnurl-0.8.2-py3-none-any.whl", hash = "sha256:cbfbb5b8d82cc69eb76eb889ef2fe19972b27dd3e60abc4887bc37dd1cbc674e", size = 17454, upload-time = "2025-09-03T12:58:16.492Z" },
 ]
 
 [[package]]
