@@ -84,5 +84,6 @@ columns:
 - default value
 - env file only (yes/no - depending if the field is part of ReadOnlySettings class)
 - description (if a comment is present in the .env.example right before the field then use that comment with the # removed)
+- do NOT ommit any field
 - save the output in settings.md
 ```
