@@ -247,10 +247,7 @@ class StripeWallet(FiatProvider):
     async def create_terminal_connection_token(
         self, location_id: str | None = None
     ) -> dict:
-        data = {}
-        if location_id:
-            data["location"] = location_id
-        r = await self.client.post("/v1/terminal/connection_tokens", data=data)
+        r = await self.client.post("/v1/terminal/connection_tokens")
         r.raise_for_status()
         return r.json()
 

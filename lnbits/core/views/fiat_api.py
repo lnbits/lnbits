@@ -34,8 +34,7 @@ async def stripe_terminal_connection_token():
         )
 
     try:
-        location_id = getattr(settings, "stripe_terminal_location_id", None)
-        tok = await wallet.create_terminal_connection_token(location_id=location_id)
+        tok = await wallet.create_terminal_connection_token()
         secret = tok.get("secret")
         if not secret:
             raise HTTPException(
