@@ -175,6 +175,33 @@ class StripeWallet(FiatProvider):
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
+    async def create_invoice(
+        self,
+        amount: float,
+        payment_hash: str,
+        currency: str,
+        memo: str | None = None,
+        extra: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> FiatInvoiceResponse:
+        amount_cents = int(amount * 100)
+        opts = self._parse_create_opts(extra or {})
+        if not opts:
+            return FiatInvoiceResponse(ok=False, error_message="Invalid Stripe options")
+
+        if opts.fiat_method == "checkout":
+            return await self._create_checkout_invoice(
+                amount_cents, currency, payment_hash, memo, opts
+            )
+        elif opts.fiat_method == "terminal":
+            return await self._create_terminal_invoice(
+                amount_cents, currency, payment_hash, opts
+            )
+        else:
+            return FiatInvoiceResponse(
+                ok=False, error_message=f"Unsupported fiat_method: {opts.fiat_method}"
+            )
+
     async def _create_terminal_invoice(
         self,
         amount_cents: int,
@@ -217,36 +244,7 @@ class StripeWallet(FiatProvider):
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
-    async def create_invoice(
-        self,
-        amount: float,
-        payment_hash: str,
-        currency: str,
-        memo: str | None = None,
-        extra: dict[str, Any] | None = None,
-        **kwargs,
-    ) -> FiatInvoiceResponse:
-        amount_cents = int(amount * 100)
-        opts = self._parse_create_opts(extra or {})
-        if not opts:
-            return FiatInvoiceResponse(ok=False, error_message="Invalid Stripe options")
-
-        if opts.fiat_method == "checkout":
-            return await self._create_checkout_invoice(
-                amount_cents, currency, payment_hash, memo, opts
-            )
-        elif opts.fiat_method == "terminal":
-            return await self._create_terminal_invoice(
-                amount_cents, currency, payment_hash, opts
-            )
-        else:
-            return FiatInvoiceResponse(
-                ok=False, error_message=f"Unsupported fiat_method: {opts.fiat_method}"
-            )
-
-    async def create_terminal_connection_token(
-        self, location_id: str | None = None
-    ) -> dict:
+    async def create_terminal_connection_token(self) -> dict:
         r = await self.client.post("/v1/terminal/connection_tokens")
         r.raise_for_status()
         return r.json()
