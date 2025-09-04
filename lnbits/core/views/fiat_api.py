@@ -22,7 +22,7 @@ async def api_test_fiat_provider(provider: str) -> SimpleStatus:
 
 
 @fiat_router.post(
-    "/stripe/terminal/connection_token",
+    "/{provider}/terminal/connection_token",
     status_code=HTTPStatus.OK,
     dependencies=[Depends(check_admin)],
 )
