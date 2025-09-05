@@ -129,11 +129,6 @@ class StripeWallet(FiatProvider):
             ok=False, error_message=f"Unsupported fiat_method: {opts.fiat_method}"
         )
 
-    async def create_terminal_connection_token(self) -> dict:
-        r = await self.client.post("/v1/terminal/connection_tokens")
-        r.raise_for_status()
-        return r.json()
-
     async def pay_invoice(self, payment_request: str) -> FiatPaymentResponse:
         raise NotImplementedError("Stripe does not support paying invoices directly.")
 
@@ -169,6 +164,11 @@ class StripeWallet(FiatProvider):
         while settings.lnbits_running:
             value = await mock_queue.get()
             yield value
+
+    async def create_terminal_connection_token(self) -> dict:
+        r = await self.client.post("/v1/terminal/connection_tokens")
+        r.raise_for_status()
+        return r.json()
 
     async def _create_terminal_invoice(
         self,
