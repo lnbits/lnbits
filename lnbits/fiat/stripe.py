@@ -288,12 +288,9 @@ class StripeWallet(FiatProvider):
             return FiatPaymentFailedStatus()
 
         if status == "requires_payment_method":
-            # Brand-new PIs also start here. Treat as failed if we have a
-            # concrete failure (`last_payment_error`) or it's too old.
             if pi.get("last_payment_error") or is_stale:
                 return FiatPaymentFailedStatus()
 
-        # Unknown/rare states → pending by default.
         return FiatPaymentPendingStatus()
 
     async def get_invoice_status(self, checking_id: str) -> FiatPaymentStatus:

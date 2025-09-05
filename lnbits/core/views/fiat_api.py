@@ -43,4 +43,3 @@ async def connection_token(provider: str):
             raise HTTPException(
                 status_code=500, detail="Failed to create connection token"
             ) from e
-    # Further providers can be added here
