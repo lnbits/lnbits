@@ -120,14 +120,14 @@ class StripeWallet(FiatProvider):
             return await self._create_checkout_invoice(
                 amount_cents, currency, payment_hash, memo, opts
             )
-        elif opts.fiat_method == "terminal":
+        if opts.fiat_method == "terminal":
             return await self._create_terminal_invoice(
                 amount_cents, currency, payment_hash, opts
             )
-        else:
-            return FiatInvoiceResponse(
-                ok=False, error_message=f"Unsupported fiat_method: {opts.fiat_method}"
-            )
+
+        return FiatInvoiceResponse(
+            ok=False, error_message=f"Unsupported fiat_method: {opts.fiat_method}"
+        )
 
     async def create_terminal_connection_token(self) -> dict:
         r = await self.client.post("/v1/terminal/connection_tokens")
