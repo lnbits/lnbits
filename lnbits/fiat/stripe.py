@@ -254,8 +254,12 @@ class StripeWallet(FiatProvider):
 
     async def get_invoice_status(self, checking_id: str) -> FiatPaymentStatus:
         try:
-            if checking_id.startswith("cs_"):
-                r = await self.client.get(f"/v1/checkout/sessions/{checking_id}")
+            if checking_id.startswith("fiat_stripe_"):
+                stripe_id = checking_id.replace("fiat_stripe_", "", 1)
+            else:
+                stripe_id = checking_id
+            if stripe_id.startswith("cs_"):
+                r = await self.client.get(f"/v1/checkout/sessions/{stripe_id}")
                 r.raise_for_status()
                 data = r.json()
 
@@ -270,16 +274,19 @@ class StripeWallet(FiatProvider):
 
                 return FiatPaymentPendingStatus()
 
-            elif checking_id.startswith("pi_"):
-                r = await self.client.get(f"/v1/payment_intents/{checking_id}")
+            elif stripe_id.startswith("pi_"):
+                r = await self.client.get(f"/v1/payment_intents/{stripe_id}")
                 r.raise_for_status()
                 pi = r.json()
                 status = pi.get("status")
 
                 if status == "succeeded":
                     return FiatPaymentSuccessStatus()
-                if status in ("canceled",):
+                if status in ("canceled", "payment_failed"):
                     return FiatPaymentFailedStatus()
+                if status == "requires_payment_method":
+                    if pi.get("last_payment_error"):
+                        return FiatPaymentFailedStatus()
 
                 return FiatPaymentPendingStatus()
 
