@@ -252,47 +252,71 @@ class StripeWallet(FiatProvider):
     async def pay_invoice(self, payment_request: str) -> FiatPaymentResponse:
         raise NotImplementedError("Stripe does not support paying invoices directly.")
 
+    def _normalize_stripe_id(self, checking_id: str) -> str:
+        """Remove our internal prefix so Stripe sees a real id."""
+        return (
+            checking_id.replace("fiat_stripe_", "", 1)
+            if checking_id.startswith("fiat_stripe_")
+            else checking_id
+        )
+
+    def _status_from_checkout_session(self, data: dict) -> FiatPaymentStatus:
+        """Map a Checkout Session to LNbits fiat status."""
+        if data.get("payment_status") == "paid":
+            return FiatPaymentSuccessStatus()
+
+        # Consider an expired session a fail (existing 24h rule).
+        expires_at = data.get("expires_at")
+        _24h_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+        if expires_at and float(expires_at) < _24h_ago.timestamp():
+            return FiatPaymentFailedStatus()
+
+        return FiatPaymentPendingStatus()
+
+    def _status_from_payment_intent(self, pi: dict) -> FiatPaymentStatus:
+        """Map a PaymentIntent to LNbits fiat status (card_present friendly)."""
+        status = pi.get("status")
+
+        now_ts = datetime.now(timezone.utc).timestamp()
+        created_ts = float(pi.get("created") or now_ts)
+        is_stale = (now_ts - created_ts) > 300
+
+        if status == "succeeded":
+            return FiatPaymentSuccessStatus()
+
+        if status in ("canceled", "payment_failed"):
+            return FiatPaymentFailedStatus()
+
+        if status == "requires_payment_method":
+            # Brand-new PIs also start here. Treat as failed if we have a
+            # concrete failure (`last_payment_error`) or it's too old.
+            if pi.get("last_payment_error") or is_stale:
+                return FiatPaymentFailedStatus()
+            return FiatPaymentPendingStatus()
+
+        if status in ("requires_confirmation", "requires_action", "processing"):
+            # Give it a chance, but fail if it sits here too long.
+            return FiatPaymentFailedStatus() if is_stale else FiatPaymentPendingStatus()
+
+        # Unknown/rare states → pending by default.
+        return FiatPaymentPendingStatus()
+
     async def get_invoice_status(self, checking_id: str) -> FiatPaymentStatus:
         try:
-            if checking_id.startswith("fiat_stripe_"):
-                stripe_id = checking_id.replace("fiat_stripe_", "", 1)
-            else:
-                stripe_id = checking_id
+            stripe_id = self._normalize_stripe_id(checking_id)
+
             if stripe_id.startswith("cs_"):
                 r = await self.client.get(f"/v1/checkout/sessions/{stripe_id}")
                 r.raise_for_status()
-                data = r.json()
+                return self._status_from_checkout_session(r.json())
 
-                payment_status = data.get("payment_status")
-                if payment_status == "paid":
-                    return FiatPaymentSuccessStatus()
-
-                expires_at = data.get("expires_at")
-                _24h_ago = datetime.now(timezone.utc) - timedelta(hours=24)
-                if expires_at and float(expires_at) < _24h_ago.timestamp():
-                    return FiatPaymentFailedStatus()
-
-                return FiatPaymentPendingStatus()
-
-            elif stripe_id.startswith("pi_"):
+            if stripe_id.startswith("pi_"):
                 r = await self.client.get(f"/v1/payment_intents/{stripe_id}")
                 r.raise_for_status()
-                pi = r.json()
-                status = pi.get("status")
+                return self._status_from_payment_intent(r.json())
 
-                if status == "succeeded":
-                    return FiatPaymentSuccessStatus()
-                if status in ("canceled", "payment_failed"):
-                    return FiatPaymentFailedStatus()
-                if status == "requires_payment_method":
-                    if pi.get("last_payment_error"):
-                        return FiatPaymentFailedStatus()
-
-                return FiatPaymentPendingStatus()
-
-            else:
-                logger.debug(f"Unknown Stripe id prefix: {checking_id}")
-                return FiatPaymentPendingStatus()
+            logger.debug(f"Unknown Stripe id prefix: {checking_id}")
+            return FiatPaymentPendingStatus()
 
         except Exception as exc:
             logger.debug(f"Error getting invoice status: {exc}")
