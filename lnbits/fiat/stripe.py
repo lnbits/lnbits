@@ -292,11 +292,6 @@ class StripeWallet(FiatProvider):
             # concrete failure (`last_payment_error`) or it's too old.
             if pi.get("last_payment_error") or is_stale:
                 return FiatPaymentFailedStatus()
-            return FiatPaymentPendingStatus()
-
-        if status in ("requires_confirmation", "requires_action", "processing"):
-            # Give it a chance, but fail if it sits here too long.
-            return FiatPaymentFailedStatus() if is_stale else FiatPaymentPendingStatus()
 
         # Unknown/rare states → pending by default.
         return FiatPaymentPendingStatus()
