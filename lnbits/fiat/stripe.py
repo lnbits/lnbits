@@ -170,6 +170,59 @@ class StripeWallet(FiatProvider):
         r.raise_for_status()
         return r.json()
 
+    async def _create_checkout_invoice(
+        self,
+        amount_cents: int,
+        currency: str,
+        payment_hash: str,
+        memo: str | None,
+        opts: StripeCreateInvoiceOptions,
+    ) -> FiatInvoiceResponse:
+        co = opts.checkout or StripeCheckoutOptions()
+        success_url = (
+            co.success_url
+            or settings.stripe_payment_success_url
+            or "https://lnbits.com"
+        )
+        line_item_name = co.line_item_name or memo or "LNbits Invoice"
+
+        form_data: list[tuple[str, str]] = [
+            ("mode", "payment"),
+            ("success_url", success_url),
+            ("metadata[payment_hash]", payment_hash),
+            ("line_items[0][price_data][currency]", currency.lower()),
+            ("line_items[0][price_data][product_data][name]", line_item_name),
+            ("line_items[0][price_data][unit_amount]", str(amount_cents)),
+            ("line_items[0][quantity]", "1"),
+        ]
+        form_data += self._encode_metadata("metadata", co.metadata)
+
+        try:
+            r = await self.client.post(
+                "/v1/checkout/sessions",
+                headers=self._build_headers_form(),
+                content=urlencode(form_data),
+            )
+            r.raise_for_status()
+            data = r.json()
+            session_id, url = data.get("id"), data.get("url")
+            if not session_id or not url:
+                return FiatInvoiceResponse(
+                    ok=False, error_message="Server error: missing id or url"
+                )
+            return FiatInvoiceResponse(
+                ok=True, checking_id=session_id, payment_request=url
+            )
+        except json.JSONDecodeError:
+            return FiatInvoiceResponse(
+                ok=False, error_message="Server error: invalid json response"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return FiatInvoiceResponse(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
+
     async def _create_terminal_invoice(
         self,
         amount_cents: int,
@@ -272,59 +325,6 @@ class StripeWallet(FiatProvider):
         except ValidationError as e:
             logger.warning(f"Invalid Stripe options: {e}")
             return None
-
-    async def _create_checkout_invoice(
-        self,
-        amount_cents: int,
-        currency: str,
-        payment_hash: str,
-        memo: str | None,
-        opts: StripeCreateInvoiceOptions,
-    ) -> FiatInvoiceResponse:
-        co = opts.checkout or StripeCheckoutOptions()
-        success_url = (
-            co.success_url
-            or settings.stripe_payment_success_url
-            or "https://lnbits.com"
-        )
-        line_item_name = co.line_item_name or memo or "LNbits Invoice"
-
-        form_data: list[tuple[str, str]] = [
-            ("mode", "payment"),
-            ("success_url", success_url),
-            ("metadata[payment_hash]", payment_hash),
-            ("line_items[0][price_data][currency]", currency.lower()),
-            ("line_items[0][price_data][product_data][name]", line_item_name),
-            ("line_items[0][price_data][unit_amount]", str(amount_cents)),
-            ("line_items[0][quantity]", "1"),
-        ]
-        form_data += self._encode_metadata("metadata", co.metadata)
-
-        try:
-            r = await self.client.post(
-                "/v1/checkout/sessions",
-                headers=self._build_headers_form(),
-                content=urlencode(form_data),
-            )
-            r.raise_for_status()
-            data = r.json()
-            session_id, url = data.get("id"), data.get("url")
-            if not session_id or not url:
-                return FiatInvoiceResponse(
-                    ok=False, error_message="Server error: missing id or url"
-                )
-            return FiatInvoiceResponse(
-                ok=True, checking_id=session_id, payment_request=url
-            )
-        except json.JSONDecodeError:
-            return FiatInvoiceResponse(
-                ok=False, error_message="Server error: invalid json response"
-            )
-        except Exception as exc:
-            logger.warning(exc)
-            return FiatInvoiceResponse(
-                ok=False, error_message=f"Unable to connect to {self.endpoint}."
-            )
 
     def _settings_connection_fields(self) -> str:
         return "-".join(
