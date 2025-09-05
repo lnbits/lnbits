@@ -290,10 +290,6 @@ class StripeWallet(FiatProvider):
         """Map a PaymentIntent to LNbits fiat status (card_present friendly)."""
         status = pi.get("status")
 
-        now_ts = datetime.now(timezone.utc).timestamp()
-        created_ts = float(pi.get("created") or now_ts)
-        is_stale = (now_ts - created_ts) > 300
-
         if status == "succeeded":
             return FiatPaymentSuccessStatus()
 
@@ -301,7 +297,13 @@ class StripeWallet(FiatProvider):
             return FiatPaymentFailedStatus()
 
         if status == "requires_payment_method":
-            if pi.get("last_payment_error") or is_stale:
+            if pi.get("last_payment_error"):
+                return FiatPaymentFailedStatus()
+
+            now_ts = datetime.now(timezone.utc).timestamp()
+            created_ts = float(pi.get("created") or now_ts)
+            is_stale = (now_ts - created_ts) > 300
+            if is_stale:
                 return FiatPaymentFailedStatus()
 
         return FiatPaymentPendingStatus()
