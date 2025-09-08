@@ -19,6 +19,7 @@ from lnbits.core.crud.payments import (
 from lnbits.core.models import (
     CancelInvoice,
     CreateInvoice,
+    CreateLnurlWithdraw,
     DecodePayment,
     KeyType,
     Payment,
@@ -29,6 +30,7 @@ from lnbits.core.models import (
     PaymentHistoryPoint,
     PaymentWalletStats,
     SettleInvoice,
+    SimpleStatus,
 )
 from lnbits.core.models.users import User
 from lnbits.db import Filters, Page
@@ -59,6 +61,7 @@ from ..services import (
     fee_reserve_total,
     get_payments_daily_stats,
     pay_invoice,
+    perform_withdraw,
     settle_hold_invoice,
     update_pending_payment,
     update_pending_payments,
@@ -359,3 +362,23 @@ async def api_payments_cancel(
             detail="Payment does not exist or does not belong to this wallet.",
         )
     return await cancel_hold_invoice(payment)
+
+
+@payment_router.post("/api/v1/payments/{payment_request}/pay-with-nfc")
+async def api_payment_pay_with_nfc(
+    payment_request: str,
+    lnurl_data: CreateLnurlWithdraw,
+) -> SimpleStatus:
+    if not lnurl_data.lnurl_w.lud17:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="LNURL-withdraw lud17 not provided.",
+        )
+    try:
+        await perform_withdraw(lnurl_data.lnurl_w.lud17, payment_request)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
+
+    return SimpleStatus(success=True, message="Payment sent with NFC.")

@@ -7,7 +7,10 @@ from lnurl import (
     LnurlPayActionResponse,
     LnurlPayResponse,
     LnurlResponseException,
+    LnurlSuccessResponse,
+    LnurlWithdrawResponse,
     execute_pay_request,
+    execute_withdraw,
     handle,
 )
 from loguru import logger
@@ -15,8 +18,35 @@ from loguru import logger
 from lnbits.core.crud import update_wallet
 from lnbits.core.models import CreateLnurlPayment, Wallet
 from lnbits.core.models.lnurl import StoredPayLink
+from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+
+
+async def perform_withdraw(lnurl: str, payment_request: str) -> None:
+    """
+    Perform an LNURL withdraw to the given LNURL-withdraw link.
+    :param lnurl: The LNURL-withdraw link. bech32 or lud17 format.
+    :param payment_request: The BOLT11 payment request to pay.
+    :raises LnurlResponseException: If the LNURL-withdraw process fails.
+    """
+    res = await handle(lnurl, user_agent=settings.user_agent, timeout=10)
+
+    if not isinstance(res, LnurlWithdrawResponse):
+        raise LnurlResponseException("Invalid LNURL-withdraw response.")
+    try:
+        check_callback_url(res.callback)
+    except ValueError as exc:
+        raise LnurlResponseException(f"Invalid callback URL: {exc!s}") from exc
+    try:
+        res2 = await execute_withdraw(
+            res, payment_request, user_agent=settings.user_agent, timeout=10
+        )
+    except (LnurlResponseException, Exception) as exc:
+        logger.warning(exc)
+        raise LnurlResponseException(f"Withdraw failed: {exc!s}") from exc
+    if not isinstance(res2, LnurlSuccessResponse | LnurlErrorResponse):
+        raise LnurlResponseException("Invalid LNURL-withdraw success response.")
 
 
 async def get_pr_from_lnurl(
