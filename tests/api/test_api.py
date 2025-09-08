@@ -591,12 +591,8 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
                 "minWithdrawable": 1000,
                 "maxWithdrawable": 1_500_000,
             },
-            {
-                "status": "OK",
-            },
-            {
-                "status": "OK",
-            },
+            None,
+            {"success": True, "message": "Payment sent with NFC."},
         ),
         # Error loading LNURL request
         (
