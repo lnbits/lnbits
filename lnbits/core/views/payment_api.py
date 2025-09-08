@@ -364,7 +364,7 @@ async def api_payments_cancel(
     return await cancel_hold_invoice(payment)
 
 
-@payment_router.post("/api/v1/payments/{payment_request}/pay-with-nfc")
+@payment_router.post("/{payment_request}/pay-with-nfc")
 async def api_payment_pay_with_nfc(
     payment_request: str,
     lnurl_data: CreateLnurlWithdraw,
