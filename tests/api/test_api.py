@@ -648,9 +648,12 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
                 "minWithdrawable": 1000,
                 "maxWithdrawable": 1_500_000,
             },
-            None,
             {
-                "detail": "Withdraw failed: Error loading callback request",
+                "status": "ERROR",
+                "reason": "Callback failed",
+            },
+            {
+                "detail": "Withdraw failed: Callback failed",
             },
         ),
         # Unexpected exception during LNURL response JSON parsing
