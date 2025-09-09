@@ -605,6 +605,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
         (
             {
                 "status": "ERROR",
+                "reason": "Invalid LNURL-withdraw response.",
             },
             None,
             {
