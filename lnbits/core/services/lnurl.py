@@ -31,21 +31,20 @@ async def perform_withdraw(lnurl: str, payment_request: str) -> None:
     :raises LnurlResponseException: If the LNURL-withdraw process fails.
     """
     res = await handle(lnurl, user_agent=settings.user_agent, timeout=10)
-
+    if isinstance(res, LnurlErrorResponse):
+        raise LnurlResponseException(res.reason)
     if not isinstance(res, LnurlWithdrawResponse):
         raise LnurlResponseException("Invalid LNURL-withdraw response.")
     try:
         check_callback_url(res.callback)
     except ValueError as exc:
         raise LnurlResponseException(f"Invalid callback URL: {exc!s}") from exc
-    try:
-        res2 = await execute_withdraw(
-            res, payment_request, user_agent=settings.user_agent, timeout=10
-        )
-    except (LnurlResponseException, Exception) as exc:
-        logger.warning(exc)
-        raise LnurlResponseException(f"Withdraw failed: {exc!s}") from exc
-    if not isinstance(res2, LnurlSuccessResponse | LnurlErrorResponse):
+    res2 = await execute_withdraw(
+        res, payment_request, user_agent=settings.user_agent, timeout=10
+    )
+    if isinstance(res2, LnurlErrorResponse):
+        raise LnurlResponseException(res2.reason)
+    if not isinstance(res2, LnurlSuccessResponse):
         raise LnurlResponseException("Invalid LNURL-withdraw success response.")
 
 
