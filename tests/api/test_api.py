@@ -636,7 +636,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             },
             "error_loading_callback",
             {
-                "detail": "Withdraw failed: Error loading callback request",
+                "detail": "Error loading callback request",
             },
         ),
         # Callback response with error status
@@ -653,7 +653,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
                 "reason": "Callback failed",
             },
             {
-                "detail": "Withdraw failed: Callback failed",
+                "detail": "Callback failed",
             },
         ),
         # Unexpected exception during LNURL response JSON parsing
