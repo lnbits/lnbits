@@ -126,6 +126,6 @@ window.app.component('lnbits-qrcode', {
   mounted() {
     this.$refs.qrCode.$el.style.maxWidth = this.maxWidth + 'px'
     this.$refs.qrCode.$el.setAttribute('width', '100%')
-    this.$refs.qrCode.$el.setAttribute('height', null)
+    this.$refs.qrCode.$el.removeAttribute('height')
   }
 })
