@@ -6,12 +6,8 @@ from fastapi import (
     Depends,
     HTTPException,
 )
-from lnurl import (
-    LnurlResponseException,
-    LnurlSuccessResponse,
-)
+from lnurl import LnurlResponseException
 from lnurl import execute_login as lnurlauth
-from lnurl import execute_withdraw as lnurl_withdraw
 from lnurl import handle as lnurl_handle
 from lnurl.models import (
     LnurlAuthResponse,
@@ -22,7 +18,7 @@ from lnurl.models import (
 )
 from loguru import logger
 
-from lnbits.core.models import CreateLnurlWithdraw, Payment
+from lnbits.core.models import Payment
 from lnbits.core.models.lnurl import CreateLnurlPayment, LnurlScan
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -138,38 +134,3 @@ async def api_payments_pay_lnurl(
     )
 
     return payment
-
-
-@lnurl_router.post(
-    "/api/v1/payments/{payment_request}/pay-with-nfc", status_code=HTTPStatus.OK
-)
-async def api_payment_pay_with_nfc(
-    payment_request: str,
-    lnurl_data: CreateLnurlWithdraw,
-) -> LnurlErrorResponse | LnurlSuccessResponse:
-    if not lnurl_data.lnurl_w.lud17:
-        return LnurlErrorResponse(reason="LNURL-withdraw lud17 not provided.")
-    try:
-        url = lnurl_data.lnurl_w.lud17
-        res = await lnurl_handle(url, user_agent=settings.user_agent, timeout=10)
-    except (LnurlResponseException, Exception) as exc:
-        return LnurlErrorResponse(reason=str(exc))
-
-    if not isinstance(res, LnurlWithdrawResponse):
-        return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
-    try:
-        check_callback_url(res.callback)
-    except ValueError as exc:
-        return LnurlErrorResponse(reason=f"Invalid callback URL: {exc!s}")
-
-    try:
-        res2 = await lnurl_withdraw(
-            res, payment_request, user_agent=settings.user_agent, timeout=10
-        )
-    except (LnurlResponseException, Exception) as exc:
-        logger.warning(exc)
-        return LnurlErrorResponse(reason=str(exc))
-    if not isinstance(res2, LnurlSuccessResponse | LnurlErrorResponse):
-        return LnurlErrorResponse(reason="Invalid LNURL-withdraw response.")
-
-    return res2

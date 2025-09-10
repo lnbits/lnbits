@@ -1,5 +1,4 @@
 import hashlib
-from http import HTTPStatus
 from json import JSONDecodeError
 from unittest.mock import AsyncMock, Mock
 
@@ -591,31 +590,26 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
                 "minWithdrawable": 1000,
                 "maxWithdrawable": 1_500_000,
             },
-            {
-                "status": "OK",
-            },
-            {
-                "status": "OK",
-            },
+            {"status": "OK"},
+            {"success": True, "message": "Payment sent with NFC."},
         ),
         # Error loading LNURL request
         (
             "error_loading_lnurl",
             None,
             {
-                "status": "ERROR",
-                "reason": "Error loading callback request",
+                "detail": "Error loading callback request",
             },
         ),
         # LNURL response with error status
         (
             {
                 "status": "ERROR",
+                "reason": "Invalid LNURL-withdraw response.",
             },
             None,
             {
-                "status": "ERROR",
-                "reason": "Invalid LNURL-withdraw response.",
+                "detail": "Invalid LNURL-withdraw response.",
             },
         ),
         # Invalid LNURL-withdraw pay request
@@ -629,8 +623,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             },
             None,
             {
-                "status": "ERROR",
-                "reason": "Invalid LNURL-withdraw response.",
+                "detail": "Invalid LNURL-withdraw response.",
             },
         ),
         # Error loading callback request
@@ -644,8 +637,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             },
             "error_loading_callback",
             {
-                "status": "ERROR",
-                "reason": "Error loading callback request",
+                "detail": "Error loading callback request",
             },
         ),
         # Callback response with error status
@@ -662,8 +654,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
                 "reason": "Callback failed",
             },
             {
-                "status": "ERROR",
-                "reason": "Callback failed",
+                "detail": "Callback failed",
             },
         ),
         # Unexpected exception during LNURL response JSON parsing
@@ -671,8 +662,7 @@ async def test_fiat_tracking(client, adminkey_headers_from, settings: Settings):
             "exception_in_lnurl_response_json",
             None,
             {
-                "status": "ERROR",
-                "reason": "Invalid JSON response from https://example.com/lnurl",
+                "detail": "Invalid JSON response from https://example.com/lnurl",
             },
         ),
     ],
@@ -768,7 +758,6 @@ async def test_api_payment_pay_with_nfc(
         json={"lnurl_w": lnurl},
     )
 
-    assert response.status_code == HTTPStatus.OK
     assert response.json() == expected_response
 
 
