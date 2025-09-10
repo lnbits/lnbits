@@ -115,6 +115,7 @@ window.localisation.en = {
   payment_check: 'Check payment',
   not_enough_funds: 'Not enough funds!',
   search_by_tag_memo_amount: 'Search by tag, memo, amount',
+  search: 'Search',
   invoice_waiting: 'Invoice waiting to be paid',
   payment_received: 'Payment Received',
   payment_sent: 'Payment Sent',
