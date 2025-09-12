@@ -1,6 +1,6 @@
 FROM boltz/boltz-client:latest AS boltz
 
-FROM lnbits/lnbits:latest
+FROM lnbits/lnbits:v1.3.0-rc7
 
 COPY --from=boltz /bin/boltzd /bin/boltzcli /usr/local/bin/
 RUN ls -l /usr/local/bin/boltzd
