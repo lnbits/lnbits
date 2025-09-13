@@ -1,4 +1,4 @@
-{ pkgs, makeTest, inputs }:
+{ pkgs, flake }:
 {
-  vmTest = import ./nixos-module { inherit pkgs makeTest inputs; };
+  vmTest = import ./nixos-module { inherit pkgs flake; };
 }
