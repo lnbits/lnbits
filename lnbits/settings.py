@@ -974,6 +974,7 @@ class SuperUserSettings(LNbitsSettings):
             "ZBDWallet",
             "NWCWallet",
             "StrikeWallet",
+            "ArkFakeWallet",
         ]
     )
 
