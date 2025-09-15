@@ -132,13 +132,16 @@ Now visit `0.0.0.0:5000` to make a super-user account.
 
 ```sh
 # Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
-sh <(c&url -L https://nixos.org/nix/install) --daemon
+sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
 
 # Enable nix-command and flakes experimental features for nix:
-echo 'experimental-features = nix-command flakes' >> /etc/nix/nix.conf
+grep -qxF 'experimental-features = nix-command flakes' /etc/nix/nix.conf || \
+echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
 
 # Add cachix for cached binaries
 nix-env -iA cachix -f https://cachix.org/api/v1/install
+grep -qxF "trusted-users = root $USER" /etc/nix/nix.conf || \
+echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
 cachix use lnbits
 
 # Clone and build LNbits
