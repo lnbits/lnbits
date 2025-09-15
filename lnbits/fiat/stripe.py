@@ -43,6 +43,26 @@ class StripeCheckoutOptions(BaseModel):
     line_item_name: str | None = None
 
 
+# === NEW: Direct-debit subscription options ===
+class StripeRecurringOptions(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    # You will pass one of these (prefer price_id). We DO NOT create prices here.
+    price_id: str | None = None
+    price_lookup_key: str | None = None  # convenient if you use lookup keys in Stripe
+
+    # Direct-debit rails to allow in Checkout (defaults to UK Bacs only)
+    # Use ["sepa_debit"] for EUR, or ["us_bank_account"] for US ACH.
+    payment_method_types: list[str] = Field(default_factory=lambda: ["bacs_debit"])
+
+    # Optional niceties
+    success_url: str | None = None
+    metadata: dict[str, str] = Field(default_factory=dict)
+    customer_email: str | None = None
+    trial_days: int | None = None  # Stripe supports trials on subs
+
+
 class StripeCreateInvoiceOptions(BaseModel):
     class Config:
         extra = "ignore"
@@ -50,6 +70,8 @@ class StripeCreateInvoiceOptions(BaseModel):
     fiat_method: FiatMethod = "checkout"
     terminal: StripeTerminalOptions | None = None
     checkout: StripeCheckoutOptions | None = None
+    # NEW: when present we do mode=subscription with DD
+    recurring: StripeRecurringOptions | None = None
 
 
 class StripeWallet(FiatProvider):
@@ -89,12 +111,10 @@ class StripeWallet(FiatProvider):
             r = await self.client.get(url="/v1/balance", timeout=15)
             r.raise_for_status()
             data = r.json()
-
             available = data.get("available") or []
             available_balance = 0
             if available and isinstance(available, list):
                 available_balance = int(available[0].get("amount", 0))
-
             return FiatStatusResponse(balance=available_balance)
         except json.JSONDecodeError:
             return FiatStatusResponse("Server error: 'invalid json response'", 0)
@@ -115,6 +135,12 @@ class StripeWallet(FiatProvider):
         opts = self._parse_create_opts(extra or {})
         if not opts:
             return FiatInvoiceResponse(ok=False, error_message="Invalid Stripe options")
+
+        # Direct-debit subscriptions via Checkout (mode=subscription)
+        if opts.recurring is not None:
+            return await self._create_subscription_checkout_session(
+                payment_hash, memo, opts
+            )
 
         if opts.fiat_method == "checkout":
             return await self._create_checkout_invoice(
@@ -170,6 +196,7 @@ class StripeWallet(FiatProvider):
         r.raise_for_status()
         return r.json()
 
+    # ---------- One-off Checkout (existing) ----------
     async def _create_checkout_invoice(
         self,
         amount_cents: int,
@@ -223,6 +250,7 @@ class StripeWallet(FiatProvider):
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
+    # ---------- Terminal (existing) ----------
     async def _create_terminal_invoice(
         self,
         amount_cents: int,
@@ -265,6 +293,99 @@ class StripeWallet(FiatProvider):
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
 
+    # ---------- NEW: Direct-debit subscription via Checkout ----------
+    async def _create_subscription_checkout_session(
+        self,
+        payment_hash: str,
+        memo: str | None,
+        opts: StripeCreateInvoiceOptions,
+    ) -> FiatInvoiceResponse:
+        rc = opts.recurring or StripeRecurringOptions()
+        # Resolve a price_id (prefer explicit price_id; else lookup_key)
+        try:
+            price_id = rc.price_id
+            if not price_id and rc.price_lookup_key:
+                price_id = await self._get_price_id_by_lookup_key(rc.price_lookup_key)
+            if not price_id:
+                return FiatInvoiceResponse(ok=False, error_message="Stripe: missing price_id or price_lookup_key for subscription")
+
+            success_url = (
+                rc.success_url
+                or (opts.checkout.success_url if opts.checkout else None)
+                or settings.stripe_payment_success_url
+                or "https://lnbits.com"
+            )
+
+            form_data: list[tuple[str, str]] = [
+                ("mode", "subscription"),
+                ("success_url", success_url),
+                ("metadata[payment_hash]", payment_hash),
+                ("line_items[0][price]", price_id),
+                ("line_items[0][quantity]", "1"),
+            ]
+
+            # Allow only direct-debit rails (default: ["bacs_debit"])
+            for t in rc.payment_method_types:
+                form_data.append(("payment_method_types[]", t))
+
+            if rc.trial_days:
+                form_data.append(("subscription_data[trial_period_days]", str(rc.trial_days)))
+
+            if rc.customer_email:
+                form_data.append(("customer_email", rc.customer_email))
+
+            # Attach arbitrary metadata (helps link invoices to your user)
+            form_data += self._encode_metadata("metadata", rc.metadata)
+
+            r = await self.client.post(
+                "/v1/checkout/sessions",
+                headers=self._build_headers_form(),
+                content=urlencode(form_data),
+            )
+            r.raise_for_status()
+            data = r.json()
+            session_id, url = data.get("id"), data.get("url")
+            if not session_id or not url:
+                return FiatInvoiceResponse(
+                    ok=False, error_message="Server error: missing id or url (subscription)"
+                )
+            return FiatInvoiceResponse(ok=True, checking_id=session_id, payment_request=url)
+
+        except json.JSONDecodeError:
+            return FiatInvoiceResponse(ok=False, error_message="Server error: invalid json response")
+        except Exception as exc:
+            logger.warning(exc)
+            return FiatInvoiceResponse(ok=False, error_message=f"Unable to connect to {self.endpoint}.")
+
+    # ---------- NEW: Fetch helpers (no creation) ----------
+    async def _get_price_id_by_lookup_key(self, lookup_key: str) -> str | None:
+        """
+        Return the active price id for a given lookup_key, or None.
+        Tip: in Stripe dashboard set a unique lookup_key on your recurring price.
+        """
+        # Stripe allows filtering prices by lookup_keys[]=<key>&active=true
+        params = {"active": "true", "expand[]": "data.product", "limit": "1"}
+        # passing array param:
+        qs = urlencode(params) + f"&lookup_keys[]={lookup_key}"
+        r = await self.client.get(f"/v1/prices?{qs}")
+        r.raise_for_status()
+        data = r.json()
+        items = (data or {}).get("data") or []
+        if not items:
+            return None
+        return items[0].get("id")
+
+    async def list_prices_for_product(self, product_id: str) -> list[dict]:
+        """
+        List active recurring prices for a given product (handy for admin UI).
+        """
+        qs = urlencode({"product": product_id, "active": "true", "limit": "100"})
+        r = await self.client.get(f"/v1/prices?{qs}")
+        r.raise_for_status()
+        data = r.json()
+        return (data or {}).get("data") or []
+
+    # ---------- utils ----------
     def _normalize_stripe_id(self, checking_id: str) -> str:
         """Remove our internal prefix so Stripe sees a real id."""
         return (
@@ -274,11 +395,10 @@ class StripeWallet(FiatProvider):
         )
 
     def _status_from_checkout_session(self, data: dict) -> FiatPaymentStatus:
-        """Map a Checkout Session to LNbits fiat status."""
+        # For one-offs, "paid" means done; subs rely on webhooks (invoice.paid)
         if data.get("payment_status") == "paid":
             return FiatPaymentSuccessStatus()
 
-        # Consider an expired session a fail (existing 24h rule).
         expires_at = data.get("expires_at")
         _24h_ago = datetime.now(timezone.utc) - timedelta(hours=24)
         if expires_at and float(expires_at) < _24h_ago.timestamp():
@@ -287,25 +407,18 @@ class StripeWallet(FiatProvider):
         return FiatPaymentPendingStatus()
 
     def _status_from_payment_intent(self, pi: dict) -> FiatPaymentStatus:
-        """Map a PaymentIntent to LNbits fiat status (card_present friendly)."""
         status = pi.get("status")
-
         if status == "succeeded":
             return FiatPaymentSuccessStatus()
-
         if status in ("canceled", "payment_failed"):
             return FiatPaymentFailedStatus()
-
         if status == "requires_payment_method":
             if pi.get("last_payment_error"):
                 return FiatPaymentFailedStatus()
-
             now_ts = datetime.now(timezone.utc).timestamp()
             created_ts = float(pi.get("created") or now_ts)
-            is_stale = (now_ts - created_ts) > 300
-            if is_stale:
+            if (now_ts - created_ts) > 300:
                 return FiatPaymentFailedStatus()
-
         return FiatPaymentPendingStatus()
 
     def _build_headers_form(self) -> dict[str, str]:
