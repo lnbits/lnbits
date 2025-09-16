@@ -161,7 +161,7 @@
           </div>
           <div class="col-md-4 col-sm-12">
             <q-toggle
-              v-model="extensionData.generate.settings"
+              v-model="extensionData.settings_data.enabled"
               label="Generate Settings Fields"
               size="md"
               color="green"
@@ -178,10 +178,10 @@
         </div>
 
         <q-separator
-          v-if="extensionData.generate.settings"
+          v-if="extensionData.settings_data.enabled"
           class="q-mt-sm"
         ></q-separator>
-        <div v-if="extensionData.generate.settings" class="row q-mt-lg">
+        <div v-if="extensionData.settings_data.enabled" class="row q-mt-lg">
           <div class="col-md-2 col-sm-12">
             <q-select
               filled
@@ -205,10 +205,10 @@
             >
           </div>
         </div>
-        <div v-if="extensionData.generate.settings" class="row q-mt-lg">
+        <div v-if="extensionData.settings_data.enabled" class="row q-mt-lg">
           <div class="col-12">
             <lnbits-data-fields
-              :fields="extensionData.settingsFields"
+              :fields="extensionData.settings_data.fields"
               :hide-advanced="true"
             ></lnbits-data-fields>
           </div>
@@ -229,17 +229,10 @@
             ></q-img>
           </div>
           <div class="col-md-4 col-sm-12">
-            <q-toggle
-              v-model="extensionData.generate.owner"
-              label="Generate Owner Table"
-              size="md"
-              color="green"
-            />
-            <br />
             <q-input
-              v-if="extensionData.generate.owner"
+              v-model="extensionData.owner_data.name"
               filled
-              label="Owner TableName"
+              label="Owner Table Name"
               hint="CamelCase name for the owner data table (e.g. Campaign, PoS, etc.)"
               class="q-mb-xl"
             >
@@ -259,11 +252,8 @@
             </ul>
           </div>
         </div>
-        <q-separator
-          v-if="extensionData.generate.owner"
-          class="q-mt-sm"
-        ></q-separator>
-        <div v-if="extensionData.generate.owner" class="row q-mt-lg">
+
+        <div class="row q-mt-lg">
           <div class="col-12">
             <lnbits-data-fields
               :fields="extensionData.owner_data.fields"
@@ -275,7 +265,7 @@
       <q-step
         :name="4"
         :done="step > 4"
-        title="Customer Data"
+        title="Client Data"
         icon="blur_linear"
         style="min-height: 100px"
       >
@@ -287,17 +277,18 @@
           </div>
           <div class="col-md-4 col-sm-12">
             <q-toggle
-              v-model="extensionData.generate.customer"
-              label="Generate Customer Table"
+              v-model="extensionData.client_data.enabled"
+              label="Generate Client Table"
               size="md"
               color="green"
             />
             <br />
             <q-input
-              v-if="extensionData.generate.customer"
+              v-if="extensionData.client_data.enabled"
+              v-model="extensionData.client_data.name"
               filled
-              label="Customer Table Name"
-              hint="CamelCase name for the customer data table (e.g. Donation, Payment, etc.)"
+              label="Client Table Name"
+              hint="CamelCase name for the client data table (e.g. Donation, Payment, etc.)"
               class="q-mb-xl"
             >
             </q-input>
@@ -314,10 +305,10 @@
           </div>
         </div>
         <q-separator
-          v-if="extensionData.generate.customer"
+          v-if="extensionData.client_data.enabled"
           class="q-mt-sm"
         ></q-separator>
-        <div v-if="extensionData.generate.customer" class="row q-mt-lg">
+        <div v-if="extensionData.client_data.enabled" class="row q-mt-lg">
           <div class="col-12">
             <lnbits-data-fields
               :fields="extensionData.client_data.fields"
@@ -351,16 +342,20 @@
               dense
               emit-value
               map-options
+              v-if="extensionData.public_page.has_public_page"
               v-model="extensionData.public_page.owner_data_fields.name"
-              :options="extensionData.owner_data.fields.map(f => f.name)"
+              hint="The title field in the public page."
+              :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
             ></q-select>
             <q-select
               filled
               dense
               emit-value
               map-options
+              hint="The description field in the public page."
+              v-if="extensionData.public_page.has_public_page"
               v-model="extensionData.public_page.owner_data_fields.description"
-              :options="extensionData.owner_data.fields.map(f => f.name)"
+              :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
             ></q-select>
             <q-select
               filled
@@ -368,7 +363,9 @@
               emit-value
               map-options
               multiple
-              hint="Fields will be shown as inputs in the public page form."
+              clearable
+              hint="Client fields that will be shown as inputs in the public page form."
+              v-if="extensionData.public_page.has_public_page"
               v-model="extensionData.public_page.client_data_fields.public_inputs"
               :options="extensionData.client_data.fields.map(f => f.name)"
             ></q-select>
@@ -384,24 +381,27 @@
               dense
               emit-value
               map-options
+              v-if="extensionData.public_page.action_fields.generate_action"
               hint="The wallet where payments will be received."
-              v-model="extensionData.public_page.wallet_id"
-              :options="extensionData.client_data.fields.map(f => f.name)"
+              v-model="extensionData.public_page.action_fields.wallet_id"
+              :options="extensionData.owner_data.fields.map(f => f.name)"
             ></q-select>
             <q-select
               filled
               dense
               emit-value
               map-options
+              v-if="extensionData.public_page.action_fields.generate_action"
               hint="The currency field. Empty if you want to use sats."
               v-model="extensionData.public_page.action_fields.currency"
-              :options="extensionData.client_data.fields.map(f => f.name)"
+              :options="extensionData.owner_data.fields.map(f => f.name)"
             ></q-select>
             <q-select
               filled
               dense
               emit-value
               map-options
+              v-if="extensionData.public_page.action_fields.generate_action"
               hint="The amount field."
               v-model="extensionData.public_page.action_fields.amount"
               :options="extensionData.client_data.fields.map(f => f.name)"

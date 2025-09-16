@@ -1,17 +1,12 @@
 window.ExtensionsBuilderPageLogic = {
   data: function () {
     return {
-      step: 5,
+      step: 1,
       extensionData: {
         id: '',
         name: '',
         short_description: '',
         description: '',
-        generate: {
-          settings: true,
-          owner: true,
-          customer: true
-        },
         public_page: {
           has_public_page: true,
           owner_data_fields: {
@@ -28,15 +23,17 @@ window.ExtensionsBuilderPageLogic = {
             amount: ''
           }
         },
-
-        settingsType: 'user',
-        settingsFields: [],
+        settings_data: {
+          enabled: true,
+          type: 'user',
+          fields: []
+        },
         owner_data: {
           name: '',
           fields: []
         },
-
         client_data: {
+          enabled: true,
           name: '',
           fields: []
         }
