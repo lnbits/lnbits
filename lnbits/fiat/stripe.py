@@ -301,7 +301,10 @@ class StripeWallet(FiatProvider):
             if not price_id and rc.price_lookup_key:
                 price_id = await self._get_price_id_by_lookup_key(rc.price_lookup_key)
             if not price_id:
-                return FiatInvoiceResponse(ok=False, error_message="Stripe: missing price_id or price_lookup_key for subscription")
+                return FiatInvoiceResponse(
+                    ok=False,
+                    error_message="Stripe: missing price_id or price_lookup_key",
+                )
 
             success_url = (
                 rc.success_url
@@ -322,7 +325,9 @@ class StripeWallet(FiatProvider):
             ]
 
             if rc.trial_days:
-                form_data.append(("subscription_data[trial_period_days]", str(rc.trial_days)))
+                form_data.append(
+                    ("subscription_data[trial_period_days]", str(rc.trial_days))
+                )
 
             if rc.customer_email:
                 form_data.append(("customer_email", rc.customer_email))
@@ -339,19 +344,26 @@ class StripeWallet(FiatProvider):
             session_id, url = data.get("id"), data.get("url")
             if not session_id or not url:
                 return FiatInvoiceResponse(
-                    ok=False, error_message="Server error: missing id or url (subscription)"
+                    ok=False,
+                    error_message="Server error: missing id or url (subscription)",
                 )
-            return FiatInvoiceResponse(ok=True, checking_id=session_id, payment_request=url)
+            return FiatInvoiceResponse(
+                ok=True, checking_id=session_id, payment_request=url
+            )
 
         except HTTPStatusError as e:
             body = e.response.text if e.response is not None else "<no body>"
             logger.warning(f"Stripe subscription 400: {body}")
             return FiatInvoiceResponse(ok=False, error_message=body)
         except json.JSONDecodeError:
-            return FiatInvoiceResponse(ok=False, error_message="Server error: invalid json response")
+            return FiatInvoiceResponse(
+                ok=False, error_message="Server error: invalid json response"
+            )
         except Exception as exc:
             logger.warning(exc)
-            return FiatInvoiceResponse(ok=False, error_message=f"Unable to connect to {self.endpoint}.")
+            return FiatInvoiceResponse(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
 
     # ---------- Helpers ----------
     async def _get_price_id_by_lookup_key(self, lookup_key: str) -> str | None:
