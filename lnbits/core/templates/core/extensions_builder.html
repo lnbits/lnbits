@@ -369,6 +369,7 @@
               v-model="extensionData.public_page.client_data_fields.public_inputs"
               :options="extensionData.client_data.fields.map(f => f.name)"
             ></q-select>
+            <br />
             <q-toggle
               v-model="extensionData.public_page.action_fields.generate_action"
               label="Generate Action Button"
