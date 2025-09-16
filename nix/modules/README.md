@@ -47,6 +47,7 @@ in
 ```
 
 > **⚠️ System Architecture Note**: The examples above use `x86_64-linux`. Replace this with your system architecture:
+>
 > - `x86_64-linux` - Intel/AMD 64-bit Linux
 > - `aarch64-linux` - ARM 64-bit Linux (e.g., Raspberry Pi 4, Apple Silicon under Linux)
 > - `x86_64-darwin` - Intel Mac
@@ -92,6 +93,7 @@ Create a `flake.nix` for your system configuration:
 ```
 
 Then deploy with:
+
 ```bash
 sudo nixos-rebuild switch --flake .#myserver
 ```
@@ -117,24 +119,13 @@ services.lnbits.env = {
   # Admin UI
   LNBITS_ADMIN_UI = "true";
 
-  # Lightning Backend Examples:
+  # LND Backend Example:
 
   # LND
   LNBITS_BACKEND_WALLET_CLASS = "LndRestWallet";
   LND_REST_ENDPOINT = "https://localhost:8080";
   LND_REST_CERT = "/path/to/tls.cert";
   LND_REST_MACAROON = "/path/to/admin.macaroon";
-
-  # Core Lightning
-  LNBITS_BACKEND_WALLET_CLASS = "CoreLightningRestWallet";
-  CORELIGHTNING_REST_URL = "https://localhost:3001";
-  CORELIGHTNING_REST_MACAROON = "/path/to/access.macaroon";
-  CORELIGHTNING_REST_CERT = "/path/to/ca.pem";
-
-  # Eclair
-  LNBITS_BACKEND_WALLET_CLASS = "EclairWallet";
-  ECLAIR_URL = "http://localhost:8080";
-  ECLAIR_PASS = "password";
 };
 ```
 
@@ -142,72 +133,65 @@ See the [LNBits documentation](https://docs.lnbits.org/guide/wallets.html) for a
 
 ## State Directory Structure
 
-LNBits data is stored in `/var/lib/lnbits` with this structure:
+LNBits data is stored in `/var/lib/lnbits` (default) with this structure:
 
 ```
 /var/lib/lnbits/
-├── data/               # Application data
-│   ├── database.sqlite3  # Main database
-│   ├── images/          # Uploaded images
-│   ├── logs/           # Log files
-│   └── upgrades/       # Migration files
-└── extensions/         # Installed extensions
-```
-
-## Lightning Backend Configuration
-
-Before LNBits is useful, you need to configure a Lightning backend. Here are examples for popular implementations:
-
-### LND Setup
-
-1. Ensure LND is running with REST API enabled
-2. Configure LNBits:
-
-```nix
-services.lnbits.env = {
-  LNBITS_BACKEND_WALLET_CLASS = "LndRestWallet";
-  LND_REST_ENDPOINT = "https://localhost:8080";
-  LND_REST_CERT = "/var/lib/lnd/tls.cert";
-  LND_REST_MACAROON = "/var/lib/lnd/data/chain/bitcoin/mainnet/admin.macaroon";
-};
-```
-
-### Core Lightning Setup
-
-1. Install Core Lightning with REST plugin
-2. Configure LNBits:
-
-```nix
-services.lnbits.env = {
-  LNBITS_BACKEND_WALLET_CLASS = "CoreLightningRestWallet";
-  CORELIGHTNING_REST_URL = "https://localhost:3001";
-  CORELIGHTNING_REST_MACAROON = "/var/lib/clightning/access.macaroon";
-  CORELIGHTNING_REST_CERT = "/var/lib/clightning/ca.pem";
-};
+├── data/                       # Application data
+│   ├── database.sqlite3        # Main database
+│   ├── ext_<extension>.sqlite3 # Extension database
+│   ├── images/                 # Uploaded images
+│   ├── logs/                   # Log files
+│   └── upgrades/               # Migration files
+└── extensions/                 # Installed extensions
 ```
 
 ## First Time Setup
 
 1. **Deploy the configuration:**
+
    ```bash
    sudo nixos-rebuild switch
    ```
 
 2. **Check service status:**
+
    ```bash
    systemctl status lnbits
    ```
 
 3. **Access the web interface:**
+
    ```
    http://your-server-ip:5000
    ```
 
 4. **Follow the first-time setup wizard** to configure your Lightning backend and create your first wallet.
 
+5. **Bonus** Add Reverse Proxy with generated SSL Cert
+
+```nix
+{
+# Enable nginx
+  services.nginx = {
+    enable = true;
+
+    virtualHosts."lnbits.mydomain.com" = {
+      forceSSL = true;
+      enableACME = true;
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:5000";
+        proxyWebsockets = true;
+      };
+    };
+  };
+}
+```
+
 ## Troubleshooting
 
 ### Service won't start
+
 ```bash
 # Check service logs
 journalctl -u lnbits -f
@@ -217,22 +201,10 @@ ss -tlnp | grep 5000
 ```
 
 ### Can't access web interface
+
 - Ensure `openFirewall = true` is set
 - Check if the port is correct: `services.lnbits.port`
 - Verify host binding: `services.lnbits.host = "0.0.0.0"`
-
-### Lightning backend connection issues
-- Verify backend configuration in `services.lnbits.env`
-- Check that certificate and macaroon paths are correct
-- Ensure the Lightning node is running and accessible
-
-## Security Considerations
-
-- Change default ports if running on public networks
-- Use proper TLS certificates for production
-- Restrict firewall access to trusted networks
-- Regularly backup `/var/lib/lnbits/data/`
-- Use strong passwords for admin access
 
 ## Further Reading
 
