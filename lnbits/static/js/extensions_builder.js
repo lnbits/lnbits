@@ -31,8 +31,15 @@ window.ExtensionsBuilderPageLogic = {
 
         settingsType: 'user',
         settingsFields: [],
-        ownerFields: [],
-        client_fields: []
+        owner_data: {
+          name: '',
+          fields: []
+        },
+
+        client_data: {
+          name: '',
+          fields: []
+        }
       },
 
       settingsTypes: [
@@ -49,7 +56,7 @@ window.ExtensionsBuilderPageLogic = {
         JSON.stringify(this.extensionData)
       )
       this.$refs.stepper.next()
-      console.log("### Next step", JSON.stringify(this.extensionData))
+      console.log('### Next step', JSON.stringify(this.extensionData))
     },
     previousStep() {
       this.$refs.stepper.previous()

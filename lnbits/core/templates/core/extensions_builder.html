@@ -266,7 +266,7 @@
         <div v-if="extensionData.generate.owner" class="row q-mt-lg">
           <div class="col-12">
             <lnbits-data-fields
-              :fields="extensionData.ownerFields"
+              :fields="extensionData.owner_data.fields"
             ></lnbits-data-fields>
           </div>
         </div>
@@ -320,7 +320,7 @@
         <div v-if="extensionData.generate.customer" class="row q-mt-lg">
           <div class="col-12">
             <lnbits-data-fields
-              :fields="extensionData.client_fields"
+              :fields="extensionData.client_data.fields"
             ></lnbits-data-fields>
           </div>
         </div>
@@ -352,7 +352,7 @@
               emit-value
               map-options
               v-model="extensionData.public_page.owner_data_fields.name"
-              :options="extensionData.ownerFields.map(f => f.name)"
+              :options="extensionData.owner_data.fields.map(f => f.name)"
             ></q-select>
             <q-select
               filled
@@ -360,7 +360,7 @@
               emit-value
               map-options
               v-model="extensionData.public_page.owner_data_fields.description"
-              :options="extensionData.ownerFields.map(f => f.name)"
+              :options="extensionData.owner_data.fields.map(f => f.name)"
             ></q-select>
             <q-select
               filled
@@ -370,7 +370,7 @@
               multiple
               hint="Fields will be shown as inputs in the public page form."
               v-model="extensionData.public_page.client_data_fields.public_inputs"
-              :options="extensionData.client_fields.map(f => f.name)"
+              :options="extensionData.client_data.fields.map(f => f.name)"
             ></q-select>
             <q-toggle
               v-model="extensionData.public_page.action_fields.generate_action"
@@ -386,7 +386,7 @@
               map-options
               hint="The wallet where payments will be received."
               v-model="extensionData.public_page.wallet_id"
-              :options="extensionData.client_fields.map(f => f.name)"
+              :options="extensionData.client_data.fields.map(f => f.name)"
             ></q-select>
             <q-select
               filled
@@ -395,7 +395,7 @@
               map-options
               hint="The currency field. Empty if you want to use sats."
               v-model="extensionData.public_page.action_fields.currency"
-              :options="extensionData.client_fields.map(f => f.name)"
+              :options="extensionData.client_data.fields.map(f => f.name)"
             ></q-select>
             <q-select
               filled
@@ -404,7 +404,7 @@
               map-options
               hint="The amount field."
               v-model="extensionData.public_page.action_fields.amount"
-              :options="extensionData.client_fields.map(f => f.name)"
+              :options="extensionData.client_data.fields.map(f => f.name)"
             ></q-select>
           </div>
         </div>
