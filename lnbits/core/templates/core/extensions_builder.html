@@ -39,6 +39,13 @@
               </li>
             </ul>
           </div>
+          <div class="col-12">
+            <q-btn
+              label="Clear All Data"
+              color="negative"
+              @click="clearAllData"
+            ></q-btn>
+          </div>
           <!-- todo: add icon -->
         </div>
         <q-separator class="q-mt-sm"></q-separator>
@@ -129,7 +136,7 @@
               dense
               emit-value
               map-options
-              v-model="extensionData.settingsType"
+              v-model="extensionData.settings_data.type"
               :options="settingsTypes"
             ></q-select>
           </div>
@@ -381,6 +388,7 @@
           hint="The title field in the public page."
           :options="extensionStubVersions.map(f => f.version)"
         ></q-select>
+        <q-btn @click="buildExtension()" color="primary" label="Build" />
       </q-step>
 
       <template v-slot:navigation>

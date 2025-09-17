@@ -27,6 +27,7 @@ from lnbits.core.models.extensions import (
     UserExtension,
     UserExtensionInfo,
 )
+from lnbits.core.models.extensions_builder import ExtensionData
 from lnbits.core.services import check_transaction_status, create_invoice
 from lnbits.core.services.extensions import (
     activate_extension,
@@ -113,6 +114,11 @@ async def api_install_extension(data: CreateExtension):
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=detail,
         ) from exc
+
+
+@extension_router.post("/builder", dependencies=[Depends(check_user_exists)])
+async def api_build_extension(data: ExtensionData):
+    print("### data", data)
 
 
 @extension_router.get("/{ext_id}/details")

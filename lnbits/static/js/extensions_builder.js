@@ -2,6 +2,7 @@ window.ExtensionsBuilderPageLogic = {
   data: function () {
     return {
       step: 1,
+      extensionDataCleanString: '',
       extensionData: {
         id: '',
         name: '',
@@ -25,6 +26,7 @@ window.ExtensionsBuilderPageLogic = {
           }
         },
         settings_data: {
+          name: 'Settings',
           enabled: true,
           type: 'user',
           fields: []
@@ -60,6 +62,31 @@ window.ExtensionsBuilderPageLogic = {
     previousStep() {
       this.$refs.stepper.previous()
     },
+    clearAllData() {
+      LNbits.utils
+        .confirmDialog(
+          'Are you sure you want to clear all data? This action cannot be undone.'
+        )
+        .onOk(() => {
+          this.extensionData = JSON.parse(this.extensionDataCleanString)
+          this.$q.localStorage.remove('lnbits.extension.builder.data')
+          this.$refs.stepper.set(1)
+        })
+    },
+    async buildExtension() {
+      try {
+        const {data} = await LNbits.api.request(
+          'POST',
+          '/api/v1/extension/builder',
+          null,
+          this.extensionData
+        )
+
+        console.log('### buildExtensions', data)
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
+    },
     async getStubExtensionReleases() {
       try {
         const stub_ext_id = 'extension_builder_stub'
@@ -81,11 +108,13 @@ window.ExtensionsBuilderPageLogic = {
     }
   },
   created: function () {
+    this.extensionDataCleanString = JSON.stringify(this.extensionData)
     const extensionData = this.$q.localStorage.getItem(
       'lnbits.extension.builder.data'
     )
     if (extensionData) {
-      this.extensionData = JSON.parse(extensionData)
+      this.extensionData = {...this.extensionData, ...JSON.parse(extensionData)}
+      console.log('### loaded extension data', this.extensionData)
     }
     this.getStubExtensionReleases()
   },
