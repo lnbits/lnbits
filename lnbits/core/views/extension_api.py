@@ -1,6 +1,8 @@
+import asyncio
 import sys
 import traceback
 from http import HTTPStatus
+from pathlib import Path
 
 from bolt11 import decode as bolt11_decode
 from fastapi import (
@@ -41,6 +43,8 @@ from lnbits.decorators import (
     check_admin,
     check_user_exists,
 )
+from lnbits.helpers import download_url
+from lnbits.settings import settings
 
 from ..crud import (
     create_user_extension,
@@ -119,6 +123,23 @@ async def api_install_extension(data: CreateExtension):
 @extension_router.post("/builder", dependencies=[Depends(check_user_exists)])
 async def api_build_extension(data: ExtensionData):
     print("### data", data)
+    extension_stub_releases: list[ExtensionRelease] = (
+        await InstallableExtension.get_extension_releases("extension_builder_stub")
+    )
+    release = next(
+        (r for r in extension_stub_releases if r.version == data.stub_version),
+        None,
+    )
+    if not release:
+        raise HTTPException(HTTPStatus.NOT_FOUND, detail="Release not found")
+
+    print("### release", release)
+
+    version_dir = Path(settings.lnbits_data_folder, "extension_builder_stub")
+    version_dir.mkdir(parents=True, exist_ok=True)
+    await asyncio.to_thread(
+        download_url, release.archive_url, Path(version_dir, release.version + ".zip")
+    )
 
 
 @extension_router.get("/{ext_id}/details")
