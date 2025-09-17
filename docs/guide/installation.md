@@ -138,13 +138,14 @@ sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
 grep -qxF 'experimental-features = nix-command flakes' /etc/nix/nix.conf || \
 echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
 
-# Add cachix for cached binaries
+# Add user to Nix
 grep -qxF "trusted-users = root $USER" /etc/nix/nix.conf || \
 echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
 
 # Restart daemon so changes apply
 sudo systemctl restart nix-daemon
 
+# Add cachix for cached binaries
 nix-env -iA cachix -f https://cachix.org/api/v1/install
 cachix use lnbits
 
@@ -167,7 +168,7 @@ but you can also set the env variables or pass command line arguments:
 
 ```sh
 # .env variables are currently passed when running, but LNbits can be managed with the admin UI.
-LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
+LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000 --host 0.0.0.0
 
 # Once you have created a user, you can set as the super_user
 SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
