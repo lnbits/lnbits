@@ -139,13 +139,13 @@ grep -qxF 'experimental-features = nix-command flakes' /etc/nix/nix.conf || \
 echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
 
 # Add cachix for cached binaries
-nix-env -iA cachix -f https://cachix.org/api/v1/install
 grep -qxF "trusted-users = root $USER" /etc/nix/nix.conf || \
 echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
 
 # Restart daemon so changes apply
 sudo systemctl restart nix-daemon
 
+nix-env -iA cachix -f https://cachix.org/api/v1/install
 cachix use lnbits
 
 # Clone and build LNbits
