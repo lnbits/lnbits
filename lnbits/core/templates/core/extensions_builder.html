@@ -13,62 +13,6 @@
       animated
       class="q-pt-sm"
     >
-      <q-step
-        :name="0"
-        title="Intro"
-        icon="home"
-        :done="step > 0"
-        style="min-height: 100px"
-      >
-        <div class="row">
-          <div class="col-12">
-            <span>
-              In order to better understand the terms used by the
-              <q-badge>Extension Builder</q-badge> we are going to use the
-              <q-badge outline>Campaign Donations Extension</q-badge> as an
-              example.
-            </span>
-          </div>
-          <div class="col-12">
-            <span>The story is like this:</span>
-            <ul>
-              <li>
-                An LNbits user wants to create a campaign to receive donations
-                for a cause.
-              </li>
-              <li>
-                The user creates a campaign with a name, description, goal
-                amount and a deadline (it can create multiple campaigns).
-              </li>
-              <li>
-                The user can share the campaign link with others to receive
-                donations.
-              </li>
-              <li>
-                People can donate to the campaign and view the total amount
-                received using a public page (no need to login).
-              </li>
-              <li>
-                Donors can leave their nostr nip5 indentifier and be notified
-                when their payment has been processed.
-              </li>
-              <li>
-                The user can view the list of donors and the amounts they
-                donated.
-              </li>
-            </ul>
-          </div>
-          <div class="col-12">
-            <span>
-              In the following steps the
-              <q-badge outline>Campaign Donations</q-badge> fields will be used
-              as placeholders for the <code>inputs</code> in order to guide
-              you.</span
-            >
-            <strong>You must fill in your own values.</strong>
-          </div>
-        </div>
-      </q-step>
 
       <q-step
         :name="1"
@@ -78,13 +22,9 @@
         style="min-height: 100px"
       >
         <div class="row q-col-gutter-md">
-          <div class="col-md-8 col-sm-12">
-            <q-img
-              :src="'{{ static_url_for('static', 'images/builder/build_01.png') }}'"
-            ></q-img>
-          </div>
-          <div class="col-md-4 col-sm-12">
-            <span> Tell us something about your extension: </span>
+
+          <div class="col-12">
+            <span class="text-h6" > Tell us something about your extension: </span>
             <ul>
               <li>This is the first step, you can return and change it.</li>
               <li>
@@ -455,15 +395,7 @@
           </div>
         </div>
       </template>
-      <template v-slot:message>
-        <q-banner v-if="step === 0" class="bg-grey-8 text-white q-px-lg">
-          <span class="text-h5">New LNbits Extension</span><br />
-          <span class="text-caption">
-            This is a step-by-step guide to help you build your own LNbits
-            extension.
-          </span>
-        </q-banner>
-      </template>
+
     </q-stepper>
   </div>
 </div>
