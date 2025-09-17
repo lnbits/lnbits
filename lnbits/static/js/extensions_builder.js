@@ -5,6 +5,7 @@ window.ExtensionsBuilderPageLogic = {
       extensionData: {
         id: '',
         name: '',
+        stub_version: '',
         short_description: '',
         description: '',
         public_page: {
@@ -42,7 +43,8 @@ window.ExtensionsBuilderPageLogic = {
       settingsTypes: [
         {label: 'User Settings', value: 'user'},
         {label: 'Admin Settings', value: 'admin'}
-      ]
+      ],
+      extensionStubVersions: []
     }
   },
 
@@ -57,6 +59,25 @@ window.ExtensionsBuilderPageLogic = {
     },
     previousStep() {
       this.$refs.stepper.previous()
+    },
+    async getStubExtensionReleases() {
+      try {
+        const stub_ext_id = 'extension_builder_stub'
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/api/v1/extension/${stub_ext_id}/releases`
+        )
+
+        this.extensionStubVersions = data.sort((a, b) =>
+          a.version < b.version ? 1 : -1
+        )
+        this.extensionData.stub_version = this.extensionStubVersions[0]
+          ? this.extensionStubVersions[0].version
+          : ''
+        console.log('### stub extension releases', this.extensionStubVersions)
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
     }
   },
   created: function () {
@@ -66,6 +87,7 @@ window.ExtensionsBuilderPageLogic = {
     if (extensionData) {
       this.extensionData = JSON.parse(extensionData)
     }
+    this.getStubExtensionReleases()
   },
   mixins: [windowMixin]
 }

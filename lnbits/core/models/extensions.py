@@ -628,8 +628,11 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def get_extension_releases(cls, ext_id: str) -> list[ExtensionRelease]:
         extension_releases: list[ExtensionRelease] = []
-
-        for url in settings.lnbits_extensions_manifests:
+        all_manifests = [
+            *settings.lnbits_extensions_manifests,
+            settings.lnbits_extensions_manifest,
+        ]
+        for url in all_manifests:
             try:
                 manifest = await cls.fetch_manifest(url)
                 for r in manifest.repos:

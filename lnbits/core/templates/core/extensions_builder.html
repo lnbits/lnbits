@@ -370,6 +370,16 @@
         <br />
         Regular users can download a zip file to install it in their own
         servers.
+        <br />
+        <q-select
+          filled
+          dense
+          emit-value
+          map-options
+          v-model="extensionData.stub_version"
+          hint="The title field in the public page."
+          :options="extensionStubVersions.map(f => f.version)"
+        ></q-select>
       </q-step>
 
       <template v-slot:navigation>
