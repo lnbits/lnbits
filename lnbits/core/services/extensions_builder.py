@@ -125,101 +125,40 @@ def replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
 
 
 def rename_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
-
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="extension_builder_stub_name",
-        new_text=data.name,
-        file_extensions=[".py", ".js", ".html", ".md", ".json"],
-    )
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="extension_builder_stub_short_description",
-        new_text=data.short_description or "",
-        file_extensions=[".py", ".js", ".html", ".md", ".json"],
-    )
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="extension_builder_stub",
-        new_text=data.id,
-        file_extensions=[".py", ".js", ".html", ".md", ".json", ".toml"],
-    )
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="OwnerData",
-        new_text=data.owner_data.name,
-        file_extensions=[".py", ".js", ".html", ".md", ".json"],
-    )
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="ownerData",
-        new_text=lowercase_first_letter(data.owner_data.name),
-        file_extensions=[".py", ".js", ".html", ".md", ".json"],
-    )
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="Owner Data",
-        new_text=camel_to_words(data.owner_data.name),
-        file_extensions=[".py", ".js", ".html", ".md", ".json"],
-    )
-
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="owner_data",
-        new_text=camel_to_snake(data.owner_data.name),
-        file_extensions=[".py", ".js", ".html", ".md", ".json"],
-    )
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="owner data",
-        new_text=camel_to_words(data.owner_data.name).lower(),
-        file_extensions=[".py"],
-    )
-
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="ClientData",
-        new_text=data.client_data.name,
-        file_extensions=[".py", ".js", ".html", ".md", ".json"],
-    )
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="clientData",
-        new_text=lowercase_first_letter(data.client_data.name),
-        file_extensions=[".py", ".js", ".html", ".md", ".json"],
-    )
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="Client Data",
-        new_text=camel_to_words(data.client_data.name),
-        file_extensions=[".py", ".js", ".html", ".md", ".json"],
-    )
-
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="client_data",
-        new_text=camel_to_snake(data.client_data.name),
-        file_extensions=[".py", ".js", ".html", ".md", ".json"],
-    )
-    _replace_text_in_files(
-        directory=extension_dir.as_posix(),
-        old_text="client data",
-        new_text=camel_to_words(data.client_data.name).lower(),
-        file_extensions=[".py"],
-    )
+    extension_dir_path = extension_dir.as_posix()
+    rename_values = {
+        "extension_builder_stub_name": data.name,
+        "extension_builder_stub_short_description": data.short_description or "",
+        "extension_builder_stub": data.id,
+        "OwnerData": data.owner_data.name,
+        "ownerData": lowercase_first_letter(data.owner_data.name),
+        "Owner Data": camel_to_words(data.owner_data.name),
+        "owner data": camel_to_words(data.owner_data.name).lower(),
+        "owner_data": camel_to_snake(data.owner_data.name),
+        "ClientData": data.client_data.name,
+        "clientData": lowercase_first_letter(data.client_data.name),
+        "Client Data": camel_to_words(data.client_data.name),
+        "client data": camel_to_words(data.client_data.name).lower(),
+        "client_data": camel_to_snake(data.client_data.name),
+    }
+    for old_text, new_text in rename_values.items():
+        _replace_text_in_files(
+            directory=extension_dir_path,
+            old_text=old_text,
+            new_text=new_text,
+            file_extensions=[".py", ".js", ".html", ".md", ".json", ".toml"],
+        )
 
     _rename_files_and_dirs_in_directory(
-        directory=extension_dir.as_posix(),
+        directory=extension_dir_path,
         old_text="extension_builder_stub",
         new_text=data.id,
     )
     _rename_files_and_dirs_in_directory(
-        directory=extension_dir.as_posix(),
+        directory=extension_dir_path,
         old_text="owner_data",
         new_text=camel_to_snake(data.owner_data.name),
     )
-
-    # zip_directory(".", data.id + ".zip")
 
 
 def zip_directory(source_dir, zip_path):
