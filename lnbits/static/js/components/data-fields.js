@@ -71,7 +71,7 @@ window.app.component('lnbits-data-fields', {
         type: 'text',
         label: '',
         hint: '',
-        optional: false,
+        optional: true,
         sortable: true,
         searchable: true,
         editable: true,
@@ -111,6 +111,5 @@ window.app.component('lnbits-data-fields', {
         }
       )
     }
-    console.log('lnbits-data-fields component created', this.fields)
   }
 })
