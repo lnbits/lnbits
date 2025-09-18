@@ -3,6 +3,7 @@ import zipfile
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
+from loguru import logger
 
 from lnbits.core.models.extensions_builder import DataField, ExtensionData
 from lnbits.db import dict_to_model
@@ -46,89 +47,18 @@ extra_ui_fields = [
 ui_table_columns = [dict_to_model(f, DataField) for f in extra_ui_fields]
 
 
-def jinja_env(template_dir: str) -> Environment:
-    return Environment(
-        loader=FileSystemLoader(template_dir),
-        variable_start_string="<<",
-        variable_end_string=">>",
-        block_start_string="<%",
-        block_end_string="%>",
-        comment_start_string="<#",
-        comment_end_string="#>",
-        autoescape=False,
-    )
-
-
-def parse_extension_data(data: ExtensionData) -> dict:
-
-    return {
-        "owner_data": {
-            "name": data.owner_data.name,
-            "editable_fields": [
-                field.field_to_py()
-                for field in data.owner_data.fields
-                if field.editable
-            ],
-            "search_fields": [
-                camel_to_snake(field.name)
-                for field in data.owner_data.fields
-                if field.searchable
-            ],
-            "ui_table_columns": [
-                field.field_to_ui_table_column()
-                for field in data.owner_data.fields + ui_table_columns
-                if field.sortable
-            ],
-            "db_fields": [field.field_to_db() for field in data.owner_data.fields],
-            "all_fields": [field.field_to_py() for field in data.owner_data.fields],
-        },
-        "client_data": {
-            "name": data.client_data.name,
-            "editable_fields": [
-                field.field_to_py()
-                for field in data.client_data.fields
-                if field.editable
-            ],
-            "search_fields": [
-                camel_to_snake(field.name)
-                for field in data.client_data.fields
-                if field.searchable
-            ],
-            "ui_table_columns": [
-                field.field_to_ui_table_column()
-                for field in data.client_data.fields + ui_table_columns
-                if field.sortable
-            ],
-            "db_fields": [field.field_to_db() for field in data.client_data.fields],
-            "all_fields": [field.field_to_py() for field in data.client_data.fields],
-        },
-        "settings_data": {
-            "enabled": data.settings_data.enabled,
-            "is_admin_settings_only": data.settings_data.type == "admin",
-            "editable_fields": [
-                field.field_to_py()
-                for field in data.settings_data.fields
-                if field.editable
-            ],
-            "db_fields": [field.field_to_db() for field in data.settings_data.fields],
-        },
-        "public_page": data.public_page,
-        "cancel_comment": remove_line_marker,
-    }
-
-
 def replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
-    parsed_data = parse_extension_data(data)
+    parsed_data = _parse_extension_data(data)
     for py_file in py_files:
         template_path = Path(ext_stub_dir, py_file).as_posix()
-        rederer = render_file(template_path, parsed_data)
+        rederer = _render_file(template_path, parsed_data)
         with open(template_path, "w", encoding="utf-8") as f:
             f.write(rederer)
 
         remove_lines_with_string(template_path, remove_line_marker)
 
     template_path = Path(ext_stub_dir, "static", "js", "index.js").as_posix()
-    rederer = render_file(template_path, parsed_data)
+    rederer = _render_file(template_path, parsed_data)
     with open(template_path, "w", encoding="utf-8") as f:
         f.write(rederer)
 
@@ -152,7 +82,7 @@ def replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
     template_path = Path(
         ext_stub_dir, "templates", "extension_builder_stub", "index.html"
     ).as_posix()
-    rederer = render_file(
+    rederer = _render_file(
         template_path,
         {
             "extension_builder_stub_owner_inputs": owner_inputs,
@@ -179,7 +109,7 @@ def replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
     template_path = Path(
         ext_stub_dir, "templates", "extension_builder_stub", "public_owner_data.html"
     ).as_posix()
-    rederer = render_file(
+    rederer = _render_file(
         template_path,
         {
             "extension_builder_stub_public_client_inputs": public_client_data_inputs,
@@ -199,7 +129,7 @@ def html_input_fields(
         ext_stub_dir, "templates", "extension_builder_stub", "_input_fields.html"
     ).as_posix()
 
-    rederer = render_file(
+    rederer = _render_file(
         template_path,
         {
             "fields": fields,
@@ -207,20 +137,6 @@ def html_input_fields(
         },
     )
     return rederer
-
-
-def render_file(template_path: str, data: dict) -> str:
-    # Extract directory and file name
-    template_dir = os.path.dirname(template_path)
-    template_file = os.path.basename(template_path)
-
-    # Create Jinja environment
-    # env = Environment(loader=FileSystemLoader(template_dir))
-    env = jinja_env(template_dir)
-    template = env.get_template(template_file)
-
-    # Render the template with data
-    return template.render(**data)
 
 
 def remove_lines_with_string(file_path: str, target: str) -> None:
@@ -243,13 +159,6 @@ def remove_lines_with_string(file_path: str, target: str) -> None:
 ####### RENAME ######
 
 excluded_dirs = {"./.", "./__pycache__", "./node_modules", "./transform"}
-
-
-def is_excluded_dir(path):
-    for excluded_dir in excluded_dirs:
-        if path.startswith(excluded_dir):
-            return True
-    return False
 
 
 def rename_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
@@ -361,7 +270,7 @@ def replace_text_in_files(directory, old_text, new_text, file_extensions=None):
     - file_extensions (list[str], optional): Only process files with these extensions.
     """
     for root, _, files in os.walk(directory):
-        if is_excluded_dir(root):
+        if _is_excluded_dir(root):
             continue
 
         for filename in files:
@@ -377,9 +286,9 @@ def replace_text_in_files(directory, old_text, new_text, file_extensions=None):
                     new_content = content.replace(old_text, new_text)
                     with open(file_path, "w", encoding="utf-8") as f:
                         f.write(new_content)
-                    print(f"Updated: {file_path}")
+                    logger.trace(f"Updated: {file_path}")
             except (UnicodeDecodeError, PermissionError, FileNotFoundError) as e:
-                print(f"Skipped {file_path}: {e}")
+                logger.debug(f"Skipped {file_path}: {e}")
 
 
 def rename_files_and_dirs_in_directory(directory, old_text, new_text):
@@ -393,7 +302,7 @@ def rename_files_and_dirs_in_directory(directory, old_text, new_text):
     """
     # First rename directories (bottom-up) so we don't lose paths while renaming
     for root, dirs, files in os.walk(directory, topdown=False):
-        if is_excluded_dir(root):
+        if _is_excluded_dir(root):
             continue
         # Rename files
         for filename in files:
@@ -403,9 +312,9 @@ def rename_files_and_dirs_in_directory(directory, old_text, new_text):
                 new_path = os.path.join(root, new_filename)
                 try:
                     os.rename(old_path, new_path)
-                    print(f"Renamed file: {old_path} -> {new_path}")
+                    logger.trace(f"Renamed file: {old_path} -> {new_path}")
                 except Exception as e:
-                    print(f"Failed to rename file {old_path}: {e}")
+                    logger.warning(f"Failed to rename file {old_path}: {e}")
 
         # Rename directories
         for dirname in dirs:
@@ -415,9 +324,9 @@ def rename_files_and_dirs_in_directory(directory, old_text, new_text):
                 new_dir_path = os.path.join(root, new_dir_name)
                 try:
                     os.rename(old_dir_path, new_dir_path)
-                    print(f"Renamed directory: {old_dir_path} -> {new_dir_path}")
+                    logger.trace(f"Renamed directory: {old_dir_path} -> {new_dir_path}")
                 except Exception as e:
-                    print(f"Failed to rename directory {old_dir_path}: {e}")
+                    logger.warning(f"Failed to rename directory {old_dir_path}: {e}")
 
 
 def zip_directory(source_dir, zip_path):
@@ -430,12 +339,103 @@ def zip_directory(source_dir, zip_path):
     """
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(source_dir):
-            if is_excluded_dir(root):
+            if _is_excluded_dir(root):
                 continue
-            print(f"Zipping files in 2: {root}")  # Debug statement
+
             for file in files:
                 full_path = os.path.join(root, file)
                 # Add file with a relative path inside the zip
                 relative_path = os.path.relpath(full_path, start=source_dir)
                 zipf.write(full_path, arcname=relative_path)
-    print(f"Directory '{source_dir}' zipped to '{zip_path}'")
+
+
+def _render_file(template_path: str, data: dict) -> str:
+    # Extract directory and file name
+    template_dir = os.path.dirname(template_path)
+    template_file = os.path.basename(template_path)
+
+    # Create Jinja environment
+    # env = Environment(loader=FileSystemLoader(template_dir))
+    env = _jinja_env(template_dir)
+    template = env.get_template(template_file)
+
+    # Render the template with data
+    return template.render(**data)
+
+
+def _jinja_env(template_dir: str) -> Environment:
+    return Environment(
+        loader=FileSystemLoader(template_dir),
+        variable_start_string="<<",
+        variable_end_string=">>",
+        block_start_string="<%",
+        block_end_string="%>",
+        comment_start_string="<#",
+        comment_end_string="#>",
+        autoescape=False,
+    )
+
+
+def _parse_extension_data(data: ExtensionData) -> dict:
+
+    return {
+        "owner_data": {
+            "name": data.owner_data.name,
+            "editable_fields": [
+                field.field_to_py()
+                for field in data.owner_data.fields
+                if field.editable
+            ],
+            "search_fields": [
+                camel_to_snake(field.name)
+                for field in data.owner_data.fields
+                if field.searchable
+            ],
+            "ui_table_columns": [
+                field.field_to_ui_table_column()
+                for field in data.owner_data.fields + ui_table_columns
+                if field.sortable
+            ],
+            "db_fields": [field.field_to_db() for field in data.owner_data.fields],
+            "all_fields": [field.field_to_py() for field in data.owner_data.fields],
+        },
+        "client_data": {
+            "name": data.client_data.name,
+            "editable_fields": [
+                field.field_to_py()
+                for field in data.client_data.fields
+                if field.editable
+            ],
+            "search_fields": [
+                camel_to_snake(field.name)
+                for field in data.client_data.fields
+                if field.searchable
+            ],
+            "ui_table_columns": [
+                field.field_to_ui_table_column()
+                for field in data.client_data.fields + ui_table_columns
+                if field.sortable
+            ],
+            "db_fields": [field.field_to_db() for field in data.client_data.fields],
+            "all_fields": [field.field_to_py() for field in data.client_data.fields],
+        },
+        "settings_data": {
+            "enabled": data.settings_data.enabled,
+            "is_admin_settings_only": data.settings_data.type == "admin",
+            "editable_fields": [
+                field.field_to_py()
+                for field in data.settings_data.fields
+                if field.editable
+            ],
+            "db_fields": [field.field_to_db() for field in data.settings_data.fields],
+        },
+        "public_page": data.public_page,
+        "cancel_comment": remove_line_marker,
+    }
+
+
+def _is_excluded_dir(path):
+    for excluded_dir in excluded_dirs:
+        if path.startswith(excluded_dir):
+            return True
+    return False

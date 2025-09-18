@@ -129,8 +129,11 @@ async def api_install_extension(data: CreateExtension):
         ) from exc
 
 
-@extension_router.post("/builder", dependencies=[Depends(check_user_exists)])
-async def api_build_extension(data: ExtensionData):
+@extension_router.post("/builder")
+async def api_build_extension(
+    data: ExtensionData,
+    user: User = Depends(check_admin),
+):
     print("### data", data)
     extension_stub_releases: list[ExtensionRelease] = (
         await InstallableExtension.get_extension_releases("extension_builder_stub")
@@ -185,6 +188,11 @@ async def api_build_extension(data: ExtensionData):
     zip_directory(extension_dir.parent, ext_zip_file)
 
     await install_extension(ext_info, skip_download=True)
+
+    await activate_extension(Extension.from_installable_ext(ext_info))
+
+    user_ext = UserExtension(user=user.id, extension=data.id, active=True)
+    await update_user_extension(user_ext)
 
 
 @extension_router.get("/{ext_id}/details")
