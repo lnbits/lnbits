@@ -1,4 +1,3 @@
-import json
 import os
 import zipfile
 from pathlib import Path
@@ -66,7 +65,9 @@ def parse_extension_data(data: ExtensionData) -> dict:
         "owner_data": {
             "name": data.owner_data.name,
             "editable_fields": [
-                field_to_py(field) for field in data.owner_data.fields if field.editable
+                field.field_to_py()
+                for field in data.owner_data.fields
+                if field.editable
             ],
             "search_fields": [
                 camel_to_snake(field.name)
@@ -74,17 +75,17 @@ def parse_extension_data(data: ExtensionData) -> dict:
                 if field.searchable
             ],
             "ui_table_columns": [
-                field_to_ui_table_column(field)
+                field.field_to_ui_table_column()
                 for field in data.owner_data.fields + ui_table_columns
                 if field.sortable
             ],
-            "db_fields": [field_to_db(field) for field in data.owner_data.fields],
-            "all_fields": [field_to_py(field) for field in data.owner_data.fields],
+            "db_fields": [field.field_to_db() for field in data.owner_data.fields],
+            "all_fields": [field.field_to_py() for field in data.owner_data.fields],
         },
         "client_data": {
             "name": data.client_data.name,
             "editable_fields": [
-                field_to_py(field)
+                field.field_to_py()
                 for field in data.client_data.fields
                 if field.editable
             ],
@@ -94,22 +95,22 @@ def parse_extension_data(data: ExtensionData) -> dict:
                 if field.searchable
             ],
             "ui_table_columns": [
-                field_to_ui_table_column(field)
+                field.field_to_ui_table_column()
                 for field in data.client_data.fields + ui_table_columns
                 if field.sortable
             ],
-            "db_fields": [field_to_db(field) for field in data.client_data.fields],
-            "all_fields": [field_to_py(field) for field in data.client_data.fields],
+            "db_fields": [field.field_to_db() for field in data.client_data.fields],
+            "all_fields": [field.field_to_py() for field in data.client_data.fields],
         },
         "settings_data": {
             "enabled": data.settings_data.enabled,
             "is_admin_settings_only": data.settings_data.type == "admin",
             "editable_fields": [
-                field_to_py(field)
+                field.field_to_py()
                 for field in data.settings_data.fields
                 if field.editable
             ],
-            "db_fields": [field_to_db(field) for field in data.settings_data.fields],
+            "db_fields": [field.field_to_db() for field in data.settings_data.fields],
         },
         "public_page": data.public_page,
         "cancel_comment": remove_line_marker,
@@ -191,42 +192,6 @@ def replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
     remove_lines_with_string(template_path, remove_line_marker)
 
 
-def field_to_db(field: DataField) -> str:
-    field_name = camel_to_snake(field.name)
-    field_type = field.type
-    if field_type == "str":
-        db_type = "TEXT"
-    elif field_type == "int":
-        db_type = "INT"
-    elif field_type == "float":
-        db_type = "REAL"
-    elif field_type == "bool":
-        db_type = "BOOLEAN"
-    elif field_type == "datetime":
-        db_type = "TIMESTAMP"
-    else:
-        db_type = "TEXT"
-
-    db_field = f"{field_name} {db_type}"
-    if not field.optional:
-        db_field += " NOT NULL"
-    if field_type == "json":
-        db_field += " DEFAULT '{empty_dict}'"
-    return db_field
-
-
-def field_to_ui_table_column(field: DataField) -> str:
-    column = {
-        "name": field.name,
-        "align": "left",
-        "label": field.label or field.name,
-        "field": field.name,
-        "sortable": field.sortable,
-    }
-
-    return json.dumps(column)
-
-
 def html_input_fields(
     fields: list[DataField], model_name: str, ext_stub_dir: Path
 ) -> str:
@@ -242,18 +207,6 @@ def html_input_fields(
         },
     )
     return rederer
-
-
-def field_to_py(field: DataField) -> str:
-    field_name = camel_to_snake(field.name)
-    field_type = field.type
-    if field_type == "json":
-        field_type = "dict"
-    elif field_type in ["wallet", "currency", "text"]:
-        field_type = "str"
-    if field.optional:
-        field_type += " | None"
-    return f"{field_name}: {field_type}"
 
 
 def render_file(template_path: str, data: dict) -> str:
