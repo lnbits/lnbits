@@ -1,9 +1,13 @@
 import asyncio
+import os
+import shutil
 import sys
 import traceback
+import zipfile
 from http import HTTPStatus
 from pathlib import Path
 
+import shortuuid
 from bolt11 import decode as bolt11_decode
 from fastapi import (
     APIRouter,
@@ -135,11 +139,26 @@ async def api_build_extension(data: ExtensionData):
 
     print("### release", release)
 
-    version_dir = Path(settings.lnbits_data_folder, "extension_builder_stub")
-    version_dir.mkdir(parents=True, exist_ok=True)
-    await asyncio.to_thread(
-        download_url, release.archive_url, Path(version_dir, release.version + ".zip")
+    builder_dir = Path(settings.lnbits_data_folder, "extensions_builder")
+    builder_dir.mkdir(parents=True, exist_ok=True)
+    ext_zip_path = Path(builder_dir, release.version + ".zip")
+    await asyncio.to_thread(download_url, release.archive_url, ext_zip_path)
+
+    ext_stub_dir = Path(builder_dir, "extension_builder_stub")
+    shutil.rmtree(ext_stub_dir, True)
+
+    with zipfile.ZipFile(ext_zip_path, "r") as zip_ref:
+        zip_ref.extractall(ext_stub_dir)
+
+    generated_dir_name = os.listdir(ext_stub_dir)[0]
+    generated_dir = Path(ext_stub_dir, generated_dir_name)
+    extension_dir = Path(ext_stub_dir, shortuuid.uuid(), data.id)
+
+    shutil.copytree(
+        generated_dir,
+        extension_dir,
     )
+    shutil.rmtree(generated_dir, True)
 
 
 @extension_router.get("/{ext_id}/details")
