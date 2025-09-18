@@ -46,6 +46,7 @@
               @click="clearAllData"
             ></q-btn>
           </div>
+
           <!-- todo: add icon -->
         </div>
         <q-separator class="q-mt-sm"></q-separator>
@@ -90,6 +91,34 @@
               maxlength="1000"
             >
             </q-input>
+          </div>
+        </div>
+        <div class="row q-mt-lg">
+          <div class="col-12">
+            <q-btn
+              color="primary"
+              label="Upload Existing config"
+              @click="$refs.extensionDataInput.click()"
+              class="q-mb-md"
+            />
+            <input
+              type="file"
+              ref="extensionDataInput"
+              accept="application/json"
+              style="display: none"
+              @change="onJsonDataInput"
+            />
+          </div>
+          <div class="col-12">
+            <ul>
+              <li>
+                If you already have a configuration file you can uploaded here.
+              </li>
+              <li>
+                The configuration data file can be exported at the
+                <code>Publish</code> step.
+              </li>
+            </ul>
           </div>
         </div>
       </q-step>
@@ -376,19 +405,38 @@
       >
         Admins can publish to this server.
         <br />
-        Regular users can download a zip file to install it in their own
+        Regular users can download the JSON config and upload it in their own
         servers.
         <br />
-        <q-select
-          filled
-          dense
-          emit-value
-          map-options
-          v-model="extensionData.stub_version"
-          hint="The title field in the public page."
-          :options="extensionStubVersions.map(f => f.version)"
-        ></q-select>
-        <q-btn @click="buildExtension()" color="primary" label="Build" />
+        <div class="row">
+          <div class="col-md-4 col-sm-12 col-xs-12 q-mt-md">
+            <q-select
+              filled
+              dense
+              emit-value
+              map-options
+              v-model="extensionData.stub_version"
+              hint="The version of the extension stub. Make sure it is compatible with your LNbits install."
+              :options="extensionStubVersions.map(f => f.version)"
+            ></q-select>
+          </div>
+          <div class="col-md-4 col-sm-12 col-xs-12 q-ma-md">
+            <q-btn
+              @click="buildExtension()"
+              color="primary"
+              label="Build and Deploy (Admin Only)"
+            />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 col-sm-12 col-xs-12 q-mt-md">
+            <q-btn
+              @click="exportJsonData()"
+              color="grey-8"
+              label="Export JSON Data"
+            />
+          </div>
+        </div>
       </q-step>
 
       <template v-slot:navigation>
@@ -406,9 +454,10 @@
               />
 
               <q-btn
+                v-if="step < 7"
                 @click="nextStep()"
                 color="primary"
-                :label="step === 7 ? 'Finish' : 'Next'"
+                label="Next"
               />
             </q-stepper-navigation>
           </div>

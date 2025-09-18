@@ -73,6 +73,30 @@ window.ExtensionsBuilderPageLogic = {
           this.$refs.stepper.set(1)
         })
     },
+    exportJsonData() {
+      const status = Quasar.exportFile(
+        `${this.extensionData.id || 'data-export'}.json`,
+        JSON.stringify(this.extensionData, null, 2),
+        'text/json'
+      )
+      if (status !== true) {
+        Quasar.Notify.create({
+          message: 'Browser denied file download...',
+          color: 'negative',
+          icon: null
+        })
+      } else {
+        Quasar.Notify.create({
+          message: 'File downloaded!',
+          color: 'positive',
+          icon: 'file_download'
+        })
+      }
+    },
+    onJsonDataInput(event) {
+      const file = event.target.files[0]
+      console.log('### file', file)
+    },
     async buildExtension() {
       try {
         const {data} = await LNbits.api.request(
