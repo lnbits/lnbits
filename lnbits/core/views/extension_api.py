@@ -149,8 +149,6 @@ async def api_build_extension(
         meta=ExtensionMeta(installed_release=release),
     )
     ext_zip_file = ext_info.zip_path
-    print("### extension_dir", extension_dir)
-    print("### ext_zip_file", ext_zip_file)
     if ext_zip_file.is_file():
         os.remove(ext_zip_file)
 
