@@ -96,6 +96,20 @@ window.ExtensionsBuilderPageLogic = {
     onJsonDataInput(event) {
       const file = event.target.files[0]
       console.log('### file', file)
+      const reader = new FileReader()
+      reader.onload = e => {
+        this.extensionData = {
+          ...this.extensionData,
+          ...JSON.parse(e.target.result)
+        }
+        this.$refs.extensionDataInput.value = null
+        Quasar.Notify.create({
+          message: 'File loaded!',
+          color: 'positive',
+          icon: 'file_upload'
+        })
+      }
+      reader.readAsText(file)
     },
     async buildExtension() {
       try {
