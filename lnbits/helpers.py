@@ -368,3 +368,19 @@ def normalize_endpoint(endpoint: str, add_proto=True) -> str:
             f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
         )
     return endpoint
+
+
+def camel_to_words(name: str) -> str:
+    # Add space before capital letters (but not at the start)
+    words = re.sub(r"(?<!^)(?=[A-Z])", " ", name)
+    return words.strip()
+
+
+def camel_to_snake(name: str) -> str:
+    name = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
+    name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name)
+    return name.lower()
+
+
+def lowercase_first_letter(s: str) -> str:
+    return s[:1].lower() + s[1:] if s else s
