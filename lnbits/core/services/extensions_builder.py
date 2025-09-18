@@ -1,13 +1,23 @@
+import asyncio
 import os
+import shutil
 import zipfile
 from pathlib import Path
 
+import shortuuid
 from jinja2 import Environment, FileSystemLoader
 from loguru import logger
 
+from lnbits.core.models.extensions import ExtensionRelease
 from lnbits.core.models.extensions_builder import DataField, ExtensionData
 from lnbits.db import dict_to_model
-from lnbits.helpers import camel_to_snake, camel_to_words, lowercase_first_letter
+from lnbits.helpers import (
+    camel_to_snake,
+    camel_to_words,
+    download_url,
+    lowercase_first_letter,
+)
+from lnbits.settings import settings
 
 py_files = [
     "__init__.py",
@@ -49,7 +59,37 @@ ui_table_columns = [dict_to_model(f, DataField) for f in extra_ui_fields]
 excluded_dirs = {"./.", "./__pycache__", "./node_modules", "./transform"}
 
 
-def replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
+async def fetch_extension_builder_stub(ext_id: str, release: ExtensionRelease) -> Path:
+    builder_dir = Path(settings.lnbits_data_folder, "extensions_builder")
+    builder_dir.mkdir(parents=True, exist_ok=True)
+    ext_zip_path = Path(builder_dir, release.version + ".zip")
+    if not ext_zip_path.is_file():
+        await asyncio.to_thread(download_url, release.archive_url, ext_zip_path)
+
+    ext_stub_dir = Path(builder_dir, "extension_builder_stub")
+    shutil.rmtree(ext_stub_dir, True)
+
+    with zipfile.ZipFile(ext_zip_path, "r") as zip_ref:
+        zip_ref.extractall(ext_stub_dir)
+
+    generated_dir_name = os.listdir(ext_stub_dir)[0]
+    generated_dir = Path(ext_stub_dir, generated_dir_name)
+    extension_dir = Path(ext_stub_dir, shortuuid.uuid(), ext_id)
+
+    shutil.copytree(
+        generated_dir,
+        extension_dir,
+    )
+    shutil.rmtree(generated_dir, True)
+    return extension_dir
+
+
+def transform_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
+    _replace_jinja_placeholders(data, extension_dir)
+    _rename_extension_builder_stub(data, extension_dir)
+
+
+def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
     parsed_data = _parse_extension_data(data)
     for py_file in py_files:
         template_path = Path(ext_stub_dir, py_file).as_posix()
@@ -124,7 +164,27 @@ def replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
     _remove_lines_with_string(template_path, remove_line_marker)
 
 
-def rename_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
+def zip_directory(source_dir, zip_path):
+    """
+    Zips the contents of a directory (including subdirectories and files).
+
+    Parameters:
+    - source_dir (str): The path of the directory to zip.
+    - zip_path (str): The path where the .zip file will be saved.
+    """
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(source_dir):
+            if _is_excluded_dir(root):
+                continue
+
+            for file in files:
+                full_path = os.path.join(root, file)
+                # Add file with a relative path inside the zip
+                relative_path = os.path.relpath(full_path, start=source_dir)
+                zipf.write(full_path, arcname=relative_path)
+
+
+def _rename_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
     extension_dir_path = extension_dir.as_posix()
     rename_values = {
         "extension_builder_stub_name": data.name,
@@ -159,26 +219,6 @@ def rename_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> N
         old_text="owner_data",
         new_text=camel_to_snake(data.owner_data.name),
     )
-
-
-def zip_directory(source_dir, zip_path):
-    """
-    Zips the contents of a directory (including subdirectories and files).
-
-    Parameters:
-    - source_dir (str): The path of the directory to zip.
-    - zip_path (str): The path where the .zip file will be saved.
-    """
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(source_dir):
-            if _is_excluded_dir(root):
-                continue
-
-            for file in files:
-                full_path = os.path.join(root, file)
-                # Add file with a relative path inside the zip
-                relative_path = os.path.relpath(full_path, start=source_dir)
-                zipf.write(full_path, arcname=relative_path)
 
 
 def _replace_text_in_files(

@@ -1,13 +1,8 @@
-import asyncio
 import os
-import shutil
 import sys
 import traceback
-import zipfile
 from http import HTTPStatus
-from pathlib import Path
 
-import shortuuid
 from bolt11 import decode as bolt11_decode
 from fastapi import (
     APIRouter,
@@ -44,16 +39,14 @@ from lnbits.core.services.extensions import (
     uninstall_extension,
 )
 from lnbits.core.services.extensions_builder import (
-    rename_extension_builder_stub,
-    replace_jinja_placeholders,
+    fetch_extension_builder_stub,
+    transform_extension_builder_stub,
     zip_directory,
 )
 from lnbits.decorators import (
     check_admin,
     check_user_exists,
 )
-from lnbits.helpers import download_url
-from lnbits.settings import settings
 
 from ..crud import (
     create_user_extension,
@@ -134,7 +127,6 @@ async def api_build_extension(
     data: ExtensionData,
     user: User = Depends(check_admin),
 ):
-    print("### data", data)
     extension_stub_releases: list[ExtensionRelease] = (
         await InstallableExtension.get_extension_releases("extension_builder_stub")
     )
@@ -145,32 +137,9 @@ async def api_build_extension(
     if not release:
         raise HTTPException(HTTPStatus.NOT_FOUND, detail="Release not found")
 
-    print("### release", release)
+    extension_dir = await fetch_extension_builder_stub(data.id, release)
 
-    builder_dir = Path(settings.lnbits_data_folder, "extensions_builder")
-    builder_dir.mkdir(parents=True, exist_ok=True)
-    ext_zip_path = Path(builder_dir, release.version + ".zip")
-    await asyncio.to_thread(download_url, release.archive_url, ext_zip_path)
-
-    ext_stub_dir = Path(builder_dir, "extension_builder_stub")
-    shutil.rmtree(ext_stub_dir, True)
-
-    with zipfile.ZipFile(ext_zip_path, "r") as zip_ref:
-        zip_ref.extractall(ext_stub_dir)
-
-    generated_dir_name = os.listdir(ext_stub_dir)[0]
-    generated_dir = Path(ext_stub_dir, generated_dir_name)
-    extension_dir = Path(ext_stub_dir, shortuuid.uuid(), data.id)
-
-    shutil.copytree(
-        generated_dir,
-        extension_dir,
-    )
-    shutil.rmtree(generated_dir, True)
-
-    replace_jinja_placeholders(data, extension_dir)
-    rename_extension_builder_stub(data, extension_dir)
-    print("### rename done")
+    transform_extension_builder_stub(data, extension_dir)
 
     ext_info = InstallableExtension(
         id=data.id,
@@ -191,7 +160,12 @@ async def api_build_extension(
 
     await activate_extension(Extension.from_installable_ext(ext_info))
 
-    user_ext = UserExtension(user=user.id, extension=data.id, active=True)
+    user_ext = await get_user_extension(user.id, data.id)
+    if not user_ext:
+        user_ext = UserExtension(user=user.id, extension=data.id, active=True)
+        await create_user_extension(user_ext)
+    elif not user_ext.active:
+        user_ext.active = True
     await update_user_extension(user_ext)
 
 
