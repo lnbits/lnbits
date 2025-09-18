@@ -4,11 +4,8 @@ import traceback
 from http import HTTPStatus
 
 from bolt11 import decode as bolt11_decode
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-)
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from loguru import logger
 
 from lnbits.core.crud.extensions import get_user_extensions
@@ -125,8 +122,9 @@ async def api_install_extension(data: CreateExtension):
 @extension_router.post("/builder")
 async def api_build_extension(
     data: ExtensionData,
+    deploy: bool = False,
     user: User = Depends(check_admin),
-):
+) -> FileResponse:
     extension_stub_releases: list[ExtensionRelease] = (
         await InstallableExtension.get_extension_releases("extension_builder_stub")
     )
@@ -154,6 +152,13 @@ async def api_build_extension(
 
     zip_directory(extension_dir.parent, ext_zip_file)
 
+    print("### deploy", deploy)
+    if not deploy:
+        # return the extension zip file as a download
+        return FileResponse(
+            ext_zip_file, filename=f"{data.id}.zip", media_type="application/zip"
+        )
+    print("### deploy yes")
     await install_extension(ext_info, skip_download=True)
 
     await activate_extension(Extension.from_installable_ext(ext_info))

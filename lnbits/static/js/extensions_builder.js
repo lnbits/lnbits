@@ -111,16 +111,32 @@ window.ExtensionsBuilderPageLogic = {
       }
       reader.readAsText(file)
     },
-    async buildExtension() {
+    async buildExtension(deploy = false) {
       try {
-        const {data} = await LNbits.api.request(
+        const response = await LNbits.api.request(
           'POST',
-          '/api/v1/extension/builder',
+          `/api/v1/extension/builder?deploy=${deploy}`,
           null,
-          this.extensionData
+          this.extensionData,
+          {responseType: 'blob'}
         )
 
-        console.log('### buildExtensions', data)
+        if (deploy) {
+          Quasar.Notify.create({
+            message: 'Extension installed!',
+            color: 'positive'
+          })
+          return
+        }
+        // download the zip file
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${this.extensionData.id || 'lnbits-extension'}.zip`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(url)
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }
