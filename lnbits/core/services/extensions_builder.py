@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -114,17 +115,17 @@ def parse_extension_data(data: ExtensionData) -> dict:
     }
 
 
-def replace_jinja_placeholders(data: ExtensionData) -> None:
+def replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:
     parsed_data = parse_extension_data(data)
     for py_file in py_files:
-        template_path = f"./{py_file}"
+        template_path = Path(ext_stub_dir, py_file).as_posix()
         rederer = render_file(template_path, parsed_data)
         with open(template_path, "w", encoding="utf-8") as f:
             f.write(rederer)
 
         remove_lines_with_string(template_path, remove_line_marker)
 
-    template_path = "./static/js/index.js"
+    template_path = Path(ext_stub_dir, "static", "js", "index.js").as_posix()
     rederer = render_file(template_path, parsed_data)
     with open(template_path, "w", encoding="utf-8") as f:
         f.write(rederer)
@@ -134,16 +135,21 @@ def replace_jinja_placeholders(data: ExtensionData) -> None:
     owner_inputs = html_input_fields(
         [f for f in data.owner_data.fields if f.editable],
         "ownerDataFormDialog.data",
+        ext_stub_dir,
     )
     client_inputs = html_input_fields(
         [f for f in data.client_data.fields if f.editable],
         "clientDataFormDialog.data",
+        ext_stub_dir,
     )
     settings_inputs = html_input_fields(
         [f for f in data.settings_data.fields if f.editable],
         "settingsFormDialog.data",
+        ext_stub_dir,
     )
-    template_path = "./templates/extension_builder_stub/index.html"
+    template_path = Path(
+        ext_stub_dir, "templates", "extension_builder_stub", "index.html"
+    ).as_posix()
     rederer = render_file(
         template_path,
         {
@@ -166,8 +172,11 @@ def replace_jinja_placeholders(data: ExtensionData) -> None:
             if f.name in data.public_page.client_data_fields.public_inputs
         ],
         "publicClientData",
+        ext_stub_dir,
     )
-    template_path = "./templates/extension_builder_stub/public_owner_data.html"
+    template_path = Path(
+        ext_stub_dir, "templates", "extension_builder_stub", "public_owner_data.html"
+    ).as_posix()
     rederer = render_file(
         template_path,
         {
@@ -217,8 +226,12 @@ def field_to_ui_table_column(field: DataField) -> str:
     return json.dumps(column)
 
 
-def html_input_fields(fields: list[DataField], model_name: str) -> str:
-    template_path = "./templates/extension_builder_stub/_input_fields.html"
+def html_input_fields(
+    fields: list[DataField], model_name: str, ext_stub_dir: Path
+) -> str:
+    template_path = Path(
+        ext_stub_dir, "templates", "extension_builder_stub", "_input_fields.html"
+    ).as_posix()
 
     rederer = render_file(
         template_path,

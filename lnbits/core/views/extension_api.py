@@ -43,6 +43,7 @@ from lnbits.core.services.extensions import (
     install_extension,
     uninstall_extension,
 )
+from lnbits.core.services.extensions_builder import replace_jinja_placeholders
 from lnbits.decorators import (
     check_admin,
     check_user_exists,
@@ -159,6 +160,8 @@ async def api_build_extension(data: ExtensionData):
         extension_dir,
     )
     shutil.rmtree(generated_dir, True)
+
+    replace_jinja_placeholders(data, extension_dir)
 
 
 @extension_router.get("/{ext_id}/details")
