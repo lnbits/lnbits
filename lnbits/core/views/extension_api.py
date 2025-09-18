@@ -46,6 +46,7 @@ from lnbits.core.services.extensions import (
 from lnbits.core.services.extensions_builder import (
     rename_extension_builder_stub,
     replace_jinja_placeholders,
+    zip_directory,
 )
 from lnbits.decorators import (
     check_admin,
@@ -166,6 +167,24 @@ async def api_build_extension(data: ExtensionData):
 
     replace_jinja_placeholders(data, extension_dir)
     rename_extension_builder_stub(data, extension_dir)
+    print("### rename done")
+
+    ext_info = InstallableExtension(
+        id=data.id,
+        name=data.name,
+        version="0.1.0",
+        short_description=data.short_description,
+        meta=ExtensionMeta(installed_release=release),
+    )
+    ext_zip_file = ext_info.zip_path
+    print("### extension_dir", extension_dir)
+    print("### ext_zip_file", ext_zip_file)
+    if ext_zip_file.is_file():
+        os.remove(ext_zip_file)
+
+    zip_directory(extension_dir.parent, ext_zip_file)
+
+    await install_extension(ext_info, skip_download=True)
 
 
 @extension_router.get("/{ext_id}/details")
