@@ -39,15 +39,26 @@
               </li>
             </ul>
           </div>
-          <div class="col-12">
-            <q-btn
-              label="Clear All Data"
-              color="negative"
-              @click="clearAllData"
-            ></q-btn>
-          </div>
 
           <!-- todo: add icon -->
+
+          <div class="col-12">
+            <div>
+              <q-btn
+                color="primary"
+                label="Upload Existing config"
+                @click="$refs.extensionDataInput.click()"
+                class="q-mb-md"
+              />
+              <input
+                type="file"
+                ref="extensionDataInput"
+                accept="application/json"
+                style="display: none"
+                @change="onJsonDataInput"
+              />
+            </div>
+          </div>
         </div>
         <q-separator class="q-mt-sm"></q-separator>
         <div class="row q-col-gutter-md q-mt-md">
@@ -91,34 +102,6 @@
               maxlength="1000"
             >
             </q-input>
-          </div>
-        </div>
-        <div class="row q-mt-lg">
-          <div class="col-12">
-            <q-btn
-              color="primary"
-              label="Upload Existing config"
-              @click="$refs.extensionDataInput.click()"
-              class="q-mb-md"
-            />
-            <input
-              type="file"
-              ref="extensionDataInput"
-              accept="application/json"
-              style="display: none"
-              @change="onJsonDataInput"
-            />
-          </div>
-          <div class="col-12">
-            <ul>
-              <li>
-                If you already have a configuration file you can uploaded here.
-              </li>
-              <li>
-                The configuration data file can be exported at the
-                <code>Publish</code> step.
-              </li>
-            </ul>
           </div>
         </div>
       </q-step>
@@ -171,7 +154,7 @@
           </div>
           <div class="col-md-10 col-sm-12 q-pt-sm">
             <q-badge
-              v-if="extensionData.settingsType === 'user'"
+              v-if="extensionData.settings_data.type === 'user'"
               outline
               class="text-caption q-ml-md"
               >Each user can set its own settings for this extension.</q-badge
@@ -450,7 +433,15 @@
       <template v-slot:navigation>
         <q-separator></q-separator>
         <div class="row">
-          <div class="col q-pr-md q-pb-md">
+          <div class="col-md-6 col-sm-12 q-pl-md q-pt-md">
+            <q-btn
+              v-if="step == 1"
+              label="Clear All Data"
+              color="negative"
+              @click="clearAllData"
+            ></q-btn>
+          </div>
+          <div class="col-md-6 col-sm-12 q-pr-md q-pb-md">
             <q-stepper-navigation class="float-right">
               <q-btn
                 v-if="step > 0"
