@@ -156,6 +156,19 @@ class ExtensionData(BaseModel):
     settings_data: SettingsFields
     public_page: PublicPageFields
 
+    def normalize(self) -> None:
+        self.name = self.name.strip()
+        self.stub_version = self.stub_version.strip()
+        if self.short_description:
+            self.short_description = self.short_description.strip()
+        if self.description:
+            self.description = self.description.strip()
+        if not self.public_page.has_public_page:
+            self.public_page.action_fields.generate_action = False
+            self.public_page.action_fields.generate_payment_logic = False
+        if not self.public_page.action_fields.generate_action:
+            self.public_page.action_fields.generate_payment_logic = False
+
     @validator("id")
     def validate_id(cls, v: str) -> str:
         if v.strip() == "":
