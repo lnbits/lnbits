@@ -1700,6 +1700,32 @@
         <q-th auto-width></q-th>
         <q-th v-for="col in props.cols" :key="col.name" :props="props">
           <span v-text="col.label"></span>
+          <q-icon
+            v-if="col.name == 'optional'"
+            name="info"
+            size="xs"
+            class="cursor-pointer q-ml-xs q-mb-xs"
+          >
+            <q-tooltip>
+              <ul>
+                <li>The field is optional. The field can be left blank.</li>
+                <li>
+                  The UI form will not require this field to be filled out.
+                </li>
+                <li>The DB table will allow NULL values for this field.</li>
+              </ul>
+            </q-tooltip>
+          </q-icon>
+          <q-icon
+            v-else-if="col.name == 'editable'"
+            name="info"
+            size="xs"
+            class="cursor-pointer q-ml-xs q-mb-xs"
+          >
+            <q-tooltip>
+              <span>x</span>
+            </q-tooltip>
+          </q-icon>
         </q-th>
       </q-tr>
     </template>
