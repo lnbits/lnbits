@@ -309,49 +309,121 @@
             </ul>
           </div>
         </div>
-        <div  v-if="extensionData.public_page.has_public_page" class="row q-col-gutter-md q-mt-md">
-          <div class="col-md-6 col-sm-12 q-gutter-y-md">
-            <q-select
-              filled
-              dense
-              emit-value
-              map-options
-
-              v-model="extensionData.public_page.owner_data_fields.name"
-              hint="The title field in the public page."
-              :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
-            ></q-select>
-            <q-select
-              filled
-              dense
-              emit-value
-              map-options
-              hint="The description field in the public page."
-
-              v-model="extensionData.public_page.owner_data_fields.description"
-              :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
-            ></q-select>
-            <q-select
-              filled
-              dense
-              emit-value
-              map-options
-              multiple
-              clearable
-              hint="Client fields that will be shown as inputs in the public page form."
-
-              v-model="extensionData.public_page.client_data_fields.public_inputs"
-              :options="extensionData.client_data.fields.map(f => f.name)"
-            ></q-select>
+        <div
+          v-if="extensionData.public_page.has_public_page"
+          class="row q-col-gutter-md q-mt-md"
+        >
+          <div class="col-12 col-md-6">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label>Public page title</q-item-label>
+                <q-item-label caption
+                  >Select the field from the
+                  <code v-text="extensionData.owner_data.name"></code>&nbsp;
+                  (Owner Data) that will be used as a title for the public
+                  page.</q-item-label
+                >
+              </q-item-section>
+              <q-item-section>
+                <q-select
+                  filled
+                  dense
+                  emit-value
+                  map-options
+                  v-model="extensionData.public_page.owner_data_fields.name"
+                  :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
+                ></q-select>
+              </q-item-section>
+            </q-item>
           </div>
+          <div class="col-12 col-md-6">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label>Public page description</q-item-label>
+                <q-item-label caption
+                  >Select the field from the
+                  <code v-text="extensionData.owner_data.name"></code>&nbsp;
+                  (Owner Data) that will be used as a description for the public
+                  page.</q-item-label
+                >
+              </q-item-section>
+              <q-item-section>
+                <q-select
+                  filled
+                  dense
+                  emit-value
+                  map-options
+                  v-model="extensionData.public_page.owner_data_fields.description"
+                  :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
+                ></q-select>
+              </q-item-section>
+            </q-item>
+          </div>
+          <div class="col-12 col-md-6">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label>Public page inputs</q-item-label>
+                <q-item-label caption
+                  >Select the fields from the
+                  <code v-text="extensionData.client_data.name"></code>&nbsp;
+                  (Client Data) that will be shown as inputs in the public page
+                  form. <br />
+                  You can select multiple fields. A corresponding input field
+                  will be created for each selected field.</q-item-label
+                >
+              </q-item-section>
+              <q-item-section>
+                <q-select
+                  filled
+                  dense
+                  emit-value
+                  map-options
+                  multiple
+                  clearable
+                  v-model="extensionData.public_page.client_data_fields.public_inputs"
+                  :options="extensionData.client_data.fields.map(f => f.name)"
+                ></q-select>
+              </q-item-section>
+            </q-item>
+          </div>
+          <div class="col-12 col-md-6">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label>Generate Action Button</q-item-label>
+                <q-item-label caption>
+                  <ul class="q-pa-none q-ma-none">
+                    <li>
+                      If enabled, the public page will have a button to perform
+                      an action (e.g. generate a payment request).
+                    </li>
+                    <li>
+                      The action will use the selected input fields from
+                      <code v-text="extensionData.client_data.name"></code
+                      >&nbsp; (Client Data) as parameters.
+                    </li>
+                    <li>A corresponding REST API endpoint will be created.</li>
+                  </ul></q-item-label
+                >
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  v-model="extensionData.public_page.action_fields.generate_action"
+                  size="md"
+                  color="green"
+                />
+              </q-item-section>
+            </q-item>
+          </div>
+        </div>
+        <q-separator
+          v-if="extensionData.public_page.action_fields.generate_action"
+          class="q-mt-sm"
+        ></q-separator>
+        <div
+          v-if="extensionData.public_page.action_fields.generate_action"
+          class="row q-col-gutter-md q-mt-md"
+        >
           <div class="col-md-6 col-sm-12 q-gutter-y-md">
-            <q-toggle
-              v-model="extensionData.public_page.action_fields.generate_action"
-              label="Generate Action Button"
-              hint="If enabled, a button will be shown to perform an action (e.g. create invoice, make payment, etc.)"
-              size="md"
-              color="green"
-            />
             <q-select
               filled
               dense
