@@ -310,285 +310,286 @@
             </ul>
           </div>
         </div>
-        <div
-          v-if="extensionData.public_page.has_public_page"
-          class="row q-col-gutter-md q-mt-md"
-        >
-          <div class="col-12 col-md-6">
-            <q-item tag="label" v-ripple>
-              <q-item-section>
-                <q-item-label>Public page title</q-item-label>
-                <q-item-label caption
-                  >Select the field from the
-                  <code v-text="extensionData.owner_data.name"></code>&nbsp;
-                  (Owner Data) that will be used as a title for the public
-                  page.</q-item-label
-                >
-              </q-item-section>
-              <q-item-section>
-                <q-select
-                  filled
-                  dense
-                  emit-value
-                  map-options
-                  v-model="extensionData.public_page.owner_data_fields.name"
-                  :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
-                ></q-select>
-              </q-item-section>
-            </q-item>
+        <div v-if="extensionData.public_page.has_public_page">
+          <div class="row q-col-gutter-md q-mt-md">
+            <div class="col-12 col-md-6">
+              <q-item tag="label" v-ripple>
+                <q-item-section>
+                  <q-item-label>Public page title</q-item-label>
+                  <q-item-label caption
+                    >Select the field from the
+                    <code v-text="extensionData.owner_data.name"></code>&nbsp;
+                    (Owner Data) that will be used as a title for the public
+                    page.</q-item-label
+                  >
+                </q-item-section>
+                <q-item-section>
+                  <q-select
+                    filled
+                    dense
+                    emit-value
+                    map-options
+                    v-model="extensionData.public_page.owner_data_fields.name"
+                    :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
+                  ></q-select>
+                </q-item-section>
+              </q-item>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-item tag="label" v-ripple>
+                <q-item-section>
+                  <q-item-label>Public page description</q-item-label>
+                  <q-item-label caption
+                    >Select the field from the
+                    <code v-text="extensionData.owner_data.name"></code>&nbsp;
+                    (Owner Data) that will be used as a description for the
+                    public page.</q-item-label
+                  >
+                </q-item-section>
+                <q-item-section>
+                  <q-select
+                    filled
+                    dense
+                    emit-value
+                    map-options
+                    v-model="extensionData.public_page.owner_data_fields.description"
+                    :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
+                  ></q-select>
+                </q-item-section>
+              </q-item>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-item tag="label" v-ripple>
+                <q-item-section>
+                  <q-item-label>Public page inputs</q-item-label>
+                  <q-item-label caption>
+                    <ul class="q-pa-none q-ma-none">
+                      <li>
+                        Select the fields from the
+                        <code v-text="extensionData.client_data.name"></code
+                        >&nbsp; (Client Data) that will be shown as inputs in
+                        the public page form.
+                      </li>
+                      <li>You can select multiple fields.</li>
+                      <li>
+                        A corresponding input field will be created for each
+                        selected field.
+                      </li>
+                    </ul>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section>
+                  <q-select
+                    filled
+                    dense
+                    emit-value
+                    map-options
+                    multiple
+                    clearable
+                    v-model="extensionData.public_page.client_data_fields.public_inputs"
+                    :options="extensionData.client_data.fields.map(f => f.name)"
+                  ></q-select>
+                </q-item-section>
+              </q-item>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-item tag="label" v-ripple>
+                <q-item-section>
+                  <q-item-label>Generate Action Button</q-item-label>
+                  <q-item-label caption>
+                    <ul class="q-pa-none q-ma-none">
+                      <li>
+                        If enabled, the public page will have a button to
+                        perform an action (e.g. generate a payment request).
+                      </li>
+                      <li>
+                        The action will use the selected input fields from
+                        <code v-text="extensionData.client_data.name"></code
+                        >&nbsp; (Client Data) as parameters.
+                      </li>
+                      <li>
+                        A corresponding REST API endpoint will be created.
+                      </li>
+                    </ul></q-item-label
+                  >
+                </q-item-section>
+                <q-item-section avatar>
+                  <q-toggle
+                    v-model="extensionData.public_page.action_fields.generate_action"
+                    size="md"
+                    color="green"
+                  />
+                </q-item-section>
+              </q-item>
+            </div>
           </div>
-          <div class="col-12 col-md-6">
-            <q-item tag="label" v-ripple>
-              <q-item-section>
-                <q-item-label>Public page description</q-item-label>
-                <q-item-label caption
-                  >Select the field from the
-                  <code v-text="extensionData.owner_data.name"></code>&nbsp;
-                  (Owner Data) that will be used as a description for the public
-                  page.</q-item-label
-                >
-              </q-item-section>
-              <q-item-section>
-                <q-select
-                  filled
-                  dense
-                  emit-value
-                  map-options
-                  v-model="extensionData.public_page.owner_data_fields.description"
-                  :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
-                ></q-select>
-              </q-item-section>
-            </q-item>
-          </div>
-          <div class="col-12 col-md-6">
-            <q-item tag="label" v-ripple>
-              <q-item-section>
-                <q-item-label>Public page inputs</q-item-label>
-                <q-item-label caption>
-                  <ul class="q-pa-none q-ma-none">
-                    <li>
-                      Select the fields from the
-                      <code v-text="extensionData.client_data.name"></code
-                      >&nbsp; (Client Data) that will be shown as inputs in the
-                      public page form.
-                    </li>
-                    <li>You can select multiple fields.</li>
-                    <li>
-                      A corresponding input field will be created for each
-                      selected field.
-                    </li>
-                  </ul>
-                </q-item-label>
-              </q-item-section>
-              <q-item-section>
-                <q-select
-                  filled
-                  dense
-                  emit-value
-                  map-options
-                  multiple
-                  clearable
-                  v-model="extensionData.public_page.client_data_fields.public_inputs"
-                  :options="extensionData.client_data.fields.map(f => f.name)"
-                ></q-select>
-              </q-item-section>
-            </q-item>
-          </div>
-          <div class="col-12 col-md-6">
-            <q-item tag="label" v-ripple>
-              <q-item-section>
-                <q-item-label>Generate Action Button</q-item-label>
-                <q-item-label caption>
-                  <ul class="q-pa-none q-ma-none">
-                    <li>
-                      If enabled, the public page will have a button to perform
-                      an action (e.g. generate a payment request).
-                    </li>
-                    <li>
-                      The action will use the selected input fields from
-                      <code v-text="extensionData.client_data.name"></code
-                      >&nbsp; (Client Data) as parameters.
-                    </li>
-                    <li>A corresponding REST API endpoint will be created.</li>
-                  </ul></q-item-label
-                >
-              </q-item-section>
-              <q-item-section avatar>
-                <q-toggle
-                  v-model="extensionData.public_page.action_fields.generate_action"
-                  size="md"
-                  color="green"
-                />
-              </q-item-section>
-            </q-item>
-          </div>
-        </div>
-        <q-separator
-          v-if="extensionData.public_page.action_fields.generate_action"
-          class="q-mt-sm"
-        ></q-separator>
-        <div
-          v-if="extensionData.public_page.action_fields.generate_action"
-          class="col-12 col-md-6"
-        >
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label>Generate Payment Logic</q-item-label>
-              <q-item-label caption>
-                <ul class="q-pa-none q-ma-none">
-                  <li>
-                    If enabled, the endpoint will create an invoice from the
-                    submitted data and the UI will show the QR code with the
-                    invoice.
-                  </li>
-                  <li>
-                    A listener will be created to check for the pay event.
-                  </li>
-                  <li>You must map the fieds.</li>
-                </ul></q-item-label
-              >
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                v-model="extensionData.public_page.action_fields.generate_payment_logic"
-                size="md"
-                color="green"
-              />
-            </q-item-section>
-          </q-item>
-        </div>
-        <div
-          v-if="extensionData.public_page.action_fields.generate_action && extensionData.public_page.action_fields.generate_payment_logic"
-          class="row q-col-gutter-md q-mt-md"
-        >
-          <div class="col-12 col-md-6">
-            <q-item tag="label" v-ripple>
-              <q-item-section>
-                <q-item-label>Wallet</q-item-label>
-                <q-item-label caption>
-                  <ul class="q-pa-none q-ma-none">
-                    <li>
-                      Select the field from the
-                      <code v-text="extensionData.owner_data.name"></code>&nbsp;
-                      (Owner Data) that represents the wallet which will
-                      generate the invoice and receive the payments.
-                    </li>
+          <q-separator
+            v-if="extensionData.public_page.action_fields.generate_action"
+            class="q-mt-sm"
+          ></q-separator>
 
-                    <li>
-                      Only fields with the type <code>Wallet</code> will be
-                      shown.
-                    </li>
-                  </ul>
-                </q-item-label>
-              </q-item-section>
-              <q-item-section>
-                <q-select
-                  filled
-                  dense
-                  emit-value
-                  map-options
-                  v-model="extensionData.public_page.action_fields.wallet_id"
-                  :options="[''].concat(extensionData.owner_data.fields.filter(f => f.type === 'wallet').map(f => f.name))"
-                ></q-select>
-              </q-item-section>
-            </q-item>
-          </div>
+          <div v-if="extensionData.public_page.action_fields.generate_action">
+            <div class="col-12 col-md-6">
+              <q-item tag="label" v-ripple>
+                <q-item-section>
+                  <q-item-label>Generate Payment Logic</q-item-label>
+                  <q-item-label caption>
+                    <ul class="q-pa-none q-ma-none">
+                      <li>
+                        If enabled, the endpoint will create an invoice from the
+                        submitted data and the UI will show the QR code with the
+                        invoice.
+                      </li>
+                      <li>
+                        A listener will be created to check for the pay event.
+                      </li>
+                      <li>You must map the fieds.</li>
+                    </ul></q-item-label
+                  >
+                </q-item-section>
+                <q-item-section avatar>
+                  <q-toggle
+                    v-model="extensionData.public_page.action_fields.generate_payment_logic"
+                    size="md"
+                    color="green"
+                  />
+                </q-item-section>
+              </q-item>
+            </div>
+            <div
+              v-if="extensionData.public_page.action_fields.generate_action && extensionData.public_page.action_fields.generate_payment_logic"
+              class="row q-col-gutter-md q-mt-md"
+            >
+              <div class="col-12 col-md-6">
+                <q-item tag="label" v-ripple>
+                  <q-item-section>
+                    <q-item-label>Wallet</q-item-label>
+                    <q-item-label caption>
+                      <ul class="q-pa-none q-ma-none">
+                        <li>
+                          Select the field from the
+                          <code v-text="extensionData.owner_data.name"></code
+                          >&nbsp; (Owner Data) that represents the wallet which
+                          will generate the invoice and receive the payments.
+                        </li>
 
-          <div class="col-12 col-md-6">
-            <q-item tag="label" v-ripple>
-              <q-item-section>
-                <q-item-label>Currency</q-item-label>
-                <q-item-label caption>
-                  <ul class="q-pa-none q-ma-none">
-                    <li>
-                      Select the field from the
-                      <code v-text="extensionData.owner_data.name"></code>&nbsp;
-                      (Owner Data) that represents the currency which will be
-                      used to for the amount.
-                    </li>
-                    <li>
-                      Only fields with the type <code>Currency</code> will be
-                      shown.
-                    </li>
-                    <li>Empty if you want to use sats.</li>
-                  </ul>
-                </q-item-label>
-              </q-item-section>
-              <q-item-section>
-                <q-select
-                  filled
-                  dense
-                  emit-value
-                  map-options
-                  v-model="extensionData.public_page.action_fields.currency"
-                  :options="[''].concat(extensionData.owner_data.fields.filter(f => f.type === 'currency').map(f => f.name))"
-                ></q-select>
-              </q-item-section>
-            </q-item>
-          </div>
+                        <li>
+                          Only fields with the type <code>Wallet</code> will be
+                          shown.
+                        </li>
+                      </ul>
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
+                      v-model="extensionData.public_page.action_fields.wallet_id"
+                      :options="[''].concat(extensionData.owner_data.fields.filter(f => f.type === 'wallet').map(f => f.name))"
+                    ></q-select>
+                  </q-item-section>
+                </q-item>
+              </div>
 
-          <div class="col-12 col-md-6">
-            <q-item tag="label" v-ripple>
-              <q-item-section>
-                <q-item-label>Amount</q-item-label>
-                <q-item-label caption>
-                  <ul class="q-pa-none q-ma-none">
-                    <li>
-                      Select the field from the
-                      <code v-text="extensionData.client_data.name"></code
-                      >&nbsp; (Client Data) that represents the amount (in the
-                      selected currency).
-                    </li>
-                    <li>
-                      Only fields with the type <code>Integer</code> and
-                      <code>Float</code> will be shown.
-                    </li>
-                  </ul>
-                </q-item-label>
-              </q-item-section>
-              <q-item-section>
-                <q-select
-                  filled
-                  dense
-                  emit-value
-                  map-options
-                  v-model="extensionData.public_page.action_fields.amount"
-                  :options="[''].concat(extensionData.client_data.fields.filter(f => f.type === 'int' || f.type === 'float').map(f => f.name))"
-                ></q-select>
-              </q-item-section>
-            </q-item>
-          </div>
+              <div class="col-12 col-md-6">
+                <q-item tag="label" v-ripple>
+                  <q-item-section>
+                    <q-item-label>Currency</q-item-label>
+                    <q-item-label caption>
+                      <ul class="q-pa-none q-ma-none">
+                        <li>
+                          Select the field from the
+                          <code v-text="extensionData.owner_data.name"></code
+                          >&nbsp; (Owner Data) that represents the currency
+                          which will be used to for the amount.
+                        </li>
+                        <li>
+                          Only fields with the type <code>Currency</code> will
+                          be shown.
+                        </li>
+                        <li>Empty if you want to use sats.</li>
+                      </ul>
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
+                      v-model="extensionData.public_page.action_fields.currency"
+                      :options="[''].concat(extensionData.owner_data.fields.filter(f => f.type === 'currency').map(f => f.name))"
+                    ></q-select>
+                  </q-item-section>
+                </q-item>
+              </div>
 
-          <div class="col-12 col-md-6">
-            <q-item tag="label" v-ripple>
-              <q-item-section>
-                <q-item-label>Paid Flag</q-item-label>
-                <q-item-label caption>
-                  <ul class="q-pa-none q-ma-none">
-                    <li>
-                      Select the field from the
-                      <code v-text="extensionData.client_data.name"></code
-                      >&nbsp; (Client Data) that will be set to true when the
-                      invoice is paid.
-                    </li>
-                    <li>
-                      Only fields with the type <code>Boolean</code> will be
-                      shown.
-                    </li>
-                  </ul>
-                </q-item-label>
-              </q-item-section>
-              <q-item-section>
-                <q-select
-                  filled
-                  dense
-                  emit-value
-                  map-options
-                  v-model="extensionData.public_page.action_fields.paid_flag"
-                  :options="[''].concat(extensionData.client_data.fields.filter(f => f.type === 'bool').map(f => f.name))"
-                ></q-select>
-              </q-item-section>
-            </q-item>
+              <div class="col-12 col-md-6">
+                <q-item tag="label" v-ripple>
+                  <q-item-section>
+                    <q-item-label>Amount</q-item-label>
+                    <q-item-label caption>
+                      <ul class="q-pa-none q-ma-none">
+                        <li>
+                          Select the field from the
+                          <code v-text="extensionData.client_data.name"></code
+                          >&nbsp; (Client Data) that represents the amount (in
+                          the selected currency).
+                        </li>
+                        <li>
+                          Only fields with the type <code>Integer</code> and
+                          <code>Float</code> will be shown.
+                        </li>
+                      </ul>
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
+                      v-model="extensionData.public_page.action_fields.amount"
+                      :options="[''].concat(extensionData.client_data.fields.filter(f => f.type === 'int' || f.type === 'float').map(f => f.name))"
+                    ></q-select>
+                  </q-item-section>
+                </q-item>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <q-item tag="label" v-ripple>
+                  <q-item-section>
+                    <q-item-label>Paid Flag</q-item-label>
+                    <q-item-label caption>
+                      <ul class="q-pa-none q-ma-none">
+                        <li>
+                          Select the field from the
+                          <code v-text="extensionData.client_data.name"></code
+                          >&nbsp; (Client Data) that will be set to true when
+                          the invoice is paid.
+                        </li>
+                        <li>
+                          Only fields with the type <code>Boolean</code> will be
+                          shown.
+                        </li>
+                      </ul>
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
+                      v-model="extensionData.public_page.action_fields.paid_flag"
+                      :options="[''].concat(extensionData.client_data.fields.filter(f => f.type === 'bool').map(f => f.name))"
+                    ></q-select>
+                  </q-item-section>
+                </q-item>
+              </div>
+            </div>
           </div>
         </div>
       </q-step>

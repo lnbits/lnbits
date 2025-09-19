@@ -67,7 +67,9 @@ async def fetch_extension_builder_stub(ext_id: str, release: ExtensionRelease) -
         await asyncio.to_thread(download_url, release.archive_url, ext_zip_path)
 
     ext_stub_dir = Path(builder_dir, "extension_builder_stub")
-    ext_stub_cache_dir = Path(ext_stub_dir, f"cache-{release.version}", ext_id)
+    ext_stub_cache_dir = Path(
+        ext_stub_dir, f"cache-{release.version}", "extension_builder_stub"
+    )
     ext_build_dir = Path(ext_stub_dir, shortuuid.uuid(), ext_id)
 
     # use cache if available
@@ -168,9 +170,11 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
         template_path,
         {
             "extension_builder_stub_public_client_inputs": public_client_data_inputs,
+            **data.public_page.action_fields.dict(),
             "cancel_comment": remove_line_marker,
         },
     )
+
     with open(template_path, "w", encoding="utf-8") as f:
         f.write(rederer)
 
