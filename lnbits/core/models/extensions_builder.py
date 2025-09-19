@@ -164,6 +164,11 @@ class ExtensionData(BaseModel):
     settings_data: SettingsFields
     public_page: PublicPageFields
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.validate_data()
+        self.normalize()
+
     def normalize(self) -> None:
         self.name = self.name.strip()
         self.stub_version = self.stub_version.strip()

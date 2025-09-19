@@ -133,8 +133,6 @@ async def api_build_extension(
     deploy: bool = False,
     user: User = Depends(check_admin),
 ) -> FileResponse | SimpleStatus:
-    data.validate_data()
-    data.normalize()
     extension_stub_releases: list[ExtensionRelease] = (
         await InstallableExtension.get_extension_releases("extension_builder_stub")
     )
