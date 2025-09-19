@@ -23,7 +23,8 @@ window.ExtensionsBuilderPageLogic = {
             generate_payment_logic: false,
             wallet_id: '',
             currency: '',
-            amount: ''
+            amount: '',
+            paid_flag: ''
           }
         },
         settings_data: {

@@ -557,6 +557,38 @@
               </q-item-section>
             </q-item>
           </div>
+
+          <div class="col-12 col-md-6">
+            <q-item tag="label" v-ripple>
+              <q-item-section>
+                <q-item-label>Paid Flag</q-item-label>
+                <q-item-label caption>
+                  <ul class="q-pa-none q-ma-none">
+                    <li>
+                      Select the field from the
+                      <code v-text="extensionData.client_data.name"></code
+                      >&nbsp; (Client Data) that will be set to true when the
+                      invoice is paid.
+                    </li>
+                    <li>
+                      Only fields with the type <code>Boolean</code> will be
+                      shown.
+                    </li>
+                  </ul>
+                </q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-select
+                  filled
+                  dense
+                  emit-value
+                  map-options
+                  v-model="extensionData.public_page.action_fields.paid_flag"
+                  :options="[''].concat(extensionData.client_data.fields.filter(f => f.type === 'bool').map(f => f.name))"
+                ></q-select>
+              </q-item-section>
+            </q-item>
+          </div>
         </div>
       </q-step>
 

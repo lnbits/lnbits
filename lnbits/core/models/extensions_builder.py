@@ -80,6 +80,7 @@ class ActionFields(BaseModel):
     wallet_id: str | None = None
     currency: str | None = None
     amount: str | None = None
+    paid_flag: str | None = None
 
 
 class OwnerDataFields(BaseModel):
