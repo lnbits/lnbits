@@ -53,16 +53,23 @@ window.ExtensionsBuilderPageLogic = {
   },
 
   methods: {
-    nextStep() {
+    saveState() {
       this.$q.localStorage.set(
         'lnbits.extension.builder.data',
         JSON.stringify(this.extensionData)
       )
+      this.$q.localStorage.set('lnbits.extension.builder.step', this.step)
+    },
+    nextStep() {
+      this.saveState()
       this.$refs.stepper.next()
-      console.log('### Next step', JSON.stringify(this.extensionData))
     },
     previousStep() {
+      this.saveState()
       this.$refs.stepper.previous()
+    },
+    onStepChange() {
+      this.saveState()
     },
     clearAllData() {
       LNbits.utils
@@ -171,6 +178,10 @@ window.ExtensionsBuilderPageLogic = {
     if (extensionData) {
       this.extensionData = {...this.extensionData, ...JSON.parse(extensionData)}
       console.log('### loaded extension data', this.extensionData)
+    }
+    const step = +this.$q.localStorage.getItem('lnbits.extension.builder.step')
+    if (step) {
+      this.step = step
     }
     this.getStubExtensionReleases()
   },
