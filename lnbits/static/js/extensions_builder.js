@@ -122,12 +122,13 @@ window.ExtensionsBuilderPageLogic = {
     },
     async buildExtension(deploy = false) {
       try {
+        const options = deploy ? {} : {responseType: 'blob'}
         const response = await LNbits.api.request(
           'POST',
           `/api/v1/extension/builder?deploy=${deploy}`,
           null,
           this.extensionData,
-          {responseType: 'blob'}
+          options
         )
 
         if (deploy) {

@@ -382,5 +382,13 @@ def camel_to_snake(name: str) -> str:
     return name.lower()
 
 
+def is_camel_case(v: str) -> bool:
+    return re.match(r"^[A-Z][a-z0-9]+([A-Z][a-z0-9]+)*$", v) is not None
+
+
+def is_snake_case(v: str) -> bool:
+    return re.match(r"^[a-z]+(_[a-z0-9]+)*$", v) is not None
+
+
 def lowercase_first_letter(s: str) -> str:
     return s[:1].lower() + s[1:] if s else s

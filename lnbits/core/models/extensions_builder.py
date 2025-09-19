@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
-from lnbits.helpers import camel_to_snake
+from lnbits.helpers import camel_to_snake, is_camel_case, is_snake_case
 
 
 class DataField(BaseModel):
@@ -63,15 +63,61 @@ class DataField(BaseModel):
             db_field += " DEFAULT '{empty_dict}'"
         return db_field
 
+    @validator("name")
+    def validate_name(cls, v: str) -> str:
+        if v.strip() == "":
+            raise ValueError("Owner Data name is required.")
+        if not is_snake_case(v):
+            raise ValueError(f"Field Name must be snake_case. Found: {v}")
+        return v
+
+    @validator("type")
+    def validate_type(cls, v: str) -> str:
+        if v.strip() == "":
+            raise ValueError("Owner Data type is required")
+        if v not in [
+            "str",
+            "int",
+            "float",
+            "bool",
+            "datetime",
+            "json",
+            "wallet",
+            "currency",
+            "text",
+        ]:
+            raise ValueError(
+                "Field Type must be one of: "
+                "str, int, float, bool, datetime, json, wallet, currency, text."
+                f" Found: {v}"
+            )
+        return v
+
 
 class DataFields(BaseModel):
     name: str
     fields: list[DataField] = []
 
+    @validator("name")
+    def validate_name(cls, v: str) -> str:
+        if v.strip() == "":
+            raise ValueError("Data fields name is required")
+        if not is_camel_case(v):
+            raise ValueError(f"Data name must be CamelCase. Found: {v}")
+        return v
+
 
 class SettingsFields(DataFields):
     enabled: bool = False
-    type: str = "user"  # "user" or "admin"
+    type: str = "user"
+
+    @validator("type")
+    def validate_type(cls, v: str) -> str:
+        if v.strip() == "":
+            raise ValueError("Settings type is required")
+        if v not in ["user", "admin"]:
+            raise ValueError("Field Type must be one of: user, admin." f" Found: {v}")
+        return v
 
 
 class ActionFields(BaseModel):
@@ -109,3 +155,36 @@ class ExtensionData(BaseModel):
     client_data: DataFields
     settings_data: SettingsFields
     public_page: PublicPageFields
+
+    @validator("id")
+    def validate_id(cls, v: str) -> str:
+        if v.strip() == "":
+            raise ValueError("Extension ID is required")
+        if not is_snake_case(v):
+            raise ValueError(f"Extension Id must be snake_case. Found: {v}")
+        return v
+
+    @validator("name")
+    def validate_name(cls, v: str) -> str:
+        if v.strip() == "":
+            raise ValueError("Extension name is required")
+        return v
+
+    @validator("stub_version")
+    def validate_stub_version(cls, v: str) -> str:
+        if v.strip() == "":
+            raise ValueError("Extension stub version is required")
+
+        return v
+
+    @validator("owner_data")
+    def validate_owner_data(cls, v: DataFields) -> DataFields:
+        if len(v.fields) == 0:
+            raise ValueError("At least one owner data field is required")
+        return v
+
+    @validator("client_data")
+    def validate_client_data(cls, v: DataFields) -> DataFields:
+        if len(v.fields) == 0:
+            raise ValueError("At least one client data field is required")
+        return v
