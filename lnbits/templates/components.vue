@@ -1704,15 +1704,17 @@
             v-if="col.name == 'optional'"
             name="info"
             size="xs"
+            color="primary"
             class="cursor-pointer q-ml-xs q-mb-xs"
           >
             <q-tooltip>
               <ul>
-                <li>The field is optional. The field can be left blank.</li>
+                <li>The field is optional. The field can be left blank by the user.</li>
                 <li>
                   The UI form will not require this field to be filled out.
                 </li>
                 <li>The DB table will allow NULL values for this field.</li>
+                <li>Non optional fields must be filled out.</li>
               </ul>
             </q-tooltip>
           </q-icon>
@@ -1720,10 +1722,40 @@
             v-else-if="col.name == 'editable'"
             name="info"
             size="xs"
+            color="primary"
             class="cursor-pointer q-ml-xs q-mb-xs"
           >
             <q-tooltip>
-              <span>x</span>
+              <ul>
+                <li>The UI form will allow the field to be edited.</li>
+              </ul>
+            </q-tooltip>
+          </q-icon>
+          <q-icon
+            v-else-if="col.name == 'sortable'"
+            name="info"
+            size="xs"
+            color="primary"
+            class="cursor-pointer q-ml-xs q-mb-xs"
+          >
+            <q-tooltip>
+              <ul>
+                <li>In the UI Table a column will be created for the field.</li>
+                <li>The UI Table column will be sortable.</li>
+              </ul>
+            </q-tooltip>
+          </q-icon>
+          <q-icon
+            v-else-if="col.name == 'searchable'"
+            name="info"
+            size="xs"
+            color="primary"
+            class="cursor-pointer q-ml-xs q-mb-xs"
+          >
+            <q-tooltip>
+              <ul>
+                <li>The free text search will include this field when searching.</li>
+              </ul>
             </q-tooltip>
           </q-icon>
         </q-th>
