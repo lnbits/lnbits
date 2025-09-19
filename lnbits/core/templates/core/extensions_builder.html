@@ -291,19 +291,32 @@
               :src="'{{ static_url_for('static', 'images/builder/build_04.png') }}'"
             ></q-img>
           </div>
-          <div class="col-md-4 col-sm-12 q-gutter-y-md">
+
+          <div class="col-md-4 col-sm-12">
             <q-toggle
               v-model="extensionData.public_page.has_public_page"
-              label="Has Public Page"
+              label="Generate Public Page"
               size="md"
               color="green"
             />
+            <br />
+            <ul>
+              <li>
+                Most extensions have a public page that can be shared (this page
+                will still be accessible even if you have restricted access to
+                your LNbits install).
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div  v-if="extensionData.public_page.has_public_page" class="row q-col-gutter-md q-mt-md">
+          <div class="col-md-6 col-sm-12 q-gutter-y-md">
             <q-select
               filled
               dense
               emit-value
               map-options
-              v-if="extensionData.public_page.has_public_page"
+
               v-model="extensionData.public_page.owner_data_fields.name"
               hint="The title field in the public page."
               :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
@@ -314,7 +327,7 @@
               emit-value
               map-options
               hint="The description field in the public page."
-              v-if="extensionData.public_page.has_public_page"
+
               v-model="extensionData.public_page.owner_data_fields.description"
               :options="[''].concat(extensionData.owner_data.fields.map(f => f.name))"
             ></q-select>
@@ -326,11 +339,12 @@
               multiple
               clearable
               hint="Client fields that will be shown as inputs in the public page form."
-              v-if="extensionData.public_page.has_public_page"
+
               v-model="extensionData.public_page.client_data_fields.public_inputs"
               :options="extensionData.client_data.fields.map(f => f.name)"
             ></q-select>
-            <br />
+          </div>
+          <div class="col-md-6 col-sm-12 q-gutter-y-md">
             <q-toggle
               v-model="extensionData.public_page.action_fields.generate_action"
               label="Generate Action Button"

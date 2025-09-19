@@ -1709,7 +1709,10 @@
           >
             <q-tooltip>
               <ul>
-                <li>The field is optional. The field can be left blank by the user.</li>
+                <li>
+                  The field is optional. The field can be left blank by the
+                  user.
+                </li>
                 <li>
                   The UI form will not require this field to be filled out.
                 </li>
@@ -1754,7 +1757,9 @@
           >
             <q-tooltip>
               <ul>
-                <li>The free text search will include this field when searching.</li>
+                <li>
+                  The free text search will include this field when searching.
+                </li>
               </ul>
             </q-tooltip>
           </q-icon>
