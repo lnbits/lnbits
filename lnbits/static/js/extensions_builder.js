@@ -20,6 +20,7 @@ window.ExtensionsBuilderPageLogic = {
           },
           action_fields: {
             generate_action: true,
+            generate_payment_logic: false,
             wallet_id: '',
             currency: '',
             amount: ''

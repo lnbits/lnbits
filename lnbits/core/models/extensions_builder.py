@@ -76,6 +76,7 @@ class SettingsFields(DataFields):
 
 class ActionFields(BaseModel):
     generate_action: bool = False
+    generate_payment_logic: bool = False
     wallet_id: str | None = None
     currency: str | None = None
     amount: str | None = None
