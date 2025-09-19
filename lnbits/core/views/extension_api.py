@@ -119,12 +119,20 @@ async def api_install_extension(data: CreateExtension):
         ) from exc
 
 
-@extension_router.post("/builder")
+@extension_router.post(
+    "/builder",
+    summary="Build extension based on provided config.",
+    description="""
+        This endpoint generates a zip file for the extension based on the provided data.
+        If `deploy` is set to true, the extension will be installed and activated.
+    """,
+    response_model=None,
+)
 async def api_build_extension(
     data: ExtensionData,
     deploy: bool = False,
     user: User = Depends(check_admin),
-) -> FileResponse:
+) -> FileResponse | SimpleStatus:
     extension_stub_releases: list[ExtensionRelease] = (
         await InstallableExtension.get_extension_releases("extension_builder_stub")
     )
@@ -152,13 +160,12 @@ async def api_build_extension(
 
     zip_directory(extension_dir.parent, ext_zip_file)
 
-    print("### deploy", deploy)
     if not deploy:
         # return the extension zip file as a download
         return FileResponse(
             ext_zip_file, filename=f"{data.id}.zip", media_type="application/zip"
         )
-    print("### deploy yes")
+
     await install_extension(ext_info, skip_download=True)
 
     await activate_extension(Extension.from_installable_ext(ext_info))
@@ -170,6 +177,8 @@ async def api_build_extension(
     elif not user_ext.active:
         user_ext.active = True
     await update_user_extension(user_ext)
+
+    return SimpleStatus(success=True, message=f"Extension '{data.id}' deployed.")
 
 
 @extension_router.get("/{ext_id}/details")
@@ -530,6 +539,7 @@ async def api_get_user_extensions(
     dependencies=[Depends(check_admin)],
 )
 async def delete_extension_db(ext_id: str):
+    # todo: delete DB on deploy
     try:
         db_version = await get_db_version(ext_id)
         if not db_version:
