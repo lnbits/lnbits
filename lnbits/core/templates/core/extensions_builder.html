@@ -371,18 +371,10 @@
           </div>
         </div>
       </q-step>
+
       <q-step
         :name="6"
         :done="step > 6"
-        title="Review"
-        icon="how_to_reg"
-        style="min-height: 100px"
-      >
-        This is how your extension will look like.
-      </q-step>
-      <q-step
-        :name="7"
-        :done="step > 7"
         title="Publish"
         icon="publish"
         style="min-height: 100px"
@@ -453,7 +445,7 @@
               />
 
               <q-btn
-                v-if="step < 7"
+                v-if="step < 6"
                 @click="nextStep()"
                 color="primary"
                 label="Next"
