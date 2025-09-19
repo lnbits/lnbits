@@ -98,6 +98,14 @@ class DataFields(BaseModel):
     name: str
     fields: list[DataField] = []
 
+    def get_field_by_name(self, name: str | None) -> DataField | None:
+        if not name:
+            return None
+        for field in self.fields:
+            if field.name == name:
+                return field
+        return None
+
     @validator("name")
     def validate_name(cls, v: str) -> str:
         if v.strip() == "":
@@ -168,6 +176,110 @@ class ExtensionData(BaseModel):
             self.public_page.action_fields.generate_payment_logic = False
         if not self.public_page.action_fields.generate_action:
             self.public_page.action_fields.generate_payment_logic = False
+
+    def validate_data(self) -> None:
+        self._validate_public_page_fields()
+        self._validate_action_fields()
+
+    def _validate_public_page_fields(self) -> None:
+        if not self.public_page.has_public_page:
+            return
+
+        public_page_name = self.public_page.owner_data_fields.name
+        if public_page_name:
+            public_page_name_field = self.owner_data.get_field_by_name(public_page_name)
+            if not public_page_name_field:
+                raise ValueError(
+                    "Public Page Name must be one of the owner data fields."
+                    f" Received: {public_page_name}."
+                )
+
+        public_page_description = self.public_page.owner_data_fields.description
+        if public_page_description:
+            public_page_description_field = self.owner_data.get_field_by_name(
+                public_page_description
+            )
+            if not public_page_description_field:
+                raise ValueError(
+                    "Public Page Description must be one of the owner data fields."
+                    f" Received: {public_page_description}."
+                )
+
+        public_page_inputs = self.public_page.client_data_fields.public_inputs
+        if public_page_inputs:
+            for input_field in public_page_inputs:
+                input_field_obj = self.client_data.get_field_by_name(input_field)
+                if not input_field_obj:
+                    raise ValueError(
+                        "Public Page Input fields"
+                        " must be one of the client data fields."
+                        f" Received: {input_field}."
+                    )
+
+    def _validate_action_fields(self) -> None:
+        if not self.public_page.action_fields.generate_action:
+            return
+        if not self.public_page.action_fields.generate_payment_logic:
+            return
+
+        self._validate_owner_data_fields()
+        self._validate_client_data_fields()
+
+    def _validate_owner_data_fields(self) -> None:
+        wallet_id = self.public_page.action_fields.wallet_id
+        if wallet_id:
+            wallet_id_field = self.owner_data.get_field_by_name(wallet_id)
+            if not wallet_id_field:
+                raise ValueError(
+                    "Action Wallet ID must be one of the owner data fields."
+                    f" Received: {wallet_id}."
+                )
+            if wallet_id_field.type != "wallet":
+                raise ValueError(
+                    "Action Wallet ID field type must be 'wallet'."
+                    f" Received: {wallet_id_field.type}."
+                )
+        currency = self.public_page.action_fields.currency
+        if currency:
+            currency_field = self.owner_data.get_field_by_name(currency)
+            if not currency_field:
+                raise ValueError(
+                    "Action Currency must be one of the owner data fields."
+                    f" Received: {currency}."
+                )
+            if currency_field.type != "currency":
+                raise ValueError(
+                    "Action Currency field type must be 'currency'."
+                    f" Received: {currency_field.type}."
+                )
+
+    def _validate_client_data_fields(self) -> None:
+        amount = self.public_page.action_fields.amount
+        if amount:
+            amount_field = self.client_data.get_field_by_name(amount)
+            if not amount_field:
+                raise ValueError(
+                    "Action Amount must be one of the client data fields."
+                    f" Received: {amount}."
+                )
+            if amount_field.type not in ["int", "float"]:
+                raise ValueError(
+                    "Action Amount field type must be 'int' or 'float'."
+                    f" Received: {amount_field.type}."
+                )
+        paid_flag = self.public_page.action_fields.paid_flag
+        if paid_flag:
+            paid_flag_field = self.client_data.get_field_by_name(paid_flag)
+            if not paid_flag_field:
+                raise ValueError(
+                    "Action Paid Flag must be one of the client data fields."
+                    f" Received: {paid_flag}."
+                )
+            if paid_flag_field.type != "bool":
+                raise ValueError(
+                    "Action Paid Flag field type must be 'bool'."
+                    f" Received: {paid_flag_field.type}."
+                )
 
     @validator("id")
     def validate_id(cls, v: str) -> str:
