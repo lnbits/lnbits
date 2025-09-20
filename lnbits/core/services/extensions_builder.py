@@ -3,6 +3,7 @@ import os
 import shutil
 import zipfile
 from pathlib import Path
+from time import time
 
 import shortuuid
 from jinja2 import Environment, FileSystemLoader
@@ -60,40 +61,32 @@ excluded_dirs = {"./.", "./__pycache__", "./node_modules", "./transform"}
 
 
 async def fetch_extension_builder_stub(ext_id: str, release: ExtensionRelease) -> Path:
-    builder_dir = Path(settings.lnbits_data_folder, "extensions_builder")
-    builder_dir.mkdir(parents=True, exist_ok=True)
-    ext_zip_path = Path(builder_dir, release.version + ".zip")
-    if not ext_zip_path.is_file():
-        await asyncio.to_thread(download_url, release.archive_url, ext_zip_path)
+    working_dir = Path(settings.lnbits_data_folder, "extensions_builder")
+    working_dir.mkdir(parents=True, exist_ok=True)
+    ext_zip_path = Path(working_dir, release.version + ".zip")
 
-    ext_stub_dir = Path(builder_dir, "extension_builder_stub")
+    ext_stub_dir = Path(working_dir, "extension_builder_stub")
     ext_stub_cache_dir = Path(
         ext_stub_dir, f"cache-{release.version}", "extension_builder_stub"
     )
-    ext_build_dir = Path(ext_stub_dir, shortuuid.uuid(), ext_id)
 
-    # use cache if available
+    if not ext_zip_path.is_file():
+        await asyncio.to_thread(download_url, release.archive_url, ext_zip_path)
+        shutil.rmtree(ext_stub_cache_dir, True)  # clear cache if new zip
+
+    ext_build_dir = Path(ext_stub_dir, f"{int(time())}_{shortuuid.uuid()}", ext_id)
+
     if ext_stub_cache_dir.is_dir():
-        shutil.copytree(
-            ext_stub_cache_dir,
-            ext_build_dir,
-        )
+        shutil.copytree(ext_stub_cache_dir, ext_build_dir)
         return ext_build_dir
 
     with zipfile.ZipFile(ext_zip_path, "r") as zip_ref:
         zip_ref.extractall(ext_stub_dir)
 
-    generated_dir_name = os.listdir(ext_stub_dir)[0]
-    generated_dir = Path(ext_stub_dir, generated_dir_name)
+    generated_dir = Path(ext_stub_dir, os.listdir(ext_stub_dir)[0])
 
-    shutil.copytree(
-        generated_dir,
-        ext_build_dir,
-    )
-    shutil.copytree(
-        generated_dir,
-        ext_stub_cache_dir,
-    )
+    shutil.copytree(generated_dir, ext_build_dir)
+    shutil.copytree(generated_dir, ext_stub_cache_dir)
 
     shutil.rmtree(generated_dir, True)
     return ext_build_dir
