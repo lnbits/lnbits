@@ -120,24 +120,17 @@ window.ExtensionsBuilderPageLogic = {
       }
       reader.readAsText(file)
     },
-    async buildExtension(deploy = false) {
+    async buildExtension() {
       try {
-        const options = deploy ? {} : {responseType: 'blob'}
+        const options = {responseType: 'blob'}
         const response = await LNbits.api.request(
           'POST',
-          `/api/v1/extension/builder?deploy=${deploy}`,
+          '/api/v1/extension/builder/zip',
           null,
           this.extensionData,
           options
         )
 
-        if (deploy) {
-          Quasar.Notify.create({
-            message: 'Extension installed!',
-            color: 'positive'
-          })
-          return
-        }
         // download the zip file
         const url = window.URL.createObjectURL(new Blob([response.data]))
         const a = document.createElement('a')
@@ -147,6 +140,23 @@ window.ExtensionsBuilderPageLogic = {
         a.click()
         a.remove()
         window.URL.revokeObjectURL(url)
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
+    },
+    async buildExtensionAndDeploy() {
+      try {
+        const {data} = await LNbits.api.request(
+          'POST',
+          '/api/v1/extension/builder/deploy',
+          null,
+          this.extensionData
+        )
+
+        Quasar.Notify.create({
+          message: data.message || 'Extension deployed!',
+          color: 'positive'
+        })
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }

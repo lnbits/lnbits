@@ -121,17 +121,53 @@ async def api_install_extension(data: CreateExtension):
 
 
 @extension_router.post(
-    "/builder",
+    "/builder/zip",
+    summary="Build and download extension zip.",
+    description="""
+        This endpoint generates a zip file for the extension based on the provided data.
+    """,
+    dependencies=[Depends(check_user_exists)],
+    response_model=None,
+)
+async def api_build_extension(
+    data: ExtensionData,
+) -> FileResponse:
+    release = await get_extension_stub_release(data.stub_version)
+    if not release:
+        raise ValueError(f"Release '{data.stub_version}' not found.")
+
+    extension_dir = await fetch_extension_builder_stub(data.id, release)
+    transform_extension_builder_stub(data, extension_dir)
+
+    ext_info = InstallableExtension(
+        id=data.id,
+        name=data.name,
+        version="0.1.0",
+        short_description=data.short_description,
+        meta=ExtensionMeta(installed_release=release),
+    )
+    ext_zip_file = ext_info.zip_path
+    if ext_zip_file.is_file():
+        os.remove(ext_zip_file)
+
+    zip_directory(extension_dir.parent, ext_zip_file)
+
+    return FileResponse(
+        ext_zip_file, filename=f"{data.id}.zip", media_type="application/zip"
+    )
+
+
+@extension_router.post(
+    "/builder/deploy",
     summary="Build extension based on provided config.",
     description="""
         This endpoint generates a zip file for the extension based on the provided data.
         If `deploy` is set to true, the extension will be installed and activated.
     """,
-    response_model=None,
+    response_model=SimpleStatus,
 )
-async def api_build_extension(
+async def api_build_and_deploy_extension(
     data: ExtensionData,
-    deploy: bool = False,
     user: User = Depends(check_admin),
 ) -> FileResponse | SimpleStatus:
     release = await get_extension_stub_release(data.stub_version)
@@ -153,12 +189,6 @@ async def api_build_extension(
         os.remove(ext_zip_file)
 
     zip_directory(extension_dir.parent, ext_zip_file)
-
-    if not deploy:
-        # return the extension zip file as a download
-        return FileResponse(
-            ext_zip_file, filename=f"{data.id}.zip", media_type="application/zip"
-        )
 
     await install_extension(ext_info, skip_download=True)
 
