@@ -37,6 +37,7 @@ from lnbits.core.services.extensions import (
 )
 from lnbits.core.services.extensions_builder import (
     fetch_extension_builder_stub,
+    get_extension_stub_release,
     transform_extension_builder_stub,
     zip_directory,
 )
@@ -133,18 +134,11 @@ async def api_build_extension(
     deploy: bool = False,
     user: User = Depends(check_admin),
 ) -> FileResponse | SimpleStatus:
-    extension_stub_releases: list[ExtensionRelease] = (
-        await InstallableExtension.get_extension_releases("extension_builder_stub")
-    )
-    release = next(
-        (r for r in extension_stub_releases if r.version == data.stub_version),
-        None,
-    )
+    release = await get_extension_stub_release(data.stub_version)
     if not release:
         raise ValueError(f"Release '{data.stub_version}' not found.")
 
     extension_dir = await fetch_extension_builder_stub(data.id, release)
-
     transform_extension_builder_stub(data, extension_dir)
 
     ext_info = InstallableExtension(

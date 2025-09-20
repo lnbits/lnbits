@@ -9,7 +9,7 @@ import shortuuid
 from jinja2 import Environment, FileSystemLoader
 from loguru import logger
 
-from lnbits.core.models.extensions import ExtensionRelease
+from lnbits.core.models.extensions import ExtensionRelease, InstallableExtension
 from lnbits.core.models.extensions_builder import DataField, ExtensionData
 from lnbits.db import dict_to_model
 from lnbits.helpers import (
@@ -58,6 +58,18 @@ extra_ui_fields = [
 ui_table_columns = [dict_to_model(f, DataField) for f in extra_ui_fields]
 
 excluded_dirs = {"./.", "./__pycache__", "./node_modules", "./transform"}
+
+
+async def get_extension_stub_release(stub_version: str) -> ExtensionRelease | None:
+    extension_stub_releases: list[ExtensionRelease] = (
+        await InstallableExtension.get_extension_releases("extension_builder_stub")
+    )
+    release = next(
+        (r for r in extension_stub_releases if r.version == stub_version),
+        None,
+    )
+
+    return release
 
 
 async def fetch_extension_builder_stub(ext_id: str, release: ExtensionRelease) -> Path:
