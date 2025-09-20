@@ -72,7 +72,9 @@ async def get_extension_stub_release(stub_version: str) -> ExtensionRelease | No
     return release
 
 
-async def fetch_extension_builder_stub(ext_id: str, release: ExtensionRelease) -> Path:
+async def fetch_extension_builder_stub(
+    ext_id: str, release: ExtensionRelease, working_dir_name: str | None = None
+) -> Path:
     working_dir = Path(settings.lnbits_data_folder, "extensions_builder")
     working_dir.mkdir(parents=True, exist_ok=True)
     ext_zip_path = Path(working_dir, release.version + ".zip")
@@ -86,7 +88,9 @@ async def fetch_extension_builder_stub(ext_id: str, release: ExtensionRelease) -
         await asyncio.to_thread(download_url, release.archive_url, ext_zip_path)
         shutil.rmtree(ext_stub_cache_dir, True)  # clear cache if new zip
 
-    ext_build_dir = Path(ext_stub_dir, f"{int(time())}_{shortuuid.uuid()}", ext_id)
+    working_dir_name = working_dir_name or f"ext-{int(time())}-{shortuuid.uuid()}"
+    ext_build_dir = Path(ext_stub_dir, ext_id, working_dir_name)
+    shutil.rmtree(ext_build_dir, True)
 
     if ext_stub_cache_dir.is_dir():
         shutil.copytree(ext_stub_cache_dir, ext_build_dir)

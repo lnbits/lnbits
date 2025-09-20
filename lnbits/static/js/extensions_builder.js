@@ -161,6 +161,23 @@ window.ExtensionsBuilderPageLogic = {
         LNbits.utils.notifyApiError(error)
       }
     },
+    async previewExtension() {
+      try {
+        const {data} = await LNbits.api.request(
+          'POST',
+          '/api/v1/extension/builder/preview',
+          null,
+          this.extensionData
+        )
+
+        Quasar.Notify.create({
+          message: data.message || 'Extension UI generated!',
+          color: 'positive'
+        })
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
+    },
     async getStubExtensionReleases() {
       try {
         const stub_ext_id = 'extension_builder_stub'

@@ -654,17 +654,26 @@
               color="negative"
               @click="clearAllData"
             ></q-btn>
+            <q-btn
+              v-else
+              flat
+              color="grey-8"
+              class="q-mr-sm"
+              @click="previousStep()"
+              label="Back"
+              icon="chevron_left"
+            />
           </div>
           <div class="col-md-6 col-sm-12 q-pr-md q-pb-md">
             <q-stepper-navigation class="float-right">
               <q-btn
-                v-if="step > 0"
-                flat
-                color="grey-8"
+                v-if="step >1 && step <6"
+                @click="previewExtension()"
+                color="primary"
+                outline
+                label="Preview"
                 class="q-mr-sm"
-                @click="previousStep()"
-                label="Back"
-              />
+              ></q-btn>
 
               <q-btn
                 v-if="step < 6"

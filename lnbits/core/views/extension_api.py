@@ -1,6 +1,7 @@
 import os
 import sys
 import traceback
+from hashlib import sha256
 from http import HTTPStatus
 
 from bolt11 import decode as bolt11_decode
@@ -166,15 +167,18 @@ async def api_build_extension(
     """,
     response_model=SimpleStatus,
 )
-async def api_build_and_deploy_extension(
+async def api_deploy_extension(
     data: ExtensionData,
     user: User = Depends(check_admin),
-) -> FileResponse | SimpleStatus:
+) -> SimpleStatus:
     release = await get_extension_stub_release(data.stub_version)
     if not release:
         raise ValueError(f"Release '{data.stub_version}' not found.")
 
-    extension_dir = await fetch_extension_builder_stub(data.id, release)
+    working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
+    extension_dir = await fetch_extension_builder_stub(
+        data.id, release, working_dir_name
+    )
     transform_extension_builder_stub(data, extension_dir)
 
     ext_info = InstallableExtension(
@@ -203,6 +207,29 @@ async def api_build_and_deploy_extension(
     await update_user_extension(user_ext)
 
     return SimpleStatus(success=True, message=f"Extension '{data.id}' deployed.")
+
+
+@extension_router.post(
+    "/builder/preview",
+    summary="Build and preview the extension ui.",
+    response_model=SimpleStatus,
+)
+async def api_preview_extension(
+    data: ExtensionData,
+    user: User = Depends(check_user_exists),
+) -> SimpleStatus:
+    release = await get_extension_stub_release(data.stub_version)
+    if not release:
+        raise ValueError(f"Release '{data.stub_version}' not found.")
+
+    working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
+    extension_dir = await fetch_extension_builder_stub(
+        data.id, release, working_dir_name
+    )
+    transform_extension_builder_stub(data, extension_dir)
+
+    print("#### extension_dir", extension_dir)
+    return SimpleStatus(success=True, message=f"Extension '{data.id}' preview ready.")
 
 
 @extension_router.get("/{ext_id}/details")
