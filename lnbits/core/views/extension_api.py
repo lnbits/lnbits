@@ -141,7 +141,7 @@ async def api_build_extension(
         None,
     )
     if not release:
-        raise HTTPException(HTTPStatus.NOT_FOUND, detail="Release not found")
+        raise ValueError(f"Release '{data.stub_version}' not found.")
 
     extension_dir = await fetch_extension_builder_stub(data.id, release)
 
