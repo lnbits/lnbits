@@ -238,8 +238,8 @@ window.ExtensionsBuilderPageLogic = {
         const iframeDoc =
           iframe.contentDocument || iframe.contentWindow.document
 
-        // iframeDoc.body.style.transform = 'scale(0.8)'
-        // iframeDoc.body.style.transformOrigin = '0 0' // anchor top-left
+        iframeDoc.body.style.transform = 'scale(0.8)'
+        iframeDoc.body.style.transformOrigin = 'center top'
       }
       iframe.src = `/extensions/builder/preview/${this.extensionData.id}?page_name=${previewPageName}`
     }

@@ -468,32 +468,36 @@
           ></q-separator>
 
           <div v-if="extensionData.public_page.action_fields.generate_action">
-            <div class="col-12 col-md-6">
-              <q-item tag="label" v-ripple>
-                <q-item-section>
-                  <q-item-label>Generate Payment Logic</q-item-label>
-                  <q-item-label caption>
-                    <ul class="q-pa-none q-ma-none">
-                      <li>
-                        If enabled, the endpoint will create an invoice from the
-                        submitted data and the UI will show the QR code with the
-                        invoice.
-                      </li>
-                      <li>
-                        A listener will be created to check for the pay event.
-                      </li>
-                      <li>You must map the fieds.</li>
-                    </ul></q-item-label
-                  >
-                </q-item-section>
-                <q-item-section avatar>
-                  <q-toggle
-                    v-model="extensionData.public_page.action_fields.generate_payment_logic"
-                    size="md"
-                    color="green"
-                  />
-                </q-item-section>
-              </q-item>
+            <div class="row q-col-gutter-md q-mt-md">
+              <div class="col-12 col-md-6">
+                <q-item tag="label" v-ripple>
+                  <q-item-section>
+                    <q-item-label>Generate Payment Logic</q-item-label>
+                    <q-item-label caption>
+                      <ul class="q-pa-none q-ma-none">
+                        <li>
+                          If enabled, the endpoint will create an invoice from
+                          the submitted data and the UI will show the QR code
+                          with the invoice.
+                        </li>
+                        <li>
+                          A listener will be created to check for the pay event.
+                        </li>
+                        <li>You must map the fieds.</li>
+                      </ul></q-item-label
+                    >
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-toggle
+                      v-model="extensionData.public_page.action_fields.generate_payment_logic"
+                      size="md"
+                      color="green"
+                    />
+                  </q-item-section>
+                </q-item>
+              </div>
+
+              <div class="col-12 col-md-6"></div>
             </div>
             <div
               v-if="extensionData.public_page.action_fields.generate_action && extensionData.public_page.action_fields.generate_payment_logic"
