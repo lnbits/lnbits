@@ -1,5 +1,6 @@
 from hashlib import sha256
 from http import HTTPStatus
+from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlencode, urlparse
 
@@ -178,10 +179,28 @@ async def extensions_builder_preview(
     request: Request, ext_id: str, user: User = Depends(check_user_exists)
 ):
     working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
+    html_file_path = Path(
+        ext_id, working_dir_name, "templates", ext_id, "public_my_items.html"
+    )
+
+    html_file_full_path = Path(
+        settings.extension_builder_working_dir_path, html_file_path
+    )
+
+    if not html_file_full_path.is_file():
+        return template_renderer().TemplateResponse(
+            request,
+            "error.html",
+            {
+                "err": f"Extension {ext_id} not found",
+                "message": "Please 'Generate Preview' first.",
+            },
+            status_code=HTTPStatus.NOT_FOUND,
+        )
 
     return template_renderer().TemplateResponse(
         request,
-        f"{ext_id}/{working_dir_name}/templates/{ext_id}/public_my_items.html",
+        html_file_path.as_posix(),
         {
             "user": user.json(),
             "ajax": _is_ajax_request(request),

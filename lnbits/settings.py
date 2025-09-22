@@ -56,9 +56,15 @@ class ExtensionsSettings(LNbitsSettings):
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         ]
     )
-    lnbits_extensions_manifest: str = Field(
+    lnbits_extensions_builder_manifest: str = Field(
         default="https://raw.githubusercontent.com/lnbits/extension_builder_stub/refs/heads/main/manifest.json"
     )
+
+    @property
+    def extension_builder_working_dir_path(self) -> Path:
+        return Path(
+            settings.lnbits_data_folder, "extensions_builder", "extension_builder_stub"
+        )
 
 
 class ExtensionsInstallSettings(LNbitsSettings):

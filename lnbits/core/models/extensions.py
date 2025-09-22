@@ -629,7 +629,7 @@ class InstallableExtension(BaseModel):
         extension_releases: list[ExtensionRelease] = []
         all_manifests = [
             *settings.lnbits_extensions_manifests,
-            settings.lnbits_extensions_manifest,
+            settings.lnbits_extensions_builder_manifest,
         ]
         for url in all_manifests:
             try:

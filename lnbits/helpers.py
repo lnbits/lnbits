@@ -56,11 +56,9 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     folders = [
         "lnbits/templates",
         "lnbits/core/templates",
-        Path(
-            settings.lnbits_data_folder, "extensions_builder", "extension_builder_stub"
-        ).as_posix(),
+        settings.extension_builder_working_dir_path.as_posix(),
     ]
-    print("### folders", folders)
+
     if additional_folders:
         additional_folders += [
             Path(settings.lnbits_extensions_path, "extensions", f)
