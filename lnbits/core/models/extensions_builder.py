@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from pydantic import BaseModel, validator
@@ -80,15 +80,13 @@ class DataField(BaseModel):
         elif self.type == "bool":
             return True if index % 2 == 0 else False
         elif self.type == "datetime":
-            return datetime.now(timezone.utc).isoformat()
+            return (datetime.now(timezone.utc) - timedelta(hours=index * 2)).isoformat()
         elif self.type == "json":
             return {"key": "value"}
         elif self.type == "currency":
             return "USD"
-        elif self.type in ["wallet", "text"]:
-            return f'"{self.name} {index}"'
         else:
-            return f'"{self.name} {index}"'
+            return f"{self.name} {index}"
 
     @validator("name")
     def validate_name(cls, v: str) -> str:

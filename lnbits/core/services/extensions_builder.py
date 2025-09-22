@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import shutil
 import zipfile
@@ -312,6 +313,9 @@ def _jinja_env(template_dir: str) -> Environment:
 
 def _parse_extension_data(data: ExtensionData) -> dict:
 
+    print("### data.owner_data", data.owner_data)
+    print("### data.client_data", data.client_data)
+
     return {
         "owner_data": {
             "name": data.owner_data.name,
@@ -331,10 +335,12 @@ def _parse_extension_data(data: ExtensionData) -> dict:
                 if field.sortable
             ],
             "ui_mock_data": [
-                {
-                    field.name: field.field_mock_value(index=index)
-                    for field in data.owner_data.fields + ui_table_columns
-                }
+                json.dumps(
+                    {
+                        field.name: field.field_mock_value(index=index)
+                        for field in data.owner_data.fields + ui_table_columns
+                    }
+                )
                 for index in range(1, 5)
             ],
             "db_fields": [field.field_to_db() for field in data.owner_data.fields],
@@ -358,10 +364,12 @@ def _parse_extension_data(data: ExtensionData) -> dict:
                 if field.sortable
             ],
             "ui_mock_data": [
-                {
-                    field.name: field.field_mock_value(index=index)
-                    for field in data.client_data.fields + ui_table_columns
-                }
+                json.dumps(
+                    {
+                        field.name: field.field_mock_value(index=index)
+                        for field in data.client_data.fields + ui_table_columns
+                    }
+                )
                 for index in range(1, 7)
             ],
             "db_fields": [field.field_to_db() for field in data.client_data.fields],
