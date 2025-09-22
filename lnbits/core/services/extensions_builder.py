@@ -124,7 +124,10 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
         _remove_lines_with_string(template_path, remove_line_marker)
 
     template_path = Path(ext_stub_dir, "static", "js", "index.js").as_posix()
-    rederer = _render_file(template_path, parsed_data)
+    rederer = _render_file(
+        template_path, {"preview": data.preview_action, **parsed_data}
+    )
+    embeded_index_js = rederer
     with open(template_path, "w", encoding="utf-8") as f:
         f.write(rederer)
 
@@ -151,9 +154,11 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
     rederer = _render_file(
         template_path,
         {
+            "embeded_index_js": embeded_index_js,
             "extension_builder_stub_owner_inputs": owner_inputs,
             "extension_builder_stub_settings_inputs": settings_inputs,
             "extension_builder_stub_client_inputs": client_inputs,
+            "preview": data.preview_action,
             "cancel_comment": remove_line_marker,
             **parsed_data,
         },
@@ -173,7 +178,7 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
         ext_stub_dir,
     )
     template_path = Path(
-        ext_stub_dir, "templates", "extension_builder_stub", "public_owner_data.html"
+        ext_stub_dir, "templates", "extension_builder_stub", "public_page.html"
     ).as_posix()
     rederer = _render_file(
         template_path,

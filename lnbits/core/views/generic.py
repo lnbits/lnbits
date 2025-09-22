@@ -176,12 +176,17 @@ async def extensions_builder(request: Request, user: User = Depends(check_user_e
     response_class=HTMLResponse,
 )
 async def extensions_builder_preview(
-    request: Request, ext_id: str, user: User = Depends(check_user_exists)
+    request: Request,
+    ext_id: str,
+    page_name: str | None = None,
+    user: User = Depends(check_user_exists),
 ):
     working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
-    html_file_path = Path(
-        ext_id, working_dir_name, "templates", ext_id, "public_my_items.html"
-    )
+    html_file_name = "index.html"
+    if page_name == "public_page":
+        html_file_name = "public_page.html"
+
+    html_file_path = Path(ext_id, working_dir_name, "templates", ext_id, html_file_name)
 
     html_file_full_path = Path(
         settings.extension_builder_working_dir_path, html_file_path
@@ -193,7 +198,7 @@ async def extensions_builder_preview(
             "error.html",
             {
                 "err": f"Extension {ext_id} not found",
-                "message": "Please 'Generate Preview' first.",
+                "message": "Please 'Refresh Preview' first.",
             },
             status_code=HTTPStatus.NOT_FOUND,
         )

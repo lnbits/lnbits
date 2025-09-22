@@ -116,11 +116,20 @@
       >
         <div class="row q-col-gutter-md q-mt-md">
           <div class="col-md-8 col-sm-12">
-            <q-img
-              :src="'{{ static_url_for('static', 'images/builder/build_02.png') }}'"
-            ></q-img>
+            <iframe
+              ref="iframeStep2"
+              class="full-width"
+              height="400px"
+            ></iframe>
           </div>
           <div class="col-md-4 col-sm-12">
+            <q-btn
+              @click="previewExtension('settings')"
+              color="primary"
+              outline
+              label="Refresh Preview"
+              class="full-width q-mb-md"
+            ></q-btn>
             <q-toggle
               v-model="extensionData.settings_data.enabled"
               label="Generate Settings Fields"
@@ -128,6 +137,7 @@
               color="green"
             />
             <br />
+
             <ul>
               <li>Define what settings your extension will have.</li>
               <li>
@@ -185,11 +195,20 @@
       >
         <div class="row q-col-gutter-md q-mt-md">
           <div class="col-md-8 col-sm-12">
-            <q-img
-              :src="'{{ static_url_for('static', 'images/builder/build_03.png') }}'"
-            ></q-img>
+            <iframe
+              ref="iframeStep3"
+              class="full-width"
+              height="400px"
+            ></iframe>
           </div>
           <div class="col-md-4 col-sm-12">
+            <q-btn
+              @click="previewExtension('owner_data')"
+              color="primary"
+              outline
+              label="Refresh Preview"
+              class="full-width q-mb-md"
+            ></q-btn>
             <q-input
               v-model="extensionData.owner_data.name"
               filled
@@ -232,11 +251,20 @@
       >
         <div class="row q-col-gutter-md q-mt-md">
           <div class="col-md-8 col-sm-12">
-            <q-img
-              :src="'{{ static_url_for('static', 'images/builder/build_04.png') }}'"
-            ></q-img>
+            <iframe
+              ref="iframeStep4"
+              class="full-width"
+              height="400px"
+            ></iframe>
           </div>
           <div class="col-md-4 col-sm-12">
+            <q-btn
+              @click="previewExtension('client_data')"
+              color="primary"
+              outline
+              label="Refresh Preview"
+              class="full-width q-mb-md"
+            ></q-btn>
             <q-toggle
               v-model="extensionData.client_data.enabled"
               label="Generate Client Table"
@@ -244,6 +272,7 @@
               size="md"
               color="green"
             />
+
             <br />
             <q-input
               v-if="extensionData.client_data.enabled"
@@ -289,13 +318,20 @@
         <div class="row q-col-gutter-md q-mt-md">
           <div class="col-md-8 col-sm-12">
             <iframe
-              ref="extBuilderPreviewIframe"
+              ref="iframeStep5"
               class="full-width"
               height="400px"
             ></iframe>
           </div>
 
           <div class="col-md-4 col-sm-12">
+            <q-btn
+              @click="previewExtension('public_page')"
+              color="primary"
+              outline
+              label="Refresh Preview"
+              class="full-width q-mb-md"
+            ></q-btn>
             <q-toggle
               v-model="extensionData.public_page.has_public_page"
               label="Generate Public Page"
@@ -303,6 +339,7 @@
               color="green"
             />
             <br />
+
             <ul>
               <li>
                 Most extensions have a public page that can be shared (this page
@@ -668,15 +705,6 @@
           </div>
           <div class="col-md-6 col-sm-12 q-pr-md q-pb-md">
             <q-stepper-navigation class="float-right">
-              <q-btn
-                v-if="step >1 && step <6"
-                @click="previewExtension()"
-                color="primary"
-                outline
-                label="Preview"
-                class="q-mr-sm"
-              ></q-btn>
-
               <q-btn
                 v-if="step < 6"
                 @click="nextStep()"

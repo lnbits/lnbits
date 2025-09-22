@@ -153,6 +153,22 @@ class PublicPageFields(BaseModel):
     action_fields: ActionFields
 
 
+class PreviewAction(BaseModel):
+    is_preview_mode: bool = False
+    is_settings_preview: bool = False
+    is_owner_data_preview: bool = False
+    is_client_data_preview: bool = False
+    is_public_page_preview: bool = False
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if not self.is_preview_mode:
+            self.is_settings_preview = False
+            self.is_owner_data_preview = False
+            self.is_client_data_preview = False
+            self.is_public_page_preview = False
+
+
 class ExtensionData(BaseModel):
     id: str
     name: str
@@ -163,6 +179,7 @@ class ExtensionData(BaseModel):
     client_data: DataFields
     settings_data: SettingsFields
     public_page: PublicPageFields
+    preview_action: PreviewAction = PreviewAction()
 
     def __init__(self, **data):
         super().__init__(**data)

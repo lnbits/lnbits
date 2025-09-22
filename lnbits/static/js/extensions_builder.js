@@ -2,6 +2,12 @@ window.ExtensionsBuilderPageLogic = {
   data: function () {
     return {
       step: 1,
+      previewStepNames: {
+        2: 'settings',
+        3: 'owner_data',
+        4: 'client_data',
+        5: 'public_page'
+      },
       extensionDataCleanString: '',
       extensionData: {
         id: '',
@@ -26,6 +32,13 @@ window.ExtensionsBuilderPageLogic = {
             amount: '',
             paid_flag: ''
           }
+        },
+        preview_action: {
+          is_preview_mode: false,
+          is_settings_preview: false,
+          is_owner_data_preview: false,
+          is_client_data_preview: false,
+          is_public_page_preview: false
         },
         settings_data: {
           name: 'Settings',
@@ -63,13 +76,16 @@ window.ExtensionsBuilderPageLogic = {
     nextStep() {
       this.saveState()
       this.$refs.stepper.next()
+      this.refreshPreview()
     },
     previousStep() {
       this.saveState()
       this.$refs.stepper.previous()
+      this.refreshPreview()
     },
     onStepChange() {
       this.saveState()
+      this.refreshPreview()
     },
     clearAllData() {
       LNbits.utils
@@ -160,23 +176,39 @@ window.ExtensionsBuilderPageLogic = {
         LNbits.utils.notifyApiError(error)
       }
     },
-    async previewExtension() {
+    async previewExtension(previewPageName) {
+      console.log('previewExtension', previewPageName)
+      this.saveState()
       try {
-        const {data} = await LNbits.api.request(
+        await LNbits.api.request(
           'POST',
           '/api/v1/extension/builder/preview',
           null,
-          this.extensionData
+          {
+            ...this.extensionData,
+            ...{
+              preview_action: {
+                is_preview_mode: !!previewPageName,
+                is_settings_preview: previewPageName === 'settings',
+                is_owner_data_preview: previewPageName === 'owner_data',
+                is_client_data_preview: previewPageName === 'client_data',
+                is_public_page_preview: previewPageName === 'public_page'
+              }
+            }
+          }
         )
 
-        Quasar.Notify.create({
-          message: data.message || 'Extension UI generated!',
-          color: 'positive'
-        })
-        this.refreshIframe()
+        this.refreshIframe(previewPageName)
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }
+    },
+    async refreshPreview() {
+      setTimeout(() => {
+        const stepName = this.previewStepNames[`${this.step}`] || ''
+        if (!stepName) return
+        this.previewExtension(stepName)
+      }, 100)
     },
     async getStubExtensionReleases() {
       try {
@@ -196,8 +228,8 @@ window.ExtensionsBuilderPageLogic = {
         LNbits.utils.notifyApiError(error)
       }
     },
-    refreshIframe() {
-      const iframe = this.$refs.extBuilderPreviewIframe
+    refreshIframe(previewPageName = '') {
+      const iframe = this.$refs[`iframeStep${this.step}`]
       if (!iframe) {
         console.warn('Extension Builder Preview iframe not loaded yet.')
         return
@@ -206,10 +238,10 @@ window.ExtensionsBuilderPageLogic = {
         const iframeDoc =
           iframe.contentDocument || iframe.contentWindow.document
 
-        iframeDoc.body.style.transform = 'scale(0.8)'
-        iframeDoc.body.style.transformOrigin = '0 0' // anchor top-left
+        // iframeDoc.body.style.transform = 'scale(0.8)'
+        // iframeDoc.body.style.transformOrigin = '0 0' // anchor top-left
       }
-      iframe.src = `/extensions/builder/preview/${this.extensionData.id}`
+      iframe.src = `/extensions/builder/preview/${this.extensionData.id}?page_name=${previewPageName}`
     }
   },
   created: function () {
