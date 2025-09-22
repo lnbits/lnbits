@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
+from typing import Any
 
 from pydantic import BaseModel, validator
 
-from lnbits.helpers import camel_to_snake, is_camel_case, is_snake_case
+from lnbits.helpers import (
+    camel_to_snake,
+    is_camel_case,
+    is_snake_case,
+    urlsafe_short_hash,
+)
 
 
 class DataField(BaseModel):
@@ -62,6 +69,26 @@ class DataField(BaseModel):
         if field_type == "json":
             db_field += " DEFAULT '{empty_dict}'"
         return db_field
+
+    def field_mock_value(self, index: int) -> Any:
+        if self.name == "id":
+            return urlsafe_short_hash()
+        if self.type == "int":
+            return index
+        elif self.type == "float":
+            return float(f"{index}.0{index} * 2")
+        elif self.type == "bool":
+            return True if index % 2 == 0 else False
+        elif self.type == "datetime":
+            return datetime.now(timezone.utc).isoformat()
+        elif self.type == "json":
+            return {"key": "value"}
+        elif self.type == "currency":
+            return "USD"
+        elif self.type in ["wallet", "text"]:
+            return f'"{self.name} {index}"'
+        else:
+            return f'"{self.name} {index}"'
 
     @validator("name")
     def validate_name(cls, v: str) -> str:
