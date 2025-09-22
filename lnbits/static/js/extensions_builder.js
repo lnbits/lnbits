@@ -224,7 +224,9 @@ window.ExtensionsBuilderPageLogic = {
     if (step) {
       this.step = step
     }
-    this.getStubExtensionReleases()
+    if (this.g.user.admin) {
+      this.getStubExtensionReleases()
+    }
 
     setTimeout(() => {
       this.refreshIframe()
