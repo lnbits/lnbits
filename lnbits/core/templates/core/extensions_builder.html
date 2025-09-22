@@ -288,9 +288,11 @@
       >
         <div class="row q-col-gutter-md q-mt-md">
           <div class="col-md-8 col-sm-12">
-            <q-img
-              :src="'{{ static_url_for('static', 'images/builder/build_04.png') }}'"
-            ></q-img>
+            <iframe
+              ref="extBuilderPreviewIframe"
+              class="full-width"
+              height="400px"
+            ></iframe>
           </div>
 
           <div class="col-md-4 col-sm-12">

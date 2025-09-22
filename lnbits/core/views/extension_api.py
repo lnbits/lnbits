@@ -3,6 +3,7 @@ import sys
 import traceback
 from hashlib import sha256
 from http import HTTPStatus
+from uuid import uuid4
 
 from bolt11 import decode as bolt11_decode
 from fastapi import APIRouter, Depends, HTTPException
@@ -175,12 +176,13 @@ async def api_deploy_extension(
     if not release:
         raise ValueError(f"Release '{data.stub_version}' not found.")
 
-    working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
+    working_dir_name = "deploy_" + sha256(user.id.encode("utf-8")).hexdigest()
     extension_dir = await fetch_extension_builder_stub(
         data.id, release, working_dir_name
     )
     transform_extension_builder_stub(data, extension_dir)
 
+    release.hash = sha256(uuid4().hex.encode("utf-8")).hexdigest()
     ext_info = InstallableExtension(
         id=data.id,
         name=data.name,

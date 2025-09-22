@@ -1,3 +1,4 @@
+from hashlib import sha256
 from http import HTTPStatus
 from typing import Annotated
 from urllib.parse import urlencode, urlparse
@@ -161,6 +162,26 @@ async def extensions_builder(request: Request, user: User = Depends(check_user_e
     return template_renderer().TemplateResponse(
         request,
         "core/extensions_builder.html",
+        {
+            "user": user.json(),
+            "ajax": _is_ajax_request(request),
+        },
+    )
+
+
+@generic_router.get(
+    "/extensions/builder/preview/{ext_id}",
+    name="extensions builder",
+    response_class=HTMLResponse,
+)
+async def extensions_builder_preview(
+    request: Request, ext_id: str, user: User = Depends(check_user_exists)
+):
+    working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
+
+    return template_renderer().TemplateResponse(
+        request,
+        f"{ext_id}/{working_dir_name}/templates/{ext_id}/public_my_items.html",
         {
             "user": user.json(),
             "ajax": _is_ajax_request(request),

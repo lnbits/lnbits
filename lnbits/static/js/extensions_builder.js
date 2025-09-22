@@ -104,7 +104,6 @@ window.ExtensionsBuilderPageLogic = {
     },
     onJsonDataInput(event) {
       const file = event.target.files[0]
-      console.log('### file', file)
       const reader = new FileReader()
       reader.onload = e => {
         this.extensionData = {
@@ -174,6 +173,7 @@ window.ExtensionsBuilderPageLogic = {
           message: data.message || 'Extension UI generated!',
           color: 'positive'
         })
+        this.refreshIframe()
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }
@@ -192,10 +192,24 @@ window.ExtensionsBuilderPageLogic = {
         this.extensionData.stub_version = this.extensionStubVersions[0]
           ? this.extensionStubVersions[0].version
           : ''
-        console.log('### stub extension releases', this.extensionStubVersions)
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }
+    },
+    refreshIframe() {
+      const iframe = this.$refs.extBuilderPreviewIframe
+      if (!iframe) {
+        console.warn('Extension Builder Preview iframe not loaded yet.')
+        return
+      }
+      iframe.onload = () => {
+        const iframeDoc =
+          iframe.contentDocument || iframe.contentWindow.document
+
+        iframeDoc.body.style.transform = 'scale(0.8)'
+        iframeDoc.body.style.transformOrigin = '0 0' // anchor top-left
+      }
+      iframe.src = `/extensions/builder/preview/${this.extensionData.id}`
     }
   },
   created: function () {
@@ -205,13 +219,16 @@ window.ExtensionsBuilderPageLogic = {
     )
     if (extensionData) {
       this.extensionData = {...this.extensionData, ...JSON.parse(extensionData)}
-      console.log('### loaded extension data', this.extensionData)
     }
     const step = +this.$q.localStorage.getItem('lnbits.extension.builder.step')
     if (step) {
       this.step = step
     }
     this.getStubExtensionReleases()
+
+    setTimeout(() => {
+      this.refreshIframe()
+    }, 1000)
   },
   mixins: [windowMixin]
 }
