@@ -235,6 +235,7 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
         template_path,
         {
             "extension_builder_stub_public_client_inputs": public_client_data_inputs,
+            "preview": data.preview_action,
             **data.public_page.action_fields.dict(),
             "cancel_comment": remove_line_marker,
         },

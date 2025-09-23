@@ -186,7 +186,15 @@ async def extensions_builder_preview(
     if page_name == "public_page":
         html_file_name = "public_page.html"
 
-    html_file_path = Path(ext_id, working_dir_name, "templates", ext_id, html_file_name)
+    html_file_path = Path(
+        "extension_builder_stub",
+        ext_id,
+        working_dir_name,
+        ext_id,
+        "templates",
+        ext_id,
+        html_file_name,
+    )
 
     html_file_full_path = Path(
         settings.extension_builder_working_dir_path, html_file_path
