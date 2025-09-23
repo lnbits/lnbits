@@ -76,7 +76,7 @@ class DataField(BaseModel):
         if self.type == "int":
             return index
         elif self.type == "float":
-            return float(f"{index}.0{index} * 2")
+            return float(f"{index}.0{index * 2}")
         elif self.type == "bool":
             return True if index % 2 == 0 else False
         elif self.type == "datetime":
