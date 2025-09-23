@@ -180,6 +180,7 @@ async def api_deploy_extension(
         version="0.1.0",
         short_description=data.short_description,
         meta=ExtensionMeta(installed_release=release),
+        icon=release.icon,
     )
     ext_zip_file = ext_info.zip_path
     if ext_zip_file.is_file():

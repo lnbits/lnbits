@@ -67,6 +67,9 @@ async def build_extension_from_data(
     data: ExtensionData, stub_ext_id: str, working_dir_name: str | None = None
 ):
     release = await _get_extension_stub_release(stub_ext_id, data.stub_version)
+    release.hash = sha256(uuid4().hex.encode("utf-8")).hexdigest()
+    release.icon = f"/{data.id}/static/image/{data.id}.png"
+    release.is_github_release = False
     await _fetch_extension_builder_stub(stub_ext_id, release)
     build_dir = _copy_ext_stub_to_build_dir(
         stub_ext_id=stub_ext_id,
@@ -122,7 +125,6 @@ async def _get_extension_stub_release(
     with open(release_cache_file, "w", encoding="utf-8") as f:
         f.write(json.dumps(release.dict(), indent=4))
 
-    release.hash = sha256(uuid4().hex.encode("utf-8")).hexdigest()
     return release
 
 
@@ -134,10 +136,7 @@ def _load_extension_stub_release_from_cache(
     release_cache_file = Path(cache_dir, "release.json")
     if release_cache_file.is_file():
         with open(release_cache_file, encoding="utf-8") as f:
-            release_data = json.load(f)
-            cached_release = dict_to_model(release_data, ExtensionRelease)
-            cached_release.hash = sha256(uuid4().hex.encode("utf-8")).hexdigest()
-            return cached_release
+            return dict_to_model(json.load(f), ExtensionRelease)
     return None
 
 
