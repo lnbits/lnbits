@@ -3,8 +3,10 @@ import json
 import os
 import shutil
 import zipfile
+from hashlib import sha256
 from pathlib import Path
 from time import time
+from uuid import uuid4
 
 import shortuuid
 from jinja2 import Environment, FileSystemLoader
@@ -61,51 +63,99 @@ ui_table_columns = [dict_to_model(f, DataField) for f in extra_ui_fields]
 excluded_dirs = {"./.", "./__pycache__", "./node_modules", "./transform"}
 
 
-async def get_extension_stub_release(stub_version: str) -> ExtensionRelease | None:
-    extension_stub_releases: list[ExtensionRelease] = (
-        await InstallableExtension.get_extension_releases("extension_builder_stub")
+async def build_extension_from_data(
+    data: ExtensionData, stub_ext_id: str, working_dir_name: str | None = None
+):
+    release = await _get_extension_stub_release(stub_ext_id, data.stub_version)
+    await _fetch_extension_builder_stub(stub_ext_id, release)
+    build_dir = _copy_ext_stub_to_build_dir(
+        stub_ext_id=stub_ext_id,
+        stub_version=data.stub_version,
+        new_ext_id=data.id,
+        working_dir_name=working_dir_name,
     )
-    release = next(
-        (r for r in extension_stub_releases if r.version == stub_version),
-        None,
-    )
+    transform_extension_builder_stub(data, build_dir)
+    return release, build_dir
 
+
+async def _get_extension_stub_release(
+    stub_ext_id: str, stub_version: str
+) -> ExtensionRelease:
+    working_dir = Path(settings.extension_builder_working_dir_path, stub_ext_id)
+    cache_dir = Path(working_dir, f"cache-{stub_version}")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    release_cache_file = Path(cache_dir, "release.json")
+    if release_cache_file.is_file():
+        logger.debug(f"Loading release from cache {stub_ext_id} ({stub_version}).")
+        with open(release_cache_file, encoding="utf-8") as f:
+            release_data = json.load(f)
+            cached_release = dict_to_model(release_data, ExtensionRelease)
+            cached_release.hash = sha256(uuid4().hex.encode("utf-8")).hexdigest()
+            return cached_release
+
+    releases: list[ExtensionRelease] = (
+        await InstallableExtension.get_extension_releases(stub_ext_id)
+    )
+    release = next((r for r in releases if r.version == stub_version), None)
+
+    if not release:
+        raise ValueError(f"Release {stub_ext_id} ({stub_version}) not found.")
+
+    logger.debug(f"Save release cache {stub_ext_id} ({stub_version}).")
+    with open(release_cache_file, "w", encoding="utf-8") as f:
+        f.write(json.dumps(release.dict(), indent=4))
+
+    release.hash = sha256(uuid4().hex.encode("utf-8")).hexdigest()
     return release
 
 
-async def fetch_extension_builder_stub(
-    ext_id: str, release: ExtensionRelease, working_dir_name: str | None = None
+async def _fetch_extension_builder_stub(
+    stub_ext_id: str, release: ExtensionRelease
 ) -> Path:
-    working_dir = Path(settings.lnbits_data_folder, "extensions_builder")
-    working_dir.mkdir(parents=True, exist_ok=True)
-    ext_zip_path = Path(working_dir, release.version + ".zip")
+    working_dir = Path(settings.extension_builder_working_dir_path, stub_ext_id)
+    cache_dir = Path(working_dir, f"cache-{release.version}")
+    cache_dir.mkdir(parents=True, exist_ok=True)
 
-    ext_stub_dir = Path(working_dir, "extension_builder_stub")
-    ext_stub_cache_dir = Path(
-        ext_stub_dir, f"cache-{release.version}", "extension_builder_stub"
-    )
+    stub_ext_zip_path = Path(cache_dir, release.version + ".zip")
+    ext_stub_cache_dir = Path(cache_dir, stub_ext_id)
 
-    if not ext_zip_path.is_file():
-        await asyncio.to_thread(download_url, release.archive_url, ext_zip_path)
-        shutil.rmtree(ext_stub_cache_dir, True)  # clear cache if new zip
+    if not stub_ext_zip_path.is_file():
+        await asyncio.to_thread(download_url, release.archive_url, stub_ext_zip_path)
+        shutil.rmtree(ext_stub_cache_dir, True)
+
+    if not ext_stub_cache_dir.is_dir():
+        tmp_dir = Path(cache_dir, "tmp")
+        shutil.rmtree(tmp_dir, True)
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(stub_ext_zip_path, "r") as zip_ref:
+            zip_ref.extractall(tmp_dir)
+        generated_dir = Path(tmp_dir, os.listdir(tmp_dir)[0])
+        shutil.copytree(generated_dir, Path(ext_stub_cache_dir))
+        shutil.rmtree(tmp_dir, True)
+
+    return ext_stub_cache_dir
+
+
+def _copy_ext_stub_to_build_dir(
+    stub_ext_id: str,
+    stub_version: str,
+    new_ext_id: str,
+    working_dir_name: str | None = None,
+) -> Path:
+    working_dir = Path(settings.extension_builder_working_dir_path, stub_ext_id)
+    cache_dir = Path(working_dir, f"cache-{stub_version}")
+
+    ext_stub_cache_dir = Path(cache_dir, stub_ext_id)
+    if not ext_stub_cache_dir.is_dir():
+        raise ValueError(
+            f"Extension stub cache dir not found: {stub_ext_id} ({stub_version})"
+        )
 
     working_dir_name = working_dir_name or f"ext-{int(time())}-{shortuuid.uuid()}"
-    ext_build_dir = Path(ext_stub_dir, ext_id, working_dir_name)
+    ext_build_dir = Path(working_dir, new_ext_id, working_dir_name, new_ext_id)
     shutil.rmtree(ext_build_dir, True)
 
-    if ext_stub_cache_dir.is_dir():
-        shutil.copytree(ext_stub_cache_dir, ext_build_dir)
-        return ext_build_dir
-
-    with zipfile.ZipFile(ext_zip_path, "r") as zip_ref:
-        zip_ref.extractall(ext_stub_dir)
-
-    generated_dir = Path(ext_stub_dir, os.listdir(ext_stub_dir)[0])
-
-    shutil.copytree(generated_dir, ext_build_dir)
-    shutil.copytree(generated_dir, ext_stub_cache_dir)
-
-    shutil.rmtree(generated_dir, True)
+    shutil.copytree(ext_stub_cache_dir, ext_build_dir)
     return ext_build_dir
 
 
@@ -312,10 +362,6 @@ def _jinja_env(template_dir: str) -> Environment:
 
 
 def _parse_extension_data(data: ExtensionData) -> dict:
-
-    print("### data.owner_data", data.owner_data)
-    print("### data.client_data", data.client_data)
-
     return {
         "owner_data": {
             "name": data.owner_data.name,

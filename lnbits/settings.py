@@ -62,9 +62,7 @@ class ExtensionsSettings(LNbitsSettings):
 
     @property
     def extension_builder_working_dir_path(self) -> Path:
-        return Path(
-            settings.lnbits_data_folder, "extensions_builder", "extension_builder_stub"
-        )
+        return Path(settings.lnbits_data_folder, "extensions_builder")
 
 
 class ExtensionsInstallSettings(LNbitsSettings):

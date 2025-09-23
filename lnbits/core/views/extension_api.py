@@ -1,9 +1,9 @@
 import os
+import shutil
 import sys
 import traceback
 from hashlib import sha256
 from http import HTTPStatus
-from uuid import uuid4
 
 from bolt11 import decode as bolt11_decode
 from fastapi import APIRouter, Depends, HTTPException
@@ -38,9 +38,7 @@ from lnbits.core.services.extensions import (
     uninstall_extension,
 )
 from lnbits.core.services.extensions_builder import (
-    fetch_extension_builder_stub,
-    get_extension_stub_release,
-    transform_extension_builder_stub,
+    build_extension_from_data,
     zip_directory,
 )
 from lnbits.decorators import (
@@ -134,12 +132,8 @@ async def api_install_extension(data: CreateExtension):
 async def api_build_extension(
     data: ExtensionData,
 ) -> FileResponse:
-    release = await get_extension_stub_release(data.stub_version)
-    if not release:
-        raise ValueError(f"Release '{data.stub_version}' not found.")
-
-    extension_dir = await fetch_extension_builder_stub(data.id, release)
-    transform_extension_builder_stub(data, extension_dir)
+    stub_ext_id = "extension_builder_stub"  # todo: do not hardcode, fetch from manifest
+    release, build_dir = await build_extension_from_data(data, stub_ext_id)
 
     ext_info = InstallableExtension(
         id=data.id,
@@ -152,7 +146,8 @@ async def api_build_extension(
     if ext_zip_file.is_file():
         os.remove(ext_zip_file)
 
-    zip_directory(extension_dir.parent, ext_zip_file)
+    zip_directory(build_dir, ext_zip_file)
+    shutil.rmtree(build_dir, True)
 
     return FileResponse(
         ext_zip_file, filename=f"{data.id}.zip", media_type="application/zip"
@@ -172,17 +167,12 @@ async def api_deploy_extension(
     data: ExtensionData,
     user: User = Depends(check_admin),
 ) -> SimpleStatus:
-    release = await get_extension_stub_release(data.stub_version)
-    if not release:
-        raise ValueError(f"Release '{data.stub_version}' not found.")
-
     working_dir_name = "deploy_" + sha256(user.id.encode("utf-8")).hexdigest()
-    extension_dir = await fetch_extension_builder_stub(
-        data.id, release, working_dir_name
+    stub_ext_id = "extension_builder_stub"
+    release, build_dir = await build_extension_from_data(
+        data, stub_ext_id, working_dir_name
     )
-    transform_extension_builder_stub(data, extension_dir)
 
-    release.hash = sha256(uuid4().hex.encode("utf-8")).hexdigest()
     ext_info = InstallableExtension(
         id=data.id,
         name=data.name,
@@ -194,7 +184,7 @@ async def api_deploy_extension(
     if ext_zip_file.is_file():
         os.remove(ext_zip_file)
 
-    zip_directory(extension_dir.parent, ext_zip_file)
+    zip_directory(build_dir.parent, ext_zip_file)
 
     await install_extension(ext_info, skip_download=True)
 
@@ -220,17 +210,10 @@ async def api_preview_extension(
     data: ExtensionData,
     user: User = Depends(check_user_exists),
 ) -> SimpleStatus:
-    release = await get_extension_stub_release(data.stub_version)
-    if not release:
-        raise ValueError(f"Release '{data.stub_version}' not found.")
-
+    stub_ext_id = "extension_builder_stub"
     working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
-    extension_dir = await fetch_extension_builder_stub(
-        data.id, release, working_dir_name
-    )
-    transform_extension_builder_stub(data, extension_dir)
+    await build_extension_from_data(data, stub_ext_id, working_dir_name)
 
-    print("#### extension_dir", extension_dir)
     return SimpleStatus(success=True, message=f"Extension '{data.id}' preview ready.")
 
 
