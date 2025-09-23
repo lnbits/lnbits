@@ -25,6 +25,22 @@ class DataField(BaseModel):
     sortable: bool = False
     fields: list[DataField] = []
 
+    def normalize(self) -> None:
+        self.name = self.name.strip()
+        if self.label:
+            self.label = self.label.strip()
+        if self.hint:
+            self.hint = self.hint.strip()
+        if self.type == "json":
+            self.editable = False
+            self.searchable = False
+            self.sortable = False
+        else:
+            self.fields = []
+
+        for field in self.fields:
+            field.normalize()
+
     def field_to_py(self) -> str:
         field_name = camel_to_snake(self.name)
         field_type = self.type
@@ -131,6 +147,11 @@ class DataFields(BaseModel):
                 return field
         return None
 
+    def normalize(self) -> None:
+        self.name = self.name.strip()
+        for field in self.fields:
+            field.normalize()
+
     @validator("name")
     def validate_name(cls, v: str) -> str:
         if v.strip() == "":
@@ -224,6 +245,10 @@ class ExtensionData(BaseModel):
             self.public_page.action_fields.generate_payment_logic = False
         if not self.public_page.action_fields.generate_action:
             self.public_page.action_fields.generate_payment_logic = False
+
+        self.owner_data.normalize()
+        self.client_data.normalize()
+        self.settings_data.normalize()
 
     def validate_data(self) -> None:
         self._validate_public_page_fields()
