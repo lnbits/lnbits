@@ -644,12 +644,7 @@
         icon="publish"
         style="min-height: 100px"
       >
-        Admins can publish to this server.
-        <br />
-        Regular users can download the JSON config and upload it in their own
-        servers.
-        <br />
-        <div class="row">
+        <div v-if="g.user.admin" class="row">
           <div class="col-md-4 col-sm-12 col-xs-12">
             <q-select
               filled
@@ -668,6 +663,16 @@
               @click="buildExtensionAndDeploy()"
               color="primary"
               label="Build and Deploy (Admin Only)"
+              class="q-ml-md full-width"
+            />
+          </div>
+        </div>
+        <div v-if="g.user.admin" class="row q-mt-md">
+          <div class="col-md-4 col-sm-12 col-xs-12">
+            <q-btn
+              @click="cleanCacheData()"
+              color="negative"
+              label="Clean Cache Data (Admin Only)"
               class="q-ml-md full-width"
             />
           </div>

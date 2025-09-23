@@ -39,6 +39,7 @@ from lnbits.core.services.extensions import (
 )
 from lnbits.core.services.extensions_builder import (
     build_extension_from_data,
+    clean_extension_builder_data,
     zip_directory,
 )
 from lnbits.decorators import (
@@ -215,6 +216,22 @@ async def api_preview_extension(
     await build_extension_from_data(data, stub_ext_id, working_dir_name)
 
     return SimpleStatus(success=True, message=f"Extension '{data.id}' preview ready.")
+
+
+@extension_router.delete(
+    "/builder",
+    summary="Clean extension builder data.",
+    description="""
+        This endpoint cleans the extension builder data.
+    """,
+    dependencies=[Depends(check_admin)],
+    response_model=SimpleStatus,
+)
+async def api_delete_extension_builder_data() -> SimpleStatus:
+
+    clean_extension_builder_data()
+
+    return SimpleStatus(success=True, message="Extension Builder data cleaned.")
 
 
 @extension_router.get("/{ext_id}/details")

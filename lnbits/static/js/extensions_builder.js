@@ -47,14 +47,24 @@ window.ExtensionsBuilderPageLogic = {
           fields: []
         },
         owner_data: {
-          name: '',
+          name: 'OwnerData',
           fields: []
         },
         client_data: {
           enabled: true,
-          name: '',
+          name: 'ClientData',
           fields: []
         }
+      },
+      sampleField: {
+        name: 'name',
+        type: 'str',
+        label: 'Name',
+        hint: '',
+        optional: true,
+        editable: true,
+        searchable: true,
+        sortable: true
       },
 
       settingsTypes: [
@@ -176,8 +186,31 @@ window.ExtensionsBuilderPageLogic = {
         LNbits.utils.notifyApiError(error)
       }
     },
+    async cleanCacheData() {
+      LNbits.utils
+        .confirmDialog(
+          'Are you sure you want to clean the cache data? This action cannot be undone.',
+          'Clean Cache Data'
+        )
+        .onOk(async () => {
+          try {
+            const {data} = await LNbits.api.request(
+              'DELETE',
+              '/api/v1/extension/builder',
+              null,
+              {}
+            )
+
+            Quasar.Notify.create({
+              message: data.message || 'Cache data cleaned!',
+              color: 'positive'
+            })
+          } catch (error) {
+            LNbits.utils.notifyApiError(error)
+          }
+        })
+    },
     async previewExtension(previewPageName) {
-      console.log('previewExtension', previewPageName)
       this.saveState()
       try {
         await LNbits.api.request(
@@ -242,10 +275,23 @@ window.ExtensionsBuilderPageLogic = {
         iframeDoc.body.style.transformOrigin = 'center top'
       }
       iframe.src = `/extensions/builder/preview/${this.extensionData.id}?page_name=${previewPageName}`
+    },
+    initBasicData() {
+      this.extensionData.owner_data.fields = [
+        JSON.parse(JSON.stringify(this.sampleField))
+      ]
+      this.extensionData.client_data.fields = [
+        JSON.parse(JSON.stringify(this.sampleField))
+      ]
+      this.extensionData.settings_data.fields = [
+        JSON.parse(JSON.stringify(this.sampleField))
+      ]
+      this.extensionDataCleanString = JSON.stringify(this.extensionData)
     }
   },
   created: function () {
-    this.extensionDataCleanString = JSON.stringify(this.extensionData)
+    this.initBasicData()
+
     const extensionData = this.$q.localStorage.getItem(
       'lnbits.extension.builder.data'
     )

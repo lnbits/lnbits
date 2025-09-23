@@ -70,7 +70,7 @@ async def build_extension_from_data(
     await _fetch_extension_builder_stub(stub_ext_id, release)
     build_dir = _copy_ext_stub_to_build_dir(
         stub_ext_id=stub_ext_id,
-        stub_version=data.stub_version,
+        stub_version=release.version,
         new_ext_id=data.id,
         working_dir_name=working_dir_name,
     )
@@ -78,25 +78,42 @@ async def build_extension_from_data(
     return release, build_dir
 
 
+def transform_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
+    _replace_jinja_placeholders(data, extension_dir)
+    _rename_extension_builder_stub(data, extension_dir)
+
+
+def clean_extension_builder_data() -> None:
+    working_dir = Path(settings.extension_builder_working_dir_path)
+    if working_dir.is_dir():
+        shutil.rmtree(working_dir, True)
+    working_dir.mkdir(parents=True, exist_ok=True)
+
+
 async def _get_extension_stub_release(
-    stub_ext_id: str, stub_version: str
+    stub_ext_id: str, stub_version: str | None = None
 ) -> ExtensionRelease:
     working_dir = Path(settings.extension_builder_working_dir_path, stub_ext_id)
     cache_dir = Path(working_dir, f"cache-{stub_version}")
     cache_dir.mkdir(parents=True, exist_ok=True)
     release_cache_file = Path(cache_dir, "release.json")
-    if release_cache_file.is_file():
-        logger.debug(f"Loading release from cache {stub_ext_id} ({stub_version}).")
-        with open(release_cache_file, encoding="utf-8") as f:
-            release_data = json.load(f)
-            cached_release = dict_to_model(release_data, ExtensionRelease)
-            cached_release.hash = sha256(uuid4().hex.encode("utf-8")).hexdigest()
+
+    if stub_version:
+        cached_release = _load_extension_stub_release_from_cache(
+            stub_ext_id, stub_version
+        )
+        if cached_release:
+            logger.debug(f"Loading release from cache {stub_ext_id} ({stub_version}).")
             return cached_release
 
     releases: list[ExtensionRelease] = (
         await InstallableExtension.get_extension_releases(stub_ext_id)
     )
+
     release = next((r for r in releases if r.version == stub_version), None)
+
+    if not release and len(releases) > 0:
+        release = releases[0]
 
     if not release:
         raise ValueError(f"Release {stub_ext_id} ({stub_version}) not found.")
@@ -107,6 +124,21 @@ async def _get_extension_stub_release(
 
     release.hash = sha256(uuid4().hex.encode("utf-8")).hexdigest()
     return release
+
+
+def _load_extension_stub_release_from_cache(
+    stub_ext_id: str, stub_version: str
+) -> ExtensionRelease | None:
+    working_dir = Path(settings.extension_builder_working_dir_path, stub_ext_id)
+    cache_dir = Path(working_dir, f"cache-{stub_version}")
+    release_cache_file = Path(cache_dir, "release.json")
+    if release_cache_file.is_file():
+        with open(release_cache_file, encoding="utf-8") as f:
+            release_data = json.load(f)
+            cached_release = dict_to_model(release_data, ExtensionRelease)
+            cached_release.hash = sha256(uuid4().hex.encode("utf-8")).hexdigest()
+            return cached_release
+    return None
 
 
 async def _fetch_extension_builder_stub(
@@ -157,11 +189,6 @@ def _copy_ext_stub_to_build_dir(
 
     shutil.copytree(ext_stub_cache_dir, ext_build_dir)
     return ext_build_dir
-
-
-def transform_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
-    _replace_jinja_placeholders(data, extension_dir)
-    _rename_extension_builder_stub(data, extension_dir)
 
 
 def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None:

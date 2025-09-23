@@ -197,7 +197,7 @@ class PreviewAction(BaseModel):
 class ExtensionData(BaseModel):
     id: str
     name: str
-    stub_version: str
+    stub_version: str | None
     short_description: str | None = None
     description: str | None = None
     owner_data: DataFields
@@ -213,7 +213,8 @@ class ExtensionData(BaseModel):
 
     def normalize(self) -> None:
         self.name = self.name.strip()
-        self.stub_version = self.stub_version.strip()
+        if self.stub_version:
+            self.stub_version = self.stub_version.strip()
         if self.short_description:
             self.short_description = self.short_description.strip()
         if self.description:
@@ -340,13 +341,6 @@ class ExtensionData(BaseModel):
     def validate_name(cls, v: str) -> str:
         if v.strip() == "":
             raise ValueError("Extension name is required")
-        return v
-
-    @validator("stub_version")
-    def validate_stub_version(cls, v: str) -> str:
-        if v.strip() == "":
-            raise ValueError("Extension stub version is required")
-
         return v
 
     @validator("owner_data")
