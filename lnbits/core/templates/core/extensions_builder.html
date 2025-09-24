@@ -656,6 +656,34 @@
               :options="extensionStubVersions.map(f => f.version)"
             ></q-select>
           </div>
+          <div class="col-md-4 col-sm-12 col-xs-12">
+            <q-btn
+              @click="cleanCacheData()"
+              color="grey"
+              outline
+              label="Clean Cache"
+              class="q-ml-md"
+            />
+            <q-icon
+              name="info"
+              size="md"
+              color="primary"
+              class="cursor-pointer q-ml-xs q-mb-xs"
+            >
+              <q-tooltip>
+                <ul>
+                  <li>
+                    The extension builder uses caching to speed up the build
+                    process.
+                  </li>
+                  <li>
+                    This action clears old data and redownloads the Extension
+                    Builder Stub release.
+                  </li>
+                </ul>
+              </q-tooltip>
+            </q-icon>
+          </div>
         </div>
         <div v-if="g.user.admin" class="row q-mt-md">
           <div class="col-md-4 col-sm-12 col-xs-12">
@@ -663,16 +691,6 @@
               @click="buildExtensionAndDeploy()"
               color="primary"
               label="Build and Deploy (Admin Only)"
-              class="q-ml-md full-width"
-            />
-          </div>
-        </div>
-        <div v-if="g.user.admin" class="row q-mt-md">
-          <div class="col-md-4 col-sm-12 col-xs-12">
-            <q-btn
-              @click="cleanCacheData()"
-              color="negative"
-              label="Clean Cache Data (Admin Only)"
               class="q-ml-md full-width"
             />
           </div>
