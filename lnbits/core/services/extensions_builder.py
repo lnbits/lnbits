@@ -392,6 +392,7 @@ def _parse_extension_data(data: ExtensionData) -> dict:
     return {
         "owner_data": {
             "name": data.owner_data.name,
+            "editable": data.owner_data.editable,
             "editable_fields": [
                 field.field_to_py()
                 for field in data.owner_data.fields
@@ -421,6 +422,7 @@ def _parse_extension_data(data: ExtensionData) -> dict:
         },
         "client_data": {
             "name": data.client_data.name,
+            "editable": data.client_data.editable,
             "editable_fields": [
                 field.field_to_py()
                 for field in data.client_data.fields

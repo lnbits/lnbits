@@ -27,6 +27,7 @@ class DataField(BaseModel):
 
     def normalize(self) -> None:
         self.name = self.name.strip()
+        self.type = self.type.strip()
         if self.label:
             self.label = self.label.strip()
         if self.hint:
@@ -137,7 +138,19 @@ class DataField(BaseModel):
 
 class DataFields(BaseModel):
     name: str
+    editable: bool = True
     fields: list[DataField] = []
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.normalize()
+
+    def normalize(self) -> None:
+        self.name = self.name.strip()
+        for field in self.fields:
+            field.normalize()
+        if all(not field.editable for field in self.fields):
+            self.editable = False
 
     def get_field_by_name(self, name: str | None) -> DataField | None:
         if not name:
@@ -146,11 +159,6 @@ class DataFields(BaseModel):
             if field.name == name:
                 return field
         return None
-
-    def normalize(self) -> None:
-        self.name = self.name.strip()
-        for field in self.fields:
-            field.normalize()
 
     @validator("name")
     def validate_name(cls, v: str) -> str:
@@ -233,6 +241,7 @@ class ExtensionData(BaseModel):
         self.normalize()
 
     def normalize(self) -> None:
+        self.id = self.id.strip()
         self.name = self.name.strip()
         if self.stub_version:
             self.stub_version = self.stub_version.strip()
@@ -245,10 +254,6 @@ class ExtensionData(BaseModel):
             self.public_page.action_fields.generate_payment_logic = False
         if not self.public_page.action_fields.generate_action:
             self.public_page.action_fields.generate_payment_logic = False
-
-        self.owner_data.normalize()
-        self.client_data.normalize()
-        self.settings_data.normalize()
 
     def validate_data(self) -> None:
         self._validate_public_page_fields()
