@@ -45,13 +45,24 @@ class DataField(BaseModel):
     def field_to_py(self) -> str:
         field_name = camel_to_snake(self.name)
         field_type = self.type
-        if field_type == "json":
+        if self.type == "json":
             field_type = "dict"
-        elif field_type in ["wallet", "currency", "text"]:
+        elif self.type in ["wallet", "currency", "text"]:
             field_type = "str"
         if self.optional:
             field_type += " | None"
+        if self.type == "currency":
+            field_type += ' = "sat"'
         return f"{field_name}: {field_type}"
+
+    def field_to_js(self) -> str:
+        field_name = camel_to_snake(self.name)
+        default_value = "null"
+        if self.type == "json":
+            default_value = "{}"
+        if self.type == "currency":
+            default_value = '"sat"'
+        return f"{field_name}: {default_value}"
 
     def field_to_ui_table_column(self) -> str:
         column = {

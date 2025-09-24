@@ -393,8 +393,8 @@ def _parse_extension_data(data: ExtensionData) -> dict:
         "owner_data": {
             "name": data.owner_data.name,
             "editable": data.owner_data.editable,
-            "editable_fields": [
-                field.field_to_py()
+            "js_fields": [
+                field.field_to_js()
                 for field in data.owner_data.fields
                 if field.editable
             ],
@@ -423,11 +423,6 @@ def _parse_extension_data(data: ExtensionData) -> dict:
         "client_data": {
             "name": data.client_data.name,
             "editable": data.client_data.editable,
-            "editable_fields": [
-                field.field_to_py()
-                for field in data.client_data.fields
-                if field.editable
-            ],
             "search_fields": [
                 camel_to_snake(field.name)
                 for field in data.client_data.fields
@@ -453,11 +448,6 @@ def _parse_extension_data(data: ExtensionData) -> dict:
         "settings_data": {
             "enabled": data.settings_data.enabled,
             "is_admin_settings_only": data.settings_data.type == "admin",
-            "editable_fields": [
-                field.field_to_py()
-                for field in data.settings_data.fields
-                if field.editable
-            ],
             "db_fields": [field.field_to_db() for field in data.settings_data.fields],
         },
         "public_page": data.public_page,
