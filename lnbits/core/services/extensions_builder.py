@@ -245,7 +245,7 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
 
     _remove_lines_with_string(template_path, remove_line_marker)
 
-    public_client_data_inputs = _fields_to_html_input(
+    public_client_inputs = _fields_to_html_input(
         [
             f
             for f in data.client_data.fields
@@ -257,18 +257,21 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
     template_path = Path(
         ext_stub_dir, "templates", "extension_builder_stub", "public_page.html"
     ).as_posix()
-    rederer = _render_file(
-        template_path,
-        {
-            "extension_builder_stub_public_client_inputs": public_client_data_inputs,
-            "preview": data.preview_action,
-            **data.public_page.action_fields.dict(),
-            "cancel_comment": remove_line_marker,
-        },
-    )
+    if not data.public_page.has_public_page:
+        shutil.rmtree(template_path, True)
+    else:
+        rederer = _render_file(
+            template_path,
+            {
+                "extension_builder_stub_public_client_inputs": public_client_inputs,
+                "preview": data.preview_action,
+                **data.public_page.action_fields.dict(),
+                "cancel_comment": remove_line_marker,
+            },
+        )
 
-    with open(template_path, "w", encoding="utf-8") as f:
-        f.write(rederer)
+        with open(template_path, "w", encoding="utf-8") as f:
+            f.write(rederer)
 
     _remove_lines_with_string(template_path, remove_line_marker)
 
