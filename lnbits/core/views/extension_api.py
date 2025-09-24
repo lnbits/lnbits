@@ -593,7 +593,6 @@ async def api_get_user_extensions(
     dependencies=[Depends(check_admin)],
 )
 async def delete_extension_db(ext_id: str):
-    # todo: delete DB on deploy
     try:
         db_version = await get_db_version(ext_id)
         if not db_version:

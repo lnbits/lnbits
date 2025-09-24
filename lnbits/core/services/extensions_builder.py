@@ -77,13 +77,8 @@ async def build_extension_from_data(
         new_ext_id=data.id,
         working_dir_name=working_dir_name,
     )
-    transform_extension_builder_stub(data, build_dir)
+    _transform_extension_builder_stub(data, build_dir)
     return release, build_dir
-
-
-def transform_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
-    _replace_jinja_placeholders(data, extension_dir)
-    _rename_extension_builder_stub(data, extension_dir)
 
 
 def clean_extension_builder_data() -> None:
@@ -91,6 +86,11 @@ def clean_extension_builder_data() -> None:
     if working_dir.is_dir():
         shutil.rmtree(working_dir, True)
     working_dir.mkdir(parents=True, exist_ok=True)
+
+
+def _transform_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
+    _replace_jinja_placeholders(data, extension_dir)
+    _rename_extension_builder_stub(data, extension_dir)
 
 
 async def _get_extension_stub_release(
