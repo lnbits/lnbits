@@ -78,6 +78,7 @@ async def build_extension_from_data(
         working_dir_name=working_dir_name,
     )
     _transform_extension_builder_stub(data, build_dir)
+    _export_extension_data_json(data, build_dir)
     return release, build_dir
 
 
@@ -91,6 +92,14 @@ def clean_extension_builder_data() -> None:
 def _transform_extension_builder_stub(data: ExtensionData, extension_dir: Path) -> None:
     _replace_jinja_placeholders(data, extension_dir)
     _rename_extension_builder_stub(data, extension_dir)
+
+
+def _export_extension_data_json(data: ExtensionData, build_dir: Path):
+    json.dump(
+        data.dict(),
+        open(Path(build_dir, "builder.json"), "w", encoding="utf-8"),
+        indent=4,
+    )
 
 
 async def _get_extension_stub_release(
