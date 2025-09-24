@@ -105,6 +105,17 @@
           </q-item>
           <br />
         </div>
+        <div class="col-12 col-md-6">
+          <p>
+            <span v-text="$t('extension_builder_manifest_url')"></span>
+          </p>
+          <q-input
+            filled
+            v-model="formData.lnbits_extensions_builder_manifest_url"
+            :label="$t('extension_builder_manifest_url')"
+            :hint="$t('extension_builder_manifest_url_hint')"
+          ></input>
+        </div>
       </div>
     </div>
   </q-card-section>

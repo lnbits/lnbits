@@ -56,7 +56,7 @@ class ExtensionsSettings(LNbitsSettings):
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         ]
     )
-    lnbits_extensions_builder_manifest: str = Field(
+    lnbits_extensions_builder_manifest_url: str = Field(
         default="https://raw.githubusercontent.com/lnbits/extension_builder_stub/refs/heads/main/manifest.json"
     )
 

@@ -490,6 +490,10 @@ window.localisation.en = {
   user_default_extensions_label: 'User extensions',
   user_default_extensions_hint:
     'Extensions that will be enabled by default for the users.',
+  extension_builder: 'Extension Builder',
+  extension_builder_manifest_url: 'Extension Builder Manifest URL',
+  extension_builder_manifest_url_hint:
+    'URL to a JSON manifest file with extension builder details',
   miscellanous: 'Miscellanous',
   misc_disable_extensions: 'Disable Extensions',
   misc_disable_extensions_label: 'Disable all extensions',
