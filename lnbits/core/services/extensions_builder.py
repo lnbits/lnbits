@@ -449,6 +449,7 @@ def _parse_extension_data(data: ExtensionData) -> dict:
             "enabled": data.settings_data.enabled,
             "is_admin_settings_only": data.settings_data.type == "admin",
             "db_fields": [field.field_to_db() for field in data.settings_data.fields],
+            "all_fields": [field.field_to_py() for field in data.settings_data.fields],
         },
         "public_page": data.public_page,
         "cancel_comment": remove_line_marker,
