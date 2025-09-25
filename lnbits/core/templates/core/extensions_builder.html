@@ -577,6 +577,8 @@
                       <ul class="q-pa-none q-ma-none">
                         <li>
                           Select the field from the
+                          <code v-text="extensionData.owner_data.name"></code
+                          >&nbsp; (Owner Data) or
                           <code v-text="extensionData.client_data.name"></code
                           >&nbsp; (Client Data) that represents the amount (in
                           the selected currency).
@@ -589,14 +591,29 @@
                     </q-item-label>
                   </q-item-section>
                   <q-item-section>
-                    <q-select
-                      filled
-                      dense
-                      emit-value
-                      map-options
-                      v-model="extensionData.public_page.action_fields.amount"
-                      :options="[''].concat(extensionData.client_data.fields.filter(f => f.type === 'int' || f.type === 'float').map(f => f.name))"
-                    ></q-select>
+                    <div class="row">
+                      <div class="col-6">
+                        <q-select
+                          filled
+                          dense
+                          emit-value
+                          map-options
+                          v-model="extensionData.public_page.action_fields.amount_source"
+                          :options="amountSource"
+                          class="q-mr-sm"
+                        ></q-select>
+                      </div>
+                      <div class="col-6">
+                        <q-select
+                          filled
+                          dense
+                          emit-value
+                          map-options
+                          v-model="extensionData.public_page.action_fields.amount"
+                          :options="paymentActionAmountFields"
+                        ></q-select>
+                      </div>
+                    </div>
                   </q-item-section>
                 </q-item>
               </div>

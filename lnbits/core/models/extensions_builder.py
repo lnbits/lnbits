@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, validator
 
@@ -199,6 +199,7 @@ class ActionFields(BaseModel):
     wallet_id: str | None = None
     currency: str | None = None
     amount: str | None = None
+    amount_source: Literal["owner_data", "client_data"] | None = None
     paid_flag: str | None = None
 
 
@@ -344,11 +345,16 @@ class ExtensionData(BaseModel):
 
     def _validate_client_data_fields(self) -> None:
         amount = self.public_page.action_fields.amount
-        if amount:
-            amount_field = self.client_data.get_field_by_name(amount)
+        amount_source = self.public_page.action_fields.amount_source
+        if amount_source and amount:
+            if amount_source == "owner_data":
+                amount_field = self.owner_data.get_field_by_name(amount)
+            else:
+                amount_field = self.client_data.get_field_by_name(amount)
             if not amount_field:
                 raise ValueError(
-                    "Action Amount must be one of the client data fields."
+                    "Action Amount must be one of the "
+                    "client data or owner data fields."
                     f" Received: {amount}."
                 )
             if amount_field.type not in ["int", "float"]:

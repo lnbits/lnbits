@@ -71,10 +71,45 @@ window.ExtensionsBuilderPageLogic = {
         {label: 'User Settings', value: 'user'},
         {label: 'Admin Settings', value: 'admin'}
       ],
+      amountSource: [
+        {label: 'Client Data', value: 'client_data'},
+        {label: 'Owner Data', value: 'owner_data'}
+      ],
       extensionStubVersions: []
     }
   },
+  watch: {
+    'extensionData.public_page.action_fields.amount_source': function (
+      newVal,
+      _
+    ) {
+      console.log('### New amount_source value:', newVal)
+      this.extensionData.public_page.action_fields.amount = ''
+    }
+  },
+  computed: {
+    paymentActionAmountFields() {
+      const amount_source =
+        this.extensionData.public_page.action_fields.amount_source
+      console.log('### amount_source:', amount_source)
+      if (!amount_source) return ['']
 
+      if (amount_source === 'owner_data') {
+        return [''].concat(
+          this.extensionData.owner_data.fields
+            .filter(f => f.type === 'int' || f.type === 'float')
+            .map(f => f.name)
+        )
+      }
+      if (amount_source === 'client_data') {
+        return [''].concat(
+          this.extensionData.client_data.fields
+            .filter(f => f.type === 'int' || f.type === 'float')
+            .map(f => f.name)
+        )
+      }
+    }
+  },
   methods: {
     saveState() {
       this.$q.localStorage.set(
