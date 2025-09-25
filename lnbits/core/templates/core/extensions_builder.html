@@ -688,7 +688,7 @@
               class="cursor-pointer q-ml-xs q-mb-xs"
             >
               <q-tooltip>
-                <ul>
+                <ul class="q-pl-sm">
                   <li>
                     The extension builder uses caching to speed up the build
                     process.
@@ -704,25 +704,58 @@
         </div>
         <div v-if="g.user.admin" class="row q-mt-md">
           <div class="col-md-4 col-sm-12 col-xs-12">
-            <q-btn
-              @click="buildExtensionAndDeploy()"
-              color="primary"
-              label="Build and Deploy (Admin Only)"
-              class="q-ml-md full-width"
-            />
+            <div class="row">
+              <q-btn
+                @click="buildExtensionAndDeploy()"
+                color="primary"
+                label="Build and Deploy (Admin Only)"
+                class="col"
+              />
+              <q-icon
+                name="info"
+                size="md"
+                color="primary"
+                class="cursor-pointer q-ml-sm self-center"
+              >
+                <q-tooltip>
+                  <ul class="q-pl-sm">
+                    <li>
+                      Installs the extension directly to this LNbits instance.
+                    </li>
+                    <li>
+                      The extension will be enabled by default, and available to
+                      all users.
+                    </li>
+                  </ul>
+                </q-tooltip>
+              </q-icon>
+            </div>
           </div>
         </div>
 
         <div class="row q-mt-md">
           <div class="col-md-4 col-sm-12 col-xs-12">
-            <q-btn
-              @click="buildExtension()"
-              outline
-              color="gray"
-              label="Download Extension Zip"
-              icon="download"
-              class="q-ml-md full-width"
-            />
+            <div class="row">
+              <q-btn
+                @click="buildExtension()"
+                outline
+                color="gray"
+                label="Download Extension Zip"
+                icon="download"
+                class="col"
+              />
+              <q-icon
+                name="info"
+                size="md"
+                color="primary"
+                class="cursor-pointer q-ml-sm self-center"
+              >
+                <q-tooltip>
+                  Builds the extension and downloads a zip file with the code.
+                  You can then install it manually in your LNbits instance.
+                </q-tooltip>
+              </q-icon>
+            </div>
           </div>
         </div>
       </q-step>
@@ -755,12 +788,32 @@
                 color="primary"
                 label="Next"
               ></q-btn>
-              <q-btn
-                v-else
-                @click="exportJsonData()"
-                color="primary"
-                label="Export JSON Data"
-              ></q-btn>
+              <template v-else>
+                <q-btn
+                  @click="exportJsonData()"
+                  color="primary"
+                  label="Export JSON Data"
+                ></q-btn>
+                <q-icon
+                  name="info"
+                  size="md"
+                  color="primary"
+                  class="cursor-pointer q-ml-sm self-center"
+                >
+                  <q-tooltip>
+                    <ul class="q-pl-sm">
+                      <li>
+                        Exports the config JSON so it can be later imported or
+                        shared.
+                      </li>
+                      <li>
+                        This JSON is also added to the zip in a file called
+                        `builder.json`.
+                      </li>
+                    </ul>
+                  </q-tooltip>
+                </q-icon>
+              </template>
             </q-stepper-navigation>
           </div>
         </div>
