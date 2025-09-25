@@ -81,10 +81,11 @@ window.ExtensionsBuilderPageLogic = {
   watch: {
     'extensionData.public_page.action_fields.amount_source': function (
       newVal,
-      _
+      oldVal
     ) {
-      console.log('### New amount_source value:', newVal)
-      this.extensionData.public_page.action_fields.amount = ''
+      if (oldVal && newVal !== oldVal) {
+        this.extensionData.public_page.action_fields.amount = ''
+      }
     }
   },
   computed: {
