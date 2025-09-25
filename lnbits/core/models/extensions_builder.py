@@ -119,7 +119,7 @@ class DataField(BaseModel):
     @validator("name")
     def validate_name(cls, v: str) -> str:
         if v.strip() == "":
-            raise ValueError("Owner Data name is required.")
+            raise ValueError("Field name is required.")
         if not is_snake_case(v):
             raise ValueError(f"Field Name must be snake_case. Found: {v}")
         return v
@@ -282,6 +282,7 @@ class ExtensionData(BaseModel):
             self.public_page.action_fields.generate_payment_logic = False
 
     def validate_data(self) -> None:
+        self._validate_field_names()
         self._validate_public_page_fields()
         self._validate_action_fields()
 
@@ -356,6 +357,24 @@ class ExtensionData(BaseModel):
                     "Action Currency field type must be 'currency'."
                     f" Received: {currency_field.type}."
                 )
+
+    def _validate_field_names(self) -> None:
+        reserved_names = {"id", "created_at", "updated_at"}
+        nok = {f.name for f in self.owner_data.fields}.intersection(reserved_names)
+        if nok:
+            raise ValueError(
+                f"Owner Data fields cannot have reserved names: '{', '.join(nok)}.'"
+            )
+        nok = {f.name for f in self.client_data.fields}.intersection(reserved_names)
+        if nok:
+            raise ValueError(
+                f"Client Data fields cannot have reserved names: '{', '.join(nok)}.'"
+            )
+        nok = {f.name for f in self.settings_data.fields}.intersection(reserved_names)
+        if nok:
+            raise ValueError(
+                f"Settings fields cannot have reserved names: '{', '.join(nok)}.'"
+            )
 
     def _validate_client_data_fields(self) -> None:
         amount = self.public_page.action_fields.amount
