@@ -54,9 +54,11 @@
                 v-text="$t('new_version') + ` (${updatableExtensions?.length})`"
               ></span>
             </q-badge>
+            {% if extension_builder_enabled %}
             <q-btn flat no-caps icon="architecture" to="/extensions/builder"
               ><span v-text="$t('create_extension')"></span
             ></q-btn>
+            {% endif %}
             <q-btn
               v-if="g.user.admin"
               flat

@@ -46,6 +46,7 @@ from lnbits.decorators import (
     check_admin,
     check_user_exists,
 )
+from lnbits.settings import settings
 
 from ..crud import (
     create_user_extension,
@@ -127,12 +128,16 @@ async def api_install_extension(data: CreateExtension):
     description="""
         This endpoint generates a zip file for the extension based on the provided data.
     """,
-    dependencies=[Depends(check_user_exists)],
-    response_model=None,
 )
 async def api_build_extension(
     data: ExtensionData,
+    user: User = Depends(check_user_exists),
 ) -> FileResponse:
+    if settings.lnbits_extensions_builder_deactivate_non_admins and not user.admin:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Extension Builder is disabled for non admin users.",
+        )
     stub_ext_id = "extension_builder_stub"  # todo: do not hardcode, fetch from manifest
     release, build_dir = await build_extension_from_data(data, stub_ext_id)
 
@@ -212,6 +217,11 @@ async def api_preview_extension(
     data: ExtensionData,
     user: User = Depends(check_user_exists),
 ) -> SimpleStatus:
+    if settings.lnbits_extensions_builder_deactivate_non_admins and not user.admin:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Extension Builder is disabled for non admin users.",
+        )
     stub_ext_id = "extension_builder_stub"
     working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
     await build_extension_from_data(data, stub_ext_id, working_dir_name)

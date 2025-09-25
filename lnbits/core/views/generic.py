@@ -151,6 +151,8 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
         {
             "user": user.json(),
             "extension_data": extension_data,
+            "extension_builder_enabled": user.admin
+            or not settings.lnbits_extensions_builder_deactivate_non_admins,
             "ajax": _is_ajax_request(request),
         },
     )
@@ -160,6 +162,11 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
     "/extensions/builder", name="extensions builder", response_class=HTMLResponse
 )
 async def extensions_builder(request: Request, user: User = Depends(check_user_exists)):
+    if settings.lnbits_extensions_builder_deactivate_non_admins and not user.admin:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Extension Builder is disabled for non admin users.",
+        )
     return template_renderer().TemplateResponse(
         request,
         "core/extensions_builder.html",
@@ -181,6 +188,11 @@ async def extensions_builder_preview(
     page_name: str | None = None,
     user: User = Depends(check_user_exists),
 ):
+    if settings.lnbits_extensions_builder_deactivate_non_admins and not user.admin:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Extension Builder is disabled for non admin users.",
+        )
     working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
     html_file_name = "index.html"
     if page_name == "public_page":

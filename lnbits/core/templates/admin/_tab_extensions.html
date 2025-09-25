@@ -87,6 +87,27 @@
           <q-item tag="label" v-ripple>
             <q-item-section>
               <q-item-label>
+                <span v-text="$t('misc_disable_extensions_builder')"></span>
+              </q-item-label>
+              <q-item-label caption>
+                <span
+                  v-text="$t('misc_disable_extensions_builder_label')"
+                ></span>
+              </q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_extensions_builder_deactivate_non_admins"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label>
                 <span v-text="$t('misc_hide_api')"></span>
               </q-item-label>
               <q-item-label caption>

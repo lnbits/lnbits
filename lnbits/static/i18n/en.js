@@ -497,6 +497,9 @@ window.localisation.en = {
   miscellanous: 'Miscellanous',
   misc_disable_extensions: 'Disable Extensions',
   misc_disable_extensions_label: 'Disable all extensions',
+  misc_disable_extensions_builder: 'Disable Extensions Builder',
+  misc_disable_extensions_builder_label:
+    'Disable Extensions Builder for non admin users.',
   misc_hide_api: 'Hide API',
   misc_hide_api_label: 'Hides wallet api, extensions can choose to honor',
   wallets_management: 'Wallets Management',
