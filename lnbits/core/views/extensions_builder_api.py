@@ -55,7 +55,7 @@ async def api_build_extension(
     data: ExtensionData,
     user: User = Depends(check_user_exists),
 ) -> FileResponse:
-    if settings.lnbits_extensions_builder_deactivate_non_admins and not user.admin:
+    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
         raise HTTPException(
             HTTPStatus.FORBIDDEN,
             "Extension Builder is disabled for non admin users.",
@@ -137,7 +137,7 @@ async def api_preview_extension(
     data: ExtensionData,
     user: User = Depends(check_user_exists),
 ) -> SimpleStatus:
-    if settings.lnbits_extensions_builder_deactivate_non_admins and not user.admin:
+    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
         raise HTTPException(
             HTTPStatus.FORBIDDEN,
             "Extension Builder is disabled for non admin users.",

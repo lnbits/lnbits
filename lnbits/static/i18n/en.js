@@ -164,6 +164,8 @@ window.localisation.en = {
   featured: 'Featured',
   all: 'All',
   only_admins_can_install: '(Only admin accounts can install extensions)',
+  only_admins_can_create_extensions:
+    'Only admin accounts can create extensions',
   admin_only: 'Admin Only',
   new_version: 'New Version',
   extension_depends_on: 'Depends on:',
@@ -497,9 +499,9 @@ window.localisation.en = {
   miscellanous: 'Miscellanous',
   misc_disable_extensions: 'Disable Extensions',
   misc_disable_extensions_label: 'Disable all extensions',
-  misc_disable_extensions_builder: 'Disable Extensions Builder',
+  misc_disable_extensions_builder: 'Enable Extensions Builder',
   misc_disable_extensions_builder_label:
-    'Disable Extensions Builder for non admin users.',
+    'Enable Extensions Builder for non admin users.',
   misc_hide_api: 'Hide API',
   misc_hide_api_label: 'Hides wallet api, extensions can choose to honor',
   wallets_management: 'Wallets Management',
