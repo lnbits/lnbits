@@ -265,12 +265,12 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
     )
     template_path = Path(
         ext_stub_dir, "templates", "extension_builder_stub", "public_page.html"
-    ).as_posix()
+    )
     if not data.public_page.has_public_page:
-        shutil.rmtree(template_path, True)
+        template_path.unlink(missing_ok=True)
     else:
         rederer = _render_file(
-            template_path,
+            template_path.as_posix(),
             {
                 "extension_builder_stub_public_client_inputs": public_client_inputs,
                 "preview": data.preview_action,
@@ -282,7 +282,7 @@ def _replace_jinja_placeholders(data: ExtensionData, ext_stub_dir: Path) -> None
         with open(template_path, "w", encoding="utf-8") as f:
             f.write(rederer)
 
-    _remove_lines_with_string(template_path, remove_line_marker)
+        _remove_lines_with_string(template_path.as_posix(), remove_line_marker)
 
 
 def zip_directory(source_dir, zip_path):
