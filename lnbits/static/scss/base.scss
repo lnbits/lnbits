@@ -31,6 +31,12 @@ body.body--dark .q-field--error {
 .lnbits__dialog-card {
   width: 500px;
 }
+.blur-and-disable {
+  filter: blur(4px); /* blur entire element & children */
+  pointer-events: none; /* block mouse interaction */
+  user-select: none; /* prevent text selection */
+  opacity: 0.6; /* optional: faded look */
+}
 
 .lnbits__table-bordered td,
 .lnbits__table-bordered th {

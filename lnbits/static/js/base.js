@@ -1,14 +1,15 @@
 window.LNbits = {
   g: window.g,
   api: {
-    request(method, url, apiKey, data) {
+    request(method, url, apiKey, data, options = {}) {
       return axios({
         method: method,
         url: url,
         headers: {
           'X-Api-Key': apiKey
         },
-        data: data
+        data: data,
+        ...options
       })
     },
     getServerHealth() {
