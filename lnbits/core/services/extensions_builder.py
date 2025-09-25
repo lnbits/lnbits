@@ -36,29 +36,29 @@ py_files = [
 
 remove_line_marker = "{remove_line_marker}}"
 
-extra_ui_fields = [
-    {
-        "name": "updated_at",
-        "type": "datetime",
-        "label": "Updated At",
-        "hint": "Timestamp of the last update",
-        "optional": False,
-        "editable": False,
-        "searchable": False,
-        "sortable": True,
-    },
-    {
-        "name": "id",
-        "type": "str",
-        "label": "ID",
-        "hint": "Unique identifier",
-        "optional": False,
-        "editable": False,
-        "searchable": False,
-        "sortable": True,
-    },
+ui_table_columns = [
+    DataField(
+        name="updated_at",
+        type="datetime",
+        label="Updated At",
+        hint="Timestamp of the last update",
+        optional=False,
+        editable=False,
+        searchable=False,
+        sortable=True,
+    ),
+    DataField(
+        name="id",
+        type="str",
+        label="ID",
+        hint="Unique identifier",
+        optional=False,
+        editable=False,
+        searchable=False,
+        sortable=True,
+    ),
 ]
-ui_table_columns = [dict_to_model(f, DataField) for f in extra_ui_fields]
+
 
 excluded_dirs = {"./.", "./__pycache__", "./node_modules", "./transform"}
 

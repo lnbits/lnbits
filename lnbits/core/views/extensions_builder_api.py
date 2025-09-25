@@ -89,7 +89,6 @@ async def api_build_extension(
         This endpoint generates a zip file for the extension based on the provided data.
         If `deploy` is set to true, the extension will be installed and activated.
     """,
-    response_model=SimpleStatus,
 )
 async def api_deploy_extension(
     data: ExtensionData,
@@ -133,7 +132,6 @@ async def api_deploy_extension(
 @extension_builder_router.post(
     "/preview",
     summary="Build and preview the extension ui.",
-    response_model=SimpleStatus,
 )
 async def api_preview_extension(
     data: ExtensionData,
@@ -158,7 +156,6 @@ async def api_preview_extension(
         This endpoint cleans the extension builder data.
     """,
     dependencies=[Depends(check_admin)],
-    response_model=SimpleStatus,
 )
 async def api_delete_extension_builder_data() -> SimpleStatus:
 
