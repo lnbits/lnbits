@@ -223,7 +223,7 @@ async def extensions_builder_preview(
             status_code=HTTPStatus.NOT_FOUND,
         )
 
-    return template_renderer().TemplateResponse(
+    response = template_renderer().TemplateResponse(
         request,
         html_file_path.as_posix(),
         {
@@ -231,6 +231,13 @@ async def extensions_builder_preview(
             "ajax": _is_ajax_request(request),
         },
     )
+
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    )
+    return response
 
 
 @generic_router.get(
