@@ -146,6 +146,20 @@ class DataField(BaseModel):
             )
         return v
 
+    @validator("label")
+    def validate_label(cls, v: str | None) -> str | None:
+        if v and '"' in v:
+            raise ValueError(
+                f'Field label cannot contain double quotes ("). Value: {v}'
+            )
+        return v
+
+    @validator("hint")
+    def validate_hint(cls, v: str | None) -> str | None:
+        if v and '"' in v:
+            raise ValueError(f'Field hint cannot contain double quotes ("). Value: {v}')
+        return v
+
 
 class DataFields(BaseModel):
     name: str
@@ -388,6 +402,30 @@ class ExtensionData(BaseModel):
     def validate_name(cls, v: str) -> str:
         if v.strip() == "":
             raise ValueError("Extension name is required")
+        return v
+
+    @validator("stub_version")
+    def validate_stub_version(cls, v: str | None) -> str | None:
+        if v and '"' in v:
+            raise ValueError(
+                f'Extension stub version cannot contain double quotes ("). Value: {v}'
+            )
+        return v
+
+    @validator("short_description")
+    def validate_short_description(cls, v: str | None) -> str | None:
+        if v and '"' in v:
+            raise ValueError(
+                f'Field short description cannot contain double quotes ("). Value: {v}'
+            )
+        return v
+
+    @validator("description")
+    def validate_description(cls, v: str | None) -> str | None:
+        if v and '"' in v:
+            raise ValueError(
+                f'Field description cannot contain double quotes ("). Value: {v}'
+            )
         return v
 
     @validator("owner_data")
