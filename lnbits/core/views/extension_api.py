@@ -3,11 +3,7 @@ import traceback
 from http import HTTPStatus
 
 from bolt11 import decode as bolt11_decode
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-)
+from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 
 from lnbits.core.crud.extensions import get_user_extensions

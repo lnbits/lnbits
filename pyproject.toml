@@ -250,6 +250,7 @@ classmethod-decorators = [
 # TODO: remove S101 ignore
 "lnbits/*" = ["S101"]
 "lnbits/core/views/admin_api.py" = ["S602", "S603", "S607"]
+"lnbits/core/services/extensions_builder.py" = ["S701"]
 "crypto.py" = ["S324"]
 "test*.py" = ["S101", "S105", "S106", "S307"]
 "tools*.py" = ["S101", "S608"]
