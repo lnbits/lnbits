@@ -94,7 +94,6 @@
       "js/components/lnbits-qrcode-lnurl.js",
       "js/components/lnbits-funding-sources.js",
       "js/components/extension-settings.js",
-      "js/components/data-fields.js",
       "js/components/payment-list.js",
       "js/components.js",
       "js/init-app.js"

@@ -164,8 +164,6 @@ window.localisation.en = {
   featured: 'Featured',
   all: 'All',
   only_admins_can_install: '(Only admin accounts can install extensions)',
-  only_admins_can_create_extensions:
-    'Only admin accounts can create extensions',
   admin_only: 'Admin Only',
   new_version: 'New Version',
   extension_depends_on: 'Depends on:',
@@ -422,7 +420,6 @@ window.localisation.en = {
   admin_settings: 'Admin Settings',
   extension_cost: 'This release requires a payment of minimum {cost} sats.',
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
-  create_extension: 'Create Extension',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
   pay_with: 'Pay with {provider}',
@@ -492,16 +489,9 @@ window.localisation.en = {
   user_default_extensions_label: 'User extensions',
   user_default_extensions_hint:
     'Extensions that will be enabled by default for the users.',
-  extension_builder: 'Extension Builder',
-  extension_builder_manifest_url: 'Extension Builder Manifest URL',
-  extension_builder_manifest_url_hint:
-    'URL to a JSON manifest file with extension builder details',
   miscellanous: 'Miscellanous',
   misc_disable_extensions: 'Disable Extensions',
   misc_disable_extensions_label: 'Disable all extensions',
-  misc_disable_extensions_builder: 'Enable Extensions Builder',
-  misc_disable_extensions_builder_label:
-    'Enable Extensions Builder for non admin users.',
   misc_hide_api: 'Hide API',
   misc_hide_api_label: 'Hides wallet api, extensions can choose to honor',
   wallets_management: 'Wallets Management',

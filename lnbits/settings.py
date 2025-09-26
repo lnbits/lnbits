@@ -51,19 +51,11 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: list[str] = Field(default=[])
     lnbits_user_default_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
-    lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
     lnbits_extensions_manifests: list[str] = Field(
         default=[
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         ]
     )
-    lnbits_extensions_builder_manifest_url: str = Field(
-        default="https://raw.githubusercontent.com/lnbits/extension_builder_stub/refs/heads/main/manifest.json"
-    )
-
-    @property
-    def extension_builder_working_dir_path(self) -> Path:
-        return Path(settings.lnbits_data_folder, "extensions_builder")
 
 
 class ExtensionsInstallSettings(LNbitsSettings):

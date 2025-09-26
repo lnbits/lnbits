@@ -24,7 +24,6 @@
               v-text="$t('only_admins_can_install')"
             ></i>
             <q-space></q-space>
-
             <q-input
               :label="$t('search_extensions')"
               :dense="dense"
@@ -54,18 +53,6 @@
                 v-text="$t('new_version') + ` (${updatableExtensions?.length})`"
               ></span>
             </q-badge>
-            {% if extension_builder_enabled %}
-            <q-btn flat no-caps icon="architecture" to="/extensions/builder"
-              ><span v-text="$t('create_extension')"></span
-            ></q-btn>
-            {% else %}
-            <q-btn disabled flat no-caps icon="architecture"
-              ><span v-text="$t('create_extension')"></span>
-              <q-tooltip
-                v-text="$t('only_admins_can_create_extensions')"
-              ></q-tooltip>
-            </q-btn>
-            {% endif %}
             <q-btn
               v-if="g.user.admin"
               flat

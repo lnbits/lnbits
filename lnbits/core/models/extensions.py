@@ -409,6 +409,7 @@ class InstallableExtension(BaseModel):
 
         tmp_dir = Path(settings.lnbits_data_folder, "unzip-temp", self.hash)
         shutil.rmtree(tmp_dir, True)
+
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
             zip_ref.extractall(tmp_dir)
         generated_dir_name = os.listdir(tmp_dir)[0]
@@ -627,11 +628,8 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def get_extension_releases(cls, ext_id: str) -> list[ExtensionRelease]:
         extension_releases: list[ExtensionRelease] = []
-        all_manifests = [
-            *settings.lnbits_extensions_manifests,
-            settings.lnbits_extensions_builder_manifest_url,
-        ]
-        for url in all_manifests:
+
+        for url in settings.lnbits_extensions_manifests:
             try:
                 manifest = await cls.fetch_manifest(url)
                 for r in manifest.repos:
