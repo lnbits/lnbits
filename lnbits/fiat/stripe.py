@@ -42,6 +42,18 @@ StripeStatus = Literal[
     "unknown",
 ]
 
+# Typed map to ensure mypy sees return values as StripeStatus (not plain str)
+_STRIPE_STATUS_MAP: dict[str, StripeStatus] = {
+    "active": "active",
+    "trialing": "trialing",
+    "past_due": "past_due",
+    "unpaid": "unpaid",
+    "canceled": "canceled",
+    "incomplete": "incomplete",
+    "incomplete_expired": "incomplete_expired",
+    "paused": "paused",
+}
+
 
 class StripeTerminalOptions(BaseModel):
     class Config:
@@ -465,19 +477,7 @@ class StripeWallet(FiatProvider):
         status = (sub or {}).get("status")
         if not status:
             return "unknown"
-
-        status = str(status).lower().strip()
-        known: set[str] = {
-            "active",
-            "trialing",
-            "past_due",
-            "unpaid",
-            "canceled",
-            "incomplete",
-            "incomplete_expired",
-            "paused",
-        }
-        return status if status in known else "unknown"
+        return _STRIPE_STATUS_MAP.get(str(status).lower().strip(), "unknown")
 
     # ---------- Helpers ----------
     async def _get_price_id_by_lookup_key(self, lookup_key: str) -> str | None:
