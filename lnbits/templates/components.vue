@@ -649,7 +649,7 @@
     </div>
     <div
       v-if="showButtons"
-      class="qrcode__buttons row q-gutter-x-sm items-center justify-end no-wrap full-width "
+      class="qrcode__buttons row q-gutter-x-sm items-center justify-end no-wrap full-width"
     >
       <q-btn
         v-if="nfc && nfcSupported"
