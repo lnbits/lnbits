@@ -21,7 +21,9 @@ from lnbits.settings import settings
 from ..models.extensions import Extension, ExtensionMeta, InstallableExtension
 
 
-async def install_extension(ext_info: InstallableExtension) -> Extension:
+async def install_extension(
+    ext_info: InstallableExtension, skip_download: bool | None = False
+) -> Extension:
 
     ext_info.meta = ext_info.meta or ExtensionMeta()
 
@@ -35,7 +37,8 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
     if installed_ext and installed_ext.meta:
         ext_info.meta.payments = installed_ext.meta.payments
 
-    await ext_info.download_archive()
+    if not skip_download:
+        await ext_info.download_archive()
 
     ext_info.extract_archive()
 

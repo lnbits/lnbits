@@ -1,4 +1,6 @@
+from hashlib import sha256
 from http import HTTPStatus
+from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlencode, urlparse
 
@@ -149,9 +151,93 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
         {
             "user": user.json(),
             "extension_data": extension_data,
+            "extension_builder_enabled": user.admin
+            or settings.lnbits_extensions_builder_activate_non_admins,
             "ajax": _is_ajax_request(request),
         },
     )
+
+
+@generic_router.get(
+    "/extensions/builder", name="extensions builder", response_class=HTMLResponse
+)
+async def extensions_builder(request: Request, user: User = Depends(check_user_exists)):
+    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Extension Builder is disabled for non admin users.",
+        )
+    return template_renderer().TemplateResponse(
+        request,
+        "core/extensions_builder.html",
+        {
+            "user": user.json(),
+            "ajax": _is_ajax_request(request),
+        },
+    )
+
+
+@generic_router.get(
+    "/extensions/builder/preview/{ext_id}",
+    name="extensions builder",
+    response_class=HTMLResponse,
+)
+async def extensions_builder_preview(
+    request: Request,
+    ext_id: str,
+    page_name: str | None = None,
+    user: User = Depends(check_user_exists),
+):
+    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Extension Builder is disabled for non admin users.",
+        )
+    working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
+    html_file_name = "index.html"
+    if page_name == "public_page":
+        html_file_name = "public_page.html"
+
+    html_file_path = Path(
+        "extension_builder_stub",
+        ext_id,
+        working_dir_name,
+        ext_id,
+        "templates",
+        ext_id,
+        html_file_name,
+    )
+
+    html_file_full_path = Path(
+        settings.extension_builder_working_dir_path, html_file_path
+    )
+
+    if not html_file_full_path.is_file():
+        return template_renderer().TemplateResponse(
+            request,
+            "error.html",
+            {
+                "err": f"Extension {ext_id} not found",
+                "message": "Please 'Refresh Preview' first.",
+            },
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+
+    response = template_renderer().TemplateResponse(
+        request,
+        html_file_path.as_posix(),
+        {
+            "user": user.json(),
+            "ajax": _is_ajax_request(request),
+        },
+    )
+
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    )
+    return response
 
 
 @generic_router.get(
