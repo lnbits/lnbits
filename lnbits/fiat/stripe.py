@@ -21,6 +21,8 @@ from .base import (
     FiatPaymentSuccessStatus,
     FiatProvider,
     FiatStatusResponse,
+    FiatSubscriptionPaymentOptions,
+    FiatSubscriptionResponse,
 )
 
 FiatMethod = Literal["checkout", "terminal"]
@@ -129,6 +131,48 @@ class StripeWallet(FiatProvider):
             ok=False, error_message=f"Unsupported fiat_method: {opts.fiat_method}"
         )
 
+    async def create_subscription(
+        self,
+        subscription_id: str,
+        quantity: int,
+        payment_options: FiatSubscriptionPaymentOptions,
+        **kwargs,
+    ) -> FiatSubscriptionResponse:
+        success_url = settings.stripe_payment_success_url or "https://lnbits.com"
+
+        form_data: list[tuple[str, str]] = [
+            ("mode", "subscription"),
+            ("success_url", success_url),
+            ("metadata[payment_options]", payment_options.json()),
+            ("line_items[0][price]", subscription_id),
+            ("line_items[0][quantity]", f"{quantity}"),
+        ]
+
+        try:
+            r = await self.client.post(
+                "/v1/checkout/sessions",
+                headers=self._build_headers_form(),
+                content=urlencode(form_data),
+            )
+            r.raise_for_status()
+            data = r.json()
+            print("### create_subscription data:", data)
+            session_id, url = data.get("id"), data.get("url")
+            if not session_id or not url:
+                return FiatSubscriptionResponse(
+                    ok=False, error_message="Server error: missing id or url"
+                )
+            return FiatSubscriptionResponse(ok=True, checkout_session_url=url)
+        except json.JSONDecodeError:
+            return FiatSubscriptionResponse(
+                ok=False, error_message="Server error: invalid json response"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return FiatSubscriptionResponse(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
+
     async def pay_invoice(self, payment_request: str) -> FiatPaymentResponse:
         raise NotImplementedError("Stripe does not support paying invoices directly.")
 
@@ -155,6 +199,9 @@ class StripeWallet(FiatProvider):
 
     async def get_payment_status(self, checking_id: str) -> FiatPaymentStatus:
         raise NotImplementedError("Stripe does not support outgoing payments.")
+
+    # async def get_subscription_status(self, subscription_id: str)-> FiatPaymentStatus:
+    #     raise NotImplementedError("Stripe does not support outgoing payments.")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         logger.warning(
