@@ -120,13 +120,12 @@ class StripeWallet(FiatProvider):
 
         if opts.fiat_method == "checkout":
             return await self._create_checkout_invoice(
-                amount_cents, currency, payment_hash, memo, opts
+                amount_cents, currency, payment_hash, memo, opts.checkout
             )
         if opts.fiat_method == "terminal":
             return await self._create_terminal_invoice(
-                amount_cents, currency, payment_hash, opts
+                amount_cents, currency, payment_hash, opts.terminal
             )
-
         return FiatInvoiceResponse(
             ok=False, error_message=f"Unsupported fiat_method: {opts.fiat_method}"
         )
@@ -138,15 +137,21 @@ class StripeWallet(FiatProvider):
         payment_options: FiatSubscriptionPaymentOptions,
         **kwargs,
     ) -> FiatSubscriptionResponse:
-        success_url = settings.stripe_payment_success_url or "https://lnbits.com"
+        success_url = (
+            payment_options.success_url
+            or settings.stripe_payment_success_url
+            or "https://lnbits.com"
+        )
 
         form_data: list[tuple[str, str]] = [
             ("mode", "subscription"),
             ("success_url", success_url),
-            ("metadata[payment_options]", payment_options.json()),
             ("line_items[0][price]", subscription_id),
             ("line_items[0][quantity]", f"{quantity}"),
         ]
+        form_data += self._encode_metadata("metadata", payment_options.dict())
+
+        print("### form_data", form_data)
 
         try:
             r = await self.client.post(
@@ -157,8 +162,8 @@ class StripeWallet(FiatProvider):
             r.raise_for_status()
             data = r.json()
             print("### create_subscription data:", data)
-            session_id, url = data.get("id"), data.get("url")
-            if not session_id or not url:
+            url = data.get("url")
+            if not url:
                 return FiatSubscriptionResponse(
                     ok=False, error_message="Server error: missing id or url"
                 )
@@ -223,9 +228,9 @@ class StripeWallet(FiatProvider):
         currency: str,
         payment_hash: str,
         memo: str | None,
-        opts: StripeCreateInvoiceOptions,
+        opts: StripeCheckoutOptions | None = None,
     ) -> FiatInvoiceResponse:
-        co = opts.checkout or StripeCheckoutOptions()
+        co = opts or StripeCheckoutOptions()
         success_url = (
             co.success_url
             or settings.stripe_payment_success_url
@@ -275,9 +280,9 @@ class StripeWallet(FiatProvider):
         amount_cents: int,
         currency: str,
         payment_hash: str,
-        opts: StripeCreateInvoiceOptions,
+        opts: StripeTerminalOptions | None = None,
     ) -> FiatInvoiceResponse:
-        term = opts.terminal or StripeTerminalOptions()
+        term = opts or StripeTerminalOptions()
         data: dict[str, str] = {
             "amount": str(amount_cents),
             "currency": currency.lower(),
@@ -363,7 +368,7 @@ class StripeWallet(FiatProvider):
     ) -> list[tuple[str, str]]:
         out: list[tuple[str, str]] = []
         for k, v in (md or {}).items():
-            out.append((f"{prefix}[{k}]", str(v)))
+            out.append((f"{prefix}[{k}]", str(v or "")))
         return out
 
     def _parse_create_opts(

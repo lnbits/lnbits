@@ -78,13 +78,8 @@ class FiatPaymentStatus(NamedTuple):
         return "pending"
 
 
-class FiatSubscriptionResponse(BaseModel):
-    ok: bool = True
-    checkout_sesion_url: str | None = None
-    error_message: str | None = None
-
-
 class FiatSubscriptionPaymentOptions(BaseModel):
+    # todo: only admin can set tag and extra?
     tag: str | None = Field(
         default=None,
         description="Payments created by the recurring subscription"
@@ -105,6 +100,24 @@ class FiatSubscriptionPaymentOptions(BaseModel):
         description="Payments created by the recurring subscription"
         " will merge this extra data to the payment extra.",
     )
+
+    success_url: str | None = Field(
+        default="https://my.lnbits.com",
+        description="The URL to redirect the user to after the"
+        " subscription is successfully created.",
+    )
+
+
+class CreateSubscription(BaseModel):
+    subscription_id: str
+    quantity: int
+    payment_options: FiatSubscriptionPaymentOptions
+
+
+class FiatSubscriptionResponse(BaseModel):
+    ok: bool = True
+    checkout_session_url: str | None = None
+    error_message: str | None = None
 
 
 class FiatPaymentSuccessStatus(FiatPaymentStatus):
