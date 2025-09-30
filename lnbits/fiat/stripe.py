@@ -9,7 +9,7 @@ import httpx
 from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
 
-from lnbits.helpers import normalize_endpoint
+from lnbits.helpers import normalize_endpoint, urlsafe_short_hash
 from lnbits.settings import settings
 
 from .base import (
@@ -23,9 +23,10 @@ from .base import (
     FiatStatusResponse,
     FiatSubscriptionPaymentOptions,
     FiatSubscriptionResponse,
+    FiatSubscriptionStatus,
 )
 
-FiatMethod = Literal["checkout", "terminal"]
+FiatMethod = Literal["checkout", "terminal", "subscription"]
 
 
 class StripeTerminalOptions(BaseModel):
@@ -45,6 +46,14 @@ class StripeCheckoutOptions(BaseModel):
     line_item_name: str | None = None
 
 
+class StripeSubscriptionOptions(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    checking_id: str | None = None
+    payment_request: str | None = None
+
+
 class StripeCreateInvoiceOptions(BaseModel):
     class Config:
         extra = "ignore"
@@ -52,6 +61,7 @@ class StripeCreateInvoiceOptions(BaseModel):
     fiat_method: FiatMethod = "checkout"
     terminal: StripeTerminalOptions | None = None
     checkout: StripeCheckoutOptions | None = None
+    subscription: StripeSubscriptionOptions | None = None
 
 
 class StripeWallet(FiatProvider):
@@ -126,6 +136,10 @@ class StripeWallet(FiatProvider):
             return await self._create_terminal_invoice(
                 amount_cents, currency, payment_hash, opts.terminal
             )
+
+        if opts.fiat_method == "subscription":
+            return self._create_subscription_invoice(opts.subscription)
+
         return FiatInvoiceResponse(
             ok=False, error_message=f"Unsupported fiat_method: {opts.fiat_method}"
         )
@@ -149,9 +163,13 @@ class StripeWallet(FiatProvider):
             ("line_items[0][price]", subscription_id),
             ("line_items[0][quantity]", f"{quantity}"),
         ]
-        form_data += self._encode_metadata("metadata", payment_options.dict())
+        subscription_data = {**payment_options.dict(), "action": "subscription"}
+        subscription_data["extra"] = json.dumps(subscription_data.get("extra") or {})
 
-        print("### form_data", form_data)
+        form_data += self._encode_metadata(
+            "subscription_data[metadata]",
+            subscription_data,
+        )
 
         try:
             r = await self.client.post(
@@ -161,7 +179,7 @@ class StripeWallet(FiatProvider):
             )
             r.raise_for_status()
             data = r.json()
-            print("### create_subscription data:", data)
+            # print("### create_subscription data:", data)
             url = data.get("url")
             if not url:
                 return FiatSubscriptionResponse(
@@ -205,8 +223,50 @@ class StripeWallet(FiatProvider):
     async def get_payment_status(self, checking_id: str) -> FiatPaymentStatus:
         raise NotImplementedError("Stripe does not support outgoing payments.")
 
-    # async def get_subscription_status(self, subscription_id: str)-> FiatPaymentStatus:
-    #     raise NotImplementedError("Stripe does not support outgoing payments.")
+    async def get_subscription_status(
+        self, subscription_id: str
+    ) -> FiatSubscriptionStatus:
+        try:
+            r = await self.client.get(f"/v1/subscriptions/{subscription_id}", timeout=5)
+            r.raise_for_status()
+            data = r.json()
+            print("### get_subscription_status data", data)
+            action = data.get("metadata", {}).get("action")
+            if action != "subscription":
+                return FiatSubscriptionStatus(
+                    ok=False,
+                    error_message=f"Unknown subscription action. Received {action}.",
+                )
+
+            extra = data.get("metadata", {}).get("extra")
+            if not extra:
+                return FiatSubscriptionStatus(
+                    ok=False,
+                    error_message="Missing extra metadata in subscription.",
+                )
+            try:
+                extra = json.loads(extra)
+            except json.JSONDecodeError:
+                return FiatSubscriptionStatus(
+                    ok=False,
+                    error_message="Invalid extra metadata in subscription.",
+                )
+            return FiatSubscriptionStatus(
+                ok=True,
+                payment_options=FiatSubscriptionPaymentOptions(
+                    tag=data.get("metadata", {}).get("tag"),
+                    memo=data.get("metadata", {}).get("memo"),
+                    wallet_id=data.get("metadata", {}).get("wallet_id"),
+                    extra=extra,
+                    success_url=data.get("metadata", {}).get("success_url"),
+                ),
+            )
+
+        except Exception as exc:
+            logger.warning(exc)
+            return FiatSubscriptionStatus(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         logger.warning(
@@ -316,6 +376,18 @@ class StripeWallet(FiatProvider):
             return FiatInvoiceResponse(
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
+
+    def _create_subscription_invoice(
+        self,
+        opts: StripeSubscriptionOptions | None = None,
+    ) -> FiatInvoiceResponse:
+        term = opts or StripeSubscriptionOptions()
+
+        return FiatInvoiceResponse(
+            ok=True,
+            checking_id=term.checking_id or urlsafe_short_hash(),
+            payment_request=term.payment_request or "",
+        )
 
     def _normalize_stripe_id(self, checking_id: str) -> str:
         """Remove our internal prefix so Stripe sees a real id."""
