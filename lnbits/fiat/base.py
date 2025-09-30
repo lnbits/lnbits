@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Coroutine
 from typing import TYPE_CHECKING, Any, NamedTuple
 
+from pydantic import BaseModel, Field
+
 if TYPE_CHECKING:
     pass
 
@@ -76,6 +78,35 @@ class FiatPaymentStatus(NamedTuple):
         return "pending"
 
 
+class FiatSubscriptionResponse(BaseModel):
+    ok: bool = True
+    checkout_sesion_url: str | None = None
+    error_message: str | None = None
+
+
+class FiatSubscriptionPaymentOptions(BaseModel):
+    tag: str | None = Field(
+        default=None,
+        description="Payments created by the recurring subscription"
+        " will have this tag.",
+    )
+    memo: str | None = Field(
+        default=None,
+        description="Payments created by the recurring subscription"
+        " will have this memo.",
+    )
+    wallet_id: str | None = Field(
+        default=None,
+        description="Payments created by the recurring subscription"
+        " will be made to this wallet.",
+    )
+    extra: dict[str, Any] | None = Field(
+        default=None,
+        description="Payments created by the recurring subscription"
+        " will merge this extra data to the payment extra.",
+    )
+
+
 class FiatPaymentSuccessStatus(FiatPaymentStatus):
     paid = True
 
@@ -109,6 +140,16 @@ class FiatProvider(ABC):
         extra: dict[str, Any] | None = None,
         **kwargs,
     ) -> Coroutine[None, None, FiatInvoiceResponse]:
+        pass
+
+    @abstractmethod
+    def create_subscription(
+        self,
+        subscription_id: str,
+        quantity: int,
+        payment_options: FiatSubscriptionPaymentOptions,
+        **kwargs,
+    ) -> Coroutine[None, None, FiatSubscriptionResponse]:
         pass
 
     @abstractmethod
