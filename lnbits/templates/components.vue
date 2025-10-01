@@ -129,7 +129,7 @@
     >
       <q-item-section side>
         <q-avatar size="md">
-          <q-img :src="extension.tile" style="max-width: 20px"></q-img>
+          <q-img :src="extension.tile" style="max-width: 32px"></q-img>
         </q-avatar>
       </q-item-section>
       <q-item-section>
