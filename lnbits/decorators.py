@@ -19,6 +19,11 @@ from lnbits.core.crud import (
     get_wallet_for_key,
 )
 from lnbits.core.crud.users import get_user_access_control_lists
+from lnbits.core.crud.wallet_shares import (
+    check_wallet_share_permission,
+    get_user_shared_wallets,
+)
+from lnbits.core.models.wallet_shares import WalletSharePermission
 from lnbits.core.models import (
     AccessTokenPayload,
     Account,
@@ -287,6 +292,34 @@ async def _check_user_extension_access(user_id: str, path: str):
         raise HTTPException(
             HTTPStatus.FORBIDDEN,
             status.message,
+        )
+
+
+async def check_wallet_shared_permission(
+    wallet_id: str,
+    user_id: str,
+    permission: WalletSharePermission,
+    conn: Connection | None = None,
+) -> bool:
+    """
+    Check if a user has access to a wallet through sharing.
+    This checks if the wallet is shared with the user and they have the required permission.
+
+    Args:
+        wallet_id: ID of the wallet to check
+        user_id: ID of the user
+        permission: Required permission flag
+        conn: Optional database connection
+
+    Returns:
+        True if user has the permission through a share, False otherwise
+    """
+    from lnbits import db
+
+    async with db.connect() as local_conn:
+        connection = conn or local_conn
+        return await check_wallet_share_permission(
+            connection, wallet_id, user_id, permission
         )
 
 
