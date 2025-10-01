@@ -5,9 +5,7 @@ from loguru import logger
 
 from lnbits.core.crud.payments import (
     get_standalone_payment,
-    update_payment,
 )
-from lnbits.core.models import PaymentState
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.core.services.fiat_providers import (
@@ -97,11 +95,8 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
         raise ValueError("Stripe invoice.paid event missing 'wallet_id' in metadata.")
 
     memo = " | ".join(
-        [
-            payment_options.memo or "",
-            invoice.get("customer_email", ""),
-            invoice.get("customer_name", ""),
-        ]
+        [i.get("description", "") for i in invoice.get("lines", {}).get("data", [])]
+        + [payment_options.memo or "", invoice.get("customer_email", "")]
     )
 
     extra = {
@@ -125,9 +120,7 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
         ),
     )
 
-    payment.status = PaymentState.SUCCESS
-    payment.extra.pop("subscription", None)
-    await update_payment(payment)
+    await payment.check_fiat_status()
 
 
 async def _get_stripe_subscription_payment_options(

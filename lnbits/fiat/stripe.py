@@ -212,6 +212,11 @@ class StripeWallet(FiatProvider):
                 r.raise_for_status()
                 return self._status_from_payment_intent(r.json())
 
+            if stripe_id.startswith("in_"):
+                r = await self.client.get(f"/v1/invoices/{stripe_id}")
+                r.raise_for_status()
+                return self._status_from_invoice(r.json())
+
             logger.debug(f"Unknown Stripe id prefix: {checking_id}")
             return FiatPaymentPendingStatus()
 
@@ -384,6 +389,18 @@ class StripeWallet(FiatProvider):
             is_stale = (now_ts - created_ts) > 300
             if is_stale:
                 return FiatPaymentFailedStatus()
+
+        return FiatPaymentPendingStatus()
+
+    def _status_from_invoice(self, invoice: dict) -> FiatPaymentStatus:
+        """Map an Invoice to LNbits fiat status."""
+        status = invoice.get("status")
+
+        if status == "paid":
+            return FiatPaymentSuccessStatus()
+
+        if status in ["uncollectible", "void"]:
+            return FiatPaymentFailedStatus()
 
         return FiatPaymentPendingStatus()
 
