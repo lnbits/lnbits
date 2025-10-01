@@ -179,14 +179,14 @@ class StripeWallet(FiatProvider):
             )
             r.raise_for_status()
             data = r.json()
-            # print("### create_subscription data:", data)
             url = data.get("url")
             if not url:
                 return FiatSubscriptionResponse(
-                    ok=False, error_message="Server error: missing id or url"
+                    ok=False, error_message="Server error: missing url"
                 )
             return FiatSubscriptionResponse(ok=True, checkout_session_url=url)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as exc:
+            logger.warning(exc)
             return FiatSubscriptionResponse(
                 ok=False, error_message="Server error: invalid json response"
             )

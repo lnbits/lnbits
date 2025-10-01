@@ -31,10 +31,7 @@ async def create_subscription(provider: str, data: CreateFiatSubscription):
     fiat_provider = await get_fiat_provider(provider)
     if not fiat_provider:
         raise HTTPException(status_code=404, detail="Fiat provider not found")
-    if not hasattr(fiat_provider, "create_subscription"):
-        raise HTTPException(
-            status_code=501, detail="This provider does not support subscriptions"
-        )
+
     resp = await fiat_provider.create_subscription(
         data.subscription_id, data.quantity, data.payment_options
     )
