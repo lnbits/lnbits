@@ -79,12 +79,7 @@ class FiatPaymentStatus(NamedTuple):
 
 
 class FiatSubscriptionPaymentOptions(BaseModel):
-    # todo: only admin can set tag and extra?
-    tag: str | None = Field(
-        default=None,
-        description="Payments created by the recurring subscription"
-        " will have this tag.",
-    )
+
     memo: str | None = Field(
         default=None,
         description="Payments created by the recurring subscription"
@@ -95,10 +90,15 @@ class FiatSubscriptionPaymentOptions(BaseModel):
         description="Payments created by the recurring subscription"
         " will be made to this wallet.",
     )
+    tag: str | None = Field(
+        default=None,
+        description="Payments created by the recurring subscription"
+        " will have this tag. Admin only.",
+    )
     extra: dict[str, Any] | None = Field(
         default=None,
         description="Payments created by the recurring subscription"
-        " will merge this extra data to the payment extra.",
+        " will merge this extra data to the payment extra. Admin only.",
     )
 
     success_url: str | None = Field(

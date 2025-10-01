@@ -27,7 +27,6 @@ async def api_generic_webhook_handler(
 
     if provider_name.lower() == "stripe":
         payload = await request.body()
-        # print("### stripe webhook payload", payload)
         sig_header = request.headers.get("Stripe-Signature")
         check_stripe_signature(
             payload, sig_header, settings.stripe_webhook_signing_secret
@@ -67,7 +66,6 @@ async def _handle_stripe_checkout_session_completed(event: dict):
     object_type = event_object.get("object")
     payment_hash = event_object.get("metadata", {}).get("payment_hash")
     lnbits_action = event_object.get("metadata", {}).get("lnbits_action")
-    print("### lnbits_action", lnbits_action)
     logger.debug(
         f"Handling Stripe event: '{event_id}'. Type: '{object_type}'."
         f" Payment hash: '{payment_hash}'."
@@ -97,8 +95,6 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
         raise ValueError("Stripe invoice.paid event missing 'amount_paid'.")
 
     payment_options = await _get_stripe_subscription_payment_options(parent)
-    print("### payment_options", payment_options)
-
     if not payment_options.wallet_id:
         raise ValueError("Stripe invoice.paid event missing 'wallet_id' in metadata.")
 
