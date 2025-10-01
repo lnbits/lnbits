@@ -107,17 +107,20 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
             amount=amount_paid / 100,  # convert cents to dollars
             memo=payment_options.memo,
             extra={
-                "fiat_method": "subscription",
-                "checking_id": invoice.get("id"),
-                "payment_request": invoice.get("hosted_invoice_url"),
-                "tag": payment_options.tag,
                 **(payment_options.extra or {}),
+                "fiat_method": "subscription",
+                "tag": payment_options.tag,
+                "subscription": {
+                    "checking_id": invoice.get("id"),
+                    "payment_request": invoice.get("hosted_invoice_url"),
+                },
             },
             fiat_provider="stripe",
         ),
     )
 
     payment.status = PaymentState.SUCCESS
+    payment.extra.pop("subscription", None)
     await update_payment(payment)
 
 
