@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Request
 from loguru import logger
 
@@ -12,7 +14,6 @@ from lnbits.core.services.fiat_providers import (
     check_stripe_signature,
 )
 from lnbits.core.services.payments import create_fiat_invoice
-from lnbits.fiat import get_fiat_provider
 from lnbits.fiat.base import FiatSubscriptionPaymentOptions
 from lnbits.settings import settings
 
@@ -86,22 +87,24 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
     parent = invoice.get("parent", {})
 
     payment_options = await _get_stripe_subscription_payment_options(parent)
+
     print("### payment_options", payment_options)
     if not payment_options:
-        return
+        raise ValueError("Failed to get payment options from Stripe invoice.")
 
     currency = invoice.get("currency", "").upper()
     if not currency:
-        logger.warning("Stripe invoice.paid event missing currency.")
-        return
+        raise ValueError("Stripe invoice.paid event missing currency.")
+
     amount_paid = invoice.get("amount_paid")
     if not amount_paid:
-        logger.warning("Stripe invoice.paid event missing amount_paid.")
-        return
-    wallet_id = payment_options.wallet_id or "todo: get default wallet id"
+        raise ValueError("Stripe invoice.paid event missing amount_paid.")
+
+    if not payment_options.wallet_id:
+        raise ValueError("Stripe invoice.paid event missing wallet_id in metadata.")
 
     payment = await create_fiat_invoice(
-        wallet_id=wallet_id,
+        wallet_id=payment_options.wallet_id,
         invoice_data=CreateInvoice(
             unit=currency,
             amount=amount_paid / 100,  # convert cents to dollars
@@ -130,21 +133,17 @@ async def _get_stripe_subscription_payment_options(
     if not parent or not parent.get("type") == "subscription_details":
         logger.warning("Stripe invoice.paid event does not contain a subscription.")
         return None
-    subscription_details = parent.get("subscription_details", {})
-    subscription_id = subscription_details.get("subscription")
-    if not subscription_id:
-        logger.warning("Stripe invoice.paid event missing subscription ID.")
-        return None
-    fiat_provider = await get_fiat_provider("stripe")
-    if not fiat_provider:
-        logger.warning("Stripe fiat provider not found.")
-        return None
-    subscription_status = await fiat_provider.get_subscription_status(subscription_id)
+    metadata = parent.get("subscription_details", {}).get("metadata", {})
 
-    if not subscription_status.ok:
-        logger.warning(
-            f"Failed to retrieve subscription status for ID: '{subscription_id}'."
-        )
-        logger.warning(subscription_status.error_message)
+    if metadata.get("lnbits_action") != "subscription":
+        logger.warning("Stripe invoice.paid metadata action is not 'subscription'.")
         return None
-    return subscription_status.payment_options
+    print("### metadata 1", metadata)
+    if "extra" in metadata:
+        try:
+            metadata["extra"] = json.loads(metadata["extra"])
+        except json.JSONDecodeError as exc:
+            logger.warning(exc)
+            metadata["extra"] = {}
+    print("### metadata 2", metadata)
+    return FiatSubscriptionPaymentOptions(**metadata)
