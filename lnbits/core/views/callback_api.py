@@ -66,19 +66,21 @@ async def _handle_stripe_checkout_session_completed(event: dict):
     event_object = event.get("data", {}).get("object", {})
     object_type = event_object.get("object")
     payment_hash = event_object.get("metadata", {}).get("payment_hash")
+    lnbits_action = event_object.get("metadata", {}).get("lnbits_action")
+    print("### lnbits_action", lnbits_action)
     logger.debug(
         f"Handling Stripe event: '{event_id}'. Type: '{object_type}'."
         f" Payment hash: '{payment_hash}'."
     )
+    if lnbits_action != "invoice":
+        raise ValueError(f"Stripe event has wrong lnbits_action: '{lnbits_action}'.")
+
     if not payment_hash:
-        # todo: add explicit action flag to metadata
-        logger.warning("Stripe event does not contain a payment hash.")
-        return
+        raise ValueError("Stripe event does not contain a payment hash.")
 
     payment = await get_standalone_payment(payment_hash)
     if not payment:
-        logger.warning(f"No payment found for hash: '{payment_hash}'.")
-        return
+        raise ValueError(f"No payment found for hash: '{payment_hash}'.")
     await payment.check_fiat_status()
 
 
@@ -86,38 +88,45 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
     invoice = event.get("data", {}).get("object", {})
     parent = invoice.get("parent", {})
 
-    payment_options = await _get_stripe_subscription_payment_options(parent)
-
-    print("### payment_options", payment_options)
-    if not payment_options:
-        raise ValueError("Failed to get payment options from Stripe invoice.")
-
     currency = invoice.get("currency", "").upper()
     if not currency:
-        raise ValueError("Stripe invoice.paid event missing currency.")
+        raise ValueError("Stripe invoice.paid event missing 'currency'.")
 
     amount_paid = invoice.get("amount_paid")
     if not amount_paid:
-        raise ValueError("Stripe invoice.paid event missing amount_paid.")
+        raise ValueError("Stripe invoice.paid event missing 'amount_paid'.")
+
+    payment_options = await _get_stripe_subscription_payment_options(parent)
+    print("### payment_options", payment_options)
 
     if not payment_options.wallet_id:
-        raise ValueError("Stripe invoice.paid event missing wallet_id in metadata.")
+        raise ValueError("Stripe invoice.paid event missing 'wallet_id' in metadata.")
+
+    memo = " | ".join(
+        [
+            payment_options.memo or "",
+            invoice.get("customer_email", ""),
+            invoice.get("customer_name", ""),
+        ]
+    )
+
+    extra = {
+        **(payment_options.extra or {}),
+        "fiat_method": "subscription",
+        "tag": payment_options.tag,
+        "subscription": {
+            "checking_id": invoice.get("id"),
+            "payment_request": invoice.get("hosted_invoice_url"),
+        },
+    }
 
     payment = await create_fiat_invoice(
         wallet_id=payment_options.wallet_id,
         invoice_data=CreateInvoice(
             unit=currency,
             amount=amount_paid / 100,  # convert cents to dollars
-            memo=payment_options.memo,
-            extra={
-                **(payment_options.extra or {}),
-                "fiat_method": "subscription",
-                "tag": payment_options.tag,
-                "subscription": {
-                    "checking_id": invoice.get("id"),
-                    "payment_request": invoice.get("hosted_invoice_url"),
-                },
-            },
+            memo=memo,
+            extra=extra,
             fiat_provider="stripe",
         ),
     )
@@ -129,21 +138,20 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
 
 async def _get_stripe_subscription_payment_options(
     parent: dict,
-) -> FiatSubscriptionPaymentOptions | None:
+) -> FiatSubscriptionPaymentOptions:
     if not parent or not parent.get("type") == "subscription_details":
-        logger.warning("Stripe invoice.paid event does not contain a subscription.")
-        return None
+        raise ValueError("Stripe invoice.paid event does not contain a subscription.")
+
     metadata = parent.get("subscription_details", {}).get("metadata", {})
 
     if metadata.get("lnbits_action") != "subscription":
-        logger.warning("Stripe invoice.paid metadata action is not 'subscription'.")
-        return None
-    print("### metadata 1", metadata)
+        raise ValueError("Stripe invoice.paid metadata action is not 'subscription'.")
+
     if "extra" in metadata:
         try:
             metadata["extra"] = json.loads(metadata["extra"])
         except json.JSONDecodeError as exc:
             logger.warning(exc)
             metadata["extra"] = {}
-    print("### metadata 2", metadata)
+
     return FiatSubscriptionPaymentOptions(**metadata)
