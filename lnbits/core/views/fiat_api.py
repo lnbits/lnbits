@@ -6,7 +6,7 @@ from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.services.fiat_providers import test_connection
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.fiat import StripeWallet, get_fiat_provider
-from lnbits.fiat.base import CreateFiatSubscription
+from lnbits.fiat.base import CreateFiatSubscription, FiatSubscriptionResponse
 
 fiat_router = APIRouter(tags=["Fiat API"], prefix="/api/v1/fiat")
 
@@ -26,7 +26,7 @@ async def api_test_fiat_provider(provider: str) -> SimpleStatus:
 )
 async def create_subscription(
     provider: str, data: CreateFiatSubscription, user=Depends(check_user_exists)
-):
+) -> FiatSubscriptionResponse:
     fiat_provider = await get_fiat_provider(provider)
     if not fiat_provider:
         raise HTTPException(status_code=404, detail="Fiat provider not found")
@@ -38,11 +38,10 @@ async def create_subscription(
                 detail="Only admins can set tag or extra for subscription payments",
             )
 
-    resp = await fiat_provider.create_subscription(
+    subscription_response = await fiat_provider.create_subscription(
         data.subscription_id, data.quantity, data.payment_options
     )
-    print("### resp", resp)
-    return {"status": resp.checkout_session_url}
+    return subscription_response
 
 
 @fiat_router.post(

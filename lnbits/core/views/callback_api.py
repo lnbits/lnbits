@@ -46,11 +46,9 @@ async def api_generic_webhook_handler(
 
 
 async def handle_stripe_event(event: dict):
-    print("### stripe event", event)
     event_id = event.get("id")
     event_type = event.get("type")
     if event_type == "checkout.session.completed":
-        # todo: parent subscriptin
         await _handle_stripe_checkout_session_completed(event)
     elif event_type == "invoice.paid":
         await _handle_stripe_subscription_invoice_paid(event)
