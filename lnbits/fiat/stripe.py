@@ -23,7 +23,6 @@ from .base import (
     FiatStatusResponse,
     FiatSubscriptionPaymentOptions,
     FiatSubscriptionResponse,
-    FiatSubscriptionStatus,
 )
 
 FiatMethod = Literal["checkout", "terminal", "subscription"]
@@ -222,51 +221,6 @@ class StripeWallet(FiatProvider):
 
     async def get_payment_status(self, checking_id: str) -> FiatPaymentStatus:
         raise NotImplementedError("Stripe does not support outgoing payments.")
-
-    async def get_subscription_status(
-        self, subscription_id: str
-    ) -> FiatSubscriptionStatus:
-        try:
-            r = await self.client.get(f"/v1/subscriptions/{subscription_id}", timeout=5)
-            r.raise_for_status()
-            data = r.json()
-            print("### get_subscription_status data", data)
-            action = data.get("metadata", {}).get("action")
-            if action != "subscription":
-                return FiatSubscriptionStatus(
-                    ok=False,
-                    error_message=f"Unknown subscription action. Received {action}.",
-                )
-
-            extra = data.get("metadata", {}).get("extra")
-            if not extra:
-                return FiatSubscriptionStatus(
-                    ok=False,
-                    error_message="Missing extra metadata in subscription.",
-                )
-            try:
-                extra = json.loads(extra)
-            except json.JSONDecodeError:
-                return FiatSubscriptionStatus(
-                    ok=False,
-                    error_message="Invalid extra metadata in subscription.",
-                )
-            return FiatSubscriptionStatus(
-                ok=True,
-                payment_options=FiatSubscriptionPaymentOptions(
-                    tag=data.get("metadata", {}).get("tag"),
-                    memo=data.get("metadata", {}).get("memo"),
-                    wallet_id=data.get("metadata", {}).get("wallet_id"),
-                    extra=extra,
-                    success_url=data.get("metadata", {}).get("success_url"),
-                ),
-            )
-
-        except Exception as exc:
-            logger.warning(exc)
-            return FiatSubscriptionStatus(
-                ok=False, error_message=f"Unable to connect to {self.endpoint}."
-            )
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         logger.warning(

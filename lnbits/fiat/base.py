@@ -108,12 +108,6 @@ class FiatSubscriptionPaymentOptions(BaseModel):
     )
 
 
-class FiatSubscriptionStatus(BaseModel):
-    ok: bool = True
-    payment_options: FiatSubscriptionPaymentOptions | None = None
-    error_message: str | None = None
-
-
 class CreateFiatSubscription(BaseModel):
     subscription_id: str
     quantity: int
@@ -188,12 +182,6 @@ class FiatProvider(ABC):
     def get_payment_status(
         self, checking_id: str
     ) -> Coroutine[None, None, FiatPaymentStatus]:
-        pass
-
-    @abstractmethod
-    def get_subscription_status(
-        self, subscription_id: str
-    ) -> Coroutine[None, None, FiatSubscriptionStatus]:
         pass
 
     async def paid_invoices_stream(
