@@ -28,14 +28,14 @@ async def api_test_fiat_provider(provider: str) -> SimpleStatus:
     ],  # todo: allow users to create subscriptions (with limits?
 )
 async def create_subscription(provider: str, data: CreateFiatSubscription):
-    provider_wallet = await get_fiat_provider(provider)
-    if not provider_wallet:
+    fiat_provider = await get_fiat_provider(provider)
+    if not fiat_provider:
         raise HTTPException(status_code=404, detail="Fiat provider not found")
-    if not hasattr(provider_wallet, "create_subscription"):
+    if not hasattr(fiat_provider, "create_subscription"):
         raise HTTPException(
             status_code=501, detail="This provider does not support subscriptions"
         )
-    resp = await provider_wallet.create_subscription(
+    resp = await fiat_provider.create_subscription(
         data.subscription_id, data.quantity, data.payment_options
     )
     print("### resp", resp)
@@ -48,14 +48,14 @@ async def create_subscription(provider: str, data: CreateFiatSubscription):
     dependencies=[Depends(check_admin)],
 )
 async def connection_token(provider: str):
-    provider_wallet = await get_fiat_provider(provider)
+    fiat_provider = await get_fiat_provider(provider)
     if provider == "stripe":
-        if not isinstance(provider_wallet, StripeWallet):
+        if not isinstance(fiat_provider, StripeWallet):
             raise HTTPException(
                 status_code=500, detail="Stripe wallet/provider not configured"
             )
         try:
-            tok = await provider_wallet.create_terminal_connection_token()
+            tok = await fiat_provider.create_terminal_connection_token()
             secret = tok.get("secret")
             if not secret:
                 raise HTTPException(
