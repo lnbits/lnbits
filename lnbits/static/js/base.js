@@ -267,10 +267,10 @@ window.LNbits = {
       }
 
       obj.date = moment.utc(data.created_at).local().format(window.dateFormat)
-      obj.dateFrom = moment.utc(data.created_at).fromNow()
+      obj.dateFrom = moment.utc(data.created_at).local().fromNow()
 
       obj.expirydate = moment.utc(obj.expiry).local().format(window.dateFormat)
-      obj.expirydateFrom = moment.utc(obj.expiry).fromNow()
+      obj.expirydateFrom = moment.utc(obj.expiry).local().fromNow()
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
       obj.tag = obj.extra?.tag
