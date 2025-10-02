@@ -29,6 +29,11 @@ self.addEventListener('activate', evt =>
 // If no response is found, it populates the runtime cache with the response
 // from the network before returning it to the page.
 self.addEventListener('fetch', event => {
+  // Skip service worker for API calls to avoid caching issues
+  if (event.request.url.includes('/api/')) {
+    return
+  }
+
   if (
     event.request.url.startsWith(self.location.origin) &&
     event.request.method == 'GET'
@@ -44,8 +49,17 @@ self.addEventListener('fetch', event => {
             return fetchedResponse
           })
           .catch(() => {
-            // If the network is unavailable, get
-            return cache.match(event.request.url)
+            // If the network is unavailable, get from cache
+            return cache.match(event.request.url).then(cachedResponse => {
+              // If no cached response, return a basic error response
+              if (!cachedResponse) {
+                return new Response('Network error', {
+                  status: 408,
+                  statusText: 'Network error'
+                })
+              }
+              return cachedResponse
+            })
           })
       })
     )
