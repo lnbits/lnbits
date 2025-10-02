@@ -476,8 +476,14 @@ window.WalletPageLogic = {
               createdDate,
               'YYYY-MM-DDTHH:mm:ss.SSSZ'
             )
-            cleanInvoice.expireDateFrom = moment.utc(expireDate).local().fromNow()
-            cleanInvoice.createdDateFrom = moment.utc(createdDate).local().fromNow()
+            cleanInvoice.expireDateFrom = moment
+              .utc(expireDate)
+              .local()
+              .fromNow()
+            cleanInvoice.createdDateFrom = moment
+              .utc(createdDate)
+              .local()
+              .fromNow()
 
             cleanInvoice.expired = false // TODO
           }
