@@ -48,12 +48,14 @@ LNBITS_SECONDARY_PASSWORD=test_password
 ### 2. Install Dependencies
 
 **For UI tests (Node.js/Playwright):**
+
 ```bash
 cd tests/ui
 npm install
 ```
 
 **For API tests (Python):**
+
 ```bash
 pip3 install httpx loguru
 # or
@@ -63,12 +65,14 @@ sudo apt install python3-httpx python3-loguru
 ## Running Tests
 
 ### Run All UI Tests
+
 ```bash
 cd tests
 ./run_ui_crud_tests.sh
 ```
 
 ### Run All API Tests
+
 ```bash
 cd tests
 ./run_api_tests.sh
@@ -77,12 +81,14 @@ cd tests
 ### Run Individual Tests
 
 **UI Test:**
+
 ```bash
 cd tests/ui
 node crud/create-share.js
 ```
 
 **API Test:**
+
 ```bash
 cd tests
 python3 api/create-share.py
@@ -100,6 +106,7 @@ Tests should be run in this order for a complete CRUD cycle:
 ## Screenshots
 
 UI test screenshots are saved to `tests/ui/screenshots/` for debugging:
+
 - `create-share-dialog.png` - Share creation dialog
 - `create-share-filled.png` - Filled form before submission
 - `create-share-result.png` - Result after creation
@@ -112,21 +119,25 @@ UI test screenshots are saved to `tests/ui/screenshots/` for debugging:
 ## Troubleshooting
 
 ### UI Tests Fail with Login Errors
+
 - Verify `LNBITS_ADMIN_USERNAME` and `LNBITS_ADMIN_PASSWORD` in `.env.local`
 - Check that LNbits is running at `TEST_LNBITS_URL`
 - Look at error screenshots in `ui/screenshots/`
 
 ### API Tests Fail with 401/403
+
 - Verify `TEST_ADMIN_API_KEY` is correct
 - Ensure the API key has admin permissions
 - Check `TEST_WALLET_ID` matches the wallet owned by the admin key
 
 ### Share Creation Fails with "User not found"
+
 - Ensure `LNBITS_SECONDARY_USERNAME` exists in your LNbits instance
 - Create a test user account if needed
 - Verify the username spelling is exact
 
 ### Tests Timeout
+
 - Increase timeout in test files (default 60s for UI, none for API)
 - Check server performance and network connectivity
 - Use `--verbose` or check logs for details
@@ -134,6 +145,7 @@ UI test screenshots are saved to `tests/ui/screenshots/` for debugging:
 ## Contributing
 
 When adding new tests:
+
 1. Follow the existing naming convention (`verb-noun.js/py`)
 2. Include descriptive console output
 3. Take screenshots at key points (UI tests)
@@ -154,5 +166,6 @@ These tests can be integrated into CI/CD pipelines:
 ```
 
 Exit codes:
+
 - `0` = All tests passed
 - `1` = One or more tests failed

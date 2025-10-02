@@ -5,12 +5,14 @@ Playwright-based UI tests for the wallet sharing feature.
 ## Prerequisites
 
 1. **Node.js and Playwright**
+
    ```bash
    cd tests/ui
    npm install playwright
    ```
 
 2. **LNbits Running**
+
    ```bash
    uv run lnbits --port 5001
    ```
@@ -51,12 +53,14 @@ LNBITS_SECONDARY_PASSWORD=their_password_here
 ## Running Tests
 
 ### Run All CRUD Tests
+
 ```bash
 cd tests
 ./run_ui_crud_tests.sh
 ```
 
 ### Run Individual Tests
+
 ```bash
 cd tests/ui
 
@@ -89,6 +93,7 @@ The tests follow this sequence:
 ## Debugging
 
 Screenshots are saved to `tests/ui/screenshots/` for debugging test failures:
+
 - `check-share-error.png` - Error state
 - `check-share-logged-in.png` - After login
 - `check-share-found-wallet.png` - When shared wallet is found
@@ -97,15 +102,18 @@ Screenshots are saved to `tests/ui/screenshots/` for debugging test failures:
 ## Common Issues
 
 ### "Invalid credentials" Error
+
 - Verify users exist in the database
 - Check passwords in `.env.local` match actual user passwords
 - Try logging in manually to confirm credentials
 
 ### "Could not retrieve wallet ID"
+
 - User needs at least one wallet created
 - Log in manually and create a wallet first
 
 ### Login Not Working
+
 - Check LNbits is running on the correct port (5001)
 - Verify `TEST_LNBITS_URL` in `.env.local`
 - Check browser console in screenshots for errors

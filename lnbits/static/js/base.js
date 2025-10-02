@@ -762,13 +762,19 @@ window.windowMixin = {
         this.pendingShares = response.data.filter(share => !share.accepted)
         console.log('Loaded pending shares:', this.pendingShares.length)
       } catch (error) {
-        console.error('Failed to load pending shares:', error.response?.data || error.message)
+        console.error(
+          'Failed to load pending shares:',
+          error.response?.data || error.message
+        )
         this.pendingShares = []
       }
     },
     openShareInvitationsDialog() {
       console.log('Opening share invitations dialog')
-      console.log('Current showShareInvitationsDialog value:', this.showShareInvitationsDialog)
+      console.log(
+        'Current showShareInvitationsDialog value:',
+        this.showShareInvitationsDialog
+      )
       this.loadPendingShares()
       this.showShareInvitationsDialog = true
       console.log('After setting to true:', this.showShareInvitationsDialog)

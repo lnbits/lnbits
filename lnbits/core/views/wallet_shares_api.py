@@ -2,14 +2,13 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from lnbits.core.db import db
 from lnbits.core.crud import get_account
+from lnbits.core.db import db
 from lnbits.core.models import User, WalletTypeInfo
 from lnbits.core.models.wallet_shares import (
     CreateWalletShare,
     UpdateWalletSharePermissions,
     WalletShare,
-    WalletSharePermission,
 )
 from lnbits.decorators import check_user_exists, require_admin_key
 
@@ -87,12 +86,16 @@ async def api_create_wallet_share(
             from ..crud.wallet_shares import update_wallet_share_permissions
 
             updated_share = await update_wallet_share_permissions(
-                conn, existing_share.id, UpdateWalletSharePermissions(permissions=share_data.permissions)
+                conn,
+                existing_share.id,
+                UpdateWalletSharePermissions(permissions=share_data.permissions),
             )
             return updated_share
         else:
             # Create new share
-            share = await create_wallet_share(conn, wallet_id, share_data, wallet.wallet.user)
+            share = await create_wallet_share(
+                conn, wallet_id, share_data, wallet.wallet.user
+            )
             return share
 
 
