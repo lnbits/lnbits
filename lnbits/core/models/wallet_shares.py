@@ -25,6 +25,7 @@ class WalletShare(BaseModel):
     shared_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     accepted: bool = False
     accepted_at: datetime | None = None
+    username: str | None = None  # Optional: populated by API for display
 
     @property
     def can_view(self) -> bool:

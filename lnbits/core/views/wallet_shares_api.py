@@ -4,15 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from lnbits.core.db import db
 from lnbits.core.crud import get_account
-from lnbits.core.crud.wallets import get_wallet
-from lnbits.core.models import User
+from lnbits.core.models import User, WalletTypeInfo
 from lnbits.core.models.wallet_shares import (
     CreateWalletShare,
     UpdateWalletSharePermissions,
     WalletShare,
     WalletSharePermission,
 )
-from lnbits.decorators import check_user_exists
+from lnbits.decorators import check_user_exists, require_admin_key
 
 from ..crud.wallet_shares import (
     accept_wallet_share,
@@ -27,29 +26,31 @@ from ..crud.wallet_shares import (
 wallet_shares_router = APIRouter(prefix="/api/v1/wallet_shares", tags=["Wallet Shares"])
 
 
+@wallet_shares_router.get("/health")
+async def health_check():
+    """Test endpoint to verify router is working"""
+    return {"status": "ok"}
+
+
 @wallet_shares_router.post("/{wallet_id}")
 async def api_create_wallet_share(
     wallet_id: str,
     data: CreateWalletShare,
-    user: User = Depends(check_user_exists),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ) -> WalletShare:
     """
     Share a wallet with another user.
     Only the wallet owner can share their wallet.
     """
-    # Verify wallet exists and user owns it
-    wallet = await get_wallet(wallet_id)
-    if not wallet:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
-
-    if wallet.user != user.id:
+    # Verify this is the correct wallet
+    if wallet.wallet.id != wallet_id:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
-            detail="Only wallet owner can share the wallet",
+            detail="Admin key does not match wallet ID",
         )
 
     # Don't allow sharing with self
-    if data.user_id == user.id:
+    if data.user_id == wallet.wallet.user:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Cannot share wallet with yourself",
@@ -91,32 +92,36 @@ async def api_create_wallet_share(
             return updated_share
         else:
             # Create new share
-            share = await create_wallet_share(conn, wallet_id, share_data, user.id)
+            share = await create_wallet_share(conn, wallet_id, share_data, wallet.wallet.user)
             return share
 
 
 @wallet_shares_router.get("/{wallet_id}")
 async def api_get_wallet_shares(
     wallet_id: str,
-    user: User = Depends(check_user_exists),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ) -> list[WalletShare]:
     """
     Get all shares for a wallet.
     Only the wallet owner can view shares.
     """
-    # Verify wallet exists and user owns it
-    wallet = await get_wallet(wallet_id)
-    if not wallet:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
-
-    if wallet.user != user.id:
+    # Verify this is the correct wallet
+    if wallet.wallet.id != wallet_id:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
-            detail="Only wallet owner can view shares",
+            detail="Admin key does not match wallet ID",
         )
 
     async with db.connect() as conn:
         shares = await get_wallet_shares(conn, wallet_id)
+
+        # TODO: Populate usernames for display
+        # Currently disabled due to get_account() hanging issue when called in a loop
+        # for share in shares:
+        #     account = await get_account(share.user_id)
+        #     if account:
+        #         share.username = account.username or account.email or share.user_id
+
         return shares
 
 
@@ -167,11 +172,11 @@ async def api_accept_wallet_share(
 async def api_update_wallet_share_permissions(
     share_id: str,
     data: UpdateWalletSharePermissions,
-    user: User = Depends(check_user_exists),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ) -> WalletShare:
     """
     Update permissions for a wallet share.
-    Only the wallet owner or users with MANAGE_SHARES permission can update.
+    Only the wallet owner can update shares using their admin key.
     """
     async with db.connect() as conn:
         share = await get_wallet_share(conn, share_id)
@@ -180,27 +185,12 @@ async def api_update_wallet_share_permissions(
                 status_code=HTTPStatus.NOT_FOUND, detail="Share not found"
             )
 
-        # Check if user is wallet owner
-        wallet = await get_wallet(share.wallet_id)
-        if not wallet:
+        # Verify the admin key matches the wallet that owns this share
+        if wallet.wallet.id != share.wallet_id:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found"
+                status_code=HTTPStatus.FORBIDDEN,
+                detail="Admin key does not match share's wallet",
             )
-
-        is_owner = wallet.user == user.id
-
-        # If not owner, check if user has MANAGE_SHARES permission
-        if not is_owner:
-            from ..crud.wallet_shares import check_wallet_share_permission
-
-            has_permission = await check_wallet_share_permission(
-                conn, share.wallet_id, user.id, WalletSharePermission.MANAGE_SHARES
-            )
-            if not has_permission:
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail="Only wallet owner or users with MANAGE_SHARES permission can update permissions",
-                )
 
         updated_share = await update_wallet_share_permissions(conn, share_id, data)
         return updated_share
@@ -209,12 +199,11 @@ async def api_update_wallet_share_permissions(
 @wallet_shares_router.delete("/{share_id}")
 async def api_delete_wallet_share(
     share_id: str,
-    user: User = Depends(check_user_exists),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ) -> dict:
     """
     Delete a wallet share (revoke access).
-    Only the wallet owner or users with MANAGE_SHARES permission can delete shares.
-    Users can also delete their own received shares.
+    Only the wallet owner can delete shares using their admin key.
     """
     async with db.connect() as conn:
         share = await get_wallet_share(conn, share_id)
@@ -223,28 +212,12 @@ async def api_delete_wallet_share(
                 status_code=HTTPStatus.NOT_FOUND, detail="Share not found"
             )
 
-        # Check if user is wallet owner
-        wallet = await get_wallet(share.wallet_id)
-        if not wallet:
+        # Verify the admin key matches the wallet that owns this share
+        if wallet.wallet.id != share.wallet_id:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found"
+                status_code=HTTPStatus.FORBIDDEN,
+                detail="Admin key does not match share's wallet",
             )
-
-        is_owner = wallet.user == user.id
-        is_recipient = share.user_id == user.id
-
-        # If not owner or recipient, check if user has MANAGE_SHARES permission
-        if not is_owner and not is_recipient:
-            from ..crud.wallet_shares import check_wallet_share_permission
-
-            has_permission = await check_wallet_share_permission(
-                conn, share.wallet_id, user.id, WalletSharePermission.MANAGE_SHARES
-            )
-            if not has_permission:
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail="Only wallet owner, recipient, or users with MANAGE_SHARES permission can delete shares",
-                )
 
         await delete_wallet_share(conn, share_id)
         return {"success": True, "message": "Share deleted successfully"}

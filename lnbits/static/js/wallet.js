@@ -1251,6 +1251,7 @@ window.WalletPageLogic = {
       this.parse.show = true
     }
     this.createdTasks()
+    this.loadWalletShares()
     try {
       this.fetchChartData()
     } catch (error) {

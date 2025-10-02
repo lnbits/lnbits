@@ -130,12 +130,34 @@
                 <div
                   class="absolute-right q-pa-md"
                   v-if="$q.screen.gt.md && g.fiatTracking &&  '{{ LNBITS_DENOMINATION }}' == 'sats'"
+                  style="top: 8px; right: 60px;"
                 >
                   <div class="text-bold text-italic">BTC Price</div>
                   <span
                     class="text-bold text-italic"
                     v-text="formattedExchange"
                   ></span>
+                </div>
+
+                <!-- Share Wallet Button (Top Right) -->
+                <div class="absolute-right q-pa-sm" style="top: 8px; right: 8px;">
+                  <q-btn
+                    round
+                    flat
+                    color="deep-purple"
+                    icon="group"
+                    @click="showWalletSharesDialog"
+                    size="md"
+                  >
+                    <q-badge
+                      v-if="walletShares.shares && walletShares.shares.length > 0"
+                      :label="walletShares.shares.length"
+                      color="deep-purple"
+                      floating
+                      rounded
+                    />
+                    <q-tooltip>Share Wallet (Shared with [[walletShares.shares.length]] user<span v-if="walletShares.shares.length !== 1">s</span>)</q-tooltip>
+                  </q-btn>
                 </div>
                 <q-btn
                   v-if="$q.screen.lt.md"
@@ -168,15 +190,6 @@
                 @click="showReceiveDialog"
                 :label="$t('create_invoice')"
               ></q-btn>
-              <q-btn
-                unelevated
-                color="deep-purple"
-                class="q-mr-md"
-                icon="group"
-                @click="showWalletSharesDialog"
-              >
-                <q-tooltip>Share Wallet</q-tooltip>
-              </q-btn>
               <q-btn
                 unelevated
                 color="secondary"
@@ -1424,7 +1437,7 @@
                 <q-item-section>
                   <q-item-label>
                     <span>User: </span>
-                    <span v-text="share.user_id"></span>
+                    <span v-text="share.username || share.user_id"></span>
                   </q-item-label>
                   <q-item-label caption>
                     <span>Permissions: </span>
