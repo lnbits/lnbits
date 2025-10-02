@@ -249,7 +249,10 @@
               <q-list v-if="pendingShares && pendingShares.length > 0" separator>
                 <q-item v-for="share in pendingShares" :key="share.id">
                   <q-item-section>
-                    <q-item-label v-text="share.wallet_name"></q-item-label>
+                    <q-item-label>
+                      <strong v-text="share.wallet_name || 'Unnamed Wallet'"></strong>
+                      <span v-if="share.shared_by_username"> - shared by <span v-text="share.shared_by_username"></span></span>
+                    </q-item-label>
                     <q-item-label caption v-text="getPermissionLabel(share.permissions)"></q-item-label>
                   </q-item-section>
                   <q-item-section side>
