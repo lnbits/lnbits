@@ -285,6 +285,10 @@ async def check_user_extension_access(
 
 
 async def _check_user_extension_access(user_id: str, path: str):
+    # Skip extension checking for core API routes
+    if path.startswith("/api/v1/"):
+        return
+
     ext_id = path_segments(path)[0]
     status = await check_user_extension_access(user_id, ext_id)
     if not status.success:
