@@ -130,7 +130,7 @@
                 <div
                   class="absolute-right q-pa-md"
                   v-if="$q.screen.gt.md && g.fiatTracking &&  '{{ LNBITS_DENOMINATION }}' == 'sats'"
-                  style="top: 8px; right: 60px;"
+                  style="top: 8px; right: 60px"
                 >
                   <div class="text-bold text-italic">BTC Price</div>
                   <span
@@ -140,7 +140,10 @@
                 </div>
 
                 <!-- Share Wallet Button (Top Right) -->
-                <div class="absolute-right q-pa-sm" style="top: 8px; right: 8px;">
+                <div
+                  class="absolute-right q-pa-sm"
+                  style="top: 8px; right: 8px"
+                >
                   <q-btn
                     round
                     flat
@@ -156,7 +159,11 @@
                       floating
                       rounded
                     />
-                    <q-tooltip>Share Wallet (Shared with [[walletShares.shares.length]] user<span v-if="walletShares.shares.length !== 1">s</span>)</q-tooltip>
+                    <q-tooltip
+                      >Share Wallet (Shared with [[walletShares.shares.length]]
+                      user<span v-if="walletShares.shares.length !== 1">s</span
+                      >)</q-tooltip
+                    >
                   </q-btn>
                 </div>
                 <q-btn
