@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from lnbits.db import Connection
 from lnbits.helpers import urlsafe_short_hash
@@ -93,7 +94,7 @@ async def get_wallet_share(
     Returns:
         WalletShare object or None if not found
     """
-    row = await conn.fetchone(
+    row: dict | None = await conn.fetchone(
         "SELECT * FROM wallet_shares WHERE id = :share_id",
         {"share_id": share_id},
     )
@@ -114,8 +115,12 @@ async def get_wallet_shares(
     Returns:
         List of WalletShare objects
     """
-    rows = await conn.fetchall(
-        "SELECT * FROM wallet_shares WHERE wallet_id = :wallet_id ORDER BY shared_at DESC",
+    rows: list[dict] = await conn.fetchall(
+        """
+        SELECT * FROM wallet_shares
+        WHERE wallet_id = :wallet_id
+        ORDER BY shared_at DESC
+        """,
         {"wallet_id": wallet_id},
     )
     return [WalletShare(**row) for row in rows]
@@ -135,7 +140,7 @@ async def get_user_shared_wallets(
     Returns:
         List of WalletShare objects for wallets shared with this user
     """
-    rows = await conn.fetchall(
+    rows: list[dict] = await conn.fetchall(
         """
         SELECT
             ws.*,
@@ -149,9 +154,9 @@ async def get_user_shared_wallets(
         """,
         {"user_id": user_id},
     )
-    shares = []
+    shares: list[WalletShare] = []
     for row in rows:
-        row_dict = dict(row)
+        row_dict: dict[str, Any] = dict(row)
         # Extract and remove the extra fields that aren't part of WalletShare model
         wallet_name = row_dict.pop("wallet_name", None)
         shared_by_username = row_dict.pop("shared_by_username", None)
@@ -228,7 +233,7 @@ async def check_wallet_share_permission(
     Returns:
         True if user has the permission, False otherwise
     """
-    row = await conn.fetchone(
+    row: dict | None = await conn.fetchone(
         """
         SELECT permissions FROM wallet_shares
         WHERE wallet_id = :wallet_id AND user_id = :user_id AND accepted = TRUE
@@ -238,7 +243,7 @@ async def check_wallet_share_permission(
     if not row:
         return False
 
-    permissions = row["permissions"]
+    permissions: int = row["permissions"]
     return bool(permissions & permission)
 
 
@@ -256,7 +261,7 @@ async def get_wallet_share_count(
     Returns:
         Number of shares for this wallet
     """
-    row = await conn.fetchone(
+    row: dict | None = await conn.fetchone(
         "SELECT COUNT(*) as count FROM wallet_shares WHERE wallet_id = :wallet_id",
         {"wallet_id": wallet_id},
     )
