@@ -748,7 +748,8 @@ async def m034_add_stored_paylinks_to_wallet(db: Connection):
 async def m035_shared_wallets(db: Connection):
     """
     Creates wallet_shares table for shared wallet functionality.
-    Allows multiple users to collaboratively manage a single wallet with configurable permissions.
+    Allows multiple users to collaboratively manage a single wallet
+    with configurable permissions.
     """
     await db.execute(
         f"""

@@ -2,7 +2,8 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from lnbits import db
+from lnbits.core.db import db
+from lnbits.core.crud import get_account
 from lnbits.core.crud.wallets import get_wallet
 from lnbits.core.models import User
 from lnbits.core.models.wallet_shares import (
@@ -23,9 +24,7 @@ from ..crud.wallet_shares import (
     update_wallet_share_permissions,
 )
 
-wallet_shares_router = APIRouter(
-    prefix="/api/v1/wallet_shares", tags=["Wallet Shares"]
-)
+wallet_shares_router = APIRouter(prefix="/api/v1/wallet_shares", tags=["Wallet Shares"])
 
 
 @wallet_shares_router.post("/{wallet_id}")
@@ -41,9 +40,7 @@ async def api_create_wallet_share(
     # Verify wallet exists and user owns it
     wallet = await get_wallet(wallet_id)
     if not wallet:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found"
-        )
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
 
     if wallet.user != user.id:
         raise HTTPException(
@@ -58,18 +55,44 @@ async def api_create_wallet_share(
             detail="Cannot share wallet with yourself",
         )
 
+    # Verify the recipient user exists (try as username first, then as ID)
+    from lnbits.core.crud import get_account_by_username
+
+    recipient = await get_account_by_username(data.user_id)
+    if not recipient:
+        # Try as user ID instead
+        recipient = await get_account(data.user_id)
+
+    if not recipient:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"User '{data.user_id}' not found",
+        )
+
+    # Use the actual user ID from the account, not the input (which might be username)
+    share_data = CreateWalletShare(user_id=recipient.id, permissions=data.permissions)
+
     async with db.connect() as conn:
-        try:
-            share = await create_wallet_share(conn, wallet_id, data, user.id)
+        # Check if wallet is already shared with this user
+        from ..crud.wallet_shares import get_wallet_shares
+
+        existing_shares = await get_wallet_shares(conn, wallet_id)
+        existing_share = next(
+            (s for s in existing_shares if s.user_id == recipient.id), None
+        )
+
+        if existing_share:
+            # Update permissions on existing share
+            from ..crud.wallet_shares import update_wallet_share_permissions
+
+            updated_share = await update_wallet_share_permissions(
+                conn, existing_share.id, UpdateWalletSharePermissions(permissions=share_data.permissions)
+            )
+            return updated_share
+        else:
+            # Create new share
+            share = await create_wallet_share(conn, wallet_id, share_data, user.id)
             return share
-        except Exception as e:
-            # Handle unique constraint violation (wallet already shared with user)
-            if "UNIQUE" in str(e) or "unique" in str(e):
-                raise HTTPException(
-                    status_code=HTTPStatus.CONFLICT,
-                    detail="Wallet already shared with this user",
-                )
-            raise
 
 
 @wallet_shares_router.get("/{wallet_id}")
@@ -84,9 +107,7 @@ async def api_get_wallet_shares(
     # Verify wallet exists and user owns it
     wallet = await get_wallet(wallet_id)
     if not wallet:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found"
-        )
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
 
     if wallet.user != user.id:
         raise HTTPException(

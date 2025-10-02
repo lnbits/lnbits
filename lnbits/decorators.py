@@ -21,9 +21,7 @@ from lnbits.core.crud import (
 from lnbits.core.crud.users import get_user_access_control_lists
 from lnbits.core.crud.wallet_shares import (
     check_wallet_share_permission,
-    get_user_shared_wallets,
 )
-from lnbits.core.models.wallet_shares import WalletSharePermission
 from lnbits.core.models import (
     AccessTokenPayload,
     Account,
@@ -32,6 +30,7 @@ from lnbits.core.models import (
     User,
     WalletTypeInfo,
 )
+from lnbits.core.models.wallet_shares import WalletSharePermission
 from lnbits.db import Connection, Filter, Filters, TFilterModel
 from lnbits.helpers import normalize_path, path_segments
 from lnbits.settings import AuthMethods, settings
