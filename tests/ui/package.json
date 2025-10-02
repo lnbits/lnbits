@@ -1,0 +1,21 @@
+{
+  "name": "lnbits-wallet-sharing-tests",
+  "version": "1.0.0",
+  "description": "UI tests for LNbits wallet sharing functionality",
+  "main": "index.js",
+  "scripts": {
+    "test": "node crud/create-share.js && node crud/read-shares.js && node crud/update-share.js && node crud/delete-share.js"
+  },
+  "keywords": [
+    "lnbits",
+    "wallet",
+    "sharing",
+    "playwright",
+    "testing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.40.0"
+  }
+}
