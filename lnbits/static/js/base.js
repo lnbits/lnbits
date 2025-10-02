@@ -494,6 +494,8 @@ window.windowMixin = {
       bgimageChoice: this.$q.localStorage.has('lnbits.backgroundImage')
         ? this.$q.localStorage.getItem('lnbits.backgroundImage')
         : USE_DEFAULT_BGIMAGE,
+      pendingShares: [],
+      showShareInvitationsDialog: false,
       ...WINDOW_SETTINGS
     }
   },
@@ -748,6 +750,98 @@ window.windowMixin = {
       this.$router.push('/temp').then(() => {
         this.$router.replace({path})
       })
+    },
+    async loadPendingShares() {
+      if (!this.g.user) {
+        this.pendingShares = []
+        return
+      }
+
+      try {
+        const response = await axios.get('/api/v1/wallet_shares/shared/me')
+        this.pendingShares = response.data.filter(share => !share.accepted)
+        console.log('Loaded pending shares:', this.pendingShares.length)
+      } catch (error) {
+        console.error('Failed to load pending shares:', error.response?.data || error.message)
+        this.pendingShares = []
+      }
+    },
+    openShareInvitationsDialog() {
+      console.log('Opening share invitations dialog')
+      console.log('Current showShareInvitationsDialog value:', this.showShareInvitationsDialog)
+      this.loadPendingShares()
+      this.showShareInvitationsDialog = true
+      console.log('After setting to true:', this.showShareInvitationsDialog)
+      // Force Vue to update
+      this.$nextTick(() => {
+        console.log('After nextTick:', this.showShareInvitationsDialog)
+      })
+    },
+    async acceptShare(share_id) {
+      try {
+        await axios.post(`/api/v1/wallet_shares/accept/${share_id}`)
+        this.$q.notify({
+          type: 'positive',
+          message: 'Wallet share accepted successfully',
+          timeout: 3000
+        })
+        // Reload user data to get the new wallet in the list
+        const userResponse = await axios.get('/api/v1/auth')
+        if (userResponse.data) {
+          this.g.user = Vue.reactive(LNbits.map.user(userResponse.data))
+          this.paymentEvents()
+        }
+        // Refresh pending shares
+        await this.loadPendingShares()
+        // Close dialog if no more pending shares
+        if (this.pendingShares.length === 0) {
+          this.showShareInvitationsDialog = false
+        }
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
+    },
+    async declineShare(share_id) {
+      try {
+        await axios.delete(`/api/v1/wallet_shares/${share_id}`)
+        this.$q.notify({
+          type: 'info',
+          message: 'Wallet share declined',
+          timeout: 3000
+        })
+        // Refresh pending shares
+        await this.loadPendingShares()
+        // Close dialog if no more pending shares
+        if (this.pendingShares.length === 0) {
+          this.showShareInvitationsDialog = false
+        }
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
+    },
+    getPermissionLabel(permissions) {
+      if (!permissions) {
+        console.warn('No permissions object provided')
+        return 'No permissions set'
+      }
+
+      // If permissions is a string, try to parse it
+      if (typeof permissions === 'string') {
+        try {
+          permissions = JSON.parse(permissions)
+        } catch (e) {
+          console.error('Failed to parse permissions:', e)
+          return 'Invalid permissions'
+        }
+      }
+
+      const labels = []
+      if (permissions.can_view) labels.push('View')
+      if (permissions.can_create_invoice) labels.push('Create Invoice')
+      if (permissions.can_pay_invoice) labels.push('Pay Invoice')
+
+      console.log('Permissions:', permissions, 'Labels:', labels)
+      return labels.length > 0 ? labels.join(', ') : 'View only'
     }
   },
   async created() {
@@ -802,6 +896,7 @@ window.windowMixin = {
   mounted() {
     if (this.g.user) {
       this.paymentEvents()
+      this.loadPendingShares()
     }
   }
 }
