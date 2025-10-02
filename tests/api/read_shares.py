@@ -6,37 +6,40 @@ This test retrieves and displays wallet shares using the REST API
 
 import asyncio
 import os
+
 import httpx
 from loguru import logger
+
 
 # Load config from .env.local
 def load_config():
     config = {}
-    env_path = os.path.join(os.path.dirname(__file__), '../../.env.local')
+    env_path = os.path.join(os.path.dirname(__file__), "../../.env.local")
 
     if os.path.exists(env_path):
-        with open(env_path, 'r') as f:
+        with open(env_path) as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
                     config[key.strip()] = value.strip()
 
     return {
-        'base_url': config.get('TEST_LNBITS_URL', os.getenv('TEST_LNBITS_URL')),
-        'admin_key': config.get('TEST_ADMIN_API_KEY', os.getenv('TEST_ADMIN_API_KEY')),
-        'wallet_id': config.get('TEST_WALLET_ID', os.getenv('TEST_WALLET_ID'))
+        "base_url": config.get("TEST_LNBITS_URL", os.getenv("TEST_LNBITS_URL")),
+        "admin_key": config.get("TEST_ADMIN_API_KEY", os.getenv("TEST_ADMIN_API_KEY")),
+        "wallet_id": config.get("TEST_WALLET_ID", os.getenv("TEST_WALLET_ID")),
     }
 
-async def test_read_shares():
+
+async def test_read_shares():  # noqa: C901
     """Test reading wallet shares"""
     config = load_config()
 
-    if not config['admin_key']:
+    if not config["admin_key"]:
         logger.error("❌ TEST_ADMIN_API_KEY must be set in .env.local")
         return False
 
-    if not config['wallet_id']:
+    if not config["wallet_id"]:
         logger.error("❌ TEST_WALLET_ID must be set in .env.local")
         return False
 
@@ -49,7 +52,7 @@ async def test_read_shares():
         logger.info("📝 Fetching wallet shares...")
         response = await client.get(
             f"{config['base_url']}/api/v1/wallet_shares/{config['wallet_id']}",
-            headers={'X-Api-Key': config['admin_key']}
+            headers={"X-Api-Key": config["admin_key"]},
         )
 
         if response.status_code != 200:
@@ -78,17 +81,22 @@ async def test_read_shares():
 
                 # Decode permissions
                 perms = []
-                if share['permissions'] & 1: perms.append('VIEW')
-                if share['permissions'] & 2: perms.append('CREATE_INVOICE')
-                if share['permissions'] & 4: perms.append('PAY_INVOICE')
-                if share['permissions'] & 8: perms.append('MANAGE_SHARES')
+                if share["permissions"] & 1:
+                    perms.append("VIEW")
+                if share["permissions"] & 2:
+                    perms.append("CREATE_INVOICE")
+                if share["permissions"] & 4:
+                    perms.append("PAY_INVOICE")
+                if share["permissions"] & 8:
+                    perms.append("MANAGE_SHARES")
                 logger.info(f"    Permission flags: {', '.join(perms)}")
         else:
-            logger.info("ℹ️  No shares found for this wallet")
+            logger.info("No shares found for this wallet")
 
         logger.info("\n🎉 SUCCESS! Shares read successfully!")
         return True
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     success = asyncio.run(test_read_shares())
     exit(0 if success else 1)
