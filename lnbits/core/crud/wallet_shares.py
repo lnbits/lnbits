@@ -126,7 +126,7 @@ async def get_user_shared_wallets(
     user_id: str,
 ) -> list[WalletShare]:
     """
-    Get all wallets shared with a specific user.
+    Get all wallets shared with a specific user, including wallet name and sharer info.
 
     Args:
         conn: Database connection
@@ -136,10 +136,36 @@ async def get_user_shared_wallets(
         List of WalletShare objects for wallets shared with this user
     """
     rows = await conn.fetchall(
-        "SELECT * FROM wallet_shares WHERE user_id = :user_id ORDER BY shared_at DESC",
+        """
+        SELECT
+            ws.*,
+            w.name as wallet_name,
+            a.username as shared_by_username
+        FROM wallet_shares ws
+        LEFT JOIN wallets w ON ws.wallet_id = w.id
+        LEFT JOIN accounts a ON ws.shared_by = a.id
+        WHERE ws.user_id = :user_id
+        ORDER BY ws.shared_at DESC
+        """,
         {"user_id": user_id},
     )
-    return [WalletShare(**row) for row in rows]
+    shares = []
+    for row in rows:
+        row_dict = dict(row)
+        # Extract and remove the extra fields that aren't part of WalletShare model
+        wallet_name = row_dict.pop("wallet_name", None)
+        shared_by_username = row_dict.pop("shared_by_username", None)
+
+        # Create WalletShare object with base fields
+        share = WalletShare(**row_dict)
+
+        # Add extra display fields as attributes
+        share.wallet_name = wallet_name
+        share.shared_by_username = shared_by_username
+
+        shares.append(share)
+
+    return shares
 
 
 async def update_wallet_share_permissions(
