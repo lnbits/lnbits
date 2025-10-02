@@ -306,7 +306,8 @@ async def check_wallet_shared_permission(
 ) -> bool:
     """
     Check if a user has access to a wallet through sharing.
-    This checks if the wallet is shared with the user and they have the required permission.
+    This checks if the wallet is shared with the user and they have the
+    required permission.
 
     Args:
         wallet_id: ID of the wallet to check
@@ -317,7 +318,7 @@ async def check_wallet_shared_permission(
     Returns:
         True if user has the permission through a share, False otherwise
     """
-    from lnbits import db
+    from lnbits.core.db import db
 
     async with db.connect() as local_conn:
         connection = conn or local_conn
