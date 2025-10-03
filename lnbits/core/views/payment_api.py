@@ -7,6 +7,7 @@ from fastapi import (
     Header,
     HTTPException,
     Query,
+    Request,
 )
 from fastapi.responses import JSONResponse
 from lnurl import url_decode
@@ -37,6 +38,7 @@ from lnbits.db import Filters, Page
 from lnbits.decorators import (
     WalletTypeInfo,
     check_user_exists,
+    check_wallet_payment_permission,
     parse_filters,
     require_admin_key,
     require_invoice_key,
@@ -234,10 +236,14 @@ async def api_all_payments_paginated(
 )
 async def api_payments_create(
     invoice_data: CreateInvoice,
+    request: Request,
     wallet: WalletTypeInfo = Depends(require_invoice_key),
 ) -> Payment:
     wallet_id = wallet.wallet.id
     if invoice_data.out is True and wallet.key_type == KeyType.admin:
+        # Check if user has permission to pay invoices on shared wallets
+        await check_wallet_payment_permission(wallet, request, "pay_invoice")
+
         if not invoice_data.bolt11:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
@@ -255,6 +261,10 @@ async def api_payments_create(
             status_code=HTTPStatus.FORBIDDEN,
             detail="Invoice (or Admin) key required.",
         )
+
+    # Check if user has permission to create invoices on shared wallets
+    if request:
+        await check_wallet_payment_permission(wallet, request, "create_invoice")
 
     # If the payment is not outgoing, we can create a new invoice.
     return await create_payment_request(wallet_id, invoice_data)

@@ -3,8 +3,7 @@ const path = require('path')
 const {
   login,
   getConfig,
-  getAdminApiKey,
-  getWalletId
+  getWalletsFromStorage
 } = require('../auth-helper')
 
 /**
@@ -40,18 +39,30 @@ const {
     console.log('📝 Step 1: Logging in as admin...')
     await login(page)
 
-    // Step 2: Navigate to wallet page
-    console.log('📝 Step 2: Navigating to wallet page...')
+    // Step 2: Check user has a wallet via UI
+    console.log('📝 Step 2: Checking user has a wallet...')
     await page.goto(`${config.baseUrl}/wallet`)
-    await page.waitForTimeout(3000)
+    await page.waitForTimeout(2000)
 
-    // Get wallet ID and API key
-    const walletId = await getWalletId(page)
-    const adminKey = await getAdminApiKey(page)
+    // Count wallet items in UI
+    const walletCount = await page
+      .locator('.q-drawer .q-list .q-item')
+      .filter({hasNot: page.locator('text=Add a new wallet')})
+      .count()
 
-    if (!walletId || !adminKey) {
-      throw new Error('Could not get wallet ID or admin key')
+    if (walletCount === 0) {
+      throw new Error(
+        'No wallets found in UI. Please run create-wallet.js first.'
+      )
     }
+
+    console.log(`✅ User has ${walletCount} wallet(s)`)
+
+    // Get wallet data from localStorage for API calls
+    const wallets = await getWalletsFromStorage(page)
+    const existingWallet = wallets[0]
+    const walletId = existingWallet.id
+    const adminKey = existingWallet.adminkey
 
     console.log(`✅ Using wallet ID: ${walletId}`)
 
@@ -68,14 +79,48 @@ const {
       throw new Error(`Failed to get shares: ${response.status()}`)
     }
 
-    const shares = await response.json()
-    const initialCount = Array.isArray(shares) ? shares.length : 0
+    let shares = await response.json()
+    let initialCount = Array.isArray(shares) ? shares.length : 0
 
     console.log(`📊 Initial share count: ${initialCount}`)
 
+    // If no shares exist, create one first
     if (initialCount === 0) {
-      console.log('⚠️ No shares found to delete. Please create a share first.')
-      process.exit(0)
+      console.log('⚠️ No shares found. Creating one first...')
+      const shareWithUser = config.secondaryUsername
+      if (!shareWithUser) {
+        throw new Error('LNBITS_SECONDARY_USERNAME must be set in .env.local')
+      }
+
+      const createResponse = await page.request.post(
+        `${config.baseUrl}/api/v1/wallet_shares/${walletId}`,
+        {
+          headers: {
+            'X-Api-Key': adminKey,
+            'Content-Type': 'application/json'
+          },
+          data: JSON.stringify({
+            user_id: shareWithUser,
+            permissions: 1
+          })
+        }
+      )
+
+      if (!createResponse.ok()) {
+        throw new Error(`Failed to create share: ${createResponse.status()}`)
+      }
+
+      console.log('✅ Created test share')
+
+      // Re-fetch shares
+      const refetchResponse = await page.request.get(
+        `${config.baseUrl}/api/v1/wallet_shares/${walletId}`,
+        {
+          headers: {'X-Api-Key': adminKey}
+        }
+      )
+      shares = await refetchResponse.json()
+      initialCount = Array.isArray(shares) ? shares.length : 0
     }
 
     const shareToDelete = shares[0]
@@ -112,9 +157,10 @@ const {
       }
     )
 
+    let finalCount = 0
     if (verifyResponse.ok()) {
       const updatedShares = await verifyResponse.json()
-      const finalCount = Array.isArray(updatedShares) ? updatedShares.length : 0
+      finalCount = Array.isArray(updatedShares) ? updatedShares.length : 0
 
       console.log(`📊 Final share count: ${finalCount}`)
       console.log(`📉 Count change: ${finalCount - initialCount}`)
@@ -136,7 +182,8 @@ const {
       console.log('\n📝 Step 6: Testing UI deletion...')
 
       // Open Share Wallet dialog
-      const shareButton = page.locator('button:has-text("Share Wallet")')
+      // The Share Wallet button is a round button with group icon in top right
+      const shareButton = page.locator('button.text-deep-purple i.material-icons:has-text("group")').locator('..')
       if (await shareButton.isVisible({timeout: 5000})) {
         await shareButton.click()
         await page.waitForTimeout(2000)

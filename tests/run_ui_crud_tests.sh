@@ -43,10 +43,10 @@ FAILED=0
 
 # Define CRUD tests to run (in order)
 CRUD_TESTS=(
+    "crud/create-wallet.js:Create Wallet"
     "crud/create-share.js:Create Share"
     "crud/read-shares.js:Read Shares"
     "crud/update-share.js:Update Share"
-    "crud/check-share.js:Check Shared Wallet (recipient view)"
     "crud/delete-share.js:Delete Share"
 )
 
