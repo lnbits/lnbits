@@ -408,13 +408,27 @@
                       >
                       </q-avatar>
                       <div
-                        class="text-h6 q-pl-md ellipsis"
-                        style="max-width: 80%"
-                        :class="{
-              'text-bold': g.wallet && g.wallet.id === wallet.id
-            }"
-                        v-text="wallet.name"
-                      ></div>
+                        class="q-pl-md row items-center no-wrap"
+                        style="flex: 1; min-width: 0"
+                      >
+                        <span
+                          class="text-h6 ellipsis"
+                          :class="{
+                'text-bold': g.wallet && g.wallet.id === wallet.id
+              }"
+                          v-text="wallet.name"
+                        ></span>
+                        <q-icon
+                          v-if="wallet.is_shared === true"
+                          name="group"
+                          size="sm"
+                          color="grey-6"
+                          class="q-ml-xs"
+                          style="flex-shrink: 0"
+                        >
+                          <q-tooltip>Shared wallet</q-tooltip>
+                        </q-icon>
+                      </div>
                     </div>
                     <div class="row items-center q-pt-sm">
                       <h6 class="q-my-none ellipsis full-width">
