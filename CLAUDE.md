@@ -42,11 +42,17 @@ poetry run pytest tests/unit/test_helpers.py::test_encode_strict_zbase32 -v
 npm install
 npm run bundle
 
-# Note: Uvicorn --reload only watches Python files, not JS or templates
-# After changing JS files or Jinja2 templates, you must:
-# 1. Run `npm run bundle` to rebuild JS bundles
-# 2. Restart the server to pick up template changes
-# 3. Clear browser cache or use cache buster in URL
+# Development workflow with auto-reload:
+# 1. Start the server with --reload in a SEPARATE terminal window:
+#    uv run lnbits --reload
+#    This auto-reloads Python changes, but NOT JS/template changes
+#
+# 2. After changing JS files: run `npm run bundle` (server will pick it up)
+# 3. After changing Jinja2 templates (.html): restart the server manually
+# 4. Clear browser cache or use cache buster in URL if changes don't appear
+#
+# Note: Keep the server running in its own terminal so you can see logs
+# and Python changes reload automatically
 
 # Database migration (SQLite to PostgreSQL)
 poetry run python tools/conv.py
