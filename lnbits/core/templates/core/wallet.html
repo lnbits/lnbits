@@ -159,7 +159,10 @@
                       floating
                       rounded
                     />
-                    <q-tooltip
+                    <q-tooltip v-if="g.wallet.is_shared && !canManageShares()">
+                      Shared wallet - click to leave
+                    </q-tooltip>
+                    <q-tooltip v-else
                       >Share Wallet (Shared with [[walletShares.shares.length]]
                       user<span v-if="walletShares.shares.length !== 1">s</span
                       >)</q-tooltip
@@ -189,21 +192,35 @@
                 class="q-mr-md"
                 @click="showParseDialog"
                 :label="$t('paste_request')"
-              ></q-btn>
+                :disable="!canPayInvoice()"
+              >
+                <q-tooltip v-if="!canPayInvoice()">
+                  You don't have permission to pay invoices from this wallet
+                </q-tooltip>
+              </q-btn>
               <q-btn
                 unelevated
                 color="primary"
                 class="q-mr-md"
                 @click="showReceiveDialog"
                 :label="$t('create_invoice')"
-              ></q-btn>
+                :disable="!canCreateInvoice()"
+              >
+                <q-tooltip v-if="!canCreateInvoice()">
+                  You don't have permission to create invoices for this wallet
+                </q-tooltip>
+              </q-btn>
               <q-btn
                 unelevated
                 color="secondary"
                 icon="qr_code_scanner"
                 @click="showCamera"
+                :disable="!canPayInvoice()"
               >
-                <q-tooltip
+                <q-tooltip v-if="!canPayInvoice()">
+                  You don't have permission to pay invoices from this wallet
+                </q-tooltip>
+                <q-tooltip v-else
                   ><span v-text="$t('camera_tooltip')"></span
                 ></q-tooltip>
               </q-btn>
@@ -1407,7 +1424,7 @@
       <!-- Wallet Shares Dialog -->
       <q-dialog v-model="walletShares.show" position="top">
         <q-card class="q-pa-lg" style="min-width: 500px">
-          <!-- If this wallet is shared WITH current user (not owner) -->
+          <!-- If this wallet is shared WITH current user AND they don't have MANAGE_SHARES -->
           <div v-if="g.wallet.is_shared && !(g.wallet.share_permissions & 8)">
             <h5 class="q-my-sm">Shared Wallet</h5>
             <q-card-section>
@@ -1480,8 +1497,19 @@
                     <span v-text="share.username || share.user_id"></span>
                   </q-item-label>
                   <q-item-label caption>
-                    <span>Permissions: </span>
-                    <span v-text="getPermissionLabel(share.permissions)"></span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span>Permissions: </span>
+                      <q-select
+                        v-model="share.permissions"
+                        :options="walletShares.permissionOptions"
+                        dense
+                        borderless
+                        emit-value
+                        map-options
+                        @update:model-value="updateSharePermissions(share)"
+                        style="min-width: 150px;"
+                      />
+                    </div>
                   </q-item-label>
                   <q-item-label caption>
                     <span>Shared: </span>
@@ -1510,6 +1538,27 @@
             </p>
           </q-card-section>
 
+          <!-- If this is a shared wallet AND user has MANAGE_SHARES, show Leave option -->
+          <div v-if="g.wallet.is_shared">
+            <q-separator class="q-my-md"></q-separator>
+
+            <q-card-section>
+              <h6 class="q-my-sm">Leave Wallet</h6>
+              <p class="text-grey">
+                This wallet has been shared with you. You can remove yourself from this shared wallet.
+              </p>
+              <q-btn
+                unelevated
+                color="negative"
+                @click="confirmLeaveWallet"
+                label="Leave Wallet"
+                icon="exit_to_app"
+              >
+                <q-tooltip>Remove this wallet from your account</q-tooltip>
+              </q-btn>
+            </q-card-section>
+          </div>
+
           <div class="row q-mt-lg">
             <q-btn
               v-close-popup
@@ -1520,7 +1569,7 @@
             ></q-btn>
           </div>
           </div>
-          <!-- End owner section -->
+          <!-- End owner/manage section -->
         </q-card>
       </q-dialog>
 
