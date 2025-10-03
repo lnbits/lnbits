@@ -221,9 +221,170 @@ async function getWalletId(page) {
   }
 }
 
+/**
+ * Create a test wallet via API
+ * @param {Page} page - Playwright page object (for making API requests)
+ * @param {string} existingAdminKey - Admin key from an existing wallet to use for creation
+ * @param {string} walletName - Name for the new wallet (optional)
+ * @returns {Object} Wallet object with id and adminkey
+ */
+async function createTestWallet(page, existingAdminKey, walletName = null) {
+  const config = getConfig()
+  // Generate random 10-character wallet name
+  const randomName = Array.from({length: 10}, () =>
+    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt(
+      Math.floor(Math.random() * 62)
+    )
+  ).join('')
+  const name = walletName || `test_${randomName}`
+
+  try {
+    console.log(`📝 Creating test wallet: ${name}`)
+    const response = await page.request.post(
+      `${config.baseUrl}/api/v1/wallet`,
+      {
+        headers: {
+          'X-Api-Key': existingAdminKey,
+          'Content-Type': 'application/json'
+        },
+        data: {name}
+      }
+    )
+
+    if (response.ok()) {
+      const wallet = await response.json()
+      console.log(`✅ Test wallet created: ${wallet.id}`)
+      return wallet
+    } else {
+      const text = await response.text()
+      console.log(`❌ Failed to create wallet: ${response.status()} ${text}`)
+      return null
+    }
+  } catch (error) {
+    console.log('⚠️ Error creating test wallet:', error.message)
+    return null
+  }
+}
+
+/**
+ * Get user's wallets via API (using session authentication)
+ * @param {Page} page - Playwright page object
+ * @returns {Array} Array of wallet objects
+ */
+async function getWalletsFromStorage(page) {
+  try {
+    const config = getConfig()
+
+    // Fetch wallets from API using session cookie
+    const response = await page.request.get(
+      `${config.baseUrl}/api/v1/wallet/paginated`,
+      {
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    )
+
+    if (response.ok()) {
+      const data = await response.json()
+      if (data && data.data && Array.isArray(data.data)) {
+        return data.data
+      }
+    }
+
+    return []
+  } catch (error) {
+    console.log('⚠️ Error getting wallets from API:', error.message)
+    return []
+  }
+}
+
+/**
+ * Ensure user has at least one wallet by creating one via API if needed
+ * @param {Page} page - Playwright page object
+ * @returns {Object} Wallet object with id and adminkey
+ */
+async function ensureWalletExists(page) {
+  const config = getConfig()
+
+  // Check if user already has wallets in localStorage
+  let wallets = await getWalletsFromStorage(page)
+
+  if (wallets && wallets.length > 0) {
+    console.log(`✅ Found ${wallets.length} existing wallet(s)`)
+    return wallets[0]
+  }
+
+  console.log('⚠️  No wallets found, creating one via API...')
+
+  // Generate random 10-character wallet name
+  const randomName = Array.from({length: 10}, () =>
+    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt(
+      Math.floor(Math.random() * 62)
+    )
+  ).join('')
+  const walletName = `test_${randomName}`
+
+  try {
+    // Use page.evaluate to make the API call with session cookies
+    const result = await page.evaluate(
+      async ({baseUrl, name}) => {
+        try {
+          const response = await fetch(`${baseUrl}/api/v1/wallet`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({name}),
+            credentials: 'include' // Include session cookies
+          })
+
+          if (response.ok) {
+            const wallet = await response.json()
+            return {success: true, wallet}
+          } else {
+            const text = await response.text()
+            return {
+              success: false,
+              error: `${response.status} ${text}`
+            }
+          }
+        } catch (error) {
+          return {success: false, error: error.message}
+        }
+      },
+      {baseUrl: config.baseUrl, name: walletName}
+    )
+
+    if (result.success) {
+      console.log(`✅ Created wallet via API: ${result.wallet.id}`)
+
+      // Reload page to refresh localStorage with new wallet
+      await page.reload()
+      await page.waitForTimeout(2000)
+
+      // Get updated wallets from storage
+      wallets = await getWalletsFromStorage(page)
+      if (wallets && wallets.length > 0) {
+        return wallets[0]
+      }
+
+      // Fallback: return the wallet we just created
+      return result.wallet
+    } else {
+      throw new Error(`Failed to create wallet: ${result.error}`)
+    }
+  } catch (error) {
+    throw new Error(`Could not create wallet: ${error.message}`)
+  }
+}
+
 module.exports = {
   login,
   getConfig,
   getAdminApiKey,
-  getWalletId
+  getWalletId,
+  createTestWallet,
+  getWalletsFromStorage,
+  ensureWalletExists
 }
