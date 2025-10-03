@@ -179,8 +179,30 @@ async def get_user(user_id: str, conn: Connection | None = None) -> User | None:
 async def get_user_from_account(
     account: Account, conn: Connection | None = None
 ) -> User | None:
+    from ..crud.wallet_shares import get_user_shared_wallets
+    from ..crud.wallets import get_wallet
+
     extensions = await get_user_active_extensions_ids(account.id, conn)
-    wallets = await get_wallets(account.id, False, conn=conn)
+    # Get owned wallets
+    owned_wallets = await get_wallets(account.id, False, conn=conn)
+
+    # Get shared wallets
+    shared_wallet_shares = await get_user_shared_wallets(conn or db, account.id)
+
+    # Fetch actual wallet objects for accepted shares and add share metadata
+    shared_wallets = []
+    for share in shared_wallet_shares:
+        if share.accepted:  # Only include accepted shares
+            wallet = await get_wallet(share.wallet_id, conn=conn)
+            if wallet and not wallet.deleted:
+                # Add share metadata to the wallet object
+                wallet.is_shared = True
+                wallet.share_permissions = share.permissions
+                shared_wallets.append(wallet)
+
+    # Merge owned and shared wallets
+    all_wallets = owned_wallets + shared_wallets
+
     return User(
         id=account.id,
         email=account.email,
@@ -191,7 +213,7 @@ async def get_user_from_account(
         created_at=account.created_at,
         updated_at=account.updated_at,
         extensions=extensions,
-        wallets=wallets,
+        wallets=all_wallets,
         admin=account.is_admin,
         super_user=account.is_super_user,
         fiat_providers=account.fiat_providers,
