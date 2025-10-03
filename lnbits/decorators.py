@@ -223,55 +223,74 @@ async def check_wallet_payment_permission(
     from lnbits.core.db import db
     from lnbits.core.models.wallet_shares import WalletSharePermission
 
-    # Owner always has permission
+    # First check if this wallet is shared at all
+    async with db.connect() as conn:
+        shares = await get_wallet_shares(conn, wallet_info.wallet.id)
+        active_shares = [s for s in shares if s.accepted and not s.left_at]
+
+        # If wallet is not shared, allow operation (no permission check needed)
+        if not active_shares:
+            return
+
+    # Wallet is shared - require session authentication to determine user identity
     access_token = await check_access_token(
         header_access_token=request.headers.get("Authorization"),
         cookie_access_token=request.cookies.get("cookie_access_token"),
         bearer_access_token=None,
     )
 
-    if access_token:
-        account = await _get_account_from_token(
-            access_token, request["path"], request["method"]
+    if not access_token:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="This wallet is shared. Session authentication required for payments.",
         )
-        # If user is the owner, they can do anything
-        if account and account.id == wallet_info.wallet.user:
-            return
 
-        # User is not the owner, check if they have a share with appropriate permissions
-        if account:
-            async with db.connect() as conn:
-                shares = await get_wallet_shares(conn, wallet_info.wallet.id)
-                user_share = next(
-                    (
-                        s
-                        for s in shares
-                        if s.user_id == account.id and s.accepted and not s.left_at
-                    ),
-                    None,
+    account = await _get_account_from_token(
+        access_token, request["path"], request["method"]
+    )
+
+    if not account:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Could not verify user identity",
+        )
+
+    # If user is the owner, they can do anything
+    if account.id == wallet_info.wallet.user:
+        return
+
+    # User is not the owner, check if they have a share with appropriate permissions
+    async with db.connect() as conn:
+        user_share = next(
+            (
+                s
+                for s in active_shares
+                if s.user_id == account.id
+            ),
+            None,
+        )
+
+        if not user_share:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                detail="You do not have access to this wallet",
+            )
+
+        # Check specific permission
+        if operation == "create_invoice":
+            if not (
+                user_share.permissions & WalletSharePermission.CREATE_INVOICE
+            ):
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN,
+                    detail="You do not have permission to create invoices",
                 )
-
-                if not user_share:
-                    raise HTTPException(
-                        status_code=HTTPStatus.FORBIDDEN,
-                        detail="You do not have access to this wallet",
-                    )
-
-                # Check specific permission
-                if operation == "create_invoice":
-                    if not (
-                        user_share.permissions & WalletSharePermission.CREATE_INVOICE
-                    ):
-                        raise HTTPException(
-                            status_code=HTTPStatus.FORBIDDEN,
-                            detail="You do not have permission to create invoices",
-                        )
-                elif operation == "pay_invoice":
-                    if not (user_share.permissions & WalletSharePermission.PAY_INVOICE):
-                        raise HTTPException(
-                            status_code=HTTPStatus.FORBIDDEN,
-                            detail="You do not have permission to pay invoices",
-                        )
+        elif operation == "pay_invoice":
+            if not (user_share.permissions & WalletSharePermission.PAY_INVOICE):
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN,
+                    detail="You do not have permission to pay invoices",
+                )
 
 
 async def check_access_token(
