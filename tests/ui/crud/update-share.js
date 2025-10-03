@@ -1,10 +1,6 @@
 const {chromium} = require('playwright')
 const path = require('path')
-const {
-  login,
-  getConfig,
-  getWalletsFromStorage
-} = require('../auth-helper')
+const {login, getConfig, getWalletsFromStorage} = require('../auth-helper')
 
 /**
  * Test: Update wallet share permissions
