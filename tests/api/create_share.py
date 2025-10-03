@@ -92,7 +92,8 @@ async def test_create_share():
             logger.error(f"   Response: {response.text}")
             return False
 
-        created_share = response.json()
+        response_data = response.json()
+        created_share = response_data.get('share', response_data)
         logger.info("✅ Share created successfully!")
         logger.info(f"   ID: {created_share['id']}")
         logger.info(
