@@ -280,7 +280,7 @@ async function getWalletsFromStorage(page) {
       `${config.baseUrl}/api/v1/wallet/paginated`,
       {
         headers: {
-          'Accept': 'application/json'
+          Accept: 'application/json'
         }
       }
     )

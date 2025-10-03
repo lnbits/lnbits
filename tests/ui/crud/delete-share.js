@@ -1,10 +1,6 @@
 const {chromium} = require('playwright')
 const path = require('path')
-const {
-  login,
-  getConfig,
-  getWalletsFromStorage
-} = require('../auth-helper')
+const {login, getConfig, getWalletsFromStorage} = require('../auth-helper')
 
 /**
  * Test: Delete wallet share (revoke access)
@@ -183,7 +179,9 @@ const {
 
       // Open Share Wallet dialog
       // The Share Wallet button is a round button with group icon in top right
-      const shareButton = page.locator('button.text-deep-purple i.material-icons:has-text("group")').locator('..')
+      const shareButton = page
+        .locator('button.text-deep-purple i.material-icons:has-text("group")')
+        .locator('..')
       if (await shareButton.isVisible({timeout: 5000})) {
         await shareButton.click()
         await page.waitForTimeout(2000)

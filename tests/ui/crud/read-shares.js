@@ -90,7 +90,9 @@ const {
     // Step 4: Verify UI shows shares
     console.log('\n📝 Step 4: Checking UI for Share Wallet button...')
     // The Share Wallet button is a round button with group icon in top right
-    const shareButton = page.locator('button.text-deep-purple i.material-icons:has-text("group")').locator('..')
+    const shareButton = page
+      .locator('button.text-deep-purple i.material-icons:has-text("group")')
+      .locator('..')
 
     if (await shareButton.isVisible({timeout: 5000})) {
       await shareButton.click()
