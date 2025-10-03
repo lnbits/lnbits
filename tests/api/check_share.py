@@ -45,7 +45,7 @@ async def test_check_shared_wallet():  # noqa: C901
 
     if not config["recipient_key"]:
         logger.warning("⚠️  TEST_RECIPIENT_API_KEY not set - skipping check_share test")
-        logger.info("   This test requires a second user's API key to verify shared wallet access")
+        logger.info("   This test requires a second user's API key to verify access")
         return True  # Return success to not fail the test suite
 
     if not config["wallet_id"]:
