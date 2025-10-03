@@ -801,7 +801,10 @@ window.windowMixin = {
     },
     async acceptShare(share_id) {
       try {
-        await axios.post(`/api/v1/wallet_shares/accept/${share_id}`)
+        // Use session-based authentication (cookies)
+        await axios.post(`/api/v1/wallet_shares/accept/${share_id}`, {}, {
+          withCredentials: true
+        })
         this.$q.notify({
           type: 'positive',
           message: 'Wallet share accepted successfully',
@@ -825,7 +828,10 @@ window.windowMixin = {
     },
     async declineShare(share_id) {
       try {
-        await axios.delete(`/api/v1/wallet_shares/${share_id}`)
+        // Use session-based authentication (cookies)
+        await axios.post(`/api/v1/wallet_shares/decline/${share_id}`, {}, {
+          withCredentials: true
+        })
         this.$q.notify({
           type: 'info',
           message: 'Wallet share declined',
