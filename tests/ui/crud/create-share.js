@@ -82,7 +82,7 @@ const {
     }
 
     const walletId = testWallet.id
-    const adminKey = testWallet.adminkey ||  testWallet.inkey
+    const adminKey = testWallet.adminkey || testWallet.inkey
 
     console.log(`✅ Using test wallet ID: ${walletId}`)
 
@@ -114,7 +114,9 @@ const {
     // Step 5: Open Share Wallet dialog
     console.log('📝 Step 5: Opening Share Wallet dialog...')
     // The Share Wallet button is a round button with group icon in top right
-    const shareButton = page.locator('button.text-deep-purple i.material-icons:has-text("group")').locator('..')
+    const shareButton = page
+      .locator('button.text-deep-purple i.material-icons:has-text("group")')
+      .locator('..')
 
     if (await shareButton.isVisible({timeout: 5000})) {
       await shareButton.click()
