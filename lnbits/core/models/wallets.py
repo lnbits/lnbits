@@ -40,6 +40,9 @@ class Wallet(BaseModel):
     balance_msat: int = Field(default=0, no_database=True)
     extra: WalletExtra = WalletExtra()
     stored_paylinks: StoredPayLinks = StoredPayLinks()
+    # Share metadata (populated when wallet is accessed via share)
+    is_shared: bool = Field(default=False, no_database=True)
+    share_permissions: int = Field(default=0, no_database=True)
 
     @property
     def balance(self) -> int:
