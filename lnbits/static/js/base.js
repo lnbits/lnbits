@@ -212,9 +212,15 @@ window.LNbits = {
           return mapWallet(obj)
         })
         .sort((a, b) => {
+          // Sort owned wallets before shared wallets
+          if (a.is_shared !== b.is_shared) {
+            return a.is_shared ? 1 : -1
+          }
+          // Then by pinned status
           if (a.extra.pinned !== b.extra.pinned) {
             return a.extra.pinned ? -1 : 1
           }
+          // Finally by name
           return a.name.localeCompare(b.name)
         })
       obj.walletOptions = obj.wallets.map(obj => {
@@ -230,20 +236,22 @@ window.LNbits = {
       return obj
     },
     wallet(data) {
-      newWallet = {
+      const newWallet = {
         id: data.id,
         name: data.name,
         adminkey: data.adminkey,
         inkey: data.inkey,
         currency: data.currency,
-        extra: data.extra
+        extra: data.extra,
+        is_shared: data.is_shared || false,
+        share_permissions: data.share_permissions || 0,
+        msat: data.balance_msat,
+        sat: Math.floor(data.balance_msat / 1000),
+        fsat: new Intl.NumberFormat(window.LOCALE).format(
+          Math.floor(data.balance_msat / 1000)
+        ),
+        url: `/wallet?&wal=${data.id}`
       }
-      newWallet.msat = data.balance_msat
-      newWallet.sat = Math.floor(data.balance_msat / 1000)
-      newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(
-        newWallet.sat
-      )
-      newWallet.url = `/wallet?&wal=${data.id}`
       return newWallet
     },
     payment(data) {
@@ -760,7 +768,6 @@ window.windowMixin = {
       try {
         const response = await axios.get('/api/v1/wallet_shares/shared/me')
         this.pendingShares = response.data.filter(share => !share.accepted)
-        console.log('Loaded pending shares:', this.pendingShares.length)
       } catch (error) {
         console.error(
           'Failed to load pending shares:',

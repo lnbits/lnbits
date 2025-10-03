@@ -179,6 +179,12 @@ async def get_user(user_id: str, conn: Connection | None = None) -> User | None:
 async def get_user_from_account(
     account: Account, conn: Connection | None = None
 ) -> User | None:
+    """
+    Get user object with all wallets (owned + shared).
+
+    Wallets shared WITH this user will have is_shared=True.
+    Wallets owned by this user will have is_shared=False (even if shared with others).
+    """
     from ..crud.wallet_shares import get_user_shared_wallets
     from ..crud.wallets import get_wallet
 
@@ -195,7 +201,7 @@ async def get_user_from_account(
         if share.accepted:  # Only include accepted shares
             wallet = await get_wallet(share.wallet_id, conn=conn)
             if wallet and not wallet.deleted:
-                # Add share metadata to the wallet object
+                # Mark this wallet as shared WITH current user
                 wallet.is_shared = True
                 wallet.share_permissions = share.permissions
                 shared_wallets.append(wallet)

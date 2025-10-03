@@ -32,13 +32,23 @@
         >
         </q-avatar>
       </q-item-section>
-      <q-item-section
-        style="max-width: 100px"
-        class="q-my-none ellipsis full-width"
-      >
-        <q-item-label lines="1"
-          ><span v-text="walletRec.name"></span
-        ></q-item-label>
+      <q-item-section class="q-my-none">
+        <q-item-label lines="1" class="row items-center no-wrap">
+          <span
+            class="ellipsis"
+            style="max-width: 80px"
+            v-text="walletRec.name"
+          ></span>
+          <q-icon
+            v-if="walletRec.is_shared === true"
+            name="group"
+            size="xs"
+            color="grey-6"
+            class="q-ml-xs"
+          >
+            <q-tooltip>Shared wallet</q-tooltip>
+          </q-icon>
+        </q-item-label>
         <q-item-label class="q-my-none ellipsis full-width" caption>
           <strong v-text="formatBalance(walletRec.sat)"></strong>
         </q-item-label>

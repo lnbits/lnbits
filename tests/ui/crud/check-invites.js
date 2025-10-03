@@ -9,13 +9,19 @@
  * 4. The shared wallet appears in the wallet list
  */
 
-const {chromium} = require('playwright')
+const {chromium, firefox} = require('playwright')
 const {login, getConfig} = require('../auth-helper')
 const path = require('path')
 
 async function checkAndAcceptShare() {
   const config = getConfig()
-  const browser = await chromium.launch({headless: false})
+
+  // Support browser selection via env var: BROWSER=firefox node check-share.js
+  const browserType = process.env.BROWSER || 'chromium'
+  const browserEngine = browserType === 'firefox' ? firefox : chromium
+
+  console.log(`🌐 Launching ${browserType} browser...`)
+  const browser = await browserEngine.launch({headless: false})
   const context = await browser.newContext()
   const page = await context.newPage()
 
