@@ -242,7 +242,7 @@ async def check_wallet_payment_permission(
     if not access_token:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
-            detail="This wallet is shared. Session authentication required for payments.",
+            detail="Shared wallet requires session authentication.",
         )
 
     account = await _get_account_from_token(
@@ -262,11 +262,7 @@ async def check_wallet_payment_permission(
     # User is not the owner, check if they have a share with appropriate permissions
     async with db.connect() as conn:
         user_share = next(
-            (
-                s
-                for s in active_shares
-                if s.user_id == account.id
-            ),
+            (s for s in active_shares if s.user_id == account.id),
             None,
         )
 
@@ -278,9 +274,7 @@ async def check_wallet_payment_permission(
 
         # Check specific permission
         if operation == "create_invoice":
-            if not (
-                user_share.permissions & WalletSharePermission.CREATE_INVOICE
-            ):
+            if not (user_share.permissions & WalletSharePermission.CREATE_INVOICE):
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN,
                     detail="You do not have permission to create invoices",
