@@ -3,8 +3,8 @@ const path = require('path')
 const {
   login,
   getConfig,
-  getAdminApiKey,
-  getWalletId
+  createTestWallet,
+  ensureWalletExists
 } = require('../auth-helper')
 
 /**
@@ -26,23 +26,28 @@ const {
     console.log('📝 Step 1: Logging in as admin...')
     await login(page)
 
-    // Step 2: Navigate to wallet page
-    console.log('📝 Step 2: Navigating to wallet page...')
+    // Step 2: Ensure user has a wallet
+    console.log('📝 Step 2: Ensuring user has a wallet...')
     await page.goto(`${config.baseUrl}/wallet`)
-    await page.waitForTimeout(3000)
+    await page.waitForTimeout(2000)
 
-    // Get wallet ID and API key
-    const walletId = await getWalletId(page)
-    const adminKey = await getAdminApiKey(page)
+    const existingWallet = await ensureWalletExists(page)
+    const existingAdminKey = existingWallet.adminkey
 
-    if (!walletId) {
-      throw new Error('Could not get wallet ID')
+    // Step 3: Create a fresh test wallet via API
+    console.log('📝 Step 3: Creating fresh test wallet via API...')
+    const testWallet = await createTestWallet(page, existingAdminKey)
+    if (!testWallet) {
+      throw new Error('Failed to create test wallet')
     }
 
-    console.log(`✅ Using wallet ID: ${walletId}`)
+    const walletId = testWallet.id
+    const adminKey = testWallet.adminkey
 
-    // Step 3: Read shares via API
-    console.log('📝 Step 3: Reading shares via API...')
+    console.log(`✅ Using test wallet ID: ${walletId}`)
+
+    // Step 4: Read shares via API
+    console.log('📝 Step 4: Reading shares via API...')
     if (adminKey) {
       try {
         const response = await page.request.get(
@@ -84,7 +89,8 @@ const {
 
     // Step 4: Verify UI shows shares
     console.log('\n📝 Step 4: Checking UI for Share Wallet button...')
-    const shareButton = page.locator('button:has-text("Share Wallet")')
+    // The Share Wallet button is a round button with group icon in top right
+    const shareButton = page.locator('button.text-deep-purple i.material-icons:has-text("group")').locator('..')
 
     if (await shareButton.isVisible({timeout: 5000})) {
       await shareButton.click()
