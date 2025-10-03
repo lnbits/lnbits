@@ -37,7 +37,7 @@ async def api_create_wallet_share(
     wallet_id: str,
     data: CreateWalletShare,
     wallet: WalletTypeInfo = Depends(require_admin_key),
-) -> WalletShare:
+) -> dict:
     """
     Share a wallet with another user.
     Only the wallet owner can share their wallet.
@@ -47,13 +47,6 @@ async def api_create_wallet_share(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             detail="Admin key does not match wallet ID",
-        )
-
-    # Don't allow sharing with self
-    if data.user_id == wallet.wallet.user:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Cannot share wallet with yourself",
         )
 
     # Verify the recipient user exists (try as username first, then as ID)
@@ -70,34 +63,36 @@ async def api_create_wallet_share(
             detail=f"User '{data.user_id}' not found",
         )
 
+    # Don't allow sharing with self (check after resolving username to user ID)
+    if recipient.id == wallet.wallet.user:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Cannot share wallet with yourself",
+        )
+
     # Use the actual user ID from the account, not the input (which might be username)
     share_data = CreateWalletShare(user_id=recipient.id, permissions=data.permissions)
 
     async with db.connect() as conn:
-        # Check if wallet is already shared with this user
+        # Check if wallet is already shared with this user (and they haven't left)
         from ..crud.wallet_shares import get_wallet_shares
 
         existing_shares = await get_wallet_shares(conn, wallet_id)
         existing_share = next(
-            (s for s in existing_shares if s.user_id == recipient.id), None
+            (s for s in existing_shares if s.user_id == recipient.id and not s.left_at), None
         )
 
         if existing_share:
-            # Update permissions on existing share
-            from ..crud.wallet_shares import update_wallet_share_permissions
-
-            updated_share = await update_wallet_share_permissions(
-                conn,
-                existing_share.id,
-                UpdateWalletSharePermissions(permissions=share_data.permissions),
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                detail=f"Wallet is already shared with this user. Edit their permissions in the Current Shares section.",
             )
-            return updated_share
         else:
-            # Create new share
+            # Create new share (or re-share if they previously left)
             share = await create_wallet_share(
                 conn, wallet_id, share_data, wallet.wallet.user
             )
-            return share
+            return {"share": share, "created": True}
 
 
 @wallet_shares_router.get("/{wallet_id}")
@@ -170,6 +165,32 @@ async def api_accept_wallet_share(
 
         updated_share = await accept_wallet_share(conn, share_id)
         return updated_share
+
+
+@wallet_shares_router.post("/decline/{share_id}")
+async def api_decline_wallet_share(
+    share_id: str,
+    user: User = Depends(check_user_exists),
+) -> dict:
+    """
+    Decline a wallet share invitation.
+    Only the recipient can decline their own invitation.
+    """
+    async with db.connect() as conn:
+        share = await get_wallet_share(conn, share_id)
+        if not share:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="Share not found"
+            )
+
+        if share.user_id != user.id:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                detail="Only the recipient can decline this share",
+            )
+
+        await delete_wallet_share(conn, share_id)
+        return {"success": True, "message": "Share declined successfully"}
 
 
 @wallet_shares_router.post("/leave/{wallet_id}")
