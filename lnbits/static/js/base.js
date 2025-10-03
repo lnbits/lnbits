@@ -151,6 +151,15 @@ window.LNbits = {
         window.location = url
       })
     },
+    leaveWallet(wallet) {
+      return this.request('post', `/api/v1/wallet_shares/leave/${wallet.id}`).then(
+        _ => {
+          let url = new URL(window.location.href)
+          url.searchParams.delete('wal')
+          window.location = url
+        }
+      )
+    },
     getPayments(wallet, params) {
       return this.request(
         'get',

@@ -1407,11 +1407,44 @@
       <!-- Wallet Shares Dialog -->
       <q-dialog v-model="walletShares.show" position="top">
         <q-card class="q-pa-lg" style="min-width: 500px">
-          <h5 class="q-my-sm">Share Wallet</h5>
+          <!-- If this wallet is shared WITH current user (not owner) -->
+          <div v-if="g.wallet.is_shared && !(g.wallet.share_permissions & 8)">
+            <h5 class="q-my-sm">Shared Wallet</h5>
+            <q-card-section>
+              <p>
+                This wallet has been shared with you by another user. You have
+                the following permissions:
+              </p>
+              <p><strong v-text="getPermissionLabel(g.wallet.share_permissions)"></strong></p>
+              <q-btn
+                unelevated
+                color="negative"
+                @click="confirmLeaveWallet"
+                label="Leave Wallet"
+                icon="exit_to_app"
+                class="q-mt-md"
+              >
+                <q-tooltip>Remove this wallet from your account</q-tooltip>
+              </q-btn>
+            </q-card-section>
+            <div class="row q-mt-lg">
+              <q-btn
+                v-close-popup
+                flat
+                color="grey"
+                class="q-ml-auto"
+                label="Close"
+              ></q-btn>
+            </div>
+          </div>
 
-          <!-- Share Wallet Form -->
-          <q-card-section>
-            <h6 class="q-my-sm">Share with New User</h6>
+          <!-- If user is the owner OR has MANAGE_SHARES permission, show share management -->
+          <div v-else>
+            <h5 class="q-my-sm">Share Wallet</h5>
+
+            <!-- Share Wallet Form -->
+            <q-card-section>
+              <h6 class="q-my-sm">Share with New User</h6>
             <q-input
               v-model="walletShares.newShare.user_id"
               label="LNbits Username or User ID"
@@ -1486,6 +1519,8 @@
               label="Close"
             ></q-btn>
           </div>
+          </div>
+          <!-- End owner section -->
         </q-card>
       </q-dialog>
 

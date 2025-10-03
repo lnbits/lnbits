@@ -25,6 +25,7 @@ class WalletShare(BaseModel):
     shared_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     accepted: bool = False
     accepted_at: datetime | None = None
+    left_at: datetime | None = None  # When user left the share
     username: str | None = Field(default=None)  # Optional: populated by API for display
     wallet_name: str | None = Field(default=None)  # Optional: wallet name for display
     shared_by_username: str | None = Field(

@@ -19,6 +19,7 @@ from ..crud.wallet_shares import (
     get_user_shared_wallets,
     get_wallet_share,
     get_wallet_shares,
+    leave_wallet_share,
     update_wallet_share_permissions,
 )
 
@@ -169,6 +170,36 @@ async def api_accept_wallet_share(
 
         updated_share = await accept_wallet_share(conn, share_id)
         return updated_share
+
+
+@wallet_shares_router.post("/leave/{wallet_id}")
+async def api_leave_wallet_share(
+    wallet_id: str,
+    user: User = Depends(check_user_exists),
+) -> dict:
+    """
+    Leave a shared wallet.
+    Only the user who has access to the shared wallet can leave it.
+    """
+    async with db.connect() as conn:
+        # Verify the user has a share for this wallet
+        shares = await get_wallet_shares(conn, wallet_id)
+        user_share = next((s for s in shares if s.user_id == user.id), None)
+
+        if not user_share:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail="You do not have access to this wallet",
+            )
+
+        if user_share.left_at:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="You have already left this wallet",
+            )
+
+        await leave_wallet_share(conn, wallet_id, user.id)
+        return {"success": True, "message": "Successfully left shared wallet"}
 
 
 @wallet_shares_router.put("/{share_id}")

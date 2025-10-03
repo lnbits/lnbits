@@ -1231,6 +1231,18 @@ window.WalletPageLogic = {
             })
         })
     },
+    confirmLeaveWallet() {
+      this.$q
+        .dialog({
+          title: 'Leave Shared Wallet',
+          message:
+            'Are you sure you want to leave this shared wallet? You will lose access to it.',
+          cancel: true
+        })
+        .onOk(() => {
+          LNbits.api.leaveWallet(this.g.wallet)
+        })
+    },
     getPermissionLabel(permissions) {
       const option = this.walletShares.permissionOptions.find(
         opt => opt.value === permissions
