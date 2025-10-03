@@ -152,13 +152,14 @@ window.LNbits = {
       })
     },
     leaveWallet(wallet) {
-      return this.request('post', `/api/v1/wallet_shares/leave/${wallet.id}`).then(
-        _ => {
-          let url = new URL(window.location.href)
-          url.searchParams.delete('wal')
-          window.location = url
-        }
-      )
+      return this.request(
+        'post',
+        `/api/v1/wallet_shares/leave/${wallet.id}`
+      ).then(_ => {
+        let url = new URL(window.location.href)
+        url.searchParams.delete('wal')
+        window.location = url
+      })
     },
     getPayments(wallet, params) {
       return this.request(
@@ -802,9 +803,13 @@ window.windowMixin = {
     async acceptShare(share_id) {
       try {
         // Use session-based authentication (cookies)
-        await axios.post(`/api/v1/wallet_shares/accept/${share_id}`, {}, {
-          withCredentials: true
-        })
+        await axios.post(
+          `/api/v1/wallet_shares/accept/${share_id}`,
+          {},
+          {
+            withCredentials: true
+          }
+        )
         this.$q.notify({
           type: 'positive',
           message: 'Wallet share accepted successfully',
@@ -829,9 +834,13 @@ window.windowMixin = {
     async declineShare(share_id) {
       try {
         // Use session-based authentication (cookies)
-        await axios.post(`/api/v1/wallet_shares/decline/${share_id}`, {}, {
-          withCredentials: true
-        })
+        await axios.post(
+          `/api/v1/wallet_shares/decline/${share_id}`,
+          {},
+          {
+            withCredentials: true
+          }
+        )
         this.$q.notify({
           type: 'info',
           message: 'Wallet share declined',
