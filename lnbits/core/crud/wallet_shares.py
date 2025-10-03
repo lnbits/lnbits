@@ -80,6 +80,33 @@ async def accept_wallet_share(
     return share
 
 
+async def leave_wallet_share(
+    conn: Connection,
+    wallet_id: str,
+    user_id: str,
+) -> None:
+    """
+    Leave a shared wallet (marks share as left with timestamp).
+
+    Args:
+        conn: Database connection
+        wallet_id: ID of the wallet to leave
+        user_id: ID of the user leaving the share
+    """
+    await conn.execute(
+        """
+        UPDATE wallet_shares
+        SET left_at = :left_at
+        WHERE wallet_id = :wallet_id AND user_id = :user_id
+        """,
+        {
+            "left_at": datetime.now(timezone.utc),
+            "wallet_id": wallet_id,
+            "user_id": user_id,
+        },
+    )
+
+
 async def get_wallet_share(
     conn: Connection,
     share_id: str,
@@ -132,6 +159,7 @@ async def get_user_shared_wallets(
 ) -> list[WalletShare]:
     """
     Get all wallets shared with a specific user, including wallet name and sharer info.
+    Excludes shares that have been left (left_at is not null).
 
     Args:
         conn: Database connection
@@ -149,7 +177,7 @@ async def get_user_shared_wallets(
         FROM wallet_shares ws
         LEFT JOIN wallets w ON ws.wallet_id = w.id
         LEFT JOIN accounts a ON ws.shared_by = a.id
-        WHERE ws.user_id = :user_id
+        WHERE ws.user_id = :user_id AND ws.left_at IS NULL
         ORDER BY ws.shared_at DESC
         """,
         {"user_id": user_id},

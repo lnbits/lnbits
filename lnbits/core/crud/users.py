@@ -193,7 +193,11 @@ async def get_user_from_account(
     owned_wallets = await get_wallets(account.id, False, conn=conn)
 
     # Get shared wallets
-    shared_wallet_shares = await get_user_shared_wallets(conn or db, account.id)
+    if conn:
+        shared_wallet_shares = await get_user_shared_wallets(conn, account.id)
+    else:
+        async with db.connect() as temp_conn:
+            shared_wallet_shares = await get_user_shared_wallets(temp_conn, account.id)
 
     # Fetch actual wallet objects for accepted shares and add share metadata
     shared_wallets = []
