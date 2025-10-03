@@ -38,9 +38,15 @@ make test-regtest     # Regtest tests only
 # Run a single test
 poetry run pytest tests/unit/test_helpers.py::test_encode_strict_zbase32 -v
 
-# Build frontend bundle
+# Build frontend bundle (required after JS/template changes)
 npm install
 npm run bundle
+
+# Note: Uvicorn --reload only watches Python files, not JS or templates
+# After changing JS files or Jinja2 templates, you must:
+# 1. Run `npm run bundle` to rebuild JS bundles
+# 2. Restart the server to pick up template changes
+# 3. Clear browser cache or use cache buster in URL
 
 # Database migration (SQLite to PostgreSQL)
 poetry run python tools/conv.py
