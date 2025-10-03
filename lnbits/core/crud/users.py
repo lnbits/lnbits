@@ -246,4 +246,3 @@ async def get_user_access_control_lists(
     )
 
     return user_acls or UserAcls(id=user_id)
-

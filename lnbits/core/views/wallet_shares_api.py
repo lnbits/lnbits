@@ -79,13 +79,17 @@ async def api_create_wallet_share(
 
         existing_shares = await get_wallet_shares(conn, wallet_id)
         existing_share = next(
-            (s for s in existing_shares if s.user_id == recipient.id and not s.left_at), None
+            (s for s in existing_shares if s.user_id == recipient.id and not s.left_at),
+            None,
         )
 
         if existing_share:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT,
-                detail=f"Wallet is already shared with this user. Edit their permissions in the Current Shares section.",
+                detail=(
+                    "Wallet is already shared with this user. "
+                    "Edit their permissions in the Current Shares section."
+                ),
             )
         else:
             # Create new share (or re-share if they previously left)
