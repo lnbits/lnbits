@@ -153,7 +153,7 @@
                     size="md"
                   >
                     <q-badge
-                      v-if="walletShares.shares && walletShares.shares.length > 0"
+                      v-if="(!g.wallet.is_shared || canManageShares()) && walletShares.shares && walletShares.shares.length > 0"
                       :label="walletShares.shares.length"
                       color="deep-purple"
                       floating
