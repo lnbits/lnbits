@@ -6,6 +6,8 @@ This test creates a new wallet share with another user using the REST API
 
 import asyncio
 import os
+import secrets
+import string
 
 import httpx
 from loguru import logger
@@ -42,20 +44,36 @@ async def test_create_share():
         logger.error("❌ TEST_ADMIN_API_KEY must be set in .env.local")
         return False
 
-    if not config["wallet_id"]:
-        logger.error("❌ TEST_WALLET_ID must be set in .env.local")
-        return False
-
     if not config["secondary_username"]:
         logger.error("❌ LNBITS_SECONDARY_USERNAME must be set in .env.local")
         return False
 
     logger.info("🚀 Starting create wallet share API test...")
     logger.info(f"📍 Base URL: {config['base_url']}")
-    logger.info(f"📍 Wallet ID: {config['wallet_id']}")
     logger.info(f"👤 Sharing with: {config['secondary_username']}")
 
     async with httpx.AsyncClient() as client:
+        # Step 0: Always create a fresh test wallet for this test
+        random_name = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
+        logger.info("📝 Step 0: Creating fresh test wallet...")
+        response = await client.post(
+            f"{config['base_url']}/api/v1/wallet",
+            headers={"X-Api-Key": config["admin_key"]},
+            json={"name": f"test_{random_name}"},
+        )
+
+        if response.status_code not in [200, 201]:
+            logger.error(f"❌ Failed to create test wallet: {response.status_code}")
+            logger.error(f"   Response: {response.text}")
+            return False
+
+        wallet_data = response.json()
+        wallet_id = wallet_data["id"]
+        admin_key = wallet_data["adminkey"]
+        logger.info(f"✅ Created fresh test wallet: {wallet_id}")
+
+        config["wallet_id"] = wallet_id
+        config["admin_key"] = admin_key
         # Step 1: Get initial share count
         logger.info("📝 Step 1: Getting initial share count...")
         response = await client.get(
