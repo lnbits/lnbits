@@ -271,6 +271,7 @@
                 >
                 </q-avatar>
                 <q-btn
+                  v-if="!g.wallet.is_shared"
                   @click="icon.show = true"
                   round
                   color="grey-5"
@@ -279,7 +280,7 @@
                   icon="edit"
                   style="position: relative; left: -15px; bottom: -10px"
                 ></q-btn>
-                <div class="text-subtitle1 q-mt-none q-mb-none">
+                <div class="text-subtitle1 q-mt-none q-mb-none" :class="{'q-ml-md': g.wallet.is_shared}">
                   {{ SITE_TITLE }} Wallet:
                   <strong><em v-text="g.wallet.name"></em></strong>
                 </div>
@@ -465,6 +466,7 @@
                 </q-expansion-item>
                 <q-separator></q-separator>
                 <q-expansion-item
+                  v-if="!g.wallet.is_shared"
                   group="extras"
                   icon="settings"
                   :label="$t('wallet_config')"
