@@ -280,7 +280,10 @@
                   icon="edit"
                   style="position: relative; left: -15px; bottom: -10px"
                 ></q-btn>
-                <div class="text-subtitle1 q-mt-none q-mb-none" :class="{'q-ml-md': g.wallet.is_shared}">
+                <div
+                  class="text-subtitle1 q-mt-none q-mb-none"
+                  :class="{'q-ml-md': g.wallet.is_shared}"
+                >
                   {{ SITE_TITLE }} Wallet:
                   <strong><em v-text="g.wallet.name"></em></strong>
                 </div>
@@ -1434,7 +1437,11 @@
                 This wallet has been shared with you by another user. You have
                 the following permissions:
               </p>
-              <p><strong v-text="getPermissionLabel(g.wallet.share_permissions)"></strong></p>
+              <p>
+                <strong
+                  v-text="getPermissionLabel(g.wallet.share_permissions)"
+                ></strong>
+              </p>
               <q-btn
                 unelevated
                 color="negative"
@@ -1509,51 +1516,59 @@
                 <q-card-section>
                   <h6 class="q-my-sm">Current Shares</h6>
                   <q-list v-if="walletShares.shares.length > 0">
-              <q-item v-for="share in walletShares.shares" :key="share.id">
-                <q-item-section>
-                  <q-item-label>
-                    <span>User: </span>
-                    <span v-text="share.username || share.user_id"></span>
-                  </q-item-label>
-                  <q-item-label caption>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <span>Permissions: </span>
-                      <q-select
-                        v-model="share.permissions"
-                        :options="walletShares.permissionOptions"
-                        dense
-                        borderless
-                        emit-value
-                        map-options
-                        @update:model-value="updateSharePermissions(share)"
-                        style="min-width: 150px;"
-                      />
-                    </div>
-                  </q-item-label>
-                  <q-item-label caption>
-                    <span>Shared: </span>
-                    <span v-text="formatShareDate(share.shared_at)"></span>
-                  </q-item-label>
-                  <q-item-label caption>
-                    <span v-if="share.accepted">Status: Accepted</span>
-                    <span v-else>Status: Pending</span>
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-btn
-                    flat
-                    round
-                    color="negative"
-                    icon="delete"
-                    @click="deleteWalletShare(share.id)"
-                  >
-                    <q-tooltip>Revoke Access</q-tooltip>
-                  </q-btn>
-                </q-item-section>
-              </q-item>
+                    <q-item
+                      v-for="share in walletShares.shares"
+                      :key="share.id"
+                    >
+                      <q-item-section>
+                        <q-item-label>
+                          <span>User: </span>
+                          <span v-text="share.username || share.user_id"></span>
+                        </q-item-label>
+                        <q-item-label caption>
+                          <div
+                            style="display: flex; align-items: center; gap: 8px"
+                          >
+                            <span>Permissions: </span>
+                            <q-select
+                              v-model="share.permissions"
+                              :options="walletShares.permissionOptions"
+                              dense
+                              borderless
+                              emit-value
+                              map-options
+                              @update:model-value="updateSharePermissions(share)"
+                              style="min-width: 150px"
+                            />
+                          </div>
+                        </q-item-label>
+                        <q-item-label caption>
+                          <span>Shared: </span>
+                          <span
+                            v-text="formatShareDate(share.shared_at)"
+                          ></span>
+                        </q-item-label>
+                        <q-item-label caption>
+                          <span v-if="share.accepted">Status: Accepted</span>
+                          <span v-else>Status: Pending</span>
+                        </q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <q-btn
+                          flat
+                          round
+                          color="negative"
+                          icon="delete"
+                          @click="deleteWalletShare(share.id)"
+                        >
+                          <q-tooltip>Revoke Access</q-tooltip>
+                        </q-btn>
+                      </q-item-section>
+                    </q-item>
                   </q-list>
                   <p v-else class="text-grey">
-                    No shares yet. Share this wallet with other users in the "Share Wallet" tab.
+                    No shares yet. Share this wallet with other users in the
+                    "Share Wallet" tab.
                   </p>
                 </q-card-section>
               </q-tab-panel>
@@ -1566,7 +1581,8 @@
               <q-card-section>
                 <h6 class="q-my-sm">Leave Wallet</h6>
                 <p class="text-grey">
-                  This wallet has been shared with you. You can remove yourself from this shared wallet.
+                  This wallet has been shared with you. You can remove yourself
+                  from this shared wallet.
                 </p>
                 <q-btn
                   unelevated

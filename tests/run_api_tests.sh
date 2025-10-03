@@ -38,10 +38,11 @@ fi
 
 # Define test files
 API_TESTS=(
-    "./api/create-share.py:Create Share"
-    "./api/read-shares.py:Read Shares"
-    "./api/update-share.py:Update Share"
-    "./api/delete-share.py:Delete Share"
+    "./api/create_share.py:Create Share"
+    "./api/read_shares.py:Read Shares"
+    "./api/update_share.py:Update Share"
+    "./api/delete_share.py:Delete Share"
+    "./api/check_share.py:Check Share"
 )
 
 PASSED=0
