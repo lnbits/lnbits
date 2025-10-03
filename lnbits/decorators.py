@@ -140,6 +140,140 @@ async def require_invoice_key(
     return await check(request)
 
 
+async def require_wallet_owner(
+    request: Request,
+    api_key_header: str = Security(api_key_header),
+    api_key_query: str = Security(api_key_query),
+) -> WalletTypeInfo:
+    """
+    Ensures the request is made by the wallet owner (not a shared user).
+    This should be used for operations that only the owner can perform,
+    such as changing wallet settings, icon, name, or managing API keys.
+
+    This decorator requires BOTH:
+    1. A valid admin key for the wallet
+    2. The request to be made by an authenticated user who owns the wallet
+
+    This prevents shared users from using the admin key to modify wallet settings.
+    """
+    from lnbits.core.crud.wallet_shares import get_wallet_shares
+    from lnbits.core.db import db
+
+    # First verify it's a valid admin key
+    check: KeyChecker = KeyChecker(
+        api_key=api_key_header or api_key_query,
+        expected_key_type=KeyType.admin,
+    )
+    wallet_info = await check(request)
+
+    # Check if this wallet has any active shares
+    async with db.connect() as conn:
+        shares = await get_wallet_shares(conn, wallet_info.wallet.id)
+        active_shares = [s for s in shares if s.accepted and not s.left_at]
+
+        # If wallet is shared, verify the user is the owner, not a shared user
+        if active_shares:
+            # Get the user making the request from the session
+            access_token = await check_access_token(
+                header_access_token=request.headers.get("Authorization"),
+                cookie_access_token=request.cookies.get("cookie_access_token"),
+                bearer_access_token=None,
+            )
+
+            if not access_token:
+                # No session token means API-only access with admin key
+                # For shared wallets, require session auth for owner-only ops
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN,
+                    detail=(
+                        "This wallet is shared. Owner-only operations require "
+                        "authentication via browser session."
+                    ),
+                )
+
+            account = await _get_account_from_token(
+                access_token, request["path"], request["method"]
+            )
+            if not account or account.id != wallet_info.wallet.user:
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN,
+                    detail="Only the wallet owner can perform this operation",
+                )
+
+    return wallet_info
+
+
+async def check_wallet_payment_permission(
+    wallet_info: WalletTypeInfo,
+    request: Request,
+    operation: str,  # "create_invoice" or "pay_invoice"
+) -> None:
+    """
+    Check if a user has permission to perform payment operations on a shared wallet.
+
+    Args:
+        wallet_info: Wallet and key type information
+        request: The HTTP request
+        operation: Either "create_invoice" or "pay_invoice"
+
+    Raises:
+        HTTPException: If the user doesn't have the required permission
+    """
+    from lnbits.core.crud.wallet_shares import get_wallet_shares
+    from lnbits.core.db import db
+    from lnbits.core.models.wallet_shares import WalletSharePermission
+
+    # Owner always has permission
+    access_token = await check_access_token(
+        header_access_token=request.headers.get("Authorization"),
+        cookie_access_token=request.cookies.get("cookie_access_token"),
+        bearer_access_token=None,
+    )
+
+    if access_token:
+        account = await _get_account_from_token(
+            access_token, request["path"], request["method"]
+        )
+        # If user is the owner, they can do anything
+        if account and account.id == wallet_info.wallet.user:
+            return
+
+        # User is not the owner, check if they have a share with appropriate permissions
+        if account:
+            async with db.connect() as conn:
+                shares = await get_wallet_shares(conn, wallet_info.wallet.id)
+                user_share = next(
+                    (
+                        s
+                        for s in shares
+                        if s.user_id == account.id and s.accepted and not s.left_at
+                    ),
+                    None,
+                )
+
+                if not user_share:
+                    raise HTTPException(
+                        status_code=HTTPStatus.FORBIDDEN,
+                        detail="You do not have access to this wallet",
+                    )
+
+                # Check specific permission
+                if operation == "create_invoice":
+                    if not (
+                        user_share.permissions & WalletSharePermission.CREATE_INVOICE
+                    ):
+                        raise HTTPException(
+                            status_code=HTTPStatus.FORBIDDEN,
+                            detail="You do not have permission to create invoices",
+                        )
+                elif operation == "pay_invoice":
+                    if not (user_share.permissions & WalletSharePermission.PAY_INVOICE):
+                        raise HTTPException(
+                            status_code=HTTPStatus.FORBIDDEN,
+                            detail="You do not have permission to pay invoices",
+                        )
+
+
 async def check_access_token(
     header_access_token: Annotated[str | None, Depends(oauth2_scheme)],
     cookie_access_token: Annotated[str | None, Cookie()] = None,

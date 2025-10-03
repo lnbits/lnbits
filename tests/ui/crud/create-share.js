@@ -3,8 +3,8 @@ const path = require('path')
 const {
   login,
   getConfig,
-  getAdminApiKey,
-  getWalletId
+  createTestWallet,
+  getWalletsFromStorage
 } = require('../auth-helper')
 
 /**
@@ -49,23 +49,49 @@ const {
     console.log('📝 Step 1: Logging in as admin...')
     await login(page)
 
-    // Step 2: Navigate to wallet page
-    console.log('📝 Step 2: Navigating to wallet page...')
+    // Step 2: Check user has a wallet via UI
+    console.log('📝 Step 2: Checking user has a wallet...')
     await page.goto(`${config.baseUrl}/wallet`)
-    await page.waitForTimeout(3000)
+    await page.waitForTimeout(2000)
 
-    // Get wallet ID and API key
-    const walletId = await getWalletId(page)
-    const adminKey = await getAdminApiKey(page)
+    // Count wallet items in UI
+    const walletCount = await page
+      .locator('.q-drawer .q-list .q-item')
+      .filter({hasNot: page.locator('text=Add a new wallet')})
+      .count()
 
-    if (!walletId) {
-      throw new Error('Could not get wallet ID')
+    if (walletCount === 0) {
+      throw new Error(
+        'No wallets found in UI. Please run create-wallet.js first.'
+      )
     }
 
-    console.log(`✅ Using wallet ID: ${walletId}`)
+    console.log(`✅ User has ${walletCount} wallet(s)`)
 
-    // Step 3: Get initial share count
-    console.log('📝 Step 3: Getting initial share count...')
+    // Get wallet data from localStorage for API calls
+    const wallets = await getWalletsFromStorage(page)
+    const existingWallet = wallets[0]
+    const existingAdminKey = existingWallet.adminkey
+    console.log(`✅ Using wallet: ${existingWallet.id}`)
+
+    // Step 3: Create a fresh test wallet via API
+    console.log('📝 Step 3: Creating fresh test wallet via API...')
+    const testWallet = await createTestWallet(page, existingAdminKey)
+    if (!testWallet) {
+      throw new Error('Failed to create test wallet')
+    }
+
+    const walletId = testWallet.id
+    const adminKey = testWallet.adminkey ||  testWallet.inkey
+
+    console.log(`✅ Using test wallet ID: ${walletId}`)
+
+    // Navigate to the test wallet
+    await page.goto(`${config.baseUrl}/wallet?wal=${walletId}`)
+    await page.waitForTimeout(3000)
+
+    // Step 4: Get initial share count
+    console.log('📝 Step 4: Getting initial share count...')
     let initialCount = 0
     if (adminKey) {
       try {
@@ -85,9 +111,10 @@ const {
     }
     console.log(`📊 Initial share count: ${initialCount}`)
 
-    // Step 4: Open Share Wallet dialog
-    console.log('📝 Step 4: Opening Share Wallet dialog...')
-    const shareButton = page.locator('button:has-text("Share Wallet")')
+    // Step 5: Open Share Wallet dialog
+    console.log('📝 Step 5: Opening Share Wallet dialog...')
+    // The Share Wallet button is a round button with group icon in top right
+    const shareButton = page.locator('button.text-deep-purple i.material-icons:has-text("group")').locator('..')
 
     if (await shareButton.isVisible({timeout: 5000})) {
       await shareButton.click()
@@ -111,11 +138,10 @@ const {
 
       console.log(`📧 Sharing with user: ${shareWithUser}`)
 
-      // Fill user ID field
-      const userIdInput = page
-        .locator('input')
-        .filter({hasText: /username|user/i})
-        .or(page.locator('input[type="text"]').first())
+      // Fill user ID field - find the input within the Share Wallet dialog
+      const userIdInput = page.locator('.q-dialog input[type="text"]').first()
+      await userIdInput.waitFor({state: 'visible'})
+      await userIdInput.click()
       await userIdInput.fill(shareWithUser)
       console.log(`✅ Filled user ID field: ${shareWithUser}`)
 
@@ -148,9 +174,10 @@ const {
 
       // Step 6: Submit the form
       console.log('📝 Step 6: Submitting form...')
+      // Look for "Share Wallet" button specifically (not "Create Invoice")
       const createButton = page
         .locator('button')
-        .filter({hasText: /create|share/i})
+        .filter({hasText: /^share wallet$/i})
       if (await createButton.isVisible()) {
         await createButton.click()
         console.log('🖱️ Clicked create button')
