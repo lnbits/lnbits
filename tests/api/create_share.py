@@ -54,7 +54,9 @@ async def test_create_share():
 
     async with httpx.AsyncClient() as client:
         # Step 0: Always create a fresh test wallet for this test
-        random_name = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
+        random_name = "".join(
+            secrets.choice(string.ascii_letters + string.digits) for _ in range(10)
+        )
         logger.info("📝 Step 0: Creating fresh test wallet...")
         response = await client.post(
             f"{config['base_url']}/api/v1/wallet",
@@ -111,7 +113,7 @@ async def test_create_share():
             return False
 
         response_data = response.json()
-        created_share = response_data.get('share', response_data)
+        created_share = response_data.get("share", response_data)
         logger.info("✅ Share created successfully!")
         logger.info(f"   ID: {created_share['id']}")
         logger.info(
