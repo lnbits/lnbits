@@ -1231,6 +1231,27 @@ window.WalletPageLogic = {
             })
         })
     },
+    updateSharePermissions(share) {
+      LNbits.api
+        .request(
+          'PUT',
+          `/api/v1/wallet_shares/${share.id}`,
+          this.g.wallet.adminkey,
+          {permissions: share.permissions}
+        )
+        .then(() => {
+          this.$q.notify({
+            type: 'positive',
+            message: 'Permissions updated successfully',
+            timeout: 3000
+          })
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+          // Reload shares to revert the change in UI
+          this.loadWalletShares()
+        })
+    },
     confirmLeaveWallet() {
       this.$q
         .dialog({
@@ -1251,6 +1272,30 @@ window.WalletPageLogic = {
     },
     formatShareDate(timestamp) {
       return new Date(timestamp).toLocaleString()
+    },
+    canCreateInvoice() {
+      // If wallet is explicitly marked as shared, check permissions
+      if (this.g.wallet.is_shared === true) {
+        return !!(this.g.wallet.share_permissions & 2)
+      }
+      // Owner or not shared: can create invoices
+      return true
+    },
+    canPayInvoice() {
+      // If wallet is explicitly marked as shared, check permissions
+      if (this.g.wallet.is_shared === true) {
+        return !!(this.g.wallet.share_permissions & 4)
+      }
+      // Owner or not shared: can pay invoices
+      return true
+    },
+    canManageShares() {
+      // If wallet is explicitly marked as shared, check permissions
+      if (this.g.wallet.is_shared === true) {
+        return !!(this.g.wallet.share_permissions & 8)
+      }
+      // Owner or not shared: can manage shares
+      return true
     }
   },
   created() {
