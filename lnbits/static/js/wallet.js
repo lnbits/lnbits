@@ -128,6 +128,7 @@ window.WalletPageLogic = {
       paymentsFilter: {},
       walletShares: {
         show: false,
+        tab: 'share',
         shares: [],
         sharedWithMe: [],
         newShare: {
