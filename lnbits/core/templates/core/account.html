@@ -174,14 +174,46 @@
                   </q-card-section>
                 </div>
                 <div v-else>
-                  <q-card-section v-if="user.extra.picture">
-                    <div class="row">
-                      <div class="col">
-                        <q-img
-                          style="max-width: 100px"
-                          :src="user.extra.picture"
-                          class="float-right"
-                        ></q-img>
+                  <q-card-section>
+                    <div class="row items-center q-mb-md">
+                      <div class="col-auto q-mr-md">
+                        <q-avatar size="100px" color="grey-4">
+                          <q-img
+                            v-if="user.extra && user.extra.picture"
+                            :src="user.extra.picture"
+                          ></q-img>
+                          <q-icon
+                            v-else
+                            name="person"
+                            size="60px"
+                            color="grey-7"
+                          ></q-icon>
+                        </q-avatar>
+                      </div>
+                      <div class="col-auto">
+                        <div class="row q-gutter-sm">
+                          <q-btn
+                            color="primary"
+                            :label="$t('upload_picture')"
+                            @click="triggerAvatarUpload"
+                            unelevated
+                          />
+                          <q-btn
+                            v-if="user.extra && user.extra.picture && user.extra.picture.startsWith('/avatars/')"
+                            color="negative"
+                            :label="$t('delete')"
+                            @click="deleteAvatar"
+                            unelevated
+                            outline
+                          />
+                        </div>
+                        <input
+                          type="file"
+                          ref="avatarInput"
+                          accept="image/png, image/jpeg"
+                          style="display: none"
+                          @change="onAvatarInput"
+                        />
                       </div>
                     </div>
                   </q-card-section>
@@ -311,15 +343,6 @@
                       filled
                       dense
                       readonly
-                      class="q-mb-md"
-                    >
-                    </q-input>
-
-                    <q-input
-                      v-model="user.extra.picture"
-                      :label="$t('picture')"
-                      filled
-                      dense
                       class="q-mb-md"
                     >
                     </q-input>

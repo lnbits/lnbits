@@ -171,6 +171,12 @@ def create_app() -> FastAPI:
         StaticFiles(directory=Path(settings.lnbits_data_folder, "images")),
         name="library",
     )
+    Path(settings.lnbits_data_folder, "avatars").mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/avatars",
+        StaticFiles(directory=Path(settings.lnbits_data_folder, "avatars")),
+        name="avatars",
+    )
 
     app.add_middleware(
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]

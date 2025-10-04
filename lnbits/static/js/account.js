@@ -110,6 +110,7 @@ window.AccountPageLogic = {
           }
         )
         this.user = data
+        this.g.user = data
         this.hasUsername = !!data.username
         Quasar.Notify.create({
           type: 'positive',
@@ -398,6 +399,57 @@ window.AccountPageLogic = {
         LNbits.utils.notifyApiError(e)
       } finally {
         this.apiAcl.password = ''
+      }
+    },
+    triggerAvatarUpload() {
+      console.log('triggerAvatarUpload called')
+      console.log('avatarInput ref:', this.$refs.avatarInput)
+      if (this.$refs.avatarInput) {
+        this.$refs.avatarInput.click()
+      } else {
+        console.error('Avatar input ref not found')
+      }
+    },
+    onAvatarInput(e) {
+      const file = e.target.files[0]
+      if (file) {
+        this.uploadAvatar(file)
+      }
+    },
+    async uploadAvatar(file) {
+      console.log('Uploading avatar:', file)
+      const formData = new FormData()
+      formData.append('file', file)
+      try {
+        console.log('Sending upload request...')
+        const response = await axios.post('/api/v1/auth/avatar', formData)
+        console.log('Upload response:', response)
+        this.$q.notify({
+          type: 'positive',
+          message: 'Avatar uploaded successfully!'
+        })
+        // Reload user to get updated picture URL
+        const {data} = await LNbits.api.getAuthenticatedUser()
+        this.user = data
+        this.g.user = data
+      } catch (e) {
+        console.error('Avatar upload error:', e)
+        LNbits.utils.notifyApiError(e)
+      }
+    },
+    async deleteAvatar() {
+      try {
+        await axios.delete('/api/v1/auth/avatar')
+        this.$q.notify({
+          type: 'positive',
+          message: 'Avatar deleted successfully!'
+        })
+        // Reload user to get updated picture URL
+        const {data} = await LNbits.api.getAuthenticatedUser()
+        this.user = data
+        this.g.user = data
+      } catch (e) {
+        LNbits.utils.notifyApiError(e)
       }
     }
   },
