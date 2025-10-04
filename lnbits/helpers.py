@@ -354,13 +354,15 @@ def normalize_path(path: str | None) -> str:
 
 
 def safe_upload_file_path(filename: str, directory: str = "images") -> Path:
-    image_folder = Path(settings.lnbits_data_folder, directory)
-    file_path = image_folder / filename
+    base_folder = Path(settings.lnbits_data_folder, directory)
+    # Ensure the base directory exists
+    base_folder.mkdir(parents=True, exist_ok=True)
+    file_path = base_folder / filename
     # Prevent dir traversal attack
-    if image_folder.resolve() not in file_path.resolve().parents:
+    if base_folder.resolve() not in file_path.resolve().parents:
         raise ValueError("Unsafe filename.")
     # Prevent filename with subdirectories
-    file_path = image_folder / filename.split("/")[-1]
+    file_path = base_folder / filename.split("/")[-1]
     return file_path.resolve()
 
 

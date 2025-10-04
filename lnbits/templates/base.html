@@ -114,14 +114,29 @@
             >
               <template v-slot:label>
                 <div>
-                  {%if user and user.config and user.config.picture%}
-                  <img src="{{user.config.picture}}" style="max-width: 32px" />
-                  {%else%}
-                  <q-icon name="account_circle" />
-                  {%endif%}
+                  <q-avatar
+                    size="32px"
+                    v-if="g.user && g.user.extra && g.user.extra.picture"
+                  >
+                    <img
+                      :src="g.user.extra.picture"
+                      style="object-fit: cover; width: 100%; height: 100%"
+                    />
+                  </q-avatar>
+                  <q-icon v-else name="account_circle" size="32px" />
                 </div>
               </template>
-              <q-list>
+              <q-list style="min-width: 175px">
+                <q-item-label
+                  v-if="g.user && g.user.username && g.user.username.trim()"
+                  header
+                  class="text-weight-bold q-py-sm"
+                >
+                  <span v-text="g.user.username"></span>
+                </q-item-label>
+                <q-separator
+                  v-if="g.user && g.user.username && g.user.username.trim()"
+                ></q-separator>
                 <q-item to="/account" clickable v-close-popup
                   ><q-item-section>
                     <q-icon name="person" />

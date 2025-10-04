@@ -200,6 +200,8 @@ window.LNbits = {
         id: data.id,
         admin: data.admin,
         email: data.email,
+        username: data.username,
+        pubkey: data.pubkey,
         extensions: data.extensions,
         wallets: data.wallets,
         fiat_providers: data.fiat_providers || [],
