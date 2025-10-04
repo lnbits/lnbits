@@ -263,7 +263,8 @@ async def api_payments_create(
         )
 
     # Check if user has permission to create invoices on shared wallets
-    if request:
+    # Only check for admin keys - invoice keys should always work (API compatibility)
+    if wallet.key_type == KeyType.admin:
         await check_wallet_payment_permission(wallet, request, "create_invoice")
 
     # If the payment is not outgoing, we can create a new invoice.
