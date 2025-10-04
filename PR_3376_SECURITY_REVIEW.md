@@ -20,6 +20,7 @@ The implementation demonstrates strong security practices with proper access con
 ### 1.1 Authentication & Authorization ✅ STRONG
 
 **Strengths**:
+
 - ✅ Ownership verification enforced via `require_wallet_owner` decorator (decorators.py:143-203)
 - ✅ Admin key verification prevents unauthorized wallet modifications
 - ✅ Session authentication required for shared wallet operations
@@ -28,6 +29,7 @@ The implementation demonstrates strong security practices with proper access con
 - ✅ Prevents duplicate shares (wallet_shares_api.py:81-93)
 
 **Implementation Details**:
+
 ```python
 # decorators.py - Ownership check for sensitive operations
 async def require_wallet_owner(wallet_info: WalletTypeInfo, request: Request):
@@ -37,6 +39,7 @@ async def require_wallet_owner(wallet_info: WalletTypeInfo, request: Request):
 ```
 
 **Permission Enforcement**:
+
 ```python
 # decorators.py:206-293 - Payment permission checks
 async def check_wallet_payment_permission(wallet_info, request, operation):
@@ -51,6 +54,7 @@ async def check_wallet_payment_permission(wallet_info, request, operation):
 ```
 
 **Recommendations**:
+
 1. ✅ Already implemented: Early return for unshared wallets prevents performance impact
 2. ✅ Session authentication properly enforced for shared wallet operations
 3. 💡 Consider: Add rate limiting to share invitation endpoints to prevent abuse
@@ -60,6 +64,7 @@ async def check_wallet_payment_permission(wallet_info, request, operation):
 ### 1.2 Database Security ✅ STRONG
 
 **Schema Design** (migrations.py:748-779):
+
 ```sql
 CREATE TABLE wallet_shares (
     id TEXT PRIMARY KEY,
@@ -75,6 +80,7 @@ CREATE TABLE wallet_shares (
 ```
 
 **Strengths**:
+
 - ✅ Foreign key constraints ensure referential integrity
 - ✅ CASCADE DELETE prevents orphaned shares when wallet/user deleted
 - ✅ Compound UNIQUE constraint prevents duplicate active shares
@@ -82,6 +88,7 @@ CREATE TABLE wallet_shares (
 - ✅ Timestamps use UTC (datetime.now(timezone.utc))
 
 **Potential Issues**: ⚠️ MINOR
+
 - ⚠️ No explicit constraint preventing `shared_by = user_id` in DB schema (handled in application layer)
   - **Mitigation**: Application-level check exists (wallet_shares_api.py:67-71)
   - **Recommendation**: Add CHECK constraint for defense in depth
@@ -91,6 +98,7 @@ CREATE TABLE wallet_shares (
 ### 1.3 API Security ✅ STRONG
 
 **Endpoint Protection**:
+
 1. **POST /api/v1/wallet_shares/{wallet_id}** - Create share
    - ✅ Requires `admin_key` via `require_admin_key` decorator
    - ✅ Validates wallet ID matches admin key
@@ -112,6 +120,7 @@ CREATE TABLE wallet_shares (
    - ✅ Only returns shares for authenticated wallet
 
 **Input Validation**:
+
 ```python
 # wallet_shares_api.py:55-64
 recipient = await get_account_by_username(data.user_id)
@@ -128,6 +137,7 @@ if not recipient:
 ### 1.4 Permission Model ✅ STRONG
 
 **Bitmask Design** (wallet_shares.py:9-16):
+
 ```python
 class WalletSharePermission(IntFlag):
     VIEW = 1              # 0001
@@ -138,12 +148,14 @@ class WalletSharePermission(IntFlag):
 ```
 
 **Strengths**:
+
 - ✅ Efficient storage (single integer)
 - ✅ Easy bitwise operations for checking permissions
 - ✅ Extensible (can add more permissions up to 31 flags)
 - ✅ Type-safe with `IntFlag` enum
 
 **Permission Enforcement**:
+
 ```python
 # Payment operations check permissions
 if operation == "pay_invoice":
@@ -152,6 +164,7 @@ if operation == "pay_invoice":
 ```
 
 **Recommendations**:
+
 1. 💡 Document permission hierarchy (e.g., PAY_INVOICE implies VIEW?)
 2. 💡 Consider adding permission templates (e.g., "Accountant" = VIEW + CREATE_INVOICE)
 
@@ -160,6 +173,7 @@ if operation == "pay_invoice":
 ### 1.5 Protected Operations ✅ STRONG
 
 **Wallet Settings Protection** (wallet_api.py:68, 100, 118):
+
 ```python
 # All wallet modification endpoints now use require_wallet_owner
 @wallet_api_router.patch("/{wallet_id}/name")
@@ -170,6 +184,7 @@ async def api_update_wallet_name(
 ```
 
 **Payment Protection** (payment_api.py:237-245):
+
 ```python
 # Outgoing payments on shared wallets check permissions
 if invoice_data.out is True and wallet.key_type == KeyType.admin:
@@ -177,6 +192,7 @@ if invoice_data.out is True and wallet.key_type == KeyType.admin:
 ```
 
 **Protected Endpoints**:
+
 1. ✅ Wallet name updates
 2. ✅ Stored paylinks
 3. ✅ Wallet settings/preferences
@@ -189,12 +205,14 @@ if invoice_data.out is True and wallet.key_type == KeyType.admin:
 ### 2.1 Architecture ✅ GOOD
 
 **Separation of Concerns**:
+
 - ✅ Models in `models/wallet_shares.py`
 - ✅ Database operations in `crud/wallet_shares.py`
 - ✅ API endpoints in `views/wallet_shares_api.py`
 - ✅ Decorators in `decorators.py`
 
 **Strengths**:
+
 - ✅ Clean layering (API → CRUD → DB)
 - ✅ Reusable decorators for common checks
 - ✅ Type hints throughout (using Pydantic models)
@@ -204,6 +222,7 @@ if invoice_data.out is True and wallet.key_type == KeyType.admin:
 ### 2.2 Error Handling ✅ GOOD
 
 **Examples**:
+
 ```python
 # Clear, user-friendly error messages
 raise HTTPException(
@@ -214,6 +233,7 @@ raise HTTPException(
 ```
 
 **Strengths**:
+
 - ✅ Appropriate HTTP status codes (403, 404, 409)
 - ✅ Descriptive error messages
 - ✅ Proper exception propagation
@@ -223,12 +243,14 @@ raise HTTPException(
 ### 2.3 Testing ✅ EXCELLENT
 
 **Test Coverage**:
+
 - ✅ 5 API tests (Python): create, read, update, delete, check
 - ✅ 5 UI tests (Playwright): create-wallet, create-share, read-shares, update-share, delete-share
 - ✅ Integration tests for CRUD operations
 - ✅ Security tests (duplicate shares, self-sharing, permission checks)
 
 **Test Quality**:
+
 ```javascript
 // UI test with proper assertions
 const shareCount = await page.locator('.share-item').count()
@@ -237,6 +259,7 @@ expect(shareData.user_id).toBe(expectedUserId)
 ```
 
 **Recommendation**:
+
 1. 💡 Add negative test cases (e.g., malformed permission values)
 2. 💡 Add load/stress tests for concurrent share operations
 
@@ -247,12 +270,14 @@ expect(shareData.user_id).toBe(expectedUserId)
 ### 3.1 Code Complexity ✅ REASONABLE
 
 **Lines of Code Added**: ~5,066 (including tests and docs)
+
 - Core functionality: ~800 lines
 - Tests: ~2,500 lines
 - Documentation: ~400 lines
 - Frontend: ~600 lines
 
 **Cyclomatic Complexity**: Low to Medium
+
 - Most functions have 1-3 decision points
 - Well-factored, single-purpose functions
 - No deeply nested conditionals
@@ -262,12 +287,14 @@ expect(shareData.user_id).toBe(expectedUserId)
 ### 3.2 Maintainability ✅ GOOD
 
 **Strengths**:
+
 - ✅ Comprehensive inline comments
 - ✅ Docstrings for all public functions
 - ✅ Type hints aid IDE support
 - ✅ Test coverage facilitates safe refactoring
 
 **Example**:
+
 ```python
 async def create_wallet_share(
     conn: Connection,
@@ -296,17 +323,20 @@ async def create_wallet_share(
 ### 4.1 Database Performance ✅ GOOD
 
 **Indexing**:
+
 ```sql
 CREATE INDEX idx_wallet_shares_wallet ON wallet_shares(wallet_id);
 CREATE INDEX idx_wallet_shares_user ON wallet_shares(user_id);
 ```
 
 **Query Efficiency**:
+
 - ✅ Indexed lookups for shares by wallet/user
 - ✅ Early return for unshared wallets (no DB query)
 - ✅ Batch operations use async/await properly
 
 **Recommendation**:
+
 1. 💡 Consider caching active shares for high-traffic wallets
 2. 💡 Monitor query performance in production
 
@@ -315,6 +345,7 @@ CREATE INDEX idx_wallet_shares_user ON wallet_shares(user_id);
 ### 4.2 Runtime Performance ✅ GOOD
 
 **Permission Check Optimization**:
+
 ```python
 # Check if wallet is shared FIRST (fast check)
 if not active_shares:
@@ -322,6 +353,7 @@ if not active_shares:
 ```
 
 **Strengths**:
+
 - ✅ Minimal overhead for unshared wallets
 - ✅ Efficient bitmask operations (O(1))
 - ✅ Async/await prevents blocking
@@ -335,14 +367,17 @@ if not active_shares:
 During development, security vulnerabilities were identified and fixed:
 
 **Issue 1**: Shared users could modify wallet settings
+
 - **Fix**: Added `require_wallet_owner` decorator to wallet settings endpoints
 - **File**: `lnbits/core/views/wallet_api.py:68, 100, 118`
 
 **Issue 2**: Shared users could pay invoices without permission
+
 - **Fix**: Added `check_wallet_payment_permission` to payment endpoint
 - **File**: `lnbits/core/views/payment_api.py:243-245`
 
 **Issue 3**: JMeter integration tests failed (API-only usage blocked)
+
 - **Fix**: Modified permission check to skip session auth for unshared wallets
 - **File**: `lnbits/decorators.py:226-233`
 
@@ -353,17 +388,20 @@ During development, security vulnerabilities were identified and fixed:
 ### 6.1 Low Risk Issues
 
 **1. Permission Escalation via Race Conditions**
+
 - **Risk**: Concurrent share updates could lead to inconsistent permissions
 - **Likelihood**: Low (requires precise timing)
 - **Mitigation**: Database UNIQUE constraint prevents duplicates
 - **Recommendation**: Add transaction isolation level checks in CRUD operations
 
 **2. Information Disclosure**
+
 - **Risk**: Error messages might reveal user existence
 - **Current**: Returns "User not found" for non-existent users
 - **Recommendation**: Consider generic error for username enumeration prevention
 
 **3. Share Invitation Spam**
+
 - **Risk**: Malicious user creates many shares to spam invitations
 - **Likelihood**: Low (requires admin key)
 - **Recommendation**: Add rate limiting to share creation endpoint
@@ -381,6 +419,7 @@ During development, security vulnerabilities were identified and fixed:
 ### 7.1 Security Enhancements
 
 1. **Add Database Constraints** (Low Priority)
+
    ```sql
    ALTER TABLE wallet_shares ADD CONSTRAINT no_self_share
    CHECK (user_id != shared_by);
@@ -397,6 +436,7 @@ During development, security vulnerabilities were identified and fixed:
 ### 7.2 Code Quality Improvements
 
 1. **Add Permission Templates** (Low Priority)
+
    ```python
    PERMISSION_TEMPLATES = {
        "viewer": WalletSharePermission.VIEW,
@@ -440,6 +480,7 @@ Meets standards for financial applications:
 ## 9. Conclusion
 
 ### Strengths
+
 1. ✅ Strong authentication and authorization controls
 2. ✅ Comprehensive test coverage (API + UI)
 3. ✅ Clean architecture with separation of concerns
@@ -449,6 +490,7 @@ Meets standards for financial applications:
 7. ✅ Security vulnerabilities identified and fixed during development
 
 ### Weaknesses (Minor)
+
 1. ⚠️ No rate limiting on share operations
 2. ⚠️ No audit logging for security events
 3. ⚠️ Database constraint missing for self-share prevention (app-level only)
@@ -462,16 +504,19 @@ This PR demonstrates excellent security practices and should be safe to merge. T
 **Confidence Level**: 95%
 
 The remaining 5% uncertainty is due to:
+
 - Need for production load testing to verify performance
 - Potential edge cases in concurrent operations
 - Long-term maintainability concerns with growing codebase
 
 **Recommended Actions Before Merge**:
+
 1. Add rate limiting to share creation endpoint
 2. Add database constraint for self-share prevention
 3. Document permission hierarchy in code comments
 
 **Post-Merge Recommendations**:
+
 1. Monitor share operation performance in production
 2. Add audit logging in Phase 2
 3. Implement permission templates for common use cases
@@ -481,6 +526,7 @@ The remaining 5% uncertainty is due to:
 ## Appendix: Files Reviewed
 
 **Core Implementation**:
+
 - ✅ lnbits/core/models/wallet_shares.py (64 lines)
 - ✅ lnbits/core/crud/wallet_shares.py (296 lines)
 - ✅ lnbits/core/views/wallet_shares_api.py (282 lines)
@@ -488,15 +534,18 @@ The remaining 5% uncertainty is due to:
 - ✅ lnbits/core/migrations.py (+30 lines)
 
 **Security-Critical Changes**:
+
 - ✅ lnbits/core/views/wallet_api.py (ownership checks)
 - ✅ lnbits/core/views/payment_api.py (permission checks)
 
 **Frontend**:
+
 - ✅ lnbits/core/templates/core/wallet.html (+244 lines)
 - ✅ lnbits/static/js/wallet.js (+162 lines)
 
 **Tests**:
-- ✅ tests/api/*.py (5 test files, ~777 lines)
-- ✅ tests/ui/crud/*.js (7 test files, ~1,548 lines)
+
+- ✅ tests/api/\*.py (5 test files, ~777 lines)
+- ✅ tests/ui/crud/\*.js (7 test files, ~1,548 lines)
 
 **Total Files Reviewed**: 52 files, ~5,066 lines of code
