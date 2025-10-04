@@ -242,6 +242,133 @@ async def api_delete_user_api_token(
     await update_user_access_control_list(acls)
 
 
+def _validate_avatar_file(file: UploadFile) -> str:
+    """Validate avatar file type and return extension."""
+    if not file.filename:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="No filename provided."
+        )
+
+    file_info = filetype.guess(file.file)
+    if file_info is None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            detail="Unable to determine file type",
+        )
+
+    detected_type = file_info.extension.lower()
+    allowed_types = ["jpg", "jpeg", "png"]
+    if detected_type not in allowed_types:
+        raise HTTPException(
+            HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            "Unsupported file type. Only JPEG and PNG images are allowed.",
+        )
+    return detected_type
+
+
+def _save_avatar_file(file: UploadFile, max_size_mb: int = 1) -> IO:
+    """Save uploaded file to temp location with size validation."""
+    max_bytes = max_size_mb * 1024 * 1024
+    size = 0
+    temp: IO = NamedTemporaryFile(delete=False)
+    for chunk in file.file:
+        size += len(chunk)
+        if size > max_bytes:
+            max_mb = max_bytes / (1024 * 1024)
+            raise HTTPException(
+                status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File too large. Maximum size is {max_mb}MB",
+            )
+        temp.write(chunk)
+    temp.close()
+    return temp
+
+
+@auth_router.post("/avatar", status_code=HTTPStatus.OK)
+async def upload_avatar(
+    user: User = Depends(check_user_exists),
+    file: UploadFile = Depends(lambda: File(...)),
+) -> Image:
+    """Upload user avatar image"""
+    extension = _validate_avatar_file(file)
+    filename = f"profile.{extension}"
+
+    try:
+        file_path = safe_upload_file_path(filename, directory=f"avatars/{user.id}")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail=f"The requested filename '{filename}' is forbidden.",
+        ) from e
+
+    temp = _save_avatar_file(file)
+
+    # Delete old avatar if it exists
+    avatar_dir = Path(settings.lnbits_data_folder, "avatars", user.id)
+    if avatar_dir.exists():
+        for old_file in avatar_dir.glob("profile.*"):
+            if old_file != file_path:
+                old_file.unlink()
+
+    move(temp.name, file_path)
+
+    # Update user's picture field with avatar URL
+    avatar_url = f"/avatars/{user.id}/{filename}"
+    account = await get_account(user.id)
+    if account:
+        if not account.extra:
+            account.extra = UserExtra()
+        account.extra.picture = avatar_url
+        await update_account(account)
+
+    return Image(filename=filename, directory=f"avatars/{user.id}")
+
+
+@auth_router.get("/avatar", status_code=HTTPStatus.OK)
+async def get_avatar(user: User = Depends(check_user_exists)):
+    """Get user's current avatar"""
+    account = await get_account(user.id)
+    if not account or not account.extra or not account.extra.picture:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="No avatar uploaded"
+        )
+
+    # Check if it's a URL to an uploaded avatar
+    if account.extra.picture.startswith("/avatars/"):
+        avatar_path = Path(
+            settings.lnbits_data_folder, account.extra.picture.lstrip("/")
+        )
+        if avatar_path.exists():
+            return FileResponse(avatar_path)
+
+    # If it's an external URL, return it
+    return JSONResponse({"url": account.extra.picture})
+
+
+@auth_router.delete("/avatar", status_code=HTTPStatus.OK)
+async def delete_avatar(user: User = Depends(check_user_exists)) -> SimpleStatus:
+    """Delete user's avatar"""
+    account = await get_account(user.id)
+    if not account or not account.extra or not account.extra.picture:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="No avatar to delete"
+        )
+
+    # If it's an uploaded avatar, delete the file
+    if account.extra.picture.startswith("/avatars/"):
+        avatar_path = Path(
+            settings.lnbits_data_folder, account.extra.picture.lstrip("/")
+        )
+        if avatar_path.exists():
+            avatar_path.unlink()
+
+    # Clear the picture field
+    account.extra.picture = None
+    await update_account(account)
+
+    return SimpleStatus(success=True, message="Avatar deleted successfully")
+
+
 @auth_router.get("/{provider}", description="SSO Provider")
 async def login_with_sso_provider(
     request: Request, provider: str, user_id: str | None = None
@@ -629,133 +756,6 @@ def _check_nostr_event_tags(event: dict):
     accepted_urls = [f"{u}/nostr" for u in settings.nostr_absolute_request_urls]
     if url not in accepted_urls:
         raise ValueError(f"Invalid value for tag 'u': '{url}'.")
-
-
-def _validate_avatar_file(file: UploadFile) -> str:
-    """Validate avatar file type and return extension."""
-    if not file.filename:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="No filename provided."
-        )
-
-    file_info = filetype.guess(file.file)
-    if file_info is None:
-        raise HTTPException(
-            status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
-            detail="Unable to determine file type",
-        )
-
-    detected_type = file_info.extension.lower()
-    allowed_types = ["jpg", "jpeg", "png"]
-    if detected_type not in allowed_types:
-        raise HTTPException(
-            HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
-            "Unsupported file type. Only JPEG and PNG images are allowed.",
-        )
-    return detected_type
-
-
-def _save_avatar_file(file: UploadFile, max_size_mb: int = 1) -> IO:
-    """Save uploaded file to temp location with size validation."""
-    max_bytes = max_size_mb * 1024 * 1024
-    size = 0
-    temp: IO = NamedTemporaryFile(delete=False)
-    for chunk in file.file:
-        size += len(chunk)
-        if size > max_bytes:
-            max_mb = max_bytes / (1024 * 1024)
-            raise HTTPException(
-                status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File too large. Maximum size is {max_mb}MB",
-            )
-        temp.write(chunk)
-    temp.close()
-    return temp
-
-
-@auth_router.post("/avatar", status_code=HTTPStatus.OK)
-async def upload_avatar(
-    user: User = Depends(check_user_exists),
-    file: UploadFile = Depends(lambda: File(...)),
-) -> Image:
-    """Upload user avatar image"""
-    extension = _validate_avatar_file(file)
-    filename = f"profile.{extension}"
-
-    try:
-        file_path = safe_upload_file_path(filename, directory=f"avatars/{user.id}")
-    except ValueError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail=f"The requested filename '{filename}' is forbidden.",
-        ) from e
-
-    temp = _save_avatar_file(file)
-
-    # Delete old avatar if it exists
-    avatar_dir = Path(settings.lnbits_data_folder, "avatars", user.id)
-    if avatar_dir.exists():
-        for old_file in avatar_dir.glob("profile.*"):
-            if old_file != file_path:
-                old_file.unlink()
-
-    move(temp.name, file_path)
-
-    # Update user's picture field with avatar URL
-    avatar_url = f"/avatars/{user.id}/{filename}"
-    account = await get_account(user.id)
-    if account:
-        if not account.extra:
-            account.extra = UserExtra()
-        account.extra.picture = avatar_url
-        await update_account(account)
-
-    return Image(filename=filename, directory=f"avatars/{user.id}")
-
-
-@auth_router.get("/avatar", status_code=HTTPStatus.OK)
-async def get_avatar(user: User = Depends(check_user_exists)):
-    """Get user's current avatar"""
-    account = await get_account(user.id)
-    if not account or not account.extra or not account.extra.picture:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="No avatar uploaded"
-        )
-
-    # Check if it's a URL to an uploaded avatar
-    if account.extra.picture.startswith("/avatars/"):
-        avatar_path = Path(
-            settings.lnbits_data_folder, account.extra.picture.lstrip("/")
-        )
-        if avatar_path.exists():
-            return FileResponse(avatar_path)
-
-    # If it's an external URL, return it
-    return JSONResponse({"url": account.extra.picture})
-
-
-@auth_router.delete("/avatar", status_code=HTTPStatus.OK)
-async def delete_avatar(user: User = Depends(check_user_exists)) -> SimpleStatus:
-    """Delete user's avatar"""
-    account = await get_account(user.id)
-    if not account or not account.extra or not account.extra.picture:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="No avatar to delete"
-        )
-
-    # If it's an uploaded avatar, delete the file
-    if account.extra.picture.startswith("/avatars/"):
-        avatar_path = Path(
-            settings.lnbits_data_folder, account.extra.picture.lstrip("/")
-        )
-        if avatar_path.exists():
-            avatar_path.unlink()
-
-    # Clear the picture field
-    account.extra.picture = None
-    await update_account(account)
-
-    return SimpleStatus(success=True, message="Avatar deleted successfully")
 
 
 def _validate_auth_timeout(auth_time: int | None = 0):
