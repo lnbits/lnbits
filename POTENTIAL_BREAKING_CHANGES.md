@@ -17,6 +17,7 @@ This document identifies areas where the shared wallets feature might inadverten
 **File**: `lnbits/core/views/payment_api.py:266-267`
 
 **Issue**: Permission check called for ALL invoice creation requests
+
 ```python
 # Check if user has permission to create invoices on shared wallets
 if request:
@@ -24,6 +25,7 @@ if request:
 ```
 
 **Problem**:
+
 - This check runs for ALL invoice creation (incoming payments), not just admin key requests
 - Uses `invoice_key` (not admin key) which doesn't have session context
 - The `if request:` guard doesn't distinguish between invoice keys and admin keys
@@ -31,6 +33,7 @@ if request:
 **Risk Level**: 🔴 **HIGH**
 
 **Affected Use Cases**:
+
 1. ✅ **Browser UI** - Has session, should work
 2. ❌ **API-only invoice creation** - No session available
 3. ❌ **LNURL callbacks** - External services creating invoices
@@ -38,6 +41,7 @@ if request:
 5. ❌ **Webhooks** - Automated invoice creation
 
 **Breaking Scenarios**:
+
 ```bash
 # This might break for API-only usage without session
 curl -X POST https://lnbits.com/api/v1/payments \
@@ -46,12 +50,14 @@ curl -X POST https://lnbits.com/api/v1/payments \
 ```
 
 **Expected Error**:
+
 ```
 403 Forbidden: Shared wallet requires session authentication
 ```
 
 **Root Cause**:
 The permission check doesn't differentiate between:
+
 - Invoice keys (should be unrestricted for incoming payments)
 - Admin keys (should check permissions for shared wallets)
 
@@ -62,6 +68,7 @@ The permission check doesn't differentiate between:
 **File**: `lnbits/core/views/payment_api.py:243-245`
 
 **Current Code**:
+
 ```python
 if invoice_data.out is True and wallet.key_type == KeyType.admin:
     # Check if user has permission to pay invoices on shared wallets
@@ -73,6 +80,7 @@ if invoice_data.out is True and wallet.key_type == KeyType.admin:
 **Status**: ✅ This is correctly scoped to `KeyType.admin` only
 
 **Affected Use Cases**:
+
 1. ✅ **Browser payments** - Has session, works
 2. ✅ **API-only payments (unshared wallets)** - Early return bypasses session check
 3. ⚠️ **API-only payments (shared wallets)** - Will fail (by design for security)
@@ -86,6 +94,7 @@ if invoice_data.out is True and wallet.key_type == KeyType.admin:
 ### 3. Wallet Settings Modifications
 
 **Files**:
+
 - `lnbits/core/views/wallet_api.py:68` - Update wallet name
 - `lnbits/core/views/wallet_api.py:100` - Update stored paylinks
 - `lnbits/core/views/wallet_api.py:118` - Update wallet settings
@@ -95,12 +104,14 @@ if invoice_data.out is True and wallet.key_type == KeyType.admin:
 **Risk Level**: 🟡 **MEDIUM**
 
 **Affected Use Cases**:
+
 1. ✅ **Wallet owner via UI** - Works fine
 2. ✅ **Wallet owner via API** - Works fine
 3. ❌ **Shared users** - Now blocked (intended behavior)
 4. ⚠️ **Extensions/automation** - May break if they modify wallet settings
 
 **Breaking Scenario**:
+
 ```python
 # Extension code that modifies wallet name using admin key
 # This will now fail if the admin key belongs to a shared user
@@ -136,11 +147,13 @@ await update_wallet_name(wallet_id, "New Name", admin_key)
 **Risk Level**: 🟢 **LOW**
 
 **Impact**:
+
 - ✅ Uses `IF NOT EXISTS` - safe for re-runs
 - ✅ Foreign keys use `ON DELETE CASCADE` - safe cleanup
 - ✅ Migration is additive only (no schema changes to existing tables)
 
 **Potential Issues**:
+
 - None identified - migration is well-designed
 
 ---
@@ -150,10 +163,12 @@ await update_wallet_name(wallet_id, "New Name", admin_key)
 ### Issue #1: Invoice Creation Broken for API-Only Usage
 
 **Reproduction**:
+
 1. Create invoice using invoice key from API (no browser session)
 2. Request will fail with 403 if wallet is shared
 
 **Code Path**:
+
 ```
 POST /api/v1/payments
   → api_payments_create() [payment_api.py:236]
@@ -167,6 +182,7 @@ POST /api/v1/payments
 The function checks permissions for invoice creation even when using an invoice key (which should be unrestricted for incoming payments).
 
 **Fix Required**:
+
 ```python
 # Only check permissions for admin keys
 if invoice_data.out is True and wallet.key_type == KeyType.admin:
@@ -184,11 +200,13 @@ elif wallet.key_type == KeyType.admin:  # ← ADD THIS
 
 **Affected Extensions**:
 Any extension that:
+
 1. Modifies wallet settings (name, currency, color)
 2. Updates stored paylinks
 3. Assumes admin key = full permissions
 
 **Example Extension Code That Will Break**:
+
 ```python
 # extension/views.py
 @router.post("/configure")
@@ -198,6 +216,7 @@ async def configure_wallet(wallet: WalletTypeInfo = Depends(require_admin_key)):
 ```
 
 **Fix For Extensions**:
+
 ```python
 # Check if user is owner before modifying settings
 from lnbits.decorators import require_wallet_owner
@@ -211,14 +230,14 @@ async def configure_wallet(wallet: WalletTypeInfo = Depends(require_wallet_owner
 
 ## 📊 RISK SUMMARY TABLE
 
-| Area | Risk Level | Breaking? | API Impact | UI Impact | Mitigation |
-|------|-----------|-----------|------------|-----------|------------|
-| Invoice creation (invoice key) | 🔴 HIGH | YES | API-only broken | UI works | Fix permission check scope |
-| Payment (admin key, shared) | 🟡 MEDIUM | By Design | API blocked | UI works | Working as intended |
-| Wallet settings (shared users) | 🟡 MEDIUM | By Design | Shared users blocked | Shared users blocked | Working as intended |
-| Wallet settings (extensions) | 🟡 MEDIUM | MAYBE | Extension-dependent | N/A | Extensions need updates |
-| Database migration | 🟢 LOW | NO | No impact | No impact | None needed |
-| Service worker | 🟢 LOW | NO | No impact | PWA caching only | None needed |
+| Area                           | Risk Level | Breaking? | API Impact           | UI Impact            | Mitigation                 |
+| ------------------------------ | ---------- | --------- | -------------------- | -------------------- | -------------------------- |
+| Invoice creation (invoice key) | 🔴 HIGH    | YES       | API-only broken      | UI works             | Fix permission check scope |
+| Payment (admin key, shared)    | 🟡 MEDIUM  | By Design | API blocked          | UI works             | Working as intended        |
+| Wallet settings (shared users) | 🟡 MEDIUM  | By Design | Shared users blocked | Shared users blocked | Working as intended        |
+| Wallet settings (extensions)   | 🟡 MEDIUM  | MAYBE     | Extension-dependent  | N/A                  | Extensions need updates    |
+| Database migration             | 🟢 LOW     | NO        | No impact            | No impact            | None needed                |
+| Service worker                 | 🟢 LOW     | NO        | No impact            | PWA caching only     | None needed                |
 
 ---
 
@@ -229,6 +248,7 @@ async def configure_wallet(wallet: WalletTypeInfo = Depends(require_wallet_owner
 **Problem**: Line 266-267 in `payment_api.py` checks permissions for ALL invoice creation
 
 **Current Code**:
+
 ```python
 # Check if user has permission to create invoices on shared wallets
 if request:
@@ -236,6 +256,7 @@ if request:
 ```
 
 **Fixed Code**:
+
 ```python
 # Only check CREATE_INVOICE permission for admin keys creating invoices
 # Invoice keys should always be allowed to create invoices (incoming payments)
@@ -244,6 +265,7 @@ if wallet.key_type == KeyType.admin and not invoice_data.out:
 ```
 
 **Rationale**:
+
 1. Invoice keys are meant for creating invoices (receiving payments)
 2. They don't have session context (API-only usage)
 3. Permission checks should only apply to admin keys
@@ -256,6 +278,7 @@ if wallet.key_type == KeyType.admin and not invoice_data.out:
 **Problem**: Generic "Shared wallet requires session authentication" doesn't explain the issue
 
 **Recommendation**:
+
 ```python
 # In check_wallet_payment_permission
 if not access_token:
@@ -276,36 +299,44 @@ if not access_token:
 ### High Priority Tests Needed:
 
 1. **Invoice Creation with Invoice Key (Unshared Wallet)**
+
    ```bash
    curl -X POST /api/v1/payments \
      -H "X-Api-Key: INVOICE_KEY" \
      -d '{"out": false, "amount": 100}'
    ```
+
    Expected: ✅ 200 OK (should create invoice)
 
 2. **Invoice Creation with Invoice Key (Shared Wallet)**
+
    ```bash
    curl -X POST /api/v1/payments \
      -H "X-Api-Key: INVOICE_KEY" \
      -d '{"out": false, "amount": 100}'
    ```
+
    Expected: ✅ 200 OK (invoice keys should always work)
    Current: ❌ 403 Forbidden (BROKEN)
 
 3. **Payment with Admin Key (Unshared Wallet, API-only)**
+
    ```bash
    curl -X POST /api/v1/payments \
      -H "X-Api-Key: ADMIN_KEY" \
      -d '{"out": true, "bolt11": "lnbc..."}'
    ```
+
    Expected: ✅ 200 OK (early return for unshared wallets)
 
 4. **Payment with Admin Key (Shared Wallet, API-only)**
+
    ```bash
    curl -X POST /api/v1/payments \
      -H "X-Api-Key: ADMIN_KEY" \
      -d '{"out": true, "bolt11": "lnbc..."}'
    ```
+
    Expected: ❌ 403 Forbidden (by design - shared wallets need session)
 
 5. **Extension Wallet Settings Modification**
@@ -342,6 +373,7 @@ if not access_token:
 **Issue**: Invoice creation permission check is too broad and will break API-only usage.
 
 **Impact**:
+
 - ❌ LNURL services creating invoices
 - ❌ Extensions creating invoices programmatically
 - ❌ Automated invoice generation
@@ -361,12 +393,14 @@ if not access_token:
 ## 🎯 ACTION ITEMS
 
 **Before Merge**:
+
 1. 🔴 **CRITICAL**: Fix invoice creation permission check (line 266-267)
 2. 🟡 **HIGH**: Add test cases for invoice key + shared wallet
 3. 🟡 **HIGH**: Update documentation for breaking changes
 4. 🟡 **MEDIUM**: Review all extensions for compatibility
 
 **After Merge**:
+
 1. Monitor production for API errors related to invoice creation
 2. Communicate breaking changes to extension developers
 3. Add migration guide for affected users
