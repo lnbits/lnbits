@@ -130,12 +130,44 @@
                 <div
                   class="absolute-right q-pa-md"
                   v-if="$q.screen.gt.md && g.fiatTracking &&  '{{ LNBITS_DENOMINATION }}' == 'sats'"
+                  style="top: 8px; right: 60px"
                 >
                   <div class="text-bold text-italic">BTC Price</div>
                   <span
                     class="text-bold text-italic"
                     v-text="formattedExchange"
                   ></span>
+                </div>
+
+                <!-- Share Wallet Button (Top Right) -->
+                <div
+                  class="absolute-right q-pa-sm"
+                  style="top: 8px; right: 8px"
+                >
+                  <q-btn
+                    round
+                    flat
+                    color="deep-purple"
+                    icon="group"
+                    @click="showWalletSharesDialog"
+                    size="md"
+                  >
+                    <q-badge
+                      v-if="(!g.wallet.is_shared || canManageShares()) && walletShares.shares && walletShares.shares.length > 0"
+                      :label="walletShares.shares.length"
+                      color="deep-purple"
+                      floating
+                      rounded
+                    />
+                    <q-tooltip v-if="g.wallet.is_shared && !canManageShares()">
+                      Shared wallet - click to leave
+                    </q-tooltip>
+                    <q-tooltip v-else
+                      >Share Wallet (Shared with [[walletShares.shares.length]]
+                      user<span v-if="walletShares.shares.length !== 1">s</span
+                      >)</q-tooltip
+                    >
+                  </q-btn>
                 </div>
                 <q-btn
                   v-if="$q.screen.lt.md"
@@ -160,21 +192,35 @@
                 class="q-mr-md"
                 @click="showParseDialog"
                 :label="$t('paste_request')"
-              ></q-btn>
+                :disable="!canPayInvoice()"
+              >
+                <q-tooltip v-if="!canPayInvoice()">
+                  You don't have permission to pay invoices from this wallet
+                </q-tooltip>
+              </q-btn>
               <q-btn
                 unelevated
                 color="primary"
                 class="q-mr-md"
                 @click="showReceiveDialog"
                 :label="$t('create_invoice')"
-              ></q-btn>
+                :disable="!canCreateInvoice()"
+              >
+                <q-tooltip v-if="!canCreateInvoice()">
+                  You don't have permission to create invoices for this wallet
+                </q-tooltip>
+              </q-btn>
               <q-btn
                 unelevated
                 color="secondary"
                 icon="qr_code_scanner"
                 @click="showCamera"
+                :disable="!canPayInvoice()"
               >
-                <q-tooltip
+                <q-tooltip v-if="!canPayInvoice()">
+                  You don't have permission to pay invoices from this wallet
+                </q-tooltip>
+                <q-tooltip v-else
                   ><span v-text="$t('camera_tooltip')"></span
                 ></q-tooltip>
               </q-btn>
@@ -225,6 +271,7 @@
                 >
                 </q-avatar>
                 <q-btn
+                  v-if="!g.wallet.is_shared"
                   @click="icon.show = true"
                   round
                   color="grey-5"
@@ -233,7 +280,10 @@
                   icon="edit"
                   style="position: relative; left: -15px; bottom: -10px"
                 ></q-btn>
-                <div class="text-subtitle1 q-mt-none q-mb-none">
+                <div
+                  class="text-subtitle1 q-mt-none q-mb-none"
+                  :class="{'q-ml-md': g.wallet.is_shared}"
+                >
                   {{ SITE_TITLE }} Wallet:
                   <strong><em v-text="g.wallet.name"></em></strong>
                 </div>
@@ -419,6 +469,7 @@
                 </q-expansion-item>
                 <q-separator></q-separator>
                 <q-expansion-item
+                  v-if="!g.wallet.is_shared"
                   group="extras"
                   icon="settings"
                   :label="$t('wallet_config')"
@@ -1374,6 +1425,191 @@
           </div>
         </q-card>
       </q-dialog>
+
+      <!-- Wallet Shares Dialog -->
+      <q-dialog v-model="walletShares.show" position="top">
+        <q-card class="q-pa-lg" style="min-width: 500px">
+          <!-- If this wallet is shared WITH current user AND they don't have MANAGE_SHARES -->
+          <div v-if="g.wallet.is_shared && !(g.wallet.share_permissions & 8)">
+            <h5 class="q-my-sm">Shared Wallet</h5>
+            <q-card-section>
+              <p>
+                This wallet has been shared with you by another user. You have
+                the following permissions:
+              </p>
+              <p>
+                <strong
+                  v-text="getPermissionLabel(g.wallet.share_permissions)"
+                ></strong>
+              </p>
+              <q-btn
+                unelevated
+                color="negative"
+                @click="confirmLeaveWallet"
+                label="Leave Wallet"
+                icon="exit_to_app"
+                class="q-mt-md"
+              >
+                <q-tooltip>Remove this wallet from your account</q-tooltip>
+              </q-btn>
+            </q-card-section>
+            <div class="row q-mt-lg">
+              <q-btn
+                v-close-popup
+                flat
+                color="grey"
+                class="q-ml-auto"
+                label="Close"
+              ></q-btn>
+            </div>
+          </div>
+
+          <!-- If user is the owner OR has MANAGE_SHARES permission, show share management -->
+          <div v-else>
+            <h5 class="q-my-sm">Wallet Sharing</h5>
+
+            <!-- Tabs for Share Wallet -->
+            <q-tabs
+              v-model="walletShares.tab"
+              dense
+              class="text-grey"
+              active-color="primary"
+              indicator-color="primary"
+              align="justify"
+            >
+              <q-tab name="share" label="Share Wallet" />
+              <q-tab name="manage" label="Manage Shares" />
+            </q-tabs>
+
+            <q-separator></q-separator>
+
+            <q-tab-panels v-model="walletShares.tab" animated>
+              <!-- Share Wallet Tab -->
+              <q-tab-panel name="share">
+                <q-card-section>
+                  <h6 class="q-my-sm">Share with New User</h6>
+                  <q-input
+                    v-model="walletShares.newShare.user_id"
+                    label="LNbits Username or User ID"
+                    hint="Enter the username or user ID of an LNbits user on this server"
+                  ></q-input>
+                  <q-select
+                    v-model="walletShares.newShare.permissions"
+                    :options="walletShares.permissionOptions"
+                    label="Permissions"
+                    emit-value
+                    map-options
+                    class="q-mt-md"
+                  ></q-select>
+                  <q-btn
+                    unelevated
+                    color="primary"
+                    @click="shareWallet"
+                    label="Share Wallet"
+                    class="q-mt-md"
+                  ></q-btn>
+                </q-card-section>
+              </q-tab-panel>
+
+              <!-- Manage Shares Tab -->
+              <q-tab-panel name="manage">
+                <q-card-section>
+                  <h6 class="q-my-sm">Current Shares</h6>
+                  <q-list v-if="walletShares.shares.length > 0">
+                    <q-item
+                      v-for="share in walletShares.shares"
+                      :key="share.id"
+                    >
+                      <q-item-section>
+                        <q-item-label>
+                          <span>User: </span>
+                          <span v-text="share.username || share.user_id"></span>
+                        </q-item-label>
+                        <q-item-label caption>
+                          <div
+                            style="display: flex; align-items: center; gap: 8px"
+                          >
+                            <span>Permissions: </span>
+                            <q-select
+                              v-model="share.permissions"
+                              :options="walletShares.permissionOptions"
+                              dense
+                              borderless
+                              emit-value
+                              map-options
+                              @update:model-value="updateSharePermissions(share)"
+                              style="min-width: 150px"
+                            />
+                          </div>
+                        </q-item-label>
+                        <q-item-label caption>
+                          <span>Shared: </span>
+                          <span
+                            v-text="formatShareDate(share.shared_at)"
+                          ></span>
+                        </q-item-label>
+                        <q-item-label caption>
+                          <span v-if="share.accepted">Status: Accepted</span>
+                          <span v-else>Status: Pending</span>
+                        </q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <q-btn
+                          flat
+                          round
+                          color="negative"
+                          icon="delete"
+                          @click="deleteWalletShare(share.id)"
+                        >
+                          <q-tooltip>Revoke Access</q-tooltip>
+                        </q-btn>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                  <p v-else class="text-grey">
+                    No shares yet. Share this wallet with other users in the
+                    "Share Wallet" tab.
+                  </p>
+                </q-card-section>
+              </q-tab-panel>
+            </q-tab-panels>
+
+            <!-- If this is a shared wallet AND user has MANAGE_SHARES, show Leave option -->
+            <div v-if="g.wallet.is_shared">
+              <q-separator class="q-my-md"></q-separator>
+
+              <q-card-section>
+                <h6 class="q-my-sm">Leave Wallet</h6>
+                <p class="text-grey">
+                  This wallet has been shared with you. You can remove yourself
+                  from this shared wallet.
+                </p>
+                <q-btn
+                  unelevated
+                  color="negative"
+                  @click="confirmLeaveWallet"
+                  label="Leave Wallet"
+                  icon="exit_to_app"
+                >
+                  <q-tooltip>Remove this wallet from your account</q-tooltip>
+                </q-btn>
+              </q-card-section>
+            </div>
+
+            <div class="row q-mt-lg">
+              <q-btn
+                v-close-popup
+                flat
+                color="grey"
+                class="q-ml-auto"
+                label="Close"
+              ></q-btn>
+            </div>
+          </div>
+          <!-- End owner/manage section -->
+        </q-card>
+      </q-dialog>
+
       {% endblock %}
     </div>
   </div>

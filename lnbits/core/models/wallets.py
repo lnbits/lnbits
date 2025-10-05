@@ -40,6 +40,12 @@ class Wallet(BaseModel):
     balance_msat: int = Field(default=0, no_database=True)
     extra: WalletExtra = WalletExtra()
     stored_paylinks: StoredPayLinks = StoredPayLinks()
+    # Share metadata (populated when wallet is accessed via share with current user)
+    # is_shared=True means this wallet was shared WITH the current user (not owned)
+    # is_shared=False means this wallet is owned by the current user
+    is_shared: bool = Field(default=False, no_database=True)
+    # share_permissions contains the permission flags for shared wallets
+    share_permissions: int = Field(default=0, no_database=True)
 
     @property
     def balance(self) -> int:

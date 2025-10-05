@@ -1,4 +1,5 @@
 <q-expansion-item
+  v-if="!g.wallet.is_shared"
   group="extras"
   icon="vpn_key"
   :label="$t('api_keys_api_docs')"

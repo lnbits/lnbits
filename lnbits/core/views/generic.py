@@ -12,6 +12,7 @@ from fastapi.routing import APIRouter
 from lnurl import url_decode
 from pydantic.types import UUID4
 
+from lnbits.core.db import db
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.core.models.extensions import ExtensionMeta, InstallableExtension
@@ -266,6 +267,22 @@ async def wallet(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Wallet not found",
         )
+
+    # Check if this wallet is shared with the current user
+    if wal and wallet.user != user.id:
+        # Wallet accessed by ID and belongs to different user - check for share
+        result = await db.execute(
+            """
+            SELECT permissions FROM wallet_shares
+            WHERE wallet_id = :wallet_id AND user_id = :user_id AND accepted = TRUE
+            """,
+            {"wallet_id": wallet.id, "user_id": user.id},
+        )
+        row = result.mappings().first()
+        if row:
+            wallet.is_shared = True
+            wallet.share_permissions = row["permissions"]
+
     context = {
         "user": user.json(),
         "wallet": wallet.json(),

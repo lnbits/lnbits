@@ -743,3 +743,33 @@ async def m034_add_stored_paylinks_to_wallet(db: Connection):
         ALTER TABLE wallets ADD COLUMN stored_paylinks TEXT
         """
     )
+
+
+async def m035_shared_wallets(db: Connection):
+    """
+    Creates wallet_shares table for shared wallet functionality.
+    Allows multiple users to collaboratively manage a single wallet
+    with configurable permissions.
+    """
+    await db.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS wallet_shares (
+            id TEXT PRIMARY KEY,
+            wallet_id TEXT NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+            user_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+            permissions INTEGER NOT NULL DEFAULT 1,
+            shared_by TEXT NOT NULL REFERENCES accounts(id),
+            shared_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
+            accepted BOOLEAN DEFAULT FALSE,
+            accepted_at TIMESTAMP,
+            UNIQUE (wallet_id, user_id)
+        );
+        """
+    )
+
+
+async def m036_add_left_at_to_wallet_shares(db: Connection):
+    """
+    Add left_at timestamp to wallet_shares table to track when users leave shares.
+    """
+    await db.execute("ALTER TABLE wallet_shares ADD COLUMN left_at TIMESTAMP")

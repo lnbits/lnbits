@@ -125,7 +125,24 @@ window.WalletPageLogic = {
         showBalanceInOut: true,
         showPaymentCountInOut: true
       },
-      paymentsFilter: {}
+      paymentsFilter: {},
+      walletShares: {
+        show: false,
+        tab: 'share',
+        shares: [],
+        sharedWithMe: [],
+        newShare: {
+          user_id: '',
+          permissions: 1
+        },
+        permissionOptions: [
+          {label: 'View Only', value: 1},
+          {label: 'View + Create Invoices', value: 3},
+          {label: 'View + Pay Invoices', value: 5},
+          {label: 'Full Access (View + Create + Pay)', value: 7},
+          {label: 'Full Access + Manage Shares', value: 15}
+        ]
+      }
     }
   },
   computed: {
@@ -1138,6 +1155,148 @@ window.WalletPageLogic = {
       })
       this.stored_paylinks = links
       this.updatePaylinks()
+    },
+    showWalletSharesDialog() {
+      this.walletShares.show = true
+      this.loadWalletShares()
+    },
+    loadWalletShares() {
+      LNbits.api
+        .request(
+          'GET',
+          `/api/v1/wallet_shares/${this.g.wallet.id}`,
+          this.g.wallet.adminkey
+        )
+        .then(response => {
+          this.walletShares.shares = response.data
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
+    },
+    shareWallet() {
+      if (!this.walletShares.newShare.user_id) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Please enter a user ID',
+          timeout: 3000
+        })
+        return
+      }
+
+      LNbits.api
+        .request(
+          'POST',
+          `/api/v1/wallet_shares/${this.g.wallet.id}`,
+          this.g.wallet.adminkey,
+          this.walletShares.newShare
+        )
+        .then(response => {
+          this.$q.notify({
+            type: 'positive',
+            message: 'Wallet shared successfully',
+            timeout: 3000
+          })
+          this.walletShares.newShare.user_id = ''
+          this.walletShares.newShare.permissions = 1
+          this.loadWalletShares()
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
+    },
+    deleteWalletShare(shareId) {
+      this.$q
+        .dialog({
+          title: 'Revoke Access',
+          message: "Are you sure you want to revoke this user's access?",
+          cancel: true
+        })
+        .onOk(() => {
+          LNbits.api
+            .request(
+              'DELETE',
+              `/api/v1/wallet_shares/${shareId}`,
+              this.g.wallet.adminkey
+            )
+            .then(() => {
+              this.$q.notify({
+                type: 'positive',
+                message: 'Access revoked successfully',
+                timeout: 3000
+              })
+              this.loadWalletShares()
+            })
+            .catch(err => {
+              LNbits.utils.notifyApiError(err)
+            })
+        })
+    },
+    updateSharePermissions(share) {
+      LNbits.api
+        .request(
+          'PUT',
+          `/api/v1/wallet_shares/${share.id}`,
+          this.g.wallet.adminkey,
+          {permissions: share.permissions}
+        )
+        .then(() => {
+          this.$q.notify({
+            type: 'positive',
+            message: 'Permissions updated successfully',
+            timeout: 3000
+          })
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+          // Reload shares to revert the change in UI
+          this.loadWalletShares()
+        })
+    },
+    confirmLeaveWallet() {
+      this.$q
+        .dialog({
+          title: 'Leave Shared Wallet',
+          message:
+            'Are you sure you want to leave this shared wallet? You will lose access to it.',
+          cancel: true
+        })
+        .onOk(() => {
+          LNbits.api.leaveWallet(this.g.wallet)
+        })
+    },
+    getPermissionLabel(permissions) {
+      const option = this.walletShares.permissionOptions.find(
+        opt => opt.value === permissions
+      )
+      return option ? option.label : 'Custom'
+    },
+    formatShareDate(timestamp) {
+      return new Date(timestamp).toLocaleString()
+    },
+    canCreateInvoice() {
+      // If wallet is explicitly marked as shared, check permissions
+      if (this.g.wallet.is_shared === true) {
+        return !!(this.g.wallet.share_permissions & 2)
+      }
+      // Owner or not shared: can create invoices
+      return true
+    },
+    canPayInvoice() {
+      // If wallet is explicitly marked as shared, check permissions
+      if (this.g.wallet.is_shared === true) {
+        return !!(this.g.wallet.share_permissions & 4)
+      }
+      // Owner or not shared: can pay invoices
+      return true
+    },
+    canManageShares() {
+      // If wallet is explicitly marked as shared, check permissions
+      if (this.g.wallet.is_shared === true) {
+        return !!(this.g.wallet.share_permissions & 8)
+      }
+      // Owner or not shared: can manage shares
+      return true
     }
   },
   created() {
@@ -1150,6 +1309,7 @@ window.WalletPageLogic = {
       this.parse.show = true
     }
     this.createdTasks()
+    this.loadWalletShares()
     try {
       this.fetchChartData()
     } catch (error) {

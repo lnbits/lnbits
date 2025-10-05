@@ -62,3 +62,11 @@ dist
 # jetbrains
 .idea
 .venv
+
+# test screenshots
+tests/ui/screenshots/*
+!tests/ui/screenshots/.gitkeep
+
+# Local test data
+.env.local
+data_test/

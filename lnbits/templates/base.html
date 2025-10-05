@@ -188,19 +188,39 @@
                 ></q-item-label>
               </q-item-section>
               <q-item-section side>
-                <q-btn
-                  flat
-                  :icon=" walletFlip ? 'view_list' : 'view_column'"
-                  color="grey"
-                  class=""
-                  @click="flipWallets($q.screen.lt.md)"
-                >
-                  <q-tooltip
-                    ><span
-                      v-text="walletFlip ? $t('view_list') : $t('view_column')"
-                    ></span
-                  ></q-tooltip>
-                </q-btn>
+                <div class="row items-center q-gutter-xs">
+                  <q-btn
+                    v-if="pendingShares && pendingShares.length > 0"
+                    flat
+                    round
+                    dense
+                    icon="notifications"
+                    color="deep-purple"
+                    @click="openShareInvitationsDialog"
+                  >
+                    <q-badge
+                      :label="pendingShares.length"
+                      color="red"
+                      floating
+                      rounded
+                    />
+                    <q-tooltip>Pending wallet share invitations</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    :icon=" walletFlip ? 'view_list' : 'view_column'"
+                    color="grey"
+                    @click="flipWallets($q.screen.lt.md)"
+                  >
+                    <q-tooltip
+                      ><span
+                        v-text="walletFlip ? $t('view_list') : $t('view_column')"
+                      ></span
+                    ></q-tooltip>
+                  </q-btn>
+                </div>
               </q-item-section>
             </q-item>
             <lnbits-wallet-list
@@ -217,6 +237,72 @@
             <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
           </q-scroll-area>
         </q-drawer>
+
+        <!-- Share Invitations Dialog (outside drawer to avoid z-index issues) -->
+        <q-dialog v-model="showShareInvitationsDialog">
+          <q-card style="min-width: 400px">
+            <q-card-section>
+              <div class="text-h6">Wallet Share Invitations</div>
+            </q-card-section>
+
+            <q-card-section class="q-pt-none">
+              <q-list
+                v-if="pendingShares && pendingShares.length > 0"
+                separator
+              >
+                <q-item v-for="share in pendingShares" :key="share.id">
+                  <q-item-section>
+                    <q-item-label>
+                      <strong
+                        v-text="share.wallet_name || 'Unnamed Wallet'"
+                      ></strong>
+                      <span v-if="share.shared_by_username">
+                        - shared by
+                        <span v-text="share.shared_by_username"></span
+                      ></span>
+                    </q-item-label>
+                    <q-item-label
+                      caption
+                      v-text="getPermissionLabel(share.permissions)"
+                    ></q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <div class="q-gutter-sm">
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        color="positive"
+                        icon="check"
+                        @click="acceptShare(share.id)"
+                      >
+                        <q-tooltip>Accept</q-tooltip>
+                      </q-btn>
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        color="negative"
+                        icon="close"
+                        @click="declineShare(share.id)"
+                      >
+                        <q-tooltip>Decline</q-tooltip>
+                      </q-btn>
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+              <div v-else class="text-center text-grey">
+                No pending share invitations
+              </div>
+            </q-card-section>
+
+            <q-card-actions align="right">
+              <q-btn flat label="Close" v-close-popup></q-btn>
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
+
         {% endblock %} {% block page_container %}
         <q-page-container>
           <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
@@ -289,6 +375,7 @@
                     </div>
                   </q-card-section>
                 </q-card>
+
                 <q-card
                   v-for="wallet in g.user.wallets.slice(0, g.user.extra.visible_wallet_count || 10)"
                   :key="wallet.id"
@@ -321,13 +408,27 @@
                       >
                       </q-avatar>
                       <div
-                        class="text-h6 q-pl-md ellipsis"
-                        style="max-width: 80%"
-                        :class="{
-              'text-bold': g.wallet && g.wallet.id === wallet.id
-            }"
-                        v-text="wallet.name"
-                      ></div>
+                        class="q-pl-md row items-center no-wrap"
+                        style="flex: 1; min-width: 0"
+                      >
+                        <span
+                          class="text-h6 ellipsis"
+                          :class="{
+                'text-bold': g.wallet && g.wallet.id === wallet.id
+              }"
+                          v-text="wallet.name"
+                        ></span>
+                        <q-icon
+                          v-if="wallet.is_shared === true"
+                          name="group"
+                          size="sm"
+                          color="grey-6"
+                          class="q-ml-xs"
+                          style="flex-shrink: 0"
+                        >
+                          <q-tooltip>Shared wallet</q-tooltip>
+                        </q-icon>
+                      </div>
                     </div>
                     <div class="row items-center q-pt-sm">
                       <h6 class="q-my-none ellipsis full-width">
