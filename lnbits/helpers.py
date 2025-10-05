@@ -49,8 +49,13 @@ def url_for(endpoint: str, external: bool | None = False, **params: Any) -> str:
 
 
 def static_url_for(static: str, path: str) -> str:
-    """Generate URL for static files with cache busting based on file modification time."""
+    """
+    Generate URL for static files with cache busting based on file
+    modification time.
+    """
     from pathlib import Path
+
+    from loguru import logger
 
     # Try to get the actual file modification time for better cache busting
     try:
@@ -58,8 +63,8 @@ def static_url_for(static: str, path: str) -> str:
         if file_path.exists():
             mtime = int(file_path.stat().st_mtime)
             return f"/{static}/{path}?v={mtime}"
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug(f"Could not get mtime for {static}/{path}: {exc}")
 
     # Fallback to server startup time if file not found or error
     return f"/{static}/{path}?v={settings.server_startup_time}"
