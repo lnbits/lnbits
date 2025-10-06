@@ -126,6 +126,7 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
                 if ext.meta and ext.meta.latest_release
                 else None
             ),
+            "hasPaidRelease": ext.meta.has_paid_release if ext.meta else False,
             "installedRelease": (
                 dict(ext.meta.installed_release)
                 if ext.meta and ext.meta.installed_release

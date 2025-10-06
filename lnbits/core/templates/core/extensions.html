@@ -137,8 +137,30 @@
               @click="showExtensionDetails(extension.id, extension.details_link)"
               v-text="extension.name"
             ></div>
-            <div>
+            <div style="justify-content: space-between; display: flex">
               <lnbits-extension-rating :rating="0" />
+              <q-badge
+                v-if="extension.hasPaidRelease"
+                size="xs"
+                color="primary"
+                style="cursor: pointer; margin: 5px 0"
+              >
+                <span v-text="$t('paid')"></span>
+                <q-tooltip
+                  ><span v-text="$t('extension_has_paid_release')"></span>
+                </q-tooltip>
+              </q-badge>
+              <q-badge
+                v-else
+                size="xs"
+                color="green"
+                style="cursor: pointer; margin: 5px 0"
+              >
+                <span v-text="$t('free')"></span>
+                <q-tooltip>
+                  <span v-text="$t('extension_free_to_install')"></span>
+                </q-tooltip>
+              </q-badge>
             </div>
             <div style="justify-content: space-between; display: flex">
               <q-toggle

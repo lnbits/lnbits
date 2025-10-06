@@ -168,6 +168,8 @@ window.localisation.en = {
     'Only admin accounts can create extensions',
   admin_only: 'Admin Only',
   new_version: 'New Version',
+  extension_free_to_install: 'This extension is free to install',
+  extension_has_paid_release: 'This extension has paid releases',
   extension_depends_on: 'Depends on:',
   extension_rating_soon: 'Ratings coming soon',
   extension_installed_version: 'Installed version',
@@ -663,5 +665,7 @@ window.localisation.en = {
   callback_success_url_hint:
     'The user will be redirected to this URL after the payment is successful',
   connected: 'Connected',
-  not_connected: 'Not Connected'
+  not_connected: 'Not Connected',
+  free: 'Free',
+  paid: 'Paid',
 }

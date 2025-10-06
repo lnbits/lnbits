@@ -308,6 +308,7 @@ class ExtensionMeta(BaseModel):
     dependencies: list[str] = []
     archive: str | None = None
     featured: bool = False
+    has_paid_release: bool = False
 
 
 class InstallableExtension(BaseModel):
@@ -451,7 +452,19 @@ class InstallableExtension(BaseModel):
 
         shutil.rmtree(self.ext_upgrade_dir, True)
 
-    def check_latest_version(self, release: ExtensionRelease | None):
+    def check_release_updates(self, release: ExtensionRelease | None):
+        self._check_latest_version(release)
+        self._check_payment_link(release)
+
+    def find_existing_payment(self, pay_link: str | None) -> ReleasePaymentInfo | None:
+        if not pay_link or not self.meta or not self.meta.payments:
+            return None
+        return next(
+            (p for p in self.meta.payments if p.pay_link == pay_link),
+            None,
+        )
+
+    def _check_latest_version(self, release: ExtensionRelease | None):
         if not release:
             return
         if not self.meta or not self.meta.latest_release:
@@ -464,13 +477,13 @@ class InstallableExtension(BaseModel):
         ):
             self.meta.latest_release = release
 
-    def find_existing_payment(self, pay_link: str | None) -> ReleasePaymentInfo | None:
-        if not pay_link or not self.meta or not self.meta.payments:
-            return None
-        return next(
-            (p for p in self.meta.payments if p.pay_link == pay_link),
-            None,
-        )
+    def _check_payment_link(self, release: ExtensionRelease | None):
+        if not release:
+            return
+        if not self.meta:
+            self.meta = ExtensionMeta()
+        if release.pay_link:
+            self.meta.has_paid_release = True
 
     def _restore_payment_info(self):
         if (
@@ -596,7 +609,7 @@ class InstallableExtension(BaseModel):
                         (ee for ee in extension_list if ee.id == r.id), None
                     )
                     if existing_ext and ext.meta:
-                        existing_ext.check_latest_version(ext.meta.latest_release)
+                        existing_ext.check_release_updates(ext.meta.latest_release)
                         continue
 
                     meta = ext.meta or ExtensionMeta()
@@ -610,10 +623,10 @@ class InstallableExtension(BaseModel):
                         (ee for ee in extension_list if ee.id == e.id), None
                     )
                     if existing_ext:
-                        existing_ext.check_latest_version(release)
+                        existing_ext.check_release_updates(release)
                         continue
                     ext = InstallableExtension.from_explicit_release(e)
-                    ext.check_latest_version(release)
+                    ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured
                     ext.meta = meta
