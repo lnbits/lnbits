@@ -467,6 +467,8 @@ class InstallableExtension(BaseModel):
     def _check_latest_version(self, release: ExtensionRelease | None):
         if not release:
             return
+        if not release.is_version_compatible:
+            return
         if not self.meta or not self.meta.latest_release:
             meta = self.meta or ExtensionMeta()
             meta.latest_release = release
