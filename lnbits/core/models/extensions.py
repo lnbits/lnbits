@@ -39,6 +39,7 @@ class ExplicitRelease(BaseModel):
     info_notification: str | None
     critical_notification: str | None
     details_link: str | None
+    paid_features: str | None
     pay_link: str | None
 
     def is_version_compatible(self):
@@ -187,6 +188,7 @@ class ExtensionRelease(BaseModel):
     icon: str | None = None
     details_link: str | None = None
 
+    paid_features: str | None = None
     pay_link: str | None = None
     cost_sats: int | None = None
     paid_sats: int | None = 0
@@ -256,6 +258,7 @@ class ExtensionRelease(BaseModel):
             html_url=e.html_url,
             details_link=e.details_link,
             pay_link=e.pay_link,
+            paid_features=e.paid_features,
             repo=e.repo,
             icon=e.icon,
         )
@@ -308,7 +311,9 @@ class ExtensionMeta(BaseModel):
     dependencies: list[str] = []
     archive: str | None = None
     featured: bool = False
+    paid_features: str | None = None
     has_paid_release: bool = False
+    has_free_release: bool = False
 
 
 class InstallableExtension(BaseModel):
@@ -482,10 +487,22 @@ class InstallableExtension(BaseModel):
     def _check_payment_link(self, release: ExtensionRelease | None):
         if not release:
             return
+        if not release.is_version_compatible:
+            return
         if not self.meta:
             self.meta = ExtensionMeta()
         if release.pay_link:
             self.meta.has_paid_release = True
+        else:
+            self.meta.has_free_release = True
+        print(
+            "### release.paid_features",
+            release.name,
+            release.version,
+            release.paid_features,
+        )
+        if release.paid_features:
+            self.meta.paid_features = release.paid_features
 
     def _restore_payment_info(self):
         if (
