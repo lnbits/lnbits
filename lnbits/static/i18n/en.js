@@ -667,5 +667,5 @@ window.localisation.en = {
   connected: 'Connected',
   not_connected: 'Not Connected',
   free: 'Free',
-  paid: 'Paid',
+  paid: 'Paid'
 }
