@@ -10,6 +10,7 @@ from lnbits.core.models.wallet_shares import (
     CreateWalletShare,
     UpdateWalletSharePermissions,
     WalletShare,
+    WalletShareResponse,
 )
 from lnbits.decorators import check_user_exists, require_admin_key
 
@@ -26,6 +27,27 @@ from ..crud.wallet_shares import (
 )
 
 wallet_shares_router = APIRouter(prefix="/api/v1/wallet_shares", tags=["Wallet Shares"])
+
+
+def _to_response(share: WalletShare) -> WalletShareResponse:
+    """
+    Convert WalletShare to WalletShareResponse.
+
+    Security: Removes user_id from response to prevent account takeover
+    if 'user-id-only' authentication is enabled.
+    """
+    return WalletShareResponse(
+        id=share.id,
+        wallet_id=share.wallet_id,
+        permissions=share.permissions,
+        shared_by=share.shared_by,
+        shared_at=share.shared_at,
+        status=share.status,
+        status_updated_at=share.status_updated_at,
+        username=share.username,
+        wallet_name=share.wallet_name,
+        shared_by_username=share.shared_by_username,
+    )
 
 
 @wallet_shares_router.get("/health")
@@ -142,7 +164,7 @@ async def api_create_wallet_share(
 async def api_get_wallet_shares(
     wallet_id: str,
     wallet: WalletTypeInfo = Depends(require_admin_key),
-) -> list[WalletShare]:
+) -> list[WalletShareResponse]:
     """
     Get all shares for a wallet.
     Only the wallet owner can view shares.
@@ -167,26 +189,26 @@ async def api_get_wallet_shares(
                 if account:
                     share.username = account.username or account.email or share.user_id
 
-        return shares
+        return [_to_response(share) for share in shares]
 
 
 @wallet_shares_router.get("/shared/me")
 async def api_get_my_shared_wallets(
     user: User = Depends(check_user_exists),
-) -> list[WalletShare]:
+) -> list[WalletShareResponse]:
     """
     Get all wallets shared with the current user.
     """
     async with db.connect() as conn:
         shares = await get_user_shared_wallets(conn, user.id)
-        return shares
+        return [_to_response(share) for share in shares]
 
 
 @wallet_shares_router.post("/accept/{share_id}")
 async def api_accept_wallet_share(
     share_id: str,
     user: User = Depends(check_user_exists),
-) -> WalletShare:
+) -> WalletShareResponse:
     """
     Accept a wallet share invitation.
     Only the user the wallet is shared with can accept it.
@@ -214,7 +236,7 @@ async def api_accept_wallet_share(
             )
 
         updated_share = await accept_wallet_share(conn, share_id)
-        return updated_share
+        return _to_response(updated_share)
 
 
 @wallet_shares_router.post("/decline/{share_id}")
@@ -282,7 +304,7 @@ async def api_update_wallet_share_permissions(
     share_id: str,
     data: UpdateWalletSharePermissions,
     wallet: WalletTypeInfo = Depends(require_admin_key),
-) -> WalletShare:
+) -> WalletShareResponse:
     """
     Update permissions for a wallet share.
     Only the wallet owner can update shares using their admin key.
@@ -302,7 +324,7 @@ async def api_update_wallet_share_permissions(
             )
 
         updated_share = await update_wallet_share_permissions(conn, share_id, data)
-        return updated_share
+        return _to_response(updated_share)
 
 
 @wallet_shares_router.delete("/{share_id}")

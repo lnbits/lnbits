@@ -116,10 +116,15 @@ async def test_create_share():
         created_share = response_data.get("share", response_data)
         logger.info("✅ Share created successfully!")
         logger.info(f"   ID: {created_share['id']}")
-        logger.info(
-            f"   User: {created_share.get('username', created_share['user_id'])}"
-        )
+        logger.info(f"   User: {created_share.get('username', 'Unknown')}")
         logger.info(f"   Permissions: {created_share['permissions']}")
+
+        # Security check: Verify user_id is NOT exposed
+        if "user_id" in created_share:
+            logger.error(
+                "❌ SECURITY ISSUE: user_id should not be exposed in API response!"
+            )
+            return False
 
         # Step 3: Verify share was created
         logger.info("📝 Step 3: Verifying share creation...")

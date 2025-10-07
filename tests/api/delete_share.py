@@ -76,9 +76,14 @@ async def test_delete_share():
 
         share_to_delete = shares[0]
         logger.info(f"📄 Found share to delete: {share_to_delete['id']}")
-        logger.info(
-            f"   User: {share_to_delete.get('username', share_to_delete['user_id'])}"
-        )
+        logger.info(f"   User: {share_to_delete.get('username', 'Unknown')}")
+
+        # Security check: Verify user_id is NOT exposed
+        if "user_id" in share_to_delete:
+            logger.error(
+                "❌ SECURITY ISSUE: user_id should not be exposed in API response!"
+            )
+            return False
 
         # Step 2: Delete share (using admin key)
         logger.info("📝 Step 2: Deleting share...")
