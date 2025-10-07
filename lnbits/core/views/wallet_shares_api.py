@@ -109,7 +109,7 @@ async def api_create_wallet_share(
                     status_code=HTTPStatus.CONFLICT,
                     detail=(
                         "Wallet is already shared with this user. "
-                        "Edit their permissions in the Current Shares section."
+                        "Edit their permissions in the Manage Shares section."
                     ),
                 )
             else:
