@@ -84,8 +84,11 @@ async def api_create_wallet_share(
 
         # Debug logging
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.info(f"Re-share check: wallet_id={wallet_id}, recipient_id={recipient.id}")
+        logger.info(
+            f"Re-share check: wallet_id={wallet_id}, recipient_id={recipient.id}"
+        )
         logger.info(f"Existing shares count: {len(existing_shares)}")
         for share in existing_shares:
             logger.info(f"  Share: user_id={share.user_id}, status={share.status}")

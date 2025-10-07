@@ -232,7 +232,10 @@ window.WalletPageLogic = {
       )
     },
     filteredShares() {
-      if (!this.walletShares.shares || !Array.isArray(this.walletShares.shares)) {
+      if (
+        !this.walletShares.shares ||
+        !Array.isArray(this.walletShares.shares)
+      ) {
         return []
       }
       return this.walletShares.shares.filter(share => {
