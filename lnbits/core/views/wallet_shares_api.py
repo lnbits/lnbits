@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from lnbits.core.crud import get_account
+from lnbits.core.crud import get_account, get_accounts_by_ids
 from lnbits.core.db import db
 from lnbits.core.models import User, WalletTypeInfo
 from lnbits.core.models.wallet_shares import (
@@ -157,12 +157,15 @@ async def api_get_wallet_shares(
     async with db.connect() as conn:
         shares = await get_wallet_shares(conn, wallet_id)
 
-        # TODO: Populate usernames for display
-        # Currently disabled due to get_account() hanging issue when called in a loop
-        # for share in shares:
-        #     account = await get_account(share.user_id)
-        #     if account:
-        #         share.username = account.username or account.email or share.user_id
+        # Populate usernames efficiently with batch query
+        if shares:
+            user_ids = [share.user_id for share in shares]
+            accounts = await get_accounts_by_ids(user_ids, conn)
+
+            for share in shares:
+                account = accounts.get(share.user_id)
+                if account:
+                    share.username = account.username or account.email or share.user_id
 
         return shares
 
