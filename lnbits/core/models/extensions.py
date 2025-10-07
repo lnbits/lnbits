@@ -495,12 +495,6 @@ class InstallableExtension(BaseModel):
             self.meta.has_paid_release = True
         else:
             self.meta.has_free_release = True
-        print(
-            "### release.paid_features",
-            release.name,
-            release.version,
-            release.paid_features,
-        )
         if release.paid_features:
             self.meta.paid_features = release.paid_features
 
