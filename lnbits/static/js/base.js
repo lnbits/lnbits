@@ -777,7 +777,10 @@ window.windowMixin = {
 
       try {
         const response = await axios.get('/api/v1/wallet_shares/shared/me')
-        this.pendingShares = response.data.filter(share => !share.accepted)
+        // Filter for pending shares only (API returns pending and accepted)
+        this.pendingShares = response.data.filter(
+          share => share.status === 'pending'
+        )
       } catch (error) {
         console.error(
           'Failed to load pending shares:',
@@ -857,28 +860,73 @@ window.windowMixin = {
       }
     },
     getPermissionLabel(permissions) {
-      if (!permissions) {
-        console.warn('No permissions object provided')
+      if (!permissions && permissions !== 0) {
+        console.warn('No permissions provided')
         return 'No permissions set'
       }
 
-      // If permissions is a string, try to parse it
+      // Permission bit flags from WalletSharePermission enum
+      const VIEW = 1
+      const CREATE_INVOICE = 2
+      const PAY_INVOICE = 4
+      const MANAGE_SHARES = 8
+      const FULL_ACCESS = 15
+
+      // If permissions is a string, try to parse it as a number
       if (typeof permissions === 'string') {
-        try {
-          permissions = JSON.parse(permissions)
-        } catch (e) {
-          console.error('Failed to parse permissions:', e)
+        permissions = parseInt(permissions, 10)
+        if (isNaN(permissions)) {
+          console.error('Invalid permissions string')
           return 'Invalid permissions'
         }
       }
 
-      const labels = []
-      if (permissions.can_view) labels.push('View')
-      if (permissions.can_create_invoice) labels.push('Create Invoice')
-      if (permissions.can_pay_invoice) labels.push('Pay Invoice')
+      // If permissions is an object (but not null/array), convert to integer
+      if (
+        typeof permissions === 'object' &&
+        permissions !== null &&
+        !Array.isArray(permissions)
+      ) {
+        let permValue = 0
+        if (permissions.can_view) permValue |= VIEW
+        if (permissions.can_create_invoice) permValue |= CREATE_INVOICE
+        if (permissions.can_pay_invoice) permValue |= PAY_INVOICE
+        if (permissions.can_manage_shares) permValue |= MANAGE_SHARES
+        permissions = permValue
+      }
 
-      console.log('Permissions:', permissions, 'Labels:', labels)
-      return labels.length > 0 ? labels.join(', ') : 'View only'
+      // Ensure permissions is a number
+      const permInt = Number(permissions)
+
+      console.log(
+        'DEBUG: permissions type:',
+        typeof permissions,
+        'value:',
+        permissions,
+        'permInt:',
+        permInt
+      )
+      console.log(
+        'DEBUG: permInt & VIEW:',
+        permInt & VIEW,
+        'permInt & CREATE_INVOICE:',
+        permInt & CREATE_INVOICE
+      )
+
+      // Check for full access first
+      if (permInt === FULL_ACCESS) {
+        return 'Full Access'
+      }
+
+      // Decode bit flags
+      const labels = []
+      if (permInt & VIEW) labels.push('View')
+      if (permInt & CREATE_INVOICE) labels.push('Create Invoice')
+      if (permInt & PAY_INVOICE) labels.push('Pay Invoice')
+      if (permInt & MANAGE_SHARES) labels.push('Manage Shares')
+
+      console.log('Permissions value:', permInt, 'Labels:', labels)
+      return labels.length > 0 ? labels.join(', ') : 'No permissions'
     }
   },
   async created() {

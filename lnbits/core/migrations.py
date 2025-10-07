@@ -773,3 +773,68 @@ async def m036_add_left_at_to_wallet_shares(db: Connection):
     Add left_at timestamp to wallet_shares table to track when users leave shares.
     """
     await db.execute("ALTER TABLE wallet_shares ADD COLUMN left_at TIMESTAMP")
+
+
+async def m037_wallet_shares_status_field(db: Connection):
+    """
+    Replace accepted/accepted_at/left_at fields with status and status_updated_at.
+    Status can be: pending, accepted, rejected, revoked, left
+    """
+    # Add new columns
+    await db.execute(
+        "ALTER TABLE wallet_shares ADD COLUMN status TEXT DEFAULT 'pending'"
+    )
+    await db.execute("ALTER TABLE wallet_shares ADD COLUMN status_updated_at TIMESTAMP")
+
+    # Migrate existing data to new status field
+    # If left_at is set and accepted is true -> status = 'left'
+    # If left_at is set and accepted is false -> status = 'rejected'
+    # If accepted is true -> status = 'accepted'
+    # Otherwise -> status = 'pending'
+    await db.execute(
+        """
+        UPDATE wallet_shares
+        SET status = CASE
+            WHEN left_at IS NOT NULL AND accepted = TRUE THEN 'left'
+            WHEN left_at IS NOT NULL AND accepted = FALSE THEN 'rejected'
+            WHEN accepted = TRUE THEN 'accepted'
+            ELSE 'pending'
+        END,
+        status_updated_at = COALESCE(left_at, accepted_at, shared_at)
+        """
+    )
+
+    # Drop old columns (SQLite requires recreating the table)
+    if db.type == "SQLITE":
+        await db.execute(
+            """
+            CREATE TABLE wallet_shares_new (
+                id TEXT PRIMARY KEY,
+                wallet_id TEXT NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+                permissions INTEGER NOT NULL DEFAULT 1,
+                shared_by TEXT NOT NULL REFERENCES accounts(id),
+                shared_at TIMESTAMP NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                status_updated_at TIMESTAMP,
+                UNIQUE (wallet_id, user_id)
+            )
+            """
+        )
+        await db.execute(
+            """
+            INSERT INTO wallet_shares_new
+            (id, wallet_id, user_id, permissions, shared_by, shared_at,
+             status, status_updated_at)
+            SELECT id, wallet_id, user_id, permissions, shared_by, shared_at,
+                   status, status_updated_at
+            FROM wallet_shares
+            """
+        )
+        await db.execute("DROP TABLE wallet_shares")
+        await db.execute("ALTER TABLE wallet_shares_new RENAME TO wallet_shares")
+    else:
+        # PostgreSQL can drop columns directly
+        await db.execute("ALTER TABLE wallet_shares DROP COLUMN accepted")
+        await db.execute("ALTER TABLE wallet_shares DROP COLUMN accepted_at")
+        await db.execute("ALTER TABLE wallet_shares DROP COLUMN left_at")
