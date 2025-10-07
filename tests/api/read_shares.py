@@ -73,11 +73,19 @@ async def test_read_shares():  # noqa: C901
             for i, share in enumerate(shares, 1):
                 logger.info(f"\n  Share {i}:")
                 logger.info(f"    ID: {share['id']}")
-                logger.info(f"    User: {share.get('username', share['user_id'])}")
+                logger.info(f"    User: {share.get('username', 'Unknown')}")
                 logger.info(f"    Permissions: {share['permissions']}")
                 logger.info(f"    Shared by: {share['shared_by']}")
                 logger.info(f"    Shared at: {share['shared_at']}")
-                logger.info(f"    Accepted: {share['accepted']}")
+                logger.info(f"    Status: {share['status']}")
+
+                # Security check: Verify user_id is NOT exposed
+                if "user_id" in share:
+                    logger.error(
+                        "❌ SECURITY ISSUE: user_id should not be exposed "
+                        "in API response!"
+                    )
+                    return False
 
                 # Decode permissions
                 perms = []
