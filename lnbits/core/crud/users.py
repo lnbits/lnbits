@@ -200,9 +200,11 @@ async def get_user_from_account(
             shared_wallet_shares = await get_user_shared_wallets(temp_conn, account.id)
 
     # Fetch actual wallet objects for accepted shares and add share metadata
+    from ..models.wallet_shares import WalletShareStatus
+
     shared_wallets = []
     for share in shared_wallet_shares:
-        if share.accepted:  # Only include accepted shares
+        if share.status == WalletShareStatus.ACCEPTED:  # Only include accepted shares
             wallet = await get_wallet(share.wallet_id, conn=conn)
             if wallet and not wallet.deleted:
                 # Mark this wallet as shared WITH current user

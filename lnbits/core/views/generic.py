@@ -274,7 +274,7 @@ async def wallet(
         result = await db.execute(
             """
             SELECT permissions FROM wallet_shares
-            WHERE wallet_id = :wallet_id AND user_id = :user_id AND accepted = TRUE
+            WHERE wallet_id = :wallet_id AND user_id = :user_id AND status = 'accepted'
             """,
             {"wallet_id": wallet.id, "user_id": user.id},
         )

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,11 +16,12 @@ from lnbits.decorators import check_user_exists, require_admin_key
 from ..crud.wallet_shares import (
     accept_wallet_share,
     create_wallet_share,
-    delete_wallet_share,
     get_user_shared_wallets,
     get_wallet_share,
     get_wallet_shares,
     leave_wallet_share,
+    reject_wallet_share,
+    revoke_wallet_share,
     update_wallet_share_permissions,
 )
 
@@ -74,25 +76,59 @@ async def api_create_wallet_share(
     share_data = CreateWalletShare(user_id=recipient.id, permissions=data.permissions)
 
     async with db.connect() as conn:
-        # Check if wallet is already shared with this user (and they haven't left)
-        from ..crud.wallet_shares import get_wallet_shares
+        # Check if wallet is already shared with this user
+        from ..crud.wallet_shares import get_wallet_share, get_wallet_shares
+        from ..models.wallet_shares import WalletShareStatus
 
         existing_shares = await get_wallet_shares(conn, wallet_id)
+
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Re-share check: wallet_id={wallet_id}, recipient_id={recipient.id}")
+        logger.info(f"Existing shares count: {len(existing_shares)}")
+        for share in existing_shares:
+            logger.info(f"  Share: user_id={share.user_id}, status={share.status}")
+
         existing_share = next(
-            (s for s in existing_shares if s.user_id == recipient.id and not s.left_at),
-            None,
+            (s for s in existing_shares if s.user_id == recipient.id), None
         )
 
+        logger.info(f"Found existing share: {existing_share is not None}")
+
         if existing_share:
-            raise HTTPException(
-                status_code=HTTPStatus.CONFLICT,
-                detail=(
-                    "Wallet is already shared with this user. "
-                    "Edit their permissions in the Current Shares section."
-                ),
-            )
+            if existing_share.status in (
+                WalletShareStatus.PENDING,
+                WalletShareStatus.ACCEPTED,
+            ):
+                # Can't re-share if already pending or accepted
+                raise HTTPException(
+                    status_code=HTTPStatus.CONFLICT,
+                    detail=(
+                        "Wallet is already shared with this user. "
+                        "Edit their permissions in the Current Shares section."
+                    ),
+                )
+            else:
+                # Re-share: Update existing revoked/rejected/left share to pending
+                await conn.execute(
+                    """
+                    UPDATE wallet_shares
+                    SET status = :status, permissions = :permissions,
+                        status_updated_at = :status_updated_at
+                    WHERE id = :share_id
+                    """,
+                    {
+                        "status": WalletShareStatus.PENDING,
+                        "permissions": share_data.permissions,
+                        "status_updated_at": datetime.now(timezone.utc),
+                        "share_id": existing_share.id,
+                    },
+                )
+                updated_share = await get_wallet_share(conn, existing_share.id)
+                return {"share": updated_share, "created": False}
         else:
-            # Create new share (or re-share if they previously left)
+            # Create new share
             share = await create_wallet_share(
                 conn, wallet_id, share_data, wallet.wallet.user
             )
@@ -148,7 +184,10 @@ async def api_accept_wallet_share(
     """
     Accept a wallet share invitation.
     Only the user the wallet is shared with can accept it.
+    Sets status='accepted'.
     """
+    from ..models.wallet_shares import WalletShareStatus
+
     async with db.connect() as conn:
         share = await get_wallet_share(conn, share_id)
         if not share:
@@ -162,9 +201,10 @@ async def api_accept_wallet_share(
                 detail="Only the recipient can accept this share",
             )
 
-        if share.accepted:
+        if share.status != WalletShareStatus.PENDING:
             raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, detail="Share already accepted"
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Cannot accept share with status: {share.status}",
             )
 
         updated_share = await accept_wallet_share(conn, share_id)
@@ -179,6 +219,7 @@ async def api_decline_wallet_share(
     """
     Decline a wallet share invitation.
     Only the recipient can decline their own invitation.
+    Sets status='rejected' so sender can see the rejection.
     """
     async with db.connect() as conn:
         share = await get_wallet_share(conn, share_id)
@@ -193,7 +234,7 @@ async def api_decline_wallet_share(
                 detail="Only the recipient can decline this share",
             )
 
-        await delete_wallet_share(conn, share_id)
+        await reject_wallet_share(conn, share_id)
         return {"success": True, "message": "Share declined successfully"}
 
 
@@ -204,8 +245,11 @@ async def api_leave_wallet_share(
 ) -> dict:
     """
     Leave a shared wallet.
-    Only the user who has access to the shared wallet can leave it.
+    Only the user who has accepted access to the shared wallet can leave it.
+    Sets status='left' so owner can see the user left.
     """
+    from ..models.wallet_shares import WalletShareStatus
+
     async with db.connect() as conn:
         # Verify the user has a share for this wallet
         shares = await get_wallet_shares(conn, wallet_id)
@@ -217,10 +261,10 @@ async def api_leave_wallet_share(
                 detail="You do not have access to this wallet",
             )
 
-        if user_share.left_at:
+        if user_share.status != WalletShareStatus.ACCEPTED:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail="You have already left this wallet",
+                detail=f"Cannot leave wallet with status: {user_share.status}",
             )
 
         await leave_wallet_share(conn, wallet_id, user.id)
@@ -261,8 +305,9 @@ async def api_delete_wallet_share(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ) -> dict:
     """
-    Delete a wallet share (revoke access).
-    Only the wallet owner can delete shares using their admin key.
+    Revoke a wallet share (remove user's access).
+    Only the wallet owner can revoke shares using their admin key.
+    Sets status='revoked' so history is preserved.
     """
     async with db.connect() as conn:
         share = await get_wallet_share(conn, share_id)
@@ -278,5 +323,5 @@ async def api_delete_wallet_share(
                 detail="Admin key does not match share's wallet",
             )
 
-        await delete_wallet_share(conn, share_id)
-        return {"success": True, "message": "Share deleted successfully"}
+        await revoke_wallet_share(conn, share_id)
+        return {"success": True, "message": "Share revoked successfully"}

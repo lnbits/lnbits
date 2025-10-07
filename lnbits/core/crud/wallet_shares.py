@@ -30,14 +30,19 @@ async def create_wallet_share(
         shared_by: User ID of the person sharing the wallet
 
     Returns:
-        Created WalletShare object
+        Created WalletShare object with status='pending'
     """
+    from ..models.wallet_shares import WalletShareStatus
+
     share_id = urlsafe_short_hash()
+    now = datetime.now(timezone.utc)
     await conn.execute(
         """
         INSERT INTO wallet_shares
-        (id, wallet_id, user_id, permissions, shared_by, shared_at)
-        VALUES (:id, :wallet_id, :user_id, :permissions, :shared_by, :shared_at)
+        (id, wallet_id, user_id, permissions, shared_by, shared_at,
+         status, status_updated_at)
+        VALUES (:id, :wallet_id, :user_id, :permissions, :shared_by, :shared_at,
+                :status, :status_updated_at)
         """,
         {
             "id": share_id,
@@ -45,7 +50,9 @@ async def create_wallet_share(
             "user_id": data.user_id,
             "permissions": data.permissions,
             "shared_by": shared_by,
-            "shared_at": datetime.now(timezone.utc),
+            "shared_at": now,
+            "status": WalletShareStatus.PENDING,
+            "status_updated_at": now,
         },
     )
     share = await get_wallet_share(conn, share_id)
@@ -65,19 +72,52 @@ async def accept_wallet_share(
         share_id: ID of the share to accept
 
     Returns:
-        Updated WalletShare object
+        Updated WalletShare object with status='accepted'
     """
+    from ..models.wallet_shares import WalletShareStatus
+
     await conn.execute(
         """
         UPDATE wallet_shares
-        SET accepted = TRUE, accepted_at = :accepted_at
+        SET status = :status, status_updated_at = :status_updated_at
         WHERE id = :share_id
         """,
-        {"accepted_at": datetime.now(timezone.utc), "share_id": share_id},
+        {
+            "status": WalletShareStatus.ACCEPTED,
+            "status_updated_at": datetime.now(timezone.utc),
+            "share_id": share_id,
+        },
     )
     share = await get_wallet_share(conn, share_id)
     assert share, "Failed to accept wallet share"
     return share
+
+
+async def reject_wallet_share(
+    conn: Connection,
+    share_id: str,
+) -> None:
+    """
+    Reject a pending wallet share invitation (user declined).
+
+    Args:
+        conn: Database connection
+        share_id: ID of the share to reject
+    """
+    from ..models.wallet_shares import WalletShareStatus
+
+    await conn.execute(
+        """
+        UPDATE wallet_shares
+        SET status = :status, status_updated_at = :status_updated_at
+        WHERE id = :share_id
+        """,
+        {
+            "status": WalletShareStatus.REJECTED,
+            "status_updated_at": datetime.now(timezone.utc),
+            "share_id": share_id,
+        },
+    )
 
 
 async def leave_wallet_share(
@@ -86,23 +126,53 @@ async def leave_wallet_share(
     user_id: str,
 ) -> None:
     """
-    Leave a shared wallet (marks share as left with timestamp).
+    Leave an accepted shared wallet (user voluntarily left).
 
     Args:
         conn: Database connection
         wallet_id: ID of the wallet to leave
         user_id: ID of the user leaving the share
     """
+    from ..models.wallet_shares import WalletShareStatus
+
     await conn.execute(
         """
         UPDATE wallet_shares
-        SET left_at = :left_at
+        SET status = :status, status_updated_at = :status_updated_at
         WHERE wallet_id = :wallet_id AND user_id = :user_id
         """,
         {
-            "left_at": datetime.now(timezone.utc),
+            "status": WalletShareStatus.LEFT,
+            "status_updated_at": datetime.now(timezone.utc),
             "wallet_id": wallet_id,
             "user_id": user_id,
+        },
+    )
+
+
+async def revoke_wallet_share(
+    conn: Connection,
+    share_id: str,
+) -> None:
+    """
+    Revoke a wallet share (owner removed user's access).
+
+    Args:
+        conn: Database connection
+        share_id: ID of the share to revoke
+    """
+    from ..models.wallet_shares import WalletShareStatus
+
+    await conn.execute(
+        """
+        UPDATE wallet_shares
+        SET status = :status, status_updated_at = :status_updated_at
+        WHERE id = :share_id
+        """,
+        {
+            "status": WalletShareStatus.REVOKED,
+            "status_updated_at": datetime.now(timezone.utc),
+            "share_id": share_id,
         },
     )
 
@@ -159,7 +229,7 @@ async def get_user_shared_wallets(
 ) -> list[WalletShare]:
     """
     Get all wallets shared with a specific user, including wallet name and sharer info.
-    Excludes shares that have been left (left_at is not null).
+    Only includes pending and accepted shares (excludes rejected, revoked, and left).
 
     Args:
         conn: Database connection
@@ -168,6 +238,8 @@ async def get_user_shared_wallets(
     Returns:
         List of WalletShare objects for wallets shared with this user
     """
+    from ..models.wallet_shares import WalletShareStatus
+
     rows: list[dict] = await conn.fetchall(
         """
         SELECT
@@ -177,10 +249,14 @@ async def get_user_shared_wallets(
         FROM wallet_shares ws
         LEFT JOIN wallets w ON ws.wallet_id = w.id
         LEFT JOIN accounts a ON ws.shared_by = a.id
-        WHERE ws.user_id = :user_id AND ws.left_at IS NULL
+        WHERE ws.user_id = :user_id AND ws.status IN (:pending, :accepted)
         ORDER BY ws.shared_at DESC
         """,
-        {"user_id": user_id},
+        {
+            "user_id": user_id,
+            "pending": WalletShareStatus.PENDING,
+            "accepted": WalletShareStatus.ACCEPTED,
+        },
     )
     shares: list[WalletShare] = []
     for row in rows:
@@ -251,6 +327,7 @@ async def check_wallet_share_permission(
 ) -> bool:
     """
     Check if a user has a specific permission on a wallet.
+    Only checks accepted shares (status='accepted').
 
     Args:
         conn: Database connection
@@ -261,12 +338,18 @@ async def check_wallet_share_permission(
     Returns:
         True if user has the permission, False otherwise
     """
+    from ..models.wallet_shares import WalletShareStatus
+
     row: dict | None = await conn.fetchone(
         """
         SELECT permissions FROM wallet_shares
-        WHERE wallet_id = :wallet_id AND user_id = :user_id AND accepted = TRUE
+        WHERE wallet_id = :wallet_id AND user_id = :user_id AND status = :status
         """,
-        {"wallet_id": wallet_id, "user_id": user_id},
+        {
+            "wallet_id": wallet_id,
+            "user_id": user_id,
+            "status": WalletShareStatus.ACCEPTED,
+        },
     )
     if not row:
         return False
