@@ -24,14 +24,15 @@ async def test_actual_lnbits_deadlock():
 
     This will hang indefinitely unless killed with Ctrl+C.
     """
-    print("="*70)
+    print("=" * 70)
     print("LNbits Database Deadlock - ACTUAL CODE TEST")
-    print("="*70)
+    print("=" * 70)
     print("\nImporting LNbits modules...")
 
     try:
-        from lnbits.core.db import db
         from lnbits.core.crud import get_account
+        from lnbits.core.db import db
+
         print("✓ Imported: lnbits.core.db.db")
         print("✓ Imported: lnbits.core.crud.get_account")
     except ImportError as e:
@@ -41,9 +42,9 @@ async def test_actual_lnbits_deadlock():
         print("  python3 reproduce_lnbits_deadlock.py")
         return
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Testing BROKEN pattern with REAL LNbits code")
-    print("="*70)
+    print("=" * 70)
     print("\nThis will attempt to:")
     print("1. Open a database connection (acquires lock)")
     print("2. Call get_account() WITHOUT passing conn")
@@ -55,7 +56,7 @@ async def test_actual_lnbits_deadlock():
     try:
         async with asyncio.timeout(5):
             print("\n[1] Opening database connection (outer context)...")
-            async with db.connect() as conn:
+            async with db.connect() as _conn:
                 print("[2] ✓ Lock acquired by outer context")
                 print("[3] Now calling get_account() WITHOUT passing conn...")
                 print("[4] (get_account will try to acquire lock again...)")
@@ -69,9 +70,9 @@ async def test_actual_lnbits_deadlock():
                 print("[5] ✓ Got account:", account)
 
     except asyncio.TimeoutError:
-        print("\n" + "!"*70)
+        print("\n" + "!" * 70)
         print("⏰ DEADLOCK CONFIRMED!")
-        print("!"*70)
+        print("!" * 70)
         print("\nThe script timed out after 5 seconds because:")
         print("  • Outer db.connect() holds the lock")
         print("  • get_account() tried to open another connection")
@@ -79,7 +80,7 @@ async def test_actual_lnbits_deadlock():
         print("  • Lock won't release until outer context exits")
         print("  • Outer context won't exit until get_account() returns")
         print("  • Result: Infinite wait = DEADLOCK")
-        print("\n" + "!"*70)
+        print("\n" + "!" * 70)
         return False
 
     return True
@@ -89,12 +90,12 @@ async def test_lnbits_fixed_pattern():
     """
     Test the FIXED pattern with actual LNbits code (passes conn).
     """
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Testing FIXED pattern with REAL LNbits code")
-    print("="*70)
+    print("=" * 70)
 
-    from lnbits.core.db import db
     from lnbits.core.crud import get_account
+    from lnbits.core.db import db
 
     print("\nThis will:")
     print("1. Open a database connection")
@@ -119,9 +120,9 @@ async def test_lnbits_fixed_pattern():
 
 async def main():
     """Run the tests"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("IMPORTANT: This test uses REAL LNbits database code")
-    print("="*70)
+    print("=" * 70)
     print("\nThe first test will HANG for 5 seconds to demonstrate the deadlock.")
     print("The second test will complete successfully.")
     print("\nStarting in 2 seconds...\n")
@@ -136,14 +137,14 @@ async def main():
     # Test 2: Fixed pattern (will work)
     await test_lnbits_fixed_pattern()
 
-    print("="*70)
+    print("=" * 70)
     print("CONCLUSION")
-    print("="*70)
+    print("=" * 70)
     print("✓ Demonstrated deadlock with ACTUAL LNbits code")
     print("✓ Showed fix by passing conn parameter")
     print("\nThis proves the issue is real in the LNbits codebase,")
     print("not just a theoretical problem.")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":

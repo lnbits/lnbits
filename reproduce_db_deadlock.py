@@ -36,24 +36,20 @@ class SimplifiedDatabase:
         Simulates opening a database connection.
         IMPORTANT: Acquires a lock to serialize access (SQLite requirement).
         """
-        print(f"[DB] Attempting to acquire lock...")
+        print("[DB] Attempting to acquire lock...")
         await self.lock.acquire()
-        print(f"[DB] ✓ Lock acquired!")
+        print("[DB] ✓ Lock acquired!")
 
         try:
             # Simulate connection object
             connection = {"db": self.name, "connected": True}
             yield connection
         finally:
-            print(f"[DB] Releasing lock...")
+            print("[DB] Releasing lock...")
             self.lock.release()
-            print(f"[DB] ✓ Lock released!")
+            print("[DB] ✓ Lock released!")
 
-    async def fetchone(
-        self,
-        query: str,
-        conn: dict | None = None
-    ) -> dict[str, Any]:
+    async def fetchone(self, query: str, conn: dict | None = None) -> dict[str, Any]:
         """
         Fetch a single record.
 
@@ -65,8 +61,8 @@ class SimplifiedDatabase:
             await asyncio.sleep(0.1)  # Simulate query time
             return {"result": "data"}
         else:
-            print(f"[QUERY] No connection provided, opening new connection...")
-            async with self.connect() as new_conn:
+            print("[QUERY] No connection provided, opening new connection...")
+            async with self.connect() as _new_conn:
                 print(f"[QUERY] Executing: {query}")
                 await asyncio.sleep(0.1)  # Simulate query time
                 return {"result": "data"}
@@ -80,8 +76,10 @@ async def get_account(user_id: str, conn: dict | None = None, db=None) -> dict:
     - conn parameter is optional
     - If not provided, it calls db.fetchone() which tries to open a new connection
     """
-    print(f"[CRUD] get_account(user_id={user_id}, conn={'provided' if conn else 'None'})")
-    return await db.fetchone(f"SELECT * FROM accounts WHERE id = '{user_id}'", conn)
+    print(
+        f"[CRUD] get_account(user_id={user_id}, conn={'provided' if conn else 'None'})"
+    )
+    return await db.fetchone(f"SELECT * FROM accounts WHERE id = '{user_id}'", conn)  # noqa: S608
 
 
 async def broken_pattern():
@@ -91,15 +89,15 @@ async def broken_pattern():
     Demonstrates calling get_account() inside a connection context
     without passing the connection.
     """
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("❌ TESTING BROKEN PATTERN (will deadlock)")
-    print("="*70)
+    print("=" * 70)
 
     db = SimplifiedDatabase("lnbits")
 
     try:
         async with asyncio.timeout(3):  # 3 second timeout to prevent infinite hang
-            async with db.connect() as conn:
+            async with db.connect() as _conn:
                 print("\n[MAIN] Inside connection context, lock is held")
                 print("[MAIN] Fetching wallet shares...")
 
@@ -116,13 +114,13 @@ async def broken_pattern():
                     print(f"[MAIN] Got account: {account}")
 
     except asyncio.TimeoutError:
-        print("\n" + "!"*70)
+        print("\n" + "!" * 70)
         print("⏰ DEADLOCK DETECTED: Operation timed out after 3 seconds!")
         print("   The inner get_account() call is waiting for the lock,")
         print("   but the lock won't release until the outer context exits,")
         print("   which won't happen until get_account() returns.")
         print("   Result: Infinite hang / deadlock")
-        print("!"*70)
+        print("!" * 70)
         return False
 
     return True
@@ -134,9 +132,9 @@ async def fixed_pattern():
 
     Demonstrates passing the connection to avoid nested lock acquisition.
     """
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("✅ TESTING FIXED PATTERN (passes connection)")
-    print("="*70)
+    print("=" * 70)
 
     db = SimplifiedDatabase("lnbits")
 
@@ -164,9 +162,9 @@ async def optimal_batch_pattern():
 
     Even better than passing conn: fetch all accounts in one query.
     """
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("🚀 TESTING OPTIMAL PATTERN (batch query)")
-    print("="*70)
+    print("=" * 70)
 
     db = SimplifiedDatabase("lnbits")
 
@@ -180,8 +178,7 @@ async def optimal_batch_pattern():
         print(f"\n[MAIN] Batch fetching all accounts: {share_user_ids}")
         user_ids_str = "', '".join(share_user_ids)
         result = await db.fetchone(
-            f"SELECT * FROM accounts WHERE id IN ('{user_ids_str}')",
-            conn
+            f"SELECT * FROM accounts WHERE id IN ('{user_ids_str}')", conn  # noqa: S608
         )
         print(f"[MAIN] Got all accounts in single query: {result}")
 
@@ -196,9 +193,9 @@ async def optimal_batch_pattern():
 
 async def main():
     """Run all test patterns"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("LNbits Database Deadlock Reproduction")
-    print("="*70)
+    print("=" * 70)
     print("\nThis script demonstrates the database connection deadlock that")
     print("occurs when CRUD functions with optional 'conn' parameters are")
     print("called from within a connection context without passing the connection.")
@@ -218,9 +215,9 @@ async def main():
     # Test 3: Optimal pattern (batch query)
     await optimal_batch_pattern()
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Summary:")
-    print("="*70)
+    print("=" * 70)
     print("❌ Broken: Calling CRUD function without passing conn -> DEADLOCK")
     print("✅ Fixed:  Always pass conn parameter when inside connection context")
     print("🚀 Optimal: Use batch queries to avoid N separate queries entirely")
@@ -229,7 +226,7 @@ async def main():
     print("2. Add detection for nested connection attempts with clear error")
     print("3. Document this pattern clearly in developer docs")
     print("4. Promote batch query patterns for common operations")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":
