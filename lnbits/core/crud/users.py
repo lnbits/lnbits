@@ -113,7 +113,7 @@ async def get_accounts_by_ids(
         return {}
 
     # Remove empty strings and duplicates
-    user_ids = list(set(uid for uid in user_ids if uid))
+    user_ids = list({uid for uid in user_ids if uid})
     if not user_ids:
         return {}
 
@@ -122,7 +122,7 @@ async def get_accounts_by_ids(
     params = {f"id_{i}": uid for i, uid in enumerate(user_ids)}
 
     rows = await (conn or db).fetchall(
-        f"SELECT * FROM accounts WHERE id IN ({placeholders})",
+        f"SELECT * FROM accounts WHERE id IN ({placeholders})",  # noqa: S608
         params,
         Account,
     )
