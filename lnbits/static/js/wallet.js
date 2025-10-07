@@ -154,7 +154,7 @@ window.WalletPageLogic = {
             name: 'user',
             label: 'User',
             align: 'left',
-            field: row => row.username || row.user_id,
+            field: row => row.username || 'Unknown',
             sortable: true
           },
           {
