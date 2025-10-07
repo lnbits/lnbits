@@ -64,6 +64,48 @@ class WalletShare(BaseModel):
         return bool(self.permissions & WalletSharePermission.MANAGE_SHARES)
 
 
+class WalletShareResponse(BaseModel):
+    """
+    API response model for wallet shares.
+
+    Security: Does NOT expose user_id to prevent potential account takeover
+    if 'user-id-only' authentication is enabled. All operations should use
+    share_id as the resource identifier.
+    """
+
+    id: str  # share_id - the resource identifier
+    wallet_id: str
+    permissions: int
+    shared_by: str
+    shared_at: datetime
+    status: WalletShareStatus
+    status_updated_at: datetime | None = None
+    # Display fields only (no sensitive data)
+    username: str | None = Field(default=None)
+    wallet_name: str | None = Field(default=None)
+    shared_by_username: str | None = Field(default=None)
+
+    @property
+    def can_view(self) -> bool:
+        """User can view balance and transactions"""
+        return bool(self.permissions & WalletSharePermission.VIEW)
+
+    @property
+    def can_create_invoice(self) -> bool:
+        """User can create invoices"""
+        return bool(self.permissions & WalletSharePermission.CREATE_INVOICE)
+
+    @property
+    def can_pay_invoice(self) -> bool:
+        """User can pay invoices"""
+        return bool(self.permissions & WalletSharePermission.PAY_INVOICE)
+
+    @property
+    def can_manage_shares(self) -> bool:
+        """User can manage sharing settings"""
+        return bool(self.permissions & WalletSharePermission.MANAGE_SHARES)
+
+
 class CreateWalletShare(BaseModel):
     user_id: str
     permissions: int = WalletSharePermission.VIEW
