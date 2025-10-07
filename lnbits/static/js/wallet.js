@@ -131,6 +131,13 @@ window.WalletPageLogic = {
         tab: 'share',
         shares: [],
         sharedWithMe: [],
+        statusFilter: {
+          pending: true,
+          accepted: true,
+          rejected: false,
+          revoked: false,
+          left: false
+        },
         newShare: {
           user_id: '',
           permissions: 1
@@ -141,7 +148,39 @@ window.WalletPageLogic = {
           {label: 'View + Pay Invoices', value: 5},
           {label: 'Full Access (View + Create + Pay)', value: 7},
           {label: 'Full Access + Manage Shares', value: 15}
-        ]
+        ],
+        columns: [
+          {
+            name: 'user',
+            label: 'User',
+            align: 'left',
+            field: row => row.username || row.user_id,
+            sortable: true
+          },
+          {
+            name: 'permissions',
+            label: 'Permissions',
+            align: 'left',
+            field: 'permissions',
+            sortable: true
+          },
+          {
+            name: 'status',
+            label: 'Status',
+            align: 'center',
+            field: 'status',
+            sortable: true
+          },
+          {
+            name: 'actions',
+            label: 'Actions',
+            align: 'center',
+            field: 'actions'
+          }
+        ],
+        pagination: {
+          rowsPerPage: 10
+        }
       }
     }
   },
@@ -191,6 +230,15 @@ window.WalletPageLogic = {
         this.chartConfig.showBalanceInOut ||
         this.chartConfig.showPaymentCountInOut
       )
+    },
+    filteredShares() {
+      if (!this.walletShares.shares || !Array.isArray(this.walletShares.shares)) {
+        return []
+      }
+      return this.walletShares.shares.filter(share => {
+        const status = share.status || ''
+        return this.walletShares.statusFilter[status] === true
+      })
     }
   },
   methods: {
@@ -1252,6 +1300,16 @@ window.WalletPageLogic = {
           // Reload shares to revert the change in UI
           this.loadWalletShares()
         })
+    },
+    getStatusColor(status) {
+      const colors = {
+        pending: 'orange',
+        accepted: 'positive',
+        rejected: 'negative',
+        revoked: 'grey',
+        left: 'grey-6'
+      }
+      return colors[status] || 'grey'
     },
     confirmLeaveWallet() {
       this.$q
