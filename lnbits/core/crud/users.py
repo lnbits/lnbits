@@ -102,6 +102,35 @@ async def get_account(user_id: str, conn: Connection | None = None) -> Account |
     )
 
 
+async def get_accounts_by_ids(
+    user_ids: list[str], conn: Connection | None = None
+) -> dict[str, Account]:
+    """
+    Fetch multiple accounts by user IDs in a single query.
+    Returns a dict mapping user_id to Account for efficient lookup.
+    """
+    if not user_ids:
+        return {}
+
+    # Remove empty strings and duplicates
+    user_ids = list(set(uid for uid in user_ids if uid))
+    if not user_ids:
+        return {}
+
+    # Build placeholders for IN clause
+    placeholders = ",".join(f":id_{i}" for i in range(len(user_ids)))
+    params = {f"id_{i}": uid for i, uid in enumerate(user_ids)}
+
+    rows = await (conn or db).fetchall(
+        f"SELECT * FROM accounts WHERE id IN ({placeholders})",
+        params,
+        Account,
+    )
+
+    # Return as dict for efficient lookup
+    return {row.id: row for row in rows}
+
+
 async def delete_accounts_no_wallets(
     time_delta: int,
     conn: Connection | None = None,
