@@ -49,11 +49,13 @@ I've created a standalone Python script that demonstrates the issue without requ
 **[reproduce_db_deadlock.py](https://github.com/BenGWeeks/lnbits/blob/feat/shared-wallets-phase1-issue-3297/reproduce_db_deadlock.py)**
 
 Run it with:
+
 ```bash
 python3 reproduce_db_deadlock.py
 ```
 
 Output shows:
+
 - ❌ **Broken pattern**: Deadlocks after 3 seconds
 - ✅ **Fixed pattern**: Works by passing `conn`
 - 🚀 **Optimal pattern**: Batch query avoids N queries
@@ -118,6 +120,7 @@ See full implementation: [PR #3297](https://github.com/BenGWeeks/lnbits/pull/XX)
 ## Recommendations
 
 I recommend implementing solutions **#1, #2, and #3** first (non-breaking):
+
 - Document the pattern clearly (low effort, high value)
 - Add detection with helpful error message (prevents silent hangs)
 - Provide batch query helpers (better performance anyway)
@@ -145,6 +148,7 @@ async def test_nested_connection_attempt_raises_error():
 ---
 
 **Environment:**
+
 - LNbits version: 1.3.0rc8
 - Database: SQLite (issue applies to all database types)
 - Python: 3.12
