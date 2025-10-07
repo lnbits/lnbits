@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from enum import IntFlag
+from enum import IntFlag, StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -16,6 +16,16 @@ class WalletSharePermission(IntFlag):
     FULL_ACCESS = 15  # All permissions (1 + 2 + 4 + 8)
 
 
+class WalletShareStatus(StrEnum):
+    """Status of a wallet share"""
+
+    PENDING = "pending"  # Invitation sent, awaiting user response
+    ACCEPTED = "accepted"  # User accepted the invitation (active share)
+    REJECTED = "rejected"  # User declined the invitation before accepting
+    REVOKED = "revoked"  # Owner revoked the share
+    LEFT = "left"  # User left the share after accepting it
+
+
 class WalletShare(BaseModel):
     id: str
     wallet_id: str
@@ -23,9 +33,8 @@ class WalletShare(BaseModel):
     permissions: int
     shared_by: str
     shared_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    accepted: bool = False
-    accepted_at: datetime | None = None
-    left_at: datetime | None = None  # When user left the share
+    status: WalletShareStatus = WalletShareStatus.PENDING
+    status_updated_at: datetime | None = None  # When status last changed
     username: str | None = Field(default=None)  # Optional: populated by API for display
     wallet_name: str | None = Field(default=None)  # Optional: wallet name for display
     shared_by_username: str | None = Field(

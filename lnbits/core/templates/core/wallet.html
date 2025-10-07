@@ -1549,11 +1549,17 @@
                           ></span>
                         </q-item-label>
                         <q-item-label caption>
-                          <span v-if="share.accepted">Status: Accepted</span>
-                          <span v-else>Status: Pending</span>
+                          <span>Status: </span>
+                          <span
+                            v-text="share.status"
+                            style="text-transform: capitalize"
+                          ></span>
                         </q-item-label>
                       </q-item-section>
-                      <q-item-section side>
+                      <q-item-section
+                        side
+                        v-if="share.status === 'pending' || share.status === 'accepted'"
+                      >
                         <q-btn
                           flat
                           round
