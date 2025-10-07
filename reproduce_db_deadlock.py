@@ -79,7 +79,10 @@ async def get_account(user_id: str, conn: dict | None = None, db=None) -> dict:
     print(
         f"[CRUD] get_account(user_id={user_id}, conn={'provided' if conn else 'None'})"
     )
-    return await db.fetchone(f"SELECT * FROM accounts WHERE id = '{user_id}'", conn)  # noqa: S608
+    return await db.fetchone(
+        f"SELECT * FROM accounts WHERE id = '{user_id}'",  # noqa: S608
+        conn,
+    )
 
 
 async def broken_pattern():
