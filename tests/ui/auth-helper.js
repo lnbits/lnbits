@@ -124,7 +124,7 @@ async function login(page, username = null, password = null) {
 
   if (!isLoggedIn) {
     await page.screenshot({
-      path: 'tests/ui/screenshots/login-verification-failed.png',
+      path: path.join(__dirname, 'screenshots/login-verification-failed.png'),
       fullPage: true
     })
     throw new Error('Login failed - could not verify successful login')
