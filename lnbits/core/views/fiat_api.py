@@ -3,8 +3,9 @@ from http import HTTPStatus
 from fastapi import APIRouter, Depends, HTTPException
 
 from lnbits.core.models.misc import SimpleStatus
+from lnbits.core.models.wallets import WalletTypeInfo
 from lnbits.core.services.fiat_providers import test_connection
-from lnbits.decorators import check_admin, check_user_exists
+from lnbits.decorators import check_admin, require_admin_key
 from lnbits.fiat import StripeWallet, get_fiat_provider
 from lnbits.fiat.base import CreateFiatSubscription, FiatSubscriptionResponse
 
@@ -25,18 +26,24 @@ async def api_test_fiat_provider(provider: str) -> SimpleStatus:
     status_code=HTTPStatus.OK,
 )
 async def create_subscription(
-    provider: str, data: CreateFiatSubscription, user=Depends(check_user_exists)
+    provider: str,
+    data: CreateFiatSubscription,
+    key_type: WalletTypeInfo = Depends(require_admin_key),
 ) -> FiatSubscriptionResponse:
+    print("### create_subscription", provider, data)
     fiat_provider = await get_fiat_provider(provider)
     if not fiat_provider:
-        raise HTTPException(status_code=404, detail="Fiat provider not found")
+        raise HTTPException(404, "Fiat provider not found")
 
-    if not user.admin:
-        if data.payment_options.tag or data.payment_options.extra:
-            raise HTTPException(
-                status_code=403,
-                detail="Only admins can set tag or extra for subscription payments",
-            )
+    wallet_id = data.payment_options.wallet_id
+    # todo: really need to check  here?
+    if wallet_id and wallet_id != key_type.wallet.id:
+        raise HTTPException(
+            403,
+            "Wallet id does not match your API key."
+            "Leave it empty to use your key's wallet.",
+        )
+    data.payment_options.wallet_id = key_type.wallet.id
 
     subscription_response = await fiat_provider.create_subscription(
         data.subscription_id, data.quantity, data.payment_options
