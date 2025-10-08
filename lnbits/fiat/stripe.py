@@ -9,7 +9,7 @@ import httpx
 from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
 
-from lnbits.helpers import normalize_endpoint
+from lnbits.helpers import normalize_endpoint, urlsafe_short_hash
 from lnbits.settings import settings
 
 from .base import (
@@ -21,9 +21,11 @@ from .base import (
     FiatPaymentSuccessStatus,
     FiatProvider,
     FiatStatusResponse,
+    FiatSubscriptionPaymentOptions,
+    FiatSubscriptionResponse,
 )
 
-FiatMethod = Literal["checkout", "terminal"]
+FiatMethod = Literal["checkout", "terminal", "subscription"]
 
 
 class StripeTerminalOptions(BaseModel):
@@ -43,6 +45,14 @@ class StripeCheckoutOptions(BaseModel):
     line_item_name: str | None = None
 
 
+class StripeSubscriptionOptions(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    checking_id: str | None = None
+    payment_request: str | None = None
+
+
 class StripeCreateInvoiceOptions(BaseModel):
     class Config:
         extra = "ignore"
@@ -50,6 +60,7 @@ class StripeCreateInvoiceOptions(BaseModel):
     fiat_method: FiatMethod = "checkout"
     terminal: StripeTerminalOptions | None = None
     checkout: StripeCheckoutOptions | None = None
+    subscription: StripeSubscriptionOptions | None = None
 
 
 class StripeWallet(FiatProvider):
@@ -118,16 +129,71 @@ class StripeWallet(FiatProvider):
 
         if opts.fiat_method == "checkout":
             return await self._create_checkout_invoice(
-                amount_cents, currency, payment_hash, memo, opts
+                amount_cents, currency, payment_hash, memo, opts.checkout
             )
         if opts.fiat_method == "terminal":
             return await self._create_terminal_invoice(
-                amount_cents, currency, payment_hash, opts
+                amount_cents, currency, payment_hash, opts.terminal
             )
+
+        if opts.fiat_method == "subscription":
+            return self._create_subscription_invoice(opts.subscription)
 
         return FiatInvoiceResponse(
             ok=False, error_message=f"Unsupported fiat_method: {opts.fiat_method}"
         )
+
+    async def create_subscription(
+        self,
+        subscription_id: str,
+        quantity: int,
+        payment_options: FiatSubscriptionPaymentOptions,
+        **kwargs,
+    ) -> FiatSubscriptionResponse:
+        success_url = (
+            payment_options.success_url
+            or settings.stripe_payment_success_url
+            or "https://lnbits.com"
+        )
+
+        form_data: list[tuple[str, str]] = [
+            ("mode", "subscription"),
+            ("success_url", success_url),
+            ("line_items[0][price]", subscription_id),
+            ("line_items[0][quantity]", f"{quantity}"),
+        ]
+        subscription_data = {**payment_options.dict(), "lnbits_action": "subscription"}
+        subscription_data["extra"] = json.dumps(subscription_data.get("extra") or {})
+
+        form_data += self._encode_metadata(
+            "subscription_data[metadata]",
+            subscription_data,
+        )
+
+        try:
+            r = await self.client.post(
+                "/v1/checkout/sessions",
+                headers=self._build_headers_form(),
+                content=urlencode(form_data),
+            )
+            r.raise_for_status()
+            data = r.json()
+            url = data.get("url")
+            if not url:
+                return FiatSubscriptionResponse(
+                    ok=False, error_message="Server error: missing url"
+                )
+            return FiatSubscriptionResponse(ok=True, checkout_session_url=url)
+        except json.JSONDecodeError as exc:
+            logger.warning(exc)
+            return FiatSubscriptionResponse(
+                ok=False, error_message="Server error: invalid json response"
+            )
+        except Exception as exc:
+            logger.warning(exc)
+            return FiatSubscriptionResponse(
+                ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
 
     async def pay_invoice(self, payment_request: str) -> FiatPaymentResponse:
         raise NotImplementedError("Stripe does not support paying invoices directly.")
@@ -145,6 +211,11 @@ class StripeWallet(FiatProvider):
                 r = await self.client.get(f"/v1/payment_intents/{stripe_id}")
                 r.raise_for_status()
                 return self._status_from_payment_intent(r.json())
+
+            if stripe_id.startswith("in_"):
+                r = await self.client.get(f"/v1/invoices/{stripe_id}")
+                r.raise_for_status()
+                return self._status_from_invoice(r.json())
 
             logger.debug(f"Unknown Stripe id prefix: {checking_id}")
             return FiatPaymentPendingStatus()
@@ -176,9 +247,9 @@ class StripeWallet(FiatProvider):
         currency: str,
         payment_hash: str,
         memo: str | None,
-        opts: StripeCreateInvoiceOptions,
+        opts: StripeCheckoutOptions | None = None,
     ) -> FiatInvoiceResponse:
-        co = opts.checkout or StripeCheckoutOptions()
+        co = opts or StripeCheckoutOptions()
         success_url = (
             co.success_url
             or settings.stripe_payment_success_url
@@ -190,6 +261,7 @@ class StripeWallet(FiatProvider):
             ("mode", "payment"),
             ("success_url", success_url),
             ("metadata[payment_hash]", payment_hash),
+            ("metadata[lnbits_action]", "invoice"),
             ("line_items[0][price_data][currency]", currency.lower()),
             ("line_items[0][price_data][product_data][name]", line_item_name),
             ("line_items[0][price_data][unit_amount]", str(amount_cents)),
@@ -228,9 +300,9 @@ class StripeWallet(FiatProvider):
         amount_cents: int,
         currency: str,
         payment_hash: str,
-        opts: StripeCreateInvoiceOptions,
+        opts: StripeTerminalOptions | None = None,
     ) -> FiatInvoiceResponse:
-        term = opts.terminal or StripeTerminalOptions()
+        term = opts or StripeTerminalOptions()
         data: dict[str, str] = {
             "amount": str(amount_cents),
             "currency": currency.lower(),
@@ -264,6 +336,18 @@ class StripeWallet(FiatProvider):
             return FiatInvoiceResponse(
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
             )
+
+    def _create_subscription_invoice(
+        self,
+        opts: StripeSubscriptionOptions | None = None,
+    ) -> FiatInvoiceResponse:
+        term = opts or StripeSubscriptionOptions()
+
+        return FiatInvoiceResponse(
+            ok=True,
+            checking_id=term.checking_id or urlsafe_short_hash(),
+            payment_request=term.payment_request or "",
+        )
 
     def _normalize_stripe_id(self, checking_id: str) -> str:
         """Remove our internal prefix so Stripe sees a real id."""
@@ -308,6 +392,18 @@ class StripeWallet(FiatProvider):
 
         return FiatPaymentPendingStatus()
 
+    def _status_from_invoice(self, invoice: dict) -> FiatPaymentStatus:
+        """Map an Invoice to LNbits fiat status."""
+        status = invoice.get("status")
+
+        if status == "paid":
+            return FiatPaymentSuccessStatus()
+
+        if status in ["uncollectible", "void"]:
+            return FiatPaymentFailedStatus()
+
+        return FiatPaymentPendingStatus()
+
     def _build_headers_form(self) -> dict[str, str]:
         return {**self.headers, "Content-Type": "application/x-www-form-urlencoded"}
 
@@ -316,7 +412,7 @@ class StripeWallet(FiatProvider):
     ) -> list[tuple[str, str]]:
         out: list[tuple[str, str]] = []
         for k, v in (md or {}).items():
-            out.append((f"{prefix}[{k}]", str(v)))
+            out.append((f"{prefix}[{k}]", str(v or "")))
         return out
 
     def _parse_create_opts(
