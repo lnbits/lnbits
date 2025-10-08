@@ -153,8 +153,8 @@
                     size="md"
                   >
                     <q-badge
-                      v-if="(!g.wallet.is_shared || canManageShares()) && walletShares.shares && walletShares.shares.length > 0"
-                      :label="walletShares.shares.length"
+                      v-if="(!g.wallet.is_shared || canManageShares()) && activeSharesCount > 0"
+                      :label="activeSharesCount"
                       color="deep-purple"
                       floating
                       rounded
@@ -162,11 +162,38 @@
                     <q-tooltip v-if="g.wallet.is_shared && !canManageShares()">
                       Shared wallet - click to leave
                     </q-tooltip>
-                    <q-tooltip v-else
-                      >Share Wallet (Shared with [[walletShares.shares.length]]
-                      user<span v-if="walletShares.shares.length !== 1">s</span
-                      >)</q-tooltip
-                    >
+                    <q-tooltip v-else>
+                      <div v-if="activeSharesCount > 0">
+                        <span
+                          v-text="'Shared with ' + activeSharesCount + (activeSharesCount === 1 ? ' user' : ' users')"
+                        ></span>
+                      </div>
+                      <div v-if="pendingSharesCount > 0">
+                        <span
+                          v-text="pendingSharesCount + (pendingSharesCount === 1 ? ' pending invitation' : ' pending invitations')"
+                        ></span>
+                      </div>
+                      <div v-if="rejectedSharesCount > 0">
+                        <span
+                          v-text="rejectedSharesCount + (rejectedSharesCount === 1 ? ' rejected share' : ' rejected shares')"
+                        ></span>
+                      </div>
+                      <div v-if="revokedSharesCount > 0">
+                        <span
+                          v-text="revokedSharesCount + (revokedSharesCount === 1 ? ' revoked share' : ' revoked shares')"
+                        ></span>
+                      </div>
+                      <div v-if="leftSharesCount > 0">
+                        <span
+                          v-text="leftSharesCount + (leftSharesCount === 1 ? ' left share' : ' left shares')"
+                        ></span>
+                      </div>
+                      <div
+                        v-if="activeSharesCount === 0 && pendingSharesCount === 0 && rejectedSharesCount === 0 && revokedSharesCount === 0 && leftSharesCount === 0"
+                      >
+                        Share Wallet
+                      </div>
+                    </q-tooltip>
                   </q-btn>
                 </div>
                 <q-btn

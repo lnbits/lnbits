@@ -134,9 +134,9 @@ window.WalletPageLogic = {
         statusFilter: {
           pending: true,
           accepted: true,
-          rejected: false,
-          revoked: false,
-          left: false
+          rejected: true,
+          revoked: true,
+          left: true
         },
         newShare: {
           user_id: '',
@@ -242,6 +242,66 @@ window.WalletPageLogic = {
         const status = share.status || ''
         return this.walletShares.statusFilter[status] === true
       })
+    },
+    activeSharesCount() {
+      if (
+        !this.walletShares.shares ||
+        !Array.isArray(this.walletShares.shares)
+      ) {
+        return 0
+      }
+      return this.walletShares.shares.filter(share => {
+        const status = share.status || ''
+        return status === 'accepted'
+      }).length
+    },
+    pendingSharesCount() {
+      if (
+        !this.walletShares.shares ||
+        !Array.isArray(this.walletShares.shares)
+      ) {
+        return 0
+      }
+      return this.walletShares.shares.filter(share => {
+        const status = share.status || ''
+        return status === 'pending'
+      }).length
+    },
+    rejectedSharesCount() {
+      if (
+        !this.walletShares.shares ||
+        !Array.isArray(this.walletShares.shares)
+      ) {
+        return 0
+      }
+      return this.walletShares.shares.filter(share => {
+        const status = share.status || ''
+        return status === 'rejected'
+      }).length
+    },
+    revokedSharesCount() {
+      if (
+        !this.walletShares.shares ||
+        !Array.isArray(this.walletShares.shares)
+      ) {
+        return 0
+      }
+      return this.walletShares.shares.filter(share => {
+        const status = share.status || ''
+        return status === 'revoked'
+      }).length
+    },
+    leftSharesCount() {
+      if (
+        !this.walletShares.shares ||
+        !Array.isArray(this.walletShares.shares)
+      ) {
+        return 0
+      }
+      return this.walletShares.shares.filter(share => {
+        const status = share.status || ''
+        return status === 'left'
+      }).length
     }
   },
   methods: {
@@ -1274,6 +1334,33 @@ window.WalletPageLogic = {
               this.$q.notify({
                 type: 'positive',
                 message: 'Access revoked successfully',
+                timeout: 3000
+              })
+              this.loadWalletShares()
+            })
+            .catch(err => {
+              LNbits.utils.notifyApiError(err)
+            })
+        })
+    },
+    reshareWallet(share) {
+      this.$q
+        .dialog({
+          title: 'Re-share Wallet',
+          message: `Re-send invitation to ${share.username || 'this user'}?`,
+          cancel: true
+        })
+        .onOk(() => {
+          LNbits.api
+            .request(
+              'POST',
+              `/api/v1/wallet_shares/reshare/${share.id}`,
+              this.g.wallet.adminkey
+            )
+            .then(response => {
+              this.$q.notify({
+                type: 'positive',
+                message: 'Invitation re-sent successfully',
                 timeout: 3000
               })
               this.loadWalletShares()

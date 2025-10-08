@@ -354,3 +354,60 @@ async def api_delete_wallet_share(
 
         await revoke_wallet_share(conn, share_id)
         return {"success": True, "message": "Share revoked successfully"}
+
+
+@wallet_shares_router.post("/reshare/{share_id}")
+async def api_reshare_wallet(
+    share_id: str,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+) -> WalletShareResponse:
+    """
+    Re-send a wallet share invitation by changing status back to 'pending'.
+    Only works for shares that are currently rejected, revoked, or left.
+    Only the wallet owner can re-share using their admin key.
+    """
+    from ..models.wallet_shares import WalletShareStatus
+
+    async with db.connect() as conn:
+        share = await get_wallet_share(conn, share_id)
+        if not share:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="Share not found"
+            )
+
+        # Verify the admin key matches the wallet that owns this share
+        if wallet.wallet.id != share.wallet_id:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                detail="Admin key does not match share's wallet",
+            )
+
+        # Only allow re-sharing for rejected, revoked, or left shares
+        if share.status not in [
+            WalletShareStatus.REJECTED,
+            WalletShareStatus.REVOKED,
+            WalletShareStatus.LEFT,
+        ]:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Cannot re-share wallet with status: {share.status}",
+            )
+
+        # Update status back to pending
+        await conn.execute(
+            """
+            UPDATE wallet_shares
+            SET status = :status, status_updated_at = :status_updated_at
+            WHERE id = :share_id
+            """,
+            {
+                "status": WalletShareStatus.PENDING,
+                "status_updated_at": datetime.now(timezone.utc),
+                "share_id": share_id,
+            },
+        )
+
+        # Fetch and return updated share
+        updated_share = await get_wallet_share(conn, share_id)
+        assert updated_share, "Failed to retrieve updated share"
+        return _to_response(updated_share)

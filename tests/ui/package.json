@@ -4,7 +4,7 @@
   "description": "UI tests for LNbits wallet sharing functionality",
   "main": "index.js",
   "scripts": {
-    "test": "node crud/create-share.js && node crud/read-shares.js && node crud/update-share.js && node crud/delete-share.js"
+    "test": "node crud/create-share.js && node crud/read-shares.js && node crud/update-share.js && node crud/revoke-share.js"
   },
   "keywords": [
     "lnbits",
