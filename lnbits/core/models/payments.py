@@ -68,7 +68,7 @@ class Payment(BaseModel):
     amount: int
     fee: int
     bolt11: str
-    # payment_request: str | None
+    payment_request: str | None = Field(default=None, no_database=True)
     fiat_provider: str | None = None
     status: str = PaymentState.PENDING
     memo: str | None = None
@@ -82,6 +82,13 @@ class Payment(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     extra: dict = {}
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if "fiat_payment_request" in self.extra:
+            self.payment_request = self.extra["fiat_payment_request"]
+        else:
+            self.payment_request = self.bolt11
 
     @property
     def pending(self) -> bool:
