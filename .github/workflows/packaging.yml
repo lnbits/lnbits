@@ -53,7 +53,8 @@ jobs:
             --collect-all embit \
             --collect-all lnbits \
             --collect-all sqlalchemy \
-            --collect-all breez-sdk \
+            --collect-all breez_sdk \
+            --collect-binaries breez_sdk \
             --collect-all aiosqlite \
             --hidden-import=passlib.handlers.bcrypt \
             "$(uv run which lnbits)"
