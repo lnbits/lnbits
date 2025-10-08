@@ -214,6 +214,17 @@
                   >
                     <q-tooltip>Revoke Access</q-tooltip>
                   </q-btn>
+                  <q-btn
+                    v-if="props.row.status === 'rejected' || props.row.status === 'revoked' || props.row.status === 'left'"
+                    flat
+                    round
+                    dense
+                    color="primary"
+                    icon="refresh"
+                    @click="reshareWallet(props.row)"
+                  >
+                    <q-tooltip>Re-send Invitation</q-tooltip>
+                  </q-btn>
                 </q-td>
               </template>
             </q-table>
