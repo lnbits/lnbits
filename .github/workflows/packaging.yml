@@ -8,16 +8,19 @@ jobs:
   build-linux-package:
     runs-on: ubuntu-22.04
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Step 2: Set up Python (uv will still use this toolchain)
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      # Step 3: Install system deps (fuse) + uv
       - name: Install system deps and uv
         run: |
           sudo apt-get update
@@ -26,6 +29,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
         shell: bash
 
+      # Step 4: Cache uv and venv to speed up CI
       - name: Cache uv and venv
         uses: actions/cache@v4
         with:
@@ -34,6 +38,7 @@ jobs:
             .venv
           key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock', 'pyproject.toml') }}
 
+      # Step 5: Prepare packaging & clone LNbits
       - name: Prepare packaging & clone LNbits
         run: |
           mv .github/packaging packaging
@@ -41,11 +46,18 @@ jobs:
           git clone https://github.com/lnbits/lnbits.git packaging/linux/AppDir/usr/lnbits
         shell: bash
 
+      # Step 6: Build the LNbits binary (uv + PyInstaller)
       - name: Build LNbits binary (uv + PyInstaller)
         run: |
           cd packaging/linux/AppDir/usr/lnbits
+
+          # Install project dependencies
           uv sync --all-extras --no-dev
+
+          # Install PyInstaller into the same environment
           uv pip install pyinstaller
+
+          # Build the LNbits binary
           uv run pyinstaller \
             --onefile \
             --name lnbits \
@@ -54,6 +66,7 @@ jobs:
             --collect-all lnbits \
             --collect-all sqlalchemy \
             --collect-all aiosqlite \
+            --collect-all breez_sdk \                # 👈 include Breez SDK Rust lib + data
             --hidden-import=passlib.handlers.bcrypt \
             "$(uv run which lnbits)"
 
@@ -62,11 +75,15 @@ jobs:
           chmod +x packaging/linux/AppDir/lnbits.desktop
           chmod +x packaging/linux/AppDir/usr/lnbits/dist/lnbits
 
-          # keep AppDir slim
+          # Clean out non-dist content from the app dir to keep AppImage slim
           find packaging/linux/AppDir/usr/lnbits -mindepth 1 -maxdepth 1 \
               ! -name 'dist' \
               ! -name 'lnbits' \
               -exec rm -rf {} +
+
+          # ✅ Sanity check: ensure breez_sdk .so got bundled
+          python -m PyInstaller.utils.cliutils.archive_viewer \
+            packaging/linux/AppDir/usr/lnbits/dist/lnbits | grep -E 'breez_sdk/.+\.so' || (echo "❌ breez_sdk .so missing!" && exit 1)
 
           # Build AppImage
           wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
@@ -79,13 +96,14 @@ jobs:
           chmod +x "$APPIMAGE_NAME"
           echo "APPIMAGE_NAME=$APPIMAGE_NAME" >> $GITHUB_ENV
 
-          # 🔎 quick audit: show glibc versions referenced by the binary
+          # 🔎 Quick audit: show glibc baseline
           echo "Runner glibc:"
           ldd --version | head -n1 || true
-          echo "Symbols needed by lnbits:"
+          echo "Symbols needed by binary:"
           strings "$APPIMAGE_NAME" | grep -o 'GLIBC_[0-9.]*' | sort -u || true
         shell: bash
 
+      # Step 7: Upload Linux Release Asset
       - name: Upload Linux Release Asset
         uses: actions/upload-release-asset@v1
         with:
