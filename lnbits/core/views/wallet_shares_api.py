@@ -151,13 +151,14 @@ async def api_create_wallet_share(
                     },
                 )
                 updated_share = await get_wallet_share(conn, existing_share.id)
-                return {"share": updated_share, "created": False}
+                assert updated_share, "Failed to re-share wallet"
+                return {"share": _to_response(updated_share), "created": False}
         else:
             # Create new share
             share = await create_wallet_share(
                 conn, wallet_id, share_data, wallet.wallet.user
             )
-            return {"share": share, "created": True}
+            return {"share": _to_response(share), "created": True}
 
 
 @wallet_shares_router.get("/{wallet_id}")

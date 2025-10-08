@@ -37,7 +37,7 @@ def load_config():
     }
 
 
-async def test_delete_share():
+async def test_delete_share():  # noqa: C901
     """Test deleting wallet share"""
     config = load_config()
 
