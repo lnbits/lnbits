@@ -23,6 +23,7 @@ jobs:
       # Step 3: Install system deps (fuse) + uv
       - name: Install system deps and uv
         run: |
+          set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y libfuse2
           curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -41,6 +42,7 @@ jobs:
       # Step 5: Prepare packaging & clone LNbits
       - name: Prepare packaging & clone LNbits
         run: |
+          set -euxo pipefail
           mv .github/packaging packaging
           mkdir -p packaging/linux/AppDir/usr
           git clone https://github.com/lnbits/lnbits.git packaging/linux/AppDir/usr/lnbits
@@ -49,15 +51,23 @@ jobs:
       # Step 6: Build the LNbits binary (uv + PyInstaller)
       - name: Build LNbits binary (uv + PyInstaller)
         run: |
+          set -euxo pipefail
           cd packaging/linux/AppDir/usr/lnbits
 
-          # Install project dependencies
+          # Install project dependencies into .venv
           uv sync --all-extras --no-dev
 
           # Install PyInstaller into the same environment
           uv pip install pyinstaller
 
-          # Build the LNbits binary
+          # Create a tiny entry script for PyInstaller (so we don't rely on console_script discovery)
+          cat > lnbits_entry.py << 'PY'
+          from lnbits.__main__ import main
+          if __name__ == "__main__":
+              main()
+          PY
+
+          # Build the LNbits binary (bundle breez_sdk native lib + data)
           uv run pyinstaller \
             --onefile \
             --name lnbits \
@@ -66,24 +76,24 @@ jobs:
             --collect-all lnbits \
             --collect-all sqlalchemy \
             --collect-all aiosqlite \
-            --collect-all breez_sdk \                # 👈 include Breez SDK Rust lib + data
+            --collect-all breez_sdk \
             --hidden-import=passlib.handlers.bcrypt \
-            "$(uv run which lnbits)"
+            lnbits_entry.py
 
           cd ../../../../..
           chmod +x packaging/linux/AppDir/AppRun
           chmod +x packaging/linux/AppDir/lnbits.desktop
           chmod +x packaging/linux/AppDir/usr/lnbits/dist/lnbits
 
-          # Clean out non-dist content from the app dir to keep AppImage slim
+          # Keep AppDir slim
           find packaging/linux/AppDir/usr/lnbits -mindepth 1 -maxdepth 1 \
               ! -name 'dist' \
               ! -name 'lnbits' \
               -exec rm -rf {} +
 
           # ✅ Sanity check: ensure breez_sdk .so got bundled
-          python -m PyInstaller.utils.cliutils.archive_viewer \
-            packaging/linux/AppDir/usr/lnbits/dist/lnbits | grep -E 'breez_sdk/.+\.so' || (echo "❌ breez_sdk .so missing!" && exit 1)
+          uv run python -m PyInstaller.utils.cliutils.archive_viewer \
+            packaging/linux/AppDir/usr/lnbits/dist/lnbits | grep -E 'breez_sdk/.+\.so'
 
           # Build AppImage
           wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
@@ -96,7 +106,7 @@ jobs:
           chmod +x "$APPIMAGE_NAME"
           echo "APPIMAGE_NAME=$APPIMAGE_NAME" >> $GITHUB_ENV
 
-          # 🔎 Quick audit: show glibc baseline
+          # 🔎 Quick audit: show glibc baseline and symbols referenced
           echo "Runner glibc:"
           ldd --version | head -n1 || true
           echo "Symbols needed by binary:"
