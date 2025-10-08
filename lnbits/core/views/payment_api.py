@@ -296,7 +296,9 @@ async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
         return {"paid": True, "preimage": payment.preimage}
 
     if payment.failed:
-        return {"paid": False, "status": "failed", "details": payment}
+        if wallet and wallet.id == payment.wallet_id:
+            return {"paid": False, "status": "failed", "details": payment}
+        return {"paid": False, "status": "failed"}
 
     try:
         status = await payment.check_status()
