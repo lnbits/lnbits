@@ -314,17 +314,17 @@ Pick region (same as volume), postgres (no), deploy (yes).
 
 Visit **[http://localhost:5000/](http://localhost:5000/)** (or `0.0.0.0:5000`).
 
-### Option A — First-run setup in the UI (new)
+### Option A — First-run setup in the UI
 
 1. On the **first start**, LNbits will **prompt you to create a SuperUser**.
 2. After creating it, you’ll be **redirected to the Admin UI as SuperUser**.
 3. In the Admin UI, **set your funding source** (backend wallet) and other preferences.
 4. **Restart LNbits** if prompted or after changing critical settings.
 
-> **Important:** Use the **SuperUser only** for initial setup and instance settings (funding source, configuration).
-> For maintenance, create a separate **Admin** account. For everyday usage (wallets, payments, extensions), **do not use the SuperUser**—use regular user accounts instead.
+> **Important:** Use the **SuperUser only** for initial setup and instance settings (funding source, configuration, Topup).
+> For maintenance, create a separate **Admin** account. For everyday usage (payments, wallets, etc.), **do not use the SuperUser** — use admin or regular user accounts instead.
 
-### Option B — Configure via `.env` (unchanged)
+### Option B — Configure via `.env`
 
 1. Edit your `.env` with preferred settings (funding, base URL, etc.).
 2. Set a funding source by configuring:
@@ -334,12 +334,12 @@ Visit **[http://localhost:5000/](http://localhost:5000/)** (or `0.0.0.0:5000`).
 3. **Restart LNbits** to apply changes.
 
 > **Note (paths):**
-> • The SuperUser ID is stored in `<lnbits_root>/data/.super_user`.
-> Example: `~/lnbits/data/.super_user` (view with `cat ~/lnbits/data/.super_user`).
-> • Your `.env` lives in `<lnbits_root>/.env` (e.g., `~/lnbits/.env`).
-> **Docker:** map a host directory to `/app/data`; the SuperUser file will be at `<host_data_dir>/.super_user`. The container reads `/app/.env` (usually mounted from your project root).
+> - The SuperUser ID is stored in `<lnbits_root>/data/.super_user`.
+> - Example: `~/lnbits/data/.super_user` (view with `cat ~/lnbits/data/.super_user`).
+> - Your `.env` lives in `<lnbits_root>/.env` (e.g., `~/lnbits/.env`).
+> - **Docker:** map a host directory to `/app/data`; the SuperUser file will be at `<host_data_dir>/.super_user`. The container reads `/app/.env` (usually mounted from your project root).
 
-For a local Lightning Network dev environment, check **Polar**: [https://lightningpolar.com/](https://lightningpolar.com/).
+**Nice to know — Local dev:** Use **Polar** for a local Lightning Network setup: [https://lightningpolar.com/](https://lightningpolar.com/)
 
 ---
 
