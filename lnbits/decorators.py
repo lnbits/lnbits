@@ -168,8 +168,10 @@ async def require_wallet_owner(
 
     # Check if this wallet has any active shares
     async with db.connect() as conn:
+        from lnbits.core.models.wallet_shares import WalletShareStatus
+
         shares = await get_wallet_shares(conn, wallet_info.wallet.id)
-        active_shares = [s for s in shares if s.accepted and not s.left_at]
+        active_shares = [s for s in shares if s.status == WalletShareStatus.ACCEPTED]
 
         # If wallet is shared, verify the user is the owner, not a shared user
         if active_shares:
@@ -225,8 +227,10 @@ async def check_wallet_payment_permission(
 
     # First check if this wallet is shared at all
     async with db.connect() as conn:
+        from lnbits.core.models.wallet_shares import WalletShareStatus
+
         shares = await get_wallet_shares(conn, wallet_info.wallet.id)
-        active_shares = [s for s in shares if s.accepted and not s.left_at]
+        active_shares = [s for s in shares if s.status == WalletShareStatus.ACCEPTED]
 
         # If wallet is not shared, allow operation (no permission check needed)
         if not active_shares:
