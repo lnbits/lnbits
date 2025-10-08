@@ -113,8 +113,9 @@ async def api_fiat_as_sats(data: ConversionData):
         return output
 
 
+@api_router.get("/api/v1/qrcode", response_class=StreamingResponse)
 @api_router.get("/api/v1/qrcode/{data}", response_class=StreamingResponse)
-async def img(data):
+async def img(data: str):
     qr = pyqrcode.create(data)
     stream = BytesIO()
     qr.svg(stream, scale=3)
