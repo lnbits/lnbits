@@ -3,7 +3,7 @@ set -euo pipefail
 
 # --- Config you might tweak ---
 REPO_URL="https://github.com/lnbits/lnbits.git"
-BRANCH="dev"                     # change to 'main' if you want
+BRANCH="main"
 APP_DIR="${PWD}/lnbits"
 HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-5000}"
@@ -18,7 +18,7 @@ if ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1; then
   sudo apt-get install -y curl git
 fi
 
-# 🔧 System build deps and secp headers
+# System build deps and secp headers
 if command -v apt-get >/dev/null 2>&1; then
   sudo apt-get update -y
   sudo apt-get install -y \
