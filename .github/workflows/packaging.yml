@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-linux-package:
-    runs-on: ubuntu-22.04   # 👈 pin older glibc baseline (2.35)
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
