@@ -55,6 +55,8 @@ jobs:
             --collect-all sqlalchemy \
             --collect-all breez_sdk \
             --collect-binaries breez_sdk \
+            --collect-all breez_sdk_liquid \
+            --collect-binaries breez_sdk_liquid \
             --collect-all aiosqlite \
             --hidden-import=passlib.handlers.bcrypt \
             "$(uv run which lnbits)"
