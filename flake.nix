@@ -139,9 +139,10 @@
             replaceVars = prev.replaceVars or (path: vars: prev.substituteAll ({ src = path; } // vars));
           };
 
+          # System-specific nixos modules to avoid circular dependency
           nixosModules.default = { pkgs, lib, config, ... }: {
             imports = [ "${./nix/modules/lnbits-service.nix}" ];
-            nixpkgs.overlays = [ self.overlays.default ];
+            nixpkgs.overlays = [ self.overlays.${system}.default ];
           };
 
           checks = { };
