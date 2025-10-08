@@ -47,7 +47,7 @@ CRUD_TESTS=(
     "crud/create-share.js:Create Share"
     "crud/read-shares.js:Read Shares"
     "crud/update-share.js:Update Share"
-    "crud/delete-share.js:Delete Share"
+    "crud/revoke-share.js:Revoke Share"
 )
 
 # Run each test
