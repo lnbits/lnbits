@@ -161,14 +161,19 @@ const {login, getConfig, getWalletsFromStorage} = require('../auth-helper')
       console.log(`📊 Final share count: ${finalCount}`)
       console.log(`📉 Count change: ${finalCount - initialCount}`)
 
-      // Verify the specific share is gone
-      const stillExists = updatedShares.find(s => s.id === shareToDelete.id)
+      // Verify the specific share status changed to 'revoked'
+      const updatedShare = updatedShares.find(s => s.id === shareToDelete.id)
 
-      if (!stillExists && finalCount === initialCount - 1) {
+      if (updatedShare && updatedShare.status === 'revoked') {
+        console.log('✅ Deletion verified - share status is now revoked!')
+        success = true
+      } else if (!updatedShare) {
         console.log('✅ Deletion verified - share no longer exists!')
         success = true
       } else {
-        console.log('❌ Deletion verification failed')
+        console.log(
+          `❌ Deletion verification failed - status is ${updatedShare.status}, expected 'revoked'`
+        )
         success = false
       }
     }
