@@ -53,7 +53,7 @@ jobs:
           cd packaging/linux/AppDir/usr/lnbits
 
           # Install project deps into .venv using uv
-          uv sync
+          uv sync --all-extras --no-dev
 
           # Install PyInstaller into the same environment
           uv pip install pyinstaller
