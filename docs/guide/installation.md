@@ -57,10 +57,10 @@ LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 ./LNbits-latest.AppImage # most syst
 
 ### Option 2: Poetry (recommended)
 
-> **Tip:** Prefer **Python 3.12** for best compatibility. Create a dedicated virtual environment and pin the version (`poetry env use 3.12`).
+> **Tip:** Recommend to use **Python 3.12** for best compatibility. Create a dedicated virtual environment and pin the version (`poetry env use 3.12`).
 >
 > **Note:** After installing Poetry, ensure your shell has **`$HOME/.local/bin`** on `PATH`. Use the path echoed by the installer if different.
-> Make sure you have **Python 3.12** installed (3.9+ supported; guide assumes 3.12).
+> Make sure you have **Python 3.12** installed.
 
 **Verify Python version**
 
