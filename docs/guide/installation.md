@@ -145,9 +145,6 @@ echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
 # Restart daemon so changes apply
 sudo systemctl restart nix-daemon
 
-# 4) Load Nix into this shell
-. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-
 # Add cachix for cached binaries
 nix-env -iA cachix -f https://cachix.org/api/v1/install
 cachix use lnbits
