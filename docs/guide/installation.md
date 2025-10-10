@@ -1,81 +1,148 @@
-
-
-# LNbits — Basic Installation
-
-**Default DB:** LNbits uses **SQLite** by default (simple and effective). You can switch to **PostgreSQL** (recommended for scale) — see **Database (PostgreSQL)** below.
-
-
 ---
-
-
-## Table of Contents
-
-1. [Basic Install Options](#basic-install-options)
-
-   * [Option 1 — AppImage (Linux)](#option-1-appimage-linux)
-   * [Option 2 — Poetry (recommended)](#option-2-poetry-recommended)
-   * [Option 3 — Install script (Debian/Ubuntu)](#option-3-install-script-debianubuntu)
-   * [Option 4 — Nix](#option-4-nix)
-   * [Option 5 — Docker](#option-5-docker)
-   * [Option 6 — Fly.io](#option-6-flyio)
-
-2. [Using LNbits (first run, SuperUser, funding source)](#using-lnbits)
-
-3. [Scale & Networking Guides](#scale--networking-guides)
-
-   * [Database (PostgreSQL) & Migration](#database-postgresql--migration)
-   * [Caddy (HTTPS reverse proxy)](#reverse-proxy-with-automatic-https-using-caddy)
-   * [Apache (HTTPS reverse proxy)](#running-behind-an-apache2-reverse-proxy-over-https)
-   * [Nginx (HTTPS reverse proxy)](#running-behind-an-nginx-reverse-proxy-over-https)
-   * [HTTPS without reverse proxy (mkcert / self-signed)](#using-https-without-reverse-proxy)
-   * [Umbrel behind Tor (clearnet access)](#lnbits-running-on-umbrel-behind-tor)
-
-4. [Service Management](#service-management)
-
-   * [systemd service](#lnbits-as-a-systemd-service)
-
-5. [Troubleshooting](#troubleshooting)
-
-6. [Platform Notes (FreeBSD)](#freebsd-notes)
-
+layout: default
+title: Basic installation
+nav_order: 2
 ---
+![LNBits Install Guide](https://github.com/lnbits/lnbits/blob/dev/docs/logos/lnbits-full-inverse.png?raw=true)
+![phase: stable](https://img.shields.io/badge/phase-stable-2EA043) ![License: MIT](https://img.shields.io/badge/License-MIT-blue) ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow) [![explore: LNbits extensions](https://img.shields.io/badge/explore-LNbits%20extensions-10B981)](https://extensions.lnbits.com/) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) <img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">
+# Basic installation
 
-## Basic Install Options
+> [!NOTE]
+> **Default DB:** LNbits uses SQLite by default (simple & effective). You can switch to PostgreSQL — see the section below.
 
-### Option 1: AppImage (Linux)
+## Table of contents
 
-LNbits will create a folder for DB and extension files in the directory where the AppImage runs.
+* [Option 1: AppImage (Linux)](#option-1-appimage-linux)
+* [Option 2: UV (recommended for developers)](#option-2-uv-recommended-for-developers)
+* [Option 2a (Legacy): Poetry — Replaced by UV](#option-2a-legacy-poetry--replaced-by-uv)
+* [Option 3: Install script (Debian/Ubuntu)](#option-3-install-script-debianubuntu)
+* [Option 4: Nix](#option-4-nix)
+* [Option 5: Docker](#option-5-docker)
+* [Option 6: Fly.io](#option-6-flyio)
+* [Troubleshooting](#troubleshooting)
+* [Optional: PostgreSQL database](#optional-postgresql-database)
+* [Using LNbits](#using-lnbits)
+* [Additional guides](#additional-guides)
+  * [Update LNbits (all methods)](#update-lnbits-all-methods)
+  * [SQLite → PostgreSQL migration](#sqlite--postgresql-migration)
+  * [LNbits as a systemd service](#lnbits-as-a-systemd-service)
+  * [Reverse proxy with automatic HTTPS (Caddy)](#reverse-proxy-with-automatic-https-caddy)
+  * [Apache2 reverse proxy over HTTPS](#apache2-reverse-proxy-over-https)
+  * [Nginx reverse proxy over HTTPS](#nginx-reverse-proxy-over-https)
+  * [HTTPS without a reverse proxy (self-signed)](#https-without-a-reverse-proxy-self-signed)
+  * [LNbits on Umbrel behind Tor](#lnbits-on-umbrel-behind-tor)
+  * [FreeBSD notes](#freebsd-notes)
+
+## Option 1: AppImage (Linux)
+
+**Quickstart**
+
+1. Download latest AppImage from [releases](https://github.com/lnbits/lnbits/releases) **or** run:
 
 ```sh
-sudo apt-get install libfuse2
+sudo apt-get install jq libfuse2
 wget $(curl -s https://api.github.com/repos/lnbits/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
 chmod +x LNbits-latest.AppImage
 LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 ./LNbits-latest.AppImage # most system settings are now in the admin UI, but pass additional .env variables here
-```
+````
 
----
+* LNbits will create a folder for DB and extension files **in the same directory** as the AppImage.
 
-### Option 2: Poetry (recommended)
+> [!NOTE]
+> **Next steps**  
+> Install complete → **[Running LNbits](#run-the-server)**  
+> Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
-> **Tip:** Recommend to use **Python 3.12** for best compatibility. Create a dedicated virtual environment and pin the version (`poetry env use 3.12`).
->
-> **Note:** After installing Poetry, ensure your shell has **`$HOME/.local/bin`** on `PATH`. Use the path echoed by the installer if different.
-> Make sure you have **Python 3.12** installed.
 
-**Verify Python version**
+## Option 2: UV (recommended for developers)
+
+> [!IMPORTANT]
+> **It is recommended to use the latest version of UV & Make sure you have Python version 3.12 installed.**
+
+### Verify Python
 
 ```sh
 python3 --version
 ```
 
-**Install Poetry**
+### Install UV
+
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Install LNbits
+
+```sh
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
+git checkout main
+uv sync --all-extras
+
+cp .env.example .env
+# Optional: set funding source and other options in .env (e.g., `nano .env`)
+```
+
+### Run the server
+
+```sh
+uv run lnbits
+# To change port/host: uv run lnbits --port 9000 --host 0.0.0.0
+# Add --debug to the command above and set DEBUG=true in .env for verbose output
+```
+
+### LNbits CLI
+
+```sh
+# Useful for superuser ID, updating extensions, etc.
+uv run lnbits-cli --help
+```
+
+### Update LNbits
+
+```sh
+cd lnbits
+# Stop LNbits with Ctrl + X or your service manager
+# sudo systemctl stop lnbits
+
+# Update code
+git pull --rebase
+
+uv sync --all-extras
+uv run lnbits
+```
+
+#### Use Admin UI → Extensions → "Update All" to bring extensions up to the proper level
+
+> [!NOTE]
+> **Next steps**  
+> Install complete → **[Running LNbits](#run-the-server)**  
+> Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
+
+
+## Option 2a (Legacy): Poetry — *Replaced by UV*
+
+This legacy section is preserved for older environments.
+**UV is the recommended (and faster) tool** for new installs. Use Poetry only if you have personal preferences or must support an older workflow.
+
+> [!IMPORTANT]
+> **It is recommended to use the latest version of Poetry & Make sure you have Python version 3.12 installed.**
+
+### Verify Python version
+
+```sh
+python3 --version
+```
+
+### Install Poetry
 
 ```sh
 # If path 'export PATH="$HOME/.local/bin:$PATH"' fails, use the path echoed by the install
 curl -sSL https://install.python-poetry.org | python3 - && export PATH="$HOME/.local/bin:$PATH"
 ```
 
-**Install LNbits**
+### Install LNbits
 
 ```sh
 git clone https://github.com/lnbits/lnbits.git
@@ -87,49 +154,52 @@ cp .env.example .env
 # Optional: to set funding source amongst other options via the env `nano .env`
 ```
 
-**Run the server**
+#### Running the server
 
 ```sh
 poetry run lnbits
-# To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
-# Add --debug to help troubleshooting and generate more verbose output
-# Note: also add 'DEBUG=true' in your .env file.
+# To change port/host: poetry run lnbits --port 9000 --host 0.0.0.0
+# Add --debug to help troubleshooting (also set DEBUG=true in .env)
 ```
 
-**LNbits CLI**
+#### LNbits CLI
 
 ```sh
-# Useful for getting the superuser ID, updating extensions, etc.
+# A very useful terminal client for getting the superuser ID, updating extensions, etc.
 poetry run lnbits-cli --help
 ```
 
-**Update the server**
+#### Updating the server
 
 ```sh
 cd lnbits
-# Stop LNbits with `ctrl + x` or with service manager
+# Stop LNbits with Ctrl + X or with your service manager
 # sudo systemctl stop lnbits
 
 # Update LNbits
 git pull --rebase
 
-# Check your poetry version with
+# Check your Poetry Python version
 poetry env list
-# If version is less 3.12, update it by running
+# If version is less than 3.12, update it:
 poetry env use python3.12
-poetry env remove python3.9
+poetry env remove python3.X
 poetry env list
 
-# Run install and start LNbits with
+# Reinstall and start
 poetry install --only main
 poetry run lnbits
-
-# Use LNbits admin UI → Extensions → "Update All" to align extensions
 ```
 
----
+#### Use Admin UI → Extensions → "Update All" to bring extensions up to the proper level
 
-### Option 3: Install script (Debian/Ubuntu)
+> [!NOTE]
+> **Next steps**  
+> Install complete → **[Running LNbits](#run-the-server)**  
+> Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
+
+
+## Option 3: Install script (Debian/Ubuntu)
 
 ```sh
 wget https://raw.githubusercontent.com/lnbits/lnbits/main/lnbits.sh &&
@@ -137,26 +207,37 @@ chmod +x lnbits.sh &&
 ./lnbits.sh
 ```
 
-Now visit `0.0.0.0:5000` to make a super-user account.
+* You can use `./lnbits.sh` to run, but for more control: `cd lnbits` and use `uv run lnbits` (see Option 2).
 
-`./lnbits.sh` can be used to run, but for more control `cd lnbits` and use `poetry run lnbits` (see Poetry option).
+> [!NOTE]
+> **Next steps**  
+> Install complete → **[Running LNbits](#run-the-server)**  
+> Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
----
 
-### Option 4: Nix
+
+## Option 4: Nix
 
 ```sh
-# Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
-sh <(curl -L https://nixos.org/nix/install) --daemon
+# Install nix (use this installer)
+sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
 
-# Enable nix-command and flakes experimental features for nix:
-echo 'experimental-features = nix-command flakes' >> /etc/nix/nix.conf
+# Enable experimental features for nix
+grep -qxF 'experimental-features = nix-command flakes' /etc/nix/nix.conf || \
+echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
 
-# Add cachix for cached binaries
+# Add user to Nix
+grep -qxF "trusted-users = root $USER" /etc/nix/nix.conf || \
+echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
+
+# Restart daemon
+sudo systemctl restart nix-daemon
+
+# Cached binaries
 nix-env -iA cachix -f https://cachix.org/api/v1/install
 cachix use lnbits
 
-# Clone and build LNbits
+# Clone & build
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
 nix build
@@ -164,32 +245,31 @@ nix build
 mkdir data
 ```
 
-**Run the server**
+### Run
 
 ```sh
 nix run
 ```
 
-**Environment options**
+* Ideally you would set the environment via the .env file, but you can also set the env variables or pass command line arguments:
 
 ```sh
-# .env variables are currently passed when running, but LNbits can be managed with the admin UI.
-LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
+# .env variables are passed when running; LNbits can be managed in the admin UI
+LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000 --host 0.0.0.0
 
 # Once you have created a user, you can set as the super_user
 SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
 ```
 
----
+> [!NOTE]
+> **Next steps**  
+> Install complete → **[Running LNbits](#run-the-server)**  
+> Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
-### Option 5: Docker
 
-> **Important:** The official image ships **without extensions preinstalled**. Persist your extensions by setting `LNBITS_EXTENSIONS_PATH` to a folder mapped to a **Docker volume** (e.g., `/app/data/extensions`).
->
-> **Tip:** Always mount **`.env`** and a persistent **`data/`** directory to keep settings and the database across container recreations.
-> Use latest version from Docker Hub **or** build the image yourself.
+## Option 5: Docker
 
-**Pull official image**
+**Use latest image**
 
 ```sh
 docker pull lnbits/lnbits
@@ -201,7 +281,7 @@ docker run --detach --publish 5000:5000 --name lnbits \
   lnbits/lnbits
 ```
 
-> The LNbits Docker image ships with **no extensions installed**. To persist extensions across container rebuilds, set `LNBITS_EXTENSIONS_PATH` to a directory mapped to a Docker volume:
+* The LNbits Docker image ships **without any extensions**; by default, any extensions you install are stored **inside the container** and will be **lost** when the container is removed, so you should set `LNBITS_EXTENSIONS_PATH` to a directory that’s **mapped to a persistent host volume** so extensions **survive rebuilds/recreates**—for example:
 
 ```sh
 docker run ... -e "LNBITS_EXTENSIONS_PATH='/app/data/extensions'" --volume ${PWD}/data/:/app/data ...
@@ -221,26 +301,28 @@ docker run --detach --publish 5000:5000 --name lnbits \
   lnbits/lnbits
 ```
 
-**Enable Breez funding source at build time (optional)**
+You can optionally override the install extras for both **Poetry** and **UV** to include optional features during build or setup:  
+- with Poetry, pass extras via the `POETRY_INSTALL_ARGS` Docker build-arg (e.g., to enable the **Breez** funding source: `docker build --build-arg POETRY_INSTALL_ARGS="-E breez" -t lnbits/lnbits .`);
+- with UV, enable extras during environment sync (e.g., locally run `uv sync --extra breez` or `uv sync --all-extras`), and—**if your Dockerfile supports it**—you can mirror the same at build time via a build-arg such as `UV_SYNC_ARGS` (example pattern: `docker build --build-arg UV_SYNC_ARGS="--extra breez" -t lnbits/lnbits .`).
+
+**Enable Breez funding source at build**
 
 ```sh
 docker build --build-arg POETRY_INSTALL_ARGS="-E breez" -t lnbits/lnbits .
 ```
 
-Finally, access LNbits on port **5000** of your host.
 
----
+> [!NOTE]
+> **Next steps**  
+> Install complete → **[Running LNbits](#run-the-server)**  
+> Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
-### Option 6: Fly.io
 
-> **Security:** Put secrets (macaroons, API keys, etc.) into **Fly Secrets** (`fly secrets set ...`), not directly in `fly.toml`. They will be exposed as env vars at runtime.
-> Fly.io is a Docker hosting platform with a generous free tier. You can host LNbits for free for personal use.
+## Option 6: Fly.io
+**Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.**
 
-1. **Create account:** [https://fly.io](https://fly.io) (no credit card required).
-
-2. **Install CLI:** [https://fly.io/docs/getting-started/installing-flyctl/](https://fly.io/docs/getting-started/installing-flyctl/)
-
-After install, add `flyctl` to your PATH (example output):
+1. Create an account at [Fly.io](https://fly.io).
+2. Install the Fly.io CLI ([guide](https://fly.io/docs/getting-started/installing-flyctl/)).
 
 ```
 flyctl was installed successfully to /home/ubuntu/.fly/bin/flyctl
@@ -249,34 +331,47 @@ Manually add the directory to your $HOME/.bash_profile (or similar)
   export PATH="$FLYCTL_INSTALL/bin:$PATH"
 ```
 
-Either run those exports and `source ~/.bash_profile`, or call Fly as `~/.fly/bin/flyctl`.
+3. You can either run those commands, then `source ~/.bash_profile` or, if you don't, you'll have to call Fly from `~/.fly/bin/flyctl`.
 
-3. **Launch app**
+* Once installed, run the following commands.
 
-```sh
+```
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits
 fly auth login
-# complete login process
+[complete login process]
 fly launch
 ```
 
-Choose: app name, region, **postgres: no**, **deploy now: no**.
+You'll be prompted to enter an app name, region, postgres (choose no), deploy now (choose no).
 
-4. **Edit `fly.toml`** and set:
+You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings.
 
-> Replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with relevant `.env` values. Strings must be quoted. Use `fly secrets` for sensitive values.
+> [!IMPORTANT]
+> Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`.  
+> Environment variable strings should be quoted here. For example, if `.env` has  
+> `LNBITS_ENDPOINT=https://demo.lnbits.com`, then in `fly.toml` use  
+> `LNBITS_ENDPOINT="https://demo.lnbits.com"`.
+
+> [!WARNING]
+> Don't enter secret environment variables here. Fly.io offers **secrets** (via `fly secrets`) that are exposed as env vars at runtime.  
+> Example (LND REST funding source):  
+> `fly secrets set LND_REST_MACAROON=<hex_macaroon_data>`
+
+
 
 ```
 ...
 kill_timeout = 30
 ...
 
+...
 [mounts]
   source="lnbits_data"
   destination="/data"
 ...
 
+...
 [env]
   HOST="127.0.0.1"
   PORT=5000
@@ -287,42 +382,103 @@ kill_timeout = 30
   ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
 ...
 
+...
 [[services]]
   internal_port = 5000
 ...
 ```
 
-5. **Create volume** (choose same region):
+Next, create a volume to store the sqlite database for LNbits. Be sure to choose the same region for the volume that you chose earlier.
 
-```sh
+```
 fly volumes create lnbits_data --size 1
 ```
 
-6. **Deploy**
+You're ready to deploy! Run `fly deploy` and follow the steps to finish deployment. You'll select a `region` (up to you, choose the same as you did for the storage volume previously created), `postgres` (choose no), `deploy` (choose yes).
+
+You can use `fly logs` to view the application logs, or `fly ssh console` to get a ssh shell in the running container.
+
+### Troubleshooting
+
+Problems installing? These commands have helped us install LNbits.
 
 ```sh
-fly deploy
+sudo apt install pkg-config libffi-dev libpq-dev
+
+# build essentials for debian/ubuntu
+sudo apt install python3.10-dev gcc build-essential
+
+# if the secp256k1 build fails:
+# if you used poetry
+poetry add setuptools wheel
 ```
 
-Pick region (same as volume), postgres (no), deploy (yes).
+> [!NOTE]
+> **Next steps**  
+> Install complete → **[Running LNbits](#run-the-server)**  
+> Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
-**Inspect**: `fly logs` or `fly ssh console` for a shell in the running container.
 
----
 
-## Using LNbits
+## Troubleshooting
+
+```sh
+sudo apt install pkg-config libffi-dev libpq-dev
+
+# build essentials (Debian/Ubuntu)
+sudo apt install python3.10-dev gcc build-essential
+
+# if secp256k1 build fails and you used poetry
+poetry add setuptools wheel
+```
+
+
+
+## Optional: PostgreSQL database
+
+> [!TIP]
+> If you want to use LNbits at scale, we recommend using PostgreSQL as the backend database. Install Postgres and setup a database for LNbits:
+
+```sh
+# Debian/Ubuntu: sudo apt-get -y install postgresql
+# or see https://www.postgresql.org/download/linux/
+
+# Create a password for the postgres user
+sudo -i -u postgres
+psql
+# in psql
+ALTER USER postgres PASSWORD 'myPassword';
+\q
+# back as postgres user
+createdb lnbits
+exit
+```
+
+**Configure LNbits**
+
+```sh
+# add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
+# postgres://<user>:<myPassword>@<host>:<port>/<lnbits> - alter line bellow with your user, password and db name
+LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost:5432/lnbits"
+# save and exit
+```
+
+
+
+# Using LNbits
 
 Visit **[http://localhost:5000/](http://localhost:5000/)** (or `0.0.0.0:5000`).
 
-### Option A — First-run setup in the UI
+### Option A — First-run setup in the Browser (UI)
 
-1. On the **first start**, LNbits will **prompt you to create a SuperUser**.
+1. On the **first start**, LNbits will **prompt you to Setup a SuperUser**.
 2. After creating it, you’ll be **redirected to the Admin UI as SuperUser**.
 3. In the Admin UI, **set your funding source** (backend wallet) and other preferences.
 4. **Restart LNbits** if prompted or after changing critical settings.
 
-> **Important:** Use the **SuperUser only** for initial setup and instance settings (funding source, configuration, Topup).
-> For maintenance, create a separate **Admin** account. For everyday usage (payments, wallets, etc.), **do not use the SuperUser** — use admin or regular user accounts instead.
+> [!IMPORTANT]
+> Use the **SuperUser only** for initial setup and instance settings (funding source, configuration, Topup).
+> For maintenance, create a separate **Admin** account. For everyday usage (payments, wallets, etc.), **do not use the SuperUser** — use admin or regular user accounts instead. Its a bad behaviour.
 
 ### Option B — Configure via `.env`
 
@@ -334,92 +490,203 @@ Visit **[http://localhost:5000/](http://localhost:5000/)** (or `0.0.0.0:5000`).
 3. **Restart LNbits** to apply changes.
 
 > **Note (paths):**
-> - The SuperUser ID is stored in `<lnbits_root>/data/.super_user`.
-> - Example: `~/lnbits/data/.super_user` (view with `cat ~/lnbits/data/.super_user`).
-> - Your `.env` lives in `<lnbits_root>/.env` (e.g., `~/lnbits/.env`).
-> - **Docker:** map a host directory to `/app/data`; the SuperUser file will be at `<host_data_dir>/.super_user`. The container reads `/app/.env` (usually mounted from your project root).
+>
+> * The SuperUser ID is stored in `<lnbits_root>/data/.super_user`.
+> * Example: `~/lnbits/data/.super_user` (view with `cat ~/lnbits/data/.super_user`).
+> * Your `.env` lives in `<lnbits_root>/.env` (e.g., `~/lnbits/.env`).
+> * **Docker:** map a host directory to `/app/data`; the SuperUser file will be at `<host_data_dir>/.super_user`. The container reads `/app/.env` (usually mounted from your project root).
 
-**Nice to know — Local dev:** Use **Polar** for a local Lightning Network setup: [https://lightningpolar.com/](https://lightningpolar.com/)
+> [!TIP]
+> Nice t Know
+> Use **Polar** for a local Lightning Network setup: [https://lightningpolar.com/](https://lightningpolar.com/)
 
----
+# Additional guides
 
-## Scale & Networking Guides
+## Update LNbits (all methods)
 
-## Database (PostgreSQL) & Migration
+> After updating, open **Admin UI → Extensions → “Update All”** to make sure extensions match the core version.
 
-### Optional: PostgreSQL database
-
-> **Recommendation:** For **production** or higher traffic, use **PostgreSQL** as the backend database instead of SQLite.
-> Recommended for scale. Install Postgres and set up a database:
-
-```sh
-# Debian/Ubuntu
-# sudo apt-get -y install postgresql
-# or follow instructions at https://www.postgresql.org/download/linux/
-
-# Postgres doesn't have a default password, so we'll create one.
-sudo -i -u postgres
-psql
-# in psql
-ALTER USER postgres PASSWORD 'myPassword'; # choose a password
-\q
-# back on postgres user
-createdb lnbits
-exit
-```
-
-Edit `.env`:
+<details>
+<summary><strong>UV (recommended)</strong></summary>
 
 ```sh
-# postgres://<user>:<myPassword>@<host>:<port>/<lnbits>
-LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost:5432/lnbits"
+cd lnbits
+git pull --rebase
+uv sync --all-extras
+# restart (dev)
+uv run lnbits
 ```
 
-### SQLite to PostgreSQL migration
+</details>
 
-> **Warning:** **Stop LNbits** before migrating. Ensure LNbits has been started **once** on PostgreSQL to create the schema, then run the migration tool.
-> If you run LNbits on SQLite and plan to scale, migrate to Postgres. Ensure Postgres is installed and your LNbits instance has run **once** on Postgres to create schema.
+<details>
+<summary><strong>Poetry (legacy)</strong></summary>
+
+```sh
+cd lnbits
+git pull --rebase
+# Optional: ensure Python 3.12
+poetry env list
+poetry env use python3.12
+poetry install --only main
+# restart (dev)
+poetry run lnbits
+```
+
+</details>
+
+<details>
+<summary><strong>AppImage</strong></summary>
+
+Download the latest AppImage from Releases and replace your old file **in the same directory** to keep the `./data` folder (DB, extensions).
+
+</details>
+
+<details>
+<summary><strong>Install script (Debian/Ubuntu)</strong></summary>
+
+```sh
+# If you installed via lnbits.sh:
+cd lnbits
+git pull --rebase
+# then use your chosen runner (UV recommended)
+uv sync --all-extras
+uv run lnbits
+```
+
+</details>
+
+<details>
+<summary><strong>Nix</strong></summary>
+
+```sh
+cd lnbits
+git pull --rebase
+nix build
+# restart
+nix run
+```
+
+</details>
+
+<details>
+<summary><strong>Docker (official image)</strong></summary>
+
+```sh
+docker pull lnbits/lnbits
+docker stop lnbits && docker rm lnbits
+docker run --detach --publish 5000:5000 --name lnbits \
+  --volume ${PWD}/.env:/app/.env \
+  --volume ${PWD}/data/:/app/data \
+  lnbits/lnbits
+```
+
+</details>
+
+<details>
+<summary><strong>Docker (build yourself)</strong></summary>
+
+```sh
+cd lnbits
+git pull --rebase
+docker build -t lnbits/lnbits .
+docker stop lnbits && docker rm lnbits
+docker run --detach --publish 5000:5000 --name lnbits \
+  --volume ${PWD}/.env:/app/.env \
+  --volume ${PWD}/data/:/app/data \
+  lnbits/lnbits
+```
+
+</details>
+
+<details>
+<summary><strong>Fly.io</strong></summary>
+
+```sh
+# If using Dockerfile in repo (recommended)
+cd lnbits
+git pull --rebase
+fly deploy
+# Logs & shell if needed
+fly logs
+fly ssh console
+```
+
+</details>
+
+
+
+## SQLite → PostgreSQL migration
+
+> [!TIP]
+> If you run on SQLite and plan to scale, migrate to Postgres.
 
 ```sh
 # STOP LNbits
 
-# Set DB connection in .env
-# postgres://<user>:<password>@<host>/<database>
+# Edit .env with Postgres URL
 LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
 # save and exit
 
-# START LNbits once, then STOP
-poetry run python tools/conv.py
+# START then STOP LNbits once to apply schema
+uv run python tools/conv.py
 # or
 make migration
 ```
 
-Launch LNbits again and verify everything works.
+* Launch LNbits again and verify.
 
----
 
-### Reverse proxy with automatic HTTPS using Caddy
 
-Use Caddy to expose LNbits over a domain with HTTPS.
+## LNbits as a systemd service
 
-1. **DNS**: Point your domain’s `A` record to your server IP.
-2. **Install Caddy**: [https://caddyserver.com/docs/install#debian-ubuntu-raspbian](https://caddyserver.com/docs/install#debian-ubuntu-raspbian)
+Create `/etc/systemd/system/lnbits.service`:
 
-Stop any running Caddy:
+```
+# Systemd unit for lnbits
+# /etc/systemd/system/lnbits.service
+
+[Unit]
+Description=LNbits
+# Optional: start after your backend
+#Wants=lnd.service
+#After=lnd.service
+
+[Service]
+WorkingDirectory=/home/lnbits/lnbits
+# Find uv path via `which uv`
+ExecStart=/home/lnbits/.local/bin/uv run lnbits
+User=lnbits
+Restart=always
+TimeoutSec=120
+RestartSec=30
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable & start:
+
+```sh
+sudo systemctl enable lnbits.service
+sudo systemctl start lnbits.service
+```
+
+
+
+## Reverse proxy with automatic HTTPS (Caddy)
+
+Point your domain A-record to your server IP. Install Caddy: [Caddy install guide](https://caddyserver.com/docs/install#debian-ubuntu-raspbian)
 
 ```sh
 sudo caddy stop
-```
-
-Create a **Caddyfile**:
-
-```sh
 sudo nano Caddyfile
 ```
 
-Example (LNbits on port `5000`):
+Add:
 
-```caddy
+```
 yourdomain.com {
   reverse_proxy 0.0.0.0:5000 {
     header_up X-Forwarded-Host yourdomain.com
@@ -427,30 +694,26 @@ yourdomain.com {
 }
 ```
 
-Save & exit (`CTRL + x`), then:
+Save (Ctrl+X) and start:
 
 ```sh
 sudo caddy start
 ```
 
-### Running behind an Apache2 reverse proxy over HTTPS
 
-Install Apache2 and enable modules:
+
+## Apache2 reverse proxy over HTTPS
 
 ```sh
 apt-get install apache2 certbot
 a2enmod headers ssl proxy proxy_http
-```
-
-Create a LetsEncrypt certificate:
-
-```sh
 certbot certonly --webroot --agree-tos --non-interactive --webroot-path /var/www/html -d lnbits.org
 ```
 
 Create `/etc/apache2/sites-enabled/lnbits.conf`:
 
-```apache
+```sh
+cat <<EOF > /etc/apache2/sites-enabled/lnbits.conf
 <VirtualHost *:443>
   ServerName lnbits.org
   SSLEngine On
@@ -471,31 +734,28 @@ Create `/etc/apache2/sites-enabled/lnbits.conf`:
       Allow from all
   </Proxy>
 </VirtualHost>
+EOF
 ```
 
-Restart Apache:
+Restart:
 
 ```sh
 service apache2 restart
 ```
 
-### Running behind an Nginx reverse proxy over HTTPS
 
-Install nginx:
+
+## Nginx reverse proxy over HTTPS
 
 ```sh
 apt-get install nginx certbot
-```
-
-Create a LetsEncrypt certificate:
-
-```sh
 certbot certonly --nginx --agree-tos -d lnbits.org
 ```
 
 Create `/etc/nginx/sites-enabled/lnbits.org`:
 
-```nginx
+```sh
+cat <<EOF > /etc/nginx/sites-enabled/lnbits.org
 server {
     server_name lnbits.org;
 
@@ -523,20 +783,25 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 }
+EOF
 ```
 
-Restart nginx:
+Restart:
 
 ```sh
 service nginx restart
 ```
 
-### Using https without reverse proxy
+---
 
-> **Warning:** Self‑signed certificates are **not trusted** by browsers. Expect a warning page. This method is best for **development** or **local network** use.
-> You can run LNbits via HTTPS without additional software (useful for development or LAN). Create a self‑signed certificate with **mkcert** or `openssl`.
+## HTTPS without a reverse proxy (self-signed)
 
-**Install mkcert (Ubuntu)**
+Create a self-signed cert (useful for local/dev). Browsers won’t trust it by default.
+
+### Install mkcert
+
+* Install instructions: [mkcert README](https://github.com/FiloSottile/mkcert)
+* Ubuntu example:
 
 ```sh
 sudo apt install libnss3-tools
@@ -545,100 +810,53 @@ chmod +x mkcert-v*-linux-amd64
 sudo cp mkcert-v*-linux-amd64 /usr/local/bin/mkcert
 ```
 
-**Create certificate**
+### Create certificate
+
+**OpenSSL**
 
 ```sh
-# OpenSSL (creates key.pem and cert.pem)
 openssl req -new -newkey rsa:4096 -x509 -sha256 -days 3650 -nodes -out cert.pem -keyout key.pem
+```
 
-# or mkcert (add local IP if needed)
+**mkcert** (alternative)
+
+```sh
+# include your local IP (e.g., 192.x.x.x) if needed
 mkcert localhost 127.0.0.1 ::1
 ```
 
-**Start with TLS**
+**Run with certs**
 
 ```sh
 poetry run uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./key.pem --ssl-certfile ./cert.pem
 ```
 
-### LNbits running on Umbrel behind Tor
 
-If you run LNbits on Umbrel but want clearnet access, see this community guide by *Uxellodunum*:
-[https://community.getumbrel.com/t/guide-lnbits-without-tor/604](https://community.getumbrel.com/t/guide-lnbits-without-tor/604)
 
----
+## LNbits on Umbrel behind Tor
 
-## Service Management
+See this community [guide](https://community.getumbrel.com/t/guide-lnbits-without-tor/604).
 
-### LNbits as a systemd service
 
-> **Tip:** Use `which poetry` to find the Poetry binary path. Ensure `WorkingDirectory` matches your LNbits folder, and run as a dedicated **service user** (e.g., `lnbits`).
-> Create `/etc/systemd/system/lnbits.service`:
-
-```ini
-# Systemd unit for lnbits
-# /etc/systemd/system/lnbits.service
-
-[Unit]
-Description=LNbits
-# Optional: ensure lnbits starts after your backend
-#Wants=lnd.service
-#After=lnd.service
-
-[Service]
-# Adjust paths for your environment
-WorkingDirectory=/home/lnbits/lnbits
-ExecStart=/home/lnbits/.local/bin/poetry run lnbits
-User=lnbits
-Restart=always
-TimeoutSec=120
-RestartSec=30
-Environment=PYTHONUNBUFFERED=1
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start:
-
-```sh
-sudo systemctl enable lnbits.service
-sudo systemctl start lnbits.service
-```
-
----
-
-## Troubleshooting
-
-> **Tip:** If `secp256k1` fails to build with Poetry, add build helpers: `poetry add setuptools wheel`. Ensure system build tools are installed (see below).
-> These packages often help on Debian/Ubuntu:
-
-```sh
-sudo apt install pkg-config libffi-dev libpq-dev
-
-# build essentials for debian/ubuntu
-sudo apt install python3.10-dev gcc build-essential
-
-# if the secp256k1 build fails (Poetry)
-poetry add setuptools wheel
-```
-
----
 
 ## FreeBSD notes
 
-Issue with `secp256k1 0.14.0` on FreeBSD (thanks @GitKalle):
+Issue with secp256k1 0.14.0 on FreeBSD (thanks @GitKalle):
 
-1. Install `py311-secp256k1` with `pkg install py311-secp256k1`
-2. Change version in `pyproject.toml` from `0.14.0` to `0.13.2`
-3. Regenerate lock file: `poetry lock`
-4. Follow the Poetry install instructions above
+1. Install `py311-secp256k1` with `pkg install py311-secp256k1`.
+2. Change version in `pyproject.toml` from `0.14.0` to `0.13.2`.
+3. Rewrite `poetry.lock` with `poetry lock`.
+4. Follow install instructions with Poetry.
+
+---
+
+## Powered by LNbits
+
+LNbits empowers everyone with modular, open-source tools for building Bitcoin-based systems — fast, free, and extendable.
 
 
-## Powered by LNbits 
+If you like this project [send some tip love](https://demo.lnbits.com/lnurlp/link/fH59GD) or visiting our [Shop](https://shop.lnbits.com)
 
-LNbits empowers everyone with modular, open-source tools for building Bitcoin-based systems — fast, free, and extendable. 
+![LNBits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)  
+[![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart\&logoColor=white\&labelColor=5B21B6)](https://shop.lnbits.com/) [![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning\&logoColor=white\&labelColor=1E40AF)](https://my.lnbits.com/login) [![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss\&logoColor=white\&labelColor=C2410C)](https://news.lnbits.com/) [![Explore LNbits Extensions](https://img.shields.io/badge/Explore-LNbits%20Extensions-10B981?logo=puzzle-piece\&logoColor=white\&labelColor=065F46)](https://extensions.lnbits.com/)
 
-[![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart\&logoColor=white\&labelColor=5B21B6)](https://shop.lnbits.com/) [![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning\&logoColor=white\&labelColor=1E40AF)](https://my.lnbits.com/login) [![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss\&logoColor=white\&labelColor=C2410C)](https://news.lnbits.com/) [![Explore LNbits Extensions](https://img.shields.io/badge/Explore-LNbits%20Extensions-10B981?logo=puzzle-piece\&logoColor=white\&labelColor=065F46)](https://extensions.lnbits.com/) 
-
-If you like this project [send some tip love](https://demo.lnbits.com/lnurlp/link/fH59GD)!
