@@ -132,7 +132,7 @@ Now visit `0.0.0.0:5000` to make a super-user account.
 
 ```sh
 # Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
-sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
+sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon --yes
 
 # Enable nix-command and flakes experimental features for nix:
 grep -qxF 'experimental-features = nix-command flakes' /etc/nix/nix.conf || \
@@ -145,6 +145,9 @@ echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
 # Restart daemon so changes apply
 sudo systemctl restart nix-daemon
 
+# 4) Load Nix into this shell
+. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+
 # Add cachix for cached binaries
 nix-env -iA cachix -f https://cachix.org/api/v1/install
 cachix use lnbits
@@ -154,7 +157,13 @@ git clone https://github.com/lnbits/lnbits.git
 cd lnbits
 nix build
 
+# Make data directory and persist data/extension folders
 mkdir data
+echo 'export PYTHONPATH="$PWD/ns:$PYTHONPATH"' >> ~/.bashrc
+echo 'export LNBITS_DATA_FOLDER="$PWD/data"' >> ~/.bashrc
+echo 'export LNBITS_EXTENSIONS_PATH="$PWD"' >> ~/.bashrc
+echo 'export LNBITS_ADMIN_UI=true' >> ~/.bashrc
+. ~/.bashrc
 ```
 
 #### Running the server
