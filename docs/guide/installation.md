@@ -145,22 +145,29 @@ echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
 # Restart daemon so changes apply
 sudo systemctl restart nix-daemon
 
+# Clone and build LNbits
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
+
+# Make data directory and persist data/extension folders
+mkdir data
+PROJECT_DIR="$(pwd)"
+{
+  echo "export PYTHONPATH=\"$PROJECT_DIR/ns:\$PYTHONPATH\""
+  echo "export LNBITS_DATA_FOLDER=\"$PROJECT_DIR/data\""
+  echo "export LNBITS_EXTENSIONS_PATH=\"$PROJECT_DIR\""
+} >> ~/.bashrc
+grep -qxF '. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ~/.bashrc || \
+  echo '. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' >> ~/.bashrc
+. ~/.bashrc
+
 # Add cachix for cached binaries
 nix-env -iA cachix -f https://cachix.org/api/v1/install
 cachix use lnbits
 
-# Clone and build LNbits
-git clone https://github.com/lnbits/lnbits.git
-cd lnbits
+# Build LNbits
 nix build
 
-# Make data directory and persist data/extension folders
-mkdir data
-echo 'export PYTHONPATH="$PWD/ns:$PYTHONPATH"' >> ~/.bashrc
-echo 'export LNBITS_DATA_FOLDER="$PWD/data"' >> ~/.bashrc
-echo 'export LNBITS_EXTENSIONS_PATH="$PWD"' >> ~/.bashrc
-echo 'export LNBITS_ADMIN_UI=true' >> ~/.bashrc
-. ~/.bashrc
 ```
 
 #### Running the server
