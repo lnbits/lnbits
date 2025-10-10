@@ -220,10 +220,10 @@ chmod +x lnbits.sh &&
 ## Option 4: Nix
 
 ```sh
-# Install nix (use this installer)
-sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
+# Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
+sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon --yes
 
-# Enable experimental features for nix
+# Enable nix-command and flakes experimental features for nix:
 grep -qxF 'experimental-features = nix-command flakes' /etc/nix/nix.conf || \
 echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
 
@@ -231,31 +231,45 @@ echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.con
 grep -qxF "trusted-users = root $USER" /etc/nix/nix.conf || \
 echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
 
-# Restart daemon
+# Restart daemon so changes apply
 sudo systemctl restart nix-daemon
 
-# Cached binaries
+# Clone and build LNbits
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
+
+# Make data directory and persist data/extension folders
+mkdir data
+PROJECT_DIR="$(pwd)"
+{
+  echo "export PYTHONPATH=\"$PROJECT_DIR/ns:\$PYTHONPATH\""
+  echo "export LNBITS_DATA_FOLDER=\"$PROJECT_DIR/data\""
+  echo "export LNBITS_EXTENSIONS_PATH=\"$PROJECT_DIR\""
+} >> ~/.bashrc
+grep -qxF '. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ~/.bashrc || \
+  echo '. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' >> ~/.bashrc
+. ~/.bashrc
+
+# Add cachix for cached binaries
 nix-env -iA cachix -f https://cachix.org/api/v1/install
 cachix use lnbits
 
-# Clone & build
-git clone https://github.com/lnbits/lnbits.git
-cd lnbits
+# Build LNbits
 nix build
 
-mkdir data
 ```
 
-### Run
+#### Running the server
 
 ```sh
 nix run
 ```
 
-* Ideally you would set the environment via the .env file, but you can also set the env variables or pass command line arguments:
+Ideally you would set the environment via the `.env` file,
+but you can also set the env variables or pass command line arguments:
 
 ```sh
-# .env variables are passed when running; LNbits can be managed in the admin UI
+# .env variables are currently passed when running, but LNbits can be managed with the admin UI.
 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000 --host 0.0.0.0
 
 # Once you have created a user, you can set as the super_user
