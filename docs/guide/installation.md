@@ -3,7 +3,8 @@ layout: default
 title: Basic installation
 nav_order: 2
 ---
-![LNBits Install Guide](https://github.com/lnbits/lnbits/blob/dev/docs/logos/lnbits-full-inverse.png?raw=true)
+[![LNBits Install Guide](https://github.com/lnbits/lnbits/blob/dev/docs/logos/lnbits-full-inverse.png?raw=true)](https://lnbits.com)  
+
 ![phase: stable](https://img.shields.io/badge/phase-stable-2EA043) ![License: MIT](https://img.shields.io/badge/License-MIT-blue) ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow) [![explore: LNbits extensions](https://img.shields.io/badge/explore-LNbits%20extensions-10B981)](https://extensions.lnbits.com/) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) <img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">
 # Basic installation
 
@@ -855,7 +856,7 @@ Issue with secp256k1 0.14.0 on FreeBSD (thanks @GitKalle):
 LNbits empowers everyone with modular, open-source tools for building Bitcoin-based systems — fast, free, and extendable.
 
 
-If you like this project [send some tip love](https://demo.lnbits.com/lnurlp/link/fH59GD) or visiting our [Shop](https://shop.lnbits.com)
+If you like this project [send some tip love](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg) or visiting our [Shop](https://shop.lnbits.com)
 
 [![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)   
 [![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart\&logoColor=white\&labelColor=5B21B6)](https://shop.lnbits.com/) [![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning\&logoColor=white\&labelColor=1E40AF)](https://my.lnbits.com/login) [![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss\&logoColor=white\&labelColor=C2410C)](https://news.lnbits.com/) [![Explore LNbits Extensions](https://img.shields.io/badge/Explore-LNbits%20Extensions-10B981?logo=puzzle-piece\&logoColor=white\&labelColor=065F46)](https://extensions.lnbits.com/)
