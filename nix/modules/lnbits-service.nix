@@ -102,7 +102,7 @@ in
         {
           LNBITS_DATA_FOLDER = "${cfg.stateDir}/data";
           # LNBits automatically appends '/extensions' to this path
-          LNBITS_EXTENSIONS_PATH = "${cfg.stateDir}";
+          LNBITS_EXTENSIONS_PATH = "${cfg.stateDir}/lnbits/extensions";
         }
         cfg.env
       ];
