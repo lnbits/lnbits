@@ -38,8 +38,8 @@ LNbits runs on top of most Lightning backends. Choose the one you already operat
 
 
 ## Learn more
-- Video series on [Youtube](https://www.youtube.com/playlist?list=PLPj3KCksGbSYG0ciIQUWJru1dWstPHshe)
-
+- Video series on [Youtube](https://www.youtube.com/@lnbits)
+- Introduction Video [LNBits V1](https://www.youtube.com/watch?v=PFAHKxvgI9Y&t=19s)
 
 ## Running LNbits
 See the [install guide](https://github.com/lnbits/lnbits/blob/main/docs/guide/installation.md) for details on installation and setup.
