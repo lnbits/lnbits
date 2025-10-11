@@ -37,7 +37,7 @@
 
 ## What is the Super User?
 
-The **Super User** is a privileged operator account in LNbits with front-end capabilities that extend beyond those of an ordinary admin.
+The **Super User** is a privileged operator account in LNbits with front-end capabilities that extend beyond those of an ordinary admin. It is created with the initialisation of the [Admin UI](https://github.com/lnbits/lnbits/blob/main/docs/guide/admin_ui.md)
 
 **Key SU capabilities:**
 
@@ -48,6 +48,16 @@ The **Super User** is a privileged operator account in LNbits with front-end cap
 > [!NOTE]
 > These SU actions are intentionally separated from ordinary admin tasks to better align with the principle of dedicated privilege.
 
+## Admin vs Super User
+
+| Capability                            | Admin      | Super User |
+| ------------------------------------- | ---------- | ---------- |
+| View Admin UI                         | If enabled | If enabled |
+| Manage users & wallets (standard ops) | ✓          | ✓          |
+| Instance-level settings               | ✓          | ✓          |
+| Change funding source                 | —          | ✓          |
+| Credit/debit accounts                 | —          | ✓          |
+| Restart server from UI                | —          | ✓          |
 
 ## When is the Super User created?
 
@@ -57,7 +67,7 @@ The **Super User** is a privileged operator account in LNbits with front-end cap
 
 ## Enabling the Admin UI
 > [!WARNING]
-> For detailed information look up [Admin UI](https://github.com/lnbits/lnbits/new/update-Readme/docs/guide/admin_ui.md) Section. Only enable if you understandf what you are doing.
+> For detailed information look up [Admin UI](https://github.com/lnbits/lnbits/new/main/docs/guide/admin_ui.md) Section. Only enable if you understandf what you are doing.
 
 Set the environment variable in your deployment:
 
@@ -86,9 +96,9 @@ LNbits stores the **Super User ID** at:
 
 
 ## Additional Guides
-- **[Admin UI](https://github.com/lnbits/lnbits/new/update-Readme/docs/guide/admin_ui.md)** — Manage server settings via a clean UI (avoid editing `.env` by hand).
-- **[User Roles](https://github.com/lnbits/lnbits/new/update-Readme/docs/guide/User_Roles.md)** — Quick Overview of existing Roles in LNBits.
-- **[Funding sources](https://github.com/lnbits/lnbits/new/update-Readme/docs/guide/funding-sources_table.md)** — What’s available and how to enable/configure each.
+- **[Admin UI](https://github.com/lnbits/lnbits/new/main/docs/guide/admin_ui.md)** — Manage server settings via a clean UI (avoid editing `.env` by hand).
+- **[User Roles](https://github.com/lnbits/lnbits/new/main/docs/guide/User_Roles.md)** — Quick Overview of existing Roles in LNBits.
+- **[Funding sources](https://github.com/lnbits/lnbits/new/main/docs/guide/funding-sources_table.md)** — What’s available and how to enable/configure each.
 
 ## Powered by LNbits
 LNbits empowers everyone with modular, open-source tools for building Bitcoin-based systems - fast, free, and extendable.
