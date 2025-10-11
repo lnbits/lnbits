@@ -1,53 +1,75 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Check install has not already run
-if [ ! -d lnbits/data ]; then
+# --- Config you might tweak ---
+REPO_URL="https://github.com/lnbits/lnbits.git"
+BRANCH="main"
+APP_DIR="${PWD}/lnbits"
+HOST="${HOST:-0.0.0.0}"
+PORT="${PORT:-5000}"
+ADMIN_UI="${LNBITS_ADMIN_UI:-true}"
+# -------------------------------
 
-  # Update package list and install prerequisites non-interactively
-  sudo apt update -y
-  sudo apt install -y software-properties-common
+export DEBIAN_FRONTEND=noninteractive
 
-  # Add the deadsnakes PPA repository non-interactively
-  sudo add-apt-repository -y ppa:deadsnakes/ppa
-
-  # Install Python 3.10 and distutils non-interactively
-  sudo apt install -y python3.10 python3.10-distutils
-
-  # Install UV
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-
-  export PATH="/home/$USER/.local/bin:$PATH"
-
-  if [ ! -d lnbits/wallets ]; then
-    # Clone the LNbits repository
-    git clone https://github.com/lnbits/lnbits.git
-    if [ $? -ne 0 ]; then
-      echo "Failed to clone the repository ... FAIL"
-      exit 1
-    fi
-    # Ensure we are in the lnbits directory
-    cd lnbits || { echo "Failed to cd into lnbits ... FAIL"; exit 1; }
-  fi
-
-  git checkout main
-  # Make data folder
-  mkdir data
-
-  # Copy the .env.example to .env
-  cp .env.example .env
-
-elif [ ! -d lnbits/wallets ]; then
-  # cd into lnbits
-  cd lnbits || { echo "Failed to cd into lnbits ... FAIL"; exit 1; }
+# Ensure basic tooling
+if ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1; then
+  sudo apt-get update -y
+  sudo apt-get install -y curl git
 fi
 
-# Install the dependencies using UV
-uv sync --all-extras
+# System build deps and secp headers
+if command -v apt-get >/dev/null 2>&1; then
+  sudo apt-get update -y
+  sudo apt-get install -y \
+    pkg-config \
+    build-essential \
+    libsecp256k1-dev \
+    automake \
+    autoconf \
+    libtool \
+    m4
+fi
 
+# Install uv (if missing)
+if ! command -v uv >/dev/null 2>&1; then
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+# Ensure PATH for current session
+if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+  export PATH="$HOME/.local/bin:$PATH"
+fi
 
-# Set environment variables for LNbits
-export LNBITS_ADMIN_UI=true
-export HOST=0.0.0.0
+# Clone or reuse repo
+if [[ ! -d "$APP_DIR/.git" ]]; then
+  git clone "$REPO_URL" "$APP_DIR"
+fi
 
-# Run LNbits
-uv run lnbits
+cd "$APP_DIR"
+git fetch --all --prune
+git checkout "$BRANCH"
+git pull --ff-only || true
+
+# First-run setup
+mkdir -p data
+[[ -f .env ]] || cp .env.example .env || true
+
+# Prefer system libsecp256k1 (avoid autotools path)
+export SECP_BUNDLED=0
+
+# Sync dependencies with Python 3.12
+uv sync --python 3.12 --all-extras --no-dev
+
+# Environment
+export LNBITS_ADMIN_UI="$ADMIN_UI"
+export HOST="$HOST"
+export PORT="$PORT"
+
+# Open firewall (optional)
+if command -v ufw >/dev/null 2>&1; then
+  sudo ufw allow "$PORT"/tcp || true
+fi
+
+# Run LNbits with Python 3.12 via uv
+exec uv run --python 3.12 lnbits
