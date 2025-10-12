@@ -75,9 +75,9 @@ For using LNbits, not administering it.
 
 
 ## Additional Guides
-- **[Admin UI](https://github.com/lnbits/lnbits/new/update-Readme/docs/guide/admin_ui.md)** — Manage server settings via a clean UI (avoid editing `.env` by hand).
-- **[Super User](https://github.com/lnbits/lnbits/new/update-Readme/docs/guide/super_user.md)** — Deep dive on responsibilities and safe usage patterns.
-- **[Funding sources](https://github.com/lnbits/lnbits/new/update-Readme/docs/guide/funding-sources_table.md)** — What’s available and how to enable/configure each.
+- **[Admin UI](./admin_ui.md)** — Manage server settings via a clean UI (avoid editing `.env` by hand).
+- **[Super User](./super_user.md)** — Deep dive on responsibilities and safe usage patterns.
+- **[Funding sources](./funding-sources_table.md)** — What’s available and how to enable/configure each.
 
 
 ## Powered by LNbits
