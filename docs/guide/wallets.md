@@ -40,6 +40,7 @@ A backend wallet is selected and configured entirely through LNbits environment 
 | [Spark (Core Lightning)](#spark-core-lightning) | [LNPay](#lnpay) | [Boltz](#boltz) |
 | [Cliche Wallet](#cliche-wallet) | [ZBD](#zbd) | [Phoenixd](#phoenixd) |
 | [Breez SDK](#breez-sdk) | [Breez Liquid SDK](#breez-liquid-sdk) | [Nostr Wallet Connect](#nostr-wallet-connect-nwc) |
+| [Strike](#strike) |  |  |
 
 ---
 
@@ -297,6 +298,19 @@ Configure in the admin UI or via env vars:
 
 * `LNBITS_BACKEND_WALLET_CLASS`: `NWCWallet`
 * `NWC_PAIRING_URL`: `nostr+walletconnect://...your...pairing...secret...`
+
+<a id="strike"></a>
+## Strike (alpha)
+
+Custodial provider integrated via **Strike OAuth Connect** (OAuth 2.0 / OIDC). Authenticate a Strike user in your app, then call Strike APIs on the user’s behalf once scopes are granted. Requires a Strike business account, registered OAuth client, minimal scopes, and login/logout redirect URLs.
+
+Get more info here [https://docs.strike.me/strike-oauth-connect/](https://docs.strike.me/strike-oauth-connect/)
+
+**Integration endpoints**
+- `STRIKE_API_ENDPOINT`: `https://api.strike.me/v1`
+- `STRIKE_API_KEY`: `YOUR_STRIKE_API_KEY`
+
+---
 
 ## Powered by LNbits
 
