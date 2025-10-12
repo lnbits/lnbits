@@ -124,10 +124,13 @@ uv run lnbits
 
 ## Option 2a (Legacy): Poetry — _Replaced by UV_
 
+<details>
+<summary><strong>Poetry install and update (legacy workflow)</summary>  
+
 This legacy section is preserved for older environments.
 **UV is the recommended (and faster) tool** for new installs. Use Poetry only if you have personal preferences or must support an older workflow.
 
-> [!IMPORTANT]
+> ![IMPORTANT](https://img.shields.io/badge/IMPORTANT-7c3aed?labelColor=494949)
 > **It is recommended to use the latest version of Poetry & Make sure you have Python version 3.12 installed.**
 
 ### Verify Python version
@@ -194,12 +197,17 @@ poetry run lnbits
 
 #### Use Admin UI → Extensions → "Update All" to bring extensions up to the proper level
 
-> [!NOTE]
+> ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=494949)
 > **Next steps**  
 > Install complete → **[Running LNbits](#run-the-server)**  
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
+</details>
+
 ## Option 3: Install script (Debian/Ubuntu)
+
+<details>
+<summary><strong>Show install script</strong> (one-line setup)</summary>
 
 ```sh
 wget https://raw.githubusercontent.com/lnbits/lnbits/main/lnbits.sh &&
@@ -209,12 +217,17 @@ chmod +x lnbits.sh &&
 
 - You can use `./lnbits.sh` to run, but for more control: `cd lnbits` and use `uv run lnbits` (see Option 2).
 
-> [!NOTE]
+> ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=494949)
 > **Next steps**  
 > Install complete → **[Running LNbits](#run-the-server)**  
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
+</details>
+
 ## Option 4: Nix
+
+<details>
+<summary><strong>Show Nix instructions</strong> (flakes, cachix, run)</summary>
 
 ```sh
 # Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
@@ -273,12 +286,16 @@ LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000 --host 0.0.0.0
 SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
 ```
 
-> [!NOTE]
-> **Next steps**  
-> Install complete → **[Running LNbits](#run-the-server)**  
+> ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=494949)
+> **Next steps**   
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
+</details>
+
 ## Option 5: Docker
+
+<details>
+<summary><strong>Show Docker instructions</strong> (official image, volumes, extensions)</summary>  
 
 **Use latest image**
 
@@ -323,12 +340,17 @@ You can optionally override the install extras for both **Poetry** and **UV** to
 docker build --build-arg POETRY_INSTALL_ARGS="-E breez" -t lnbits/lnbits .
 ```
 
-> [!NOTE]
+> ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=494949)
 > **Next steps**  
 > Install complete → **[Running LNbits](#run-the-server)**  
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
+</details>
+
 ## Option 6: Fly.io
+
+<details>
+<summary><strong>Deploy LNbits on Fly.io (free tier friendly)</summary>  
 
 **Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.**
 
@@ -358,13 +380,13 @@ You'll be prompted to enter an app name, region, postgres (choose no), deploy no
 
 You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings.
 
-> [!IMPORTANT]
+> ![IMPORTANT](https://img.shields.io/badge/IMPORTANT-7c3aed?labelColor=494949)
 > Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`.  
 > Environment variable strings should be quoted here. For example, if `.env` has  
 > `LNBITS_ENDPOINT=https://demo.lnbits.com`, then in `fly.toml` use  
 > `LNBITS_ENDPOINT="https://demo.lnbits.com"`.
 
-> [!WARNING]
+> ![WARNING](https://img.shields.io/badge/WARNING-ea580c?labelColor=494949)
 > Don't enter secret environment variables here. Fly.io offers **secrets** (via `fly secrets`) that are exposed as env vars at runtime.  
 > Example (LND REST funding source):  
 > `fly secrets set LND_REST_MACAROON=<hex_macaroon_data>`
@@ -422,10 +444,13 @@ sudo apt install python3.10-dev gcc build-essential
 poetry add setuptools wheel
 ```
 
-> [!NOTE]
+> ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=0b0b0b)
+> 
 > **Next steps**  
 > Install complete → **[Running LNbits](#run-the-server)**  
-> Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
+> Update LNbits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
+
+
 
 ## Troubleshooting
 
@@ -438,11 +463,14 @@ sudo apt install python3.10-dev gcc build-essential
 # if secp256k1 build fails and you used poetry
 poetry add setuptools wheel
 ```
+</details>
+
+</details>
 
 ## Optional: PostgreSQL database
 
 > [!TIP]
-> If you want to use LNbits at scale, we recommend using PostgreSQL as the backend database. Install Postgres and setup a database for LNbits:
+> If you want to use LNbits at scale, we recommend using PostgreSQL as the backend database. Install Postgres and set up a database for LNbits.
 
 ```sh
 # Debian/Ubuntu: sudo apt-get -y install postgresql
@@ -482,6 +510,7 @@ Visit **[http://localhost:5000/](http://localhost:5000/)** (or `0.0.0.0:5000`).
 > [!IMPORTANT]
 > Use the **SuperUser only** for initial setup and instance settings (funding source, configuration, Topup).
 > For maintenance, create a separate **Admin** account. For everyday usage (payments, wallets, etc.), **do not use the SuperUser** — use admin or regular user accounts instead. Its a bad behaviour.
+> Read more about [SuperUser](./super_user.md) and [Admin UI](./admin_ui.md)
 
 ### Option B — Configure via `.env`
 
@@ -491,17 +520,26 @@ Visit **[http://localhost:5000/](http://localhost:5000/)** (or `0.0.0.0:5000`).
    - plus the required credentials for your chosen backend (see **[wallets.md](./wallets.md)**).
 
 3. **Restart LNbits** to apply changes.
-
-> **Note (paths):**
->
-> - The SuperUser ID is stored in `<lnbits_root>/data/.super_user`.
-> - Example: `~/lnbits/data/.super_user` (view with `cat ~/lnbits/data/.super_user`).
-> - Your `.env` lives in `<lnbits_root>/.env` (e.g., `~/lnbits/.env`).
-> - **Docker:** map a host directory to `/app/data`; the SuperUser file will be at `<host_data_dir>/.super_user`. The container reads `/app/.env` (usually mounted from your project root).
+---
+> [!NOTE]
+> **Paths overview**
+> - **SuperUser file:** `<lnbits_root>/data/.super_user`  
+>   Example: `~/lnbits/data/.super_user` • View: `cat ~/lnbits/data/.super_user`
+> - **Environment file:** `<lnbits_root>/.env` (for bare-metal installs)
+> - **Docker:** bind a host directory to `/app/data`.  
+>   On the host the SuperUser file is at `<host_data_dir>/.super_user`.  
+>   The container reads `/app/.env` (usually bind-mounted from your project root).
 
 > [!TIP]
-> Nice t Know
-> Use **Polar** for a local Lightning Network setup: [https://lightningpolar.com/](https://lightningpolar.com/)
+> **Local Lightning test network**  
+> Use **Polar** to spin up a safe local Lightning environment and test LNbits without touching your live setup.  
+> https://lightningpolar.com/
+
+> [!TIP]
+> **API comparison before updates**  
+> Use **TableTown** to diff your LNbits instance against another (dev vs prod) or the upstream dev branch. Spot endpoint changes before updating.   
+> Crafted by [Arbadacarbayk](https://github.com/arbadacarbaYK) - a standout contribution that makes pre-release reviews fast and reliable.  
+> https://arbadacarbayk.github.io/LNbits_TableTown/
 
 # Additional guides
 
