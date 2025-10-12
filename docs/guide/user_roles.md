@@ -10,7 +10,8 @@
 [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits)
 [<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)
 
-# LNbits Roles: A Quick Overview  
+# LNbits Roles: A Quick Overview
+
 ### Understand **who can do what** in seconds: `Super User`, `Admin`, and `Regular User`.
 
 **Jump to:**  
@@ -25,30 +26,32 @@
 
 ## Roles at a Glance
 
-| Capability                         | **Super User** (owner) | **Admin** (manager) | **Regular User** (end user) |
-| ---------------------------------- | :--------------------: | :-----------------: | :-------------------------: |
-| Change **funding source**          | ✅                      | ❌                   | ❌                          |
-| Credit/Debit any wallet            | ✅                      | ❌                   | ❌                          |
-| Manage Admins & Users              | ✅                      | ✅                   | ❌                          |
-| Enable/disable extensions          | ✅                      | ✅                   | ❌                          |
-| Use wallets & allowed extensions   | ✅                      | ✅                   | ✅                          |
+| Capability                       | **Super User** (owner) | **Admin** (manager) | **Regular User** (end user) |
+| -------------------------------- | :--------------------: | :-----------------: | :-------------------------: |
+| Change **funding source**        |           ✅           |         ❌          |             ❌              |
+| Credit/Debit any wallet          |           ✅           |         ❌          |             ❌              |
+| Manage Admins & Users            |           ✅           |         ✅          |             ❌              |
+| Enable/disable extensions        |           ✅           |         ✅          |             ❌              |
+| Use wallets & allowed extensions |           ✅           |         ✅          |             ✅              |
 
 > **Plain talk:** **Super User** = Owner • **Admin** = Trusted manager • **Regular User** = End user
-
 
 ## Role Snapshots
 
 ### Super User — Master Control
+
 For initial setup and rare, high-impact changes.
+
 - Configure **server-level settings** (e.g., funding source).
 - **Credit/Debit** any wallet.
 - Create and manage initial **Admin(s)**.
 
 > **Sign-in:** username + password (v1+). The old query-string login is retired.
 
-
 ### Admin — Day-to-Day Manager
+
 For running the service without touching the most sensitive knobs.
+
 - Manage **Users**, **Admins**, and **Extensions** in the Admin UI.
 - Adjust security-related settings (e.g., `rate_limiter`, `ip_blocker`).
 - Handle operations settings (e.g., `service_fee`, `invoice_expiry`).
@@ -59,28 +62,29 @@ For running the service without touching the most sensitive knobs.
 
 > **Sign-in:** username + password (v1+). The old query-string login is retired.
 
-
 ### Regular User — Everyday Use
+
 For using LNbits, not administering it.
+
 - Access **personal wallets** and **allowed extensions**.
 - No server/admin privileges.
 
 **Typical tasks:** receive and send payments, use enabled extensions.
 
-
 ## Best Practices
+
 - **Minimize risk:** Reserve **Super User** for rare, sensitive actions (funding source, debit/credit). Use **Admin** for daily operations.
 - **Keep access tidy:** Review your Admin list occasionally; remove unused accounts.
 - **Change management:** Test risky changes (like funding) in a staging setup first.
 
-
 ## Additional Guides
+
 - **[Admin UI](./admin_ui.md)** — Manage server settings via a clean UI (avoid editing `.env` by hand).
 - **[Super User](./super_user.md)** — Deep dive on responsibilities and safe usage patterns.
 - **[Funding sources](./funding-sources_table.md)** — What’s available and how to enable/configure each.
 
-
 ## Powered by LNbits
+
 LNbits empowers everyone with modular, open-source tools for building Bitcoin-based systems—fast, free, and extendable.
 
 If you like this project, [send some tip love](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg) or visit our [Shop](https://shop.lnbits.de)

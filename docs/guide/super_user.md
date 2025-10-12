@@ -9,11 +9,11 @@
 ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow)
 [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits)
 [<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)
+
 # LNbits Super User
 
-
-
 **Table of Content:**
+
 - [What is the Super User?](#what-is-the-super-user)
 - [When is the Super User created?](#when-is-the-super-user-created)
 - [Enabling the Admin UI](#enabling-the-admin-ui)
@@ -21,9 +21,6 @@
 - [Security model (since v1)](#security-model-since-v1)
 - [Admin vs Super User](#admin-vs-super-user)
 - [Additional Guides](#additional-guides)
-
-
-
 
 <details>
   <summary><strong>TL:DR</strong></summary>
@@ -41,9 +38,9 @@ The **Super User** is a privileged operator account in LNbits with front-end cap
 
 **Key SU capabilities:**
 
-* **Change funding source** for the instance.
-* **Restart the server** from within the web UI.
-* **Credit / debit accounts** for operational adjustments.
+- **Change funding source** for the instance.
+- **Restart the server** from within the web UI.
+- **Credit / debit accounts** for operational adjustments.
 
 > [!NOTE]
 > These SU actions are intentionally separated from ordinary admin tasks to better align with the principle of dedicated privilege.
@@ -61,11 +58,11 @@ The **Super User** is a privileged operator account in LNbits with front-end cap
 
 ## When is the Super User created?
 
-* The SU is **only created** when the **Admin UI is enabled**: `LNBITS_ADMIN_UI=true`.
-* If `LNBITS_ADMIN_UI` is **not enabled**, there is **no SU** and the related UI is hidden.
-
+- The SU is **only created** when the **Admin UI is enabled**: `LNBITS_ADMIN_UI=true`.
+- If `LNBITS_ADMIN_UI` is **not enabled**, there is **no SU** and the related UI is hidden.
 
 ## Enabling the Admin UI
+
 > [!WARNING]
 > For detailed information look up [Admin UI](./admin_ui.md) Section. Only enable if you understandf what you are doing.
 
@@ -86,21 +83,22 @@ LNbits stores the **Super User ID** at:
 
 ## Security model (since v1)
 
-* **User-ID logins are disabled** for SU/admin roles.
-* **SU requires credentials:** you must set **username + password** when enabling the Admin UI and first visiting your instance URL.
+- **User-ID logins are disabled** for SU/admin roles.
+- **SU requires credentials:** you must set **username + password** when enabling the Admin UI and first visiting your instance URL.
 
 **Recommendation:**
 
-* Use a strong, unique password manager-generated secret.
-* Back up `/lnbits/data/.super_user` along with the rest of `/lnbits/data` in your standard secure backup workflow.
-
+- Use a strong, unique password manager-generated secret.
+- Back up `/lnbits/data/.super_user` along with the rest of `/lnbits/data` in your standard secure backup workflow.
 
 ## Additional Guides
+
 - **[Admin UI](./admin_ui.md)** — Manage server settings via a clean UI (avoid editing `.env` by hand).
 - **[User Roles](./User_Roles.md)** — Quick Overview of existing Roles in LNBits.
 - **[Funding sources](./funding-sources_table.md)** — What’s available and how to enable/configure each.
 
 ## Powered by LNbits
+
 LNbits empowers everyone with modular, open-source tools for building Bitcoin-based systems - fast, free, and extendable.
 
 If you like this project, [send some tip love](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg) or visit our [Shop](https://shop.lnbits.de)

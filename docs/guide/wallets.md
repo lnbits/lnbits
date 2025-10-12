@@ -21,6 +21,7 @@ nav_order: 3
 **LNbits is modular**: You can switch the funding source (backend wallet) **without changing anything else** in your setup. Keep your extensions, apps, users, and config as-is — just point LNbits to a different backend via environment variables.
 
 **What stays the same when you switch backends**
+
 - Your LNbits setup and extensions
 - Your API keys and endpoints
 - Your server and deployment setup
@@ -32,25 +33,27 @@ A backend wallet is selected and configured entirely through LNbits environment 
 
 ## Funding Sources
 
-|  |  |  |
-|---|---|---|
-| [CLNRest (runes)](#clnrest-runes) | [LND (REST)](#lnd-rest) | [OpenNode](#opennode) |
-| [CoreLightning](#corelightning) | [LND (gRPC)](#lnd-grpc) | [Blink](#blink) |
-| [CoreLightning REST](#corelightning-rest) | [LNbits](#lnbits) | [Alby](#alby) |
-| [Spark (Core Lightning)](#spark-core-lightning) | [LNPay](#lnpay) | [Boltz](#boltz) |
-| [Cliche Wallet](#cliche-wallet) | [ZBD](#zbd) | [Phoenixd](#phoenixd) |
-| [Breez SDK](#breez-sdk) | [Breez Liquid SDK](#breez-liquid-sdk) | [Nostr Wallet Connect](#nostr-wallet-connect-nwc) |
-| [Strike](#strike) |  |  |
+|                                                 |                                       |                                                   |
+| ----------------------------------------------- | ------------------------------------- | ------------------------------------------------- |
+| [CLNRest (runes)](#clnrest-runes)               | [LND (REST)](#lnd-rest)               | [OpenNode](#opennode)                             |
+| [CoreLightning](#corelightning)                 | [LND (gRPC)](#lnd-grpc)               | [Blink](#blink)                                   |
+| [CoreLightning REST](#corelightning-rest)       | [LNbits](#lnbits)                     | [Alby](#alby)                                     |
+| [Spark (Core Lightning)](#spark-core-lightning) | [LNPay](#lnpay)                       | [Boltz](#boltz)                                   |
+| [Cliche Wallet](#cliche-wallet)                 | [ZBD](#zbd)                           | [Phoenixd](#phoenixd)                             |
+| [Breez SDK](#breez-sdk)                         | [Breez Liquid SDK](#breez-liquid-sdk) | [Nostr Wallet Connect](#nostr-wallet-connect-nwc) |
+| [Strike](#strike)                               |                                       |                                                   |
 
 ---
 
 <a id="clnrest-runes"></a>
+
 ### CLNRest (using [runes](https://docs.corelightning.org/reference/lightning-createrune))
 
 [Core Lightning REST API docs](https://docs.corelightning.org/docs/rest)  
 Should also work with the [Rust version of CLNRest](https://github.com/daywalker90/clnrest-rs)
 
 **Environment variables**
+
 - `LNBITS_BACKEND_WALLET_CLASS`: `CLNRestWallet`
 - `CLNREST_URL`: `https://127.0.0.1:3010`
 - `CLNREST_CA`: `/home/lightningd/.lightning/bitcoin/ca.pem` (or the content of the file)
@@ -65,7 +68,7 @@ Should also work with the [Rust version of CLNRest](https://github.com/daywalker
 lightning-cli createrune \
   restrictions='[["method=listfunds","method=listpays","method=listinvoices","method=getinfo","method=summary","method=waitanyinvoice"]]' \
 | jq -r .rune
-````
+```
 
 ```bash
 # Invoice: max 1,000,001 msat, label must start with "LNbits", 60 req/min
@@ -90,20 +93,17 @@ lightning-cli createrune \
 
 Set the resulting values into:
 
-* `CLNREST_READONLY_RUNE`
-* `CLNREST_INVOICE_RUNE`
-* `CLNREST_PAY_RUNE`
-* `CLNREST_RENEPAY_RUNE`
-
-
+- `CLNREST_READONLY_RUNE`
+- `CLNREST_INVOICE_RUNE`
+- `CLNREST_PAY_RUNE`
+- `CLNREST_RENEPAY_RUNE`
 
 ## CoreLightning
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `CoreLightningWallet`
-* `CORELIGHTNING_RPC`: `/file/path/lightning-rpc`
-
+- `LNBITS_BACKEND_WALLET_CLASS`: `CoreLightningWallet`
+- `CORELIGHTNING_RPC`: `/file/path/lightning-rpc`
 
 ## CoreLightning REST
 
@@ -111,48 +111,45 @@ Old REST interface using [RTL c-lightning-REST](https://github.com/Ride-The-Ligh
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `CoreLightningRestWallet`
-* `CORELIGHTNING_REST_URL`: `http://127.0.0.1:8185/`
-* `CORELIGHTNING_REST_MACAROON`: `/file/path/admin.macaroon` or Base64/Hex
-* `CORELIGHTNING_REST_CERT`: `/home/lightning/clnrest/tls.cert`
-
+- `LNBITS_BACKEND_WALLET_CLASS`: `CoreLightningRestWallet`
+- `CORELIGHTNING_REST_URL`: `http://127.0.0.1:8185/`
+- `CORELIGHTNING_REST_MACAROON`: `/file/path/admin.macaroon` or Base64/Hex
+- `CORELIGHTNING_REST_CERT`: `/home/lightning/clnrest/tls.cert`
 
 ## Spark (Core Lightning)
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `SparkWallet`
-* `SPARK_URL`: `http://10.147.17.230:9737/rpc`
-* `SPARK_TOKEN`: `secret_access_key`
-
+- `LNBITS_BACKEND_WALLET_CLASS`: `SparkWallet`
+- `SPARK_URL`: `http://10.147.17.230:9737/rpc`
+- `SPARK_TOKEN`: `secret_access_key`
 
 ## LND (REST)
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `LndRestWallet`
-* `LND_REST_ENDPOINT`: `http://10.147.17.230:8080/`
-* `LND_REST_CERT`: `/file/path/tls.cert`
-* `LND_REST_MACAROON`: `/file/path/admin.macaroon` or Base64/Hex
+- `LNBITS_BACKEND_WALLET_CLASS`: `LndRestWallet`
+- `LND_REST_ENDPOINT`: `http://10.147.17.230:8080/`
+- `LND_REST_CERT`: `/file/path/tls.cert`
+- `LND_REST_MACAROON`: `/file/path/admin.macaroon` or Base64/Hex
 
 or:
 
-* `LND_REST_MACAROON_ENCRYPTED`: `eNcRyPtEdMaCaRoOn`
-
+- `LND_REST_MACAROON_ENCRYPTED`: `eNcRyPtEdMaCaRoOn`
 
 ## LND (gRPC)
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `LndWallet`
-* `LND_GRPC_ENDPOINT`: `ip_address`
-* `LND_GRPC_PORT`: `port`
-* `LND_GRPC_CERT`: `/file/path/tls.cert`
-* `LND_GRPC_MACAROON`: `/file/path/admin.macaroon` or Base64/Hex
+- `LNBITS_BACKEND_WALLET_CLASS`: `LndWallet`
+- `LND_GRPC_ENDPOINT`: `ip_address`
+- `LND_GRPC_PORT`: `port`
+- `LND_GRPC_CERT`: `/file/path/tls.cert`
+- `LND_GRPC_MACAROON`: `/file/path/admin.macaroon` or Base64/Hex
 
 You can also use an AES-encrypted macaroon instead:
 
-* `LND_GRPC_MACAROON_ENCRYPTED`: `eNcRyPtEdMaCaRoOn`
+- `LND_GRPC_MACAROON_ENCRYPTED`: `eNcRyPtEdMaCaRoOn`
 
 To encrypt your macaroon:
 
@@ -164,9 +161,9 @@ uv run lnbits-cli encrypt macaroon
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `LNbitsWallet`
-* `LNBITS_ENDPOINT`: for example `https://lnbits.com`
-* `LNBITS_KEY`: `lnbitsAdminKey`
+- `LNBITS_BACKEND_WALLET_CLASS`: `LNbitsWallet`
+- `LNBITS_ENDPOINT`: for example `https://lnbits.com`
+- `LNBITS_KEY`: `lnbitsAdminKey`
 
 ## LNPay
 
@@ -174,10 +171,10 @@ For the invoice listener to work you must have a publicly accessible URL in your
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `LNPayWallet`
-* `LNPAY_API_ENDPOINT`: `https://api.lnpay.co/v1/`
-* `LNPAY_API_KEY`: `sak_apiKey`
-* `LNPAY_WALLET_KEY`: `waka_apiKey`
+- `LNBITS_BACKEND_WALLET_CLASS`: `LNPayWallet`
+- `LNPAY_API_ENDPOINT`: `https://api.lnpay.co/v1/`
+- `LNPAY_API_KEY`: `sak_apiKey`
+- `LNPAY_WALLET_KEY`: `waka_apiKey`
 
 ## OpenNode
 
@@ -185,9 +182,9 @@ For the invoice to work you must have a publicly accessible URL in your LNbits. 
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `OpenNodeWallet`
-* `OPENNODE_API_ENDPOINT`: `https://api.opennode.com/`
-* `OPENNODE_KEY`: `opennodeAdminApiKey`
+- `LNBITS_BACKEND_WALLET_CLASS`: `OpenNodeWallet`
+- `OPENNODE_API_ENDPOINT`: `https://api.opennode.com/`
+- `OPENNODE_KEY`: `opennodeAdminApiKey`
 
 ## Blink
 
@@ -197,10 +194,10 @@ You can generate a Blink API key at [https://dashboard.blink.sv](https://dashboa
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `BlinkWallet`
-* `BLINK_API_ENDPOINT`: `https://api.blink.sv/graphql`
-* `BLINK_WS_ENDPOINT`: `wss://ws.blink.sv/graphql`
-* `BLINK_TOKEN`: `BlinkToken`
+- `LNBITS_BACKEND_WALLET_CLASS`: `BlinkWallet`
+- `BLINK_API_ENDPOINT`: `https://api.blink.sv/graphql`
+- `BLINK_WS_ENDPOINT`: `wss://ws.blink.sv/graphql`
+- `BLINK_TOKEN`: `BlinkToken`
 
 ## Alby
 
@@ -210,9 +207,9 @@ Generate an Alby access token here: [https://getalby.com/developer/access_tokens
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `AlbyWallet`
-* `ALBY_API_ENDPOINT`: `https://api.getalby.com/`
-* `ALBY_ACCESS_TOKEN`: `AlbyAccessToken`
+- `LNBITS_BACKEND_WALLET_CLASS`: `AlbyWallet`
+- `ALBY_API_ENDPOINT`: `https://api.getalby.com/`
+- `ALBY_ACCESS_TOKEN`: `AlbyAccessToken`
 
 ## Boltz
 
@@ -226,11 +223,11 @@ boltzcli wallet create lnbits lbtc
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `BoltzWallet`
-* `BOLTZ_CLIENT_ENDPOINT`: `127.0.0.1:9002`
-* `BOLTZ_CLIENT_MACAROON`: `/home/bob/.boltz/macaroons/admin.macaroon` or Base64/Hex
-* `BOLTZ_CLIENT_CERT`: `/home/bob/.boltz/tls.cert` or Base64/Hex
-* `BOLTZ_CLIENT_WALLET`: `lnbits`
+- `LNBITS_BACKEND_WALLET_CLASS`: `BoltzWallet`
+- `BOLTZ_CLIENT_ENDPOINT`: `127.0.0.1:9002`
+- `BOLTZ_CLIENT_MACAROON`: `/home/bob/.boltz/macaroons/admin.macaroon` or Base64/Hex
+- `BOLTZ_CLIENT_CERT`: `/home/bob/.boltz/tls.cert` or Base64/Hex
+- `BOLTZ_CLIENT_WALLET`: `lnbits`
 
 ## ZBD
 
@@ -240,9 +237,9 @@ Generate a ZBD API key here: [https://zbd.dev/docs/dashboard/projects/api](https
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `ZBDWallet`
-* `ZBD_API_ENDPOINT`: `https://api.zebedee.io/v0/`
-* `ZBD_API_KEY`: `ZBDApiKey`
+- `LNBITS_BACKEND_WALLET_CLASS`: `ZBDWallet`
+- `ZBD_API_ENDPOINT`: `https://api.zebedee.io/v0/`
+- `ZBD_API_KEY`: `ZBDApiKey`
 
 ## Phoenixd
 
@@ -252,9 +249,9 @@ You can get a phoenixd API key from `~/.phoenix/phoenix.conf`. See the phoenixd 
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `PhoenixdWallet`
-* `PHOENIXD_API_ENDPOINT`: `http://localhost:9740/`
-* `PHOENIXD_API_PASSWORD`: `PhoenixdApiPassword`
+- `LNBITS_BACKEND_WALLET_CLASS`: `PhoenixdWallet`
+- `PHOENIXD_API_ENDPOINT`: `http://localhost:9740/`
+- `PHOENIXD_API_PASSWORD`: `PhoenixdApiPassword`
 
 ## Breez SDK
 
@@ -262,12 +259,12 @@ A Greenlight invite code or Greenlight partner certificate/key can register a ne
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `BreezSdkWallet`
-* `BREEZ_API_KEY`: `...`
-* `BREEZ_GREENLIGHT_SEED`: `...`
-* `BREEZ_GREENLIGHT_INVITE_CODE`: `...`
-* `BREEZ_GREENLIGHT_DEVICE_KEY`: `/path/to/breezsdk/device.pem` or Base64/Hex
-* `BREEZ_GREENLIGHT_DEVICE_CERT`: `/path/to/breezsdk/device.crt` or Base64/Hex
+- `LNBITS_BACKEND_WALLET_CLASS`: `BreezSdkWallet`
+- `BREEZ_API_KEY`: `...`
+- `BREEZ_GREENLIGHT_SEED`: `...`
+- `BREEZ_GREENLIGHT_INVITE_CODE`: `...`
+- `BREEZ_GREENLIGHT_DEVICE_KEY`: `/path/to/breezsdk/device.pem` or Base64/Hex
+- `BREEZ_GREENLIGHT_DEVICE_CERT`: `/path/to/breezsdk/device.crt` or Base64/Hex
 
 ## Breez Liquid SDK
 
@@ -275,19 +272,19 @@ This uses the [Breez SDK - Liquid](https://sdk-doc-liquid.breez.technology/) to 
 
 **Required env vars**
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `BreezLiquidSdkWallet`
-* `BREEZ_LIQUID_SEED`: `...`
+- `LNBITS_BACKEND_WALLET_CLASS`: `BreezLiquidSdkWallet`
+- `BREEZ_LIQUID_SEED`: `...`
 
 Fees apply for each submarine swap. You may need to increase the reserve fee under **Settings → Funding** or via:
 
-* `LNBITS_RESERVE_FEE_MIN`: `...`
-* `LNBITS_RESERVE_FEE_PERCENT`: `...`
+- `LNBITS_RESERVE_FEE_MIN`: `...`
+- `LNBITS_RESERVE_FEE_PERCENT`: `...`
 
 ## Cliche Wallet
 
 **Required env vars**
 
-* `CLICHE_ENDPOINT`: `ws://127.0.0.1:12000`
+- `CLICHE_ENDPOINT`: `ws://127.0.0.1:12000`
 
 ## Nostr Wallet Connect (NWC)
 
@@ -296,10 +293,11 @@ To use NWC as a funding source you need a pairing URL (pairing secret) from an N
 
 Configure in the admin UI or via env vars:
 
-* `LNBITS_BACKEND_WALLET_CLASS`: `NWCWallet`
-* `NWC_PAIRING_URL`: `nostr+walletconnect://...your...pairing...secret...`
+- `LNBITS_BACKEND_WALLET_CLASS`: `NWCWallet`
+- `NWC_PAIRING_URL`: `nostr+walletconnect://...your...pairing...secret...`
 
 <a id="strike"></a>
+
 ## Strike (alpha)
 
 Custodial provider integrated via **Strike OAuth Connect** (OAuth 2.0 / OIDC). Authenticate a Strike user in your app, then call Strike APIs on the user’s behalf once scopes are granted. Requires a Strike business account, registered OAuth client, minimal scopes, and login/logout redirect URLs.
@@ -307,16 +305,17 @@ Custodial provider integrated via **Strike OAuth Connect** (OAuth 2.0 / OIDC). A
 Get more info here [https://docs.strike.me/strike-oauth-connect/](https://docs.strike.me/strike-oauth-connect/)
 
 **Integration endpoints**
+
 - `STRIKE_API_ENDPOINT`: `https://api.strike.me/v1`
 - `STRIKE_API_KEY`: `YOUR_STRIKE_API_KEY`
 
 ---
 
 ## Additional Guides
+
 - **[Admin UI](./admin_ui.md)** — Manage server settings via a clean UI (avoid editing `.env` by hand).
 - **[User Roles](./User_Roles.md)** — Quick Overview of existing Roles in LNBits.
 - **[Funding sources](./funding-sources_table.md)** — What’s available and how to enable/configure each.
-
 
 ## Powered by LNbits
 
@@ -325,7 +324,7 @@ LNbits empowers everyone with modular, open-source tools for building Bitcoin-ba
 If you like this project, [send some tip love](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg) or visit our [Shop](https://shop.lnbits.de)
 
 [![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)
-[![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart\&logoColor=white\&labelColor=5B21B6)](https://shop.lnbits.com/)
-[![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning\&logoColor=white\&labelColor=1E40AF)](https://my.lnbits.com/login)
-[![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss\&logoColor=white\&labelColor=C2410C)](https://news.lnbits.com/)
-[![Explore LNbits Extensions](https://img.shields.io/badge/Explore-LNbits%20Extensions-10B981?logo=puzzle-piece\&logoColor=white\&labelColor=065F46)](https://extensions.lnbits.com/)
+[![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart&logoColor=white&labelColor=5B21B6)](https://shop.lnbits.com/)
+[![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning&logoColor=white&labelColor=1E40AF)](https://my.lnbits.com/login)
+[![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss&logoColor=white&labelColor=C2410C)](https://news.lnbits.com/)
+[![Explore LNbits Extensions](https://img.shields.io/badge/Explore-LNbits%20Extensions-10B981?logo=puzzle-piece&logoColor=white&labelColor=065F46)](https://extensions.lnbits.com/)

@@ -125,7 +125,7 @@ uv run lnbits
 ## Option 2a (Legacy): Poetry — _Replaced by UV_
 
 <details>
-<summary><strong>Poetry install and update (legacy workflow)</summary>  
+<summary><strong>Poetry install and update (legacy workflow)</summary>
 
 This legacy section is preserved for older environments.
 **UV is the recommended (and faster) tool** for new installs. Use Poetry only if you have personal preferences or must support an older workflow.
@@ -287,7 +287,7 @@ SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/ln
 ```
 
 > ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=494949)
-> **Next steps**   
+> **Next steps**  
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
 </details>
@@ -295,7 +295,7 @@ SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/ln
 ## Option 5: Docker
 
 <details>
-<summary><strong>Show Docker instructions</strong> (official image, volumes, extensions)</summary>  
+<summary><strong>Show Docker instructions</strong> (official image, volumes, extensions)</summary>
 
 **Use latest image**
 
@@ -350,7 +350,7 @@ docker build --build-arg POETRY_INSTALL_ARGS="-E breez" -t lnbits/lnbits .
 ## Option 6: Fly.io
 
 <details>
-<summary><strong>Deploy LNbits on Fly.io (free tier friendly)</summary>  
+<summary><strong>Deploy LNbits on Fly.io (free tier friendly)</summary>
 
 **Fly.io is a docker container hosting platform that has a generous free tier. You can host LNbits for free on Fly.io for personal use.**
 
@@ -445,12 +445,10 @@ poetry add setuptools wheel
 ```
 
 > ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=0b0b0b)
-> 
+>
 > **Next steps**  
 > Install complete → **[Running LNbits](#run-the-server)**  
 > Update LNbits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
-
-
 
 ## Troubleshooting
 
@@ -463,6 +461,7 @@ sudo apt install python3.10-dev gcc build-essential
 # if secp256k1 build fails and you used poetry
 poetry add setuptools wheel
 ```
+
 </details>
 
 </details>
@@ -520,9 +519,12 @@ Visit **[http://localhost:5000/](http://localhost:5000/)** (or `0.0.0.0:5000`).
    - plus the required credentials for your chosen backend (see **[wallets.md](./wallets.md)**).
 
 3. **Restart LNbits** to apply changes.
+
 ---
+
 > [!NOTE]
 > **Paths overview**
+>
 > - **SuperUser file:** `<lnbits_root>/data/.super_user`  
 >   Example: `~/lnbits/data/.super_user` • View: `cat ~/lnbits/data/.super_user`
 > - **Environment file:** `<lnbits_root>/.env` (for bare-metal installs)
@@ -537,7 +539,7 @@ Visit **[http://localhost:5000/](http://localhost:5000/)** (or `0.0.0.0:5000`).
 
 > [!TIP]
 > **API comparison before updates**  
-> Use **TableTown** to diff your LNbits instance against another (dev vs prod) or the upstream dev branch. Spot endpoint changes before updating.   
+> Use **TableTown** to diff your LNbits instance against another (dev vs prod) or the upstream dev branch. Spot endpoint changes before updating.  
 > Crafted by [Arbadacarbayk](https://github.com/arbadacarbaYK) - a standout contribution that makes pre-release reviews fast and reliable.  
 > https://arbadacarbayk.github.io/LNbits_TableTown/
 
