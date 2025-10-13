@@ -12,7 +12,7 @@
 
 # Admin UI
 
-We introduced the **Admin UI** to make setup simpler and safer. Instead of hand editing the `.env` file, you configure key server settings directly in the frontend with clear labels and guardrails. On a fresh install the Admin UI is enabled by default, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again and the UI will not override it. For privileged actions and role details see **[Super User](./super_user.md)**. For a complete reference of legacy variables consult **[.env.example](/lnbits/.env.example)**.
+We introduced the **Admin UI** to make setup simpler and safer. Instead of hand editing the `.env` file, you configure key server settings directly in the frontend with clear labels and guardrails. On a fresh install the Admin UI is enabled by default, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again and the UI will not override it. For privileged actions and role details see **[Super User](./super_user.md)**. For a complete reference of legacy variables consult **[.env.example](/lnbits/lnbits/.env.example)**.
 
 <img width="900" height="640" alt="grafik" src="https://github.com/user-attachments/assets/d8852b4b-21be-446f-a1e7-d3eb794d3505" />
 
@@ -22,7 +22,7 @@ We introduced the **Admin UI** to make setup simpler and safer. Instead of hand 
 > Disabled: the `.env` file is the single source of truth.
 
 > [!WARNING]
-> Some settings remain `.env` only. Use **[.env.example](/lnbits/.env.example)** as the authoritative reference for those variables.
+> Some settings remain `.env` only. Use **[.env.example](/lnbits/lnbits/.env.example)** as the authoritative reference for those variables.
 
 <details>
   <summary><strong>.env-only settings (not managed by Admin UI)</strong></summary>
