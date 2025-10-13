@@ -12,7 +12,7 @@
 
 # Admin UI
 
-We introduced the **Admin UI** to make setup simpler and safer. Instead of hand editing the `.env` file, you configure key server settings directly in the frontend with clear labels and guardrails. On a fresh install the Admin UI is enabled by default, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again and the UI will not override it. For privileged actions and role details see **[Super User](./super_user.md)**. For a complete reference of legacy variables consult **[.env.example](/lnbits/lnbits/.env.example)**.
+We introduced the **Admin UI** to make setup simpler and safer. Instead of hand editing the `.env` file, you configure key server settings directly in the frontend with clear labels and guardrails. On a fresh install the Admin UI is enabled by default, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again and the UI will not override it. For privileged actions and role details see **[Super User](./super_user.md)**. For a complete reference of legacy variables consult **[.env.example](../../.env.example)**.
 
 <img width="900" height="640" alt="grafik" src="https://github.com/user-attachments/assets/d8852b4b-21be-446f-a1e7-d3eb794d3505" />
 
@@ -22,100 +22,7 @@ We introduced the **Admin UI** to make setup simpler and safer. Instead of hand 
 > Disabled: the `.env` file is the single source of truth.
 
 > [!WARNING]
-> Some settings remain `.env` only. Use **[.env.example](/lnbits/lnbits/.env.example)** as the authoritative reference for those variables.
-
-<details>
-  <summary><strong>.env-only settings (not managed by Admin UI)</strong></summary>
-
-```
-######################################
-###### .env ONLY SETTINGS ############
-######################################
-# The following settings are ONLY set in your .env file.
-# They are NOT managed by the Admin UI and are not stored in the database.
-
-# === Logging and Development ===
-
-DEBUG=False
-DEBUG_DATABASE=False
-BUNDLE_ASSETS=True
-
-# logging into LNBITS_DATA_FOLDER/logs/
-ENABLE_LOG_TO_FILE=true
-
-# https://loguru.readthedocs.io/en/stable/api/logger.html#file
-LOG_ROTATION="100 MB"
-LOG_RETENTION="3 months"
-
-# for database cleanup commands
-# CLEANUP_WALLETS_DAYS=90
-
-# === Admin Settings ===
-
-# Enable Admin UI.
-# Warning: Enabling this will make LNbits ignore most configurations in file.
-# Only the configurations defined in `ReadOnlySettings` will still be read
-# from environment variables. The rest will be stored in the database and
-# changeable through the Admin UI.
-# Disable this and clear the `settings` table to make LNbits use this file again.
-LNBITS_ADMIN_UI=true
-
-HOST=127.0.0.1
-PORT=5000
-# VERSION=
-# USER_AGENT=
-
-# === LNbits ===
-
-# Database:
-#  - To use SQLite, specify LNBITS_DATA_FOLDER
-#  - To use PostgreSQL, set LNBITS_DATABASE_URL=postgres://...
-#  - To use CockroachDB, set LNBITS_DATABASE_URL=cockroachdb://...
-# For PostgreSQL and CockroachDB, install `psycopg2`.
-LNBITS_DATA_FOLDER="./data"
-# LNBITS_DATABASE_URL="postgres://user:password@host:port/databasename"
-
-# Extensions to install by default. If an extension from this list is uninstalled,
-# it will be reinstalled on the next restart unless removed from this list.
-LNBITS_EXTENSIONS_DEFAULT_INSTALL="tpos"
-
-# LNBITS_EXTENSIONS_MANIFESTS="https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json,https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions-trial.json"
-# GitHub has API rate limits. Increase the limit by setting a GITHUB_TOKEN.
-# LNBITS_EXT_GITHUB_TOKEN=github_pat_xxxxxxxxxxxxxxxxxx
-
-# Which funding sources are allowed in the Admin UI
-# LNBITS_ALLOWED_FUNDING_SOURCES="VoidWallet, FakeWallet, CoreLightningWallet, CoreLightningRestWallet, LndRestWallet, EclairWallet, LndWallet, LnTipsWallet, LNPayWallet, LNbitsWallet, BlinkWallet, AlbyWallet, ZBDWallet, PhoenixdWallet, OpenNodeWallet, NWCWallet, BreezSdkWallet, BoltzWallet, StrikeWallet, CLNRestWallet"
-
-# Uvicorn variable to allow HTTPS behind a proxy
-# IMPORTANT: your web server must forward headers correctly.
-# http://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https
-FORWARDED_ALLOW_IPS="*"
-
-# Path where extensions will be installed (defaults to ./lnbits/).
-# Inside this directory, the `extensions` and `upgrades` sub-directories will be created.
-# LNBITS_EXTENSIONS_PATH="/path/to/some/dir"
-
-# ID of the super user. The user ID must exist.
-# SUPER_USER=""
-
-# LNBITS_TITLE="LNbits API"
-# LNBITS_PATH="folder/path"
-
-# === Auth Configurations ===
-
-# Secret Key: will default to the hash of the super user if not set.
-# Strongly recommended: set your own random value.
-AUTH_SECRET_KEY=""
-
-# === Funding Source ===
-# How many times to retry connecting to the Funding Source before defaulting to VoidWallet
-# FUNDING_SOURCE_MAX_RETRIES=4
-
-######################################
-###### END .env ONLY SETTINGS ########
-######################################
-```
-</details>
+> Some settings remain `.env` only. Use **[.env.example](../../.env.example#L3-L87)** as the authoritative reference for those variables.
 
 ## What you can do with the Admin UI
 
