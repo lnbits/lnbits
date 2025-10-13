@@ -1,78 +1,211 @@
----
-layout: default
-title: Admin UI
-nav_order: 4
----
+<a href="https://lnbits.com" target="_blank" rel="noopener noreferrer">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png">
+    <img src="https://i.imgur.com/fyKPgVT.png" alt="LNbits" style="width:300px">
+  </picture>
+</a>
+
+![phase: stable](https://img.shields.io/badge/phase-stable-2EA043)
+![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow)
+[<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits)
+[<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)
 
 # Admin UI
 
-The LNbits Admin UI lets you change LNbits settings via the LNbits frontend.
-It is disabled by default and the first time you set the environment variable `LNBITS_ADMIN_UI=true`
-the settings are initialized and saved to the database and will be used from there as long the UI is enabled.
-From there on the settings from the database are used.
+We introduced the **Admin UI** to make setup simpler and safer. Instead of hand editing the `.env` file, you configure key server settings directly in the frontend with clear labels and guardrails. On a fresh install the Admin UI is enabled by default, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again and the UI will not override it. For privileged actions and role details see **[Super User](./super_user.md)**. For a complete reference of legacy variables consult **[.env.example](/lnbits/.env.example)**.
 
-# Super User
+<img width="900" height="640" alt="grafik" src="https://github.com/user-attachments/assets/d8852b4b-21be-446f-a1e7-d3eb794d3505" />
 
-With the Admin UI we introduced the super user, it is created with the initialisation of the Admin UI and will be shown with a success message in the server logs.
-The super user has access to the server and can change settings that may crash the server and make it unresponsive via the frontend and api, like changing funding sources.
+> [!IMPORTANT]
+> **State model Admin UI**  
+> Enabled: configuration is stored in the database and used from there.  
+> Disabled: the `.env` file is the single source of truth.
 
-Also only the super user can brrrr satoshis to different wallets.
+> [!WARNING]
+> Some settings remain `.env` only. Use **[.env.example](/lnbits/.env.example)** as the authoritative reference for those variables.
 
-The super user is only stored inside the settings table of the database and after the settings are "reset to defaults" and a restart happened,
-a new super user is created.
-
-The super user is never sent over the api and the frontend only receives a bool if you are super user or not.
-
-We also added a decorator for the API routes to check for super user.
-
-There is also the possibility of posting the super user via webhook to another service when it is created. you can look it up here https://github.com/lnbits/lnbits/blob/main/lnbits/settings.py `class SaaSSettings`
-
-# Admin Users
-
-environment variable: `LNBITS_ADMIN_USERS`, comma-separated list of user ids
-Admin Users can change settings in the admin ui as well, with the exception of funding source settings, because they require e server restart and could potentially make the server inaccessible. Also they have access to all the extension defined in `LNBITS_ADMIN_EXTENSIONS`.
-
-# Allowed Users
-
-environment variable: `LNBITS_ALLOWED_USERS`, comma-separated list of user ids
-By defining this users, LNbits will no longer be usable by the public, only defined users and admins can then access the LNbits frontend.
-
-Setting this environment variable also disables account creation.
-Account creation can be also disabled by setting `LNBITS_ALLOW_NEW_ACCOUNTS=false`
-
-# How to activate
+<details>
+  <summary><strong>.env-only settings (not managed by Admin UI)</strong></summary>
 
 ```
-$ sudo systemctl stop lnbits.service
-$ cd ~/lnbits
-$ sudo nano .env
+######################################
+###### .env ONLY SETTINGS ############
+######################################
+# The following settings are ONLY set in your .env file.
+# They are NOT managed by the Admin UI and are not stored in the database.
+
+# === Logging and Development ===
+
+DEBUG=False
+DEBUG_DATABASE=False
+BUNDLE_ASSETS=True
+
+# logging into LNBITS_DATA_FOLDER/logs/
+ENABLE_LOG_TO_FILE=true
+
+# https://loguru.readthedocs.io/en/stable/api/logger.html#file
+LOG_ROTATION="100 MB"
+LOG_RETENTION="3 months"
+
+# for database cleanup commands
+# CLEANUP_WALLETS_DAYS=90
+
+# === Admin Settings ===
+
+# Enable Admin UI.
+# Warning: Enabling this will make LNbits ignore most configurations in file.
+# Only the configurations defined in `ReadOnlySettings` will still be read
+# from environment variables. The rest will be stored in the database and
+# changeable through the Admin UI.
+# Disable this and clear the `settings` table to make LNbits use this file again.
+LNBITS_ADMIN_UI=true
+
+HOST=127.0.0.1
+PORT=5000
+# VERSION=
+# USER_AGENT=
+
+# === LNbits ===
+
+# Database:
+#  - To use SQLite, specify LNBITS_DATA_FOLDER
+#  - To use PostgreSQL, set LNBITS_DATABASE_URL=postgres://...
+#  - To use CockroachDB, set LNBITS_DATABASE_URL=cockroachdb://...
+# For PostgreSQL and CockroachDB, install `psycopg2`.
+LNBITS_DATA_FOLDER="./data"
+# LNBITS_DATABASE_URL="postgres://user:password@host:port/databasename"
+
+# Extensions to install by default. If an extension from this list is uninstalled,
+# it will be reinstalled on the next restart unless removed from this list.
+LNBITS_EXTENSIONS_DEFAULT_INSTALL="tpos"
+
+# LNBITS_EXTENSIONS_MANIFESTS="https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json,https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions-trial.json"
+# GitHub has API rate limits. Increase the limit by setting a GITHUB_TOKEN.
+# LNBITS_EXT_GITHUB_TOKEN=github_pat_xxxxxxxxxxxxxxxxxx
+
+# Which funding sources are allowed in the Admin UI
+# LNBITS_ALLOWED_FUNDING_SOURCES="VoidWallet, FakeWallet, CoreLightningWallet, CoreLightningRestWallet, LndRestWallet, EclairWallet, LndWallet, LnTipsWallet, LNPayWallet, LNbitsWallet, BlinkWallet, AlbyWallet, ZBDWallet, PhoenixdWallet, OpenNodeWallet, NWCWallet, BreezSdkWallet, BoltzWallet, StrikeWallet, CLNRestWallet"
+
+# Uvicorn variable to allow HTTPS behind a proxy
+# IMPORTANT: your web server must forward headers correctly.
+# http://docs.lnbits.org/guide/installation.html#running-behind-an-apache2-reverse-proxy-over-https
+FORWARDED_ALLOW_IPS="*"
+
+# Path where extensions will be installed (defaults to ./lnbits/).
+# Inside this directory, the `extensions` and `upgrades` sub-directories will be created.
+# LNBITS_EXTENSIONS_PATH="/path/to/some/dir"
+
+# ID of the super user. The user ID must exist.
+# SUPER_USER=""
+
+# LNBITS_TITLE="LNbits API"
+# LNBITS_PATH="folder/path"
+
+# === Auth Configurations ===
+
+# Secret Key: will default to the hash of the super user if not set.
+# Strongly recommended: set your own random value.
+AUTH_SECRET_KEY=""
+
+# === Funding Source ===
+# How many times to retry connecting to the Funding Source before defaulting to VoidWallet
+# FUNDING_SOURCE_MAX_RETRIES=4
+
+######################################
+###### END .env ONLY SETTINGS ########
+######################################
 ```
+</details>
 
--> set: `LNBITS_ADMIN_UI=true`
+## What you can do with the Admin UI
 
-Now start LNbits once in the terminal window
+- Switch funding sources and other server level settings
+- Manage who can access LNbits (**[Allowed Users](#allowed-users)**)
+- Promote or demote Admin Users
+- Gate extensions to Admins only or disable them globally
+- Adjust balances with credit or debit
+- Adjust site customization
 
-```
-$ uv run lnbits
-```
+> [!NOTE]
+> See **[Super User](./super_user.md)** for the role and permission differences compared to Admin Users.
 
-You can now `cat` the Super User ID:
+## Enabling or disabling the Admin UI
 
-```
-$ cat data/.super_user
+The Admin UI is enabled by default on new installs. To change the state:
+
+1. Stop LNbits
+   ```bash
+   sudo systemctl stop lnbits.service
+   ```
+
+2. Edit your `.env`
+
+   ```
+   cd ~/lnbits
+   sudo nano .env
+   ```
+3. Set one of
+
+   ```
+   # Enable Admin UI
+   LNBITS_ADMIN_UI=true
+
+   # Disable Admin UI
+   LNBITS_ADMIN_UI=false
+   ```
+   
+4. Start LNbits
+
+   ```
+   sudo systemctl start lnbits.service
+   ```
+
+## First run and Super User ID
+
+On first start with the Admin UI enabled you will be prompted to generate a Super User. If you need to read it from disk later:
+
+```bash
+cat data/.super_user
+# example
 123de4bfdddddbbeb48c8bc8382fe123
 ```
 
-You can access your super user account at `/wallet?usr=super_user_id`. You just have to append it to your normal LNbits web domain.
+> [!WARNING]
+> For security reasons, Super Users and Admin users must authenticate with credentials (username and password).
 
-After that you will find the **`Admin` / `Manage Server`** between `Wallets` and `Extensions`
+After login you will see **Settings** and **Users** in the sidebar between **Wallets** and **Extensions**, plus a role badge in the top left.
 
-Here you can design the interface, it has credit/debit to change wallets balances and you can restrict access rights to extensions only for admins or generally deactivated for everyone. You can make users admins or set up Allowed Users if you want to restrict access. And of course the classic settings of the .env file, e.g. to change the funding source wallet or set a charge fee.
+<img width="1353" height="914" alt="grafik" src="https://github.com/user-attachments/assets/06bb4f36-a23a-4058-87ec-60440d322c25" />
 
-Do not forget
+## Reset to defaults
 
-```
-sudo systemctl start lnbits.service
-```
+Using `Reset to defaults` in the Admin UI wipes stored settings. After a restart, a new `Super User` is created and the old one is no longer valid.
 
-A little hint, if you set `RESET TO DEFAULTS`, then a new Super User Account will also be created. The old one is then no longer valid.
+## Allowed Users
+
+Environment variable: `LNBITS_ALLOWED_USERS` (comma-separated list of user IDs).
+
+When set **at least one**, LNbits becomes private: only the listed users and Admins can access the frontend. Account creation is disabled automatically. You can also disable account creation explicitly.
+
+<img width="1889" height="870" alt="grafik" src="https://github.com/user-attachments/assets/89011b75-a267-44ea-971a-1517968b7af5" />
+
+> [!WARNING]
+> Assign your own account first when enabling **Allowed Users** to avoid locking yourself out. If you do get locked out, use your Super User to recover access.
+
+## Additional Guides
+
+* **[Backend Wallets](./wallets.md)** — Explore options to fund your LNbits instance.
+* **[User Roles](./User_Roles.md)** — Overview of existing roles in LNbits.
+* **[Funding sources](./funding-sources_table.md)** — What is available and how to configure each.
+
+## Powered by LNbits
+
+LNbits empowers everyone with modular, open source tools for building Bitcoin based systems — fast, free, and extendable.
+
+If you like this project, [send some tip love](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg) or visit our [Shop](https://shop.lnbits.de)
+
+[![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)  
+[![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart\&logoColor=white\&labelColor=5B21B6)](https://shop.lnbits.com/)
+[![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning\&logoColor=white\&labelColor=1E40AF)](https://my.lnbits.com/login)
+[![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss\&logoColor=white\&labelColor=C2410C)](https://news.lnbits.com/)
+[![Explore LNbits Extensions](https://img.shields.io/badge/Explore-LNbits%20Extensions-10B981?logo=puzzle-piece\&logoColor=white\&labelColor=065F46)](https://extensions.lnbits.com/)
