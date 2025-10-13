@@ -12,7 +12,7 @@
 
 # Admin UI
 
-We introduced the **Admin UI** to make setup simpler and safer. Instead of hand editing the `.env` file, you configure key server settings directly in the frontend with clear labels and guardrails.  
+We introduced the **Admin UI** to make setup simpler and safer. Instead of hand editing the `.env` file, you configure key server settings directly in the frontend with clear labels and guardrails.
 
 **On a fresh install the Admin UI is enabled by default**, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again and the UI will not override it. For privileged actions and role details see **[Super User](./super_user.md)**. For a complete reference of legacy variables consult **[.env.example](../../.env.example)**.
 
@@ -43,6 +43,7 @@ We introduced the **Admin UI** to make setup simpler and safer. Instead of hand 
 The Admin UI is enabled by default on new installs. To change the state:
 
 1. Stop LNbits
+
    ```bash
    sudo systemctl stop lnbits.service
    ```
@@ -53,6 +54,7 @@ The Admin UI is enabled by default on new installs. To change the state:
    cd ~/lnbits
    sudo nano .env
    ```
+
 3. Set one of
 
    ```
@@ -62,7 +64,7 @@ The Admin UI is enabled by default on new installs. To change the state:
    # Disable Admin UI
    LNBITS_ADMIN_UI=false
    ```
-   
+
 4. Start LNbits
 
    ```
@@ -91,6 +93,7 @@ After login you will see **Settings** and **Users** in the sidebar between **Wal
 Using `Reset to defaults` in the Admin UI wipes stored settings. After a restart, a new `Super User` is created and the old one is no longer valid.
 
 ## Allowed Users
+
 When set **at least one**, LNbits becomes private: only the listed users and Admins can access the frontend. Account creation is disabled automatically. You can also disable account creation explicitly.
 
 <img width="1889" height="870" alt="grafik" src="https://github.com/user-attachments/assets/89011b75-a267-44ea-971a-1517968b7af5" />
@@ -100,9 +103,9 @@ When set **at least one**, LNbits becomes private: only the listed users and Adm
 
 ## Additional Guides
 
-* **[Backend Wallets](./wallets.md)** — Explore options to fund your LNbits instance.
-* **[User Roles](./User_Roles.md)** — Overview of existing roles in LNbits.
-* **[Funding sources](./funding-sources_table.md)** — What is available and how to configure each.
+- **[Backend Wallets](./wallets.md)** — Explore options to fund your LNbits instance.
+- **[User Roles](./User_Roles.md)** — Overview of existing roles in LNbits.
+- **[Funding sources](./funding-sources_table.md)** — What is available and how to configure each.
 
 ## Powered by LNbits
 
@@ -111,7 +114,7 @@ LNbits empowers everyone with modular, open source tools for building Bitcoin ba
 If you like this project, [send some tip love](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg) or visit our [Shop](https://shop.lnbits.de)
 
 [![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)  
-[![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart\&logoColor=white\&labelColor=5B21B6)](https://shop.lnbits.com/)
-[![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning\&logoColor=white\&labelColor=1E40AF)](https://my.lnbits.com/login)
-[![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss\&logoColor=white\&labelColor=C2410C)](https://news.lnbits.com/)
-[![Explore LNbits Extensions](https://img.shields.io/badge/Explore-LNbits%20Extensions-10B981?logo=puzzle-piece\&logoColor=white\&labelColor=065F46)](https://extensions.lnbits.com/)
+[![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart&logoColor=white&labelColor=5B21B6)](https://shop.lnbits.com/)
+[![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning&logoColor=white&labelColor=1E40AF)](https://my.lnbits.com/login)
+[![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss&logoColor=white&labelColor=C2410C)](https://news.lnbits.com/)
+[![Explore LNbits Extensions](https://img.shields.io/badge/Explore-LNbits%20Extensions-10B981?logo=puzzle-piece&logoColor=white&labelColor=065F46)](https://extensions.lnbits.com/)
