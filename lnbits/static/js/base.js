@@ -179,14 +179,21 @@ window.LNbits = {
   },
   events: {
     onInvoicePaid(wallet, cb) {
-      ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
+      const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
       ws.onmessage = ev => {
         const data = JSON.parse(ev.data)
         if (data.payment) {
           cb(data)
         }
       }
-      return ws.onclose
+      // reconnect when lost
+      ws.onerror = () => {
+        console.debug('WebSocket error, reconnecting...')
+        setTimeout(() => {
+          this.events.onInvoicePaid(wallet, cb)
+        }, 1000)
+      }
+      return () => ws.onclose()
     }
   },
   map: {
