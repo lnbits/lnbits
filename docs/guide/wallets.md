@@ -33,6 +33,8 @@ A backend wallet is selected and configured entirely through LNbits environment 
 
 ## Funding Sources
 
+## Funding Sources
+
 |                                                 |                                       |                                                   |
 | ----------------------------------------------- | ------------------------------------- | ------------------------------------------------- |
 | [CLNRest (runes)](#clnrest-runes)               | [LND (REST)](#lnd-rest)               | [OpenNode](#opennode)                             |
@@ -41,7 +43,8 @@ A backend wallet is selected and configured entirely through LNbits environment 
 | [Spark (Core Lightning)](#spark-core-lightning) | [LNPay](#lnpay)                       | [Boltz](#boltz)                                   |
 | [Cliche Wallet](#cliche-wallet)                 | [ZBD](#zbd)                           | [Phoenixd](#phoenixd)                             |
 | [Breez SDK](#breez-sdk)                         | [Breez Liquid SDK](#breez-liquid-sdk) | [Nostr Wallet Connect](#nostr-wallet-connect-nwc) |
-| [Strike](#strike)                               |                                       |                                                   |
+| [Strike](#strike)                               | [Eclair (ACINQ)](#eclair-acinq)       | [LN.tips](#lntips)                                |
+| [Fake Wallet](#fake-wallet)                     |                                       |                                                   |
 
 ---
 
@@ -252,6 +255,43 @@ You can get a phoenixd API key from `~/.phoenix/phoenix.conf`. See the phoenixd 
 - `LNBITS_BACKEND_WALLET_CLASS`: `PhoenixdWallet`
 - `PHOENIXD_API_ENDPOINT`: `http://localhost:9740/`
 - `PHOENIXD_API_PASSWORD`: `PhoenixdApiPassword`
+
+## Eclair (ACINQ)
+
+<a id="eclair-acinq"></a>
+
+Connect to an existing Eclair node so your backend handles invoices and payments.
+
+**Required env vars**
+
+- `LNBITS_BACKEND_WALLET_CLASS`: `EclairWallet`
+- `ECLAIR_URL`: `http://127.0.0.1:8283`
+- `ECLAIR_PASSWORD`: `eclairpw`
+
+## Fake Wallet
+
+<a id="fake-wallet"></a>
+
+A testing-only backend that mints accounting units inside LNbits accounting (no real sats).
+
+**Required env vars**
+
+- `LNBITS_BACKEND_WALLET_CLASS`: `FakeWallet`
+- `FAKE_SECRET`: `ToTheMoon1`
+- `FAKE_UNIT`: `sats`
+
+## LN.tips
+
+<a id="lntips"></a>
+
+As the initinal LN.tips bot is no longer active the code still exists and is widly used. Connect one of custodial services as your backend to create and pay Lightning invoices through their API or selfhost this service and run it as funding source.
+Resources: https://github.com/massmux/SatsMobiBot
+
+**Required env vars**
+
+- `LNBITS_BACKEND_WALLET_CLASS`: `LNTipsWallet`
+- `LNTIPS_API_ENDPOINT`: `https://ln.tips`
+- `LNTIPS_API_KEY`: `LNTIPS_ADMIN_KEY`
 
 ## Breez SDK
 
