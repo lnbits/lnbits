@@ -193,7 +193,20 @@ window.LNbits = {
           this.events.onInvoicePaid(wallet, cb)
         }, 1000)
       }
-      return () => ws.onclose()
+      ws.onclose = event => {
+        console.debug(
+          `WebSocket closed: code=${event.code}, reason=${event.reason}`
+        )
+        // Handle server-side closures (e.g., codes 4000-4999)
+        if (event.code >= 4000 && event.code < 5000) {
+          console.warn('Server-initiated close:', event.reason)
+        }
+        // Attempt to reconnect
+        setTimeout(() => {
+          this.events.onInvoicePaid(wallet, cb)
+        }, 1000)
+      }
+      return () => ws.close()
     }
   },
   map: {
