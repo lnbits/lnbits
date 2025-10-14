@@ -824,8 +824,6 @@ window.windowMixin = {
     ) {
       this.mobileSimple = false
     }
-  },
-  mounted() {
     if (this.g.user) {
       this.paymentEvents()
     }
