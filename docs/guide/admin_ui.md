@@ -10,18 +10,16 @@
 [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits)
 [<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)
 
-# Admin UI
+# LNBits Admin UI
 
-We introduced the **Admin UI** to make setup simpler and safer. Instead of hand editing the `.env` file, you configure key server settings directly in the frontend with clear labels and guardrails.
+We introduced the Admin UI as the new default to make setup simpler and more straightforward. Instead of hand editing the `.env` file, you configure key server settings directly in the frontend with clear labels and guardrails.
 
-**On a fresh install the Admin UI is enabled by default**, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again and the UI will not override it. For privileged actions and role details see **[Super User](./super_user.md)**. For a complete reference of legacy variables consult **[.env.example](../../.env.example)**.
+<ins>On a fresh install the Admin UI is enabled by default</ins>, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again.  
+
+For privileged actions and role details see **[Super User](./super_user.md)** & [User Roles](./user_roles.md)  
+For a complete reference of legacy variables consult **[.env.example](../../.env.example)**.
 
 <img width="900" height="640" alt="grafik" src="https://github.com/user-attachments/assets/d8852b4b-21be-446f-a1e7-d3eb794d3505" />
-
-> [!IMPORTANT]
-> **Admin UI**  
-> Enabled: configuration is stored in the database and used from there.  
-> Disabled: the `.env` file is the single source of truth.
 
 > [!WARNING]
 > Some settings remain `.env` only. Use **[.env.example](../../.env.example#L3-L87)** as the authoritative reference for those variables.
@@ -64,19 +62,26 @@ The Admin UI is enabled by default on new installs. To change the state:
    # Disable Admin UI
    LNBITS_ADMIN_UI=false
    ```
-
+ 
 4. Start LNbits
 
    ```
    sudo systemctl start lnbits.service
    ```
 
+> [!NOTE]
+> With the Admin UI enabled, config is DB-backed and UI-managed settings ignore .env. Disable it to revert to [.env](../../.env.example) as the single source of truth.
+
+## Reset to defaults
+
+Using `Reset to defaults` in the Admin UI wipes stored settings. After a restart, a new `Super User` is created and the old one is no longer valid.
+
 ## First run and Super User ID
 
 On first start with the Admin UI enabled you will be prompted to generate a Super User. If you need to read it from disk later:
 
 ```bash
-cat data/.super_user
+cat /lnbits/data/.super_user
 # example
 123de4bfdddddbbeb48c8bc8382fe123
 ```
@@ -87,10 +92,6 @@ cat data/.super_user
 After login you will see **Settings** and **Users** in the sidebar between **Wallets** and **Extensions**, plus a role badge in the top left.
 
 <img width="1353" height="914" alt="grafik" src="https://github.com/user-attachments/assets/06bb4f36-a23a-4058-87ec-60440d322c25" />
-
-## Reset to defaults
-
-Using `Reset to defaults` in the Admin UI wipes stored settings. After a restart, a new `Super User` is created and the old one is no longer valid.
 
 ## Allowed Users
 
@@ -106,6 +107,7 @@ When set **at least one**, LNbits becomes private: only the listed users and Adm
 - **[Backend Wallets](./wallets.md)** — Explore options to fund your LNbits instance.
 - **[User Roles](./User_Roles.md)** — Overview of existing roles in LNbits.
 - **[Funding sources](./funding-sources_table.md)** — What is available and how to configure each.
+- **[Install LNBits](./installation.md)** — Choose your prefared way to install LNBits.
 
 ## Powered by LNbits
 
