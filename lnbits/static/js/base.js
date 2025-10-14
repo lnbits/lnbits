@@ -829,7 +829,6 @@ window.windowMixin = {
     if (this.g.user) {
       this.paymentEvents()
     }
-    console.log('LNbits version:', LNBITS_VERSION)
   }
 }
 
