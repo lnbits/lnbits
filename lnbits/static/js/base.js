@@ -186,25 +186,16 @@ window.LNbits = {
           cb(data)
         }
       }
-      // reconnect when lost
       ws.onerror = () => {
         console.debug('WebSocket error, reconnecting...')
-        setTimeout(() => {
-          this.events.onInvoicePaid(wallet, cb)
-        }, 1000)
       }
       ws.onclose = event => {
         console.debug(
           `WebSocket closed: code=${event.code}, reason=${event.reason}`
         )
-        // Handle server-side closures (e.g., codes 4000-4999)
         if (event.code >= 4000 && event.code < 5000) {
           console.warn('Server-initiated close:', event.reason)
         }
-        // Attempt to reconnect
-        setTimeout(() => {
-          this.events.onInvoicePaid(wallet, cb)
-        }, 1000)
       }
       return () => ws.close()
     }
@@ -553,31 +544,45 @@ window.windowMixin = {
       this.refreshRoute()
     },
     paymentEvents() {
-      this.g.walletEventListeners = this.g.walletEventListeners || []
+      // Use a Map to store cancel functions by wallet ID
+      if (
+        !this.g.walletEventListeners ||
+        !(this.g.walletEventListeners instanceof Map)
+      ) {
+        this.g.walletEventListeners = new Map()
+      }
+
+      // Clean up listeners for wallets that no longer exist
+      const currentWalletIds = new Set(this.g.user.wallets.map(w => w.id))
+      for (const [
+        walletId,
+        cancelFn
+      ] of this.g.walletEventListeners.entries()) {
+        if (!currentWalletIds.has(walletId)) {
+          if (typeof cancelFn === 'function') cancelFn()
+          this.g.walletEventListeners.delete(walletId)
+        }
+      }
+
+      // Add listeners for new wallets
       this.g.user.wallets.forEach(wallet => {
-        if (!this.g.walletEventListeners.includes(wallet.id)) {
-          this.g.walletEventListeners.push(wallet.id)
-          LNbits.events.onInvoicePaid(wallet, data => {
+        if (!this.g.walletEventListeners.has(wallet.id)) {
+          const cancelFn = LNbits.events.onInvoicePaid(wallet, data => {
             const walletIndex = this.g.user.wallets.findIndex(
               w => w.id === wallet.id
             )
             if (walletIndex !== -1) {
-              //needed for balance being deducted
               let satBalance = data.wallet_balance
               if (data.payment.amount < 0) {
                 satBalance = data.wallet_balance += data.payment.amount / 1000
               }
-              //update the wallet
               Object.assign(this.g.user.wallets[walletIndex], {
                 sat: satBalance,
                 msat: data.wallet_balance * 1000,
                 fsat: data.wallet_balance.toLocaleString()
               })
-              //update the current wallet
               if (this.g.wallet.id === data.payment.wallet_id) {
                 Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
-
-                //if on the wallet page and payment is incoming trigger the eventReaction
                 if (
                   data.payment.amount > 0 &&
                   window.location.pathname === '/wallet'
@@ -589,6 +594,7 @@ window.windowMixin = {
             this.g.updatePaymentsHash = data.payment.payment_hash
             this.g.updatePayments = !this.g.updatePayments
           })
+          this.g.walletEventListeners.set(wallet.id, cancelFn)
         }
       })
     },
@@ -823,6 +829,7 @@ window.windowMixin = {
     if (this.g.user) {
       this.paymentEvents()
     }
+    console.log('LNbits version:', LNBITS_VERSION)
   }
 }
 
