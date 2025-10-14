@@ -14,7 +14,7 @@
 
 We introduced the Admin UI as the new default to make setup simpler and more straightforward. Instead of hand editing the `.env` file, you configure key server settings directly in the frontend with clear labels and guardrails.
 
-<ins>On a fresh install the Admin UI is enabled by default</ins>, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again.  
+<ins>On a fresh install the Admin UI is enabled by default</ins>, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again.
 
 For privileged actions and role details see **[Super User](./super_user.md)** & [User Roles](./user_roles.md)  
 For a complete reference of legacy variables consult **[.env.example](../../.env.example)**.
@@ -62,7 +62,7 @@ The Admin UI is enabled by default on new installs. To change the state:
    # Disable Admin UI
    LNBITS_ADMIN_UI=false
    ```
- 
+
 4. Start LNbits
 
    ```

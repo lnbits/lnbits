@@ -5,7 +5,7 @@
   </picture>
 </a>
 
-![phase: stable](https://img.shields.io/badge/phase-stable-2EA043) ![License: MIT](https://img.shields.io/badge/License-MIT-blue) ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow) [![explore: LNbits extensions](https://img.shields.io/badge/explore-LNbits%20extensions-10B981)](https://extensions.lnbits.com/)  [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) <img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">
+![phase: stable](https://img.shields.io/badge/phase-stable-2EA043) ![License: MIT](https://img.shields.io/badge/License-MIT-blue) ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow) [![explore: LNbits extensions](https://img.shields.io/badge/explore-LNbits%20extensions-10B981)](https://extensions.lnbits.com/) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) <img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">
 
 # Basic installation
 
