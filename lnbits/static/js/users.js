@@ -361,7 +361,7 @@ window.UsersPageLogic = {
         const fieldValue = this.usersTable?.filter?.[fieldName]
         if (fieldValue) {
           if (this.usersTable.filter[fieldName]) {
-            this.usersTable.filter[`${fieldName}[like]`] = `%${fieldValue}%`
+            this.usersTable.filter[`${fieldName}[like]`] = fieldValue
             delete this.usersTable.filter[fieldName]
           }
         }
