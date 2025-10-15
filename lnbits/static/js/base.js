@@ -187,7 +187,7 @@ window.LNbits = {
         }
       }
       ws.onerror = () => {
-        console.debug('WebSocket error, reconnecting...')
+        console.debug('WebSocket error...')
       }
       ws.onclose = event => {
         console.debug(
