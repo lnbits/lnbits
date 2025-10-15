@@ -178,7 +178,7 @@ window.LNbits = {
     }
   },
   events: {
-    onInvoicePaid(wallet, cb) {
+    onInvoicePaid(wallet, cb, onClose) {
       const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
       ws.onmessage = ev => {
         const data = JSON.parse(ev.data)
@@ -188,6 +188,7 @@ window.LNbits = {
       }
       ws.onerror = () => {
         console.debug('WebSocket error...')
+        onClose()
       }
       ws.onclose = event => {
         console.debug(
@@ -196,6 +197,7 @@ window.LNbits = {
         if (event.code >= 4000 && event.code < 5000) {
           console.warn('Server-initiated close:', event.reason)
         }
+        onClose()
       }
       return () => ws.close()
     }
@@ -470,7 +472,8 @@ if (!window.g) {
     langs: [],
     walletEventListeners: [],
     updatePayments: false,
-    updatePaymentsHash: ''
+    updatePaymentsHash: '',
+    connectionWarning: false
   })
 }
 
@@ -559,42 +562,52 @@ window.windowMixin = {
         cancelFn
       ] of this.g.walletEventListeners.entries()) {
         if (!currentWalletIds.has(walletId)) {
+          console.log('Removing listener for wallet:', walletId)
           if (typeof cancelFn === 'function') cancelFn()
           this.g.walletEventListeners.delete(walletId)
+          this.g.connectionWarning = true
         }
       }
 
       // Add listeners for new wallets
       this.g.user.wallets.forEach(wallet => {
         if (!this.g.walletEventListeners.has(wallet.id)) {
-          const cancelFn = LNbits.events.onInvoicePaid(wallet, data => {
-            const walletIndex = this.g.user.wallets.findIndex(
-              w => w.id === wallet.id
-            )
-            if (walletIndex !== -1) {
-              let satBalance = data.wallet_balance
-              if (data.payment.amount < 0) {
-                satBalance = data.wallet_balance += data.payment.amount / 1000
-              }
-              Object.assign(this.g.user.wallets[walletIndex], {
-                sat: satBalance,
-                msat: data.wallet_balance * 1000,
-                fsat: data.wallet_balance.toLocaleString()
-              })
-              if (this.g.wallet.id === data.payment.wallet_id) {
-                Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
-                if (
-                  data.payment.amount > 0 &&
-                  window.location.pathname === '/wallet'
-                ) {
-                  eventReaction(data.wallet_balance * 1000)
+          const cancelFn = LNbits.events.onInvoicePaid(
+            wallet,
+            data => {
+              const walletIndex = this.g.user.wallets.findIndex(
+                w => w.id === wallet.id
+              )
+              if (walletIndex !== -1) {
+                let satBalance = data.wallet_balance
+                if (data.payment.amount < 0) {
+                  satBalance = data.wallet_balance += data.payment.amount / 1000
+                }
+                Object.assign(this.g.user.wallets[walletIndex], {
+                  sat: satBalance,
+                  msat: data.wallet_balance * 1000,
+                  fsat: data.wallet_balance.toLocaleString()
+                })
+                if (this.g.wallet.id === data.payment.wallet_id) {
+                  Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
+                  if (
+                    data.payment.amount > 0 &&
+                    window.location.pathname === '/wallet'
+                  ) {
+                    eventReaction(data.wallet_balance * 1000)
+                  }
                 }
               }
+              this.g.updatePaymentsHash = data.payment.payment_hash
+              this.g.updatePayments = !this.g.updatePayments
+            },
+            () => {
+              this.g.walletEventListeners.delete(wallet.id)
+              this.g.connectionWarning = true
             }
-            this.g.updatePaymentsHash = data.payment.payment_hash
-            this.g.updatePayments = !this.g.updatePayments
-          })
+          )
           this.g.walletEventListeners.set(wallet.id, cancelFn)
+          this.g.connectionWarning = false
         }
       })
     },

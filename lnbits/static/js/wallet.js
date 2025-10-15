@@ -125,7 +125,9 @@ window.WalletPageLogic = {
         showBalanceInOut: true,
         showPaymentCountInOut: true
       },
-      paymentsFilter: {}
+      paymentsFilter: {},
+      connectionChecker: () => {},
+      connectionWarning: false
     }
   },
   computed: {
@@ -1145,6 +1147,16 @@ window.WalletPageLogic = {
       this.stored_paylinks = links
       this.updatePaylinks()
     }
+    // checkWsConnection() {
+    //   console.log('Checking websocket connection...')
+    //   console.log(
+    //     'Current wallet event listeners:',
+    //     this.g.walletEventListeners
+    //   )
+    //   if (!this.g.walletEventListeners.has(this.g.wallet.id)) {
+    //     console.log('No event listener found for wallet:', this.g.wallet.id)
+    //   }
+    // }
   },
   created() {
     this.stored_paylinks = wallet.stored_paylinks.links
@@ -1161,6 +1173,10 @@ window.WalletPageLogic = {
     } catch (error) {
       console.warn(`Chart creation failed: ${error}`)
     }
+    // this.connectionChecker = setInterval(() => {
+    //   this.checkWsConnection()
+    // }, 10000)
+    // console.log(this.g.connectionWarning)
   },
   watch: {
     'g.updatePayments'(newVal, oldVal) {
@@ -1197,6 +1213,16 @@ window.WalletPageLogic = {
         }
       },
       deep: true
+    },
+    'g.connectionWarning'(value) {
+      console.log('Connection warning changed:', value)
+      if (value) {
+        this.$q.notify({
+          message: 'Connection lost. Please reload page.',
+          color: 'negative',
+          position: 'top'
+        })
+      }
     }
   },
   async mounted() {
