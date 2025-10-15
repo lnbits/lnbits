@@ -52,3 +52,9 @@ jobs:
         uses: JRubics/poetry-publish@v1.15
         with:
           pypi_token: ${{ secrets.PYPI_API_KEY }}
+
+  appimage:
+    needs: [ release ]
+    uses: ./.github/workflows/appimage.yml
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
