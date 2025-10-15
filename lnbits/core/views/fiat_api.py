@@ -30,25 +30,42 @@ async def create_subscription(
     data: CreateFiatSubscription,
     key_type: WalletTypeInfo = Depends(require_admin_key),
 ) -> FiatSubscriptionResponse:
-    print("### create_subscription", provider, data)
     fiat_provider = await get_fiat_provider(provider)
     if not fiat_provider:
         raise HTTPException(404, "Fiat provider not found")
 
     wallet_id = data.payment_options.wallet_id
-    # todo: really need to check  here?
+
     if wallet_id and wallet_id != key_type.wallet.id:
         raise HTTPException(
             403,
             "Wallet id does not match your API key."
             "Leave it empty to use your key's wallet.",
         )
-    data.payment_options.wallet_id = key_type.wallet.id
 
+    data.payment_options.wallet_id = key_type.wallet.id
     subscription_response = await fiat_provider.create_subscription(
         data.subscription_id, data.quantity, data.payment_options
     )
     return subscription_response
+
+
+@fiat_router.delete(
+    "/{provider}/subscription/{subscription_id}",
+    status_code=HTTPStatus.OK,
+)
+async def cancel_subscription(
+    provider: str,
+    subscription_id: str,
+    key_type: WalletTypeInfo = Depends(require_admin_key),
+) -> FiatSubscriptionResponse:
+    fiat_provider = await get_fiat_provider(provider)
+    if not fiat_provider:
+        raise HTTPException(404, "Fiat provider not found")
+
+    resp = await fiat_provider.cancel_subscription(subscription_id, key_type.wallet.id)
+
+    return resp
 
 
 @fiat_router.post(
