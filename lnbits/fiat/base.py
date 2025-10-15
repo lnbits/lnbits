@@ -90,6 +90,11 @@ class FiatSubscriptionPaymentOptions(BaseModel):
         description="Payments created by the recurring subscription"
         " will be made to this wallet.",
     )
+    subscription_request_id: str | None = Field(
+        default=None,
+        description="Unique ID that can be used to identify the subscription request."
+        "If not provided, one will be generated.",
+    )
     tag: str | None = Field(
         default=None,
         description="Payments created by the recurring subscription"
@@ -116,6 +121,7 @@ class CreateFiatSubscription(BaseModel):
 
 class FiatSubscriptionResponse(BaseModel):
     ok: bool = True
+    subscription_request_id: str | None = None
     checkout_session_url: str | None = None
     error_message: str | None = None
 
@@ -163,6 +169,22 @@ class FiatProvider(ABC):
         payment_options: FiatSubscriptionPaymentOptions,
         **kwargs,
     ) -> Coroutine[None, None, FiatSubscriptionResponse]:
+        pass
+
+    @abstractmethod
+    def cancel_subscription(
+        self,
+        subscription_id: str,
+        correlation_id: str,
+        **kwargs,
+    ) -> Coroutine[None, None, FiatSubscriptionResponse]:
+        """
+        Cancel a subscription.
+        Args:
+            subscription_id: The ID of the subscription to cancel.
+            correlation_id: An identifier used to verify that the subscription belongs
+                            to the user that made the request. Usually the wallet ID.
+        """
         pass
 
     @abstractmethod

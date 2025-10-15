@@ -1,5 +1,6 @@
 import asyncio
 import json
+import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
@@ -156,6 +157,13 @@ class StripeWallet(FiatProvider):
             or "https://lnbits.com"
         )
 
+        if not payment_options.subscription_request_id:
+            payment_options.subscription_request_id = str(uuid.uuid4())
+        payment_options.extra = payment_options.extra or {}
+        payment_options.extra["subscription_request_id"] = (
+            payment_options.subscription_request_id
+        )
+
         form_data: list[tuple[str, str]] = [
             ("mode", "subscription"),
             ("success_url", success_url),
@@ -178,12 +186,17 @@ class StripeWallet(FiatProvider):
             )
             r.raise_for_status()
             data = r.json()
+
             url = data.get("url")
             if not url:
                 return FiatSubscriptionResponse(
                     ok=False, error_message="Server error: missing url"
                 )
-            return FiatSubscriptionResponse(ok=True, checkout_session_url=url)
+            return FiatSubscriptionResponse(
+                ok=True,
+                checkout_session_url=url,
+                subscription_request_id=payment_options.subscription_request_id,
+            )
         except json.JSONDecodeError as exc:
             logger.warning(exc)
             return FiatSubscriptionResponse(
@@ -193,6 +206,47 @@ class StripeWallet(FiatProvider):
             logger.warning(exc)
             return FiatSubscriptionResponse(
                 ok=False, error_message=f"Unable to connect to {self.endpoint}."
+            )
+
+    async def cancel_subscription(
+        self,
+        subscription_id: str,
+        correlation_id: str,
+        **kwargs,
+    ) -> FiatSubscriptionResponse:
+        try:
+            params = {
+                "query": f"metadata['wallet_id']:'{correlation_id}'"
+                " AND "
+                f"metadata['subscription_request_id']:'{subscription_id}'"
+            }
+            r = await self.client.get(
+                "/v1/subscriptions/search",
+                params=params,
+            )
+            r.raise_for_status()
+            search_result = r.json()
+            data = search_result.get("data") or []
+            if not data or len(data) == 0:
+                return FiatSubscriptionResponse(
+                    ok=False, error_message="Subscription not found."
+                )
+
+            subscription = data[0]
+            subscription_id = subscription.get("id")
+            if not subscription_id:
+                return FiatSubscriptionResponse(
+                    ok=False, error_message="Subscription ID not found."
+                )
+
+            r = await self.client.delete(f"/v1/subscriptions/{subscription_id}")
+            r.raise_for_status()
+
+            return FiatSubscriptionResponse(ok=True)
+        except Exception as exc:
+            logger.warning(exc)
+            return FiatSubscriptionResponse(
+                ok=False, error_message="Unable to un subscribe."
             )
 
     async def pay_invoice(self, payment_request: str) -> FiatPaymentResponse:

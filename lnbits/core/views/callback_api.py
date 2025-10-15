@@ -67,7 +67,8 @@ async def _handle_stripe_checkout_session_completed(event: dict):
         f" Payment hash: '{payment_hash}'."
     )
     if lnbits_action != "invoice":
-        raise ValueError(f"Stripe event has wrong lnbits_action: '{lnbits_action}'.")
+        logger.warning(f"Stripe event is not an invoice: '{lnbits_action}'.")
+        return
 
     if not payment_hash:
         raise ValueError("Stripe event does not contain a payment hash.")
