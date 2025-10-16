@@ -509,6 +509,17 @@ async def audit_index(request: Request, user: User = Depends(check_admin)):
     )
 
 
+@generic_router.get("/payments", response_class=HTMLResponse)
+async def empty_index(request: Request, user: User = Depends(check_user_exists)):
+    return template_renderer().TemplateResponse(
+        "empty.html",
+        {
+            "request": request,
+            "user": user.json(),
+        },
+    )
+
+
 @generic_router.get("/uuidv4/{hex_value}")
 async def hex_to_uuid4(hex_value: str):
     try:
