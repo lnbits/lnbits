@@ -137,8 +137,40 @@
               @click="showExtensionDetails(extension.id, extension.details_link)"
               v-text="extension.name"
             ></div>
-            <div>
+            <div style="justify-content: space-between; display: flex">
               <lnbits-extension-rating :rating="0" />
+              <q-btn-group size="xs" style="margin: 5px 0">
+                <q-btn
+                  v-if="extension.hasFreeRelease"
+                  color="green"
+                  size="xs"
+                  :label="$t('free')"
+                >
+                  <q-tooltip>
+                    <span v-text="$t('extension_has_free_release')"></span>
+                  </q-tooltip>
+                </q-btn>
+                <q-btn
+                  v-if="extension.hasPaidRelease || extension.paidFeatures"
+                  color="primary"
+                  size="xs"
+                  :label="$t('paid')"
+                >
+                  <q-tooltip>
+                    <span
+                      v-if="extension.hasPaidRelease"
+                      v-text="$t('extension_has_paid_release')"
+                    ></span>
+                    <br
+                      v-if="extension.hasPaidRelease && extension.paidFeatures"
+                    />
+                    <span
+                      v-if="extension.paidFeatures"
+                      v-text="extension.paidFeatures"
+                    ></span>
+                  </q-tooltip>
+                </q-btn>
+              </q-btn-group>
             </div>
             <div style="justify-content: space-between; display: flex">
               <q-toggle
@@ -916,7 +948,6 @@
                 :href="selectedExtensionDetails.repo"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="q-pr-xs"
                 ><q-tooltip>repository</q-tooltip></q-btn
               >
             </div>

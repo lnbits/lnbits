@@ -179,7 +179,7 @@ window.WalletPageLogic = {
   methods: {
     dateFromNow(unix) {
       const date = new Date(unix * 1000)
-      return moment.utc(date).fromNow()
+      return moment.utc(date).local().fromNow()
     },
     formatFiatAmount(amount, currency) {
       this.update.currency = currency
@@ -476,8 +476,14 @@ window.WalletPageLogic = {
               createdDate,
               'YYYY-MM-DDTHH:mm:ss.SSSZ'
             )
-            cleanInvoice.expireDateFrom = moment.utc(expireDate).fromNow()
-            cleanInvoice.createdDateFrom = moment.utc(createdDate).fromNow()
+            cleanInvoice.expireDateFrom = moment
+              .utc(expireDate)
+              .local()
+              .fromNow()
+            cleanInvoice.createdDateFrom = moment
+              .utc(createdDate)
+              .local()
+              .fromNow()
 
             cleanInvoice.expired = false // TODO
           }

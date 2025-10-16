@@ -110,7 +110,7 @@ async def create_payment_request(
 
 async def create_fiat_invoice(
     wallet_id: str, invoice_data: CreateInvoice, conn: Connection | None = None
-):
+) -> Payment:
     fiat_provider_name = invoice_data.fiat_provider
     if not fiat_provider_name:
         raise ValueError("Fiat provider is required for fiat invoices.")

@@ -15,7 +15,7 @@ Note that by default LNbits uses SQLite as its database, which is simple and eff
 Go to [releases](https://github.com/lnbits/lnbits/releases) and pull latest AppImage, or:
 
 ```sh
-sudo apt-get install libfuse2
+sudo apt-get install jq libfuse2
 wget $(curl -s https://api.github.com/repos/lnbits/lnbits/releases/latest | jq -r '.assets[] | select(.name | endswith(".AppImage")) | .browser_download_url') -O LNbits-latest.AppImage
 chmod +x LNbits-latest.AppImage
 LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 ./LNbits-latest.AppImage # most system settings are now in the admin UI, but pass additional .env variables here
@@ -132,21 +132,42 @@ Now visit `0.0.0.0:5000` to make a super-user account.
 
 ```sh
 # Install nix. If you have installed via another manager, remove and use this install (from https://nixos.org/download)
-sh <(c&url -L https://nixos.org/nix/install) --daemon
+sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon --yes
 
 # Enable nix-command and flakes experimental features for nix:
-echo 'experimental-features = nix-command flakes' >> /etc/nix/nix.conf
+grep -qxF 'experimental-features = nix-command flakes' /etc/nix/nix.conf || \
+echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
+
+# Add user to Nix
+grep -qxF "trusted-users = root $USER" /etc/nix/nix.conf || \
+echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
+
+# Restart daemon so changes apply
+sudo systemctl restart nix-daemon
+
+# Clone and build LNbits
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits
+
+# Make data directory and persist data/extension folders
+mkdir data
+PROJECT_DIR="$(pwd)"
+{
+  echo "export PYTHONPATH=\"$PROJECT_DIR/ns:\$PYTHONPATH\""
+  echo "export LNBITS_DATA_FOLDER=\"$PROJECT_DIR/data\""
+  echo "export LNBITS_EXTENSIONS_PATH=\"$PROJECT_DIR\""
+} >> ~/.bashrc
+grep -qxF '. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ~/.bashrc || \
+  echo '. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' >> ~/.bashrc
+. ~/.bashrc
 
 # Add cachix for cached binaries
 nix-env -iA cachix -f https://cachix.org/api/v1/install
 cachix use lnbits
 
-# Clone and build LNbits
-git clone https://github.com/lnbits/lnbits.git
-cd lnbits
+# Build LNbits
 nix build
 
-mkdir data
 ```
 
 #### Running the server
@@ -160,7 +181,7 @@ but you can also set the env variables or pass command line arguments:
 
 ```sh
 # .env variables are currently passed when running, but LNbits can be managed with the admin UI.
-LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
+LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000 --host 0.0.0.0
 
 # Once you have created a user, you can set as the super_user
 SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/lnbits --port 9000
