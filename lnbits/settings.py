@@ -664,10 +664,10 @@ class FundingSourcesSettings(
     # How long to wait for the payment to be confirmed before returning a pending status
     # It will not fail the payment, it will make it return pending after the timeout
     lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
+    funding_source_max_retries: int = Field(default=4, ge=0)
 
 
 class FiatProvidersSettings(StripeFiatProvider):
-
     def is_fiat_provider_enabled(self, provider: str | None) -> bool:
         """
         Checks if a specific fiat provider is enabled.

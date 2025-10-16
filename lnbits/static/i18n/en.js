@@ -667,5 +667,8 @@ window.localisation.en = {
   connected: 'Connected',
   not_connected: 'Not Connected',
   free: 'Free',
-  paid: 'Paid'
+  paid: 'Paid',
+  funding_source_retries: 'Max Retries',
+  funding_source_retries_desc:
+    'Maximum number of retries for funding sources, before it falls back to VoidWallet.'
 }
