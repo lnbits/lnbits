@@ -205,16 +205,12 @@ const routes = [
   {
     path: '/node',
     name: 'Node',
-    component: DynamicComponent,
-    props: {
-      fetchUrl: '/node',
-      scripts: ['/static/js/node.js']
-    }
+    component: PageNode
   },
   {
-    path: '/node',
-    name: 'Node',
-    component: DynamicComponent
+    path: '/node/public',
+    name: 'NodePublic',
+    component: PageNodePublic
   },
   {
     path: '/payments',

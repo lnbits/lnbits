@@ -483,7 +483,7 @@
         window[key] = WINDOW_SETTINGS[key]
       })
     </script>
-    {% include('components.vue') %} {% include('pages/payments.vue') %} {% block
+    {% include('components.vue') %} {% include('pages.vue') %} {% block
     vue_templates %}{% endblock %} {% for url in INCLUDED_JS %}
     <script src="{{ static_url_for('static', url) }}"></script>
     {% endfor %} {% block scripts %}{% endblock %} {% for url in

@@ -426,43 +426,6 @@ async def manifest(request: Request, usr: str):
     }
 
 
-@generic_router.get("/node", response_class=HTMLResponse)
-async def node(request: Request, user: User = Depends(check_admin)):
-    if not settings.lnbits_node_ui:
-        raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
-
-    funding_source = get_funding_source()
-    _, balance = await funding_source.status()
-
-    return template_renderer().TemplateResponse(
-        request,
-        "node/index.html",
-        {
-            "user": user.json(),
-            "balance": balance,
-            "wallets": user.wallets[0].json(),
-            "ajax": _is_ajax_request(request),
-        },
-    )
-
-
-@generic_router.get("/node/public", response_class=HTMLResponse)
-async def node_public(request: Request):
-    if not settings.lnbits_public_node_ui:
-        raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
-
-    funding_source = get_funding_source()
-    _, balance = await funding_source.status()
-
-    return template_renderer().TemplateResponse(
-        request,
-        "node/public.html",
-        {
-            "balance": balance,
-        },
-    )
-
-
 @generic_router.get("/admin", response_class=HTMLResponse)
 async def admin_index(request: Request, user: User = Depends(check_admin)):
     if not settings.lnbits_admin_ui:
@@ -517,12 +480,28 @@ async def audit_index(request: Request, user: User = Depends(check_admin)):
 @generic_router.get("/payments", response_class=HTMLResponse)
 async def empty_index(request: Request, user: User = Depends(check_user_exists)):
     return template_renderer().TemplateResponse(
+        request,
         "empty.html",
         {
-            "request": request,
             "user": user.json(),
         },
     )
+
+
+@generic_router.get("/node", response_class=HTMLResponse)
+async def empty_admin_index(request: Request, admin: User = Depends(check_admin)):
+    return template_renderer().TemplateResponse(
+        request,
+        "empty.html",
+        {
+            "user": admin.json(),
+        },
+    )
+
+
+@generic_router.get("/node/public", response_class=HTMLResponse)
+async def node_public(request: Request):
+    return template_renderer().TemplateResponse(request, "empty_public.html")
 
 
 @generic_router.get("/uuidv4/{hex_value}")
