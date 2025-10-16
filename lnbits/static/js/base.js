@@ -585,7 +585,7 @@ window.windowMixin = {
       this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
       this.refreshRoute()
     },
-    initWalletConnectionState(walletId) {
+    initWalletConnectionState() {
       return {
         retryCount: 0,
         isConnecting: false,
@@ -629,8 +629,13 @@ window.windowMixin = {
         this.g.walletConnectionStates.set(wallet.id, state)
       }
 
-      // Skip if already connected or max retries exceeded
-      if (state.isConnected || state.isConnecting || state.retryCount >= 10) {
+      // Skip if already connected
+      if (state.isConnected || state.isConnecting) {
+        return
+      }
+
+      if (state.retryCount >= 10) {
+        this.checkGlobalConnectionState()
         return
       }
 
@@ -683,7 +688,7 @@ window.windowMixin = {
         .catch(error => {
           // Connection failed
           console.error(
-            `WebSocket connection failed for wallet ${wallet.id}:`,
+            `WebSocket connection failed for wallet ${wallet.name}:`,
             error
           )
           state.isConnected = false
@@ -744,11 +749,9 @@ window.windowMixin = {
           if (state.retryCount < 10) {
             allMaxedOut = false
           }
-          // If retryCount >= 10, leave allMaxedOut as-is (don't change it)
         }
       }
-      console.log({allConnected, anyConnected, allMaxedOut, hasWallets})
-      //if (!hasWallets) return
+      if (!hasWallets) return
 
       if (
         allConnected &&
@@ -765,7 +768,6 @@ window.windowMixin = {
         this.g.connectionWarning = false
       } else if (allMaxedOut && !anyConnected) {
         if (!this.g.reconnectionMeta.allWalletsMaxedOut) {
-          console.log('🔴 All wallets maxed out, showing terminal notification')
           this.$q.notify({
             message:
               'Connection failed after multiple attempts. Please refresh the page.',
