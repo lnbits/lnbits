@@ -158,15 +158,6 @@ const routes = [
     }
   },
   {
-    path: '/audit',
-    name: 'Audit',
-    component: DynamicComponent,
-    props: {
-      fetchUrl: '/audit',
-      scripts: ['/static/js/audit.js']
-    }
-  },
-  {
     path: '/extensions',
     name: 'Extensions',
     component: DynamicComponent,
@@ -216,6 +207,11 @@ const routes = [
     path: '/payments',
     name: 'Payments',
     component: PagePayments
+  },
+  {
+    path: '/audit',
+    name: 'Audit',
+    component: PageAudit
   }
 ]
 

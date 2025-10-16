@@ -3,7 +3,6 @@ from http import HTTPStatus
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
-from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
 from lnbits.decorators import check_admin, check_super_user, parse_filters
 from lnbits.settings import settings
@@ -154,7 +153,7 @@ async def api_get_payments(
 ) -> Page[NodePayment] | None:
     if not settings.lnbits_node_ui_transactions:
         raise HTTPException(
-            HTTP_503_SERVICE_UNAVAILABLE,
+            HTTPStatus.SERVICE_UNAVAILABLE,
             detail="You can enable node transactions in the Admin UI",
         )
     return await node.get_payments(filters)
@@ -167,7 +166,7 @@ async def api_get_invoices(
 ) -> Page[NodeInvoice] | None:
     if not settings.lnbits_node_ui_transactions:
         raise HTTPException(
-            HTTP_503_SERVICE_UNAVAILABLE,
+            HTTPStatus.SERVICE_UNAVAILABLE,
             detail="You can enable node transactions in the Admin UI",
         )
     return await node.get_invoices(filters)

@@ -462,21 +462,6 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
     )
 
 
-@generic_router.get("/audit", response_class=HTMLResponse)
-async def audit_index(request: Request, user: User = Depends(check_admin)):
-    if not settings.lnbits_audit_enabled:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Audit not enabled")
-
-    return template_renderer().TemplateResponse(
-        "audit/index.html",
-        {
-            "request": request,
-            "user": user.json(),
-            "ajax": _is_ajax_request(request),
-        },
-    )
-
-
 @generic_router.get("/payments", response_class=HTMLResponse)
 async def empty_index(request: Request, user: User = Depends(check_user_exists)):
     return template_renderer().TemplateResponse(
@@ -488,6 +473,7 @@ async def empty_index(request: Request, user: User = Depends(check_user_exists))
     )
 
 
+@generic_router.get("/audit", response_class=HTMLResponse)
 @generic_router.get("/node", response_class=HTMLResponse)
 async def empty_admin_index(request: Request, admin: User = Depends(check_admin)):
     return template_renderer().TemplateResponse(
@@ -500,7 +486,7 @@ async def empty_admin_index(request: Request, admin: User = Depends(check_admin)
 
 
 @generic_router.get("/node/public", response_class=HTMLResponse)
-async def node_public(request: Request):
+async def empty_public(request: Request):
     return template_renderer().TemplateResponse(request, "empty_public.html")
 
 
