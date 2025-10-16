@@ -1,4 +1,5 @@
-window.PaymentsPageLogic = {
+window.PagePayments = {
+  template: '#page-payments',
   mixins: [window.windowMixin],
   data() {
     return {
