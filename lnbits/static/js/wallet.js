@@ -110,6 +110,10 @@ window.WalletPageLogic = {
         name: null,
         currency: null
       },
+      verify: {
+        hash: '',
+        preimage: ''
+      },
       walletBalanceChart: null,
       inkeyHidden: true,
       adminkeyHidden: true,
@@ -177,6 +181,34 @@ window.WalletPageLogic = {
     }
   },
   methods: {
+    async verifyPreimage() {
+      if (
+        this.verify.hash.length !== 64 ||
+        this.verify.preimage.length !== 64
+      ) {
+        Quasar.Notify.create({
+          message: 'Hash and preimage must be 64 characters long',
+          color: 'negative'
+        })
+        return
+      }
+      if (
+        await LNbits.utils.verifyPreimage(
+          this.verify.hash,
+          this.verify.preimage
+        )
+      ) {
+        Quasar.Notify.create({
+          message: 'Preimage is valid',
+          color: 'positive'
+        })
+      } else {
+        Quasar.Notify.create({
+          message: 'Preimage does not match the hash',
+          color: 'negative'
+        })
+      }
+    },
     dateFromNow(unix) {
       const date = new Date(unix * 1000)
       return moment.utc(date).local().fromNow()

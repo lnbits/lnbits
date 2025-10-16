@@ -80,6 +80,7 @@ window.localisation.en = {
   toggle_darkmode: 'Toggle Dark Mode',
   payment_reactions: 'Payment Reactions',
   view_swagger_docs: 'View LNbits Swagger API docs',
+  verify_preimage: 'Verify preimage',
   api_docs: 'API docs',
   api_keys_api_docs: 'Node URL, API keys and API docs',
   lnbits_version: 'LNbits version',

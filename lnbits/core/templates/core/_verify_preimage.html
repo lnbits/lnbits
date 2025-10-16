@@ -1,0 +1,30 @@
+<q-expansion-item
+  group="extras"
+  icon="checkmark"
+  :label="$t('verify_preimage')"
+  :content-inset-level="0.5"
+>
+  <q-card-section>
+    <q-input
+      class="q-mb-sm"
+      filled
+      v-model.trim="verify.hash"
+      :label="$t('payment_hash')"
+      dense
+    />
+    <q-input
+      class="q-mb-sm"
+      filled
+      v-model.trim="verify.preimage"
+      :label="$t('preimage')"
+      dense
+    />
+    <q-btn
+      class="q-mb-sm"
+      unelevated
+      color="primary"
+      :label="$t('verify_preimage')"
+      @click="verifyPreimage"
+    ></q-btn>
+  </q-card-section>
+</q-expansion-item>

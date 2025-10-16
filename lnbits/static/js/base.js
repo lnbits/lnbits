@@ -303,14 +303,31 @@ window.LNbits = {
         }
       })
     },
+    fromHexString(hexString) {
+      return Uint8Array.from(
+        hexString.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
+      )
+    },
+
+    toHexString(bytes) {
+      return bytes.reduce(
+        (str, byte) => str + byte.toString(16).padStart(2, '0'),
+        ''
+      )
+    },
     async digestMessage(message) {
       const msgUint8 = new TextEncoder().encode(message)
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
       const hashArray = Array.from(new Uint8Array(hashBuffer))
-      const hashHex = hashArray
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
+      const hashHex = this.toHexString(hashArray)
       return hashHex
+    },
+    async verifyPreimage(hash, preimage) {
+      const dataUint8 = this.fromHexString(preimage)
+      let hashBuffer = await crypto.subtle.digest('SHA-256', dataUint8)
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      const hashHex = this.toHexString(hashArray)
+      return hashHex === hash
     },
     formatDate(timestamp) {
       return Quasar.date.formatDate(
