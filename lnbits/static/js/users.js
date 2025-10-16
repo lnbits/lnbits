@@ -335,6 +335,7 @@ window.UsersPageLogic = {
     },
 
     fetchUsers(props) {
+      this.relaxFilterForFields(['username', 'email'])
       const params = LNbits.utils.prepareFilterQuery(this.usersTable, props)
       LNbits.api
         .request('GET', `/users/api/v1/user?${params}`)
@@ -354,6 +355,17 @@ window.UsersPageLogic = {
           this.activeWallet.show = true
         })
         .catch(LNbits.utils.notifyApiError)
+    },
+    relaxFilterForFields(fieldNames = []) {
+      fieldNames.forEach(fieldName => {
+        const fieldValue = this.usersTable?.filter?.[fieldName]
+        if (fieldValue) {
+          if (this.usersTable.filter[fieldName]) {
+            this.usersTable.filter[`${fieldName}[like]`] = fieldValue
+            delete this.usersTable.filter[fieldName]
+          }
+        }
+      })
     },
 
     toggleAdmin(userId) {
