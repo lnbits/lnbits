@@ -179,27 +179,35 @@ window.LNbits = {
   },
   events: {
     onInvoicePaid(wallet, cb, onClose) {
-      const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
-      ws.onmessage = ev => {
-        const data = JSON.parse(ev.data)
-        if (data.payment) {
-          cb(data)
+      try {
+        const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
+
+        ws.onmessage = ev => {
+          const data = JSON.parse(ev.data)
+          if (data.payment) {
+            cb(data)
+          }
         }
-      }
-      ws.onerror = () => {
-        console.debug('WebSocket error...')
-        onClose()
-      }
-      ws.onclose = event => {
-        console.debug(
-          `WebSocket closed: code=${event.code}, reason=${event.reason}`
-        )
-        if (event.code >= 4000 && event.code < 5000) {
-          console.warn('Server-initiated close:', event.reason)
+
+        ws.onerror = error => {
+          console.debug('WebSocket error:', error)
+          throw new Error('WebSocket error', {cause: error})
         }
-        onClose()
+
+        ws.onclose = event => {
+          console.debug(
+            `WebSocket closed: code=${event.code}, reason=${event.reason}`
+          )
+          if (event.code >= 4000 && event.code < 5000) {
+            console.warn('Server-initiated close:', event.reason)
+          }
+          onClose()
+        }
+
+        return () => ws.close()
+      } catch (error) {
+        console.error('WebSocket connection failed:', error)
       }
-      return () => ws.close()
     }
   },
   map: {
@@ -562,7 +570,6 @@ window.windowMixin = {
         cancelFn
       ] of this.g.walletEventListeners.entries()) {
         if (!currentWalletIds.has(walletId)) {
-          console.log('Removing listener for wallet:', walletId)
           if (typeof cancelFn === 'function') cancelFn()
           this.g.walletEventListeners.delete(walletId)
           this.g.connectionWarning = true
@@ -572,42 +579,52 @@ window.windowMixin = {
       // Add listeners for new wallets
       this.g.user.wallets.forEach(wallet => {
         if (!this.g.walletEventListeners.has(wallet.id)) {
-          const cancelFn = LNbits.events.onInvoicePaid(
-            wallet,
-            data => {
-              const walletIndex = this.g.user.wallets.findIndex(
-                w => w.id === wallet.id
-              )
-              if (walletIndex !== -1) {
-                let satBalance = data.wallet_balance
-                if (data.payment.amount < 0) {
-                  satBalance = data.wallet_balance += data.payment.amount / 1000
-                }
-                Object.assign(this.g.user.wallets[walletIndex], {
-                  sat: satBalance,
-                  msat: data.wallet_balance * 1000,
-                  fsat: data.wallet_balance.toLocaleString()
-                })
-                if (this.g.wallet.id === data.payment.wallet_id) {
-                  Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
-                  if (
-                    data.payment.amount > 0 &&
-                    window.location.pathname === '/wallet'
-                  ) {
-                    eventReaction(data.wallet_balance * 1000)
+          try {
+            const cancelFn = LNbits.events.onInvoicePaid(
+              wallet,
+              data => {
+                const walletIndex = this.g.user.wallets.findIndex(
+                  w => w.id === wallet.id
+                )
+                if (walletIndex !== -1) {
+                  let satBalance = data.wallet_balance
+                  if (data.payment.amount < 0) {
+                    satBalance = data.wallet_balance +=
+                      data.payment.amount / 1000
+                  }
+                  Object.assign(this.g.user.wallets[walletIndex], {
+                    sat: satBalance,
+                    msat: data.wallet_balance * 1000,
+                    fsat: data.wallet_balance.toLocaleString()
+                  })
+                  if (this.g.wallet.id === data.payment.wallet_id) {
+                    Object.assign(
+                      this.g.wallet,
+                      this.g.user.wallets[walletIndex]
+                    )
+                    if (
+                      data.payment.amount > 0 &&
+                      window.location.pathname === '/wallet'
+                    ) {
+                      eventReaction(data.wallet_balance * 1000)
+                    }
                   }
                 }
+                this.g.updatePaymentsHash = data.payment.payment_hash
+                this.g.updatePayments = !this.g.updatePayments
+              },
+              () => {
+                this.g.walletEventListeners.delete(wallet.id)
+                this.g.connectionWarning = true
+                return
               }
-              this.g.updatePaymentsHash = data.payment.payment_hash
-              this.g.updatePayments = !this.g.updatePayments
-            },
-            () => {
-              this.g.walletEventListeners.delete(wallet.id)
-              this.g.connectionWarning = true
-            }
-          )
-          this.g.walletEventListeners.set(wallet.id, cancelFn)
-          this.g.connectionWarning = false
+            )
+            this.g.walletEventListeners.set(wallet.id, cancelFn)
+            this.g.connectionWarning = false
+          } catch (error) {
+            console.error('Error setting up WebSocket listener:', error)
+            this.g.connectionWarning = true
+          }
         }
       })
     },
@@ -787,6 +804,42 @@ window.windowMixin = {
       this.$router.push('/temp').then(() => {
         this.$router.replace({path})
       })
+    }
+  },
+  watch: {
+    'g.connectionWarning'(newVal, oldVal) {
+      if (newVal == true) {
+        if (
+          this.retryConnection &&
+          typeof this.retryConnection === 'function'
+        ) {
+          return
+        }
+
+        this.$q.notify({
+          message: 'Connection lost. Trying to reconnect...',
+          color: 'negative',
+          position: 'top'
+        })
+
+        this.retryConnection = setInterval(() => {
+          this.paymentEvents()
+          if (this.g.connectionWarning == false) {
+            clearInterval(this.retryConnection)
+            this.retryConnection = null
+            this.$q.notify({
+              message: 'Reconnected!',
+              color: 'positive',
+              position: 'top'
+            })
+          }
+        }, 10000)
+      } else {
+        if (this.retryConnection) {
+          clearInterval(this.retryConnection)
+          this.retryConnection = null
+        }
+      }
     }
   },
   async created() {
