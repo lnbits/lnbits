@@ -178,15 +178,64 @@ window.LNbits = {
     }
   },
   events: {
-    onInvoicePaid(wallet, cb) {
-      ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
-      ws.onmessage = ev => {
-        const data = JSON.parse(ev.data)
-        if (data.payment) {
-          cb(data)
+    onInvoicePaid(wallet, cb, onClose) {
+      return new Promise((resolve, reject) => {
+        try {
+          const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
+          let isResolved = false
+
+          // Add connection timeout
+          const timeout = setTimeout(() => {
+            if (!isResolved) {
+              ws.close()
+              reject(new Error('WebSocket connection timeout'))
+            }
+          }, 10000) // 10 second timeout
+
+          ws.onopen = () => {
+            clearTimeout(timeout)
+            isResolved = true
+            resolve((silent = false) => ws.close(1000, silent ? 'cleanup' : ''))
+          }
+
+          ws.onmessage = ev => {
+            const data = JSON.parse(ev.data)
+            if (data.payment) {
+              cb(data)
+            }
+          }
+
+          ws.onerror = error => {
+            console.debug('WebSocket error:', error)
+            if (!isResolved) {
+              clearTimeout(timeout)
+              reject(new Error('WebSocket connection failed', {cause: error}))
+            }
+          }
+
+          ws.onclose = event => {
+            console.debug(
+              `WebSocket closed: code=${event.code}, reason=${event.reason}`
+            )
+            if (event.reason === 'cleanup') {
+              return
+            }
+            if (event.code >= 4000 && event.code < 5000) {
+              console.warn('Server-initiated close:', event.reason)
+            }
+            if (!isResolved) {
+              clearTimeout(timeout)
+              reject(
+                new Error(`WebSocket closed during connection: ${event.reason}`)
+              )
+            } else {
+              onClose()
+            }
+          }
+        } catch (error) {
+          reject(error)
         }
-      }
-      return ws.onclose
+      })
     }
   },
   map: {
@@ -459,7 +508,14 @@ if (!window.g) {
     langs: [],
     walletEventListeners: [],
     updatePayments: false,
-    updatePaymentsHash: ''
+    updatePaymentsHash: '',
+    connectionWarning: false,
+    walletConnectionStates: new Map(),
+    reconnectionMeta: {
+      hasShownDisconnectNotification: false,
+      allWalletsDisconnected: false,
+      allWalletsMaxedOut: false
+    }
   })
 }
 
@@ -532,32 +588,81 @@ window.windowMixin = {
       this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
       this.refreshRoute()
     },
+    initWalletConnectionState() {
+      return {
+        retryCount: 0,
+        isConnecting: false,
+        isConnected: false,
+        cancelFn: null,
+        reconnectTimeout: null
+      }
+    },
     paymentEvents() {
-      this.g.walletEventListeners = this.g.walletEventListeners || []
+      // Initialize connection states Map if needed
+      if (
+        !this.g.walletConnectionStates ||
+        !(this.g.walletConnectionStates instanceof Map)
+      ) {
+        this.g.walletConnectionStates = new Map()
+      }
+
+      // Clean up listeners for wallets that no longer exist
+      const currentWalletIds = new Set(this.g.user.wallets.map(w => w.id))
+      for (const [walletId, state] of this.g.walletConnectionStates.entries()) {
+        if (!currentWalletIds.has(walletId)) {
+          if (state.cancelFn && typeof state.cancelFn === 'function') {
+            state.cancelFn()
+          }
+          if (state.reconnectTimeout) {
+            clearTimeout(state.reconnectTimeout)
+          }
+          this.g.walletConnectionStates.delete(walletId)
+        }
+      }
+
+      // Connect or reconnect each wallet
       this.g.user.wallets.forEach(wallet => {
-        if (!this.g.walletEventListeners.includes(wallet.id)) {
-          this.g.walletEventListeners.push(wallet.id)
-          LNbits.events.onInvoicePaid(wallet, data => {
+        this.connectWallet(wallet)
+      })
+    },
+    connectWallet(wallet) {
+      let state = this.g.walletConnectionStates.get(wallet.id)
+      if (!state) {
+        state = this.initWalletConnectionState(wallet.id)
+        this.g.walletConnectionStates.set(wallet.id, state)
+      }
+
+      // Skip if already connected
+      if (state.isConnected || state.isConnecting) {
+        return
+      }
+
+      if (state.retryCount >= 10) {
+        this.checkGlobalConnectionState()
+        return
+      }
+
+      state.isConnecting = true
+
+      LNbits.events
+        .onInvoicePaid(
+          wallet,
+          data => {
             const walletIndex = this.g.user.wallets.findIndex(
               w => w.id === wallet.id
             )
             if (walletIndex !== -1) {
-              //needed for balance being deducted
               let satBalance = data.wallet_balance
               if (data.payment.amount < 0) {
-                satBalance = data.wallet_balance += data.payment.amount / 1000
+                satBalance = data.wallet_balance + data.payment.amount / 1000
               }
-              //update the wallet
               Object.assign(this.g.user.wallets[walletIndex], {
                 sat: satBalance,
                 msat: data.wallet_balance * 1000,
                 fsat: data.wallet_balance.toLocaleString()
               })
-              //update the current wallet
               if (this.g.wallet.id === data.payment.wallet_id) {
                 Object.assign(this.g.wallet, this.g.user.wallets[walletIndex])
-
-                //if on the wallet page and payment is incoming trigger the eventReaction
                 if (
                   data.payment.amount > 0 &&
                   window.location.pathname === '/wallet'
@@ -568,9 +673,150 @@ window.windowMixin = {
             }
             this.g.updatePaymentsHash = data.payment.payment_hash
             this.g.updatePayments = !this.g.updatePayments
-          })
+          },
+          () => {
+            // onClose callback
+            this.handleWalletDisconnect(wallet)
+          }
+        )
+        .then(cancelFn => {
+          // Connection successful
+          state.isConnected = true
+          state.isConnecting = false
+          state.retryCount = 0
+          state.cancelFn = cancelFn
+          this.g.walletConnectionStates.set(wallet.id, state)
+          this.checkGlobalConnectionState()
+        })
+        .catch(error => {
+          // Connection failed
+          console.error(
+            `WebSocket connection failed for wallet ${wallet.name}:`,
+            error
+          )
+          state.isConnected = false
+          state.isConnecting = false
+          this.g.walletConnectionStates.set(wallet.id, state)
+          this.scheduleReconnect(wallet)
+        })
+    },
+    handleWalletDisconnect(wallet) {
+      const state = this.g.walletConnectionStates.get(wallet.id)
+      if (state) {
+        state.isConnected = false
+        state.isConnecting = false
+        this.g.walletConnectionStates.set(wallet.id, state)
+      }
+      this.checkGlobalConnectionState()
+      this.scheduleReconnect(wallet)
+    },
+    scheduleReconnect(wallet) {
+      const state = this.g.walletConnectionStates.get(wallet.id)
+      if (!state || state.retryCount >= 10) {
+        this.checkGlobalConnectionState()
+        return
+      }
+
+      const baseDelay = Math.min(1000 * Math.pow(2, state.retryCount), 60000)
+
+      state.retryCount++
+      this.g.walletConnectionStates.set(wallet.id, state)
+
+      console.debug(
+        `Scheduling reconnect for wallet ${wallet.name}, attempt ${state.retryCount}/10 in ${baseDelay}ms`
+      )
+
+      state.reconnectTimeout = setTimeout(() => {
+        this.connectWallet(wallet)
+      }, baseDelay)
+
+      this.g.walletConnectionStates.set(wallet.id, state)
+    },
+    checkGlobalConnectionState() {
+      let allConnected = true
+      let anyConnected = false
+      let allMaxedOut = true
+      let hasWallets = false
+
+      for (const state of this.g.walletConnectionStates.values()) {
+        hasWallets = true
+
+        if (state.isConnected) {
+          anyConnected = true
+          allConnected = true && allConnected // Keep tracking if ALL are connected
+          allMaxedOut = false // If any wallet is connected, not all maxed out
+        } else {
+          allConnected = false // At least one wallet is not connected
+
+          // A wallet is NOT maxed out if it still has retries left
+          if (state.retryCount < 10) {
+            allMaxedOut = false
+          }
         }
-      })
+      }
+      if (!hasWallets) return
+
+      if (
+        allConnected &&
+        this.g.reconnectionMeta.hasShownDisconnectNotification
+      ) {
+        this.$q.notify({
+          message: 'Reconnected!',
+          color: 'positive',
+          position: 'top'
+        })
+        this.g.reconnectionMeta.hasShownDisconnectNotification = false
+        this.g.reconnectionMeta.allWalletsDisconnected = false
+        this.g.reconnectionMeta.allWalletsMaxedOut = false
+        this.g.connectionWarning = false
+      } else if (allMaxedOut && !anyConnected) {
+        if (!this.g.reconnectionMeta.allWalletsMaxedOut) {
+          this.$q.notify({
+            message:
+              'Connection failed after multiple attempts. Please refresh the page.',
+            caption:
+              'If the problem persists, check your server or contact your LNbits provider.',
+            color: 'negative',
+            position: 'top',
+            timeout: 0,
+            actions: [
+              {
+                label: 'Refresh',
+                color: 'white',
+                handler: () => window.location.reload()
+              }
+            ]
+          })
+          this.g.reconnectionMeta.allWalletsMaxedOut = true
+        }
+        this.g.connectionWarning = true
+      } else if (
+        !anyConnected &&
+        !this.g.reconnectionMeta.hasShownDisconnectNotification
+      ) {
+        this.$q.notify({
+          message: 'Connection lost. Trying to reconnect...',
+          color: 'negative',
+          position: 'top'
+        })
+        this.g.reconnectionMeta.hasShownDisconnectNotification = true
+        this.g.reconnectionMeta.allWalletsDisconnected = true
+        this.g.connectionWarning = true
+      }
+    },
+    cleanupWebSockets() {
+      for (const state of this.g.walletConnectionStates.values()) {
+        if (state.cancelFn && typeof state.cancelFn === 'function') {
+          state.cancelFn(true)
+        }
+        if (state.reconnectTimeout) {
+          clearTimeout(state.reconnectTimeout)
+        }
+      }
+      this.g.walletConnectionStates.clear()
+      this.g.reconnectionMeta.hasShownDisconnectNotification = false
+      this.g.reconnectionMeta.allWalletsDisconnected = false
+      this.g.reconnectionMeta.allWalletsMaxedOut = false
     },
     selectWallet(wallet) {
       Object.assign(this.g.wallet, wallet)
@@ -750,6 +996,9 @@ window.windowMixin = {
       })
     }
   },
+  beforeUnmount() {
+    this.cleanupWebSockets()
+  },
   async created() {
     this.$q.dark.set(
       this.$q.localStorage.has('lnbits.darkMode')
@@ -798,8 +1047,6 @@ window.windowMixin = {
     ) {
       this.mobileSimple = false
     }
-  },
-  mounted() {
     if (this.g.user) {
       this.paymentEvents()
     }

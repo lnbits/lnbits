@@ -125,7 +125,9 @@ window.WalletPageLogic = {
         showBalanceInOut: true,
         showPaymentCountInOut: true
       },
-      paymentsFilter: {}
+      paymentsFilter: {},
+      connectionChecker: () => {},
+      connectionWarning: false
     }
   },
   computed: {

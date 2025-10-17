@@ -62,6 +62,20 @@
               >{% endblock %} {% block toolbar_subtitle %}
               <q-badge v-if="g.user && g.user.super_user">Super User</q-badge>
               <q-badge v-else-if="g.user && g.user.admin">Admin User</q-badge>
+              <q-badge
+                v-if="g.connectionWarning"
+                color="red"
+                class="inline-block q-ml-sm"
+              >
+                <q-icon
+                  name="wifi_tethering_off"
+                  color="white"
+                  size="12px"
+                ></q-icon>
+                <q-tooltip
+                  ><span v-text="$t('ws_connection_warning')"></span
+                ></q-tooltip>
+              </q-badge>
               {% endblock %}
             </q-toolbar-title>
             {% block beta %} {% if VOIDWALLET %}
