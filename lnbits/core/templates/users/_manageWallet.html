@@ -142,7 +142,7 @@
               v-text="props.row.name"
               v-if="!props.row.editable"
               :class="props.row.deleted ? 'text-strike' : 'cursor-pointer'"
-              @click="props.row.editable = true & !props.row.deleted"
+              @click="props.row.editable = true && !props.row.deleted"
             ></span>
             <q-input
               v-else
