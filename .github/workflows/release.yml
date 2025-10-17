@@ -56,3 +56,6 @@ jobs:
   appimage:
     needs: [ release ]
     uses: ./.github/workflows/appimage.yml
+    with:
+      tag_name: ${{ github.ref_name }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
