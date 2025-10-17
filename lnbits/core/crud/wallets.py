@@ -105,7 +105,7 @@ async def delete_unused_wallets(
     )
 
 
-async def get_wallet_xxx(
+async def get_standalone_wallet(
     wallet_id: str, deleted: bool | None = None, conn: Connection | None = None
 ) -> Wallet | None:
     query = """
@@ -128,7 +128,7 @@ async def get_mirrored_wallet(
 ) -> Wallet | None:
     if not wallet.shared_wallet_id:
         return None
-    shared_wallet = await get_wallet_xxx(wallet.shared_wallet_id, False, conn)
+    shared_wallet = await get_standalone_wallet(wallet.shared_wallet_id, False, conn)
     if not shared_wallet:
         return None
     wallet.mirror_shared_wallet(shared_wallet)
@@ -154,7 +154,7 @@ async def get_mirrored_wallets(
 async def get_wallet(
     wallet_id: str, deleted: bool | None = None, conn: Connection | None = None
 ) -> Wallet | None:
-    wallet = await get_wallet_xxx(wallet_id, deleted, conn)
+    wallet = await get_standalone_wallet(wallet_id, deleted, conn)
     if not wallet:
         return None
     if wallet.is_lightning_shared_wallet:
