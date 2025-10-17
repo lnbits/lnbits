@@ -21,10 +21,23 @@ class BaseWallet(BaseModel):
     balance_msat: int
 
 
+class WalletType(Enum):
+    LIGHTNING = "lightning"
+    LIGHTNING_SHARED = "lightning-shared"
+
+
+class WalletPermission(BaseModel):
+    VIEW_ONLY = "view_only"
+    RECEIVE_PAYMENTS = "receive_payments"
+    SEND_PAYMENTS = "send_payments"
+    ADMIN = "admin"
+
+
 class WalletExtra(BaseModel):
     icon: str = "flash_on"
     color: str = "primary"
     pinned: bool = False
+    shared_wallet_permission: WalletPermission | None = None
 
 
 class Wallet(BaseModel):
@@ -33,6 +46,9 @@ class Wallet(BaseModel):
     name: str
     adminkey: str
     inkey: str
+    wallet_type: str = WalletType.LIGHTNING.value
+    # Must be set only for shared wallets
+    shared_wallet_id: str | None = None
     deleted: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -40,6 +56,22 @@ class Wallet(BaseModel):
     balance_msat: int = Field(default=0, no_database=True)
     extra: WalletExtra = WalletExtra()
     stored_paylinks: StoredPayLinks = StoredPayLinks()
+
+    def mirror_shared_wallet(
+        self,
+        shared_wallet: Wallet,
+    ):
+        if shared_wallet.wallet_type != WalletType.LIGHTNING.value:
+            return None
+        self.id = shared_wallet.id
+        self.wallet_type = WalletType.LIGHTNING_SHARED.value
+        self.shared_wallet_id = shared_wallet.id
+        self.currency = shared_wallet.currency
+        self.balance_msat = shared_wallet.balance_msat
+        self.extra = shared_wallet.extra
+        self.stored_paylinks = shared_wallet.stored_paylinks
+        # todo: set permission from the original wallet
+        # self.extra.shared_wallet_permission = permission
 
     @property
     def balance(self) -> int:
@@ -56,6 +88,10 @@ class Wallet(BaseModel):
             return lnurl_encode(url)
         except Exception:
             return ""
+
+    @property
+    def is_lightning_shared_wallet(self) -> bool:
+        return self.wallet_type == WalletType.LIGHTNING_SHARED.value
 
 
 class CreateWallet(BaseModel):
