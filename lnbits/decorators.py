@@ -84,6 +84,7 @@ class KeyChecker(SecurityBase):
             if self._api_key
             else request.headers.get("X-API-KEY") or request.query_params.get("api-key")
         )
+        print("### api key:", key_value)  # todo: why called twice?
 
         if not key_value:
             raise HTTPException(
@@ -92,6 +93,7 @@ class KeyChecker(SecurityBase):
             )
 
         wallet = await get_wallet_for_key(key_value)
+        print("### wallet from key:", wallet)  # todo: why called twice?
 
         if not wallet:
             raise HTTPException(
@@ -100,11 +102,17 @@ class KeyChecker(SecurityBase):
             )
 
         request.scope["user_id"] = wallet.user
-        if self.expected_key_type is KeyType.admin and wallet.adminkey != key_value:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Invalid adminkey.",
-            )
+        if self.expected_key_type is KeyType.admin:
+            if wallet.adminkey != key_value:
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN,
+                    detail="Invalid adminkey.",
+                )
+            if not wallet.can_pay_invoices:
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN,
+                    detail="Shared wallet does not have admin permissions.",
+                )
 
         await _check_user_extension_access(wallet.user, request["path"])
 

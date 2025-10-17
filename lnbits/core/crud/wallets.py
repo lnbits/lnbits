@@ -243,6 +243,7 @@ async def get_wallet_for_key(
         {"key": key},
         Wallet,
     )
+    print("### get_wallet_for_key:", wallet)
     if wallet.is_lightning_shared_wallet:
         mw = await get_mirrored_wallet(wallet, conn)
         return mw
