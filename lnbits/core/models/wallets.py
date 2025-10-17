@@ -26,10 +26,10 @@ class WalletType(Enum):
     LIGHTNING_SHARED = "lightning-shared"
 
 
-class WalletPermission(BaseModel):
-    VIEW_ONLY = "view_only"
-    RECEIVE_PAYMENTS = "receive_payments"
-    SEND_PAYMENTS = "send_payments"
+class WalletPermission(Enum):
+    VIEW_ONLY = "view-only"
+    RECEIVE_PAYMENTS = "receive-payments"
+    SEND_PAYMENTS = "send-payments"
     ADMIN = "admin"
 
 
