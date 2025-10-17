@@ -1,6 +1,4 @@
 import asyncio
-import traceback
-from collections.abc import Callable, Coroutine
 
 from loguru import logger
 
@@ -27,7 +25,6 @@ from lnbits.core.services.notifications import (
 )
 from lnbits.db import Filters
 from lnbits.settings import settings
-from lnbits.tasks import create_unique_task
 from lnbits.utils.exchange_rates import btc_rates
 
 audit_queue: asyncio.Queue[AuditEntry] = asyncio.Queue()
@@ -162,14 +159,3 @@ async def collect_exchange_rates_data() -> None:
         else:
             sleep_time = 60
         await asyncio.sleep(sleep_time)
-
-
-def _create_unique_task(name: str, func: Callable):
-    async def _to_coro(func: Callable[[], Coroutine]) -> Coroutine:
-        return await func()
-
-    try:
-        create_unique_task(name, _to_coro(func))
-    except Exception as e:
-        logger.error(f"Error in {name} task", e)
-        logger.error(traceback.format_exc())
