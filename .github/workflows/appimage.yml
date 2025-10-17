@@ -2,7 +2,26 @@ name: Build LNbits AppImage
 
 on:
   workflow_call:
+    inputs:
+      tag_name:
+        description: 'The tag name for the release'
+        required: true
+        type: string
+      upload_url:
+        description: 'The upload URL for the release'
+        required: true
+        type: string
+
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'The tag name for the release'
+        required: true
+        type: string
+      upload_url:
+        description: 'The upload URL for the release'
+        required: true
+        type: string
 
 jobs:
   build-linux-package:
@@ -75,7 +94,7 @@ jobs:
           # Build AppImage
           wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
-          TAG_NAME=${{ github.event.release.tag_name }}
+          TAG_NAME=${{ inputs.tag_name }}
           APPIMAGE_NAME="LNbits-${TAG_NAME}.AppImage"
           ./appimagetool-x86_64.AppImage \
             --updateinformation "gh-releases-zsync|lnbits|lnbits|latest|*.AppImage.zsync" \
@@ -93,7 +112,7 @@ jobs:
       - name: Upload Linux Release Asset
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ github.event.release.upload_url }}
+          upload_url: ${{ inputs.upload_url }}
           asset_path: ${{ env.APPIMAGE_NAME }}
           asset_name: ${{ env.APPIMAGE_NAME }}
           asset_content_type: application/octet-stream
