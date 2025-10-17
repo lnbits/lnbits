@@ -56,5 +56,3 @@ jobs:
   appimage:
     needs: [ release ]
     uses: ./.github/workflows/appimage.yml
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
