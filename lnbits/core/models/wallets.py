@@ -27,17 +27,30 @@ class WalletType(Enum):
 
 
 class WalletPermission(Enum):
+    NONE = "none"
     VIEW_ONLY = "view-only"
     RECEIVE_PAYMENTS = "receive-payments"
     SEND_PAYMENTS = "send-payments"
-    ADMIN = "admin"
+
+    def __str__(self):
+        return self.value
+
+
+class WalletSharePermission(BaseModel):
+    username: str | None
+    wallet_id: str
+    permission: str = WalletPermission.NONE.value
+    comment: str | None = None
 
 
 class WalletExtra(BaseModel):
     icon: str = "flash_on"
     color: str = "primary"
     pinned: bool = False
-    shared_wallet_permission: WalletPermission | None = None
+    # What permissions this wallet grants when it's shared with other users
+    shared_with: list[WalletSharePermission] = []
+    # What permission this wallet has when it's a shared wallet
+    granted_wallet_permission: str = WalletPermission.NONE.value
 
 
 class Wallet(BaseModel):
@@ -63,15 +76,43 @@ class Wallet(BaseModel):
     ):
         if shared_wallet.wallet_type != WalletType.LIGHTNING.value:
             return None
+
+        permission = shared_wallet.get_share_permission(self.id)
+        if permission == WalletPermission.NONE:
+            return None
+
+        self.extra.granted_wallet_permission = permission.value
+
         self.id = shared_wallet.id
         self.wallet_type = WalletType.LIGHTNING_SHARED.value
         self.shared_wallet_id = shared_wallet.id
         self.currency = shared_wallet.currency
         self.balance_msat = shared_wallet.balance_msat
-        self.extra = shared_wallet.extra
+
         self.stored_paylinks = shared_wallet.stored_paylinks
-        # todo: set permission from the original wallet
-        # self.extra.shared_wallet_permission = permission
+        self.extra.icon = shared_wallet.extra.icon
+        self.extra.color = shared_wallet.extra.color
+
+    def get_share_permission(self, wallet_id: str) -> WalletPermission:
+        for perm in self.extra.shared_with:
+            if perm.wallet_id == wallet_id:
+                return WalletPermission(perm.permission)
+        return WalletPermission.NONE
+
+    @property
+    def can_pay_invoices(self) -> bool:
+        print("### can_pay_invoices:", self.wallet_type, self.extra)
+        if self.wallet_type == WalletType.LIGHTNING.value:
+            print("### is lightning: True")
+            return True
+        if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
+            print("### is shared: True")
+            return (
+                self.extra.granted_wallet_permission
+                == WalletPermission.SEND_PAYMENTS.value
+            )
+
+        return False
 
     @property
     def balance(self) -> int:
