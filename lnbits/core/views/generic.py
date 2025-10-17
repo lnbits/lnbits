@@ -48,6 +48,96 @@ async def home(request: Request, lightning: str = ""):
     )
 
 
+@generic_router.get(
+    "/account",
+    response_class=HTMLResponse,
+    description="show account page",
+)
+async def account(
+    request: Request,
+    user: User = Depends(check_user_exists),
+):
+    nostr_configured = settings.is_nostr_notifications_configured()
+    telegram_configured = settings.is_telegram_notifications_configured()
+    return template_renderer().TemplateResponse(
+        request,
+        "core/account.html",
+        {
+            "user": user.json(),
+            "nostr_configured": nostr_configured,
+            "telegram_configured": telegram_configured,
+            "ajax": _is_ajax_request(request),
+        },
+    )
+
+
+@generic_router.get(
+    "/wallet",
+    response_class=HTMLResponse,
+    description="show wallet page",
+)
+async def get_user_wallet(
+    request: Request,
+    lnbits_last_active_wallet: Annotated[str | None, Cookie()] = None,
+    user: User = Depends(check_user_exists),
+    wal: UUID4 | None = Query(None),
+):
+    if wal:
+        wallet = await get_wallet(wal.hex)
+    elif len(user.wallets) == 0:
+        wallet = await create_wallet(user_id=user.id)
+        user.wallets.append(wallet)
+    elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
+        wallet = await get_wallet(lnbits_last_active_wallet)
+    else:
+        wallet = user.wallets[0]
+
+    if not wallet or wallet.deleted:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Wallet not found",
+        )
+    if wallet.user != user.id:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Not your wallet.",
+        )
+    context = {
+        "user": user.json(),
+        "wallet": wallet.json(),
+        "wallet_name": wallet.name,
+        "currencies": allowed_currencies(),
+        "service_fee": settings.lnbits_service_fee,
+        "service_fee_max": settings.lnbits_service_fee_max,
+        "web_manifest": f"/manifest/{user.id}.webmanifest",
+    }
+
+    return template_renderer().TemplateResponse(
+        request,
+        "core/wallet.html",
+        {**context, "ajax": _is_ajax_request(request)},
+    )
+
+
+@generic_router.get(
+    "/wallets",
+    response_class=HTMLResponse,
+    description="show wallets page",
+)
+async def wallets(
+    request: Request,
+    user: User = Depends(check_user_exists),
+):
+    return template_renderer().TemplateResponse(
+        request,
+        "core/wallets.html",
+        {
+            "user": user.json(),
+            "ajax": _is_ajax_request(request),
+        },
+    )
+
+
 @generic_router.get("/first_install", response_class=HTMLResponse)
 async def first_install(request: Request):
     if not settings.first_install:
@@ -241,91 +331,6 @@ async def extensions_builder_preview(
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
     )
     return response
-
-
-@generic_router.get(
-    "/wallet",
-    response_class=HTMLResponse,
-    description="show wallet page",
-)
-async def wallet(
-    request: Request,
-    lnbits_last_active_wallet: Annotated[str | None, Cookie()] = None,
-    user: User = Depends(check_user_exists),
-    wal: UUID4 | None = Query(None),
-):
-    if wal:
-        wallet = await get_wallet(wal.hex)
-    elif len(user.wallets) == 0:
-        wallet = await create_wallet(user_id=user.id)
-        user.wallets.append(wallet)
-    elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
-        wallet = await get_wallet(lnbits_last_active_wallet)
-    else:
-        wallet = user.wallets[0]
-
-    if not wallet or wallet.deleted:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Wallet not found",
-        )
-    context = {
-        "user": user.json(),
-        "wallet": wallet.json(),
-        "wallet_name": wallet.name,
-        "currencies": allowed_currencies(),
-        "service_fee": settings.lnbits_service_fee,
-        "service_fee_max": settings.lnbits_service_fee_max,
-        "web_manifest": f"/manifest/{user.id}.webmanifest",
-    }
-
-    return template_renderer().TemplateResponse(
-        request,
-        "core/wallet.html",
-        {**context, "ajax": _is_ajax_request(request)},
-    )
-
-
-@generic_router.get(
-    "/account",
-    response_class=HTMLResponse,
-    description="show account page",
-)
-async def account(
-    request: Request,
-    user: User = Depends(check_user_exists),
-):
-    nostr_configured = settings.is_nostr_notifications_configured()
-    telegram_configured = settings.is_telegram_notifications_configured()
-    return template_renderer().TemplateResponse(
-        request,
-        "core/account.html",
-        {
-            "user": user.json(),
-            "nostr_configured": nostr_configured,
-            "telegram_configured": telegram_configured,
-            "ajax": _is_ajax_request(request),
-        },
-    )
-
-
-@generic_router.get(
-    "/wallets",
-    response_class=HTMLResponse,
-    description="show wallets page",
-)
-async def wallets(
-    request: Request,
-    user: User = Depends(check_user_exists),
-):
-    return template_renderer().TemplateResponse(
-        request,
-        "core/wallets.html",
-        {
-            "user": user.json(),
-            "ajax": _is_ajax_request(request),
-        },
-    )
 
 
 @generic_router.get("/service-worker.js")
