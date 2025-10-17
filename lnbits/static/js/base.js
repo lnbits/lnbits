@@ -195,7 +195,7 @@ window.LNbits = {
           ws.onopen = () => {
             clearTimeout(timeout)
             isResolved = true
-            resolve(() => ws.close())
+            resolve((silent = false) => ws.close(1000, silent ? 'cleanup' : ''))
           }
 
           ws.onmessage = ev => {
@@ -217,6 +217,9 @@ window.LNbits = {
             console.debug(
               `WebSocket closed: code=${event.code}, reason=${event.reason}`
             )
+            if (event.reason === 'cleanup') {
+              return
+            }
             if (event.code >= 4000 && event.code < 5000) {
               console.warn('Server-initiated close:', event.reason)
             }
@@ -804,7 +807,7 @@ window.windowMixin = {
     cleanupWebSockets() {
       for (const state of this.g.walletConnectionStates.values()) {
         if (state.cancelFn && typeof state.cancelFn === 'function') {
-          state.cancelFn()
+          state.cancelFn(true)
         }
         if (state.reconnectTimeout) {
           clearTimeout(state.reconnectTimeout)
