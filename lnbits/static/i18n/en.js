@@ -670,5 +670,7 @@ window.localisation.en = {
   paid: 'Paid',
   funding_source_retries: 'Max Retries',
   funding_source_retries_desc:
-    'Maximum number of retries for funding sources, before it falls back to VoidWallet.'
+    'Maximum number of retries for funding sources, before it falls back to VoidWallet.',
+  ws_connection_warning:
+    'Lost connection to the websocket. Wait while page tries to reconnect.'
 }
