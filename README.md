@@ -1,38 +1,45 @@
-<picture >
-  <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png"  style="width:300px">
-  <img src="https://i.imgur.com/fyKPgVT.png" style="width:300px">
-</picture>
+<a href="https://lnbits.com" target="_blank" rel="noopener noreferrer">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png">
+    <img src="https://i.imgur.com/fyKPgVT.png" alt="LNbits" style="width:300px">
+  </picture>
+</a>
 
-![phase: beta](https://img.shields.io/badge/phase-beta-C41E3A) [![license-badge]](LICENSE) [![docs-badge]][docs] ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-08A04B) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) [<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)
-![Lightning network wallet](https://i.imgur.com/DeIiO0y.png)
+![phase: stable](https://img.shields.io/badge/phase-stable-2EA043) [![license-badge]](LICENSE) [![docs-badge]][docs] ![PRs: welcome](https://img.shields.io/badge/PRs-Welcome-yellow) [![explore: LNbits extensions](https://img.shields.io/badge/explore-LNbits%20extensions-10B981)](https://extensions.lnbits.com/) [![hardware: LNBitsShop](https://img.shields.io/badge/hardware-LNBitsShop-7C3AED)](https://shop.lnbits.com/) [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits) [<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)
+<img width="2000" height="203" alt="lnbits_head" src="https://github.com/user-attachments/assets/77669718-ac10-43c7-ae95-6ce236c77401" />
 
-# The world's most powerful suite of bitcoin tools.
+# LNbits — The most powerful Bitcoin & Lightning toolkit
 
-## Run for yourself, for others, or as part of a stack.
+> Run it for yourself, for your community, or as part of a larger stack.
 
-LNbits is beta, for responsible disclosure of any concerns please contact an admin in the community chat.
+## What is LNbits?
 
-LNbits is a Python server that sits on top of any funding source. It can be used as:
+LNbits is a lightweight Python server that sits on top of your Lightning funding source. It gives you safe, isolated wallets, a clean API, and an extension system for rapidly adding features - without locking you into a single node implementation. The Inspiration for LNBits came from ideas pioneered by **OpenNode** and **LNPay** — both today work as funding sources for LNbits.
 
-- Accounts system to mitigate the risk of exposing applications to your full balance via unique API keys for each wallet
-- Extendable platform for exploring Lightning network functionality via the LNbits extension framework
-- Part of a development stack via LNbits API
-- Fallback wallet for the LNURL scheme
-- Instant wallet for LN demonstrations
+## What you can do with LNbits
 
-LNbits can run on top of almost all Lightning funding sources.
+- **Harden app security:** Create per-wallet API keys so individual apps never touch your full balance.
+- **Extend functionality fast:** Install extensions to explore and ship Lightning features with minimal code.
+- **Build into your stack:** Use the LNbits HTTP API to integrate payments, wallets, and accounting.
+- **Cover LNURL flows:** Use LNbits as a reliable fallback wallet for LNURL.
+- **Demo in minutes:** Spin up instant wallets for workshops, proofs-of-concept, and user testing.
 
-See [LNbits manual](https://docs.lnbits.org/guide/wallets.html) for more detailed documentation about each funding source.
+## Funding sources
 
-Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbSYG0ciIQUWJru1dWstPHshe) video series.
+LNbits runs on top of most Lightning backends. Choose the one you already operate - or swap later without changing your app architecture.
 
-LNbits is inspired by all the great work of [opennode.com](https://www.opennode.com/), and in particular [lnpay.co](https://lnpay.co/). Both work as funding sources for LNbits.
+- Read the [funding source guide](https://docs.lnbits.org/guide/wallets.html)
+
+## Learn more
+
+- Video series on [Youtube](https://www.youtube.com/@lnbits)
+- Introduction Video [LNBits V1](https://www.youtube.com/watch?v=PFAHKxvgI9Y&t=19s)
 
 ## Running LNbits
 
-Test on our demo server [demo.lnbits.com](https://demo.lnbits.com), or on [lnbits.com](https://lnbits.com) software as a service, where you can spin up an LNbits instance for 21sats per hr.
-
 See the [install guide](https://github.com/lnbits/lnbits/blob/main/docs/guide/installation.md) for details on installation and setup.
+
+Get yourself familiar and test on our demo server [demo.lnbits.com](https://demo.lnbits.com), or on [lnbits.com](https://lnbits.com) software as a service, where you can spin up an LNbits instance for 21sats per hr.
 
 ## LNbits account system
 
@@ -66,9 +73,17 @@ As well as working great in a browser, LNbits has native IoS and Android apps as
 
 <img src="https://i.imgur.com/J96EbRf.png" style="width:800px">
 
-## Tip us
+## Powered by LNbits
 
-If you like this project [send some tip love](https://demo.lnbits.com/lnurlp/link/fH59GD)!
+LNbits empowers everyone with modular, open-source tools for building Bitcoin-based systems — fast, free, and extendable.
+
+If you like this project [send some tip love](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg) or visit our [Shop](https://shop.lnbits.de)
+
+[![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)  
+[![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart&logoColor=white&labelColor=5B21B6)](https://shop.lnbits.com/)
+[![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning&logoColor=white&labelColor=1E40AF)](https://my.lnbits.com/login)
+[![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss&logoColor=white&labelColor=C2410C)](https://news.lnbits.com/)
+[![Explore LNbits Extensions](https://img.shields.io/badge/Explore-LNbits%20Extensions-10B981?logo=puzzle-piece&logoColor=white&labelColor=065F46)](https://extensions.lnbits.com/)
 
 [docs]: https://github.com/lnbits/lnbits/wiki
 [docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg
