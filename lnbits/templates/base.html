@@ -41,6 +41,22 @@
     <div id="vue">
       <q-layout view="hHh lpR lfr" v-cloak>
         <q-header bordered class="bg-marginal-bg">
+          <!-- VoidWallet Warning Banner -->
+          {% if VOIDWALLET %}
+          <q-banner v-if="g.user" class="bg-negative text-white" dense>
+            <template v-slot:avatar>
+              <q-icon name="warning" color="white" />
+            </template>
+            <a
+              v-if="g.user && (g.user.super_user || g.user.admin)"
+              href="/admin"
+              style="color: white; text-decoration: underline; cursor: pointer"
+              v-text="$t('voidwallet_active_admin')"
+            ></a>
+            <span v-else v-text="$t('voidwallet_active_user')"></span>
+          </q-banner>
+          {% endif %}
+
           <q-toolbar>
             {% block drawer_toggle %}
             <q-btn
@@ -64,14 +80,7 @@
               <q-badge v-else-if="g.user && g.user.admin">Admin User</q-badge>
               {% endblock %}
             </q-toolbar-title>
-            {% block beta %} {% if VOIDWALLET %}
-            <q-badge
-              v-text="$t('voidwallet_active')"
-              color="red"
-              class="q-mr-md gt-md"
-            >
-            </q-badge>
-            {%endif%} {% if LNBITS_CUSTOM_BADGE is not none and
+            {% block beta %} {% if LNBITS_CUSTOM_BADGE is not none and
             LNBITS_CUSTOM_BADGE != "" %}
             <q-badge
               v-show="$q.screen.gt.sm"
