@@ -9,6 +9,10 @@ from lnurl import LnurlErrorResponse, LnurlSuccessResponse
 from lnurl import execute_withdraw as lnurl_withdraw
 from loguru import logger
 
+from bolt11.exceptions import Bolt11Bech32InvalidException  
+import base64, json, time                           
+from types import SimpleNamespace    
+
 from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
@@ -52,6 +56,62 @@ from .notifications import send_payment_notification
 payment_lock = asyncio.Lock()
 wallets_payments_lock: dict[str, asyncio.Lock] = {}
 
+def _parse_ark_ticket(ticket: str) -> SimpleNamespace:
+    """
+    Accepts 'ark1' + base64url(JSON) and returns an object that mimics the
+    attributes LNbits reads from a decoded BOLT11 invoice.
+    Required JSON fields we honor:
+      - amt_sat: int
+      - hash: str (payment hash / checking_id)
+      - ts: int (unix timestamp when created)
+      - exp: int (seconds until expiry)
+      - memo: str (optional)
+    """
+    if not isinstance(ticket, str) or not ticket.startswith("ark1"):
+        raise ValueError("Not an ARK ticket")
+
+    b64u = ticket[4:]
+    b64u += "=" * (-len(b64u) % 4)  # restore padding
+    payload = json.loads(base64.urlsafe_b64decode(b64u).decode())
+
+    amt_sat = int(payload.get("amt_sat", 0))
+    ts = int(payload.get("ts", int(time.time())))
+    exp = int(payload.get("exp", 3600))
+    memo = payload.get("memo") or ""
+    p_hash = payload.get("hash") or payload.get("payment_hash")
+    if not isinstance(p_hash, str):
+        raise ValueError("ARK ticket missing 'hash'")
+
+    # Match attributes accessed later in this module:
+    # - amount_msat (int)
+    # - payment_hash (str)
+    # - description (str)
+    # - expiry_date (int unix ts expected by CreatePayment)
+    # - tags.get(...) is sometimes called; return a harmless stub
+    return SimpleNamespace(
+        amount_msat=amt_sat * 1000,
+        payment_hash=p_hash,
+        description=memo,
+        expiry_date=ts + exp,  # unix timestamp
+        timestamp=ts,          # not strictly required here but nice to have
+        tags=SimpleNamespace(get=lambda *a, **k: None),
+    )
+
+# Keep a reference to the real decoder, then override the name used below
+_real_bolt11_decode = bolt11_decode
+
+def _safe_decode_payment_request(pr: str):
+    try:
+        return _real_bolt11_decode(pr)
+    except Bolt11Bech32InvalidException:
+        # Fallback: accept ARK tickets
+        if isinstance(pr, str) and pr.startswith("ark1"):
+            return _parse_ark_ticket(pr)
+        # Not ARK? re-raise to keep existing behavior
+        raise
+
+# Override the imported name used throughout this file:
+bolt11_decode = _safe_decode_payment_request
 
 async def pay_invoice(
     *,
