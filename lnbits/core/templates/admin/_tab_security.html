@@ -2,12 +2,13 @@
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none"><span v-text="$t('server_management')"></span></h6>
     <div class="row">
-      <div class="col-md-6">
+      <div class="col-12 col-md-6">
         <p><span v-text="$t('base_url')"></span></p>
         <q-input
           filled
           v-model.number="formData.lnbits_baseurl"
           :label="$t('base_url_label')"
+          style="max-width: 100%; overflow-wrap: break-word"
         ></q-input>
         <br />
       </div>
@@ -16,17 +17,18 @@
       <span v-text="$t('authentication')"></span>
     </h6>
     <div class="row q-col-gutter-sm">
-      <div class="col-12 col-sm-6">
+      <div class="col-12 col-md-6">
         <q-input
           filled
           v-model="formData.auth_token_expire_minutes"
           type="number"
           :label="$t('auth_token_expiry_label')"
           :hint="$t('auth_token_expiry_hint')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
         </q-input>
       </div>
-      <div class="col-12 col-sm-6">
+      <div class="col-12 col-md-6">
         <q-select
           filled
           v-model="formData.auth_allowed_methods"
@@ -34,6 +36,8 @@
           :hint="$t('auth_allowed_methods_hint')"
           :label="$t('auth_allowed_methods_label')"
           :options="formData.auth_all_methods"
+          style="max-width: 100%; overflow-wrap: break-word"
+          :option-label="option => option.length > 25 ? option.substring(0, 22) + '...' : option"
         ></q-select>
       </div>
     </div>
@@ -54,11 +58,12 @@
           type="text"
           :label="$t('auth_nostr_label')"
           :hint="$t('auth_nostr_hint')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
           <q-btn @click="addNostrUrl" dense flat icon="add"></q-btn>
         </q-input>
       </div>
-      <div class="col-12">
+      <div class="col-12" style="max-width: 100%; word-break: break-all">
         <q-chip
           v-for="url in formData.nostr_absolute_request_urls"
           :key="url"
@@ -67,7 +72,7 @@
           color="primary"
           text-color="white"
           :label="url"
-          class="ellipsis"
+          style="max-width: 100%; word-break: break-all"
         ></q-chip>
       </div>
     </div>
@@ -79,21 +84,23 @@
     <strong class="q-my-none q-mb-sm">Google Auth</strong>
 
     <div class="row">
-      <div class="col-md-6 col-sm-12 q-pr-sm">
+      <div class="col-12 col-md-6 q-pr-sm">
         <q-input
           filled
           v-model="formData.google_client_id"
           :label="$t('auth_google_ci_label')"
           :hint="$t('auth_google_ci_hint')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
         </q-input>
       </div>
-      <div class="col-md-6 col-sm-12">
+      <div class="col-12 col-md-6">
         <q-input
           filled
           v-model="formData.google_client_secret"
           type="password"
           :label="$t('auth_google_cs_label')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
         </q-input>
       </div>
@@ -106,21 +113,23 @@
     <strong class="q-my-none q-mb-sm">GitHub Auth</strong>
 
     <div class="row">
-      <div class="col-md-6 col-sm-12 q-pr-sm">
+      <div class="col-12 col-md-6 q-pr-sm">
         <q-input
           filled
           v-model="formData.github_client_id"
           :label="$t('auth_gh_client_id_label')"
           :hint="$t('auth_gh_client_id_hint')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
         </q-input>
       </div>
-      <div class="col-md-6 col-sm-12">
+      <div class="col-12 col-md-6">
         <q-input
           filled
           v-model="formData.github_client_secret"
           type="password"
           :label="$t('auth_gh_client_secret_label')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
         </q-input>
       </div>
@@ -133,45 +142,50 @@
     <strong class="q-my-none q-mb-sm">Keycloak Auth</strong>
 
     <div class="row q-col-gutter-sm q-col-gutter-y-md">
-      <div class="col-md-4 col-sm-12">
+      <div class="col-12 col-md-4">
         <q-input
           filled
           v-model="formData.keycloak_discovery_url"
           :label="$t('auth_keycloak_label')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
         </q-input>
       </div>
-      <div class="col-md-4 col-sm-12">
+      <div class="col-12 col-md-4">
         <q-input
           filled
           v-model="formData.keycloak_client_id"
           :label="$t('auth_keycloak_ci_label')"
           :hint="$t('auth_keycloak_ci_hint')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
         </q-input>
       </div>
-      <div class="col-md-4 col-sm-12">
+      <div class="col-12 col-md-4">
         <q-input
           filled
           v-model="formData.keycloak_client_secret"
           type="password"
           :label="$t('auth_keycloak_cs_label')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
         </q-input>
       </div>
-      <div class="col-md-4 col-sm-12">
+      <div class="col-12 col-md-4">
         <q-input
           filled
           v-model="formData.keycloak_client_custom_org"
           :label="$t('auth_keycloak_custom_org_label')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
         </q-input>
       </div>
-      <div class="col-md-8 col-sm-12">
+      <div class="col-12 col-md-8">
         <q-input
           filled
           v-model="formData.keycloak_client_custom_icon"
           :label="$t('auth_keycloak_custom_icon_label')"
+          style="max-width: 100%; overflow-wrap: break-word"
         >
         </q-input>
       </div>
@@ -213,7 +227,7 @@
         <div class="col-12 col-md-12">
           <p v-text="$t('ip_blocker')"></p>
           <div class="row q-col-gutter-md">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <q-input
                 filled
                 v-model="formBlockedIPs"
@@ -221,6 +235,7 @@
                 type="text"
                 :label="$t('enter_ip')"
                 :hint="$t('block_access_hint')"
+                style="max-width: 100%; overflow-wrap: break-word"
               >
                 <q-btn
                   @click="addExtensionsManifest"
@@ -229,7 +244,7 @@
                   icon="add"
                 ></q-btn>
               </q-input>
-              <div>
+              <div style="max-width: 100%; word-break: break-all">
                 <q-chip
                   v-for="blocked_ip in formData.lnbits_blocked_ips"
                   :key="blocked_ip"
@@ -238,12 +253,12 @@
                   color="primary"
                   text-color="white"
                   :label="blocked_ip"
-                  class="ellipsis"
+                  style="max-width: 100%; word-break: break-all"
                 ></q-chip>
               </div>
               <br />
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <q-input
                 filled
                 v-model="formAllowedIPs"
@@ -251,6 +266,7 @@
                 type="text"
                 :label="$t('enter_ip')"
                 :hint="$t('allow_access_hint')"
+                style="max-width: 100%; overflow-wrap: break-word"
               >
                 <q-btn
                   @click="addExtensionsManifest"
@@ -259,7 +275,7 @@
                   icon="add"
                 ></q-btn>
               </q-input>
-              <div>
+              <div style="max-width: 100%; word-break: break-all">
                 <q-chip
                   v-for="allowed_ip in formData.lnbits_allowed_ips"
                   :key="allowed_ip"
@@ -268,7 +284,7 @@
                   color="primary"
                   text-color="white"
                   :label="allowed_ip"
-                  class="ellipsis"
+                  style="max-width: 100%; word-break: break-all"
                 ></q-chip>
               </div>
               <br />
@@ -279,7 +295,7 @@
         <div class="col-12 col-md-12">
           <p v-text="$t('rate_limiter')"></p>
           <div class="row q-col-gutter-md">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <q-input
                 filled
                 type="number"
@@ -287,7 +303,7 @@
                 :label="$t('number_of_requests')"
               ></q-input>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <q-select
                 filled
                 :options="[$t('second'),$t('minute'),$t('hour')]"
@@ -309,6 +325,7 @@
                 type="text"
                 :label="$t('enter_callback_url_rule')"
                 :hint="$t('callback_url_rule_hint')"
+                style="max-width: 100%; overflow-wrap: break-word"
               >
                 <q-btn
                   @click="addCallbackUrlRule"
@@ -317,7 +334,13 @@
                   icon="add"
                 ></q-btn>
               </q-input>
-              <div>
+              <div
+                style="
+                  max-width: 100%;
+                  overflow-wrap: break-word;
+                  word-break: break-all;
+                "
+              >
                 <q-chip
                   v-for="rule in formData.lnbits_callback_url_rules"
                   :key="rule"
@@ -326,7 +349,7 @@
                   color="primary"
                   text-color="white"
                   :label="rule"
-                  class="ellipsis"
+                  style="max-width: 100%; word-break: break-all"
                 ></q-chip>
               </div>
               <br />

@@ -76,7 +76,30 @@ import window_vars with context %} {% block scripts %} {{ window_vars(user) }}
 <div class="row q-col-gutter-md justify-center">
   <div class="col q-gutter-y-md">
     <q-card>
-      <q-splitter>
+      <!-- Mobile: Horizontal tabs at top -->
+      <q-tabs
+        v-if="$q.screen.lt.md"
+        @update:model-value="showExchangeProvidersTab"
+        v-model="tab"
+        dense
+        active-color="primary"
+        inline-label
+        class="text-primary"
+      >
+        <q-tab name="funding" icon="account_balance_wallet" label="Fund" />
+        <q-tab name="security" icon="security" label="Sec" />
+        <q-tab name="server" icon="settings" label="Srv" />
+        <q-tab name="exchange_providers" icon="swap_horiz" label="Exch" />
+        <q-tab name="fiat_providers" icon="account_balance" label="Fiat" />
+        <q-tab name="extensions" icon="extension" label="Ext" />
+        <q-tab name="notifications" icon="notifications" label="Not" />
+        <q-tab name="audit" icon="receipt_long" label="Aud" />
+        <q-tab name="site_customisation" icon="language" label="Site" />
+        <q-tab name="library" icon="image" label="Lib" />
+      </q-tabs>
+
+      <!-- Desktop: Vertical sidebar with splitter -->
+      <q-splitter v-if="$q.screen.gt.sm">
         <template v-slot:before>
           <q-tabs
             @update:model-value="showExchangeProvidersTab"
@@ -182,7 +205,6 @@ import window_vars with context %} {% block scripts %} {{ window_vars(user) }}
               <q-tab-panels
                 v-model="tab"
                 animated
-                swipeable
                 vertical
                 scroll
                 transition-prev="jump-up"
@@ -202,6 +224,35 @@ import window_vars with context %} {% block scripts %} {{ window_vars(user) }}
           </q-form>
         </template>
       </q-splitter>
+
+      <!-- Mobile: Full-width content without sidebar -->
+      <q-form
+        v-if="$q.screen.lt.md"
+        name="settings_form"
+        id="settings_form_mobile"
+      >
+        <q-scroll-area style="height: 70vh">
+          <q-tab-panels
+            v-model="tab"
+            animated
+            vertical
+            scroll
+            transition-prev="jump-up"
+            transition-next="jump-up"
+            style="overflow-x: hidden; padding: 8px"
+          >
+            {% include "admin/_tab_funding.html" %} {% include
+            "admin/_tab_users.html" %} {% include "admin/_tab_server.html" %} {%
+            include "admin/_tab_exchange_providers.html" %}{% include
+            "admin/_tab_fiat_providers.html" %} {% include
+            "admin/_tab_extensions.html" %} {% include
+            "admin/_tab_notifications.html" %} {% include
+            "admin/_tab_security.html" %} {% include "admin/_tab_theme.html"
+            %}{% include "admin/_tab_audit.html"%}{% include
+            "admin/_tab_library.html"%}
+          </q-tab-panels>
+        </q-scroll-area>
+      </q-form>
     </q-card>
   </div>
 </div>
