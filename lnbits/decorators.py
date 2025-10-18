@@ -78,13 +78,11 @@ class KeyChecker(SecurityBase):
         self.model: APIKey = openapi_model  # type: ignore
 
     async def __call__(self, request: Request) -> WalletTypeInfo:
-
         key_value = (
             self._api_key
             if self._api_key
             else request.headers.get("X-API-KEY") or request.query_params.get("api-key")
         )
-        print("### api key:", key_value)  # todo: why called twice?
 
         if not key_value:
             raise HTTPException(
@@ -93,13 +91,15 @@ class KeyChecker(SecurityBase):
             )
 
         wallet = await get_wallet_for_key(key_value)
-        print("### wallet from key:", wallet)  # todo: why called twice?
 
         if not wallet:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
                 detail="Wallet not found.",
             )
+
+        # if wallet.is_lightning_shared_wallet:
+        #     wallet.id = wallet.shared_wallet_id or wallet.id
 
         request.scope["user_id"] = wallet.user
         if self.expected_key_type is KeyType.admin:
@@ -108,11 +108,12 @@ class KeyChecker(SecurityBase):
                     status_code=HTTPStatus.FORBIDDEN,
                     detail="Invalid adminkey.",
                 )
-            if not wallet.can_pay_invoices:
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail="Shared wallet does not have admin permissions.",
-                )
+
+        # if self._api_key == wallet.adminkey and not wallet.can_pay_invoice:
+        #     raise HTTPException(
+        #         status_code=HTTPStatus.FORBIDDEN,
+        #         detail="Shared wallet does not have pay permissions.",
+        #     )
 
         await _check_user_extension_access(wallet.user, request["path"])
 
