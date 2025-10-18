@@ -145,6 +145,7 @@
             nixpkgs.overlays = [ self.overlays.${system}.default ];
           };
 
-          checks = { };
+          checks =
+            import ./nix/tests { inherit pkgs; flake = self; };
         });
 }
