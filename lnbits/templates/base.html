@@ -43,7 +43,7 @@
         <q-header bordered class="bg-marginal-bg">
           <!-- VoidWallet Warning Banner -->
           {% if VOIDWALLET %}
-          <q-banner class="bg-negative text-white" dense>
+          <q-banner v-if="g.user" class="bg-negative text-white" dense>
             <template v-slot:avatar>
               <q-icon name="warning" color="white" />
             </template>
