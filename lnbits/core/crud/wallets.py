@@ -212,14 +212,18 @@ async def get_wallets_paginated(
 async def get_wallets_ids(
     user_id: str, deleted: bool | None = None, conn: Connection | None = None
 ) -> list[str]:
-    query = """SELECT id FROM wallets  WHERE "user" = :user"""
+    query = """SELECT id, shared_wallet_id FROM wallets  WHERE "user" = :user"""
     if deleted is not None:
         query += "AND deleted = :deleted"
     result: list[dict] = await (conn or db).fetchall(
         query,
         {"user": user_id, "deleted": deleted},
     )
-    return [row["id"] for row in result]
+    user_wallets = [row["id"] for row in result]
+    shared_wallets = [
+        row["shared_wallet_id"] for row in result if row["shared_wallet_id"]
+    ]
+    return user_wallets + shared_wallets
 
 
 async def get_wallets_count():
@@ -243,7 +247,7 @@ async def get_wallet_for_key(
         {"key": key},
         Wallet,
     )
-    print("### get_wallet_for_key:", wallet)
+
     if wallet.is_lightning_shared_wallet:
         mw = await get_mirrored_wallet(wallet, conn)
         return mw

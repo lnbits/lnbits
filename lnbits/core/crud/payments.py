@@ -129,7 +129,7 @@ async def get_payments_paginated(  # noqa: C901
 
     if wallet_id:
         values["wallet_id"] = wallet_id
-        clause.append("wallet_id = :wallet_id")
+        clause.append("wallet_id = :wallet_id OR shared_wallet_id = :wallet_id")
     elif user_id:
         only_user_wallets = await _only_user_wallets_statement(user_id, conn=conn)
         clause.append(only_user_wallets)

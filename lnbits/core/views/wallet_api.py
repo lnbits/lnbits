@@ -74,17 +74,6 @@ async def api_update_wallet_name(
     if not wallet:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
     wallet.name = new_name
-    print("### updating wallet name to:", new_name)
-    if new_name.endswith("_shared"):
-        print("### 10000 shared wallet detected")
-        wallet.extra.shared_with = [
-            WalletSharePermission(
-                username="Anonymous",
-                wallet_id="c71b514cd8fe4a45b84b83e908ac3323",
-                permission=WalletPermission.VIEW_ONLY,
-            )
-        ]
-    print("### wallet extra:", wallet.extra)
 
     await update_wallet(wallet)
     return {
@@ -140,9 +129,7 @@ async def api_update_wallet(
     wallet.extra.color = color or wallet.extra.color
     wallet.extra.pinned = pinned if pinned is not None else wallet.extra.pinned
     wallet.currency = currency if currency is not None else wallet.currency
-    print("### PATCH updating wallet name to:", name)
     if wallet.name.endswith("_shared"):
-        print("### PATCH 10000 shared wallet detected")
         wallet.extra.shared_with = [
             WalletSharePermission(
                 username="Anonymous",
@@ -150,7 +137,6 @@ async def api_update_wallet(
                 permission=WalletPermission.VIEW_ONLY.value,
             )
         ]
-    print("### PATCH wallet extra:", wallet.extra)
     await update_wallet(wallet)
     return wallet
 
