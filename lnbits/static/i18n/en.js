@@ -72,6 +72,10 @@ window.localisation.en = {
   donate: 'Donate',
   view_github: 'View on GitHub',
   voidwallet_active: 'VoidWallet is active! Payments disabled',
+  voidwallet_active_user:
+    'Funding source unavailable. Please contact your admin to configure.',
+  voidwallet_active_admin:
+    'Funding source unavailable. Click here to configure.',
   service_fee_badge: 'Service fee: {amount} % per transaction',
   service_fee_max_badge:
     'Service fee: {amount} % per transaction (max {max} {denom})',
