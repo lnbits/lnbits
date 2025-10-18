@@ -314,7 +314,7 @@ window.localisation.en = {
 
   notification_balance_delta_changed: 'Balance Delta Changed',
   notification_balance_delta_changed_desc:
-    'Notify when the diference between the node balance and the LNbits balance has changed even by 1 sat. This runs every minute.',
+    'Notify when the difference between the node balance and the LNbits balance has changed by more than the specified amount (in sats). Set to 0 to disable. This runs every minute.',
 
   enable_watchdog: 'Enable Watchdog Switch',
   enable_watchdog_desc:

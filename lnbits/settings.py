@@ -429,7 +429,7 @@ class NotificationsSettings(LNbitsSettings):
 
     lnbits_notification_settings_update: bool = Field(default=True)
     lnbits_notification_credit_debit: bool = Field(default=True)
-    notification_balance_delta_changed: bool = Field(default=True)
+    notification_balance_delta_threshold_sats: int = Field(default=1, ge=0)
     lnbits_notification_server_start_stop: bool = Field(default=True)
     lnbits_notification_watchdog: bool = Field(default=False)
     lnbits_notification_server_status_hours: int = Field(default=24, gt=0)

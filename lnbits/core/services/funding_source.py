@@ -70,7 +70,8 @@ async def check_balance_delta_changed():
     if settings.latest_balance_delta_sats is None:
         settings.latest_balance_delta_sats = status.delta_sats
         return
-    if status.delta_sats != settings.latest_balance_delta_sats:
+    delta_change = abs(status.delta_sats - settings.latest_balance_delta_sats)
+    if delta_change >= settings.notification_balance_delta_threshold_sats:
         enqueue_admin_notification(
             NotificationType.balance_delta,
             {

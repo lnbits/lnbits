@@ -404,13 +404,14 @@
               v-text="$t('notification_balance_delta_changed_desc')"
             ></q-item-label>
           </q-item-section>
+
           <q-item-section avatar>
-            <q-toggle
-              size="md"
-              v-model="formData.notification_balance_delta_changed"
-              checked-icon="check"
-              color="green"
-              unchecked-icon="clear"
+            <q-input
+              class="flow-right"
+              type="number"
+              min="0"
+              filled
+              v-model="formData.notification_balance_delta_threshold_sats"
             />
           </q-item-section>
         </q-item>
