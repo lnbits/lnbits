@@ -47,10 +47,12 @@
             <template v-slot:avatar>
               <q-icon name="warning" color="white" />
             </template>
-            <a v-if="g.user && (g.user.super_user || g.user.admin)"
-               href="/admin"
-               style="color: white; text-decoration: underline; cursor: pointer;"
-               v-text="$t('voidwallet_active_admin')"></a>
+            <a
+              v-if="g.user && (g.user.super_user || g.user.admin)"
+              href="/admin"
+              style="color: white; text-decoration: underline; cursor: pointer"
+              v-text="$t('voidwallet_active_admin')"
+            ></a>
             <span v-else v-text="$t('voidwallet_active_user')"></span>
           </q-banner>
           {% endif %}
