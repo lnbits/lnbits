@@ -72,6 +72,8 @@ window.localisation.en = {
   donate: 'Donate',
   view_github: 'View on GitHub',
   voidwallet_active: 'VoidWallet is active! Payments disabled',
+  fractional_reserve_warning:
+    'Warning: This instance is operating on fractional reserves.',
   service_fee_badge: 'Service fee: {amount} % per transaction',
   service_fee_max_badge:
     'Service fee: {amount} % per transaction (max {max} {denom})',

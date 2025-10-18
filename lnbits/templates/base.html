@@ -41,6 +41,15 @@
     <div id="vue">
       <q-layout view="hHh lpR lfr" v-cloak>
         <q-header bordered class="bg-marginal-bg">
+          <!-- Fractional Reserve Warning Banner -->
+          {% if FRACTIONAL_RESERVE %}
+          <q-banner v-if="g.user" class="bg-warning text-black text-bold" dense>
+            <template v-slot:avatar>
+              <q-icon name="warning" color="black" />
+            </template>
+            <span v-text="$t('fractional_reserve_warning')"></span>
+          </q-banner>
+          {% endif %}
           <q-toolbar>
             {% block drawer_toggle %}
             <q-btn

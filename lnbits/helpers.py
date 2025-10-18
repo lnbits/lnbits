@@ -103,6 +103,8 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
         "USE_DEFAULT_GRADIENT": settings.lnbits_default_gradient,
         "USE_DEFAULT_BGIMAGE": settings.lnbits_default_bgimage,
         "VOIDWALLET": settings.lnbits_backend_wallet_class == "VoidWallet",
+        "FRACTIONAL_RESERVE": settings.latest_balance_delta_sats
+        >= settings.lnbits_watchdog_delta,
         "WEBPUSH_PUBKEY": settings.lnbits_webpush_pubkey,
         "LNBITS_DENOMINATION": settings.lnbits_denomination,
         "has_holdinvoice": settings.has_holdinvoice,
