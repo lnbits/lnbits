@@ -35,7 +35,7 @@ async def run_by_the_minute_tasks() -> None:
     while settings.lnbits_running:
         status_minutes = settings.lnbits_notification_server_status_hours * 60
 
-        if settings.notification_balance_delta_changed:
+        if settings.notification_balance_delta_threshold_sats > 0:
             try:
                 # runs by default every minute, the delta should not change that often
                 await check_balance_delta_changed()
