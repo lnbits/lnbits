@@ -515,13 +515,12 @@ async def audit_index(request: Request, user: User = Depends(check_admin)):
 
 
 @generic_router.get("/payments", response_class=HTMLResponse)
-async def payments_index(request: Request, user: User = Depends(check_user_exists)):
+async def empty_index(request: Request, user: User = Depends(check_user_exists)):
     return template_renderer().TemplateResponse(
-        "payments/index.html",
+        "empty.html",
         {
             "request": request,
             "user": user.json(),
-            "ajax": _is_ajax_request(request),
         },
     )
 
