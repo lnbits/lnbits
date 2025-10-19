@@ -241,7 +241,7 @@ window.localisation.en = {
     'Nip5 identifier to send notifications to',
   notifications_nostr_identifiers: 'Nostr Identifiers',
   notifications_nostr_identifiers_desc:
-    'List of identifiers to send notifications to',
+    'List of NIP-05 identifiers to send notifications to (must have relays specified in .well-known/nostr.json)',
 
   notifications_telegram_config: 'Telegram Configuration',
   notifications_enable_telegram: 'Enable Telegram',
