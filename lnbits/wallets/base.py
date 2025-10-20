@@ -78,6 +78,8 @@ class FetchInvoiceResponse(NamedTuple):
     ok: bool
     payment_request: str | None = None
     error_message: str | None = None
+    preimage: str | None = None
+    fee_msat: int | None = None
 
     @property
     def success(self) -> bool:
@@ -290,7 +292,10 @@ class Wallet(ABC):
             message="Hold invoices are not supported by this wallet.", status="failed"
         )
 
-    async def decode_invoice(self, invoice_string: str) -> Optional[InvoiceData]:
+    async def decode_offer(self, bolt12_offer: str) -> OfferData | None:
+        return None
+
+    async def decode_invoice(self, invoice_string: str) -> InvoiceData | None:
         try:
             invoice = bolt11_decode(invoice_string)
             return InvoiceData(payment_hash = invoice.payment_hash,
@@ -314,8 +319,8 @@ class Wallet(ABC):
     async def get_invoice_extended_status(
             self,
             checking_id: str,
-            offer_id: Optional[str] = None
-            ) -> Optional[InvoiceExtendedStatus]:
+            offer_id: str | None = None
+            ) -> InvoiceExtendedStatus | None:
         return None
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
@@ -368,7 +373,3 @@ class Wallet(ABC):
                 f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
             )
         return endpoint
-
-
-class UnsupportedError(Exception):
-    pass

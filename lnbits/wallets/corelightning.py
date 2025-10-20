@@ -98,11 +98,11 @@ class CoreLightningWallet(Wallet):
 
     async def create_offer(
         self,
-        amount: Optional[int] = None,
-        memo: Optional[str] = None,
-        issuer: Optional[str] = None,
-        absolute_expiry: Optional[int] = None,
-        single_use: Optional[bool] = None,
+        amount: int | None = None,
+        memo: str | None = None,
+        issuer: str | None = None,
+        absolute_expiry: int | None = None,
+        single_use: bool | None = None,
         **kwargs,
     ) -> OfferResponse:
         label = kwargs.get("label", f"lbl{random.random()}")
@@ -210,8 +210,8 @@ class CoreLightningWallet(Wallet):
     async def fetch_invoice(
         self,
         offer: str,
-        amount: Optional[int] = None,
-        payer_note: Optional[str] = None,
+        amount: int | None = None,
+        payer_note: str | None = None,
     ) -> FetchInvoiceResponse:
         try:
             payload = {
@@ -355,7 +355,7 @@ class CoreLightningWallet(Wallet):
             return PaymentResponse(error_message=f"Payment failed: '{exc}'.")
 
 
-    async def decode_offer(self, bolt12_offer: str) -> Optional[OfferData]:
+    async def decode_offer(self, bolt12_offer: str) -> OfferData | None:
         try:
             payload = {
                     "string": bolt12_offer
@@ -401,7 +401,7 @@ class CoreLightningWallet(Wallet):
             return None
 
 
-    async def decode_invoice(self, invoice_string: str) -> Optional[InvoiceData]:
+    async def decode_invoice(self, invoice_string: str) -> InvoiceData | None:
         try:
             payload = {
                     "string": invoice_string
@@ -460,8 +460,8 @@ class CoreLightningWallet(Wallet):
     async def get_invoice_extended_status(
             self,
             checking_id: str,
-            offer_id: Optional[str] = None
-            ) -> Optional[InvoiceExtendedStatus]:
+            offer_id: str | None = None
+            ) -> InvoiceExtendedStatus | None:
         try:
             r: dict = self.ln.listinvoices(payment_hash=checking_id)
 

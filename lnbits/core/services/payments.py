@@ -1,6 +1,5 @@
 import asyncio
 import time
-import secrets
 from datetime import datetime, timedelta, timezone
 
 from bolt11 import Bolt11, MilliSatoshi, Tags
@@ -16,7 +15,6 @@ from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.db import Connection, Filters
 from lnbits.decorators import check_user_extension_access
-from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
 from lnbits.exceptions import OfferError, InvoiceError, PaymentError, UnsupportedError
 from lnbits.fiat import get_fiat_provider
 from lnbits.helpers import check_callback_url
@@ -70,12 +68,12 @@ async def create_offer(
     *,
     wallet_id: str,
     memo: str,
-    amount_sat: Optional[int] = None,
-    absolute_expiry: Optional[int] = None,
-    single_use: Optional[bool] = None,
-    extra: Optional[dict] = None,
-    webhook: Optional[str] = None,
-    conn: Optional[Connection] = None,
+    amount_sat: int | None = None,
+    absolute_expiry: int | None = None,
+    single_use: bool | None = None,
+    extra: dict | None = None,
+    webhook: str | None = None,
+    conn: Connection | None = None,
 ) -> Offer:
 
     user_wallet = await get_wallet(wallet_id, conn=conn)
@@ -148,7 +146,7 @@ async def enable_offer(
     *,
     wallet_id: str,
     offer_id: str,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> bool:
 
     offer = await get_standalone_offer(offer_id=offer_id, wallet_id=wallet_id)
@@ -188,7 +186,7 @@ async def disable_offer(
     *,
     wallet_id: str,
     offer_id: str,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> bool:
 
     offer = await get_standalone_offer(offer_id=offer_id, wallet_id=wallet_id)
@@ -228,11 +226,11 @@ async def fetch_invoice(
     *,
     wallet_id: str,
     offer: str,
-    amount: Optional[float] = None,
-    payer_note: Optional[str] = None,
-    currency: Optional[str] = "sat",
-    extra: Optional[dict] = None,
-    conn: Optional[Connection] = None,
+    amount: float | None = None,
+    payer_note: str | None = None,
+    currency: str | None = "sat",
+    extra: dict | None = None,
+    conn: Connection | None = None,
     ) -> str:
 
     if settings.lnbits_only_allow_incoming_payments:
@@ -1149,7 +1147,7 @@ async def _check_wallet_for_payment(
     return wallet
 
 
-def _validate_payment_request(
+async def _validate_payment_request(
     payment_request: str, max_sat: int | None = None
 ) -> InvoiceData:
     try:

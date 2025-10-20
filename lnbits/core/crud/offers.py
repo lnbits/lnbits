@@ -1,5 +1,5 @@
 from time import time
-from typing import Optional, Tuple
+from typing import Tuple
 
 from lnbits.core.db import db
 from lnbits.db import Connection, DateTrunc, Filters, Page
@@ -12,7 +12,7 @@ from ..models import (
 )
 
 
-async def get_offer(offer_id: str, conn: Optional[Connection] = None) -> Offer:
+async def get_offer(offer_id: str, conn: Connection | None = None) -> Offer:
     return await (conn or db).fetchone(
         "SELECT * FROM apioffers WHERE offer_id = :offer_id",
         {"offer_id": offer_id},
@@ -22,9 +22,9 @@ async def get_offer(offer_id: str, conn: Optional[Connection] = None) -> Offer:
 
 async def get_standalone_offer(
     offer_id: str,
-    conn: Optional[Connection] = None,
-    wallet_id: Optional[str] = None,
-) -> Optional[Offer]:
+    conn: Connection | None = None,
+    wallet_id: str | None = None,
+) -> Offer | None:
     clause: str = "offer_id = :offer_id"
     values = {
         "wallet_id": wallet_id,
@@ -47,13 +47,13 @@ async def get_standalone_offer(
 
 async def get_offers_paginated(
     *,
-    wallet_id: Optional[str] = None,
-    active: Optional[bool] = None,
-    single_use: Optional[bool] = None,
-    used: Optional[bool] = None,
-    since: Optional[int] = None,
-    filters: Optional[Filters[OfferFilters]] = None,
-    conn: Optional[Connection] = None,
+    wallet_id: str | None = None,
+    active: bool | None = None,
+    single_use: bool | None = None,
+    used: bool | None = None,
+    since: int | None = None,
+    filters: Filters[OfferFilters] | None = None,
+    conn: Connection | None = None,
 ) -> Page[Offer]:
     """
     Filters offers to be returned by:
@@ -95,15 +95,15 @@ async def get_offers_paginated(
 
 async def get_offers(
     *,
-    wallet_id: Optional[str] = None,
-    active: Optional[bool] = None,
-    single_use: Optional[bool] = None,
-    used: Optional[bool] = None,
-    since: Optional[int] = None,
-    filters: Optional[Filters[OfferFilters]] = None,
-    conn: Optional[Connection] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    wallet_id: str | None = None,
+    active: bool | None = None,
+    single_use: bool | None = None,
+    used: bool | None = None,
+    since: int | None = None,
+    filters: Filters[OfferFilters] | None = None,
+    conn: Connection | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> list[Offer]:
     """
     Filters offers to be returned by active | single_use | used.
@@ -143,7 +143,7 @@ async def get_offers_status_count() -> OffersStatusCount:
 
 
 async def delete_expired_offers(
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> None:
     # We delete all offers whose expiry date is in the past
     await (conn or db).execute(
@@ -163,7 +163,7 @@ async def create_offer(
     active: bool,
     single_use: bool,
     used: bool,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> Offer:
     # we don't allow the creation of the same offer twice
     # note: this can be removed if the db uniqueness constraints are set appropriately
@@ -195,7 +195,7 @@ async def create_offer(
 async def update_offer_used(
     offer_id: str,
     used: bool,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> None:
     await (conn or db).execute(
         f"""
@@ -207,7 +207,7 @@ async def update_offer_used(
 
 async def update_offer(
     offer: Offer,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> None:
     await (conn or db).update(
         "apioffers", offer, "WHERE offer_id = :offer_id"
@@ -215,7 +215,7 @@ async def update_offer(
 
 
 async def delete_wallet_offer(
-    offer_id: str, wallet_id: str, conn: Optional[Connection] = None
+    offer_id: str, wallet_id: str, conn: Connection | None = None
 ) -> None:
     await (conn or db).execute(
         "DELETE FROM apioffers WHERE offer_id = :offer_id AND wallet = :wallet",
