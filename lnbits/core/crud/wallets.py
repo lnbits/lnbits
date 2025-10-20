@@ -122,7 +122,7 @@ async def get_wallet(
 
 
 async def get_wallets(
-    user_id: str, deleted: bool | None = None, conn: Connection | None = None
+    user_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> list[Wallet]:
     query = """
             SELECT *, COALESCE((
@@ -163,7 +163,7 @@ async def get_wallets_paginated(
 
 
 async def get_wallets_ids(
-    user_id: str, deleted: bool | None = None, conn: Connection | None = None
+    user_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> list[str]:
     query = """SELECT id FROM wallets  WHERE "user" = :user"""
     if deleted is not None:
