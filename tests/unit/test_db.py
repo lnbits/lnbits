@@ -30,6 +30,17 @@ async def test_create_wallet_and_delete_wallet(app, to_user):
 
     # check if wallet is deleted
     del_wallet = await get_wallet(wallet.id)
+    assert del_wallet is None
+
+    # check if wallet is deleted
+    del_wallet = await get_wallet(wallet.id, False)
+    assert del_wallet is None
+
+    del_wallet = await get_wallet(wallet.id, None)
+    assert del_wallet is not None
+    assert del_wallet.deleted is True
+
+    del_wallet = await get_wallet(wallet.id, True)
     assert del_wallet is not None
     assert del_wallet.deleted is True
 
