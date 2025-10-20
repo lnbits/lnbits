@@ -104,7 +104,7 @@ async def delete_unused_wallets(
 
 
 async def get_wallet(
-    wallet_id: str, deleted: bool | None = None, conn: Connection | None = None
+    wallet_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> Wallet | None:
     query = """
             SELECT *, COALESCE((
