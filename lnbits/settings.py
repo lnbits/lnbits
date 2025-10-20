@@ -700,40 +700,6 @@ class FiatProvidersSettings(StripeFiatProvider):
         return getattr(self, provider_name + "_limits", None)
 
 
-class FiatProvidersSettings(StripeFiatProvider):
-
-    def is_fiat_provider_enabled(self, provider: str | None) -> bool:
-        """
-        Checks if a specific fiat provider is enabled.
-        """
-        if not provider:
-            return False
-        if provider == "stripe":
-            return self.stripe_enabled
-        # Add checks for other fiat providers here as needed
-        return False
-
-    def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
-        """
-        Returns a list of fiat payment methods allowed for the user.
-        """
-        allowed_providers = []
-        if self.stripe_enabled and (
-            not self.stripe_limits.allowed_users
-            or user_id in self.stripe_limits.allowed_users
-        ):
-            allowed_providers.append("stripe")
-
-        # Add other fiat providers here as needed
-        return allowed_providers
-
-    def get_fiat_provider_limits(self, provider_name: str) -> FiatProviderLimits | None:
-        """
-        Returns the limits for a specific fiat provider.
-        """
-        return getattr(self, provider_name + "_limits", None)
-
-
 class WebPushSettings(LNbitsSettings):
     lnbits_webpush_pubkey: str | None = Field(default=None)
     lnbits_webpush_privkey: str | None = Field(default=None)
@@ -1040,9 +1006,6 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     lnbits_all_extensions_ids: set[str] = Field(default=set())
 
     server_startup_time: int = Field(default=int(time()))
-
-    has_holdinvoice: bool = Field(default=False)
-    has_nodemanager: bool = Field(default=False)
 
     has_holdinvoice: bool = Field(default=False)
     has_nodemanager: bool = Field(default=False)

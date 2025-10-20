@@ -1,10 +1,7 @@
 import asyncio
-import json
 import time
-import secrets
 from datetime import datetime, timedelta, timezone
 
-import httpx
 from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
@@ -71,12 +68,12 @@ async def create_offer(
     *,
     wallet_id: str,
     memo: str,
-    amount_sat: Optional[int] = None,
-    absolute_expiry: Optional[int] = None,
-    single_use: Optional[bool] = None,
-    extra: Optional[dict] = None,
-    webhook: Optional[str] = None,
-    conn: Optional[Connection] = None,
+    amount_sat: int | None = None,
+    absolute_expiry: int | None = None,
+    single_use: bool | None = None,
+    extra: dict | None = None,
+    webhook: str | None = None,
+    conn: Connection | None = None,
 ) -> Offer:
 
     user_wallet = await get_wallet(wallet_id, conn=conn)
@@ -149,7 +146,7 @@ async def enable_offer(
     *,
     wallet_id: str,
     offer_id: str,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> bool:
 
     offer = await get_standalone_offer(offer_id=offer_id, wallet_id=wallet_id)
@@ -189,7 +186,7 @@ async def disable_offer(
     *,
     wallet_id: str,
     offer_id: str,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> bool:
 
     offer = await get_standalone_offer(offer_id=offer_id, wallet_id=wallet_id)
@@ -229,11 +226,11 @@ async def fetch_invoice(
     *,
     wallet_id: str,
     offer: str,
-    amount: Optional[float] = None,
-    payer_note: Optional[str] = None,
-    currency: Optional[str] = "sat",
-    extra: Optional[dict] = None,
-    conn: Optional[Connection] = None,
+    amount: float | None = None,
+    payer_note: str | None = None,
+    currency: str | None = "sat",
+    extra: dict | None = None,
+    conn: Connection | None = None,
     ) -> str:
 
     if settings.lnbits_only_allow_incoming_payments:
@@ -441,135 +438,6 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
             payment.status = "failed"
         # updating to payment here would run into a race condition
         # with the payment listeners and they will overwrite each other
-
-    return payment
-
-
-async def create_payment_request(
-    wallet_id: str, invoice_data: CreateInvoice
-) -> Payment:
-    """
-    Create a lightning invoice or a fiat payment request.
-    """
-    if invoice_data.fiat_provider:
-        return await create_fiat_invoice(wallet_id, invoice_data)
-
-    return await create_wallet_invoice(wallet_id, invoice_data)
-
-
-async def create_fiat_invoice(
-    wallet_id: str, invoice_data: CreateInvoice, conn: Optional[Connection] = None
-):
-    fiat_provider_name = invoice_data.fiat_provider
-    if not fiat_provider_name:
-        raise ValueError("Fiat provider is required for fiat invoices.")
-    if not settings.is_fiat_provider_enabled(fiat_provider_name):
-        raise ValueError(
-            f"Fiat provider '{fiat_provider_name}' is not enabled.",
-        )
-
-    if invoice_data.unit == "sat":
-        raise ValueError("Fiat provider cannot be used with satoshis.")
-    amount_sat = await fiat_amount_as_satoshis(invoice_data.amount, invoice_data.unit)
-    await _check_fiat_invoice_limits(amount_sat, fiat_provider_name, conn)
-
-    invoice_data.internal = True  # use FakeWallet for fiat invoices
-    if not invoice_data.memo:
-        invoice_data.memo = settings.lnbits_site_title + f" ({fiat_provider_name})"
-
-    internal_payment = await create_wallet_invoice(wallet_id, invoice_data)
-
-    fiat_provider = await get_fiat_provider(fiat_provider_name)
-    fiat_invoice = await fiat_provider.create_invoice(
-        amount=invoice_data.amount,
-        payment_hash=internal_payment.payment_hash,
-        currency=invoice_data.unit,
-        memo=invoice_data.memo,
-    )
-    if fiat_invoice.failed:
-        logger.warning(fiat_invoice.error_message)
-        internal_payment.status = PaymentState.FAILED
-        await update_payment(internal_payment, conn=conn)
-        raise ValueError(
-            f"Cannot create payment request for '{fiat_provider_name}'.",
-        )
-
-    internal_payment.fee = -abs(
-        service_fee_fiat(internal_payment.msat, fiat_provider_name)
-    )
-
-    internal_payment.fiat_provider = fiat_provider_name
-    internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
-    # todo: move to payent
-    internal_payment.extra["fiat_payment_request"] = fiat_invoice.payment_request
-    new_checking_id = (
-        f"fiat_{fiat_provider_name}_"
-        f"{fiat_invoice.checking_id or internal_payment.checking_id}"
-    )
-    await update_payment(internal_payment, new_checking_id, conn=conn)
-    internal_payment.checking_id = new_checking_id
-
-    return internal_payment
-
-
-async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
-    description_hash = b""
-    unhashed_description = b""
-    memo = data.memo or settings.lnbits_site_title
-    if data.description_hash or data.unhashed_description:
-        if data.description_hash:
-            try:
-                description_hash = bytes.fromhex(data.description_hash)
-            except ValueError as exc:
-                raise ValueError(
-                    "'description_hash' must be a valid hex string"
-                ) from exc
-        if data.unhashed_description:
-            try:
-                unhashed_description = bytes.fromhex(data.unhashed_description)
-            except ValueError as exc:
-                raise ValueError(
-                    "'unhashed_description' must be a valid hex string",
-                ) from exc
-        # do not save memo if description_hash or unhashed_description is set
-        memo = ""
-
-    payment = await create_invoice(
-        wallet_id=wallet_id,
-        amount=data.amount,
-        memo=memo,
-        currency=data.unit,
-        description_hash=description_hash,
-        unhashed_description=unhashed_description,
-        expiry=data.expiry,
-        extra=data.extra,
-        webhook=data.webhook,
-        internal=data.internal,
-        payment_hash=data.payment_hash,
-    )
-
-    # lnurl_response is not saved in the database
-    if data.lnurl_callback:
-        headers = {"User-Agent": settings.user_agent}
-        async with httpx.AsyncClient(headers=headers) as client:
-            try:
-                check_callback_url(data.lnurl_callback)
-                r = await client.get(
-                    data.lnurl_callback,
-                    params={"pr": payment.bolt11},
-                    timeout=10,
-                )
-                if r.is_error:
-                    payment.extra["lnurl_response"] = r.text
-                else:
-                    resp = json.loads(r.text)
-                    if resp["status"] != "OK":
-                        payment.extra["lnurl_response"] = resp["reason"]
-                    else:
-                        payment.extra["lnurl_response"] = True
-            except (httpx.ConnectError, httpx.RequestError) as ex:
-                logger.error(ex)
-                payment.extra["lnurl_response"] = False
 
     return payment
 
@@ -1253,9 +1121,9 @@ async def _check_wallet_for_payment(
     return wallet
 
 
-def _validate_payment_request(
+async def _validate_payment_request(
     payment_request: str, max_sat: int | None = None
-) -> Bolt11:
+) -> InvoiceData:
     try:
         funding_source = get_funding_source()
 
