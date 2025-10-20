@@ -100,6 +100,13 @@ class Wallet(BaseModel):
         return WalletPermission.NONE
 
     @property
+    def source_wallet_id(self) -> str:
+        """For shared wallets return the original wallet ID, else return own ID."""
+        if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
+            return self.shared_wallet_id or self.id
+        return self.id
+
+    @property
     def can_create_invoice(self) -> bool:
         print("### can_create_invoice:", self.wallet_type, self.extra)
         if self.wallet_type == WalletType.LIGHTNING.value:
