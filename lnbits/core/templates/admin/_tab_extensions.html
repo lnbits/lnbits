@@ -17,11 +17,10 @@
             type="text"
             :label="$t('ext_sources_label')"
             :hint="$t('ext_sources_hint')"
-            style="max-width: 100%; overflow-wrap: break-word"
           >
             <q-btn @click="addExtensionsManifest" dense flat icon="add"></q-btn>
           </q-input>
-          <div style="max-width: 100%; word-break: break-all">
+          <div>
             <q-chip
               v-for="manifestUrl in formData.lnbits_extensions_manifests"
               :key="manifestUrl"
@@ -29,8 +28,7 @@
               @remove="removeExtensionsManifest(manifestUrl)"
               color="primary"
               text-color="white"
-              style="max-width: 100%; word-break: break-all"
-              ><span v-text="manifestUrl"></span
+              ><span class="ellipsis" v-text="manifestUrl"></span
             ></q-chip>
           </div>
         </div>
@@ -137,7 +135,6 @@
             v-model="formData.lnbits_extensions_builder_manifest_url"
             :label="$t('extension_builder_manifest_url')"
             :hint="$t('extension_builder_manifest_url_hint')"
-            style="max-width: 100%; overflow-wrap: break-word"
           ></q-input>
         </div>
       </div>
