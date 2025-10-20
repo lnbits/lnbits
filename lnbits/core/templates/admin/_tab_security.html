@@ -8,7 +8,6 @@
           filled
           v-model.number="formData.lnbits_baseurl"
           :label="$t('base_url_label')"
-         
         ></q-input>
         <br />
       </div>
@@ -24,7 +23,6 @@
           type="number"
           :label="$t('auth_token_expiry_label')"
           :hint="$t('auth_token_expiry_hint')"
-         
         >
         </q-input>
       </div>
@@ -36,7 +34,6 @@
           :hint="$t('auth_allowed_methods_hint')"
           :label="$t('auth_allowed_methods_label')"
           :options="formData.auth_all_methods"
-         
           :option-label="option => option.length > 25 ? option.substring(0, 22) + '...' : option"
         ></q-select>
       </div>
@@ -58,7 +55,6 @@
           type="text"
           :label="$t('auth_nostr_label')"
           :hint="$t('auth_nostr_hint')"
-         
         >
           <q-btn @click="addNostrUrl" dense flat icon="add"></q-btn>
         </q-input>
@@ -90,7 +86,6 @@
           v-model="formData.google_client_id"
           :label="$t('auth_google_ci_label')"
           :hint="$t('auth_google_ci_hint')"
-         
         >
         </q-input>
       </div>
@@ -100,7 +95,6 @@
           v-model="formData.google_client_secret"
           type="password"
           :label="$t('auth_google_cs_label')"
-         
         >
         </q-input>
       </div>
@@ -119,7 +113,6 @@
           v-model="formData.github_client_id"
           :label="$t('auth_gh_client_id_label')"
           :hint="$t('auth_gh_client_id_hint')"
-         
         >
         </q-input>
       </div>
@@ -129,7 +122,6 @@
           v-model="formData.github_client_secret"
           type="password"
           :label="$t('auth_gh_client_secret_label')"
-         
         >
         </q-input>
       </div>
@@ -147,7 +139,6 @@
           filled
           v-model="formData.keycloak_discovery_url"
           :label="$t('auth_keycloak_label')"
-         
         >
         </q-input>
       </div>
@@ -157,7 +148,6 @@
           v-model="formData.keycloak_client_id"
           :label="$t('auth_keycloak_ci_label')"
           :hint="$t('auth_keycloak_ci_hint')"
-         
         >
         </q-input>
       </div>
@@ -167,7 +157,6 @@
           v-model="formData.keycloak_client_secret"
           type="password"
           :label="$t('auth_keycloak_cs_label')"
-         
         >
         </q-input>
       </div>
@@ -176,7 +165,6 @@
           filled
           v-model="formData.keycloak_client_custom_org"
           :label="$t('auth_keycloak_custom_org_label')"
-         
         >
         </q-input>
       </div>
@@ -185,7 +173,6 @@
           filled
           v-model="formData.keycloak_client_custom_icon"
           :label="$t('auth_keycloak_custom_icon_label')"
-         
         >
         </q-input>
       </div>
@@ -235,7 +222,6 @@
                 type="text"
                 :label="$t('enter_ip')"
                 :hint="$t('block_access_hint')"
-               
               >
                 <q-btn
                   @click="addExtensionsManifest"
@@ -266,7 +252,6 @@
                 type="text"
                 :label="$t('enter_ip')"
                 :hint="$t('allow_access_hint')"
-               
               >
                 <q-btn
                   @click="addExtensionsManifest"
@@ -325,7 +310,6 @@
                 type="text"
                 :label="$t('enter_callback_url_rule')"
                 :hint="$t('callback_url_rule_hint')"
-               
               >
                 <q-btn
                   @click="addCallbackUrlRule"
