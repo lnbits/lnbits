@@ -167,7 +167,7 @@ async def get_wallets_ids(
 ) -> list[str]:
     query = """SELECT id FROM wallets  WHERE "user" = :user"""
     if deleted is not None:
-        query += "AND deleted = :deleted"
+        query += " AND deleted = :deleted"
     result: list[dict] = await (conn or db).fetchall(
         query,
         {"user": user_id, "deleted": deleted},
