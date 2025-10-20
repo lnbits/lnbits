@@ -108,7 +108,6 @@ class Wallet(BaseModel):
 
     @property
     def can_create_invoice(self) -> bool:
-        print("### can_create_invoice:", self.wallet_type, self.extra)
         if self.wallet_type == WalletType.LIGHTNING.value:
             return True
         if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
@@ -121,12 +120,9 @@ class Wallet(BaseModel):
 
     @property
     def can_pay_invoice(self) -> bool:
-        print("### can_pay_invoice:", self.wallet_type, self.extra)
         if self.wallet_type == WalletType.LIGHTNING.value:
-            print("### is lightning: True")
             return True
         if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
-            print("### is shared: True")
             return (
                 self.extra.granted_wallet_permission
                 == WalletPermission.SEND_PAYMENTS.value

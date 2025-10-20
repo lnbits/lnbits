@@ -72,7 +72,6 @@ async def pay_invoice(
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         amount_msat = invoice.amount_msat
         wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
-        print("### wallet.can_pay_invoice:", wallet.can_pay_invoice)
         if not wallet.can_pay_invoice:
             raise PaymentError(
                 "Shared wallet does not have permission to pay invoices.",
@@ -252,11 +251,10 @@ async def create_invoice(
     if not amount > 0:
         raise InvoiceError("Amountless invoices not supported.", status="failed")
 
-    print("### create_invoice wallet_id:", wallet_id)
     user_wallet = await get_wallet(wallet_id, conn=conn)
     if not user_wallet:
         raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
-    print("### user_wallet.can_create_invoice:", user_wallet.can_create_invoice)
+
     if not user_wallet.can_create_invoice:
         raise InvoiceError(
             "Shared wallet does not have permission to create invoices.",
