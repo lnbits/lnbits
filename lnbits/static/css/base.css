@@ -243,6 +243,13 @@ body.body--dark .q-field--error .q-field__messages {
   width: 500px;
 }
 
+.blur-and-disable {
+  filter: blur(4px); /* blur entire element & children */
+  pointer-events: none; /* block mouse interaction */
+  user-select: none; /* prevent text selection */
+  opacity: 0.6; /* optional: faded look */
+}
+
 .lnbits__table-bordered td,
 .lnbits__table-bordered th {
   border: 1px solid black;

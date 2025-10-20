@@ -49,9 +49,11 @@ window.localisation.en = {
   export_to_phone_desc:
     'This QR code contains your wallet URL with full access. You can scan it from your phone to open your wallet from there.',
   access_wallet_on_mobile: 'Mobile Access',
+  stored_paylinks: 'Stored LNURL pay links',
   wallet: 'Wallet: ',
   wallet_name: 'Wallet name',
   wallets: 'Wallets',
+  exclude_wallets: 'Exclude Wallets',
   add_wallet: 'Add wallet',
   add_new_wallet: 'Add a new wallet',
   pin_wallet: 'Pin wallet',
@@ -113,6 +115,7 @@ window.localisation.en = {
   payment_check: 'Check payment',
   not_enough_funds: 'Not enough funds!',
   search_by_tag_memo_amount: 'Search by tag, memo, amount',
+  search: 'Search',
   invoice_waiting: 'Invoice waiting to be paid',
   payment_received: 'Payment Received',
   payment_sent: 'Payment Sent',
@@ -161,8 +164,12 @@ window.localisation.en = {
   featured: 'Featured',
   all: 'All',
   only_admins_can_install: '(Only admin accounts can install extensions)',
+  only_admins_can_create_extensions:
+    'Only admin accounts can create extensions',
   admin_only: 'Admin Only',
   new_version: 'New Version',
+  extension_has_free_release: 'Has free releases',
+  extension_has_paid_release: 'Has paid releases',
   extension_depends_on: 'Depends on:',
   extension_rating_soon: 'Ratings coming soon',
   extension_installed_version: 'Installed version',
@@ -229,6 +236,9 @@ window.localisation.en = {
   notifications_nostr_private_key: 'Nostr Private Key',
   notifications_nostr_private_key_desc:
     'Private key (hex or nsec) to sign the messages sent to Nostr',
+  notifications_nostr_identifier: 'Nostr Identifier',
+  notifications_nostr_identifier_desc:
+    'Nip5 identifier to send notifications to',
   notifications_nostr_identifiers: 'Nostr Identifiers',
   notifications_nostr_identifiers_desc:
     'List of identifiers to send notifications to',
@@ -238,9 +248,10 @@ window.localisation.en = {
   notifications_enable_telegram_desc: 'Send notfications over Telegram',
   notifications_telegram_access_token: 'Access Token',
   notifications_telegram_access_token_desc: 'Access token for the bot',
-  notifications_chat_id: 'Chat ID',
-  notifications_chat_id_desc: 'Chat ID to send the notifications to',
-
+  notifications_chat_id: 'Telegram Chat ID',
+  notifications_chat_id_desc: 'Telegram Chat ID to send the notifications to',
+  notifications_excluded_wallets_desc:
+    'Do not send notifications for these wallets',
   notifications_email_config: 'Email Configuration',
   notifications_enable_email: 'Enable Email',
   notifications_enable_email_desc: 'Send notifications over email',
@@ -413,6 +424,7 @@ window.localisation.en = {
   admin_settings: 'Admin Settings',
   extension_cost: 'This release requires a payment of minimum {cost} sats.',
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
+  create_extension: 'Create Extension',
   release_details_error: 'Cannot get the release details.',
   pay_from_wallet: 'Pay from Wallet',
   pay_with: 'Pay with {provider}',
@@ -482,9 +494,16 @@ window.localisation.en = {
   user_default_extensions_label: 'User extensions',
   user_default_extensions_hint:
     'Extensions that will be enabled by default for the users.',
+  extension_builder: 'Extension Builder',
+  extension_builder_manifest_url: 'Extension Builder Manifest URL',
+  extension_builder_manifest_url_hint:
+    'URL to a JSON manifest file with extension builder details',
   miscellanous: 'Miscellanous',
   misc_disable_extensions: 'Disable Extensions',
   misc_disable_extensions_label: 'Disable all extensions',
+  misc_disable_extensions_builder: 'Enable Extensions Builder',
+  misc_disable_extensions_builder_label:
+    'Enable Extensions Builder for non admin users.',
   misc_hide_api: 'Hide API',
   misc_hide_api_label: 'Hides wallet api, extensions can choose to honor',
   wallets_management: 'Wallets Management',
@@ -644,5 +663,12 @@ window.localisation.en = {
     'Signing secret for the webhook. Messages will be signed with this secret.',
   callback_success_url: 'Callback Success URL',
   callback_success_url_hint:
-    'The user will be redirected to this URL after the payment is successful'
+    'The user will be redirected to this URL after the payment is successful',
+  connected: 'Connected',
+  not_connected: 'Not Connected',
+  free: 'Free',
+  paid: 'Paid',
+  funding_source_retries: 'Max Retries',
+  funding_source_retries_desc:
+    'Maximum number of retries for funding sources, before it falls back to VoidWallet.'
 }

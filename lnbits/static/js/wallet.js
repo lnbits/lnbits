@@ -5,6 +5,7 @@ window.WalletPageLogic = {
       origin: window.location.origin,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
       websocketUrl: `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`,
+      stored_paylinks: [],
       parse: {
         show: false,
         invoice: null,
@@ -44,7 +45,6 @@ window.WalletPageLogic = {
           payment_hash: null
         }
       },
-      invoiceQrCode: '',
       disclaimerDialog: {
         show: false,
         location: window.location
@@ -141,6 +141,13 @@ window.WalletPageLogic = {
     },
     canPay() {
       if (!this.parse.invoice) return false
+      if (this.parse.invoice.expired) {
+        Quasar.Notify.create({
+          message: 'Invoice has expired',
+          color: 'negative'
+        })
+        return false
+      }
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
     formattedAmount() {
@@ -170,6 +177,10 @@ window.WalletPageLogic = {
     }
   },
   methods: {
+    dateFromNow(unix) {
+      const date = new Date(unix * 1000)
+      return moment.utc(date).local().fromNow()
+    },
     formatFiatAmount(amount, currency) {
       this.update.currency = currency
       this.formattedFiatAmount = LNbits.utils.formatCurrency(
@@ -258,7 +269,7 @@ window.WalletPageLogic = {
           this.receive.data.amount,
           this.receive.data.memo,
           this.receive.unit,
-          this.receive.lnurl && this.receive.lnurl.callback,
+          this.receive.lnurlWithdraw,
           this.receive.fiatProvider,
           this.receive.data.internalMemo,
           this.receive.data.payment_hash
@@ -274,38 +285,33 @@ window.WalletPageLogic = {
           if (!this.receive.lnurl) {
             this.readNfcTag()
           }
-          // TODO: lnurl_callback and lnurl_response
           // WITHDRAW
-          if (response.data.lnurl_response !== null) {
-            if (response.data.lnurl_response === false) {
-              response.data.lnurl_response = `Unable to connect`
+          if (
+            this.receive.lnurl &&
+            response.data.extra?.lnurl_response !== null
+          ) {
+            if (response.data.extra.lnurl_response === false) {
+              response.data.extra.lnurl_response = `Unable to connect`
             }
-
-            if (typeof response.data.lnurl_response === 'string') {
+            const domain = this.receive.lnurl.callback.split('/')[2]
+            if (typeof response.data.extra.lnurl_response === 'string') {
               // failure
               Quasar.Notify.create({
                 timeout: 5000,
                 type: 'warning',
-                message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
-                caption: response.data.lnurl_response
+                message: `${domain} lnurl-withdraw call failed.`,
+                caption: response.data.extra.lnurl_response
               })
               return
-            } else if (response.data.lnurl_response === true) {
+            } else if (response.data.extra.lnurl_response === true) {
               // success
               Quasar.Notify.create({
-                timeout: 5000,
-                message: `Invoice sent to ${this.receive.lnurl.domain}!`,
+                timeout: 3000,
+                message: `Invoice sent to ${domain}!`,
                 spinner: true
               })
             }
           }
-
-          // Hack as rendering in dialog causes reactivity issues. Does speed up, as only rendering lnbits-qrcode once.
-          this.$nextTick(() => {
-            this.invoiceQrCode = document.getElementById(
-              'hiddenQrCodeContainer'
-            ).innerHTML
-          })
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -343,32 +349,30 @@ window.WalletPageLogic = {
     },
     lnurlScan() {
       LNbits.api
-        .request(
-          'GET',
-          '/api/v1/lnurlscan/' + this.parse.data.request,
-          this.g.wallet.adminkey
-        )
+        .request('POST', '/api/v1/lnurlscan', this.g.wallet.adminkey, {
+          lnurl: this.parse.data.request
+        })
         .then(response => {
           const data = response.data
-
           if (data.status === 'ERROR') {
             Quasar.Notify.create({
               timeout: 5000,
               type: 'warning',
-              message: `${data.domain} lnurl call failed.`,
+              message: `lnurl scan failed.`,
               caption: data.reason
             })
             return
           }
 
-          if (data.kind === 'pay') {
+          if (data.tag === 'payRequest') {
             this.parse.lnurlpay = Object.freeze(data)
             this.parse.data.amount = data.minSendable / 1000
-          } else if (data.kind === 'auth') {
+          } else if (data.tag === 'login') {
             this.parse.lnurlauth = Object.freeze(data)
-          } else if (data.kind === 'withdraw') {
+          } else if (data.tag === 'withdrawRequest') {
             this.parse.show = false
             this.receive.show = true
+            this.receive.lnurlWithdraw = Object.freeze(data)
             this.receive.status = 'pending'
             this.receive.paymentReq = null
             this.receive.paymentHash = null
@@ -378,8 +382,9 @@ window.WalletPageLogic = {
               data.minWithdrawable / 1000,
               data.maxWithdrawable / 1000
             ]
+            const domain = data.callback.split('/')[2]
             this.receive.lnurl = {
-              domain: data.domain,
+              domain: domain,
               callback: data.callback,
               fixed: data.fixed
             }
@@ -394,19 +399,29 @@ window.WalletPageLogic = {
       this.decodeRequest()
       this.parse.camera.show = false
     },
+    isLnurl(req) {
+      return (
+        req.toLowerCase().startsWith('lnurl1') ||
+        req.startsWith('lnurlp://') ||
+        req.startsWith('lnurlw://') ||
+        req.startsWith('lnurlauth://') ||
+        req.match(/[\w.+-~_]+@[\w.+-~_]/)
+      )
+    },
     decodeRequest() {
       this.parse.show = true
-      this.parse.data.request = this.parse.data.request.trim().toLowerCase()
-      let req = this.parse.data.request
+      this.parse.data.request = this.parse.data.request.trim()
+      const req = this.parse.data.request.toLowerCase()
       if (req.startsWith('lightning:')) {
-        this.parse.data.request = req.slice(10)
+        this.parse.data.request = this.parse.data.request.slice(10)
       } else if (req.startsWith('lnurl:')) {
-        this.parse.data.request = req.slice(6)
+        this.parse.data.request = this.parse.data.request.slice(6)
       } else if (req.includes('lightning=lnurl1')) {
-        this.parse.data.request = req.split('lightning=')[1].split('&')[0]
+        this.parse.data.request = this.parse.data.request
+          .split('lightning=')[1]
+          .split('&')[0]
       }
-      req = this.parse.data.request
-      if (req.startsWith('lnurl1') || req.match(/[\w.+-~_]+@[\w.+-~_]/)) {
+      if (this.isLnurl(this.parse.data.request)) {
         this.lnurlScan()
         return
       }
@@ -461,8 +476,14 @@ window.WalletPageLogic = {
               createdDate,
               'YYYY-MM-DDTHH:mm:ss.SSSZ'
             )
-            cleanInvoice.expireDateFrom = moment.utc(expireDate).fromNow()
-            cleanInvoice.createdDateFrom = moment.utc(createdDate).fromNow()
+            cleanInvoice.expireDateFrom = moment
+              .utc(expireDate)
+              .local()
+              .fromNow()
+            cleanInvoice.createdDateFrom = moment
+              .utc(createdDate)
+              .local()
+              .fromNow()
 
             cleanInvoice.expired = false // TODO
           }
@@ -515,96 +536,65 @@ window.WalletPageLogic = {
         })
     },
     payLnurl() {
-      const dismissPaymentMsg = Quasar.Notify.create({
-        timeout: 0,
-        message: 'Processing payment...'
-      })
       LNbits.api
-        .payLnurl(
-          this.g.wallet,
-          this.parse.lnurlpay.callback,
-          this.parse.lnurlpay.description_hash,
-          this.parse.data.amount * 1000,
-          this.parse.lnurlpay.description.slice(0, 120),
-          this.parse.data.comment,
-          this.parse.data.unit,
-          this.parse.data.internalMemo
-        )
+        .request('post', '/api/v1/payments/lnurl', this.g.wallet.adminkey, {
+          res: this.parse.lnurlpay,
+          lnurl: this.parse.data.request,
+          unit: this.parse.data.unit,
+          amount: this.parse.data.amount * 1000,
+          comment: this.parse.data.comment,
+          internalMemo: this.parse.data.internalMemo
+        })
         .then(response => {
           this.parse.show = false
-
-          clearInterval(this.parse.paymentChecker)
-          setTimeout(() => {
-            clearInterval(this.parse.paymentChecker)
-          }, 40000)
-          this.parse.paymentChecker = setInterval(() => {
-            LNbits.api
-              .getPayment(this.g.wallet, response.data.payment_hash)
-              .then(res => {
-                if (res.data.paid) {
-                  dismissPaymentMsg()
-                  clearInterval(this.parse.paymentChecker)
-                  // show lnurlpay success action
-                  const extra = response.data.extra
-                  if (extra.success_action) {
-                    switch (extra.success_action.tag) {
-                      case 'url':
-                        Quasar.Notify.create({
-                          message: `<a target="_blank" style="color: inherit" href="${extra.success_action.url}">${extra.success_action.url}</a>`,
-                          caption: extra.success_action.description,
-                          html: true,
-                          type: 'positive',
-                          timeout: 0,
-                          closeBtn: true
-                        })
-                        break
-                      case 'message':
-                        Quasar.Notify.create({
-                          message: extra.success_action.message,
-                          type: 'positive',
-                          timeout: 0,
-                          closeBtn: true
-                        })
-                        break
-                      case 'aes':
-                        LNbits.api
-                          .getPayment(this.g.wallet, response.data.payment_hash)
-                          .then(({data: payment}) =>
-                            decryptLnurlPayAES(
-                              extra.success_action,
-                              payment.preimage
-                            )
-                          )
-                          .then(value => {
-                            Quasar.Notify.create({
-                              message: value,
-                              caption: extra.success_action.description,
-                              html: true,
-                              type: 'positive',
-                              timeout: 0,
-                              closeBtn: true
-                            })
-                          })
-                        break
-                    }
-                  }
-                }
-              })
-          }, 2000)
+          if (response.data.extra.success_action) {
+            const action = JSON.parse(response.data.extra.success_action)
+            switch (action.tag) {
+              case 'url':
+                Quasar.Notify.create({
+                  message: `<a target="_blank" style="color: inherit" href="${action.url}">${action.url}</a>`,
+                  caption: action.description,
+                  html: true,
+                  type: 'positive',
+                  timeout: 0,
+                  closeBtn: true
+                })
+                break
+              case 'message':
+                Quasar.Notify.create({
+                  message: action.message,
+                  type: 'positive',
+                  timeout: 0,
+                  closeBtn: true
+                })
+                break
+              case 'aes':
+                decryptLnurlPayAES(action, response.data.preimage)
+                Quasar.Notify.create({
+                  message: value,
+                  caption: extra.success_action.description,
+                  html: true,
+                  type: 'positive',
+                  timeout: 0,
+                  closeBtn: true
+                })
+            }
+          }
         })
-        .catch(err => {
-          dismissPaymentMsg()
-          LNbits.utils.notifyApiError(err)
-        })
+        .catch(LNbits.utils.notifyApiError)
     },
     authLnurl() {
       const dismissAuthMsg = Quasar.Notify.create({
         timeout: 10,
         message: 'Performing authentication...'
       })
-
       LNbits.api
-        .authLnurl(this.g.wallet, this.parse.lnurlauth.callback)
+        .request(
+          'post',
+          '/api/v1/lnurlauth',
+          wallet.adminkey,
+          this.parse.lnurlauth
+        )
         .then(_ => {
           dismissAuthMsg()
           Quasar.Notify.create({
@@ -615,10 +605,9 @@ window.WalletPageLogic = {
           this.parse.show = false
         })
         .catch(err => {
-          dismissAuthMsg()
           if (err.response.data.reason) {
             Quasar.Notify.create({
-              message: `Authentication failed. ${this.parse.lnurlauth.domain} says:`,
+              message: `Authentication failed. ${this.parse.lnurlauth.callback} says:`,
               caption: err.response.data.reason,
               type: 'warning',
               timeout: 5000
@@ -1114,9 +1103,51 @@ window.WalletPageLogic = {
     saveChartsPreferences() {
       this.$q.localStorage.set('lnbits.wallets.chartConfig', this.chartConfig)
       this.refreshCharts()
+    },
+    updatePaylinks() {
+      LNbits.api
+        .request(
+          'PUT',
+          `/api/v1/wallet/stored_paylinks/${this.g.wallet.id}`,
+          this.g.wallet.adminkey,
+          {
+            links: this.stored_paylinks
+          }
+        )
+        .then(() => {
+          Quasar.Notify.create({
+            message: 'Paylinks updated.',
+            type: 'positive',
+            timeout: 3500
+          })
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
+    },
+    sendToPaylink(lnurl) {
+      this.parse.data.request = lnurl
+      this.parse.show = true
+      this.lnurlScan()
+    },
+    editPaylink() {
+      this.$nextTick(() => {
+        this.updatePaylinks()
+      })
+    },
+    deletePaylink(lnurl) {
+      const links = []
+      this.stored_paylinks.forEach(link => {
+        if (link.lnurl !== lnurl) {
+          links.push(link)
+        }
+      })
+      this.stored_paylinks = links
+      this.updatePaylinks()
     }
   },
   created() {
+    this.stored_paylinks = wallet.stored_paylinks.links
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
       this.parse.data.request =

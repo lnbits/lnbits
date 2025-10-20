@@ -1,159 +1,167 @@
-import asyncio
-import json
-from io import BytesIO
-from typing import Optional
-from urllib.parse import parse_qs, urlparse
+from time import time
 
-import httpx
-from fastapi import Depends
+from lnurl import (
+    LnAddress,
+    Lnurl,
+    LnurlErrorResponse,
+    LnurlPayActionResponse,
+    LnurlPayResponse,
+    LnurlResponseException,
+    LnurlSuccessResponse,
+    LnurlWithdrawResponse,
+    execute_pay_request,
+    execute_withdraw,
+    handle,
+)
 from loguru import logger
 
-from lnbits.db import Connection
-from lnbits.decorators import (
-    WalletTypeInfo,
-    require_admin_key,
-)
-from lnbits.helpers import check_callback_url, url_for
-from lnbits.lnurl import LnurlErrorResponse
-from lnbits.lnurl import decode as decode_lnurl
+from lnbits.core.crud import update_wallet
+from lnbits.core.models import CreateLnurlPayment, Wallet
+from lnbits.core.models.lnurl import StoredPayLink
+from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
+from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
-from .payments import create_invoice
 
-
-async def redeem_lnurl_withdraw(
-    wallet_id: str,
-    lnurl_request: str,
-    memo: Optional[str] = None,
-    extra: Optional[dict] = None,
-    wait_seconds: int = 0,
-    conn: Optional[Connection] = None,
-) -> None:
-    if not lnurl_request:
-        return None
-
-    res = {}
-
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers) as client:
-        lnurl = decode_lnurl(lnurl_request)
-        check_callback_url(str(lnurl))
-        r = await client.get(str(lnurl))
-        res = r.json()
-
+async def perform_withdraw(lnurl: str, payment_request: str) -> None:
+    """
+    Perform an LNURL withdraw to the given LNURL-withdraw link.
+    :param lnurl: The LNURL-withdraw link. bech32 or lud17 format.
+    :param payment_request: The BOLT11 payment request to pay.
+    :raises LnurlResponseException: If the LNURL-withdraw process fails.
+    """
+    res = await handle(lnurl, user_agent=settings.user_agent, timeout=10)
+    if isinstance(res, LnurlErrorResponse):
+        raise LnurlResponseException(res.reason)
+    if not isinstance(res, LnurlWithdrawResponse):
+        raise LnurlResponseException("Invalid LNURL-withdraw response.")
     try:
-        _, payment_request = await create_invoice(
-            wallet_id=wallet_id,
-            amount=int(res["maxWithdrawable"] / 1000),
-            memo=memo or res["defaultDescription"] or "",
-            extra=extra,
-            conn=conn,
+        check_callback_url(res.callback)
+    except ValueError as exc:
+        raise LnurlResponseException(f"Invalid callback URL: {exc!s}") from exc
+    res2 = await execute_withdraw(
+        res, payment_request, user_agent=settings.user_agent, timeout=10
+    )
+    if isinstance(res2, LnurlErrorResponse):
+        raise LnurlResponseException(res2.reason)
+    if not isinstance(res2, LnurlSuccessResponse):
+        raise LnurlResponseException("Invalid LNURL-withdraw success response.")
+
+
+async def get_pr_from_lnurl(
+    lnurl: str, amount_msat: int, comment: str | None = None
+) -> str:
+    res = await handle(lnurl, user_agent=settings.user_agent, timeout=10)
+    if isinstance(res, LnurlErrorResponse):
+        raise LnurlResponseException(res.reason)
+    if not isinstance(res, LnurlPayResponse):
+        raise LnurlResponseException(
+            "Invalid LNURL response. Expected LnurlPayResponse."
         )
-    except Exception:
-        logger.warning(
-            f"failed to create invoice on redeem_lnurl_withdraw "
-            f"from {lnurl}. params: {res}"
-        )
-        return None
-
-    if wait_seconds:
-        await asyncio.sleep(wait_seconds)
-
-    params = {"k1": res["k1"], "pr": payment_request}
-
-    try:
-        params["balanceNotify"] = url_for(
-            f"/withdraw/notify/{urlparse(lnurl_request).netloc}",
-            external=True,
-            wal=wallet_id,
-        )
-    except Exception as exc:
-        logger.debug(exc)
-
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers) as client:
-        try:
-            check_callback_url(res["callback"])
-            await client.get(res["callback"], params=params)
-        except Exception as exc:
-            logger.debug(exc)
+    res2 = await execute_pay_request(
+        res,
+        msat=amount_msat,
+        comment=comment,
+        user_agent=settings.user_agent,
+        timeout=10,
+    )
+    if isinstance(res2, LnurlErrorResponse):
+        raise LnurlResponseException(res2.reason)
+    return res2.pr
 
 
-async def perform_lnurlauth(
-    callback: str,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-) -> Optional[LnurlErrorResponse]:
-    cb = urlparse(callback)
+async def fetch_lnurl_pay_request(
+    data: CreateLnurlPayment, wallet: Wallet | None = None
+) -> tuple[LnurlPayResponse, LnurlPayActionResponse]:
+    """
+    Pay an LNURL payment request.
+    optional `wallet` is used to store the pay link in the wallet's stored links.
 
-    k1 = bytes.fromhex(parse_qs(cb.query)["k1"][0])
-
-    key = wallet.wallet.lnurlauth_key(cb.netloc)
-
-    def int_to_bytes_suitable_der(x: int) -> bytes:
-        """for strict DER we need to encode the integer with some quirks"""
-        b = x.to_bytes((x.bit_length() + 7) // 8, "big")
-
-        if len(b) == 0:
-            # ensure there's at least one byte when the int is zero
-            return bytes([0])
-
-        if b[0] & 0x80 != 0:
-            # ensure it doesn't start with a 0x80 and so it isn't
-            # interpreted as a negative number
-            return bytes([0]) + b
-
-        return b
-
-    def encode_strict_der(r: int, s: int, order: int):
-        # if s > order/2 verification will fail sometimes
-        # so we must fix it here see:
-        # https://github.com/indutny/elliptic/blob/e71b2d9359c5fe9437fbf46f1f05096de447de57/lib/elliptic/ec/index.js#L146-L147
-        if s > order // 2:
-            s = order - s
-
-        # now we do the strict DER encoding copied from
-        # https://github.com/KiriKiri/bip66 (without any checks)
-        r_temp = int_to_bytes_suitable_der(r)
-        s_temp = int_to_bytes_suitable_der(s)
-
-        r_len = len(r_temp)
-        s_len = len(s_temp)
-        sign_len = 6 + r_len + s_len
-
-        signature = BytesIO()
-        signature.write(0x30.to_bytes(1, "big", signed=False))
-        signature.write((sign_len - 2).to_bytes(1, "big", signed=False))
-        signature.write(0x02.to_bytes(1, "big", signed=False))
-        signature.write(r_len.to_bytes(1, "big", signed=False))
-        signature.write(r_temp)
-        signature.write(0x02.to_bytes(1, "big", signed=False))
-        signature.write(s_len.to_bytes(1, "big", signed=False))
-        signature.write(s_temp)
-
-        return signature.getvalue()
-
-    sig = key.sign_digest_deterministic(k1, sigencode=encode_strict_der)
-
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers) as client:
-        if not key.verifying_key:
-            raise ValueError("LNURLauth verifying_key does not exist")
-        check_callback_url(callback)
-        r = await client.get(
-            callback,
-            params={
-                "k1": k1.hex(),
-                "key": key.verifying_key.to_string("compressed").hex(),
-                "sig": sig.hex(),
-            },
-        )
-        try:
-            resp = json.loads(r.text)
-            if resp["status"] == "OK":
-                return None
-
-            return LnurlErrorResponse(reason=resp["reason"])
-        except (KeyError, json.decoder.JSONDecodeError):
-            return LnurlErrorResponse(
-                reason=r.text[:200] + "..." if len(r.text) > 200 else r.text
+    raises `LnurlResponseException` if pay request fails
+    """
+    if not data.res and data.lnurl:
+        res = await handle(data.lnurl, user_agent=settings.user_agent, timeout=5)
+        if isinstance(res, LnurlErrorResponse):
+            raise LnurlResponseException(res.reason)
+        if not isinstance(res, LnurlPayResponse):
+            raise LnurlResponseException(
+                "Invalid LNURL response. Expected LnurlPayResponse."
             )
+        data.res = res
+    if not data.res:
+        raise LnurlResponseException("No LNURL pay request provided.")
+
+    if data.unit and data.unit != "sat":
+        # shift to float with 2 decimal places
+        amount = round(data.amount / 1000, 2)
+        amount_msat = await fiat_amount_as_satoshis(amount, data.unit)
+        amount_msat *= 1000
+    else:
+        amount_msat = data.amount
+
+    res2 = await execute_pay_request(
+        data.res,
+        msat=amount_msat,
+        comment=data.comment,
+        user_agent=settings.user_agent,
+        timeout=10,
+    )
+
+    if wallet:
+        await store_paylink(data.res, res2, wallet, data.lnurl)
+
+    return data.res, res2
+
+
+async def store_paylink(
+    res: LnurlPayResponse,
+    res2: LnurlPayActionResponse,
+    wallet: Wallet,
+    lnurl: LnAddress | Lnurl | None = None,
+) -> None:
+
+    if res2.disposable is not False:
+        return  # do not store disposable LNURL pay links
+
+    logger.debug(f"storing lnurl pay link for wallet {wallet.id}. ")
+
+    stored_paylink = None
+    # If we have only a LnurlPayResponse, we can use its lnaddress
+    # because the lnurl is not available.
+    if not lnurl:
+        for _data in res.metadata.list():
+            if _data[0] == "text/identifier":
+                stored_paylink = StoredPayLink(
+                    lnurl=LnAddress(_data[1]), label=res.metadata.text
+                )
+        if not stored_paylink:
+            logger.warning(
+                "No lnaddress found in metadata for LNURL pay link. "
+                "Skipping storage."
+            )
+            return  # skip if lnaddress not found in metadata
+    else:
+        if isinstance(lnurl, Lnurl):
+            _lnurl = str(lnurl.lud17 or lnurl.bech32)
+        else:
+            _lnurl = str(lnurl)
+        stored_paylink = StoredPayLink(lnurl=_lnurl, label=res.metadata.text)
+
+    # update last_used if its already stored
+    for pl in wallet.stored_paylinks.links:
+        if pl.lnurl == stored_paylink.lnurl:
+            pl.last_used = int(time())
+            await update_wallet(wallet)
+            logger.debug(
+                "Updated last used time for LNURL "
+                f"pay link {stored_paylink.lnurl} in wallet {wallet.id}."
+            )
+            return
+
+    # if not already stored, append it
+    if not any(stored_paylink.lnurl == pl.lnurl for pl in wallet.stored_paylinks.links):
+        wallet.stored_paylinks.links.append(stored_paylink)
+        await update_wallet(wallet)
+        logger.debug(
+            f"Stored LNURL pay link {stored_paylink.lnurl} for wallet {wallet.id}."
+        )

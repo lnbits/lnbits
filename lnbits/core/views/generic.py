@@ -1,5 +1,7 @@
+from hashlib import sha256
 from http import HTTPStatus
-from typing import Annotated, Optional, Union
+from pathlib import Path
+from typing import Annotated
 from urllib.parse import urlencode, urlparse
 
 import httpx
@@ -7,7 +9,7 @@ from fastapi import Cookie, Depends, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.routing import APIRouter
-from lnurl import decode as lnurl_decode
+from lnurl import url_decode
 from pydantic.types import UUID4
 
 from lnbits.core.helpers import to_valid_user_id
@@ -43,6 +45,96 @@ async def favicon():
 async def home(request: Request, lightning: str = ""):
     return template_renderer().TemplateResponse(
         request, "core/index.html", {"lnurl": lightning}
+    )
+
+
+@generic_router.get(
+    "/account",
+    response_class=HTMLResponse,
+    description="show account page",
+)
+async def account(
+    request: Request,
+    user: User = Depends(check_user_exists),
+):
+    nostr_configured = settings.is_nostr_notifications_configured()
+    telegram_configured = settings.is_telegram_notifications_configured()
+    return template_renderer().TemplateResponse(
+        request,
+        "core/account.html",
+        {
+            "user": user.json(),
+            "nostr_configured": nostr_configured,
+            "telegram_configured": telegram_configured,
+            "ajax": _is_ajax_request(request),
+        },
+    )
+
+
+@generic_router.get(
+    "/wallet",
+    response_class=HTMLResponse,
+    description="show wallet page",
+)
+async def get_user_wallet(
+    request: Request,
+    lnbits_last_active_wallet: Annotated[str | None, Cookie()] = None,
+    user: User = Depends(check_user_exists),
+    wal: UUID4 | None = Query(None),
+):
+    if wal:
+        wallet = await get_wallet(wal.hex)
+    elif len(user.wallets) == 0:
+        wallet = await create_wallet(user_id=user.id)
+        user.wallets.append(wallet)
+    elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
+        wallet = await get_wallet(lnbits_last_active_wallet)
+    else:
+        wallet = user.wallets[0]
+
+    if not wallet or wallet.deleted:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Wallet not found",
+        )
+    if wallet.user != user.id:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Not your wallet.",
+        )
+    context = {
+        "user": user.json(),
+        "wallet": wallet.json(),
+        "wallet_name": wallet.name,
+        "currencies": allowed_currencies(),
+        "service_fee": settings.lnbits_service_fee,
+        "service_fee_max": settings.lnbits_service_fee_max,
+        "web_manifest": f"/manifest/{user.id}.webmanifest",
+    }
+
+    return template_renderer().TemplateResponse(
+        request,
+        "core/wallet.html",
+        {**context, "ajax": _is_ajax_request(request)},
+    )
+
+
+@generic_router.get(
+    "/wallets",
+    response_class=HTMLResponse,
+    description="show wallets page",
+)
+async def wallets(
+    request: Request,
+    user: User = Depends(check_user_exists),
+):
+    return template_renderer().TemplateResponse(
+        request,
+        "core/wallets.html",
+        {
+            "user": user.json(),
+            "ajax": _is_ajax_request(request),
+        },
     )
 
 
@@ -124,6 +216,9 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
                 if ext.meta and ext.meta.latest_release
                 else None
             ),
+            "hasPaidRelease": ext.meta.has_paid_release if ext.meta else False,
+            "hasFreeRelease": ext.meta.has_free_release if ext.meta else False,
+            "paidFeatures": ext.meta.paid_features if ext.meta else False,
             "installedRelease": (
                 dict(ext.meta.installed_release)
                 if ext.meta and ext.meta.installed_release
@@ -149,66 +244,25 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
         {
             "user": user.json(),
             "extension_data": extension_data,
+            "extension_builder_enabled": user.admin
+            or settings.lnbits_extensions_builder_activate_non_admins,
             "ajax": _is_ajax_request(request),
         },
     )
 
 
 @generic_router.get(
-    "/wallet",
-    response_class=HTMLResponse,
-    description="show wallet page",
+    "/extensions/builder", name="extensions builder", response_class=HTMLResponse
 )
-async def wallet(
-    request: Request,
-    lnbits_last_active_wallet: Annotated[Union[str, None], Cookie()] = None,
-    user: User = Depends(check_user_exists),
-    wal: Optional[UUID4] = Query(None),
-):
-    if wal:
-        wallet = await get_wallet(wal.hex)
-    elif len(user.wallets) == 0:
-        wallet = await create_wallet(user_id=user.id)
-        user.wallets.append(wallet)
-    elif lnbits_last_active_wallet and user.get_wallet(lnbits_last_active_wallet):
-        wallet = await get_wallet(lnbits_last_active_wallet)
-    else:
-        wallet = user.wallets[0]
-
-    if not wallet or wallet.deleted:
+async def extensions_builder(request: Request, user: User = Depends(check_user_exists)):
+    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Wallet not found",
+            HTTPStatus.FORBIDDEN,
+            "Extension Builder is disabled for non admin users.",
         )
-    context = {
-        "user": user.json(),
-        "wallet": wallet.json(),
-        "wallet_name": wallet.name,
-        "currencies": allowed_currencies(),
-        "service_fee": settings.lnbits_service_fee,
-        "service_fee_max": settings.lnbits_service_fee_max,
-        "web_manifest": f"/manifest/{user.id}.webmanifest",
-    }
-
     return template_renderer().TemplateResponse(
         request,
-        "core/wallet.html",
-        {**context, "ajax": _is_ajax_request(request)},
-    )
-
-
-@generic_router.get(
-    "/account",
-    response_class=HTMLResponse,
-    description="show account page",
-)
-async def account(
-    request: Request,
-    user: User = Depends(check_user_exists),
-):
-    return template_renderer().TemplateResponse(
-        request,
-        "core/account.html",
+        "core/extensions_builder.html",
         {
             "user": user.json(),
             "ajax": _is_ajax_request(request),
@@ -217,22 +271,66 @@ async def account(
 
 
 @generic_router.get(
-    "/wallets",
+    "/extensions/builder/preview/{ext_id}",
+    name="extensions builder",
     response_class=HTMLResponse,
-    description="show wallets page",
 )
-async def wallets(
+async def extensions_builder_preview(
     request: Request,
+    ext_id: str,
+    page_name: str | None = None,
     user: User = Depends(check_user_exists),
 ):
-    return template_renderer().TemplateResponse(
+    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Extension Builder is disabled for non admin users.",
+        )
+    working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
+    html_file_name = "index.html"
+    if page_name == "public_page":
+        html_file_name = "public_page.html"
+
+    html_file_path = Path(
+        "extension_builder_stub",
+        ext_id,
+        working_dir_name,
+        ext_id,
+        "templates",
+        ext_id,
+        html_file_name,
+    )
+
+    html_file_full_path = Path(
+        settings.extension_builder_working_dir_path, html_file_path
+    )
+
+    if not html_file_full_path.is_file():
+        return template_renderer().TemplateResponse(
+            request,
+            "error.html",
+            {
+                "err": f"Extension {ext_id} not found",
+                "message": "Please 'Refresh Preview' first.",
+            },
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+
+    response = template_renderer().TemplateResponse(
         request,
-        "core/wallets.html",
+        html_file_path.as_posix(),
         {
             "user": user.json(),
             "ajax": _is_ajax_request(request),
         },
     )
+
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    )
+    return response
 
 
 @generic_router.get("/service-worker.js")
@@ -341,7 +439,6 @@ async def node(request: Request, user: User = Depends(check_admin)):
         "node/index.html",
         {
             "user": user.json(),
-            "settings": settings.dict(),
             "balance": balance,
             "wallets": user.wallets[0].json(),
             "ajax": _is_ajax_request(request),
@@ -361,7 +458,6 @@ async def node_public(request: Request):
         request,
         "node/public.html",
         {
-            "settings": settings.dict(),
             "balance": balance,
         },
     )
@@ -380,7 +476,6 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
         "admin/index.html",
         {
             "user": user.json(),
-            "settings": settings.dict(),
             "balance": balance,
             "currencies": list(currencies.keys()),
             "ajax": _is_ajax_request(request),
@@ -398,7 +493,6 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
         {
             "request": request,
             "user": user.json(),
-            "settings": settings.dict(),
             "currencies": list(currencies.keys()),
             "ajax": _is_ajax_request(request),
         },
@@ -456,7 +550,7 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     if not settings.lnbits_allow_new_accounts:
         return {"status": "ERROR", "reason": "New accounts are not allowed."}
 
-    lnurl = lnurl_decode(lightning)
+    lnurl = url_decode(lightning)
 
     async with httpx.AsyncClient() as client:
         check_callback_url(lnurl)

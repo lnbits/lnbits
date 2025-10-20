@@ -1,13 +1,8 @@
 import asyncio
-import time
 from datetime import datetime, timezone
 import traceback
 import uuid
-from collections.abc import Coroutine
-from typing import (
-    Callable,
-    Optional,
-)
+from collections.abc import Callable, Coroutine
 
 from bolt11 import Bolt11, Tags
 from bolt11 import encode as bolt11_encode
@@ -93,7 +88,7 @@ invoice_listeners: dict[str, asyncio.Queue] = {}
 
 # TODO: name should not be optional
 # some extensions still dont use a name, but they should
-def register_invoice_listener(send_chan: asyncio.Queue, name: Optional[str] = None):
+def register_invoice_listener(send_chan: asyncio.Queue, name: str | None = None):
     """
     A method intended for extensions (and core/tasks.py) to call when they want to be
     notified about new invoice payments incoming. Will emit all incoming payments.

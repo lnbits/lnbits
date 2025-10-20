@@ -35,7 +35,7 @@ def main(
     ssl_certfile: str,
     reload: bool,
 ):
-    """Launched with `poetry run lnbits` at root level"""
+    """Launched with `uv run lnbits` at root level"""
 
     # create data dir if it does not exist
     Path(settings.lnbits_data_folder).mkdir(parents=True, exist_ok=True)

@@ -370,7 +370,12 @@
       v-if="extras.length"
     >
       <template v-for="entry in extras">
-        <q-item v-if="!!entry.value" key="entry.key" class="text-grey-4">
+        <q-item
+          v-if="!!entry.value"
+          key="entry.key"
+          class="text-grey-4"
+          style="white-space: normal; word-break: break-all"
+        >
           <q-item-section>
             <q-item-label v-text="entry.key"></q-item-label>
             <q-item-label caption v-text="entry.value"></q-item-label>
@@ -612,21 +617,82 @@
 </template>
 
 <template id="lnbits-qrcode">
-  <div class="qrcode__wrapper">
-    <qrcode-vue
-      :value="value"
-      level="Q"
-      render-as="svg"
-      :margin="custom.margin"
-      :size="custom.width"
-      class="rounded-borders"
-    ></qrcode-vue>
-    <img
-      v-if="custom.logo"
-      class="qrcode__image"
-      :src="custom.logo"
-      alt="qrcode icon"
-    />
+  <div
+    class="qrcode__outer"
+    :style="`margin: 13px auto; max-width: ${maxWidth}px`"
+  >
+    <div ref="qrWrapper" class="qrcode__wrapper">
+      <a
+        :href="href"
+        :title="href === '' ? value : href"
+        @click="clickQrCode"
+        class="no-link full-width"
+      >
+        <qrcode-vue
+          ref="qrCode"
+          :value="value"
+          :margin="margin"
+          :size="size"
+          level="Q"
+          render-as="svg"
+          class="rounded-borders q-mb-sm"
+        >
+          <q-tooltip :model-value="href === '' ? value : href"></q-tooltip>
+        </qrcode-vue>
+      </a>
+      <img
+        :src="logo"
+        class="qrcode__image"
+        alt="qrcode icon"
+        style="pointer-events: none"
+      />
+    </div>
+    <div
+      v-if="showButtons"
+      class="qrcode__buttons row q-gutter-x-sm items-center justify-end no-wrap full-width"
+    >
+      <q-btn
+        v-if="nfc && nfcSupported"
+        :disabled="nfcTagWriting"
+        flat
+        dense
+        class="text-grey"
+        icon="nfc"
+        @click="writeNfcTag"
+      >
+        <q-tooltip>Write NFC Tag</q-tooltip>
+      </q-btn>
+      <q-btn flat dense class="text-grey" icon="download" @click="downloadSVG">
+        <q-tooltip>Download SVG</q-tooltip>
+      </q-btn>
+      <q-btn
+        flat
+        dense
+        class="text-grey"
+        @click="copyText(value)"
+        icon="content_copy"
+      >
+        <q-tooltip>Copy</q-tooltip>
+      </q-btn>
+    </div>
+  </div>
+</template>
+
+<template id="lnbits-qrcode-lnurl">
+  <div class="qrcode_lnurl__wrapper">
+    <q-tabs
+      v-model="tab"
+      dense
+      class="text-grey"
+      active-color="primary"
+      indicator-color="primary"
+      align="justify"
+      inline-label
+    >
+      <q-tab name="bech32" icon="qr_code" label="bech32"></q-tab>
+      <q-tab name="lud17" icon="link" label="url (lud17)"></q-tab>
+    </q-tabs>
+    <lnbits-qrcode :value="lnurl" nfc="true"></lnbits-qrcode>
   </div>
 </template>
 
@@ -1020,42 +1086,22 @@
 
               <div
                 v-if="props.row.isIn && props.row.isPending && props.row.bolt11"
-                class="text-center q-my-lg"
               >
                 <div v-if="props.row.extra.fiat_payment_request">
-                  <a
+                  <lnbits-qrcode
+                    :value="props.row.extra.fiat_payment_request"
                     :href="props.row.extra.fiat_payment_request"
-                    target="_blank"
-                  >
-                    <lnbits-qrcode
-                      :value="props.row.extra.fiat_payment_request"
-                    ></lnbits-qrcode>
-                  </a>
+                    :show-buttons="false"
+                  ></lnbits-qrcode>
                 </div>
                 <div v-else>
-                  <a :href="'lightning:' + props.row.bolt11">
-                    <lnbits-qrcode
-                      :value="'lightning:' + props.row.bolt11.toUpperCase()"
-                    ></lnbits-qrcode>
-                  </a>
+                  <lnbits-qrcode
+                    :value="'lightning:' + props.row.bolt11.toUpperCase()"
+                    :href="'lightning:' + props.row.bolt11"
+                  ></lnbits-qrcode>
                 </div>
               </div>
-            </q-card-section>
-            <q-card-section>
-              <div class="row q-gutter-x-sm">
-                <q-btn
-                  v-if="
-                    props.row.isIn && props.row.isPending && props.row.bolt11
-                  "
-                  outline
-                  color="grey"
-                  @click="
-                    copyText(
-                      props.row.extra.fiat_payment_request || props.row.bolt11
-                    )
-                  "
-                  :label="$t('copy_invoice')"
-                ></q-btn>
+              <div class="row q-mt-md">
                 <q-btn
                   outline
                   color="grey"
@@ -1172,9 +1218,13 @@
           :endpoint="endpoint"
         >
           <template v-slot:actions>
-            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-              >Close</q-btn
-            >
+            <q-btn
+              v-close-popup
+              flat
+              color="grey"
+              class="q-ml-auto"
+              :label="$t('close')"
+            ></q-btn>
           </template>
         </lnbits-extension-settings-form>
       </q-card>
@@ -1258,10 +1308,10 @@
     <q-dialog v-model="showQRDialog">
       <q-card class="q-pa-md">
         <q-card-section>
-          <lnbits-qrcode :value="qrValue" :size="200"></lnbits-qrcode>
+          <lnbits-qrcode :value="qrValue"></lnbits-qrcode>
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Close" v-close-popup />
+          <q-btn flat :label="$t('close')" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -1619,4 +1669,190 @@
     </div>
     <q-separator class="col q-ml-sm"></q-separator>
   </div>
+</template>
+
+<template id="lnbits-data-fields">
+  <q-table
+    :rows="fields"
+    row-key="name"
+    :columns="fieldsTable.columns"
+    v-model:pagination="fieldsTable.pagination"
+  >
+    <template v-slot:bottom-row>
+      <q-tr>
+        <q-td auto-width></q-td>
+        <q-td colspan="100%">
+          <q-btn
+            @click="addField"
+            icon="add"
+            size="sm"
+            color="primary"
+            class="q-ml-xs"
+            :label="$t('add_field')"
+          />
+        </q-td>
+      </q-tr>
+    </template>
+
+    <template v-slot:header="props">
+      <q-tr :props="props">
+        <q-th auto-width></q-th>
+        <q-th v-for="col in props.cols" :key="col.name" :props="props">
+          <span v-text="col.label"></span>
+          <q-icon
+            v-if="col.name == 'optional'"
+            name="info"
+            size="xs"
+            color="primary"
+            class="cursor-pointer q-ml-xs q-mb-xs"
+          >
+            <q-tooltip>
+              <ul>
+                <li>
+                  The field is optional. The field can be left blank by the
+                  user.
+                </li>
+                <li>
+                  The UI form will not require this field to be filled out.
+                </li>
+                <li>The DB table will allow NULL values for this field.</li>
+                <li>Non optional fields must be filled out.</li>
+              </ul>
+            </q-tooltip>
+          </q-icon>
+          <q-icon
+            v-else-if="col.name == 'editable'"
+            name="info"
+            size="xs"
+            color="primary"
+            class="cursor-pointer q-ml-xs q-mb-xs"
+          >
+            <q-tooltip>
+              <ul>
+                <li>The UI form will allow the field to be edited.</li>
+              </ul>
+            </q-tooltip>
+          </q-icon>
+          <q-icon
+            v-else-if="col.name == 'sortable'"
+            name="info"
+            size="xs"
+            color="primary"
+            class="cursor-pointer q-ml-xs q-mb-xs"
+          >
+            <q-tooltip>
+              <ul>
+                <li>In the UI Table a column will be created for the field.</li>
+                <li>The UI Table column will be sortable.</li>
+              </ul>
+            </q-tooltip>
+          </q-icon>
+          <q-icon
+            v-else-if="col.name == 'searchable'"
+            name="info"
+            size="xs"
+            color="primary"
+            class="cursor-pointer q-ml-xs q-mb-xs"
+          >
+            <q-tooltip>
+              <ul>
+                <li>
+                  The free text search will include this field when searching.
+                </li>
+              </ul>
+            </q-tooltip>
+          </q-icon>
+        </q-th>
+      </q-tr>
+    </template>
+    <template v-slot:body="props">
+      <q-tr :props="props">
+        <q-td>
+          <q-btn
+            v-if="props.row.readonly !== true"
+            @click="removeField(props.row)"
+            round
+            icon="delete"
+            size="sm"
+            color="negative"
+            class="q-ml-xs"
+          >
+          </q-btn>
+        </q-td>
+        <q-td full-width>
+          <q-input
+            dense
+            filled
+            v-model="props.row.name"
+            :readonly="props.row.readonly === true"
+            type="text"
+          >
+          </q-input>
+        </q-td>
+        <q-td>
+          <q-select
+            filled
+            dense
+            emit-value
+            map-options
+            v-model="props.row.type"
+            :options="fieldTypes"
+            :readonly="props.row.readonly === true"
+          ></q-select>
+        </q-td>
+        <q-td>
+          <q-input dense filled v-model="props.row.label" type="text">
+          </q-input>
+        </q-td>
+        <q-td>
+          <q-input dense filled v-model="props.row.hint" type="text"> </q-input>
+        </q-td>
+        <q-td>
+          <q-toggle
+            v-model="props.row.optional"
+            :readonly="props.row.readonly === true"
+            size="md"
+            color="green"
+          />
+        </q-td>
+        <q-td v-if="!hideAdvanced">
+          <q-toggle
+            v-if="props.row.type !== 'json'"
+            :readonly="props.row.readonly === true"
+            v-model="props.row.editable"
+            size="md"
+            color="green"
+          />
+        </q-td>
+        <q-td v-if="!hideAdvanced">
+          <q-toggle
+            v-if="props.row.type !== 'json'"
+            :readonly="props.row.readonly === true"
+            v-model="props.row.sortable"
+            size="md"
+            color="green"
+          />
+        </q-td>
+        <q-td v-if="!hideAdvanced">
+          <q-toggle
+            v-if="props.row.type !== 'json'"
+            :readonly="props.row.readonly === true"
+            v-model="props.row.searchable"
+            size="md"
+            color="green"
+          />
+        </q-td>
+      </q-tr>
+      <q-tr v-if="props.row.type === 'json'" :props="props">
+        <q-td></q-td>
+        <q-td></q-td>
+        <q-td colspan="100%">
+          <lnbits-data-fields
+            :fields="props.row.fields"
+            :hide-advanced="true"
+          ></lnbits-data-fields>
+        </q-td>
+      </q-tr>
+    </template>
+  </q-table>
 </template>

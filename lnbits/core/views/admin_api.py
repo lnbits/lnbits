@@ -5,7 +5,7 @@ from pathlib import Path
 from shutil import make_archive, move
 from subprocess import Popen
 from tempfile import NamedTemporaryFile
-from typing import IO, Optional
+from typing import IO
 from urllib.parse import urlparse
 
 import filetype
@@ -16,7 +16,7 @@ from lnbits.core.models import User
 from lnbits.core.models.misc import Image, SimpleStatus
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services import (
-    enqueue_notification,
+    enqueue_admin_notification,
     get_balance_delta,
     update_cached_settings,
 )
@@ -65,14 +65,16 @@ async def api_monitor():
 )
 async def api_test_email():
     return await send_email_notification(
-        "This is a LNbits test email.", "LNbits Test Email"
+        settings.lnbits_email_notifications_to_emails,
+        "This is a LNbits test email.",
+        "LNbits Test Email",
     )
 
 
-@admin_router.get("/api/v1/settings", response_model=Optional[AdminSettings])
+@admin_router.get("/api/v1/settings")
 async def api_get_settings(
     user: User = Depends(check_admin),
-) -> Optional[AdminSettings]:
+) -> AdminSettings | None:
     admin_settings = await get_admin_settings(user.super_user)
     return admin_settings
 
@@ -82,7 +84,9 @@ async def api_get_settings(
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings(data: UpdateSettings, user: User = Depends(check_admin)):
-    enqueue_notification(NotificationType.settings_update, {"username": user.username})
+    enqueue_admin_notification(
+        NotificationType.settings_update, {"username": user.username}
+    )
     await update_admin_settings(data)
     admin_settings = await get_admin_settings(user.super_user)
     if not admin_settings:
@@ -113,7 +117,9 @@ async def api_reset_settings(field_name: str):
 
 @admin_router.delete("/api/v1/settings", status_code=HTTPStatus.OK)
 async def api_delete_settings(user: User = Depends(check_super_user)) -> None:
-    enqueue_notification(NotificationType.settings_update, {"username": user.username})
+    enqueue_admin_notification(
+        NotificationType.settings_update, {"username": user.username}
+    )
     await reset_core_settings()
     server_restart.set()
 
@@ -141,7 +147,7 @@ async def api_download_backup() -> FileResponse:
     pg_backup_filename = f"{settings.lnbits_data_folder}/lnbits-database.dmp"
     is_pg = db_url and db_url.startswith("postgres://")
 
-    if is_pg:
+    if is_pg and db_url:
         p = urlparse(db_url)
         command = (
             f"pg_dump --host={p.hostname} "

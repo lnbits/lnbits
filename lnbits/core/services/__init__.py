@@ -2,8 +2,8 @@ from .funding_source import (
     get_balance_delta,
     switch_to_voidwallet,
 )
-from .lnurl import perform_lnurlauth, redeem_lnurl_withdraw
-from .notifications import enqueue_notification, send_payment_notification
+from .lnurl import fetch_lnurl_pay_request, get_pr_from_lnurl, perform_withdraw
+from .notifications import enqueue_admin_notification, send_payment_notification
 from .payments import (
     calculate_fiat_amounts,
     cancel_hold_invoice,
@@ -53,14 +53,15 @@ __all__ = [
     "create_user_account",
     "create_user_account_no_ckeck",
     "create_wallet_invoice",
-    "enqueue_notification",
+    "enqueue_admin_notification",
     "fee_reserve",
     "fee_reserve_total",
+    "fetch_lnurl_pay_request",
     "get_balance_delta",
     "get_payments_daily_stats",
+    "get_pr_from_lnurl",
     "pay_invoice",
-    "perform_lnurlauth",
-    "redeem_lnurl_withdraw",
+    "perform_withdraw",
     "send_payment_notification",
     "service_fee",
     "settle_hold_invoice",

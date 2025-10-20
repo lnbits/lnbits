@@ -1,14 +1,15 @@
 window.LNbits = {
   g: window.g,
   api: {
-    request(method, url, apiKey, data) {
+    request(method, url, apiKey, data, options = {}) {
       return axios({
         method: method,
         url: url,
         headers: {
           'X-Api-Key': apiKey
         },
-        data: data
+        data: data,
+        ...options
       })
     },
     getServerHealth() {
@@ -19,7 +20,7 @@ window.LNbits = {
       amount,
       memo,
       unit = 'sat',
-      lnurlCallback = null,
+      lnurlWithdraw = null,
       fiatProvider = null,
       internalMemo = null,
       payment_hash = null
@@ -29,7 +30,7 @@ window.LNbits = {
         amount: amount,
         memo: memo,
         unit: unit,
-        lnurl_callback: lnurlCallback,
+        lnurl_withdraw: lnurlWithdraw,
         fiat_provider: fiatProvider,
         payment_hash: payment_hash
       }
@@ -52,36 +53,6 @@ window.LNbits = {
       }
       return this.request('post', '/api/v1/payments', wallet.adminkey, data)
     },
-    payLnurl(
-      wallet,
-      callback,
-      description_hash,
-      amount,
-      description = '',
-      comment = '',
-      unit = '',
-      internalMemo = null
-    ) {
-      const data = {
-        callback,
-        description_hash,
-        amount,
-        comment,
-        description,
-        unit
-      }
-
-      if (internalMemo) {
-        data.internal_memo = String(internalMemo)
-      }
-
-      return this.request(
-        'post',
-        '/api/v1/payments/lnurl',
-        wallet.adminkey,
-        data
-      )
-    },
     cancelInvoice(wallet, paymentHash) {
       return this.request('post', '/api/v1/payments/cancel', wallet.adminkey, {
         payment_hash: paymentHash
@@ -90,11 +61,6 @@ window.LNbits = {
     settleInvoice(wallet, preimage) {
       return this.request('post', `/api/v1/payments/settle`, wallet.adminkey, {
         preimage: preimage
-      })
-    },
-    authLnurl(wallet, callback) {
-      return this.request('post', '/api/v1/lnurlauth', wallet.adminkey, {
-        callback
       })
     },
     createAccount(name) {
@@ -301,10 +267,10 @@ window.LNbits = {
       }
 
       obj.date = moment.utc(data.created_at).local().format(window.dateFormat)
-      obj.dateFrom = moment.utc(data.created_at).fromNow()
+      obj.dateFrom = moment.utc(data.created_at).local().fromNow()
 
       obj.expirydate = moment.utc(obj.expiry).local().format(window.dateFormat)
-      obj.expirydateFrom = moment.utc(obj.expiry).fromNow()
+      obj.expirydateFrom = moment.utc(obj.expiry).local().fromNow()
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
       obj.tag = obj.extra?.tag
@@ -650,6 +616,7 @@ window.windowMixin = {
       }
     },
     applyBackgroundImage() {
+      if (this.bgimageChoice == 'null') this.bgimageChoice = ''
       if (this.bgimageChoice == '') {
         document.body.classList.remove('bg-image')
       } else {

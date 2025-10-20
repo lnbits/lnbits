@@ -24,6 +24,7 @@
               v-text="$t('only_admins_can_install')"
             ></i>
             <q-space></q-space>
+
             <q-input
               :label="$t('search_extensions')"
               :dense="dense"
@@ -53,6 +54,18 @@
                 v-text="$t('new_version') + ` (${updatableExtensions?.length})`"
               ></span>
             </q-badge>
+            {% if extension_builder_enabled %}
+            <q-btn flat no-caps icon="architecture" to="/extensions/builder"
+              ><span v-text="$t('create_extension')"></span
+            ></q-btn>
+            {% else %}
+            <q-btn disabled flat no-caps icon="architecture"
+              ><span v-text="$t('create_extension')"></span>
+              <q-tooltip
+                v-text="$t('only_admins_can_create_extensions')"
+              ></q-tooltip>
+            </q-btn>
+            {% endif %}
             <q-btn
               v-if="g.user.admin"
               flat
@@ -124,8 +137,40 @@
               @click="showExtensionDetails(extension.id, extension.details_link)"
               v-text="extension.name"
             ></div>
-            <div>
+            <div style="justify-content: space-between; display: flex">
               <lnbits-extension-rating :rating="0" />
+              <q-btn-group size="xs" style="margin: 5px 0">
+                <q-btn
+                  v-if="extension.hasFreeRelease"
+                  color="green"
+                  size="xs"
+                  :label="$t('free')"
+                >
+                  <q-tooltip>
+                    <span v-text="$t('extension_has_free_release')"></span>
+                  </q-tooltip>
+                </q-btn>
+                <q-btn
+                  v-if="extension.hasPaidRelease || extension.paidFeatures"
+                  color="primary"
+                  size="xs"
+                  :label="$t('paid')"
+                >
+                  <q-tooltip>
+                    <span
+                      v-if="extension.hasPaidRelease"
+                      v-text="$t('extension_has_paid_release')"
+                    ></span>
+                    <br
+                      v-if="extension.hasPaidRelease && extension.paidFeatures"
+                    />
+                    <span
+                      v-if="extension.paidFeatures"
+                      v-text="extension.paidFeatures"
+                    ></span>
+                  </q-tooltip>
+                </q-btn>
+              </q-btn-group>
             </div>
             <div style="justify-content: space-between; display: flex">
               <q-toggle
@@ -328,13 +373,10 @@
   <q-card v-if="selectedRelease" class="q-pa-lg lnbits__dialog-card">
     <q-card-section>
       <div v-if="selectedRelease.paymentRequest">
-        <a :href="'lightning:' + selectedRelease.paymentRequest">
-          <q-responsive :ratio="1" class="q-mx-xl">
-            <lnbits-qrcode
-              :value="'lightning:' + selectedRelease.paymentRequest.toUpperCase()"
-            ></lnbits-qrcode>
-          </q-responsive>
-        </a>
+        <lnbits-qrcode
+          :value="'lightning:' + selectedRelease.paymentRequest.toUpperCase()"
+          :href="'lightning:' + selectedRelease.paymentRequest"
+        ></lnbits-qrcode>
       </div>
       <div v-else>
         <q-spinner-bars color="primary" size="2.55em"></q-spinner-bars>
@@ -702,13 +744,10 @@
     <q-card-section v-if="selectedExtension.payToEnable.showQRCode">
       <div class="row q-mt-lg">
         <div v-if="selectedExtension.payToEnable.paymentRequest" class="col">
-          <a
+          <lnbits-qrcode
+            :value="'lightning:' + selectedExtension.payToEnable.paymentRequest.toUpperCase()"
             :href="'lightning:' + selectedExtension.payToEnable.paymentRequest"
-          >
-            <lnbits-qrcode
-              :value="'lightning:' + selectedExtension.payToEnable.paymentRequest.toUpperCase()"
-            ></lnbits-qrcode>
-          </a>
+          ></lnbits-qrcode>
         </div>
         <div v-else class="col">
           <q-spinner-bars color="primary" size="2.55em"></q-spinner-bars>
@@ -909,7 +948,6 @@
                 :href="selectedExtensionDetails.repo"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="q-pr-xs"
                 ><q-tooltip>repository</q-tooltip></q-btn
               >
             </div>

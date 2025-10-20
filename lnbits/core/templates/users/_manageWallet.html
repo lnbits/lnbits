@@ -116,19 +116,6 @@
             >
               <q-tooltip>Delete Wallet</q-tooltip>
             </q-btn>
-          </q-td>
-          <q-td auto-width>
-            <q-btn
-              icon="link"
-              size="sm"
-              flat
-              class="cursor-pointer q-mr-xs"
-              @click="copyWalletLink(props.row.id)"
-            >
-              <q-tooltip>Copy Wallet Link</q-tooltip>
-            </q-btn>
-
-            <span v-text="props.row.name"></span>
             <q-btn
               round
               v-if="props.row.deleted"
@@ -140,6 +127,42 @@
             >
               <q-tooltip>Undelete Wallet</q-tooltip>
             </q-btn>
+            <q-btn
+              icon="link"
+              size="sm"
+              flat
+              class="cursor-pointer q-mr-xs"
+              @click="copyWalletLink(props.row.id)"
+            >
+              <q-tooltip>Copy Wallet Link</q-tooltip>
+            </q-btn>
+          </q-td>
+          <q-td auto-width>
+            <span
+              v-text="props.row.name"
+              v-if="!props.row.editable"
+              :class="props.row.deleted ? 'text-strike' : 'cursor-pointer'"
+              @click="props.row.editable = true && !props.row.deleted"
+            ></span>
+            <q-input
+              v-else
+              @keydown.enter="updateWallet(props.row)"
+              v-model="props.row.name"
+              size="xs"
+              flat
+              dense
+            >
+              <template v-slot:append>
+                <q-btn
+                  @click="updateWallet(props.row)"
+                  round
+                  dense
+                  size="xs"
+                  flat
+                  icon="send"
+                />
+              </template>
+            </q-input>
           </q-td>
           <q-td auto-width>
             <q-btn

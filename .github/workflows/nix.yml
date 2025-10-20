@@ -14,18 +14,17 @@ on:
       - 'flake.nix'
       - 'flake.lock'
       - 'pyproject.toml'
-      - 'poetry.lock'
+      - 'uv.lock'
       - '.github/workflows/nix.yml'
   pull_request:
     paths:
       - 'flake.nix'
       - 'flake.lock'
       - 'pyproject.toml'
-      - 'poetry.lock'
+      - 'uv.lock'
 
 jobs:
   nix:
-    if: false # temporarly disable nix support until the `poetry2nix` issue is resolved
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

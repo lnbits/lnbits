@@ -103,10 +103,10 @@
               <q-card-section>
                 <span v-text="$t('webhook_events_list')"></span>
                 <ul>
-                  <li><code>checkout.session.async_payment_failed</code></li>
-                  <li><code>checkout.session.async_payment_succeeded</code></li>
                   <li><code>checkout.session.completed</code></li>
-                  <li><code>checkout.session.expired</code></li>
+                  - the user completed the checkout process
+                  <li><code>invoice.paid</code></li>
+                  - the invoice was successfully paid (for subscriptions)
                 </ul>
               </q-card-section>
             </q-expansion-item>

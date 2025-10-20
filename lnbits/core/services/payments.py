@@ -3,12 +3,13 @@ import json
 import time
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 import httpx
 from bolt11 import Bolt11, MilliSatoshi, Tags
 from bolt11 import decode as bolt11_decode
 from bolt11 import encode as bolt11_encode
+from lnurl import LnurlErrorResponse, LnurlSuccessResponse
+from lnurl import execute_withdraw as lnurl_withdraw
 from loguru import logger
 
 from lnbits.core.crud.payments import get_daily_stats
@@ -271,11 +272,11 @@ async def pay_invoice(
     *,
     wallet_id: str,
     payment_request: str,
-    max_sat: Optional[int] = None,
-    extra: Optional[dict] = None,
+    max_sat: int | None = None,
+    extra: dict | None = None,
     description: str = "",
     tag: str = "",
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> Payment:
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
@@ -306,12 +307,140 @@ async def pay_invoice(
 
     payment = await _pay_invoice(wallet.id, payment_request, create_payment_model, conn)
 
-    service_fee_memo = f"""
-        Service fee for payment of {abs(payment.sat)} sats.
-        Wallet: '{wallet.name}' ({wallet.id})."""
-
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
-        await _credit_service_fee_wallet(payment, service_fee_memo, new_conn)
+        await _credit_service_fee_wallet(wallet, payment, new_conn)
+
+    return payment
+
+
+async def create_payment_request(
+    wallet_id: str, invoice_data: CreateInvoice
+) -> Payment:
+    """
+    Create a lightning invoice or a fiat payment request.
+    """
+    if invoice_data.fiat_provider:
+        return await create_fiat_invoice(wallet_id, invoice_data)
+
+    return await create_wallet_invoice(wallet_id, invoice_data)
+
+
+async def create_fiat_invoice(
+    wallet_id: str, invoice_data: CreateInvoice, conn: Connection | None = None
+) -> Payment:
+    fiat_provider_name = invoice_data.fiat_provider
+    if not fiat_provider_name:
+        raise ValueError("Fiat provider is required for fiat invoices.")
+    if not settings.is_fiat_provider_enabled(fiat_provider_name):
+        raise ValueError(
+            f"Fiat provider '{fiat_provider_name}' is not enabled.",
+        )
+
+    if invoice_data.unit == "sat":
+        raise ValueError("Fiat provider cannot be used with satoshis.")
+    amount_sat = await fiat_amount_as_satoshis(invoice_data.amount, invoice_data.unit)
+    await _check_fiat_invoice_limits(amount_sat, fiat_provider_name, conn)
+
+    invoice_data.internal = True  # use FakeWallet for fiat invoices
+    if not invoice_data.memo:
+        invoice_data.memo = settings.lnbits_site_title + f" ({fiat_provider_name})"
+
+    internal_payment = await create_wallet_invoice(wallet_id, invoice_data)
+
+    fiat_provider = await get_fiat_provider(fiat_provider_name)
+    if not fiat_provider:
+        raise InvoiceError("No fiat provider found.", status="failed")
+
+    fiat_invoice = await fiat_provider.create_invoice(
+        amount=invoice_data.amount,
+        payment_hash=internal_payment.payment_hash,
+        currency=invoice_data.unit,
+        memo=invoice_data.memo,
+        extra=invoice_data.extra or {},
+    )
+
+    if fiat_invoice.failed:
+        logger.warning(fiat_invoice.error_message)
+        internal_payment.status = PaymentState.FAILED
+        await update_payment(internal_payment, conn=conn)
+        raise ValueError(
+            f"Cannot create payment request for '{fiat_provider_name}'.",
+        )
+
+    internal_payment.fee = -abs(
+        service_fee_fiat(internal_payment.msat, fiat_provider_name)
+    )
+
+    internal_payment.fiat_provider = fiat_provider_name
+    internal_payment.extra["fiat_checking_id"] = fiat_invoice.checking_id
+    # todo: move to payent
+    internal_payment.extra["fiat_payment_request"] = fiat_invoice.payment_request
+    new_checking_id = (
+        f"fiat_{fiat_provider_name}_"
+        f"{fiat_invoice.checking_id or internal_payment.checking_id}"
+    )
+    await update_payment(internal_payment, new_checking_id, conn=conn)
+    internal_payment.checking_id = new_checking_id
+
+    return internal_payment
+
+
+async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
+    description_hash = None
+    unhashed_description = None
+    memo = data.memo or settings.lnbits_site_title
+    if data.description_hash or data.unhashed_description:
+        if data.description_hash:
+            try:
+                description_hash = bytes.fromhex(data.description_hash)
+            except ValueError as exc:
+                raise ValueError(
+                    "'description_hash' must be a valid hex string"
+                ) from exc
+        if data.unhashed_description:
+            try:
+                unhashed_description = bytes.fromhex(data.unhashed_description)
+            except ValueError as exc:
+                raise ValueError(
+                    "'unhashed_description' must be a valid hex string",
+                ) from exc
+        # do not save memo if description_hash or unhashed_description is set
+        memo = ""
+
+    payment = await create_invoice(
+        wallet_id=wallet_id,
+        amount=data.amount,
+        memo=memo,
+        currency=data.unit,
+        description_hash=description_hash,
+        unhashed_description=unhashed_description,
+        expiry=data.expiry,
+        extra=data.extra,
+        webhook=data.webhook,
+        internal=data.internal,
+        payment_hash=data.payment_hash,
+    )
+
+    if data.lnurl_withdraw:
+        try:
+            check_callback_url(data.lnurl_withdraw.callback)
+            res = await lnurl_withdraw(
+                data.lnurl_withdraw,
+                payment.bolt11,
+                user_agent=settings.user_agent,
+                timeout=10,
+            )
+            if isinstance(res, LnurlErrorResponse):
+                payment.extra["lnurl_response"] = res.reason
+                payment.status = "failed"
+            elif isinstance(res, LnurlSuccessResponse):
+                payment.extra["lnurl_response"] = True
+                payment.status = "success"
+        except Exception as exc:
+            payment.extra["lnurl_response"] = str(exc)
+            payment.status = "failed"
+        # updating to payment here would run into a race condition
+        # with the payment listeners and they will overwrite each other
 
     return payment
 
@@ -449,16 +578,16 @@ async def create_invoice(
     *,
     wallet_id: str,
     amount: float,
-    currency: Optional[str] = "sat",
+    currency: str | None = "sat",
     memo: str,
-    description_hash: Optional[bytes] = None,
-    unhashed_description: Optional[bytes] = None,
-    expiry: Optional[int] = None,
-    extra: Optional[dict] = None,
-    webhook: Optional[str] = None,
-    internal: Optional[bool] = False,
+    description_hash: bytes | None = None,
+    unhashed_description: bytes | None = None,
+    expiry: int | None = None,
+    extra: dict | None = None,
+    webhook: str | None = None,
+    internal: bool | None = False,
     payment_hash: str | None = None,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> Payment:
     if not amount > 0:
         raise InvoiceError("Amountless invoices not supported.", status="failed")
@@ -645,7 +774,7 @@ def service_fee_fiat(amount_msat: int, fiat_provider_name: str) -> int:
 async def update_wallet_balance(
     wallet: Wallet,
     amount: int,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ):
     if amount == 0:
         raise ValueError("Amount cannot be 0.")
@@ -704,14 +833,14 @@ async def update_wallet_balance(
 
 
 async def check_wallet_limits(
-    wallet_id: str, amount_msat: int, conn: Optional[Connection] = None
+    wallet_id: str, amount_msat: int, conn: Connection | None = None
 ):
     await check_time_limit_between_transactions(wallet_id, conn)
     await check_wallet_daily_withdraw_limit(wallet_id, amount_msat, conn)
 
 
 async def check_time_limit_between_transactions(
-    wallet_id: str, conn: Optional[Connection] = None
+    wallet_id: str, conn: Connection | None = None
 ):
     limit = settings.lnbits_wallet_limit_secs_between_trans
     if not limit or limit <= 0:
@@ -731,7 +860,7 @@ async def check_time_limit_between_transactions(
 
 
 async def check_wallet_daily_withdraw_limit(
-    wallet_id: str, amount_msat: int, conn: Optional[Connection] = None
+    wallet_id: str, amount_msat: int, conn: Connection | None = None
 ):
     limit = settings.lnbits_wallet_limit_daily_max_withdraw
     if not limit:
@@ -764,8 +893,8 @@ async def check_wallet_daily_withdraw_limit(
 async def calculate_fiat_amounts(
     amount: float,
     wallet: Wallet,
-    currency: Optional[str] = None,
-    extra: Optional[dict] = None,
+    currency: str | None = None,
+    extra: dict | None = None,
 ) -> tuple[int, dict]:
     wallet_currency = wallet.currency or settings.lnbits_default_accounting_currency
     fiat_amounts: dict = extra or {}
@@ -800,9 +929,9 @@ async def calculate_fiat_amounts(
 
 
 async def check_transaction_status(
-    wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
+    wallet_id: str, payment_hash: str, conn: Connection | None = None
 ) -> PaymentStatus:
-    payment: Optional[Payment] = await get_wallet_payment(
+    payment: Payment | None = await get_wallet_payment(
         wallet_id, payment_hash, conn=conn
     )
     if not payment:
@@ -816,7 +945,7 @@ async def check_transaction_status(
 
 async def get_payments_daily_stats(
     filters: Filters[PaymentFilters],
-    user_id: Optional[str] = None,
+    user_id: str | None = None,
 ) -> list[PaymentDailyStats]:
     data_in, data_out = await get_daily_stats(filters, user_id=user_id)
     balance_total: float = 0
@@ -866,7 +995,7 @@ async def _pay_invoice(
     wallet_id: str,
     payment_request: str,
     create_payment_model: CreatePayment,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ):
     async with payment_lock:
         if wallet_id not in wallets_payments_lock:
@@ -890,8 +1019,8 @@ async def _pay_internal_invoice(
     wallet: Wallet,
     payment_request: str,
     create_payment_model: CreatePayment,
-    conn: Optional[Connection] = None,
-) -> Optional[Payment]:
+    conn: Connection | None = None,
+) -> Payment | None:
     """
     Pay an internal payment.
     returns None if the payment is not internal.
@@ -985,7 +1114,7 @@ async def _pay_external_invoice(
     wallet: Wallet,
     payment_request: str,
     create_payment_model: CreatePayment,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> Payment:
     checking_id = create_payment_model.payment_hash
     amount_msat = create_payment_model.amount_msat
@@ -1054,7 +1183,7 @@ async def _pay_external_invoice(
 async def update_payment_success_status(
     payment: Payment,
     status: PaymentStatus,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ) -> Payment:
     if status.success:
         service_fee_msat = service_fee(payment.amount, internal=False)
@@ -1078,7 +1207,7 @@ async def _fundingsource_pay_invoice(
 
 
 async def _verify_external_payment(
-    payment: Payment, conn: Optional[Connection] = None
+    payment: Payment, conn: Connection | None = None
 ) -> Payment:
     # fail on pending payments
     if payment.pending:
@@ -1109,7 +1238,7 @@ async def _check_wallet_for_payment(
     wallet_id: str,
     tag: str,
     amount_msat: int,
-    conn: Optional[Connection] = None,
+    conn: Connection | None = None,
 ):
     wallet = await get_wallet(wallet_id, conn=conn)
     if not wallet:
@@ -1124,9 +1253,9 @@ async def _check_wallet_for_payment(
     return wallet
 
 
-async def _validate_payment_request(
-    payment_request: str, max_sat: Optional[int] = None
-) -> InvoiceData:
+def _validate_payment_request(
+    payment_request: str, max_sat: int | None = None
+) -> Bolt11:
     try:
         funding_source = get_funding_source()
 
@@ -1150,11 +1279,15 @@ async def _validate_payment_request(
 
 
 async def _credit_service_fee_wallet(
-    payment: Payment, memo: str, conn: Optional[Connection] = None
+    wallet: Wallet, payment: Payment, conn: Connection | None = None
 ):
     service_fee_msat = service_fee(payment.amount, internal=payment.is_internal)
     if not settings.lnbits_service_fee_wallet or not service_fee_msat:
         return
+
+    memo = f"""
+        Service fee for payment of {abs(payment.sat)} sats.
+        Wallet: '{wallet.name}' ({wallet.id})."""
 
     create_payment_model = CreatePayment(
         wallet_id=settings.lnbits_service_fee_wallet,
@@ -1172,7 +1305,7 @@ async def _credit_service_fee_wallet(
 
 
 async def _check_fiat_invoice_limits(
-    amount_sat: int, fiat_provider_name: str, conn: Optional[Connection] = None
+    amount_sat: int, fiat_provider_name: str, conn: Connection | None = None
 ):
     limits = settings.get_fiat_provider_limits(fiat_provider_name)
     if not limits:

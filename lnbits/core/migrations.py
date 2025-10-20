@@ -737,7 +737,15 @@ async def m033_update_payment_table(db: Connection):
     await db.execute("ALTER TABLE apipayments ADD COLUMN fiat_provider TEXT")
 
 
-async def m034_create_offer_table(db: Connection):
+async def m034_add_stored_paylinks_to_wallet(db: Connection):
+    await db.execute(
+        """
+        ALTER TABLE wallets ADD COLUMN stored_paylinks TEXT
+        """
+    )
+
+
+async def m035_create_offer_table(db: Connection):
     await db.execute("ALTER TABLE apipayments ADD COLUMN payer_note TEXT")
     await db.execute("ALTER TABLE apipayments ADD COLUMN offer_id TEXT")
     await db.execute(

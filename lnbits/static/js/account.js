@@ -80,6 +80,11 @@ window.AccountPageLogic = {
         token_id_list: [],
         allRead: false,
         allWrite: false
+      },
+      notifications: {
+        nostr: {
+          identifier: ''
+        }
       }
     }
   },
@@ -396,6 +401,7 @@ window.AccountPageLogic = {
       }
     }
   },
+
   async created() {
     try {
       const {data} = await LNbits.api.getAuthenticatedUser()

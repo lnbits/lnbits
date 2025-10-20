@@ -78,6 +78,8 @@ class FetchInvoiceResponse(NamedTuple):
     ok: bool
     payment_request: str | None = None
     error_message: str | None = None
+    preimage: str | None = None
+    fee_msat: int | None = None
 
     @property
     def success(self) -> bool:
@@ -371,7 +373,3 @@ class Wallet(ABC):
                 f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
             )
         return endpoint
-
-
-class UnsupportedError(Exception):
-    pass

@@ -3,11 +3,7 @@ import traceback
 from http import HTTPStatus
 
 from bolt11 import decode as bolt11_decode
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-)
+from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 
 from lnbits.core.crud.extensions import get_user_extensions
@@ -65,9 +61,10 @@ async def api_install_extension(data: CreateExtension):
         data.ext_id, data.source_repo, data.archive, data.version
     )
     if not release:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Release not found"
-        )
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Release not found")
+
+    if not release.is_version_compatible:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Incompatible extension version.")
 
     release.payment_hash = data.payment_hash
     ext_meta = ExtensionMeta(installed_release=release)
@@ -231,7 +228,7 @@ async def api_disable_extension(
         return SimpleStatus(
             success=True, message=f"Extension '{ext_id}' already disabled."
         )
-    logger.info(f"Disabeling extension: {ext_id}.")
+    logger.info(f"Disabling extension: {ext_id}.")
     user_ext.active = False
     await update_user_extension(user_ext)
     return SimpleStatus(success=True, message=f"Extension '{ext_id}' disabled.")

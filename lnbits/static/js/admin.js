@@ -468,7 +468,10 @@ window.AdminPageLogic = {
         .catch(LNbits.utils.notifyApiError)
     },
     formatDate(date) {
-      return moment.utc(date * 1000).fromNow()
+      return moment
+        .utc(date * 1000)
+        .local()
+        .fromNow()
     },
     sendTestEmail() {
       LNbits.api

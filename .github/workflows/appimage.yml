@@ -1,0 +1,120 @@
+name: Build LNbits AppImage
+
+on:
+  workflow_call:
+    inputs:
+      tag_name:
+        description: 'The tag name for the release'
+        required: true
+        type: string
+      upload_url:
+        description: 'The upload URL for the release'
+        required: true
+        type: string
+
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'The tag name for the release'
+        required: true
+        type: string
+      upload_url:
+        description: 'The upload URL for the release'
+        required: true
+        type: string
+
+jobs:
+  build-linux-package:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system deps and uv
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Cache uv and venv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            .venv
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock', 'pyproject.toml') }}
+
+      - name: Prepare packaging & clone LNbits
+        run: |
+          mv .github/packaging packaging
+          mkdir -p packaging/linux/AppDir/usr
+          git clone https://github.com/lnbits/lnbits.git packaging/linux/AppDir/usr/lnbits
+        shell: bash
+
+      - name: Build LNbits binary (uv + PyInstaller)
+        run: |
+          cd packaging/linux/AppDir/usr/lnbits
+          uv sync --all-extras --no-dev
+          uv pip install pyinstaller
+          uv run pyinstaller \
+            --onefile \
+            --name lnbits \
+            --hidden-import=embit \
+            --collect-all embit \
+            --collect-all lnbits \
+            --collect-all sqlalchemy \
+            --collect-all breez_sdk \
+            --collect-binaries breez_sdk \
+            --collect-all breez_sdk_liquid \
+            --collect-binaries breez_sdk_liquid \
+            --collect-all aiosqlite \
+            --hidden-import=passlib.handlers.bcrypt \
+            "$(uv run which lnbits)"
+
+          cd ../../../../..
+          chmod +x packaging/linux/AppDir/AppRun
+          chmod +x packaging/linux/AppDir/lnbits.desktop
+          chmod +x packaging/linux/AppDir/usr/lnbits/dist/lnbits
+
+          # keep AppDir slim
+          find packaging/linux/AppDir/usr/lnbits -mindepth 1 -maxdepth 1 \
+              ! -name 'dist' \
+              ! -name 'lnbits' \
+              -exec rm -rf {} +
+
+          # Build AppImage
+          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          TAG_NAME=${{ inputs.tag_name }}
+          APPIMAGE_NAME="LNbits-${TAG_NAME}.AppImage"
+          ./appimagetool-x86_64.AppImage \
+            --updateinformation "gh-releases-zsync|lnbits|lnbits|latest|*.AppImage.zsync" \
+            packaging/linux/AppDir "$APPIMAGE_NAME"
+          chmod +x "$APPIMAGE_NAME"
+          echo "APPIMAGE_NAME=$APPIMAGE_NAME" >> $GITHUB_ENV
+
+          # 🔎 quick audit: show glibc versions referenced by the binary
+          echo "Runner glibc:"
+          ldd --version | head -n1 || true
+          echo "Symbols needed by lnbits:"
+          strings "$APPIMAGE_NAME" | grep -o 'GLIBC_[0-9.]*' | sort -u || true
+        shell: bash
+
+      - name: Upload Linux Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ inputs.upload_url }}
+          asset_path: ${{ env.APPIMAGE_NAME }}
+          asset_name: ${{ env.APPIMAGE_NAME }}
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

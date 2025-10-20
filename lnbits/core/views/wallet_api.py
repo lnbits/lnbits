@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from typing import Optional
 from uuid import uuid4
 
 from fastapi import (
@@ -10,11 +9,11 @@ from fastapi import (
 )
 
 from lnbits.core.crud.wallets import get_wallets_paginated
-from lnbits.core.models import CreateWallet, KeyType, User, Wallet
+from lnbits.core.models import CreateWallet, KeyType, User, Wallet, WalletTypeInfo
+from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
 from lnbits.core.models.wallets import WalletsFilters
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
-    WalletTypeInfo,
     check_user_exists,
     parse_filters,
     require_admin_key,
@@ -93,13 +92,28 @@ async def api_reset_wallet_keys(
     return wallet
 
 
+@wallet_router.put("/stored_paylinks/{wallet_id}")
+async def api_put_stored_paylinks(
+    wallet_id: str,
+    data: StoredPayLinks,
+    key_info: WalletTypeInfo = Depends(require_admin_key),
+) -> list[StoredPayLink]:
+    if key_info.wallet.id != wallet_id:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="You cannot modify this wallet"
+        )
+    key_info.wallet.stored_paylinks.links = data.links
+    wallet = await update_wallet(key_info.wallet)
+    return wallet.stored_paylinks.links
+
+
 @wallet_router.patch("")
 async def api_update_wallet(
-    name: Optional[str] = Body(None),
-    icon: Optional[str] = Body(None),
-    color: Optional[str] = Body(None),
-    currency: Optional[str] = Body(None),
-    pinned: Optional[bool] = Body(None),
+    name: str | None = Body(None),
+    icon: str | None = Body(None),
+    color: str | None = Body(None),
+    currency: str | None = Body(None),
+    pinned: bool | None = Body(None),
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
     wallet = await get_wallet(key_info.wallet.id)

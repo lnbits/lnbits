@@ -1,6 +1,5 @@
 import asyncio
 import importlib
-from typing import Optional
 
 from loguru import logger
 
@@ -22,7 +21,9 @@ from lnbits.settings import settings
 from ..models.extensions import Extension, ExtensionMeta, InstallableExtension
 
 
-async def install_extension(ext_info: InstallableExtension) -> Extension:
+async def install_extension(
+    ext_info: InstallableExtension, skip_download: bool | None = False
+) -> Extension:
 
     ext_info.meta = ext_info.meta or ExtensionMeta()
 
@@ -36,7 +37,8 @@ async def install_extension(ext_info: InstallableExtension) -> Extension:
     if installed_ext and installed_ext.meta:
         ext_info.meta.payments = installed_ext.meta.payments
 
-    await ext_info.download_archive()
+    if not skip_download:
+        await ext_info.download_archive()
 
     ext_info.extract_archive()
 
@@ -74,11 +76,13 @@ async def uninstall_extension(ext_id: str):
 async def activate_extension(ext: Extension):
     core_app_extra.register_new_ext_routes(ext)
     await update_installed_extension_state(ext_id=ext.code, active=True)
+    await start_extension_background_work(ext.code)
 
 
 async def deactivate_extension(ext_id: str):
     settings.deactivate_extension_paths(ext_id)
     await update_installed_extension_state(ext_id=ext_id, active=False)
+    await stop_extension_background_work(ext_id)
 
 
 async def stop_extension_background_work(ext_id: str) -> bool:
@@ -145,7 +149,7 @@ async def start_extension_background_work(ext_id: str) -> bool:
 
 
 async def get_valid_extensions(
-    include_deactivated: Optional[bool] = True,
+    include_deactivated: bool | None = True,
 ) -> list[Extension]:
     installed_extensions = await get_installed_extensions()
     valid_extensions = [Extension.from_installable_ext(e) for e in installed_extensions]
@@ -164,8 +168,8 @@ async def get_valid_extensions(
 
 
 async def get_valid_extension(
-    ext_id: str, include_deactivated: Optional[bool] = True
-) -> Optional[Extension]:
+    ext_id: str, include_deactivated: bool | None = True
+) -> Extension | None:
     ext = await get_installed_extension(ext_id)
     if not ext:
         return None

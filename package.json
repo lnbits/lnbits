@@ -15,12 +15,12 @@
   "devDependencies": {
     "concat": "^1.0.3",
     "minify": "^9.2.0",
-    "prettier": "^3.3.3",
+    "prettier": "^3.6.2",
     "pyright": "1.1.289",
     "sass": "^1.78.0"
   },
   "dependencies": {
-    "axios": "^1.8.2",
+    "axios": "^1.12.0",
     "chart.js": "^4.4.4",
     "moment": "^2.30.1",
     "qrcode.vue": "^3.4.1",
@@ -29,7 +29,7 @@
     "nostr-tools": "^2.7.2",
     "underscore": "^1.13.7",
     "vue": "3.5.8",
-    "vue-i18n": "^10.0.6",
+    "vue-i18n": "^10.0.8",
     "vue-qrcode-reader": "^5.5.10",
     "vue-router": "4.4.5",
     "vuex": "4.1.0"
@@ -90,8 +90,11 @@
       "js/bolt11-decoder.js"
     ],
     "components": [
+      "js/components/lnbits-qrcode.js",
+      "js/components/lnbits-qrcode-lnurl.js",
       "js/components/lnbits-funding-sources.js",
       "js/components/extension-settings.js",
+      "js/components/data-fields.js",
       "js/components/payment-list.js",
       "js/components.js",
       "js/init-app.js"

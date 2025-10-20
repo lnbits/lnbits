@@ -39,6 +39,7 @@ class ExplicitRelease(BaseModel):
     info_notification: str | None
     critical_notification: str | None
     details_link: str | None
+    paid_features: str | None
     pay_link: str | None
 
     def is_version_compatible(self):
@@ -187,6 +188,7 @@ class ExtensionRelease(BaseModel):
     icon: str | None = None
     details_link: str | None = None
 
+    paid_features: str | None = None
     pay_link: str | None = None
     cost_sats: int | None = None
     paid_sats: int | None = 0
@@ -256,6 +258,7 @@ class ExtensionRelease(BaseModel):
             html_url=e.html_url,
             details_link=e.details_link,
             pay_link=e.pay_link,
+            paid_features=e.paid_features,
             repo=e.repo,
             icon=e.icon,
         )
@@ -308,6 +311,9 @@ class ExtensionMeta(BaseModel):
     dependencies: list[str] = []
     archive: str | None = None
     featured: bool = False
+    paid_features: str | None = None
+    has_paid_release: bool = False
+    has_free_release: bool = False
 
 
 class InstallableExtension(BaseModel):
@@ -409,7 +415,6 @@ class InstallableExtension(BaseModel):
 
         tmp_dir = Path(settings.lnbits_data_folder, "unzip-temp", self.hash)
         shutil.rmtree(tmp_dir, True)
-
         with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
             zip_ref.extractall(tmp_dir)
         generated_dir_name = os.listdir(tmp_dir)[0]
@@ -452,8 +457,22 @@ class InstallableExtension(BaseModel):
 
         shutil.rmtree(self.ext_upgrade_dir, True)
 
-    def check_latest_version(self, release: ExtensionRelease | None):
+    def check_release_updates(self, release: ExtensionRelease | None):
+        self._check_latest_version(release)
+        self._check_payment_link(release)
+
+    def find_existing_payment(self, pay_link: str | None) -> ReleasePaymentInfo | None:
+        if not pay_link or not self.meta or not self.meta.payments:
+            return None
+        return next(
+            (p for p in self.meta.payments if p.pay_link == pay_link),
+            None,
+        )
+
+    def _check_latest_version(self, release: ExtensionRelease | None):
         if not release:
+            return
+        if not release.is_version_compatible:
             return
         if not self.meta or not self.meta.latest_release:
             meta = self.meta or ExtensionMeta()
@@ -465,13 +484,19 @@ class InstallableExtension(BaseModel):
         ):
             self.meta.latest_release = release
 
-    def find_existing_payment(self, pay_link: str | None) -> ReleasePaymentInfo | None:
-        if not pay_link or not self.meta or not self.meta.payments:
-            return None
-        return next(
-            (p for p in self.meta.payments if p.pay_link == pay_link),
-            None,
-        )
+    def _check_payment_link(self, release: ExtensionRelease | None):
+        if not release:
+            return
+        if not release.is_version_compatible:
+            return
+        if not self.meta:
+            self.meta = ExtensionMeta()
+        if release.pay_link:
+            self.meta.has_paid_release = True
+        else:
+            self.meta.has_free_release = True
+        if release.paid_features:
+            self.meta.paid_features = release.paid_features
 
     def _restore_payment_info(self):
         if (
@@ -597,7 +622,7 @@ class InstallableExtension(BaseModel):
                         (ee for ee in extension_list if ee.id == r.id), None
                     )
                     if existing_ext and ext.meta:
-                        existing_ext.check_latest_version(ext.meta.latest_release)
+                        existing_ext.check_release_updates(ext.meta.latest_release)
                         continue
 
                     meta = ext.meta or ExtensionMeta()
@@ -611,10 +636,10 @@ class InstallableExtension(BaseModel):
                         (ee for ee in extension_list if ee.id == e.id), None
                     )
                     if existing_ext:
-                        existing_ext.check_latest_version(release)
+                        existing_ext.check_release_updates(release)
                         continue
                     ext = InstallableExtension.from_explicit_release(e)
-                    ext.check_latest_version(release)
+                    ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured
                     ext.meta = meta
@@ -628,8 +653,11 @@ class InstallableExtension(BaseModel):
     @classmethod
     async def get_extension_releases(cls, ext_id: str) -> list[ExtensionRelease]:
         extension_releases: list[ExtensionRelease] = []
-
-        for url in settings.lnbits_extensions_manifests:
+        all_manifests = [
+            *settings.lnbits_extensions_manifests,
+            settings.lnbits_extensions_builder_manifest_url,
+        ]
+        for url in all_manifests:
             try:
                 manifest = await cls.fetch_manifest(url)
                 for r in manifest.repos:

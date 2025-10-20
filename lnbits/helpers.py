@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from urllib import request
 from urllib.parse import urlparse
 
@@ -39,7 +39,7 @@ def urlsafe_short_hash() -> str:
     return shortuuid.uuid()
 
 
-def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> str:
+def url_for(endpoint: str, external: bool | None = False, **params: Any) -> str:
     base = f"http://{settings.host}:{settings.port}" if external else ""
     url_params = "?"
     for key, value in params.items():
@@ -52,8 +52,13 @@ def static_url_for(static: str, path: str) -> str:
     return f"/{static}/{path}?v={settings.server_startup_time}"
 
 
-def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templates:
-    folders = ["lnbits/templates", "lnbits/core/templates"]
+def template_renderer(additional_folders: list | None = None) -> Jinja2Templates:
+    folders = [
+        "lnbits/templates",
+        "lnbits/core/templates",
+        settings.extension_builder_working_dir_path.as_posix(),
+    ]
+
     if additional_folders:
         additional_folders += [
             Path(settings.lnbits_extensions_path, "extensions", f)
@@ -99,11 +104,7 @@ def template_renderer(additional_folders: Optional[list] = None) -> Jinja2Templa
         "USE_DEFAULT_BGIMAGE": settings.lnbits_default_bgimage,
         "VOIDWALLET": settings.lnbits_backend_wallet_class == "VoidWallet",
         "WEBPUSH_PUBKEY": settings.lnbits_webpush_pubkey,
-        "LNBITS_DENOMINATION": (
-            settings.lnbits_denomination
-            if settings.lnbits_denomination == "FakeWallet"
-            else "sats"
-        ),
+        "LNBITS_DENOMINATION": settings.lnbits_denomination,
         "has_holdinvoice": settings.has_holdinvoice,
     }
 
@@ -215,7 +216,7 @@ def is_valid_pubkey(pubkey: str) -> bool:
         return False
 
 
-def create_access_token(data: dict, token_expire_minutes: Optional[int] = None) -> str:
+def create_access_token(data: dict, token_expire_minutes: int | None = None) -> str:
     minutes = token_expire_minutes or settings.auth_token_expire_minutes
     expire = datetime.now(timezone.utc) + timedelta(minutes=minutes)
     to_encode = {k: v for k, v in data.items() if v is not None}
@@ -223,9 +224,7 @@ def create_access_token(data: dict, token_expire_minutes: Optional[int] = None) 
     return jwt.encode(to_encode, settings.auth_secret_key, "HS256")
 
 
-def encrypt_internal_message(
-    m: Optional[str] = None, urlsafe: bool = False
-) -> Optional[str]:
+def encrypt_internal_message(m: str | None = None, urlsafe: bool = False) -> str | None:
     """
     Encrypt message with the internal secret key
 
@@ -238,9 +237,7 @@ def encrypt_internal_message(
     return AESCipher(key=settings.auth_secret_key).encrypt(m.encode(), urlsafe=urlsafe)
 
 
-def decrypt_internal_message(
-    m: Optional[str] = None, urlsafe: bool = False
-) -> Optional[str]:
+def decrypt_internal_message(m: str | None = None, urlsafe: bool = False) -> str | None:
     """
     Decrypt message with the internal secret key
 
@@ -253,7 +250,7 @@ def decrypt_internal_message(
     return AESCipher(key=settings.auth_secret_key).decrypt(m, urlsafe=urlsafe)
 
 
-def filter_dict_keys(data: dict, filter_keys: Optional[list[str]]) -> dict:
+def filter_dict_keys(data: dict, filter_keys: list[str] | None) -> dict:
     if not filter_keys:
         # return shallow clone of the dict even if there are no filters
         return {**data}
@@ -274,7 +271,7 @@ def version_parse(v: str):
 
 
 def is_lnbits_version_ok(
-    min_lnbits_version: Optional[str], max_lnbits_version: Optional[str]
+    min_lnbits_version: str | None, max_lnbits_version: str | None
 ) -> bool:
     if min_lnbits_version and (
         version_parse(min_lnbits_version) > version_parse(settings.version)
@@ -351,7 +348,7 @@ def path_segments(path: str) -> list[str]:
     return segments[0:]
 
 
-def normalize_path(path: Optional[str]) -> str:
+def normalize_path(path: str | None) -> str:
     path = path or ""
     return "/" + "/".join(path_segments(path))
 
@@ -376,3 +373,27 @@ def normalize_endpoint(endpoint: str, add_proto=True) -> str:
             f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
         )
     return endpoint
+
+
+def camel_to_words(name: str) -> str:
+    # Add space before capital letters (but not at the start)
+    words = re.sub(r"(?<!^)(?=[A-Z])", " ", name)
+    return words.strip()
+
+
+def camel_to_snake(name: str) -> str:
+    name = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
+    name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name)
+    return name.lower()
+
+
+def is_camel_case(v: str) -> bool:
+    return re.match(r"^[A-Z][a-z0-9]+([A-Z][a-z0-9]+)*$", v) is not None
+
+
+def is_snake_case(v: str) -> bool:
+    return re.match(r"^[a-z]+(_[a-z0-9]+)*$", v) is not None
+
+
+def lowercase_first_letter(s: str) -> str:
+    return s[:1].lower() + s[1:] if s else s

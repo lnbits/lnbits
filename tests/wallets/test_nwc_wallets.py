@@ -9,7 +9,8 @@ import secp256k1
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
-from websockets.legacy.server import serve as ws_serve
+from websockets import ServerConnection
+from websockets import serve as ws_serve
 
 from lnbits.wallets.nwc import NWCWallet
 from tests.wallets.helpers import (
@@ -74,7 +75,9 @@ def sign_event(pub_key, priv_key, event):
     return event
 
 
-async def handle(wallet, mock_settings, data, websocket, path):  # noqa: C901
+async def handle(  # noqa: C901
+    wallet, mock_settings, data, websocket: ServerConnection
+):
     async for message in websocket:
         if not wallet:
             continue
@@ -162,8 +165,8 @@ async def run(data: WalletTest):
     if mock_settings is None:
         return
 
-    async def handler(websocket, path):
-        return await handle(wallet, mock_settings, data, websocket, path)
+    def handler(websocket):
+        return handle(wallet, mock_settings, data, websocket)
 
     if mock_settings is not None:
         async with ws_serve(handler, "localhost", mock_settings["port"]) as server:

@@ -1,9 +1,9 @@
 import asyncio
 import logging
 import sys
+from collections.abc import Callable
 from hashlib import sha256
 from pathlib import Path
-from typing import Callable
 
 from loguru import logger
 
@@ -13,7 +13,7 @@ from lnbits.settings import settings
 
 
 def log_server_info():
-    logger.info("Starting LNbits")
+    logger.info("LNbits Info")
     logger.info(f"Version: {settings.version}")
     logger.info(f"Baseurl: {settings.lnbits_baseurl}")
     logger.info(f"Host: {settings.host}")

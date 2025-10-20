@@ -51,11 +51,19 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: list[str] = Field(default=[])
     lnbits_user_default_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
+    lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
     lnbits_extensions_manifests: list[str] = Field(
         default=[
             "https://raw.githubusercontent.com/lnbits/lnbits-extensions/main/extensions.json"
         ]
     )
+    lnbits_extensions_builder_manifest_url: str = Field(
+        default="https://raw.githubusercontent.com/lnbits/extension_builder_stub/refs/heads/main/manifest.json"
+    )
+
+    @property
+    def extension_builder_working_dir_path(self) -> Path:
+        return Path(settings.lnbits_data_folder, "extensions_builder")
 
 
 class ExtensionsInstallSettings(LNbitsSettings):
@@ -142,14 +150,14 @@ class ExchangeRateProvider(BaseModel):
 
 class InstalledExtensionsSettings(LNbitsSettings):
     # installed extensions that have been deactivated
-    lnbits_deactivated_extensions: set[str] = Field(default=[])
+    lnbits_deactivated_extensions: set[str] = Field(default=set())
     # upgraded extensions that require API redirects
     lnbits_upgraded_extensions: dict[str, str] = Field(default={})
     # list of redirects that extensions want to perform
     lnbits_extensions_redirects: list[RedirectPath] = Field(default=[])
 
     # list of all extension ids
-    lnbits_installed_extensions_ids: set[str] = Field(default=[])
+    lnbits_installed_extensions_ids: set[str] = Field(default=set())
 
     def find_extension_redirect(
         self, path: str, req_headers: list[tuple[bytes, bytes]]
@@ -266,7 +274,7 @@ class ThemesSettings(LNbitsSettings):
     lnbits_default_theme: str = Field(default="salvador")
     lnbits_default_border: str = Field(default="hard-border")
     lnbits_default_gradient: bool = Field(default=True)
-    lnbits_default_bgimage: str = Field(default=None)
+    lnbits_default_bgimage: str | None = Field(default=None)
 
 
 class OpsSettings(LNbitsSettings):
@@ -431,6 +439,18 @@ class NotificationsSettings(LNbitsSettings):
     lnbits_notification_outgoing_payment_amount_sats: int = Field(
         default=1_000_000, ge=0
     )
+
+    def is_nostr_notifications_configured(self) -> bool:
+        return (
+            self.lnbits_nostr_notifications_enabled
+            and self.lnbits_nostr_notifications_private_key is not None
+        )
+
+    def is_telegram_notifications_configured(self) -> bool:
+        return (
+            self.lnbits_telegram_notifications_enabled
+            and self.lnbits_telegram_notifications_access_token is not None
+        )
 
 
 class FakeWalletFundingSource(LNbitsSettings):
@@ -644,6 +664,40 @@ class FundingSourcesSettings(
     # How long to wait for the payment to be confirmed before returning a pending status
     # It will not fail the payment, it will make it return pending after the timeout
     lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
+    funding_source_max_retries: int = Field(default=4, ge=0)
+
+
+class FiatProvidersSettings(StripeFiatProvider):
+    def is_fiat_provider_enabled(self, provider: str | None) -> bool:
+        """
+        Checks if a specific fiat provider is enabled.
+        """
+        if not provider:
+            return False
+        if provider == "stripe":
+            return self.stripe_enabled
+        # Add checks for other fiat providers here as needed
+        return False
+
+    def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
+        """
+        Returns a list of fiat payment methods allowed for the user.
+        """
+        allowed_providers = []
+        if self.stripe_enabled and (
+            not self.stripe_limits.allowed_users
+            or user_id in self.stripe_limits.allowed_users
+        ):
+            allowed_providers.append("stripe")
+
+        # Add other fiat providers here as needed
+        return allowed_providers
+
+    def get_fiat_provider_limits(self, provider_name: str) -> FiatProviderLimits | None:
+        """
+        Returns the limits for a specific fiat provider.
+        """
+        return getattr(self, provider_name + "_limits", None)
 
 
 class FiatProvidersSettings(StripeFiatProvider):
@@ -717,7 +771,7 @@ class AuthMethods(Enum):
 
 class AuthSettings(LNbitsSettings):
     auth_token_expire_minutes: int = Field(default=525600, gt=0)
-    auth_all_methods = [a.value for a in AuthMethods]
+    auth_all_methods: list[str] = [a.value for a in AuthMethods]
     auth_allowed_methods: list[str] = Field(
         default=[
             AuthMethods.user_id_only.value,
@@ -935,7 +989,7 @@ class EnvSettings(LNbitsSettings):
 
 class PersistenceSettings(LNbitsSettings):
     lnbits_data_folder: str = Field(default="./data")
-    lnbits_database_url: str = Field(default=None)
+    lnbits_database_url: str | None = Field(default=None)
 
 
 class SuperUserSettings(LNbitsSettings):
@@ -981,11 +1035,14 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     lnbits_running: bool = Field(default=True)
 
     # Remember the latest balance delta in order to compare with the current one
-    latest_balance_delta_sats: int = Field(default=None)
+    latest_balance_delta_sats: int = Field(default=0)
 
-    lnbits_all_extensions_ids: set[str] = Field(default=[])
+    lnbits_all_extensions_ids: set[str] = Field(default=set())
 
-    server_startup_time: int = Field(default=time())
+    server_startup_time: int = Field(default=int(time()))
+
+    has_holdinvoice: bool = Field(default=False)
+    has_nodemanager: bool = Field(default=False)
 
     has_holdinvoice: bool = Field(default=False)
     has_nodemanager: bool = Field(default=False)

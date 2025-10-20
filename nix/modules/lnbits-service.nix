@@ -35,7 +35,7 @@ in
         type = types.path;
         default = "/var/lib/lnbits";
         description = ''
-          The lnbits state directory which LNBITS_DATA_FOLDER will be set to
+          The lnbits state directory
         '';
       };
       host = mkOption {
@@ -90,6 +90,7 @@ in
 
     systemd.tmpfiles.rules = [
       "d ${cfg.stateDir}                            0700 ${cfg.user} ${cfg.group} - -"
+      "d ${cfg.stateDir}/data                       0700 ${cfg.user} ${cfg.group} - -"
     ];
 
     systemd.services.lnbits = {
@@ -99,18 +100,18 @@ in
       after = [ "network-online.target" ];
       environment = lib.mkMerge [
         {
-          LNBITS_DATA_FOLDER = "${cfg.stateDir}";
-          LNBITS_EXTENSIONS_PATH = "${cfg.stateDir}/extensions";
-          LNBITS_PATH = "${cfg.package.src}";
+          LNBITS_DATA_FOLDER = "${cfg.stateDir}/data";
+          # LNBits automatically appends '/extensions' to this path
+          LNBITS_EXTENSIONS_PATH = "${cfg.stateDir}";
         }
         cfg.env
       ];
       serviceConfig = {
         User = cfg.user;
         Group = cfg.group;
-        WorkingDirectory = "${cfg.package.src}";
-        StateDirectory = "${cfg.stateDir}";
-        ExecStart = "${lib.getExe cfg.package} --port ${toString cfg.port} --host ${cfg.host}";
+        WorkingDirectory = "${cfg.package}/lib/python3.12/site-packages";
+        StateDirectory = "lnbits";
+        ExecStart = "${cfg.package}/bin/lnbits --port ${toString cfg.port} --host ${cfg.host}";
         Restart = "always";
         PrivateTmp = true;
       };

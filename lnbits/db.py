@@ -281,15 +281,19 @@ class Database(Compat):
         self.schema = self.name
         self.type = DB_TYPE
 
-        if DB_TYPE == SQLITE:
+        if self.type == POSTGRES and settings.lnbits_database_url:
+            database_uri = settings.lnbits_database_url.replace(
+                "postgres://", "postgresql+asyncpg://"
+            )
+        elif self.type == COCKROACH and settings.lnbits_database_url:
+            database_uri = settings.lnbits_database_url.replace(
+                "cockroachdb://", "cockroachdb+asyncpg://"
+            )
+        else:
             self.path = os.path.join(
                 settings.lnbits_data_folder, f"{self.name}.sqlite3"
             )
             database_uri = f"sqlite+aiosqlite:///{self.path}"
-        else:
-            database_uri = settings.lnbits_database_url.replace(
-                "postgres://", "postgresql+asyncpg://"
-            )
 
         if self.name.startswith("ext_"):
             self.schema = self.name[4:]
@@ -420,6 +424,7 @@ class Operator(Enum):
     LE = "le"
     INCLUDE = "in"
     EXCLUDE = "ex"
+    LIKE = "like"
 
     @property
     def as_sql(self):
@@ -439,6 +444,8 @@ class Operator(Enum):
             return ">="
         elif self == Operator.LE:
             return "<="
+        elif self == Operator.LIKE:
+            return "LIKE"
         else:
             raise ValueError("Unknown SQL Operator")
 
@@ -495,7 +502,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
         return cls(field=field, op=op, values=values, model=model)
 
     @property
-    def statement(self):
+    def statement(self) -> str:
         stmt = []
         for key in self.values.keys() if self.values else []:
             clean_key = key.split("__")[0]
@@ -578,7 +585,10 @@ class Filters(BaseModel, Generic[TFilterModel]):
             for page_filter in self.filters:
                 if page_filter.values:
                     for key, value in page_filter.values.items():
-                        values[key] = value
+                        if page_filter.op == Operator.LIKE:
+                            values[key] = f"%{value}%"
+                        else:
+                            values[key] = value
         if self.search and self.model:
             values["search"] = f"%{self.search.lower()}%"
         return values

@@ -6,7 +6,7 @@ from httpx import AsyncClient
 
 from lnbits.core.models.users import User
 from lnbits.settings import Settings
-from lnbits.utils.nostr import generate_keypair
+from lnbits.utils.nostr import generate_keypair, hex_to_npub
 
 
 @pytest.mark.anyio
@@ -234,7 +234,6 @@ async def test_update_user_success(http_client: AsyncClient, superuser_token):
 async def test_update_bad_external_id(
     http_client: AsyncClient, user_alan: User, superuser_token
 ):
-
     update_data = {"id": user_alan.id, "external_id": "external 1234"}
     resp = await http_client.put(
         f"/users/api/v1/user/{user_alan.id}",
@@ -380,3 +379,89 @@ async def test_update_superuser_only_allowed_by_superuser(
     )
 
     assert resp.json()["detail"] == "Action only allowed for super user."
+
+
+@pytest.mark.anyio
+async def test_create_user_with_npub(http_client: AsyncClient, superuser_token):
+    tiny_id = shortuuid.uuid()[:8]
+    _, pubkey = generate_keypair()
+    data = {
+        "username": f"user_{tiny_id}",
+        "password": "secret1234",
+        "password_repeat": "secret1234",
+        "email": f"user_{tiny_id}@lnbits.com",
+        "pubkey": hex_to_npub(pubkey),
+    }
+    create_resp = await http_client.post(
+        "/users/api/v1/user",
+        json=data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 200
+    assert create_resp.json()["pubkey"] == pubkey
+
+
+@pytest.mark.anyio
+async def test_update_user_npub_success(http_client: AsyncClient, superuser_token):
+    # Create a user first
+    tiny_id = shortuuid.uuid()[:8]
+    data = {
+        "username": f"update_{tiny_id}",
+        "password": "secret1234",
+        "password_repeat": "secret1234",
+        "email": f"update_{tiny_id}@lnbits.com",
+    }
+    create_resp = await http_client.post(
+        "/users/api/v1/user",
+        json=data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 200
+    user_id = create_resp.json()["id"]
+
+    # Update the user
+    _, pubkey = generate_keypair()
+    update_data = {
+        "id": user_id,
+        "username": f"updated_{tiny_id}",
+        "email": f"updated_{tiny_id}@lnbits.com",
+        "pubkey": hex_to_npub(pubkey),
+        "extra": {"provider": "lnbits"},
+        "extensions": [],
+    }
+    resp = await http_client.put(
+        f"/users/api/v1/user/{user_id}",
+        json=update_data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["username"] == update_data["username"]
+    assert resp.json()["email"] == update_data["email"]
+    assert resp.json()["pubkey"] == pubkey
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "invalid_pubkey",
+    [
+        "npub1flrz7qu87n8y04jwy6r74z44pczcwaesumth08uxrusv4sm7efs83zq8z",
+        "4fc62f0387f4ce47d64e2687ea89f5a8702c3bb98736bbbcf30f906561bf653",
+    ],
+)
+async def test_create_user_invalid_npub(
+    http_client: AsyncClient, superuser_token, invalid_pubkey
+):
+    tiny_id = shortuuid.uuid()[:8]
+    data = {
+        "username": f"user_{tiny_id}",
+        "password": "secret1234",
+        "password_repeat": "secret1234",
+        "email": f"user_{tiny_id}@lnbits.com",
+        "pubkey": invalid_pubkey,
+    }
+    create_resp = await http_client.post(
+        "/users/api/v1/user",
+        json=data,
+        headers={"Authorization": f"Bearer {superuser_token}"},
+    )
+    assert create_resp.status_code == 400

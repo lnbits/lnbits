@@ -76,19 +76,25 @@
                 icon="add"
               ></q-btn>
             </q-input>
-            <div>
-              <q-chip
-                v-for="identifier in formData.lnbits_nostr_notifications_identifiers"
-                :key="identifier"
-                removable
-                @remove="removeNostrNotificationIdentifier(identifier)"
-                color="primary"
-                text-color="white"
-                ><span class="ellipsis" v-text="identifier"></span
-              ></q-chip>
-            </div>
           </q-item-section>
         </q-item>
+        <div>
+          <q-chip
+            v-for="identifier in formData.lnbits_nostr_notifications_identifiers"
+            :key="identifier"
+            removable
+            @remove="removeNostrNotificationIdentifier(identifier)"
+            color="primary"
+            text-color="white"
+            class="ellipsis"
+            :label="identifier"
+            ><q-tooltip
+              v-if="identifier"
+              anchor="top middle"
+              self="bottom middle"
+              ><span v-text="identifier"></span></q-tooltip
+          ></q-chip>
+        </div>
       </div>
 
       <div class="col-sm-12 col-md-6">

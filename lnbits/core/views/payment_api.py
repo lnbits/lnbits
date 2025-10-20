@@ -6,7 +6,6 @@ from math import ceil
 from typing import Optional
 from urllib.parse import urlparse
 
-import httpx
 from fastapi import (
     APIRouter,
     Depends,
@@ -15,7 +14,7 @@ from fastapi import (
     Query,
 )
 from fastapi.responses import JSONResponse
-from loguru import logger
+from lnurl import url_decode
 
 from lnbits import bolt11
 from lnbits.core.crud.payments import (
@@ -26,10 +25,9 @@ from lnbits.core.models import (
     FetchInvoice,
     CancelInvoice,
     CreateInvoice,
-    CreateLnurl,
+    CreateLnurlWithdraw,
     DecodePayment,
     KeyType,
-    PayLnurlWData,
     Payment,
     PaymentCountField,
     PaymentCountStat,
@@ -38,6 +36,7 @@ from lnbits.core.models import (
     PaymentHistoryPoint,
     PaymentWalletStats,
     SettleInvoice,
+    SimpleStatus,
 )
 from lnbits.core.models.users import User
 from lnbits.db import Filters, Page
@@ -49,13 +48,9 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 from lnbits.helpers import (
-    check_callback_url,
     filter_dict_keys,
     generate_filter_params_openapi,
 )
-from lnbits.lnurl import decode as lnurl_decode
-from lnbits.settings import settings
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 from lnbits.wallets.base import InvoiceResponse
 
 from ..crud import (
@@ -73,6 +68,7 @@ from ..services import (
     fee_reserve_total,
     get_payments_daily_stats,
     pay_invoice,
+    perform_withdraw,
     settle_hold_invoice,
     update_pending_payment,
     update_pending_payments,
@@ -313,95 +309,9 @@ async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONRespo
         )
 
 
-def _validate_lnurl_response(
-    params: dict, domain: str, amount_msat: int
-) -> bolt11.Invoice:
-    if params.get("status") == "ERROR":
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} said: '{params.get('reason', '')}'",
-        )
-    if not params.get("pr"):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} did not return a payment request.",
-        )
-    invoice = bolt11.decode(params["pr"])
-    if invoice.amount_msat != amount_msat:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=(
-                f"{domain} returned an invalid invoice. Expected"
-                f" {amount_msat} msat, got {invoice.amount_msat}."
-            ),
-        )
-    return invoice
-
-
-async def _fetch_lnurl_params(data: CreateLnurl, amount_msat: int, domain: str) -> dict:
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
-        try:
-            r: httpx.Response = await client.get(
-                data.callback,
-                params={"amount": amount_msat, "comment": data.comment},
-                timeout=40,
-            )
-            if r.is_error:
-                raise httpx.ConnectError("LNURL callback connection error")
-            r.raise_for_status()
-        except (httpx.HTTPError, ssl.SSLError) as exc:
-            logger.warning(exc)
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Failed to connect to {domain}.",
-            ) from exc
-        return json.loads(r.text)
-
-
-@payment_router.post("/lnurl")
-async def api_payments_pay_lnurl(
-    data: CreateLnurl, wallet: WalletTypeInfo = Depends(require_admin_key)
-) -> Payment:
-    domain = urlparse(data.callback).netloc
-    check_callback_url(data.callback)
-
-    if data.unit and data.unit != "sat":
-        amount_msat = await fiat_amount_as_satoshis(data.amount, data.unit)
-        amount_msat = ceil(amount_msat // 1000) * 1000
-    else:
-        amount_msat = data.amount
-
-    params = await _fetch_lnurl_params(data, amount_msat, domain)
-    _validate_lnurl_response(params, domain, amount_msat)
-
-    extra = {}
-    if params.get("successAction"):
-        extra["success_action"] = params["successAction"]
-    if data.comment:
-        extra["comment"] = data.comment
-    if data.unit and data.unit != "sat":
-        extra["fiat_currency"] = data.unit
-        extra["fiat_amount"] = data.amount / 1000
-    if data.internal_memo is not None:
-        if len(data.internal_memo) > 512:
-            raise ValueError("Internal memo must be 512 characters or less.")
-        extra["internal_memo"] = data.internal_memo
-    if data.description is None:
-        raise ValueError("Description is required")
-
-    payment = await pay_invoice(
-        wallet_id=wallet.wallet.id,
-        payment_request=params["pr"],
-        description=data.description,
-        extra=extra,
-    )
-    return payment
-
-
 # TODO: refactor this route into a public and admin one
 @payment_router.get("/{payment_hash}")
-async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
+async def api_payment(payment_hash, x_api_key: str | None = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
     wallet = await get_wallet_for_key(x_api_key) if isinstance(x_api_key, str) else None
@@ -420,7 +330,9 @@ async def api_payment(payment_hash, x_api_key: Optional[str] = Header(None)):
         return {"paid": True, "preimage": payment.preimage}
 
     if payment.failed:
-        return {"paid": False, "status": "failed", "details": payment}
+        if wallet and wallet.id == payment.wallet_id:
+            return {"paid": False, "status": "failed", "details": payment}
+        return {"paid": False, "status": "failed"}
 
     try:
         status = await payment.check_status()
@@ -444,7 +356,7 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
     payment_str = data.data
     try:
         if payment_str[:5] == "LNURL":
-            url = str(lnurl_decode(payment_str))
+            url = str(url_decode(payment_str))
             return JSONResponse({"domain": url})
         else:
             invoice = bolt11.decode(payment_str)
@@ -455,62 +367,6 @@ async def api_payments_decode(data: DecodePayment) -> JSONResponse:
             {"message": f"Failed to decode: {exc!s}"},
             status_code=HTTPStatus.BAD_REQUEST,
         )
-
-
-@payment_router.post("/{payment_request}/pay-with-nfc", status_code=HTTPStatus.OK)
-async def api_payment_pay_with_nfc(
-    payment_request: str,
-    lnurl_data: PayLnurlWData,
-) -> JSONResponse:
-    lnurl = lnurl_data.lnurl_w.lower()
-
-    # Follow LUD-17 -> https://github.com/lnurl/luds/blob/luds/17.md
-    url = lnurl.replace("lnurlw://", "https://")
-
-    headers = {"User-Agent": settings.user_agent}
-    async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
-        try:
-            check_callback_url(url)
-            lnurl_req = await client.get(url, timeout=10)
-            if lnurl_req.is_error:
-                return JSONResponse(
-                    {"success": False, "detail": "Error loading LNURL request"}
-                )
-
-            lnurl_res = lnurl_req.json()
-
-            if lnurl_res.get("status") == "ERROR":
-                return JSONResponse({"success": False, "detail": lnurl_res["reason"]})
-
-            if lnurl_res.get("tag") != "withdrawRequest":
-                return JSONResponse(
-                    {"success": False, "detail": "Invalid LNURL-withdraw"}
-                )
-
-            callback_url = lnurl_res["callback"]
-            k1 = lnurl_res["k1"]
-
-            callback_req = await client.get(
-                callback_url,
-                params={"k1": k1, "pr": payment_request},
-                timeout=10,
-            )
-            if callback_req.is_error:
-                return JSONResponse(
-                    {"success": False, "detail": "Error loading callback request"}
-                )
-
-            callback_res = callback_req.json()
-
-            if callback_res.get("status") == "ERROR":
-                return JSONResponse(
-                    {"success": False, "detail": callback_res["reason"]}
-                )
-            else:
-                return JSONResponse({"success": True, "detail": callback_res})
-
-        except Exception as e:
-            return JSONResponse({"success": False, "detail": f"Unexpected error: {e}"})
 
 
 @payment_router.post("/settle")
@@ -542,3 +398,23 @@ async def api_payments_cancel(
             detail="Payment does not exist or does not belong to this wallet.",
         )
     return await cancel_hold_invoice(payment)
+
+
+@payment_router.post("/{payment_request}/pay-with-nfc")
+async def api_payment_pay_with_nfc(
+    payment_request: str,
+    lnurl_data: CreateLnurlWithdraw,
+) -> SimpleStatus:
+    if not lnurl_data.lnurl_w.lud17:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="LNURL-withdraw lud17 not provided.",
+        )
+    try:
+        await perform_withdraw(lnurl_data.lnurl_w.lud17, payment_request)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
+
+    return SimpleStatus(success=True, message="Payment sent with NFC.")

@@ -5,11 +5,11 @@ import json
 import urllib.parse
 from collections.abc import AsyncGenerator
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from loguru import logger
-from websockets.legacy.client import connect
+from websockets import connect
 
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
@@ -84,9 +84,9 @@ class EclairWallet(Wallet):
     async def create_invoice(
         self,
         amount: int,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
-        unhashed_description: Optional[bytes] = None,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
         data: dict[str, Any] = {
@@ -245,7 +245,9 @@ class EclairWallet(Wallet):
             try:
                 async with connect(
                     self.ws_url,
-                    extra_headers=[("Authorization", self.headers["Authorization"])],
+                    additional_headers=[
+                        ("Authorization", self.headers["Authorization"])
+                    ],
                 ) as ws:
                     while settings.lnbits_running:
                         message = await ws.recv()

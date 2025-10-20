@@ -4,9 +4,10 @@ import importlib
 import os
 import shutil
 import sys
+import time
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Callable, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,7 +27,7 @@ from lnbits.core.crud.extensions import create_installed_extension
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
-from lnbits.core.services.notifications import enqueue_notification
+from lnbits.core.services.notifications import enqueue_admin_notification
 from lnbits.core.services.payments import check_pending_payments
 from lnbits.core.tasks import (
     audit_queue,
@@ -70,8 +71,9 @@ from .tasks import internal_invoice_listener, invoice_listener, run_interval
 
 
 async def startup(app: FastAPI):
+    logger.info(f"Starting LNbits Version: {settings.version}")
+    start = time.perf_counter()
     settings.lnbits_running = True
-
     # wait till migration is done
     await migrate_databases()
 
@@ -102,7 +104,7 @@ async def startup(app: FastAPI):
     # initialize tasks
     register_async_tasks()
 
-    enqueue_notification(
+    enqueue_admin_notification(
         NotificationType.server_start_stop,
         {
             "message": "LNbits server started.",
@@ -110,10 +112,13 @@ async def startup(app: FastAPI):
         },
     )
 
+    end = time.perf_counter()
+    logger.success(f"LNbits started in {end - start:.2f} seconds.")
+
 
 async def shutdown():
     logger.warning("LNbits shutting down...")
-    enqueue_notification(
+    enqueue_admin_notification(
         NotificationType.server_start_stop,
         {
             "message": "LNbits server shutting down...",
@@ -275,7 +280,7 @@ async def check_installed_extensions(app: FastAPI):
 
 
 async def build_all_installed_extensions_list(  # noqa: C901
-    include_deactivated: Optional[bool] = True,
+    include_deactivated: bool | None = True,
 ) -> list[InstallableExtension]:
     """
     Returns a list of all the installed extensions plus the extensions that

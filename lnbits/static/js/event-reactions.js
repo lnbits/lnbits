@@ -154,7 +154,7 @@ function confettiStars() {
   setTimeout(shoot, 200)
 }
 !(function (t, e) {
-  !(function t(e, n, a, i) {
+  ;(!(function t(e, n, a, i) {
     var o = !!(
       e.Worker &&
       e.Blob &&
@@ -248,12 +248,12 @@ function confettiStars() {
               function e(e, n) {
                 t.postMessage({options: e || {}, callback: n})
               }
-              ;(t.init = function (e) {
+              ;((t.init = function (e) {
                 var n = e.transferControlToOffscreen()
                 t.postMessage({canvas: n}, [n])
               }),
                 (t.fire = function (n, a, i) {
-                  if (g) return e(n, null), g
+                  if (g) return (e(n, null), g)
                   var o = Math.random().toString(36).slice(2)
                   return (g = l(function (a) {
                     function r(e) {
@@ -264,15 +264,15 @@ function confettiStars() {
                         i(),
                         a())
                     }
-                    t.addEventListener('message', r),
+                    ;(t.addEventListener('message', r),
                       e(n, o),
-                      (m[o] = r.bind(null, {data: {callback: o}}))
+                      (m[o] = r.bind(null, {data: {callback: o}})))
                   }))
                 }),
                 (t.reset = function () {
                   for (var e in (t.postMessage({reset: !0}), m))
-                    m[e](), delete m[e]
-                })
+                    (m[e](), delete m[e])
+                }))
             })(h)
           }
           return h
@@ -328,12 +328,12 @@ function confettiStars() {
       )
     }
     function k(t) {
-      ;(t.width = document.documentElement.clientWidth),
-        (t.height = document.documentElement.clientHeight)
+      ;((t.width = document.documentElement.clientWidth),
+        (t.height = document.documentElement.clientHeight))
     }
     function I(t) {
       var e = t.getBoundingClientRect()
-      ;(t.width = e.width), (t.height = e.height)
+      ;((t.width = e.width), (t.height = e.height))
     }
     function T(t, e, n, o, r) {
       var c,
@@ -342,10 +342,10 @@ function confettiStars() {
         d = t.getContext('2d'),
         f = l(function (e) {
           function l() {
-            ;(c = s = null), d.clearRect(0, 0, o.width, o.height), r(), e()
+            ;((c = s = null), d.clearRect(0, 0, o.width, o.height), r(), e())
           }
-          ;(c = b.frame(function e() {
-            !a ||
+          ;((c = b.frame(function e() {
+            ;(!a ||
               (o.width === i.width && o.height === i.height) ||
               ((o.width = t.width = i.width), (o.height = t.height = i.height)),
               o.width ||
@@ -354,7 +354,7 @@ function confettiStars() {
               d.clearRect(0, 0, o.width, o.height),
               (u = u.filter(function (t) {
                 return (function (t, e) {
-                  ;(e.x += Math.cos(e.angle2D) * e.velocity + e.drift),
+                  ;((e.x += Math.cos(e.angle2D) * e.velocity + e.drift),
                     (e.y += Math.sin(e.angle2D) * e.velocity + e.gravity),
                     (e.wobble += 0.1),
                     (e.velocity *= e.decay),
@@ -363,7 +363,7 @@ function confettiStars() {
                     (e.tiltCos = Math.cos(e.tiltAngle)),
                     (e.random = Math.random() + 5),
                     (e.wobbleX = e.x + 10 * e.scalar * Math.cos(e.wobble)),
-                    (e.wobbleY = e.y + 10 * e.scalar * Math.sin(e.wobble))
+                    (e.wobbleY = e.y + 10 * e.scalar * Math.sin(e.wobble)))
                   var n = e.tick++ / e.totalTicks,
                     a = e.x + e.random * e.tiltCos,
                     i = e.y + e.random * e.tiltSin,
@@ -393,12 +393,12 @@ function confettiStars() {
                             2 * Math.PI
                           )
                         : (function (t, e, n, a, i, o, r, l, c) {
-                            t.save(),
+                            ;(t.save(),
                               t.translate(e, n),
                               t.rotate(o),
                               t.scale(a, i),
                               t.arc(0, 0, 1, r, l, c),
-                              t.restore()
+                              t.restore())
                           })(
                             t,
                             e.x,
@@ -420,18 +420,18 @@ function confettiStars() {
                 })(d, t)
               })).length
                 ? (c = b.frame(e))
-                : l()
+                : l())
           })),
-            (s = l)
+            (s = l))
         })
       return {
         addFettis: function (t) {
-          return (u = u.concat(t)), f
+          return ((u = u.concat(t)), f)
         },
         canvas: t,
         promise: f,
         reset: function () {
-          c && b.cancel(c), s && s()
+          ;(c && b.cancel(c), s && s())
         }
       }
     }
@@ -466,7 +466,7 @@ function confettiStars() {
             k = p(e, 'scalar'),
             I = (function (t) {
               var e = p(t, 'origin', Object)
-              return (e.x = p(e, 'x', Number)), (e.y = p(e, 'y', Number)), e
+              return ((e.x = p(e, 'x', Number)), (e.y = p(e, 'y', Number)), e)
             })(e),
             E = d,
             S = [],
@@ -531,7 +531,7 @@ function confettiStars() {
           return l(function (t) {
             t()
           })
-        i && a
+        ;(i && a
           ? (t = a.canvas)
           : i &&
             !t &&
@@ -547,7 +547,7 @@ function confettiStars() {
               )
             })(g)),
             document.body.appendChild(t)),
-          r && !d && u(t)
+          r && !d && u(t))
         var m = {width: t.width, height: t.height}
         function b() {
           if (s) {
@@ -564,9 +564,9 @@ function confettiStars() {
           m.width = m.height = null
         }
         function v() {
-          ;(a = null),
+          ;((a = null),
             r && e.removeEventListener('resize', b),
-            i && t && (document.body.removeChild(t), (t = null), (d = !1))
+            i && t && (document.body.removeChild(t), (t = null), (d = !1)))
         }
         return (
           s && !d && s.init(t),
@@ -578,12 +578,13 @@ function confettiStars() {
       }
       return (
         (g.reset = function () {
-          s && s.reset(), a && a.reset()
+          ;(s && s.reset(), a && a.reset())
         }),
         g
       )
     }
-    ;(n.exports = E(null, {useWorker: !0, resize: !0})), (n.exports.create = E)
+    ;((n.exports = E(null, {useWorker: !0, resize: !0})),
+      (n.exports.create = E))
   })(
     (function () {
       return void 0 !== t ? t : 'undefined' != typeof self ? self : this || {}
@@ -591,5 +592,5 @@ function confettiStars() {
     e,
     !1
   ),
-    (t.confetti = e.exports)
+    (t.confetti = e.exports))
 })(window, {})

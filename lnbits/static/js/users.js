@@ -333,8 +333,8 @@ window.UsersPageLogic = {
       const url = `${window.location.origin}/wallet?usr=${this.activeWallet.userId}&wal=${walletId}`
       this.copyText(url)
     },
-
     fetchUsers(props) {
+      this.relaxFilterForFields(['username', 'email'])
       const params = LNbits.utils.prepareFilterQuery(this.usersTable, props)
       LNbits.api
         .request('GET', `/users/api/v1/user?${params}`)
@@ -354,6 +354,34 @@ window.UsersPageLogic = {
           this.activeWallet.show = true
         })
         .catch(LNbits.utils.notifyApiError)
+    },
+    relaxFilterForFields(fieldNames = []) {
+      fieldNames.forEach(fieldName => {
+        const fieldValue = this.usersTable?.filter?.[fieldName]
+        if (fieldValue) {
+          if (this.usersTable.filter[fieldName]) {
+            this.usersTable.filter[`${fieldName}[like]`] = fieldValue
+            delete this.usersTable.filter[fieldName]
+          }
+        }
+      })
+    },
+    updateWallet(userWallet) {
+      LNbits.api
+        .request('PATCH', '/api/v1/wallet', userWallet.adminkey, {
+          name: userWallet.name
+        })
+        .then(() => {
+          userWallet.editable = false
+          Quasar.Notify.create({
+            message: 'Wallet name updated.',
+            type: 'positive',
+            timeout: 3500
+          })
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
     },
 
     toggleAdmin(userId) {

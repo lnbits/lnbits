@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Literal
 
 from fastapi import Query
+from lnurl import LnurlWithdrawResponse
 from pydantic import BaseModel, Field, validator
 
 from lnbits.db import FilterModel
@@ -76,7 +77,7 @@ class Payment(BaseModel):
     amount: int
     fee: int
     bolt11: str
-    # payment_request: str | None
+    payment_request: str | None = Field(default=None, no_database=True)
     fiat_provider: str | None = None
     status: str = PaymentState.PENDING
     offer_id: str | None = None
@@ -92,6 +93,13 @@ class Payment(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     extra: dict = {}
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if "fiat_payment_request" in self.extra:
+            self.payment_request = self.extra["fiat_payment_request"]
+        else:
+            self.payment_request = self.bolt11
 
     @property
     def pending(self) -> bool:
@@ -273,7 +281,7 @@ class CreateInvoice(BaseModel):
     extra: dict | None = None
     webhook: str | None = None
     bolt11: str | None = None
-    lnurl_callback: str | None = None
+    lnurl_withdraw: LnurlWithdrawResponse | None = None
     fiat_provider: str | None = None
 
     @validator("payment_hash")

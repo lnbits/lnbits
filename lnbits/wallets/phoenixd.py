@@ -4,12 +4,12 @@ import hashlib
 import json
 import urllib.parse
 from collections.abc import AsyncGenerator
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from httpx import RequestError, TimeoutException
 from loguru import logger
-from websockets.legacy.client import connect
+from websockets import connect
 
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
@@ -96,9 +96,9 @@ class PhoenixdWallet(Wallet):
     async def create_invoice(
         self,
         amount: int,
-        memo: Optional[str] = None,
-        description_hash: Optional[bytes] = None,
-        unhashed_description: Optional[bytes] = None,
+        memo: str | None = None,
+        description_hash: bytes | None = None,
+        unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
 
@@ -226,9 +226,7 @@ class PhoenixdWallet(Wallet):
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(
-            f"/payments/incoming/{checking_id}?all=true&limit=1000"
-        )
+        r = await self.client.get(f"/payments/incoming/{checking_id}")
         if r.is_error:
             if r.status_code == 404:
                 # invoice does not exist in phoenixd, so it was never paid
@@ -260,9 +258,7 @@ class PhoenixdWallet(Wallet):
         return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.client.get(
-            f"/payments/outgoing/{checking_id}?all=true&limit=1000"
-        )
+        r = await self.client.get(f"/payments/outgoingbyhash/{checking_id}")
         if r.is_error:
             if r.status_code == 404:
                 # payment does not exist in phoenixd, so it was never paid
@@ -300,7 +296,9 @@ class PhoenixdWallet(Wallet):
             try:
                 async with connect(
                     self.ws_url,
-                    extra_headers=[("Authorization", self.headers["Authorization"])],
+                    additional_headers=[
+                        ("Authorization", self.headers["Authorization"])
+                    ],
                 ) as ws:
                     logger.info("connected to phoenixd invoices stream")
                     while settings.lnbits_running:

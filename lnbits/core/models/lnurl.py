@@ -1,21 +1,31 @@
-from typing import Optional
+from time import time
 
-from pydantic import BaseModel
+from lnurl import LnAddress, Lnurl, LnurlPayResponse
+from pydantic import BaseModel, Field
 
 
-class CreateLnurl(BaseModel):
-    description_hash: str
-    callback: str
+class CreateLnurlPayment(BaseModel):
+    res: LnurlPayResponse | None = None
+    lnurl: Lnurl | LnAddress | None = None
     amount: int
-    comment: Optional[str] = None
-    description: Optional[str] = None
-    unit: Optional[str] = None
-    internal_memo: Optional[str] = None
+    comment: str | None = None
+    unit: str | None = None
+    internal_memo: str | None = None
 
 
-class CreateLnurlAuth(BaseModel):
-    callback: str
+class CreateLnurlWithdraw(BaseModel):
+    lnurl_w: Lnurl
 
 
-class PayLnurlWData(BaseModel):
-    lnurl_w: str
+class LnurlScan(BaseModel):
+    lnurl: Lnurl | LnAddress
+
+
+class StoredPayLink(BaseModel):
+    lnurl: str
+    label: str
+    last_used: int = Field(default_factory=lambda: int(time()))
+
+
+class StoredPayLinks(BaseModel):
+    links: list[StoredPayLink] = []

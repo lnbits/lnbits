@@ -2474,7 +2474,7 @@
         },
         "phoenixd": {
           "get_payment_status_endpoint": {
-            "uri": "/payments/outgoing/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+            "uri": "/payments/outgoingbyhash/e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
             "headers": {
               "Authorization": "Basic OmYxNzFiYTAyMmE3NjRlNjc5ZWVmOTUwYjIxZmIxYzA0ZjE3MWJhMDIyYTc2NGU2NzllZWY5NTBiMjFmYjFjMDQ=",
               "User-Agent": "LNbits/Tests"

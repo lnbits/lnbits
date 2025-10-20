@@ -1,5 +1,3 @@
-from typing import Optional
-
 import shortuuid
 
 from lnbits.core.db import db
@@ -19,7 +17,7 @@ async def create_tinyurl(domain: str, endless: bool, wallet: str):
     return await get_tinyurl(tinyurl_id)
 
 
-async def get_tinyurl(tinyurl_id: str) -> Optional[TinyURL]:
+async def get_tinyurl(tinyurl_id: str) -> TinyURL | None:
     return await db.fetchone(
         "SELECT * FROM tiny_url WHERE id = :tinyurl",
         {"tinyurl": tinyurl_id},

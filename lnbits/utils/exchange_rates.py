@@ -1,6 +1,5 @@
 import asyncio
 import statistics
-from typing import Optional
 
 import httpx
 import jsonpath_ng.ext as jpx
@@ -250,7 +249,7 @@ async def btc_rates(currency: str) -> list[tuple[str, float]]:
 
     async def fetch_price(
         provider: ExchangeRateProvider,
-    ) -> Optional[tuple[str, float]]:
+    ) -> tuple[str, float] | None:
         if currency.lower() in provider.exclude_to:
             logger.warning(f"Provider {provider.name} does not support {currency}.")
             return None

@@ -7,10 +7,12 @@ from .views.audit_api import audit_router
 from .views.auth_api import auth_router
 from .views.callback_api import callback_router
 from .views.extension_api import extension_router
+from .views.extensions_builder_api import extension_builder_router
 from .views.fiat_api import fiat_router
 
 # this compat is needed for usermanager extension
 from .views.generic import generic_router
+from .views.lnurl_api import lnurl_router
 from .views.node_api import node_router, public_node_router, super_node_router
 from .views.offer_api import offer_router
 from .views.payment_api import payment_router
@@ -31,6 +33,7 @@ def init_core_routers(app: FastAPI):
     app.include_router(admin_router)
     app.include_router(node_router)
     app.include_router(extension_router)
+    app.include_router(extension_builder_router)
     app.include_router(super_node_router)
     app.include_router(public_node_router)
     app.include_router(offer_router)
@@ -44,6 +47,7 @@ def init_core_routers(app: FastAPI):
     app.include_router(users_router)
     app.include_router(audit_router)
     app.include_router(fiat_router)
+    app.include_router(lnurl_router)
 
 
 __all__ = ["core_app", "core_app_extra", "db"]
