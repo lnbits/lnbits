@@ -40,6 +40,7 @@ class WalletSharePermission(BaseModel):
     username: str | None
     wallet_id: str
     permission: str = WalletPermission.NONE.value
+    approved: bool = False
     comment: str | None = None
 
 
@@ -70,6 +71,10 @@ class Wallet(BaseModel):
     extra: WalletExtra = WalletExtra()
     stored_paylinks: StoredPayLinks = StoredPayLinks()
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._validate_data()
+
     def mirror_shared_wallet(
         self,
         shared_wallet: Wallet,
@@ -78,12 +83,8 @@ class Wallet(BaseModel):
             return None
 
         permission = shared_wallet.get_share_permission(self.id)
-        if permission == WalletPermission.NONE:
-            return None
 
         self.extra.granted_wallet_permission = permission.value
-
-        # self.id = shared_wallet.id
         self.wallet_type = WalletType.LIGHTNING_SHARED.value
         self.shared_wallet_id = shared_wallet.id
         self.currency = shared_wallet.currency
@@ -150,9 +151,16 @@ class Wallet(BaseModel):
     def is_lightning_shared_wallet(self) -> bool:
         return self.wallet_type == WalletType.LIGHTNING_SHARED.value
 
+    def _validate_data(self):
+        if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
+            if not self.shared_wallet_id:
+                raise ValueError("shared_wallet_id must be set for shared wallets")
+
 
 class CreateWallet(BaseModel):
     name: str | None = None
+    wallet_type: WalletType = WalletType.LIGHTNING
+    shared_wallet_id: str | None = None
 
 
 class KeyType(Enum):
