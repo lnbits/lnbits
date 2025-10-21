@@ -53,6 +53,8 @@ window.localisation.en = {
   wallet: 'Wallet: ',
   wallet_name: 'Wallet name',
   wallet_type: 'Wallet type',
+  shared_wallet: 'Shared Wallet',
+  share_wallet: 'Share Wallet',
   shared_wallet_id: 'Shared Wallet ID',
   shared_wallet_desc: 'Request access to the wallet of another user.',
   shared_wallet_access_desc:
