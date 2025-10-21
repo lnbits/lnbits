@@ -113,6 +113,7 @@ window.WalletPageLogic = {
       walletBalanceChart: null,
       inkeyHidden: true,
       adminkeyHidden: true,
+      walletIdHidden: true,
       hasNfc: false,
       nfcReaderAbortController: null,
       isFiatPriority: false,
@@ -125,7 +126,12 @@ window.WalletPageLogic = {
         showBalanceInOut: true,
         showPaymentCountInOut: true
       },
-      paymentsFilter: {}
+      paymentsFilter: {},
+      permissionOptions: [
+        {label: 'View', value: 'view'},
+        {label: 'Create Invoice', value: 'create-invoice'},
+        {label: 'Pay Invoice', value: 'pay-invoice'}
+      ]
     }
   },
   computed: {
