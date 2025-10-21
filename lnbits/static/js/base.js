@@ -125,9 +125,11 @@ window.LNbits = {
     getWallet(wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
-    createWallet(wallet, name) {
+    createWallet(wallet, name, walletType, ops = {}) {
       return this.request('post', '/api/v1/wallet', wallet.adminkey, {
-        name: name
+        name: name,
+        wallet_type: walletType,
+        ...ops
       }).then(res => {
         window.location = '/wallet?wal=' + res.data.id
       })
@@ -471,7 +473,11 @@ window.windowMixin = {
       toggleSubs: true,
       mobileSimple: true,
       walletFlip: true,
-      showAddWalletDialog: {show: false},
+      showAddWalletDialog: {show: false, walletType: 'lightning'},
+      walletTypes: [
+        {label: 'Lightning Wallet', value: 'lightning'},
+        {label: 'Lightning Wallet (Shared)', value: 'lightning-shared'}
+      ],
       isUserAuthorized: false,
       isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
       allowedThemes: WINDOW_SETTINGS['LNBITS_THEME_OPTIONS'],
@@ -511,21 +517,39 @@ window.windowMixin = {
         path: '/wallets'
       })
     },
-    submitAddWallet() {
-      if (
-        this.showAddWalletDialog.name &&
-        this.showAddWalletDialog.name.length > 0
-      ) {
-        LNbits.api.createWallet(
-          this.g.user.wallets[0],
-          this.showAddWalletDialog.name
-        )
-        this.showAddWalletDialog = {show: false}
-      } else {
+    showAddNewWalletDialog() {
+      this.showAddWalletDialog = {show: true, walletType: 'lightning'}
+    },
+    async submitAddWallet() {
+      const data = this.showAddWalletDialog
+      if (!data.name) {
         this.$q.notify({
           message: 'Please enter a name for the wallet',
-          color: 'negative'
+          color: 'warning'
         })
+        return
+      }
+      if (data.walletType === 'lightning-shared' && !data.sharedWalletId) {
+        this.$q.notify({
+          message: 'Please enter a shared wallet ID',
+          color: 'warning'
+        })
+        return
+      }
+      try {
+        await LNbits.api.createWallet(
+          this.g.user.wallets[0],
+          data.name,
+          data.walletType,
+          {
+            shared_wallet_id: data.sharedWalletId
+          }
+        )
+
+        this.showAddWalletDialog = {show: false}
+      } catch (e) {
+        console.warn(e)
+        LNbits.utils.notifyApiError(e)
       }
     },
     simpleMobile() {

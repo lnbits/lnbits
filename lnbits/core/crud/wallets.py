@@ -15,6 +15,7 @@ async def create_wallet(
     user_id: str,
     wallet_name: str | None = None,
     wallet_type: WalletType = WalletType.LIGHTNING,
+    shared_wallet_id: str | None = None,
     conn: Connection | None = None,
 ) -> Wallet:
     wallet_id = uuid4().hex
@@ -22,11 +23,13 @@ async def create_wallet(
         id=wallet_id,
         name=wallet_name or settings.lnbits_default_wallet_name,
         wallet_type=wallet_type.value,
+        shared_wallet_id=shared_wallet_id,
         user=user_id,
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
         currency=settings.lnbits_default_accounting_currency or "USD",
     )
+
     await (conn or db).insert("wallets", wallet)
     return wallet
 

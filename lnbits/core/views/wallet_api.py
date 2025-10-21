@@ -16,6 +16,7 @@ from lnbits.core.models.wallets import (
     WalletsFilters,
     WalletSharePermission,
 )
+from lnbits.core.services.wallets import create_advanced_wallet
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_user_exists,
@@ -26,7 +27,6 @@ from lnbits.decorators import (
 from lnbits.helpers import generate_filter_params_openapi
 
 from ..crud import (
-    create_wallet,
     delete_wallet,
     get_wallet,
     update_wallet,
@@ -160,4 +160,10 @@ async def api_create_wallet(
     data: CreateWallet,
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
-    return await create_wallet(user_id=key_info.wallet.user, wallet_name=data.name)
+
+    return await create_advanced_wallet(
+        user_id=key_info.wallet.user,
+        wallet_name=data.name,
+        wallet_type=data.wallet_type,
+        shared_wallet_id=data.shared_wallet_id,
+    )
