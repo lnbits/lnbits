@@ -304,7 +304,7 @@
                         round
                         color="primary"
                         icon="add"
-                        @click="showAddWalletDialog.show = true"
+                        @click="showAddNewWalletDialog()"
                       >
                         <q-tooltip
                           ><span v-text="$t('add_new_wallet')"></span
@@ -312,23 +312,55 @@
                       </q-btn>
                       <q-dialog
                         v-model="showAddWalletDialog.show"
-                        persistent
+                        position="top"
                         @hide="showAddWalletDialog = {show: false}"
                       >
-                        <q-card style="min-width: 350px">
+                        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
                           <q-card-section>
                             <div class="text-h6">
-                              <span v-text="$t('wallet_name')"></span>
+                              <span v-text="$t('add_new_wallet')"></span>
                             </div>
                           </q-card-section>
 
                           <q-card-section class="q-pt-none">
+                            <q-select
+                              :options="walletTypes"
+                              emit-value
+                              map-options
+                              :label="$t('wallet_type')"
+                              v-model="showAddWalletDialog.walletType"
+                              dense
+                            ></q-select>
                             <q-input
                               dense
                               v-model="showAddWalletDialog.name"
+                              :label="$t('wallet_name')"
                               autofocus
                               @keyup.enter="submitAddWallet()"
+                              class="q-mt-md"
                             ></q-input>
+
+                            <q-input
+                              v-if="showAddWalletDialog.walletType == 'lightning-shared'"
+                              dense
+                              v-model="showAddWalletDialog.sharedWalletId"
+                              :label="$t('shared_wallet_id')"
+                              class="q-mt-md"
+                            ></q-input>
+                            <div
+                              v-if="showAddWalletDialog.walletType == 'lightning-shared'"
+                              class="q-mt-md"
+                            >
+                              <span
+                                v-text="$t('shared_wallet_desc')"
+                                class="q-mt-lg"
+                              ></span>
+                              <br />
+                              <span
+                                v-text="$t('shared_wallet_access_desc')"
+                                style="word-break: break-all"
+                              ></span>
+                            </div>
                           </q-card-section>
 
                           <q-card-actions align="right" class="text-primary">

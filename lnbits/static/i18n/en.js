@@ -52,6 +52,11 @@ window.localisation.en = {
   stored_paylinks: 'Stored LNURL pay links',
   wallet: 'Wallet: ',
   wallet_name: 'Wallet name',
+  wallet_type: 'Wallet type',
+  shared_wallet_id: 'Shared Wallet ID',
+  shared_wallet_desc: 'Request access to the wallet of another user.',
+  shared_wallet_access_desc:
+    'The owner of the wallet must grant you permissions.',
   wallets: 'Wallets',
   exclude_wallets: 'Exclude Wallets',
   add_wallet: 'Add wallet',
