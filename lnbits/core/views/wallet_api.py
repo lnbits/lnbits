@@ -11,6 +11,7 @@ from fastapi import (
 from lnbits.core.crud.wallets import get_wallets_paginated
 from lnbits.core.models import CreateWallet, KeyType, User, Wallet, WalletTypeInfo
 from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
+from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.wallets import (
     WalletPermission,
     WalletsFilters,
@@ -64,6 +65,53 @@ async def api_wallets_paginated(
     )
 
     return page
+
+
+@wallet_router.put("/share")
+async def api_update_wallet_share_permissions(
+    data: WalletSharePermission, key_info: WalletTypeInfo = Depends(require_admin_key)
+) -> WalletSharePermission:
+    wallet = await get_wallet(key_info.wallet.id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet not found")
+
+    data.approved = True
+    permission = next(
+        (p for p in wallet.extra.shared_with if p.username == data.username), None
+    )
+    if permission:
+        permission.permissions = data.permissions
+        permission.approved = True
+    else:
+        # In the future the user will be able to add new share permissions
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Permission not found")
+
+    await update_wallet(wallet)
+    return permission
+
+
+@wallet_router.delete("/share/{wallet_id}")
+async def api_delete_wallet_share_permissions(
+    wallet_id: str, key_info: WalletTypeInfo = Depends(require_admin_key)
+) -> SimpleStatus:
+    print("#### Deleting share permission for wallet:", wallet_id)
+    wallet = await get_wallet(wallet_id)
+    if not wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Target wallet not found")
+    # if wallet.shared_wallet_id != key_info.wallet.id:
+    #     raise HTTPException(
+    #         HTTPStatus.FORBIDDEN, "You do not have permission to modify this wallet"
+    #     )
+
+    shared_wallet = await get_wallet(key_info.wallet.id)
+    if not shared_wallet:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Shared wallet not found")
+
+    shared_wallet.extra.shared_with = [
+        p for p in wallet.extra.shared_with if p.wallet_id != wallet_id
+    ]
+    await update_wallet(shared_wallet)
+    return SimpleStatus(success=True, message="Permission deleted")
 
 
 @wallet_router.put("/{new_name}")
@@ -134,7 +182,7 @@ async def api_update_wallet(
             WalletSharePermission(
                 username="Anonymous",
                 wallet_id="c71b514cd8fe4a45b84b83e908ac3323",
-                permission=WalletPermission.VIEW_ONLY.value,
+                permissions=[WalletPermission.VIEW_PAYMENTS],
             )
         ]
     await update_wallet(wallet)

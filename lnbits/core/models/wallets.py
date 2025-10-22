@@ -27,8 +27,7 @@ class WalletType(Enum):
 
 
 class WalletPermission(Enum):
-    NONE = "none"
-    VIEW_ONLY = "view-only"
+    VIEW_PAYMENTS = "view-payments"
     RECEIVE_PAYMENTS = "receive-payments"
     SEND_PAYMENTS = "send-payments"
 
@@ -39,7 +38,7 @@ class WalletPermission(Enum):
 class WalletSharePermission(BaseModel):
     username: str | None
     wallet_id: str
-    permission: str = WalletPermission.NONE.value
+    permissions: list[WalletPermission] = []
     approved: bool = False
     comment: str | None = None
 
@@ -51,7 +50,7 @@ class WalletExtra(BaseModel):
     # What permissions this wallet grants when it's shared with other users
     shared_with: list[WalletSharePermission] = []
     # What permission this wallet has when it's a shared wallet
-    granted_wallet_permission: str = WalletPermission.NONE.value
+    granted_wallet_permission: list[WalletPermission] = []
 
 
 class Wallet(BaseModel):
@@ -82,9 +81,9 @@ class Wallet(BaseModel):
         if shared_wallet.wallet_type != WalletType.LIGHTNING.value:
             return None
 
-        permission = shared_wallet.get_share_permission(self.id)
-
-        self.extra.granted_wallet_permission = permission.value
+        self.extra.granted_wallet_permission = shared_wallet.get_share_permission(
+            self.id
+        )
         self.wallet_type = WalletType.LIGHTNING_SHARED.value
         self.shared_wallet_id = shared_wallet.id
         self.currency = shared_wallet.currency
@@ -94,11 +93,11 @@ class Wallet(BaseModel):
         self.extra.icon = shared_wallet.extra.icon
         self.extra.color = shared_wallet.extra.color
 
-    def get_share_permission(self, wallet_id: str) -> WalletPermission:
-        for perm in self.extra.shared_with:
-            if perm.wallet_id == wallet_id:
-                return WalletPermission(perm.permission)
-        return WalletPermission.NONE
+    def get_share_permission(self, wallet_id: str) -> list[WalletPermission]:
+        for share in self.extra.shared_with:
+            if share.wallet_id == wallet_id:
+                return share.permissions
+        return []
 
     @property
     def source_wallet_id(self) -> str:
