@@ -2,7 +2,6 @@ from lnbits.core.crud.users import get_account
 from lnbits.core.crud.wallets import create_wallet, get_standalone_wallet, update_wallet
 from lnbits.core.models.wallets import (
     Wallet,
-    WalletPermission,
     WalletSharePermission,
     WalletType,
 )
@@ -53,9 +52,7 @@ async def create_lightinng_shared_wallet(
         raise ValueError("Invalid user id.")
     shared_wallet.extra.shared_with.append(
         WalletSharePermission(
-            username=user.username or user.email or "Anonymous",
-            wallet_id=wallet.id,
-            permission=WalletPermission.NONE.value,
+            username=user.username or user.email or "Anonymous", wallet_id=wallet.id
         )
     )
     await update_wallet(shared_wallet, conn=conn)
