@@ -413,38 +413,101 @@
                         </q-item-section>
                       </q-item>
                     </q-card-section>
-                    <q-separator></q-separator>
-                    <q-card-section>
-                      <strong>Granted permissions:</strong>
-                    </q-card-section>
-                    <q-card-section>
-                      <div
-                        v-for="share in wallet.extra.shared_with"
-                        class="row q-mb-xs"
-                      >
-                        <div class="col-1">
-                          <q-icon v-if="share.comment" name="add_comment">
-                            <q-tooltip v-text="share.comment"></q-tooltip>
-                          </q-icon>
-                        </div>
-                        <div class="col-3 q-mt-sm">
-                          <strong v-text="share.username"></strong>
-                        </div>
-                        <div class="col-8">
-                          <q-select
-                            v-model="share.permission"
-                            :options="permissionOptions"
-                            emit-value
-                            map-options
-                            multiple
-                            use-chips
-                            dense
-                          ></q-select>
+                    <q-expansion-item
+                      group="wallet_shares"
+                      dense
+                      expand-separator
+                      label="Shared With"
+                    >
+                      <q-card>
+                        <q-card-section v-if="(wallet.extra.shared_with.filter(s => s.approved)).length != 0">
+                          <div
+                            v-for="share in wallet.extra.shared_with"
+                            class="row q-mb-xs"
+                          >
+                            <div class="col-3 q-mt-md">
+                              <strong v-text="share.username"></strong>
+                            </div>
+                            <div class="col-1 q-mt-sm">
+                              <q-icon v-if="share.comment" name="add_comment">
+                                <q-tooltip v-text="share.comment"></q-tooltip>
+                              </q-icon>
+                            </div>
+                            <div class="col-6">
+                              <q-select
+                                v-model="share.permissions"
+                                :options="permissionOptions"
+                                emit-value
+                                map-options
+                                multiple
+                                use-chips
+                                dense
+                              ></q-select>
+                            </div>
+                            <div class="col-1 q-mt-sm">
+                              <q-btn
+                                flat
+                                color="red"
+                                icon="delete"
+                                outline
+                                class="full-width"
+                                @click="deleteSharePermission(share)"
+                              ></q-btn>
+                            </div>
+                            <div class="col-1 q-mt-sm">
+                              <q-btn
+                                dense
+                                flat
+                                color="primary"
+                                icon="check"
+                                class="full-width"
+                                @click="updateSharePermissions(share)"
+                              ></q-btn>
+                            </div>
+                          </div>
+                        </q-card-section>
+                        <q-card-section  v-else>
+                          <span>This wallet is not shared with anyone.</span>
+                        </q-card-section>
+                      </q-card>
+                    </q-expansion-item>
+                    <q-expansion-item
+                      group="wallet_shares"
+                      dense
+                      expand-separator
+                      label="Share Requests"
+                    >
+                      <q-card>
+                        <q-card-section>
+                          <div
+                            v-for="share in wallet.extra.shared_with"
+                            class="row q-mb-xs"
+                          >
+                            <div class="col-1">
+                              <q-icon v-if="share.comment" name="add_comment">
+                                <q-tooltip v-text="share.comment"></q-tooltip>
+                              </q-icon>
+                            </div>
+                            <div class="col-3 q-mt-sm">
+                              <strong v-text="share.username"></strong>
+                            </div>
+                            <div class="col-8">
+                              <q-select
+                                v-model="share.permission"
+                                :options="permissionOptions"
+                                emit-value
+                                map-options
+                                multiple
+                                use-chips
+                                dense
+                              ></q-select>
+                            </div>
+                          </div>
+                        </q-card-section>
+                      </q-card>
+                    </q-expansion-item>
 
-                          <!-- @update:model-value="updateSharePermission(share)" -->
-                        </div>
-                      </div>
-                    </q-card-section>
+                    <q-card-section> </q-card-section>
                   </q-card>
                 </q-expansion-item>
                 <q-separator></q-separator>
