@@ -128,9 +128,9 @@ window.WalletPageLogic = {
       },
       paymentsFilter: {},
       permissionOptions: [
-        {label: 'View', value: 'view'},
-        {label: 'Create Invoice', value: 'create-invoice'},
-        {label: 'Pay Invoice', value: 'pay-invoice'}
+        {label: 'View', value: 'view-payments'},
+        {label: 'Receive', value: 'receive-payments'},
+        {label: 'Send', value: 'send-payments'}
       ]
     }
   },
@@ -679,6 +679,45 @@ window.WalletPageLogic = {
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
+        })
+    },
+    async updateSharePermissions(permission) {
+      try {
+        await LNbits.api.request(
+          'PUT',
+          '/api/v1/wallet/share',
+          this.g.wallet.adminkey,
+          permission
+        )
+        Quasar.Notify.create({
+          message: 'Wallet permission updated.',
+          type: 'positive'
+        })
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
+      }
+    },
+    deleteSharePermission(permission) {
+      LNbits.utils
+        .confirmDialog('Are you sure you want to remove this share permission?')
+        .onOk(async () => {
+          try {
+            await LNbits.api.request(
+              'DELETE',
+              `/api/v1/wallet/share/${permission.wallet_id}`,
+              this.g.wallet.adminkey
+            )
+            this.g.wallet.extra.shared_with =
+              this.g.wallet.extra.shared_with.filter(
+                value => value.wallet_id !== permission.wallet_id
+              )
+            Quasar.Notify.create({
+              message: 'Wallet permission deleted.',
+              type: 'positive'
+            })
+          } catch (err) {
+            LNbits.utils.notifyApiError(err)
+          }
         })
     },
     deleteWallet() {
