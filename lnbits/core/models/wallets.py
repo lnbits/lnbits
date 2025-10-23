@@ -42,12 +42,6 @@ class WalletSharePermission(BaseModel):
     approved: bool = False
     comment: str | None = None
 
-    @property
-    def notify_on_new_payment(self) -> bool:
-        if not self.approved:
-            return False
-        return WalletPermission.VIEW_PAYMENTS in self.permissions
-
 
 class WalletExtra(BaseModel):
     icon: str = "flash_on"
@@ -106,6 +100,14 @@ class Wallet(BaseModel):
                 return share.permissions
         return []
 
+    def has_permission(self, permission: WalletPermission) -> bool:
+        if self.is_lightning_wallet:
+            return True
+        if self.is_lightning_shared_wallet:
+            return permission in self.share_permissions
+
+        return False
+
     @property
     def source_wallet_id(self) -> str:
         """For shared wallets return the original wallet ID, else return own ID."""
@@ -114,22 +116,16 @@ class Wallet(BaseModel):
         return self.id
 
     @property
-    def can_create_invoice(self) -> bool:
-        if self.is_lightning_wallet:
-            return True
-        if self.is_lightning_shared_wallet:
-            return WalletPermission.RECEIVE_PAYMENTS in self.share_permissions
-
-        return False
+    def can_receveive_payments(self) -> bool:
+        return self.has_permission(WalletPermission.RECEIVE_PAYMENTS)
 
     @property
-    def can_pay_invoice(self) -> bool:
-        if self.is_lightning_wallet:
-            return True
-        if self.is_lightning_shared_wallet:
-            return WalletPermission.SEND_PAYMENTS in self.share_permissions
+    def can_send_payments(self) -> bool:
+        return self.has_permission(WalletPermission.SEND_PAYMENTS)
 
-        return False
+    @property
+    def can_view_payments(self) -> bool:
+        return self.has_permission(WalletPermission.VIEW_PAYMENTS)
 
     @property
     def balance(self) -> int:
