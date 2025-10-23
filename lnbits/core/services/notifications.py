@@ -259,10 +259,8 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
     try:
         await send_ws_payment_notification(wallet, payment)
         for shared in wallet.extra.shared_with:
-            if not shared.notify_on_new_payment:
-                continue
             shared_wallet = await get_wallet(shared.wallet_id)
-            if shared_wallet:
+            if shared_wallet and shared_wallet.can_view_payments:
                 await send_ws_payment_notification(shared_wallet, payment)
     except Exception as e:
         logger.error(f"Error sending websocket payment notification {e!s}")
