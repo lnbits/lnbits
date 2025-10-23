@@ -330,7 +330,9 @@ async def get_payments_history(
 
     date_trunc = db.datetime_grouping(group)
 
-    values: dict[str, Any] = {}
+    values: dict[str, Any] = {
+        "wallet_id": wallet_id,
+    }
     # count outgoing payments if they are still pending
     where = [
         f"""
@@ -361,8 +363,7 @@ async def get_payments_history(
         if not wallet or not wallet.can_view_payments:
             return []
         balance = wallet.balance_msat
-        wallet_id = wallet.source_wallet_id
-        values["wallet_id"] = wallet_id
+        values["wallet_id"] = wallet.source_wallet_id
     else:
         balance = await get_total_balance()
 
