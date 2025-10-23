@@ -42,6 +42,12 @@ class WalletSharePermission(BaseModel):
     approved: bool = False
     comment: str | None = None
 
+    @property
+    def notify_on_new_payment(self) -> bool:
+        if not self.approved:
+            return False
+        return WalletPermission.VIEW_PAYMENTS in self.permissions
+
 
 class WalletExtra(BaseModel):
     icon: str = "flash_on"
