@@ -16,7 +16,7 @@ nav_order: 1
 [<img src="https://img.shields.io/badge/community_chat-Telegram-24A1DE">](https://t.me/lnbits)
 [<img src="https://img.shields.io/badge/supported_by-%3E__OpenSats-f97316">](https://opensats.org)
 
-# LNBits Admin UI  
+# LNBits Admin UI
 
 [What you can do](#what-you-can-do-with-the-admin-ui) · [First Run](#first-run-and-super-user-id) · [Enable/Disable](#enabling-or-disabling-the-admin-ui) · [Reset](#reset-to-defaults) · [Allowed Users](#allowed-users) · [Guides](#additional-guides)
 
@@ -46,7 +46,7 @@ For a complete reference of legacy variables consult **[.env.example](../../.env
 
 ## First run and Super User ID
 
-On first start with the Admin UI enabled you will be prompted to generate a Super User.  
+On first start with the Admin UI enabled you will be prompted to generate a Super User.
 
 <img width="1573" height="976" alt="Admin_UI_first_install" src="https://github.com/user-attachments/assets/05aa634f-06ec-4a4d-a5c6-d90927c90991" />
 
