@@ -74,7 +74,7 @@ async def pay_invoice(
         wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
         if not wallet.can_pay_invoice:
             raise PaymentError(
-                "Shared wallet does not have permission to pay invoices.",
+                "This shared wallet does not have permission to pay invoices.",
                 status="failed",
             )
 
@@ -257,7 +257,7 @@ async def create_invoice(
 
     if not user_wallet.can_create_invoice:
         raise InvoiceError(
-            "Shared wallet does not have permission to create invoices.",
+            "This shared wallet does not have permission to create invoices.",
             status="failed",
         )
 
