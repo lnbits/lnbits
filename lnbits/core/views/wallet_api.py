@@ -94,7 +94,6 @@ async def api_update_wallet_share_permissions(
 async def api_delete_wallet_share_permissions(
     wallet_id: str, key_info: WalletTypeInfo = Depends(require_admin_key)
 ) -> SimpleStatus:
-    print("#### Deleting share permission for wallet:", wallet_id)
     wallet = await get_wallet(wallet_id)
     if not wallet:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Target wallet not found")

@@ -96,7 +96,7 @@ class Wallet(BaseModel):
 
     def get_share_permissions(self, wallet_id: str) -> list[WalletPermission]:
         for share in self.extra.shared_with:
-            if share.wallet_id == wallet_id:
+            if share.wallet_id == wallet_id and share.approved:
                 return share.permissions
         return []
 
@@ -112,7 +112,6 @@ class Wallet(BaseModel):
         if self.is_lightning_wallet:
             return True
         if self.is_lightning_shared_wallet:
-            print("### self.share_permissions", self.share_permissions)
             return WalletPermission.RECEIVE_PAYMENTS in self.share_permissions
 
         return False
@@ -149,8 +148,6 @@ class Wallet(BaseModel):
     @property
     def is_lightning_shared_wallet(self) -> bool:
         return self.wallet_type == WalletType.LIGHTNING_SHARED.value
-
-
 
     def _validate_data(self):
         if self.is_lightning_shared_wallet:
