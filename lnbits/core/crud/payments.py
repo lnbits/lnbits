@@ -47,7 +47,7 @@ async def get_standalone_payment(
 
     if wallet_id:
         wallet = await get_wallet(wallet_id)
-        if not wallet:
+        if not wallet or not wallet.can_view_payments:
             return None
         values["wallet_id"] = wallet.source_wallet_id
         clause = f"({clause}) AND wallet_id = :wallet_id"
@@ -70,7 +70,7 @@ async def get_wallet_payment(
     wallet_id: str, payment_hash: str, conn: Connection | None = None
 ) -> Payment | None:
     wallet = await get_wallet(wallet_id)
-    if not wallet:
+    if not wallet or not wallet.can_view_payments:
         return None
     payment = await (conn or db).fetchone(
         """
@@ -135,7 +135,7 @@ async def get_payments_paginated(  # noqa: C901
 
     if wallet_id:
         wallet = await get_wallet(wallet_id)
-        if not wallet:
+        if not wallet or not wallet.can_view_payments:
             return Page(data=[], total=0)
         wallet_id = wallet.source_wallet_id
         values["wallet_id"] = wallet_id
@@ -358,7 +358,7 @@ async def get_payments_history(
     )
     if wallet_id:
         wallet = await get_wallet(wallet_id)
-        if not wallet:
+        if not wallet or not wallet.can_view_payments:
             return []
         balance = wallet.balance_msat
         wallet_id = wallet.source_wallet_id

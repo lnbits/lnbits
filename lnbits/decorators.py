@@ -109,7 +109,7 @@ class KeyChecker(SecurityBase):
                     detail="Invalid adminkey.",
                 )
 
-        # if self._api_key == wallet.adminkey and not wallet.can_pay_invoice:
+        # if self._api_key == wallet.adminkey and not wallet.can_send_payments:
         #     raise HTTPException(
         #         status_code=HTTPStatus.FORBIDDEN,
         #         detail="Shared wallet does not have pay permissions.",
