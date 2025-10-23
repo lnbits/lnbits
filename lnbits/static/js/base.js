@@ -236,6 +236,8 @@ window.LNbits = {
         id: data.id,
         name: data.name,
         walletType: data.wallet_type,
+        sharePermissions: data.share_permissions,
+        sharedWalletId: data.shared_wallet_id,
         adminkey: data.adminkey,
         inkey: data.inkey,
         currency: data.currency,
