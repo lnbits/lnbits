@@ -100,7 +100,9 @@ window.app.component('lnbits-funding-sources', {
             lnd_grpc_endpoint: 'Endpoint',
             lnd_grpc_cert: 'Certificate',
             lnd_grpc_port: 'Port',
-            lnd_grpc_admin_macaroon: 'Admin Macaroon',
+            lnd_grpc_macaroon: 'GRPC Macaroon',
+            lnd_grpc_invoice_macaroon: 'GRPC Invoice Macaroon',
+            lnd_grpc_admin_macaroon: 'GRPC Admin Macaroon',
             lnd_grpc_macaroon_encrypted: 'Encrypted Macaroon'
           }
         ],

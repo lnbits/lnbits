@@ -84,9 +84,7 @@ class LndWallet(Wallet):
         macaroon = (
             settings.lnd_grpc_macaroon
             or settings.lnd_grpc_admin_macaroon
-            or settings.lnd_admin_macaroon
             or settings.lnd_grpc_invoice_macaroon
-            or settings.lnd_invoice_macaroon
         )
         encrypted_macaroon = settings.lnd_grpc_macaroon_encrypted
         try:
