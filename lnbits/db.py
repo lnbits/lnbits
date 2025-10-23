@@ -594,7 +594,7 @@ class Filters(BaseModel, Generic[TFilterModel]):
         return values
 
 
-class LNbitsJsonEncoder(json.JSONEncoder):
+class DbJsonEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, Enum):
             return o.value
@@ -655,7 +655,7 @@ def model_to_dict(model: BaseModel) -> dict:
             or type_ is dict
             or get_origin(outertype_) is list
         ):
-            _dict[key] = json.dumps(value, cls=LNbitsJsonEncoder)
+            _dict[key] = json.dumps(value, cls=DbJsonEncoder)
             continue
         _dict[key] = value
 
