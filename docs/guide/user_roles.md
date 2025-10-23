@@ -87,7 +87,7 @@ For using LNbits, not administering it.
 
 - **[Admin UI](./admin_ui.md)** — Manage server settings via a clean UI (avoid editing `.env` by hand).
 - **[Super User](./super_user.md)** — Deep dive on responsibilities and safe usage patterns.
-- **[Funding sources](./funding-sources_table.md)** — What’s available and how to enable/configure each.
+- **[Funding sources](./funding-sources-table.md)** — What’s available and how to enable/configure each.
 
 ## Powered by LNbits
 
