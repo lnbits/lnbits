@@ -77,6 +77,7 @@ async def pay_invoice(
                 "This shared wallet does not have permission to pay invoices.",
                 status="failed",
             )
+        wallet_id = wallet.source_wallet_id
 
         if await is_internal_status_success(invoice.payment_hash, new_conn):
             raise PaymentError("Internal invoice already paid.", status="failed")
@@ -93,7 +94,7 @@ async def pay_invoice(
             extra=extra,
         )
 
-    payment = await _pay_invoice(wallet.id, create_payment_model, conn)
+    payment = await _pay_invoice(wallet_id, create_payment_model, conn)
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         await _credit_service_fee_wallet(wallet, payment, new_conn)
@@ -260,6 +261,8 @@ async def create_invoice(
             "This shared wallet does not have permission to create invoices.",
             status="failed",
         )
+    # this is for shared wallets to use the source wallet for invoicing
+    wallet_id = user_wallet.source_wallet_id
 
     invoice_memo = None if description_hash else memo[:640]
 
@@ -467,7 +470,7 @@ async def update_wallet_balance(
             await create_payment(
                 checking_id=f"internal_{payment_hash}",
                 data=CreatePayment(
-                    wallet_id=wallet.id,
+                    wallet_id=wallet.source_wallet_id,
                     bolt11=bolt11,
                     payment_hash=payment_hash,
                     amount_msat=amount * 1000,
@@ -486,7 +489,7 @@ async def update_wallet_balance(
         raise ValueError("Balance change failed, amount exceeds maximum balance.")
     async with db.reuse_conn(conn) if conn else db.connect() as conn:
         payment = await create_invoice(
-            wallet_id=wallet.id,
+            wallet_id=wallet.source_wallet_id,
             amount=amount,
             memo="Admin credit",
             internal=True,
@@ -921,7 +924,7 @@ async def _credit_service_fee_wallet(
 
     memo = f"""
         Service fee for payment of {abs(payment.sat)} sats.
-        Wallet: '{wallet.name}' ({wallet.id})."""
+        Wallet: '{wallet.name}' ({wallet.source_wallet_id})."""
 
     create_payment_model = CreatePayment(
         wallet_id=settings.lnbits_service_fee_wallet,

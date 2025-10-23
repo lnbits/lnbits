@@ -525,7 +525,7 @@ window.windowMixin = {
     },
     async submitAddWallet() {
       const data = this.showAddWalletDialog
-      if (!data.name) {
+      if (data.walletType === 'lightning' && !data.name) {
         this.$q.notify({
           message: 'Please enter a name for the wallet',
           color: 'warning'
