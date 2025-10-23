@@ -116,8 +116,8 @@ These are practical tips for running a safe and friendly instance.
 ## Additional guides
 
 - **[Admin UI](./admin_ui.md)** — Manage server settings in the browser instead of editing `.env` or using the CLI for routine tasks.
-- **[User Roles](./User_Roles.md)** — Overview of roles and what they can do.
-- **[Funding sources](./funding-sources_table.md)** — Available options and how to enable and configure them.
+- **[User Roles](./user_roles.md)** — Overview of roles and what they can do.
+- **[Funding sources](./funding-sources-table.md)** — Available options and how to enable and configure them.
 - **[Install LNBits](./installation.md)** — Choose your prefared way to install LNBits.
 
 ## Powered by LNbits
