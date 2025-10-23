@@ -354,8 +354,8 @@ Get more info here [https://docs.strike.me/strike-oauth-connect/](https://docs.s
 ## Additional Guides
 
 - **[Admin UI](./admin_ui.md)** — Manage server settings via a clean UI (avoid editing `.env` by hand).
-- **[User Roles](./User_Roles.md)** — Quick Overview of existing Roles in LNBits.
-- **[Funding sources](./funding-sources_table.md)** — What’s available and how to enable/configure each.
+- **[User Roles](./user_roles.md)** — Quick Overview of existing Roles in LNBits.
+- **[Funding sources](./funding-sources-table.md)** — What’s available and how to enable/configure each.
 
 ## Powered by LNbits
 
