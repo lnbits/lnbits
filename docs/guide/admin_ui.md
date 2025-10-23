@@ -117,8 +117,8 @@ When set **at least one**, LNbits becomes private: only the listed users and Adm
 ## Additional Guides
 
 - **[Backend Wallets](./wallets.md)** — Explore options to fund your LNbits instance.
-- **[User Roles](./User_Roles.md)** — Overview of existing roles in LNbits.
-- **[Funding sources](./funding-sources_table.md)** — What is available and how to configure each.
+- **[User Roles](./user_roles.md)** — Overview of existing roles in LNbits.
+- **[Funding sources](./funding-sources-table.md)** — What is available and how to configure each.
 - **[Install LNBits](./installation.md)** — Choose your prefared way to install LNBits.
 
 ## Powered by LNbits
