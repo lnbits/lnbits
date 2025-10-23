@@ -332,6 +332,7 @@
                               dense
                             ></q-select>
                             <q-input
+                              v-if="showAddWalletDialog.walletType == 'lightning'"
                               dense
                               v-model="showAddWalletDialog.name"
                               :label="$t('wallet_name')"
