@@ -81,15 +81,18 @@ class Wallet(BaseModel):
         if shared_wallet.wallet_type != WalletType.LIGHTNING.value:
             return None
 
-        self.share_permissions = shared_wallet.get_share_permissions(self.id)
         self.wallet_type = WalletType.LIGHTNING_SHARED.value
         self.shared_wallet_id = shared_wallet.id
-        self.currency = shared_wallet.currency
-        self.balance_msat = shared_wallet.balance_msat
+        self.name = shared_wallet.name
+        self.share_permissions = shared_wallet.get_share_permissions(self.id)
 
-        self.stored_paylinks = shared_wallet.stored_paylinks
-        self.extra.icon = shared_wallet.extra.icon
-        self.extra.color = shared_wallet.extra.color
+        if len(self.share_permissions):
+            self.currency = shared_wallet.currency
+            self.balance_msat = shared_wallet.balance_msat
+
+            self.stored_paylinks = shared_wallet.stored_paylinks
+            self.extra.icon = shared_wallet.extra.icon
+            self.extra.color = shared_wallet.extra.color
 
     def get_share_permissions(self, wallet_id: str) -> list[WalletPermission]:
         for share in self.extra.shared_with:
@@ -100,24 +103,25 @@ class Wallet(BaseModel):
     @property
     def source_wallet_id(self) -> str:
         """For shared wallets return the original wallet ID, else return own ID."""
-        if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
+        if self.is_lightning_shared_wallet and len(self.share_permissions):
             return self.shared_wallet_id or self.id
         return self.id
 
     @property
     def can_create_invoice(self) -> bool:
-        if self.wallet_type == WalletType.LIGHTNING.value:
+        if self.is_lightning_wallet:
             return True
-        if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
-            return WalletPermission.SEND_PAYMENTS in self.share_permissions
+        if self.is_lightning_shared_wallet:
+            print("### self.share_permissions", self.share_permissions)
+            return WalletPermission.RECEIVE_PAYMENTS in self.share_permissions
 
         return False
 
     @property
     def can_pay_invoice(self) -> bool:
-        if self.wallet_type == WalletType.LIGHTNING.value:
+        if self.is_lightning_wallet:
             return True
-        if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
+        if self.is_lightning_shared_wallet:
             return WalletPermission.SEND_PAYMENTS in self.share_permissions
 
         return False
@@ -139,11 +143,17 @@ class Wallet(BaseModel):
             return ""
 
     @property
+    def is_lightning_wallet(self) -> bool:
+        return self.wallet_type == WalletType.LIGHTNING.value
+
+    @property
     def is_lightning_shared_wallet(self) -> bool:
         return self.wallet_type == WalletType.LIGHTNING_SHARED.value
 
+
+
     def _validate_data(self):
-        if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
+        if self.is_lightning_shared_wallet:
             if not self.shared_wallet_id:
                 raise ValueError("shared_wallet_id must be set for shared wallets")
 
