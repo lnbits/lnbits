@@ -49,8 +49,6 @@ class WalletExtra(BaseModel):
     pinned: bool = False
     # What permissions this wallet grants when it's shared with other users
     shared_with: list[WalletSharePermission] = []
-    # What permission this wallet has when it's a shared wallet
-    granted_wallet_permission: list[WalletPermission] = []
 
 
 class Wallet(BaseModel):
@@ -69,6 +67,8 @@ class Wallet(BaseModel):
     balance_msat: int = Field(default=0, no_database=True)
     extra: WalletExtra = WalletExtra()
     stored_paylinks: StoredPayLinks = StoredPayLinks()
+    # What permission this wallet has when it's a shared wallet
+    share_permissions: list[WalletPermission] = Field(default=[], no_database=True)
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -81,9 +81,7 @@ class Wallet(BaseModel):
         if shared_wallet.wallet_type != WalletType.LIGHTNING.value:
             return None
 
-        self.extra.granted_wallet_permission = shared_wallet.get_share_permission(
-            self.id
-        )
+        self.share_permissions = shared_wallet.get_share_permissions(self.id)
         self.wallet_type = WalletType.LIGHTNING_SHARED.value
         self.shared_wallet_id = shared_wallet.id
         self.currency = shared_wallet.currency
@@ -93,7 +91,7 @@ class Wallet(BaseModel):
         self.extra.icon = shared_wallet.extra.icon
         self.extra.color = shared_wallet.extra.color
 
-    def get_share_permission(self, wallet_id: str) -> list[WalletPermission]:
+    def get_share_permissions(self, wallet_id: str) -> list[WalletPermission]:
         for share in self.extra.shared_with:
             if share.wallet_id == wallet_id:
                 return share.permissions
@@ -111,10 +109,7 @@ class Wallet(BaseModel):
         if self.wallet_type == WalletType.LIGHTNING.value:
             return True
         if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
-            return (
-                self.extra.granted_wallet_permission
-                == WalletPermission.SEND_PAYMENTS.value
-            )
+            return WalletPermission.SEND_PAYMENTS in self.share_permissions
 
         return False
 
@@ -123,10 +118,7 @@ class Wallet(BaseModel):
         if self.wallet_type == WalletType.LIGHTNING.value:
             return True
         if self.wallet_type == WalletType.LIGHTNING_SHARED.value:
-            return (
-                self.extra.granted_wallet_permission
-                == WalletPermission.SEND_PAYMENTS.value
-            )
+            return WalletPermission.SEND_PAYMENTS in self.share_permissions
 
         return False
 
