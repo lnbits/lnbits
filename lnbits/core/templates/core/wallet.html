@@ -362,11 +362,12 @@
                 </q-expansion-item>
                 <q-separator></q-separator>
                 <q-expansion-item
+                  v-if="wallet.walletType == 'lightning'"
                   group="extras"
-                  icon="groups"
+                  icon="share"
                   :label="$t('share_wallet')"
                 >
-                  <q-card v-if="wallet.walletType == 'lightning'">
+                  <q-card>
                     <q-card-section>
                       Other users can requests access to this wallet if they
                       have the wallet ID.
@@ -535,12 +536,58 @@
 
                     <q-card-section> </q-card-section>
                   </q-card>
-                  <q-card v-else-if="wallet.walletType == 'lightning-shared'">
+                </q-expansion-item>
+                <q-expansion-item
+                  v-else-if="wallet.walletType == 'lightning-shared'"
+                  group="extras"
+                  icon="supervisor_account"
+                  :label="$t('shared_wallet')"
+                >
+                  <q-card>
                     <q-card-section>
                       This wallet does not belong to you. It is a shared
                       Lightning wallet.
                       <br />
                       The owner can revoke the permissions at any moment.
+                    </q-card-section>
+                    <q-card-section>
+                      <q-item dense class="q-pa-none">
+                        <q-item-section>
+                          <q-item-label>
+                            <strong>Shared Wallet ID: </strong
+                            ><em
+                              v-text="walletIdHidden ? '****************' : wallet.sharedWalletId"
+                            ></em>
+                          </q-item-label>
+                        </q-item-section>
+                        <q-item-section side>
+                          <div>
+                            <q-icon
+                              :name="walletIdHidden ? 'visibility_off' : 'visibility'"
+                              class="cursor-pointer"
+                              @click="walletIdHidden = !walletIdHidden"
+                            ></q-icon>
+                            <q-icon
+                              name="content_copy"
+                              class="cursor-pointer q-ml-sm"
+                              @click="copyText(wallet.sharedWalletId)"
+                            ></q-icon>
+                            <q-icon
+                              name="qr_code"
+                              class="cursor-pointer q-ml-sm"
+                            >
+                              <q-popup-proxy>
+                                <div class="q-pa-md">
+                                  <lnbits-qrcode
+                                    :value="wallet.sharedWalletId"
+                                    :show-buttons="false"
+                                  ></lnbits-qrcode>
+                                </div>
+                              </q-popup-proxy>
+                            </q-icon>
+                          </div>
+                        </q-item-section>
+                      </q-item>
                     </q-card-section>
                     <q-card-section>
                       <div class="row">
@@ -562,7 +609,14 @@
                       </div>
                     </q-card-section>
                   </q-card>
-                  <q-card v-else>
+                </q-expansion-item>
+                <q-expansion-item
+                  v-else
+                  group="extras"
+                  icon="question_mark"
+                  :label="$t('share_wallet')"
+                >
+                  <q-card>
                     <q-card-section>
                       Unknown wallet type:
                       <strong
