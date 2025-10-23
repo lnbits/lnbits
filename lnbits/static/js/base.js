@@ -235,6 +235,7 @@ window.LNbits = {
       newWallet = {
         id: data.id,
         name: data.name,
+        walletType: data.wallet_type,
         adminkey: data.adminkey,
         inkey: data.inkey,
         currency: data.currency,

@@ -174,6 +174,12 @@ window.WalletPageLogic = {
     wallet() {
       return this.g.wallet
     },
+    walletApprovedShares() {
+      return this.g.wallet.extra.shared_with.filter(s => s.approved)
+    },
+    walletPendingShares() {
+      return this.g.wallet.extra.shared_with.filter(s => !s.approved)
+    },
     hasChartActive() {
       return (
         this.chartConfig.showBalance ||
