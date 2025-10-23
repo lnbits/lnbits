@@ -78,7 +78,7 @@ class Wallet(BaseModel):
         self,
         shared_wallet: Wallet,
     ):
-        if shared_wallet.wallet_type != WalletType.LIGHTNING.value:
+        if not shared_wallet.is_lightning_wallet:
             return None
 
         self.wallet_type = WalletType.LIGHTNING_SHARED.value
