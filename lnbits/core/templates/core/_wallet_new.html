@@ -1,0 +1,56 @@
+<q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+  <q-card-section>
+    <div class="text-h6">
+      <span v-text="$t('add_new_wallet')"></span>
+    </div>
+  </q-card-section>
+
+  <q-card-section class="q-pt-none">
+    <q-select
+      :options="walletTypes"
+      emit-value
+      map-options
+      :label="$t('wallet_type')"
+      v-model="addWalletDialog.walletType"
+      dense
+    ></q-select>
+    <q-input
+      v-if="addWalletDialog.walletType == 'lightning'"
+      dense
+      v-model="addWalletDialog.name"
+      :label="$t('wallet_name')"
+      autofocus
+      @keyup.enter="submitAddWallet()"
+      class="q-mt-md"
+    ></q-input>
+
+    <q-input
+      v-if="addWalletDialog.walletType == 'lightning-shared'"
+      dense
+      v-model="addWalletDialog.sharedWalletId"
+      :label="$t('shared_wallet_id')"
+      class="q-mt-md"
+    ></q-input>
+    <div
+      v-if="addWalletDialog.walletType == 'lightning-shared'"
+      class="q-mt-md"
+    >
+      <span v-text="$t('shared_wallet_desc')" class="q-mt-lg"></span>
+      <br />
+      <span
+        v-text="$t('shared_wallet_access_desc')"
+        style="word-break: break-all"
+      ></span>
+    </div>
+  </q-card-section>
+
+  <q-card-actions align="right" class="text-primary">
+    <q-btn flat :label="$t('cancel')" v-close-popup></q-btn>
+    <q-btn
+      flat
+      :label="$t('add_wallet')"
+      v-close-popup
+      @click="submitAddWallet()"
+    ></q-btn>
+  </q-card-actions>
+</q-card>
