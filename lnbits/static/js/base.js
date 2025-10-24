@@ -476,7 +476,7 @@ window.windowMixin = {
       toggleSubs: true,
       mobileSimple: true,
       walletFlip: true,
-      showAddWalletDialog: {show: false, walletType: 'lightning'},
+      addWalletDialog: {show: false, walletType: 'lightning'},
       walletTypes: [
         {label: 'Lightning Wallet', value: 'lightning'},
         {label: 'Lightning Wallet (Shared)', value: 'lightning-shared'}
@@ -520,11 +520,16 @@ window.windowMixin = {
         path: '/wallets'
       })
     },
+    handleWalletAction(payload) {
+      if (payload.action === 'create-wallet') {
+        this.showAddNewWalletDialog()
+      }
+    },
     showAddNewWalletDialog() {
-      this.showAddWalletDialog = {show: true, walletType: 'lightning'}
+      this.addWalletDialog = {show: true, walletType: 'lightning'}
     },
     async submitAddWallet() {
-      const data = this.showAddWalletDialog
+      const data = this.addWalletDialog
       if (data.walletType === 'lightning' && !data.name) {
         this.$q.notify({
           message: 'Please enter a name for the wallet',
@@ -549,7 +554,7 @@ window.windowMixin = {
           }
         )
 
-        this.showAddWalletDialog = {show: false}
+        this.addWalletDialog = {show: false}
       } catch (e) {
         console.warn(e)
         LNbits.utils.notifyApiError(e)

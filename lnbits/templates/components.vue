@@ -62,13 +62,9 @@
         ></q-item-label>
       </q-item-section>
     </q-item>
-    <q-item clickable @click="showForm = !showForm">
+    <q-item clickable @click="createWallet()">
       <q-item-section side>
-        <q-icon
-          :name="showForm ? 'remove' : 'add'"
-          color="grey-5"
-          size="md"
-        ></q-icon>
+        <q-icon name="add" color="grey-5" size="md"></q-icon>
       </q-item-section>
       <q-item-section>
         <q-item-label
@@ -76,25 +72,6 @@
           class="text-caption"
           v-text="$t('add_new_wallet')"
         ></q-item-label>
-      </q-item-section>
-    </q-item>
-    <q-item v-if="showForm">
-      <q-item-section>
-        <q-form @submit="createWallet">
-          <q-input filled dense v-model="walletName" label="Name wallet *">
-            <template v-slot:append>
-              <q-btn
-                round
-                dense
-                flat
-                icon="send"
-                size="sm"
-                @click="createWallet"
-                :disable="walletName === ''"
-              ></q-btn>
-            </template>
-          </q-input>
-        </q-form>
       </q-item-section>
     </q-item>
   </q-list>

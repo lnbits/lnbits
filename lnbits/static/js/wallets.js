@@ -5,7 +5,7 @@ window.WalletsPageLogic = {
       user: null,
       tab: 'wallets',
       wallets: [],
-      showAddWalletDialog: {show: false},
+      addWalletDialog: {show: false},
       walletsTable: {
         columns: [
           {
@@ -71,6 +71,10 @@ window.WalletsPageLogic = {
       } finally {
         this.walletsTable.loading = false
       }
+    },
+    showNewWalletDialog() {
+      this.addWalletDialog = {show: true, walletType: 'lightning'}
+      this.showAddNewWalletDialog() // from base.js
     },
 
     goToWallet(walletId) {
