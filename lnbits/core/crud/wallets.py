@@ -126,34 +126,6 @@ async def get_standalone_wallet(
     )
 
 
-async def get_mirrored_wallet(
-    wallet: Wallet, conn: Connection | None = None
-) -> Wallet | None:
-    if not wallet.shared_wallet_id:
-        return None
-    shared_wallet = await get_standalone_wallet(wallet.shared_wallet_id, False, conn)
-    if not shared_wallet:
-        return None
-    wallet.mirror_shared_wallet(shared_wallet)
-    return wallet
-
-
-async def get_mirrored_wallets(
-    wallet: list[Wallet], conn: Connection | None = None
-) -> list[Wallet]:
-    mirrored_wallets = []
-    for w in wallet:
-        if w.is_lightning_shared_wallet:
-            mirrored_wallet = await get_mirrored_wallet(w, conn)
-            if mirrored_wallet:
-                mirrored_wallets.append(mirrored_wallet)
-            else:
-                mirrored_wallets.append(w)
-        else:
-            mirrored_wallets.append(w)
-    return mirrored_wallets
-
-
 async def get_wallet(
     wallet_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> Wallet | None:
@@ -259,6 +231,34 @@ async def get_wallet_for_key(
         mw = await get_mirrored_wallet(wallet, conn)
         return mw
     return wallet
+
+
+async def get_mirrored_wallet(
+    wallet: Wallet, conn: Connection | None = None
+) -> Wallet | None:
+    if not wallet.shared_wallet_id:
+        return None
+    shared_wallet = await get_standalone_wallet(wallet.shared_wallet_id, False, conn)
+    if not shared_wallet:
+        return None
+    wallet.mirror_shared_wallet(shared_wallet)
+    return wallet
+
+
+async def get_mirrored_wallets(
+    wallet: list[Wallet], conn: Connection | None = None
+) -> list[Wallet]:
+    mirrored_wallets = []
+    for w in wallet:
+        if w.is_lightning_shared_wallet:
+            mirrored_wallet = await get_mirrored_wallet(w, conn)
+            if mirrored_wallet:
+                mirrored_wallets.append(mirrored_wallet)
+            else:
+                mirrored_wallets.append(w)
+        else:
+            mirrored_wallets.append(w)
+    return mirrored_wallets
 
 
 async def get_total_balance(conn: Connection | None = None):
