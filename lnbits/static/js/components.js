@@ -29,14 +29,13 @@ window.app.component('lnbits-wallet-list', {
     return {
       activeWallet: null,
       balance: 0,
-      showForm: false,
       walletName: '',
       LNBITS_DENOMINATION: LNBITS_DENOMINATION
     }
   },
   methods: {
     createWallet() {
-      LNbits.api.createWallet(this.g.user.wallets[0], this.walletName)
+      this.$emit('wallet-action', {action: 'create-wallet'})
     }
   },
   created() {
