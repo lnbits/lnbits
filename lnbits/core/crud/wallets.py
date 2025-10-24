@@ -215,18 +215,20 @@ async def get_wallets_paginated(
 async def get_wallets_ids(
     user_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> list[str]:
-    query = """SELECT id, shared_wallet_id FROM wallets  WHERE "user" = :user"""
+    query = """
+            SELECT * FROM wallets
+            WHERE "user" = :user
+            """
     if deleted is not None:
-        query += " AND deleted = :deleted"
-    result: list[dict] = await (conn or db).fetchall(
+        query += " AND deleted = :deleted "
+    wallets = await (conn or db).fetchall(
         query,
         {"user": user_id, "deleted": deleted},
+        Wallet,
     )
-    user_wallets = [row["id"] for row in result]
-    shared_wallets = [
-        row["shared_wallet_id"] for row in result if row["shared_wallet_id"]
-    ]
-    return user_wallets + shared_wallets
+
+    wallets = await get_mirrored_wallets(wallets, conn)
+    return [w.source_wallet_id for w in wallets if w.can_view_payments]
 
 
 async def get_wallets_count():
