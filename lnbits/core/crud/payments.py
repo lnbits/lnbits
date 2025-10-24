@@ -137,8 +137,8 @@ async def get_payments_paginated(  # noqa: C901
         wallet = await get_wallet(wallet_id)
         if not wallet or not wallet.can_view_payments:
             return Page(data=[], total=0)
-        wallet_id = wallet.source_wallet_id
-        values["wallet_id"] = wallet_id
+
+        values["wallet_id"] = wallet.source_wallet_id
         clause.append("wallet_id = :wallet_id")
     elif user_id:
         only_user_wallets = await _only_user_wallets_statement(user_id, conn=conn)
