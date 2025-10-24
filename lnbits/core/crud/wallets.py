@@ -187,10 +187,7 @@ async def get_wallets_paginated(
 async def get_wallets_ids(
     user_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> list[str]:
-    query = """
-            SELECT * FROM wallets
-            WHERE "user" = :user
-            """
+    query = """SELECT * FROM wallets WHERE "user" = :user"""
     if deleted is not None:
         query += " AND deleted = :deleted "
     wallets = await (conn or db).fetchall(
