@@ -74,10 +74,9 @@ async def pay_invoice(
         wallet = await _check_wallet_for_payment(wallet_id, tag, amount_msat, new_conn)
         if not wallet.can_send_payments:
             raise PaymentError(
-                "This shared wallet does not have permission to pay invoices.",
+                "Wallet does not have permission to pay invoices.",
                 status="failed",
             )
-        wallet_id = wallet.source_wallet_id
 
         if await is_internal_status_success(invoice.payment_hash, new_conn):
             raise PaymentError("Internal invoice already paid.", status="failed")
@@ -85,7 +84,7 @@ async def pay_invoice(
         _, extra = await calculate_fiat_amounts(amount_msat / 1000, wallet, extra=extra)
 
         create_payment_model = CreatePayment(
-            wallet_id=wallet_id,
+            wallet_id=wallet.source_wallet_id,
             bolt11=payment_request,
             payment_hash=invoice.payment_hash,
             amount_msat=-amount_msat,
@@ -94,7 +93,7 @@ async def pay_invoice(
             extra=extra,
         )
 
-    payment = await _pay_invoice(wallet_id, create_payment_model, conn)
+    payment = await _pay_invoice(wallet.source_wallet_id, create_payment_model, conn)
 
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
         await _credit_service_fee_wallet(wallet, payment, new_conn)
@@ -258,11 +257,9 @@ async def create_invoice(
 
     if not user_wallet.can_receveive_payments:
         raise InvoiceError(
-            "This shared wallet does not have permission to create invoices.",
+            "Wallet does not have permission to create invoices.",
             status="failed",
         )
-    # this is for shared wallets to use the source wallet for invoicing
-    wallet_id = user_wallet.source_wallet_id
 
     invoice_memo = None if description_hash else memo[:640]
 
@@ -322,7 +319,7 @@ async def create_invoice(
     invoice = bolt11_decode(invoice_response.payment_request)
 
     create_payment_model = CreatePayment(
-        wallet_id=wallet_id,
+        wallet_id=user_wallet.source_wallet_id,
         bolt11=invoice_response.payment_request,
         payment_hash=invoice.payment_hash,
         preimage=invoice_response.preimage,
