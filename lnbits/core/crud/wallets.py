@@ -133,7 +133,7 @@ async def get_wallet(
     if not wallet:
         return None
     if wallet.is_lightning_shared_wallet:
-        return await get_mirrored_wallet(wallet, conn)
+        return await get_source_wallet(wallet, conn)
 
     return wallet
 
@@ -155,7 +155,7 @@ async def get_wallets(
         Wallet,
     )
 
-    return await get_mirrored_wallets(wallets, conn)
+    return await get_source_wallets(wallets, conn)
 
 
 async def get_wallets_paginated(
@@ -180,7 +180,7 @@ async def get_wallets_paginated(
         model=Wallet,
     )
 
-    wallets.data = await get_mirrored_wallets(wallets.data, conn)
+    wallets.data = await get_source_wallets(wallets.data, conn)
     return wallets
 
 
@@ -196,7 +196,7 @@ async def get_wallets_ids(
         Wallet,
     )
 
-    wallets = await get_mirrored_wallets(wallets, conn)
+    wallets = await get_source_wallets(wallets, conn)
     return [w.source_wallet_id for w in wallets if w.can_view_payments]
 
 
@@ -225,16 +225,19 @@ async def get_wallet_for_key(
         return None
 
     if wallet.is_lightning_shared_wallet:
-        mw = await get_mirrored_wallet(wallet, conn)
+        mw = await get_source_wallet(wallet, conn)
         return mw
     return wallet
 
 
-async def get_mirrored_wallet(
+async def get_source_wallet(
     wallet: Wallet, conn: Connection | None = None
 ) -> Wallet | None:
+    if not wallet.is_lightning_shared_wallet:
+        return wallet
     if not wallet.shared_wallet_id:
         return None
+
     shared_wallet = await get_standalone_wallet(wallet.shared_wallet_id, False, conn)
     if not shared_wallet:
         return None
@@ -242,20 +245,15 @@ async def get_mirrored_wallet(
     return wallet
 
 
-async def get_mirrored_wallets(
+async def get_source_wallets(
     wallet: list[Wallet], conn: Connection | None = None
 ) -> list[Wallet]:
-    mirrored_wallets = []
+    source_wallets = []
     for w in wallet:
-        if w.is_lightning_shared_wallet:
-            mirrored_wallet = await get_mirrored_wallet(w, conn)
-            if mirrored_wallet:
-                mirrored_wallets.append(mirrored_wallet)
-            else:
-                mirrored_wallets.append(w)
-        else:
-            mirrored_wallets.append(w)
-    return mirrored_wallets
+        source_wallet = await get_source_wallet(w, conn)
+        if source_wallet:
+            source_wallets.append(source_wallet)
+    return source_wallets
 
 
 async def get_total_balance(conn: Connection | None = None):
