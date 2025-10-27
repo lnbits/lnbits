@@ -8,15 +8,22 @@ from fastapi import (
     HTTPException,
 )
 
-from lnbits.core.crud.wallets import force_delete_wallet, get_wallets_paginated
+from lnbits.core.crud.wallets import (
+    create_wallet,
+    force_delete_wallet,
+    get_wallets_paginated,
+)
 from lnbits.core.models import CreateWallet, KeyType, User, Wallet, WalletTypeInfo
 from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
 from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.wallets import (
     WalletsFilters,
     WalletSharePermission,
+    WalletType,
 )
-from lnbits.core.services.wallets import create_advanced_wallet
+from lnbits.core.services.wallets import (
+    create_lightning_shared_wallet,
+)
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_user_exists,
@@ -219,9 +226,17 @@ async def api_create_wallet(
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
 
-    return await create_advanced_wallet(
-        user_id=key_info.wallet.user,
-        wallet_name=data.name,
-        wallet_type=data.wallet_type,
-        shared_wallet_id=data.shared_wallet_id,
+    if data.wallet_type == WalletType.LIGHTNING:
+        return await create_wallet(user_id=key_info.wallet.user, wallet_name=data.name)
+
+    if data.wallet_type == WalletType.LIGHTNING_SHARED:
+        return await create_lightning_shared_wallet(
+            user_id=key_info.wallet.user,
+            wallet_name=data.name,
+            shared_wallet_id=data.shared_wallet_id,
+        )
+
+    raise HTTPException(
+        HTTPStatus.BAD_REQUEST,
+        f"Unknown wallet type: {data.wallet_type}.",
     )

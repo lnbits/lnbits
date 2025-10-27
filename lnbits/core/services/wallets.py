@@ -8,29 +8,6 @@ from lnbits.core.models.wallets import (
 from lnbits.db import Connection
 
 
-async def create_advanced_wallet(
-    user_id: str,
-    wallet_name: str | None = None,
-    wallet_type: WalletType = WalletType.LIGHTNING,
-    shared_wallet_id: str | None = None,
-    conn: Connection | None = None,
-) -> Wallet:
-    if wallet_type == WalletType.LIGHTNING:
-        return await create_wallet(
-            user_id=user_id,
-            wallet_name=wallet_name,
-            conn=conn,
-        )
-
-    if wallet_type == WalletType.LIGHTNING_SHARED:
-        return await create_lightning_shared_wallet(
-            user_id=user_id,
-            wallet_name=wallet_name,
-            shared_wallet_id=shared_wallet_id,
-            conn=conn,
-        )
-
-
 async def create_lightning_shared_wallet(
     user_id: str,
     wallet_name: str | None = None,
@@ -56,12 +33,14 @@ async def create_lightning_shared_wallet(
     if not user.username or not user.email:
         raise ValueError("You must have a username or email to mirror wallet.")
 
+    print("### user.username or user.email", user.username, user.email)
     existing_request = shared_wallet.extra.find_share_for_user(
         user.username or user.email
     )
+    print("### existing_request", existing_request)
 
     if existing_request:
-        raise ValueError("A share request for this user already exists.")
+        raise ValueError("A share request for this wallet already exists.")
 
     # check pending requests and if user already has access to that wallet
     mirror_wallet = await create_wallet(
