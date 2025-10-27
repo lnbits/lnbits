@@ -6,16 +6,17 @@ from fastapi import (
     Depends,
     HTTPException,
 )
-from lnurl import LnurlResponseException
-from lnurl import execute_login as lnurlauth
-from lnurl import handle as lnurl_handle
-from lnurl.models import (
+from lnurl import (
     LnurlAuthResponse,
     LnurlErrorResponse,
+    LnurlException,
     LnurlPayResponse,
-    LnurlResponseModel,
+    LnurlResponseException,
     LnurlWithdrawResponse,
 )
+from lnurl import execute_login as lnurlauth
+from lnurl import handle as lnurl_handle
+from lnurl.models import LnurlResponseModel
 from loguru import logger
 
 from lnbits.core.models import Payment
@@ -38,7 +39,7 @@ async def _handle(lnurl: str) -> LnurlResponseModel:
         res = await lnurl_handle(lnurl, user_agent=settings.user_agent, timeout=5)
         if isinstance(res, LnurlErrorResponse):
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=res.reason)
-    except LnurlResponseException as exc:
+    except LnurlException as exc:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
         ) from exc
