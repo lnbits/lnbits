@@ -56,7 +56,12 @@ include('components/admin/server.vue') %}
           <strong v-text="formatBalance(walletRec.sat)"></strong>
         </q-item-label>
       </q-item-section>
-      <q-item-section side v-show="g.wallet && g.wallet.id === walletRec.id">
+      <q-item-section
+        v-if="walletRec.walletType == 'lightning-shared'"
+        side
+        top
+      >
+        <q-icon name="group" :color="walletRec.extra.color" size="xs"></q-icon>
       </q-item-section>
     </q-item>
     <q-item
