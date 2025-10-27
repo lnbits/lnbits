@@ -689,12 +689,13 @@ window.WalletPageLogic = {
     },
     async updateSharePermissions(permission) {
       try {
-        await LNbits.api.request(
+        const {data} = await LNbits.api.request(
           'PUT',
           '/api/v1/wallet/share',
           this.g.wallet.adminkey,
           permission
         )
+        Object.assign(permission, data)
         Quasar.Notify.create({
           message: 'Wallet permission updated.',
           type: 'positive'
