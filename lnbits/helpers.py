@@ -399,3 +399,11 @@ def is_snake_case(v: str) -> bool:
 
 def lowercase_first_letter(s: str) -> str:
     return s[:1].lower() + s[1:] if s else s
+
+
+def sha256s(value: str) -> str:
+    """
+    SHA256 applied on a string value.
+    Returns the hex as a string.
+    """
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
