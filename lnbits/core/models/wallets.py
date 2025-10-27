@@ -50,6 +50,12 @@ class WalletExtra(BaseModel):
     # What permissions this wallet grants when it's shared with other users
     shared_with: list[WalletSharePermission] = []
 
+    def find_share_for_user(self, user_name: str) -> WalletSharePermission | None:
+        for share in self.shared_with:
+            if share.username == user_name:
+                return share
+        return None
+
     def remove_share_for_wallet(self, wallet_id: str):
         self.shared_with = [
             share for share in self.shared_with if share.wallet_id != wallet_id
