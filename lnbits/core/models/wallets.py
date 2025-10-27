@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.db import FilterModel
-from lnbits.helpers import url_for
+from lnbits.helpers import sha256s, url_for
 from lnbits.settings import settings
 
 
@@ -36,6 +36,7 @@ class WalletPermission(Enum):
 
 
 class WalletSharePermission(BaseModel):
+    user_id_hash: str | None
     username: str | None
     wallet_id: str
     permissions: list[WalletPermission] = []
@@ -50,9 +51,29 @@ class WalletExtra(BaseModel):
     # What permissions this wallet grants when it's shared with other users
     shared_with: list[WalletSharePermission] = []
 
-    def find_share_for_user(self, user_name: str) -> WalletSharePermission | None:
+    def add_share_request(
+        self,
+        wallet_id: str,
+        user_id: str,
+        username: str | None,
+    ) -> WalletSharePermission:
+        share = WalletSharePermission(
+            user_id_hash=sha256s(user_id),
+            username=username,
+            wallet_id=wallet_id,
+        )
+        self.shared_with.append(share)
+        return share
+
+    def find_share_for_user(self, user_id: str) -> WalletSharePermission | None:
         for share in self.shared_with:
-            if share.username == user_name:
+            if share.user_id_hash == sha256s(user_id):
+                return share
+        return None
+
+    def find_share_for_wallet(self, wallet_id: str) -> WalletSharePermission | None:
+        for share in self.shared_with:
+            if share.wallet_id == wallet_id:
                 return share
         return None
 

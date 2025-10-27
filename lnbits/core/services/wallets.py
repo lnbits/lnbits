@@ -2,7 +2,6 @@ from lnbits.core.crud.users import get_account
 from lnbits.core.crud.wallets import create_wallet, get_standalone_wallet, update_wallet
 from lnbits.core.models.wallets import (
     Wallet,
-    WalletSharePermission,
     WalletType,
 )
 from lnbits.db import Connection
@@ -33,11 +32,7 @@ async def create_lightning_shared_wallet(
     if not user.username or not user.email:
         raise ValueError("You must have a username or email to mirror wallet.")
 
-    print("### user.username or user.email", user.username, user.email)
-    existing_request = shared_wallet.extra.find_share_for_user(
-        user.username or user.email
-    )
-    print("### existing_request", existing_request)
+    existing_request = shared_wallet.extra.find_share_for_user(user.id)
 
     if existing_request:
         raise ValueError("A share request for this wallet already exists.")
@@ -51,12 +46,12 @@ async def create_lightning_shared_wallet(
         conn=conn,
     )
 
-    shared_wallet.extra.shared_with.append(
-        WalletSharePermission(
-            wallet_id=mirror_wallet.id,
-            username=user.username or user.email or "Anonymous",
-        )
+    shared_wallet.extra.add_share_request(
+        wallet_id=mirror_wallet.id,
+        user_id=user_id,
+        username=user.username or user.email or "Anonymous",
     )
+
     await update_wallet(shared_wallet, conn=conn)
     mirror_wallet.mirror_shared_wallet(shared_wallet)
     return mirror_wallet

@@ -77,16 +77,13 @@ async def api_wallets_paginated(
 async def api_update_wallet_share_permissions(
     data: WalletSharePermission, key_info: WalletTypeInfo = Depends(require_admin_key)
 ) -> WalletSharePermission:
-    if not data.username:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Username is required")
-
-    wallet = key_info.wallet
-    if not wallet.is_lightning_wallet:
+    source_wallet = key_info.wallet
+    if not source_wallet.is_lightning_wallet:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Only lightning wallets can be shared."
         )
 
-    share = wallet.extra.find_share_for_user(data.username)
+    share = source_wallet.extra.find_share_for_wallet(data.wallet_id)
     if not share:
         # In the future the user will be able to add new share permissions
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Share not found")
@@ -101,7 +98,7 @@ async def api_update_wallet_share_permissions(
 
     share.permissions = data.permissions
     share.approved = True
-    await update_wallet(wallet)
+    await update_wallet(source_wallet)
     return share
 
 
