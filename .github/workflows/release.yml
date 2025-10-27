@@ -13,6 +13,8 @@ jobs:
 
   release:
     runs-on: ubuntu-24.04
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Create github release
@@ -20,7 +22,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
         run: |
-          gh release create "$tag" --generate-notes --draft
+          upload_url=$(gh release create "$tag" --generate-notes --draft --json upload_url -q '.upload_url')
+          echo "upload_url=$upload_url" >> "$GITHUB_OUTPUT"
 
   docker:
     needs: [ release ]
@@ -58,4 +61,4 @@ jobs:
     uses: ./.github/workflows/appimage.yml
     with:
       tag_name: ${{ github.ref_name }}
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      upload_url: ${{ needs.release.outputs.upload_url }}
