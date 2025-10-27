@@ -80,7 +80,7 @@
               <q-badge v-else-if="g.user && g.user.admin">Admin User</q-badge>
               {% endblock %}
             </q-toolbar-title>
-            {% block beta %} {% if LNBITS_CUSTOM_BADGE is not none and
+            {% block beta %} {% if LNBITS_CUSTOM_BADGE is not None and
             LNBITS_CUSTOM_BADGE != "" %}
             <q-badge
               v-show="$q.screen.gt.sm"
