@@ -42,6 +42,27 @@ async def create_lightning_shared_wallet(
     shared_wallet = await get_standalone_wallet(shared_wallet_id, conn=conn)
     if not shared_wallet:
         raise ValueError("Shared wallet does not exist")
+
+    if not shared_wallet.is_lightning_wallet:
+        raise ValueError("Shared wallet is not a lightning wallet.")
+
+    if shared_wallet.user == user_id:
+        raise ValueError("Cannot mirror your own wallet.")
+
+    user = await get_account(user_id, conn=conn)
+    if not user:
+        raise ValueError("Invalid user id.")
+
+    if not user.username or not user.email:
+        raise ValueError("You must have a username or email to mirror wallet.")
+
+    existing_request = shared_wallet.extra.find_share_for_user(
+        user.username or user.email
+    )
+
+    if existing_request:
+        raise ValueError("A share request for this user already exists.")
+
     # check pending requests and if user already has access to that wallet
     mirror_wallet = await create_wallet(
         user_id=user_id,
@@ -51,9 +72,6 @@ async def create_lightning_shared_wallet(
         conn=conn,
     )
 
-    user = await get_account(user_id, conn=conn)
-    if not user:
-        raise ValueError("Invalid user id.")
     shared_wallet.extra.shared_with.append(
         WalletSharePermission(
             wallet_id=mirror_wallet.id,
