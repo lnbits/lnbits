@@ -70,23 +70,21 @@ async def api_wallets_paginated(
 async def api_update_wallet_share_permissions(
     data: WalletSharePermission, key_info: WalletTypeInfo = Depends(require_admin_key)
 ) -> WalletSharePermission:
+    if not data.username:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Username is required")
+
     wallet = key_info.wallet
     if not wallet.is_lightning_wallet:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Only lightning wallets can be shared."
         )
 
-    data.approved = True
-    permission = next(
-        (p for p in wallet.extra.shared_with if p.username == data.username), None
-    )
-    if not permission:
+    share = wallet.extra.find_share_for_user(data.username)
+    if not share:
         # In the future the user will be able to add new share permissions
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Permission not found")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Share not found")
 
-    permission.permissions = data.permissions
-    permission.approved = True
-    mirror_wallet = await get_wallet(permission.wallet_id)
+    mirror_wallet = await get_wallet(share.wallet_id)
     if not mirror_wallet:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Target wallet not found")
     if not mirror_wallet.is_lightning_shared_wallet:
@@ -94,22 +92,28 @@ async def api_update_wallet_share_permissions(
             HTTPStatus.BAD_REQUEST, "Target wallet is not a shared wallet."
         )
 
+    share.permissions = data.permissions
+    share.approved = True
     await update_wallet(wallet)
-    return permission
+    return share
 
 
 @wallet_router.delete("/share/{mirror_wallet_id}")
 async def api_delete_wallet_share_permissions(
     mirror_wallet_id: str, key_info: WalletTypeInfo = Depends(require_admin_key)
 ) -> SimpleStatus:
+    source_wallet = key_info.wallet
+    source_wallet.extra.remove_share_for_wallet(mirror_wallet_id)
+
     mirror_wallet = await get_wallet(mirror_wallet_id)
     if not mirror_wallet:
+        await update_wallet(source_wallet)
         raise HTTPException(HTTPStatus.NOT_FOUND, "Target wallet not found")
+
     if not mirror_wallet.is_lightning_shared_wallet:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Target wallet is not a shared lightning wallet."
         )
-    source_wallet = key_info.wallet
 
     if not source_wallet.is_lightning_wallet:
         raise HTTPException(
@@ -120,11 +124,10 @@ async def api_delete_wallet_share_permissions(
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Not the owner of the shared wallet."
         )
+
     await force_delete_wallet(mirror_wallet.id)
 
-    source_wallet.extra.remove_share_for_wallet(mirror_wallet_id)
     await update_wallet(source_wallet)
-
     return SimpleStatus(success=True, message="Permission removed.")
 
 
