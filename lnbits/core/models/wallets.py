@@ -35,13 +35,34 @@ class WalletPermission(Enum):
         return self.value
 
 
+class WalletShareStatus(Enum):
+    INVITE_SENT = "invite_sent"
+    REQUEST_ACCESS = "request_access"
+    APPROVED = "approved"
+
+
 class WalletSharePermission(BaseModel):
     user_id_hash: str | None
     username: str | None
-    wallet_id: str
+    wallet_id: str | None
     permissions: list[WalletPermission] = []
-    approved: bool = False
+    status: WalletShareStatus
     comment: str | None = None
+
+    def approve(
+        self,
+        permissions: list[WalletPermission] | None = None,
+        wallet_id: str | None = None,
+    ):
+        self.status = WalletShareStatus.APPROVED
+        if permissions is not None:
+            self.permissions = permissions
+        if wallet_id is not None:
+            self.wallet_id = wallet_id
+
+    @property
+    def is_approved(self) -> bool:
+        return self.status == WalletShareStatus.APPROVED
 
 
 class WalletExtra(BaseModel):
@@ -53,14 +74,18 @@ class WalletExtra(BaseModel):
 
     def add_share_request(
         self,
-        wallet_id: str,
         user_id: str,
-        username: str | None,
+        request_type: WalletShareStatus,
+        wallet_id: str | None = None,
+        username: str | None = None,
+        permissions: list[WalletPermission] | None = None,
     ) -> WalletSharePermission:
         share = WalletSharePermission(
             user_id_hash=sha256s(user_id),
             username=username,
             wallet_id=wallet_id,
+            status=request_type,
+            permissions=permissions or [],
         )
         self.shared_with.append(share)
         return share
@@ -68,6 +93,14 @@ class WalletExtra(BaseModel):
     def find_share_for_user(self, user_id: str) -> WalletSharePermission | None:
         for share in self.shared_with:
             if share.user_id_hash == sha256s(user_id):
+                return share
+        return None
+
+    def find_share_for_user_id_hash(
+        self, user_id_hash: str
+    ) -> WalletSharePermission | None:
+        for share in self.shared_with:
+            if share.user_id_hash == user_id_hash:
                 return share
         return None
 
@@ -80,6 +113,11 @@ class WalletExtra(BaseModel):
     def remove_share_for_wallet(self, wallet_id: str):
         self.shared_with = [
             share for share in self.shared_with if share.wallet_id != wallet_id
+        ]
+
+    def remove_share_for_user(self, user_id_hash: str):
+        self.shared_with = [
+            share for share in self.shared_with if share.user_id_hash != user_id_hash
         ]
 
 
@@ -128,7 +166,7 @@ class Wallet(BaseModel):
 
     def get_share_permissions(self, wallet_id: str) -> list[WalletPermission]:
         for share in self.extra.shared_with:
-            if share.wallet_id == wallet_id and share.approved:
+            if share.wallet_id == wallet_id and share.is_approved:
                 return share.permissions
         return []
 

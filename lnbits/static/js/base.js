@@ -537,7 +537,15 @@ window.windowMixin = {
         })
         return
       }
-      if (data.walletType === 'lightning-shared' && !data.sharedWalletId) {
+      let walletType = data.walletType
+      if (
+        ['lightning-shared', 'lightning-shared-invite'].includes(
+          data.walletType
+        )
+      ) {
+        walletType = 'lightning-shared'
+      }
+      if (walletType === 'lightning-shared' && !data.sharedWalletId) {
         this.$q.notify({
           message: 'Please enter a shared wallet ID',
           color: 'warning'
@@ -548,7 +556,7 @@ window.windowMixin = {
         await LNbits.api.createWallet(
           this.g.user.wallets[0],
           data.name,
-          data.walletType,
+          walletType,
           {
             shared_wallet_id: data.sharedWalletId
           }
@@ -560,6 +568,7 @@ window.windowMixin = {
         LNbits.utils.notifyApiError(e)
       }
     },
+
     simpleMobile() {
       this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
       this.refreshRoute()
@@ -814,6 +823,12 @@ window.windowMixin = {
 
     if (window.user) {
       this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
+    }
+    if (this.g.user?.extra?.wallet_invite_requests) {
+      this.walletTypes.push({
+        label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
+        value: 'lightning-shared-invite'
+      })
     }
     if (window.wallet) {
       this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))

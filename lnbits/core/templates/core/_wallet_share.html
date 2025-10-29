@@ -13,10 +13,10 @@
       <span v-text="$t('share_wallet')"></span>
     </q-item-section>
 
-    <q-item-section side v-if="walletPendingShares.length">
+    <q-item-section side v-if="walletPendingRequests.length">
       <div class="row items-center">
         <q-icon name="hail" color="secondary" size="24px" />
-        <span v-text="walletPendingShares.length"></span>
+        <span v-text="walletPendingRequests.length"></span>
       </div>
     </q-item-section>
   </template>
@@ -120,12 +120,91 @@
       group="wallet_shares"
       dense
       expand-separator
-      icon="hail"
-      :label="'Pending Requests (' + walletPendingShares.length + ')'"
+      icon="group_add"
+      :label="'Pending Invitations (' + walletPendingInvites.length + ')'"
     >
       <q-card>
-        <q-card-section v-if="walletPendingShares.length">
-          <div v-for="share in walletPendingShares" class="row q-mb-xs">
+        <q-card-section v-if="walletPendingInvites.length">
+          <div v-for="share in walletPendingInvites" class="row q-mb-xs">
+            <div class="col-3 q-mt-md">
+              <strong v-text="share.username"></strong>
+            </div>
+
+            <div class="col-8">
+              <q-select
+                v-model="share.permissions"
+                :options="permissionOptions"
+                emit-value
+                map-options
+                multiple
+                use-chips
+                dense
+              ></q-select>
+            </div>
+            <div class="col-1 q-mt-sm">
+              <q-btn
+                flat
+                color="red"
+                icon="delete"
+                outline
+                class="full-width"
+                @click="deleteSharePermission(share)"
+              ></q-btn>
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-section v-else>
+          <span>No pending invites.</span>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row">
+            <div class="col-5">
+              <q-input
+                v-model="walletShareInvite.username"
+                label="Username"
+                hint="Invite user to this wallet"
+                dense
+              >
+              </q-input>
+            </div>
+            <div class="col-6">
+              <q-select
+                :options="permissionOptions"
+                v-model="walletShareInvite.permissions"
+                emit-value
+                map-options
+                multiple
+                use-chips
+                dense
+                class="q-pl-md"
+              ></q-select>
+            </div>
+            <div class="col-1">
+              <q-btn
+                @click="inviteUserToWallet()"
+                dense
+                flat
+                color="primary"
+                icon="person_add_alt"
+              ></q-btn>
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-expansion-item>
+
+    <q-expansion-item
+      group="wallet_shares"
+      dense
+      expand-separator
+      icon="hail"
+      :label="'Pending Requests (' + walletPendingRequests.length + ')'"
+    >
+      <q-card>
+        <q-card-section v-if="walletPendingRequests.length">
+          <div v-for="share in walletPendingRequests" class="row q-mb-xs">
             <div class="col-3 q-mt-md">
               <strong v-text="share.username"></strong>
             </div>
@@ -173,7 +252,6 @@
         </q-card-section>
       </q-card>
     </q-expansion-item>
-
     <q-card-section> </q-card-section>
   </q-card>
 </q-expansion-item>

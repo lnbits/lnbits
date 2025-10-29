@@ -131,7 +131,11 @@ window.WalletPageLogic = {
         {label: 'View', value: 'view-payments'},
         {label: 'Receive', value: 'receive-payments'},
         {label: 'Send', value: 'send-payments'}
-      ]
+      ],
+      walletShareInvite: {
+        unsername: '',
+        permissions: []
+      }
     }
   },
   computed: {
@@ -175,10 +179,19 @@ window.WalletPageLogic = {
       return this.g.wallet
     },
     walletApprovedShares() {
-      return this.g.wallet.extra.shared_with.filter(s => s.approved)
+      return this.g.wallet.extra.shared_with.filter(
+        s => s.status === 'approved'
+      )
     },
-    walletPendingShares() {
-      return this.g.wallet.extra.shared_with.filter(s => !s.approved)
+    walletPendingRequests() {
+      return this.g.wallet.extra.shared_with.filter(
+        s => s.status === 'request_access'
+      )
+    },
+    walletPendingInvites() {
+      return this.g.wallet.extra.shared_with.filter(
+        s => s.status === 'invite_sent'
+      )
     },
     hasChartActive() {
       return (
@@ -691,13 +704,31 @@ window.WalletPageLogic = {
       try {
         const {data} = await LNbits.api.request(
           'PUT',
-          '/api/v1/wallet/share',
+          '/api/v1/wallet/share/accept',
           this.g.wallet.adminkey,
           permission
         )
         Object.assign(permission, data)
         Quasar.Notify.create({
           message: 'Wallet permission updated.',
+          type: 'positive'
+        })
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
+      }
+    },
+    async inviteUserToWallet() {
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          '/api/v1/wallet/share/invite',
+          this.g.wallet.adminkey,
+          {...this.walletShareInvite, status: 'invite_sent'}
+        )
+
+        this.g.wallet.extra.shared_with.push(data)
+        Quasar.Notify.create({
+          message: 'User invited to wallet.',
           type: 'positive'
         })
       } catch (err) {
@@ -711,7 +742,7 @@ window.WalletPageLogic = {
           try {
             await LNbits.api.request(
               'DELETE',
-              `/api/v1/wallet/share/${permission.wallet_id}`,
+              `/api/v1/wallet/share/${permission.user_id_hash}`,
               this.g.wallet.adminkey
             )
             this.g.wallet.extra.shared_with =

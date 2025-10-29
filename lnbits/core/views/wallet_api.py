@@ -8,6 +8,11 @@ from fastapi import (
     HTTPException,
 )
 
+from lnbits.core.crud.users import (
+    get_account,
+    get_account_by_username_or_email,
+    update_account,
+)
 from lnbits.core.crud.wallets import (
     create_wallet,
     force_delete_wallet,
@@ -19,6 +24,7 @@ from lnbits.core.models.misc import SimpleStatus
 from lnbits.core.models.wallets import (
     WalletsFilters,
     WalletSharePermission,
+    WalletShareStatus,
     WalletType,
 )
 from lnbits.core.services.wallets import (
@@ -73,8 +79,8 @@ async def api_wallets_paginated(
     return page
 
 
-@wallet_router.put("/share")
-async def api_update_wallet_share_permissions(
+@wallet_router.put("/share/invite")
+async def api_invite_wallet_share(
     data: WalletSharePermission, key_info: WalletTypeInfo = Depends(require_admin_key)
 ) -> WalletSharePermission:
     source_wallet = key_info.wallet
@@ -82,11 +88,59 @@ async def api_update_wallet_share_permissions(
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Only lightning wallets can be shared."
         )
+    if not data.username:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Username or email missing.")
+    invited_user = await get_account_by_username_or_email(data.username)
+    if not invited_user:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Invited user not found.")
+
+    share = source_wallet.extra.find_share_for_user(invited_user.id)
+    if share:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "User already invited to this wallet."
+        )
+
+    invite_request = source_wallet.extra.add_share_request(
+        user_id=invited_user.id,
+        username=invited_user.username or invited_user.email,
+        permissions=data.permissions,
+        request_type=WalletShareStatus.INVITE_SENT,
+    )
+    await update_wallet(source_wallet)
+
+    wallet_owner = await get_account(source_wallet.user)
+    if not wallet_owner:
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR, "Cannot find wallet owner."
+        )
+    invited_user.extra.add_wallet_invite_request(
+        from_user_id=wallet_owner.id,
+        from_user_name=wallet_owner.username or wallet_owner.email,
+        to_wallet_id=source_wallet.id,
+        to_wallet_name=source_wallet.name,
+    )
+    await update_account(invited_user)
+
+    return invite_request
+
+
+@wallet_router.put("/share/accept")
+async def api_accept_wallet_share_request(
+    data: WalletSharePermission, key_info: WalletTypeInfo = Depends(require_admin_key)
+) -> WalletSharePermission:
+    source_wallet = key_info.wallet
+    if not source_wallet.is_lightning_wallet:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Only lightning wallets can be shared."
+        )
+    if not data.wallet_id:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Wallet ID missing.")
 
     share = source_wallet.extra.find_share_for_wallet(data.wallet_id)
     if not share:
-        # In the future the user will be able to add new share permissions
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Share not found")
+    if not share.wallet_id:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Wallet ID missing in share.")
 
     mirror_wallet = await get_wallet(share.wallet_id)
     if not mirror_wallet:
@@ -96,32 +150,35 @@ async def api_update_wallet_share_permissions(
             HTTPStatus.BAD_REQUEST, "Target wallet is not a shared wallet."
         )
 
-    share.permissions = data.permissions
-    share.approved = True
+    share.approve(permissions=data.permissions)
     await update_wallet(source_wallet)
     return share
 
 
-@wallet_router.delete("/share/{mirror_wallet_id}")
+@wallet_router.delete("/share/{user_id_hash}")
 async def api_delete_wallet_share_permissions(
-    mirror_wallet_id: str, key_info: WalletTypeInfo = Depends(require_admin_key)
+    user_id_hash: str, key_info: WalletTypeInfo = Depends(require_admin_key)
 ) -> SimpleStatus:
     source_wallet = key_info.wallet
-    source_wallet.extra.remove_share_for_wallet(mirror_wallet_id)
+    if not source_wallet.is_lightning_wallet:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Source wallet is not a lightning wallet."
+        )
 
-    mirror_wallet = await get_wallet(mirror_wallet_id)
+    share = source_wallet.extra.find_share_for_user_id_hash(user_id_hash)
+    if not share:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet share not found.")
+    source_wallet.extra.remove_share_for_user(user_id_hash)
+    mirror_wallet = await get_wallet(share.wallet_id) if share.wallet_id else None
     if not mirror_wallet:
         await update_wallet(source_wallet)
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Target wallet not found")
+        return SimpleStatus(
+            success=True, message="Permission removed. Target wallet not found."
+        )
 
     if not mirror_wallet.is_lightning_shared_wallet:
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "Target wallet is not a shared lightning wallet."
-        )
-
-    if not source_wallet.is_lightning_wallet:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST, "Source wallet is not a lightning wallet."
         )
 
     if mirror_wallet.shared_wallet_id != source_wallet.id:
@@ -229,7 +286,6 @@ async def api_create_wallet(
     if data.wallet_type == WalletType.LIGHTNING_SHARED:
         return await create_lightning_shared_wallet(
             user_id=key_info.wallet.user,
-            wallet_name=data.name,
             shared_wallet_id=data.shared_wallet_id,
         )
 

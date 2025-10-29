@@ -31,6 +31,20 @@
       :label="$t('shared_wallet_id')"
       class="q-mt-md"
     ></q-input>
+
+    <q-select
+      v-if="addWalletDialog.walletType == 'lightning-shared-invite'"
+      v-model="addWalletDialog.sharedWalletId"
+      :label="$t('shared_wallet_id')"
+      emit-value
+      map-options
+      dense
+      :options="g.user.extra.wallet_invite_requests.map(i => ({
+          label: i.to_wallet_name + ' (' + i.from_user_name + ')',
+          value: i.to_wallet_id
+        }))"
+      class="q-mt-md"
+    ></q-select>
     <div
       v-if="addWalletDialog.walletType == 'lightning-shared'"
       class="q-mt-md"
