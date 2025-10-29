@@ -139,7 +139,7 @@ def sign_event(
     event["id"] = event_id
     event["pubkey"] = account_public_key_hex
 
-    signature = (account_private_key.sign_schnorr(bytes.fromhex(event_id))).hex()
+    signature = account_private_key.sign_schnorr(bytes.fromhex(event_id)).hex()
     event["sig"] = signature
     return event
 
