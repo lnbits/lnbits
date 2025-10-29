@@ -296,21 +296,31 @@
               "
             >
               <div class="row no-wrap q-pr-md">
-                <q-card class="wallet-list-card">
+                <q-card
+                  @click="showAddNewWalletDialog()"
+                  class="wallet-list-card cursor-pointer"
+                >
                   <q-card-section
                     class="flex flex-center column full-height text-center"
                   >
                     <div>
-                      <q-btn
-                        round
-                        color="primary"
-                        icon="add"
-                        @click="showAddNewWalletDialog()"
-                      >
+                      <q-btn round color="primary" icon="add">
                         <q-tooltip
                           ><span v-text="$t('add_new_wallet')"></span
                         ></q-tooltip>
                       </q-btn>
+                    </div>
+                    <div>
+                      <q-badge
+                        @click="addWalletDialog.walletType='lightning-shared-invite'"
+                        dense
+                        outline
+                        class="q-mt-sm"
+                      >
+                        <span
+                          v-text="'New wallet invite (' + g.user.walletInvitesCount + ')'"
+                        ></span>
+                      </q-badge>
                     </div>
                   </q-card-section>
                 </q-card>
