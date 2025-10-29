@@ -370,7 +370,7 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
 
 @pytest.mark.anyio
 async def test_get_payments(client, inkey_fresh_headers_to, fake_payments):
-    fake_data, filters = fake_payments
+    _, filters = fake_payments
 
     async def get_payments(params: dict):
         response = await client.get(

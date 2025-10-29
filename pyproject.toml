@@ -67,7 +67,7 @@ migration = ["psycopg2-binary==2.9.10"]
 [dependency-groups]
 dev = [
   "black>=25.1.0,<26.0.0",
-  "mypy>=1.11.2,<2.0.0",
+  "mypy==1.17.1",
   "types-protobuf>=6.30.2.20250516,<7.0.0",
   "pre-commit>=4.2.0,<5.0.0",
   "openapi-spec-validator>=0.7.1,<1.0.0",
@@ -221,7 +221,8 @@ extend-exclude = [
 select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B", "S"]
 # UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
 # RUF012: mutable-class-default
-ignore = ["RUF012"]
+# RUF043: pytest-raises-ambiguous-pattern (RUF043)
+ignore = ["RUF012", "RUF043"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
