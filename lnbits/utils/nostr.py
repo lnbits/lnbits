@@ -26,7 +26,7 @@ def encrypt_content(
 
     Args:
         content (str): The content to be encrypted.
-        service_pubkey (secp256k1.PublicKey): The service provider's public key.
+        service_pubkey (coincurve.PublicKey): The service provider's public key.
         account_private_key_hex (str): The account private key in hex format.
 
     Returns:
@@ -59,7 +59,7 @@ def decrypt_content(
 
     Args:
         content (str): The encrypted content.
-        service_pubkey (secp256k1.PublicKey): The service provider's public key.
+        service_pubkey (coincurve.PublicKey): The service provider's public key.
         account_private_key_hex (str): The account private key in hex format.
 
     Returns:
@@ -105,7 +105,7 @@ def verify_event(event: dict) -> bool:
     if event_id != event["id"]:
         return False
     pubkey_hex = event["pubkey"]
-    pubkey = coincurve.PublicKey(bytes.fromhex("02" + pubkey_hex))
+    pubkey = coincurve.PublicKeyXOnly(bytes.fromhex(pubkey_hex))
     if not pubkey.verify(bytes.fromhex(event["sig"]), bytes.fromhex(event_id)):
         return False
     return True
