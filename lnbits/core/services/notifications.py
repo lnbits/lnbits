@@ -259,6 +259,8 @@ async def send_payment_notification(wallet: Wallet, payment: Payment):
     try:
         await send_ws_payment_notification(wallet, payment)
         for shared in wallet.extra.shared_with:
+            if not shared.wallet_id:
+                continue
             shared_wallet = await get_wallet(shared.wallet_id)
             if shared_wallet and shared_wallet.can_view_payments:
                 await send_ws_payment_notification(shared_wallet, payment)

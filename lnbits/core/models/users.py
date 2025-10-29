@@ -14,6 +14,7 @@ from lnbits.helpers import (
     is_valid_external_id,
     is_valid_pubkey,
     is_valid_username,
+    sha256s,
 )
 from lnbits.settings import settings
 
@@ -27,6 +28,13 @@ class UserNotifications(BaseModel):
     excluded_wallets: list[str] = []
     outgoing_payments_sats: int = 0
     incoming_payments_sats: int = 0
+
+
+class WalletInviteRequest(BaseModel):
+    from_user_id_hash: str
+    from_user_name: str | None = None
+    to_wallet_id: str
+    to_wallet_name: str
 
 
 class UserExtra(BaseModel):
@@ -45,6 +53,35 @@ class UserExtra(BaseModel):
     visible_wallet_count: int | None = 10
 
     notifications: UserNotifications = UserNotifications()
+
+    wallet_invite_requests: list[WalletInviteRequest] = []
+
+    def add_wallet_invite_request(
+        self,
+        from_user_id: str,
+        to_wallet_id: str,
+        to_wallet_name: str,
+        from_user_name: str | None = None,
+    ) -> WalletInviteRequest:
+        self.remove_wallet_invite_request(from_user_id)
+        invite = WalletInviteRequest(
+            from_user_id_hash=sha256s(from_user_id),
+            from_user_name=from_user_name,
+            to_wallet_id=to_wallet_id,
+            to_wallet_name=to_wallet_name,
+        )
+        self.wallet_invite_requests.append(invite)
+        return invite
+
+    def remove_wallet_invite_request(
+        self,
+        from_user_id: str,
+    ):
+        self.wallet_invite_requests = [
+            invite
+            for invite in self.wallet_invite_requests
+            if invite.from_user_id_hash != sha256s(from_user_id)
+        ]
 
 
 class EndpointAccess(BaseModel):
