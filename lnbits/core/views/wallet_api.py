@@ -8,10 +8,24 @@ from fastapi import (
     HTTPException,
 )
 
-from lnbits.core.crud.wallets import get_wallets_paginated
+from lnbits.core.crud.wallets import (
+    create_wallet,
+    get_wallets_paginated,
+)
 from lnbits.core.models import CreateWallet, KeyType, User, Wallet, WalletTypeInfo
 from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
-from lnbits.core.models.wallets import WalletsFilters
+from lnbits.core.models.misc import SimpleStatus
+from lnbits.core.models.wallets import (
+    WalletsFilters,
+    WalletSharePermission,
+    WalletType,
+)
+from lnbits.core.services.wallets import (
+    accept_wallet_invitation,
+    create_lightning_shared_wallet,
+    delete_wallet_share,
+    invite_to_wallet,
+)
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_user_exists,
@@ -22,7 +36,6 @@ from lnbits.decorators import (
 from lnbits.helpers import generate_filter_params_openapi
 
 from ..crud import (
-    create_wallet,
     delete_wallet,
     get_wallet,
     update_wallet,
@@ -62,6 +75,27 @@ async def api_wallets_paginated(
     return page
 
 
+@wallet_router.put("/share/invite")
+async def api_invite_wallet_share(
+    data: WalletSharePermission, key_info: WalletTypeInfo = Depends(require_admin_key)
+) -> WalletSharePermission:
+    return await invite_to_wallet(key_info.wallet, data)
+
+
+@wallet_router.put("/share/accept")
+async def api_accept_wallet_share_request(
+    data: WalletSharePermission, key_info: WalletTypeInfo = Depends(require_admin_key)
+) -> WalletSharePermission:
+    return await accept_wallet_invitation(key_info.wallet, data)
+
+
+@wallet_router.delete("/share/{share_request_id}")
+async def api_delete_wallet_share_permissions(
+    share_request_id: str, key_info: WalletTypeInfo = Depends(require_admin_key)
+) -> SimpleStatus:
+    return await delete_wallet_share(key_info.wallet, share_request_id)
+
+
 @wallet_router.put("/{new_name}")
 async def api_update_wallet_name(
     new_name: str, key_info: WalletTypeInfo = Depends(require_admin_key)
@@ -70,6 +104,7 @@ async def api_update_wallet_name(
     if not wallet:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found")
     wallet.name = new_name
+
     await update_wallet(wallet)
     return {
         "id": wallet.id,
@@ -124,6 +159,7 @@ async def api_update_wallet(
     wallet.extra.color = color or wallet.extra.color
     wallet.extra.pinned = pinned if pinned is not None else wallet.extra.pinned
     wallet.currency = currency if currency is not None else wallet.currency
+
     await update_wallet(wallet)
     return wallet
 
@@ -147,4 +183,17 @@ async def api_create_wallet(
     data: CreateWallet,
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
-    return await create_wallet(user_id=key_info.wallet.user, wallet_name=data.name)
+
+    if data.wallet_type == WalletType.LIGHTNING:
+        return await create_wallet(user_id=key_info.wallet.user, wallet_name=data.name)
+
+    if data.wallet_type == WalletType.LIGHTNING_SHARED:
+        return await create_lightning_shared_wallet(
+            user_id=key_info.wallet.user,
+            shared_wallet_id=data.shared_wallet_id,
+        )
+
+    raise HTTPException(
+        HTTPStatus.BAD_REQUEST,
+        f"Unknown wallet type: {data.wallet_type}.",
+    )

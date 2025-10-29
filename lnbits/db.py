@@ -594,6 +594,13 @@ class Filters(BaseModel, Generic[TFilterModel]):
         return values
 
 
+class DbJsonEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Enum):
+            return o.value
+        return super().default(o)
+
+
 def insert_query(table_name: str, model: BaseModel) -> str:
     """
     Generate an insert query with placeholders for a given table and model
@@ -648,7 +655,7 @@ def model_to_dict(model: BaseModel) -> dict:
             or type_ is dict
             or get_origin(outertype_) is list
         ):
-            _dict[key] = json.dumps(value)
+            _dict[key] = json.dumps(value, cls=DbJsonEncoder)
             continue
         _dict[key] = value
 

@@ -743,3 +743,19 @@ async def m034_add_stored_paylinks_to_wallet(db: Connection):
         ALTER TABLE wallets ADD COLUMN stored_paylinks TEXT
         """
     )
+
+
+async def m035_add_wallet_type_column(db: Connection):
+    await db.execute(
+        """
+        ALTER TABLE wallets ADD COLUMN wallet_type TEXT DEFAULT 'lightning'
+        """
+    )
+
+
+async def m036_add_shared_wallet_column(db: Connection):
+    await db.execute(
+        """
+        ALTER TABLE wallets ADD COLUMN shared_wallet_id TEXT
+        """
+    )

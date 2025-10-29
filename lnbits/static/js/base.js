@@ -125,9 +125,11 @@ window.LNbits = {
     getWallet(wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
-    createWallet(wallet, name) {
+    createWallet(wallet, name, walletType, ops = {}) {
       return this.request('post', '/api/v1/wallet', wallet.adminkey, {
-        name: name
+        name: name,
+        wallet_type: walletType,
+        ...ops
       }).then(res => {
         window.location = '/wallet?wal=' + res.data.id
       })
@@ -227,12 +229,16 @@ window.LNbits = {
         0,
         data.wallets.length - data.extra.visible_wallet_count
       )
+      obj.walletInvitesCount = data.extra.wallet_invite_requests?.length || 0
       return obj
     },
     wallet(data) {
       newWallet = {
         id: data.id,
         name: data.name,
+        walletType: data.wallet_type,
+        sharePermissions: data.share_permissions,
+        sharedWalletId: data.shared_wallet_id,
         adminkey: data.adminkey,
         inkey: data.inkey,
         currency: data.currency,
@@ -471,7 +477,11 @@ window.windowMixin = {
       toggleSubs: true,
       mobileSimple: true,
       walletFlip: true,
-      showAddWalletDialog: {show: false},
+      addWalletDialog: {show: false, walletType: 'lightning'},
+      walletTypes: [
+        {label: 'Lightning Wallet', value: 'lightning'},
+        {label: 'Lightning Wallet (Shared)', value: 'lightning-shared'}
+      ],
       isUserAuthorized: false,
       isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
       allowedThemes: WINDOW_SETTINGS['LNBITS_THEME_OPTIONS'],
@@ -511,23 +521,55 @@ window.windowMixin = {
         path: '/wallets'
       })
     },
-    submitAddWallet() {
-      if (
-        this.showAddWalletDialog.name &&
-        this.showAddWalletDialog.name.length > 0
-      ) {
-        LNbits.api.createWallet(
-          this.g.user.wallets[0],
-          this.showAddWalletDialog.name
-        )
-        this.showAddWalletDialog = {show: false}
-      } else {
-        this.$q.notify({
-          message: 'Please enter a name for the wallet',
-          color: 'negative'
-        })
+    handleWalletAction(payload) {
+      if (payload.action === 'create-wallet') {
+        this.showAddNewWalletDialog()
       }
     },
+    showAddNewWalletDialog() {
+      this.addWalletDialog = {show: true, walletType: 'lightning'}
+    },
+    async submitAddWallet() {
+      const data = this.addWalletDialog
+      if (data.walletType === 'lightning' && !data.name) {
+        this.$q.notify({
+          message: 'Please enter a name for the wallet',
+          color: 'warning'
+        })
+        return
+      }
+      let walletType = data.walletType
+      if (
+        ['lightning-shared', 'lightning-shared-invite'].includes(
+          data.walletType
+        )
+      ) {
+        walletType = 'lightning-shared'
+      }
+      if (walletType === 'lightning-shared' && !data.sharedWalletId) {
+        this.$q.notify({
+          message: 'Please enter a shared wallet ID',
+          color: 'warning'
+        })
+        return
+      }
+      try {
+        await LNbits.api.createWallet(
+          this.g.user.wallets[0],
+          data.name,
+          walletType,
+          {
+            shared_wallet_id: data.sharedWalletId
+          }
+        )
+
+        this.addWalletDialog = {show: false}
+      } catch (e) {
+        console.warn(e)
+        LNbits.utils.notifyApiError(e)
+      }
+    },
+
     simpleMobile() {
       this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
       this.refreshRoute()
@@ -782,6 +824,12 @@ window.windowMixin = {
 
     if (window.user) {
       this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
+    }
+    if (this.g.user?.extra?.wallet_invite_requests?.length) {
+      this.walletTypes.push({
+        label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
+        value: 'lightning-shared-invite'
+      })
     }
     if (window.wallet) {
       this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))

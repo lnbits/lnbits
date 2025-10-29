@@ -266,6 +266,7 @@
             <lnbits-wallet-list
               v-if="!walletFlip"
               :balance="balance"
+              @wallet-action="handleWalletAction"
             ></lnbits-wallet-list>
             <lnbits-manage
               :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
@@ -295,57 +296,31 @@
               "
             >
               <div class="row no-wrap q-pr-md">
-                <q-card class="wallet-list-card">
+                <q-card
+                  @click="showAddNewWalletDialog()"
+                  class="wallet-list-card cursor-pointer"
+                >
                   <q-card-section
                     class="flex flex-center column full-height text-center"
                   >
                     <div>
-                      <q-btn
-                        round
-                        color="primary"
-                        icon="add"
-                        @click="showAddWalletDialog.show = true"
-                      >
+                      <q-btn round color="primary" icon="add">
                         <q-tooltip
                           ><span v-text="$t('add_new_wallet')"></span
                         ></q-tooltip>
                       </q-btn>
-                      <q-dialog
-                        v-model="showAddWalletDialog.show"
-                        persistent
-                        @hide="showAddWalletDialog = {show: false}"
+                    </div>
+                    <div>
+                      <q-badge
+                        @click="addWalletDialog.walletType='lightning-shared-invite'"
+                        dense
+                        outline
+                        class="q-mt-sm"
                       >
-                        <q-card style="min-width: 350px">
-                          <q-card-section>
-                            <div class="text-h6">
-                              <span v-text="$t('wallet_name')"></span>
-                            </div>
-                          </q-card-section>
-
-                          <q-card-section class="q-pt-none">
-                            <q-input
-                              dense
-                              v-model="showAddWalletDialog.name"
-                              autofocus
-                              @keyup.enter="submitAddWallet()"
-                            ></q-input>
-                          </q-card-section>
-
-                          <q-card-actions align="right" class="text-primary">
-                            <q-btn
-                              flat
-                              :label="$t('cancel')"
-                              v-close-popup
-                            ></q-btn>
-                            <q-btn
-                              flat
-                              :label="$t('add_wallet')"
-                              v-close-popup
-                              @click="submitAddWallet()"
-                            ></q-btn>
-                          </q-card-actions>
-                        </q-card>
-                      </q-dialog>
+                        <span
+                          v-text="'New wallet invite (' + g.user.walletInvitesCount + ')'"
+                        ></span>
+                      </q-badge>
                     </div>
                   </q-card-section>
                 </q-card>
@@ -421,6 +396,13 @@
                 </q-card>
               </div>
             </q-scroll-area>
+            <q-dialog
+              v-model="addWalletDialog.show"
+              position="top"
+              @hide="addWalletDialog = {show: false}"
+            >
+              {% include "core/_wallet_new.html" %}
+            </q-dialog>
 
             <router-view v-if="isVueRoute"></router-view>
 

@@ -29,6 +29,13 @@ class UserNotifications(BaseModel):
     incoming_payments_sats: int = 0
 
 
+class WalletInviteRequest(BaseModel):
+    request_id: str
+    from_user_name: str | None = None
+    to_wallet_id: str
+    to_wallet_name: str
+
+
 class UserExtra(BaseModel):
     email_verified: bool | None = False
     first_name: str | None = None
@@ -45,6 +52,35 @@ class UserExtra(BaseModel):
     visible_wallet_count: int | None = 10
 
     notifications: UserNotifications = UserNotifications()
+
+    wallet_invite_requests: list[WalletInviteRequest] = []
+
+    def add_wallet_invite_request(
+        self,
+        request_id: str,
+        to_wallet_id: str,
+        to_wallet_name: str,
+        from_user_name: str | None = None,
+    ) -> WalletInviteRequest:
+        self.remove_wallet_invite_request(request_id)
+        invite = WalletInviteRequest(
+            request_id=request_id,
+            from_user_name=from_user_name,
+            to_wallet_id=to_wallet_id,
+            to_wallet_name=to_wallet_name,
+        )
+        self.wallet_invite_requests.append(invite)
+        return invite
+
+    def remove_wallet_invite_request(
+        self,
+        request_id: str,
+    ):
+        self.wallet_invite_requests = [
+            invite
+            for invite in self.wallet_invite_requests
+            if invite.request_id != request_id
+        ]
 
 
 class EndpointAccess(BaseModel):

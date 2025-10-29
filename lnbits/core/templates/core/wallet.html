@@ -361,6 +361,8 @@
                   </q-card>
                 </q-expansion-item>
                 <q-separator></q-separator>
+                {% include "core/_wallet_share.html" %}
+                <q-separator></q-separator>
                 <q-expansion-item
                   group="extras"
                   icon="phone_android"
@@ -509,7 +511,7 @@
                 </q-expansion-item>
                 <q-separator></q-separator>
                 <q-expansion-item
-                  group="charts"
+                  group="extras"
                   icon="insights"
                   :label="$t('wallet_charts')"
                 >

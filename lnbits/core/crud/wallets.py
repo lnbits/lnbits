@@ -3,7 +3,7 @@ from time import time
 from uuid import uuid4
 
 from lnbits.core.db import db
-from lnbits.core.models.wallets import WalletsFilters
+from lnbits.core.models.wallets import WalletsFilters, WalletType
 from lnbits.db import Connection, Filters, Page
 from lnbits.settings import settings
 
@@ -14,17 +14,22 @@ async def create_wallet(
     *,
     user_id: str,
     wallet_name: str | None = None,
+    wallet_type: WalletType = WalletType.LIGHTNING,
+    shared_wallet_id: str | None = None,
     conn: Connection | None = None,
 ) -> Wallet:
     wallet_id = uuid4().hex
     wallet = Wallet(
         id=wallet_id,
         name=wallet_name or settings.lnbits_default_wallet_name,
+        wallet_type=wallet_type.value,
+        shared_wallet_id=shared_wallet_id,
         user=user_id,
         adminkey=uuid4().hex,
         inkey=uuid4().hex,
         currency=settings.lnbits_default_accounting_currency or "USD",
     )
+
     await (conn or db).insert("wallets", wallet)
     return wallet
 
@@ -103,7 +108,7 @@ async def delete_unused_wallets(
     )
 
 
-async def get_wallet(
+async def get_standalone_wallet(
     wallet_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> Wallet | None:
     query = """
@@ -121,6 +126,18 @@ async def get_wallet(
     )
 
 
+async def get_wallet(
+    wallet_id: str, deleted: bool | None = False, conn: Connection | None = None
+) -> Wallet | None:
+    wallet = await get_standalone_wallet(wallet_id, deleted, conn)
+    if not wallet:
+        return None
+    if wallet.is_lightning_shared_wallet:
+        return await get_source_wallet(wallet, conn)
+
+    return wallet
+
+
 async def get_wallets(
     user_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> list[Wallet]:
@@ -132,11 +149,13 @@ async def get_wallets(
             """
     if deleted is not None:
         query += " AND deleted = :deleted "
-    return await (conn or db).fetchall(
+    wallets = await (conn or db).fetchall(
         query,
         {"user": user_id, "deleted": deleted},
         Wallet,
     )
+
+    return await get_source_wallets(wallets, conn)
 
 
 async def get_wallets_paginated(
@@ -149,7 +168,7 @@ async def get_wallets_paginated(
         deleted = False
 
     where: list[str] = [""" "user" = :user AND deleted = :deleted """]
-    return await (conn or db).fetch_page(
+    wallets = await (conn or db).fetch_page(
         """
             SELECT *, COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
@@ -161,18 +180,24 @@ async def get_wallets_paginated(
         model=Wallet,
     )
 
+    wallets.data = await get_source_wallets(wallets.data, conn)
+    return wallets
+
 
 async def get_wallets_ids(
     user_id: str, deleted: bool | None = False, conn: Connection | None = None
 ) -> list[str]:
-    query = """SELECT id FROM wallets  WHERE "user" = :user"""
+    query = """SELECT * FROM wallets WHERE "user" = :user"""
     if deleted is not None:
-        query += " AND deleted = :deleted"
-    result: list[dict] = await (conn or db).fetchall(
+        query += " AND deleted = :deleted "
+    wallets = await (conn or db).fetchall(
         query,
         {"user": user_id, "deleted": deleted},
+        Wallet,
     )
-    return [row["id"] for row in result]
+
+    wallets = await get_source_wallets(wallets, conn)
+    return [w.source_wallet_id for w in wallets if w.can_view_payments]
 
 
 async def get_wallets_count():
@@ -185,7 +210,7 @@ async def get_wallet_for_key(
     key: str,
     conn: Connection | None = None,
 ) -> Wallet | None:
-    return await (conn or db).fetchone(
+    wallet = await (conn or db).fetchone(
         """
         SELECT *, COALESCE((
             SELECT balance FROM balances WHERE wallet_id = wallets.id
@@ -196,6 +221,39 @@ async def get_wallet_for_key(
         {"key": key},
         Wallet,
     )
+    if not wallet:
+        return None
+
+    if wallet.is_lightning_shared_wallet:
+        mw = await get_source_wallet(wallet, conn)
+        return mw
+    return wallet
+
+
+async def get_source_wallet(
+    wallet: Wallet, conn: Connection | None = None
+) -> Wallet | None:
+    if not wallet.is_lightning_shared_wallet:
+        return wallet
+    if not wallet.shared_wallet_id:
+        return None
+
+    shared_wallet = await get_standalone_wallet(wallet.shared_wallet_id, False, conn)
+    if not shared_wallet:
+        return None
+    wallet.mirror_shared_wallet(shared_wallet)
+    return wallet
+
+
+async def get_source_wallets(
+    wallet: list[Wallet], conn: Connection | None = None
+) -> list[Wallet]:
+    source_wallets = []
+    for w in wallet:
+        source_wallet = await get_source_wallet(w, conn)
+        if source_wallet:
+            source_wallets.append(source_wallet)
+    return source_wallets
 
 
 async def get_total_balance(conn: Connection | None = None):
