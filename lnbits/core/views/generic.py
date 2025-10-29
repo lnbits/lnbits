@@ -12,7 +12,6 @@ from fastapi.routing import APIRouter
 from lnurl import url_decode
 from pydantic.types import UUID4
 
-from lnbits.core.db import db
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
 from lnbits.core.models.extensions import ExtensionMeta, InstallableExtension

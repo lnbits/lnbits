@@ -130,71 +130,12 @@
                 <div
                   class="absolute-right q-pa-md"
                   v-if="$q.screen.gt.md && g.fiatTracking &&  '{{ LNBITS_DENOMINATION }}' == 'sats'"
-                  style="top: 8px; right: 60px"
                 >
                   <div class="text-bold text-italic">BTC Price</div>
                   <span
                     class="text-bold text-italic"
                     v-text="formattedExchange"
                   ></span>
-                </div>
-
-                <!-- Share Wallet Button (Top Right) -->
-                <div
-                  class="absolute-right q-pa-sm"
-                  style="top: 8px; right: 8px"
-                >
-                  <q-btn
-                    round
-                    flat
-                    color="deep-purple"
-                    icon="group"
-                    @click="showWalletSharesDialog"
-                    size="md"
-                  >
-                    <q-badge
-                      v-if="(!g.wallet.is_shared || canManageShares()) && activeSharesCount > 0"
-                      :label="activeSharesCount"
-                      color="deep-purple"
-                      floating
-                      rounded
-                    />
-                    <q-tooltip v-if="g.wallet.is_shared && !canManageShares()">
-                      Shared wallet - click to leave
-                    </q-tooltip>
-                    <q-tooltip v-else>
-                      <div v-if="activeSharesCount > 0">
-                        <span
-                          v-text="'Shared with ' + activeSharesCount + (activeSharesCount === 1 ? ' user' : ' users')"
-                        ></span>
-                      </div>
-                      <div v-if="pendingSharesCount > 0">
-                        <span
-                          v-text="pendingSharesCount + (pendingSharesCount === 1 ? ' pending invitation' : ' pending invitations')"
-                        ></span>
-                      </div>
-                      <div v-if="rejectedSharesCount > 0">
-                        <span
-                          v-text="rejectedSharesCount + (rejectedSharesCount === 1 ? ' rejected share' : ' rejected shares')"
-                        ></span>
-                      </div>
-                      <div v-if="revokedSharesCount > 0">
-                        <span
-                          v-text="revokedSharesCount + (revokedSharesCount === 1 ? ' revoked share' : ' revoked shares')"
-                        ></span>
-                      </div>
-                      <div v-if="leftSharesCount > 0">
-                        <span
-                          v-text="leftSharesCount + (leftSharesCount === 1 ? ' left share' : ' left shares')"
-                        ></span>
-                      </div>
-                      <div
-                        v-if="activeSharesCount === 0 && pendingSharesCount === 0 && rejectedSharesCount === 0 && revokedSharesCount === 0 && leftSharesCount === 0"
-                      >
-                        Share Wallet
-                      </div>
-                    </q-tooltip>
-                  </q-btn>
                 </div>
                 <q-btn
                   v-if="$q.screen.lt.md"
@@ -219,35 +160,21 @@
                 class="q-mr-md"
                 @click="showParseDialog"
                 :label="$t('paste_request')"
-                :disable="!canPayInvoice()"
-              >
-                <q-tooltip v-if="!canPayInvoice()">
-                  You don't have permission to pay invoices from this wallet
-                </q-tooltip>
-              </q-btn>
+              ></q-btn>
               <q-btn
                 unelevated
                 color="primary"
                 class="q-mr-md"
                 @click="showReceiveDialog"
                 :label="$t('create_invoice')"
-                :disable="!canCreateInvoice()"
-              >
-                <q-tooltip v-if="!canCreateInvoice()">
-                  You don't have permission to create invoices for this wallet
-                </q-tooltip>
-              </q-btn>
+              ></q-btn>
               <q-btn
                 unelevated
                 color="secondary"
                 icon="qr_code_scanner"
                 @click="showCamera"
-                :disable="!canPayInvoice()"
               >
-                <q-tooltip v-if="!canPayInvoice()">
-                  You don't have permission to pay invoices from this wallet
-                </q-tooltip>
-                <q-tooltip v-else
+                <q-tooltip
                   ><span v-text="$t('camera_tooltip')"></span
                 ></q-tooltip>
               </q-btn>
@@ -298,7 +225,6 @@
                 >
                 </q-avatar>
                 <q-btn
-                  v-if="!g.wallet.is_shared"
                   @click="icon.show = true"
                   round
                   color="grey-5"
@@ -307,10 +233,7 @@
                   icon="edit"
                   style="position: relative; left: -15px; bottom: -10px"
                 ></q-btn>
-                <div
-                  class="text-subtitle1 q-mt-none q-mb-none"
-                  :class="{'q-ml-md': g.wallet.is_shared}"
-                >
+                <div class="text-subtitle1 q-mt-none q-mb-none">
                   {{ SITE_TITLE }} Wallet:
                   <strong><em v-text="g.wallet.name"></em></strong>
                 </div>
@@ -496,7 +419,6 @@
                 </q-expansion-item>
                 <q-separator></q-separator>
                 <q-expansion-item
-                  v-if="!g.wallet.is_shared"
                   group="extras"
                   icon="settings"
                   :label="$t('wallet_config')"
@@ -1447,9 +1369,7 @@
           </div>
         </q-card>
       </q-dialog>
-
-      <!-- Wallet Shares Dialog -->
-      {% include "core/_wallet_sharing.html" %} {% endblock %}
+      {% endblock %}
     </div>
   </div>
 </div>
