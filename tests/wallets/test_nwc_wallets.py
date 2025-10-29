@@ -5,7 +5,7 @@ import time
 from typing import cast
 
 import pytest
-import secp256k1
+from coincurve import PrivateKey, PublicKey
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
@@ -23,8 +23,8 @@ from tests.wallets.helpers import (
 
 
 def encrypt_content(priv_key, dest_pub_key, content):
-    p = secp256k1.PublicKey(bytes.fromhex("02" + dest_pub_key), True)
-    shared = p.tweak_mul(bytes.fromhex(priv_key)).serialize()[1:]
+    p = PublicKey(bytes.fromhex("02" + dest_pub_key))
+    shared = p.multiply(bytes.fromhex(priv_key)).format()[1:]
     iv = Random.new().read(AES.block_size)
     aes = AES.new(shared, AES.MODE_CBC, iv)
 
@@ -38,8 +38,8 @@ def encrypt_content(priv_key, dest_pub_key, content):
 
 
 def decrypt_content(priv_key, source_pub_key, content):
-    p = secp256k1.PublicKey(bytes.fromhex("02" + source_pub_key), True)
-    shared = p.tweak_mul(bytes.fromhex(priv_key)).serialize()[1:]
+    p = PublicKey(bytes.fromhex("02" + source_pub_key))
+    shared = p.multiply(bytes.fromhex(priv_key)).format()[1:]
     (encrypted_content_b64, iv_b64) = content.split("?iv=")
     encrypted_content = base64.b64decode(encrypted_content_b64.encode("ascii"))
     iv = base64.b64decode(iv_b64.encode("ascii"))
@@ -69,8 +69,8 @@ def sign_event(pub_key, priv_key, event):
     event_id = hashlib.sha256(signature_data.encode()).hexdigest()
     event["id"] = event_id
     event["pubkey"] = pub_key
-    s = secp256k1.PrivateKey(bytes.fromhex(priv_key))
-    signature = (s.schnorr_sign(bytes.fromhex(event_id), None, raw=True)).hex()
+    s = PrivateKey(bytes.fromhex(priv_key))
+    signature = s.sign_schnorr(bytes.fromhex(event_id)).hex()
     event["sig"] = signature
     return event
 
