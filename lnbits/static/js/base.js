@@ -52,6 +52,7 @@ window.LNbits = {
         0,
         data.wallets.length - data.extra.visible_wallet_count
       )
+      obj.walletInvitesCount = data.extra.wallet_invite_requests?.length || 0
       return obj
     },
     wallet(data) {
