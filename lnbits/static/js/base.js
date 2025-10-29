@@ -824,7 +824,7 @@ window.windowMixin = {
     if (window.user) {
       this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
     }
-    if (this.g.user?.extra?.wallet_invite_requests) {
+    if (this.g.user?.extra?.wallet_invite_requests?.length) {
       this.walletTypes.push({
         label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
         value: 'lightning-shared-invite'
