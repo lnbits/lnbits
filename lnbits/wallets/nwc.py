@@ -522,10 +522,8 @@ class NWCConnection:
         event = cast(dict, msg[2])
         if not verify_event(event):  # Ensure the event is valid (do not trust relays)
             raise Exception("Invalid event signature")
-        logger.error("ON EVENT MESSAGE")
         tags = event["tags"]
         if event["kind"] == 13194:  # An info event
-            logger.error("INFO EVENT MESSAGE")
             # info events are handled specially,
             # they are stored in the subscriptions list
             # using the subscription id for both sub_id and event_id
@@ -544,7 +542,6 @@ class NWCConnection:
                     {"supported_methods": content.split(" ")}
                 )
         else:  # A response event
-            logger.error("RESPONSE EVENT MESSAGE")
             subscription = None
             # find the first "e" tag that is handled by
             # a registered subscription
