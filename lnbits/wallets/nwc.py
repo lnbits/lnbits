@@ -7,8 +7,8 @@ from collections.abc import AsyncGenerator
 from typing import cast
 from urllib.parse import parse_qs, unquote, urlparse
 
-import secp256k1
 from bolt11 import decode as bolt11_decode
+from coincurve import PrivateKey, PublicKey
 from loguru import logger
 from websockets import connect as ws_connect
 
@@ -306,15 +306,15 @@ class NWCConnection:
         # Parse pairing url (if invalid an exception is raised)
 
         # Extract keys (used to sign nwc events+identify NWC user)
-        self.account_private_key = secp256k1.PrivateKey(bytes.fromhex(secret))
+        self.account_private_key = PrivateKey(bytes.fromhex(secret))
         self.account_private_key_hex = secret
-        self.account_public_key = self.account_private_key.pubkey
+        self.account_public_key = self.account_private_key.public_key
         if not self.account_public_key:
             raise ValueError("Missing account public key")
-        self.account_public_key_hex = self.account_public_key.serialize().hex()[2:]
+        self.account_public_key_hex = self.account_public_key.format(True).hex()[:2]
 
         # Extract service key (used for encryption to identify the nwc service provider)
-        self.service_pubkey = secp256k1.PublicKey(bytes.fromhex("02" + pubkey), True)
+        self.service_pubkey = PublicKey(bytes.fromhex("02" + pubkey))
         self.service_pubkey_hex = pubkey
 
         # Extract relay url
