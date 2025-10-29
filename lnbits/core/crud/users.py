@@ -102,35 +102,6 @@ async def get_account(user_id: str, conn: Connection | None = None) -> Account |
     )
 
 
-async def get_accounts_by_ids(
-    user_ids: list[str], conn: Connection | None = None
-) -> dict[str, Account]:
-    """
-    Fetch multiple accounts by user IDs in a single query.
-    Returns a dict mapping user_id to Account for efficient lookup.
-    """
-    if not user_ids:
-        return {}
-
-    # Remove empty strings and duplicates
-    user_ids = list({uid for uid in user_ids if uid})
-    if not user_ids:
-        return {}
-
-    # Build placeholders for IN clause
-    placeholders = ",".join(f":id_{i}" for i in range(len(user_ids)))
-    params = {f"id_{i}": uid for i, uid in enumerate(user_ids)}
-
-    rows = await (conn or db).fetchall(
-        f"SELECT * FROM accounts WHERE id IN ({placeholders})",  # noqa: S608
-        params,
-        Account,
-    )
-
-    # Return as dict for efficient lookup
-    return {row.id: row for row in rows}
-
-
 async def delete_accounts_no_wallets(
     time_delta: int,
     conn: Connection | None = None,
@@ -208,42 +179,8 @@ async def get_user(user_id: str, conn: Connection | None = None) -> User | None:
 async def get_user_from_account(
     account: Account, conn: Connection | None = None
 ) -> User | None:
-    """
-    Get user object with all wallets (owned + shared).
-
-    Wallets shared WITH this user will have is_shared=True.
-    Wallets owned by this user will have is_shared=False (even if shared with others).
-    """
-    from ..crud.wallet_shares import get_user_shared_wallets
-    from ..crud.wallets import get_wallet
-
     extensions = await get_user_active_extensions_ids(account.id, conn)
-    # Get owned wallets
-    owned_wallets = await get_wallets(account.id, False, conn=conn)
-
-    # Get shared wallets
-    if conn:
-        shared_wallet_shares = await get_user_shared_wallets(conn, account.id)
-    else:
-        async with db.connect() as temp_conn:
-            shared_wallet_shares = await get_user_shared_wallets(temp_conn, account.id)
-
-    # Fetch actual wallet objects for accepted shares and add share metadata
-    from ..models.wallet_shares import WalletShareStatus
-
-    shared_wallets = []
-    for share in shared_wallet_shares:
-        if share.status == WalletShareStatus.ACCEPTED:  # Only include accepted shares
-            wallet = await get_wallet(share.wallet_id, conn=conn)
-            if wallet and not wallet.deleted:
-                # Mark this wallet as shared WITH current user
-                wallet.is_shared = True
-                wallet.share_permissions = share.permissions
-                shared_wallets.append(wallet)
-
-    # Merge owned and shared wallets
-    all_wallets = owned_wallets + shared_wallets
-
+    wallets = await get_wallets(account.id, False, conn=conn)
     return User(
         id=account.id,
         email=account.email,
@@ -254,7 +191,7 @@ async def get_user_from_account(
         created_at=account.created_at,
         updated_at=account.updated_at,
         extensions=extensions,
-        wallets=all_wallets,
+        wallets=wallets,
         admin=account.is_admin,
         super_user=account.is_super_user,
         fiat_providers=account.fiat_providers,

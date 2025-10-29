@@ -151,16 +151,6 @@ window.LNbits = {
         window.location = url
       })
     },
-    leaveWallet(wallet) {
-      return this.request(
-        'post',
-        `/api/v1/wallet_shares/leave/${wallet.id}`
-      ).then(_ => {
-        let url = new URL(window.location.href)
-        url.searchParams.delete('wal')
-        window.location = url
-      })
-    },
     getPayments(wallet, params) {
       return this.request(
         'get',
@@ -222,15 +212,9 @@ window.LNbits = {
           return mapWallet(obj)
         })
         .sort((a, b) => {
-          // Sort owned wallets before shared wallets
-          if (a.is_shared !== b.is_shared) {
-            return a.is_shared ? 1 : -1
-          }
-          // Then by pinned status
           if (a.extra.pinned !== b.extra.pinned) {
             return a.extra.pinned ? -1 : 1
           }
-          // Finally by name
           return a.name.localeCompare(b.name)
         })
       obj.walletOptions = obj.wallets.map(obj => {
@@ -246,22 +230,20 @@ window.LNbits = {
       return obj
     },
     wallet(data) {
-      const newWallet = {
+      newWallet = {
         id: data.id,
         name: data.name,
         adminkey: data.adminkey,
         inkey: data.inkey,
         currency: data.currency,
-        extra: data.extra,
-        is_shared: data.is_shared || false,
-        share_permissions: data.share_permissions || 0,
-        msat: data.balance_msat,
-        sat: Math.floor(data.balance_msat / 1000),
-        fsat: new Intl.NumberFormat(window.LOCALE).format(
-          Math.floor(data.balance_msat / 1000)
-        ),
-        url: `/wallet?&wal=${data.id}`
+        extra: data.extra
       }
+      newWallet.msat = data.balance_msat
+      newWallet.sat = Math.floor(data.balance_msat / 1000)
+      newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(
+        newWallet.sat
+      )
+      newWallet.url = `/wallet?&wal=${data.id}`
       return newWallet
     },
     payment(data) {
@@ -512,8 +494,6 @@ window.windowMixin = {
       bgimageChoice: this.$q.localStorage.has('lnbits.backgroundImage')
         ? this.$q.localStorage.getItem('lnbits.backgroundImage')
         : USE_DEFAULT_BGIMAGE,
-      pendingShares: [],
-      showShareInvitationsDialog: false,
       ...WINDOW_SETTINGS
     }
   },
@@ -768,165 +748,6 @@ window.windowMixin = {
       this.$router.push('/temp').then(() => {
         this.$router.replace({path})
       })
-    },
-    async loadPendingShares() {
-      if (!this.g.user) {
-        this.pendingShares = []
-        return
-      }
-
-      try {
-        const response = await axios.get('/api/v1/wallet_shares/shared/me')
-        // Filter for pending shares only (API returns pending and accepted)
-        this.pendingShares = response.data.filter(
-          share => share.status === 'pending'
-        )
-      } catch (error) {
-        console.error(
-          'Failed to load pending shares:',
-          error.response?.data || error.message
-        )
-        this.pendingShares = []
-      }
-    },
-    openShareInvitationsDialog() {
-      console.log('Opening share invitations dialog')
-      console.log(
-        'Current showShareInvitationsDialog value:',
-        this.showShareInvitationsDialog
-      )
-      this.loadPendingShares()
-      this.showShareInvitationsDialog = true
-      console.log('After setting to true:', this.showShareInvitationsDialog)
-      // Force Vue to update
-      this.$nextTick(() => {
-        console.log('After nextTick:', this.showShareInvitationsDialog)
-      })
-    },
-    async acceptShare(share_id) {
-      try {
-        // Use session-based authentication (cookies)
-        await axios.post(
-          `/api/v1/wallet_shares/accept/${share_id}`,
-          {},
-          {
-            withCredentials: true
-          }
-        )
-        this.$q.notify({
-          type: 'positive',
-          message: 'Wallet share accepted successfully',
-          timeout: 3000
-        })
-        // Reload user data to get the new wallet in the list
-        const userResponse = await axios.get('/api/v1/auth')
-        if (userResponse.data) {
-          this.g.user = Vue.reactive(LNbits.map.user(userResponse.data))
-          this.paymentEvents()
-        }
-        // Refresh pending shares
-        await this.loadPendingShares()
-        // Close dialog if no more pending shares
-        if (this.pendingShares.length === 0) {
-          this.showShareInvitationsDialog = false
-        }
-      } catch (error) {
-        LNbits.utils.notifyApiError(error)
-      }
-    },
-    async declineShare(share_id) {
-      try {
-        // Use session-based authentication (cookies)
-        await axios.post(
-          `/api/v1/wallet_shares/decline/${share_id}`,
-          {},
-          {
-            withCredentials: true
-          }
-        )
-        this.$q.notify({
-          type: 'info',
-          message: 'Wallet share declined',
-          timeout: 3000
-        })
-        // Refresh pending shares
-        await this.loadPendingShares()
-        // Close dialog if no more pending shares
-        if (this.pendingShares.length === 0) {
-          this.showShareInvitationsDialog = false
-        }
-      } catch (error) {
-        LNbits.utils.notifyApiError(error)
-      }
-    },
-    getPermissionLabel(permissions) {
-      if (!permissions && permissions !== 0) {
-        console.warn('No permissions provided')
-        return 'No permissions set'
-      }
-
-      // Permission bit flags from WalletSharePermission enum
-      const VIEW = 1
-      const CREATE_INVOICE = 2
-      const PAY_INVOICE = 4
-      const MANAGE_SHARES = 8
-      const FULL_ACCESS = 15
-
-      // If permissions is a string, try to parse it as a number
-      if (typeof permissions === 'string') {
-        permissions = parseInt(permissions, 10)
-        if (isNaN(permissions)) {
-          console.error('Invalid permissions string')
-          return 'Invalid permissions'
-        }
-      }
-
-      // If permissions is an object (but not null/array), convert to integer
-      if (
-        typeof permissions === 'object' &&
-        permissions !== null &&
-        !Array.isArray(permissions)
-      ) {
-        let permValue = 0
-        if (permissions.can_view) permValue |= VIEW
-        if (permissions.can_create_invoice) permValue |= CREATE_INVOICE
-        if (permissions.can_pay_invoice) permValue |= PAY_INVOICE
-        if (permissions.can_manage_shares) permValue |= MANAGE_SHARES
-        permissions = permValue
-      }
-
-      // Ensure permissions is a number
-      const permInt = Number(permissions)
-
-      console.log(
-        'DEBUG: permissions type:',
-        typeof permissions,
-        'value:',
-        permissions,
-        'permInt:',
-        permInt
-      )
-      console.log(
-        'DEBUG: permInt & VIEW:',
-        permInt & VIEW,
-        'permInt & CREATE_INVOICE:',
-        permInt & CREATE_INVOICE
-      )
-
-      // Check for full access first
-      if (permInt === FULL_ACCESS) {
-        return 'Full Access'
-      }
-
-      // Decode bit flags
-      const labels = []
-      if (permInt & VIEW) labels.push('View')
-      if (permInt & CREATE_INVOICE) labels.push('Create Invoice')
-      if (permInt & PAY_INVOICE) labels.push('Pay Invoice')
-      if (permInt & MANAGE_SHARES) labels.push('Manage Shares')
-
-      console.log('Permissions value:', permInt, 'Labels:', labels)
-      return labels.length > 0 ? labels.join(', ') : 'No permissions'
     }
   },
   async created() {
@@ -981,7 +802,6 @@ window.windowMixin = {
   mounted() {
     if (this.g.user) {
       this.paymentEvents()
-      this.loadPendingShares()
     }
   }
 }
