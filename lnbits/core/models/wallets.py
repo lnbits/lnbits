@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.db import FilterModel
-from lnbits.helpers import sha256s, url_for
+from lnbits.helpers import url_for
 from lnbits.settings import settings
 
 
@@ -42,7 +42,7 @@ class WalletShareStatus(Enum):
 
 
 class WalletSharePermission(BaseModel):
-    user_id_hash: str | None
+    request_id: str | None
     username: str | None
     wallet_id: str | None
     permissions: list[WalletPermission] = []
@@ -74,14 +74,14 @@ class WalletExtra(BaseModel):
 
     def add_share_request(
         self,
-        user_id: str,
+        request_id: str,
         request_type: WalletShareStatus,
         wallet_id: str | None = None,
         username: str | None = None,
         permissions: list[WalletPermission] | None = None,
     ) -> WalletSharePermission:
         share = WalletSharePermission(
-            user_id_hash=sha256s(user_id),
+            request_id=request_id,
             username=username,
             wallet_id=wallet_id,
             status=request_type,
@@ -90,17 +90,9 @@ class WalletExtra(BaseModel):
         self.shared_with.append(share)
         return share
 
-    def find_share_for_user(self, user_id: str) -> WalletSharePermission | None:
+    def find_share_by_id(self, request_id: str) -> WalletSharePermission | None:
         for share in self.shared_with:
-            if share.user_id_hash == sha256s(user_id):
-                return share
-        return None
-
-    def find_share_for_user_id_hash(
-        self, user_id_hash: str
-    ) -> WalletSharePermission | None:
-        for share in self.shared_with:
-            if share.user_id_hash == user_id_hash:
+            if share.request_id == request_id:
                 return share
         return None
 
@@ -115,9 +107,9 @@ class WalletExtra(BaseModel):
             share for share in self.shared_with if share.wallet_id != wallet_id
         ]
 
-    def remove_share_for_user(self, user_id_hash: str):
+    def remove_share_by_id(self, request_id: str):
         self.shared_with = [
-            share for share in self.shared_with if share.user_id_hash != user_id_hash
+            share for share in self.shared_with if share.request_id != request_id
         ]
 
 
