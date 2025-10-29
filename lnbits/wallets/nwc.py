@@ -311,7 +311,7 @@ class NWCConnection:
         self.account_public_key = self.account_private_key.public_key
         if not self.account_public_key:
             raise ValueError("Missing account public key")
-        self.account_public_key_hex = self.account_public_key.format(True).hex()[2:]
+        self.account_public_key_hex = self.account_public_key.format().hex()[2:]
 
         # Extract service key (used for encryption to identify the nwc service provider)
         self.service_pubkey = PublicKey(bytes.fromhex("02" + pubkey))
