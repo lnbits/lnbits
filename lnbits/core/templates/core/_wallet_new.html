@@ -1,8 +1,20 @@
-<q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+<q-card class="q-pa-lg q-pt-md lnbits__dialog-card">
   <q-card-section>
     <div class="text-h6">
       <span v-text="$t('add_new_wallet')"></span>
     </div>
+  </q-card-section>
+  <q-card-section v-if="g.user.walletInvitesCount">
+    <q-badge
+      @click="addWalletDialog.walletType='lightning-shared-invite'"
+      class="cursor-pointer"
+    >
+      <span
+        v-text="
+                'You have ' + g.user.walletInvitesCount + ' wallet invitation' + (g.user.walletInvitesCount > 1 ? 's' : '')
+              "
+      ></span>
+    </q-badge>
   </q-card-section>
 
   <q-card-section class="q-pt-none">
