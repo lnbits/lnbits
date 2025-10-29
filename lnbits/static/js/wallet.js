@@ -742,7 +742,7 @@ window.WalletPageLogic = {
           try {
             await LNbits.api.request(
               'DELETE',
-              `/api/v1/wallet/share/${permission.user_id_hash}`,
+              `/api/v1/wallet/share/${permission.request_id}`,
               this.g.wallet.adminkey
             )
             this.g.wallet.extra.shared_with =
