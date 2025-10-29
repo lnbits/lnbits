@@ -1,7 +1,8 @@
-from lnbits.core.crud.users import get_account
+from lnbits.core.crud.users import get_account, update_account
 from lnbits.core.crud.wallets import create_wallet, get_standalone_wallet, update_wallet
 from lnbits.core.models.wallets import (
     Wallet,
+    WalletShareStatus,
     WalletType,
 )
 from lnbits.db import Connection
@@ -9,7 +10,6 @@ from lnbits.db import Connection
 
 async def create_lightning_shared_wallet(
     user_id: str,
-    wallet_name: str | None = None,
     shared_wallet_id: str | None = None,
     conn: Connection | None = None,
 ) -> Wallet:
@@ -29,27 +29,58 @@ async def create_lightning_shared_wallet(
     if not user:
         raise ValueError("Invalid user id.")
 
-    if not user.username or not user.email:
-        raise ValueError("You must have a username or email to mirror wallet.")
-
-    existing_request = shared_wallet.extra.find_share_for_user(user.id)
+    existing_request = shared_wallet.extra.find_share_for_user(user_id)
 
     if existing_request:
-        raise ValueError("A share request for this wallet already exists.")
+        if existing_request.status == WalletShareStatus.REQUEST_ACCESS:
+            raise ValueError("You have already requested access to this wallet.")
+        if existing_request.status == WalletShareStatus.APPROVED:
+            raise ValueError("This wallet is already shared with you.")
+        if existing_request.status != WalletShareStatus.INVITE_SENT:
+            raise ValueError("Unknown request type.")
 
-    # check pending requests and if user already has access to that wallet
+        user.extra.remove_wallet_invite_request(from_user_id=user_id)
+        await update_account(user)
+
+        mirror_wallet = await create_wallet(
+            user_id=user_id,
+            wallet_name=shared_wallet.name,
+            wallet_type=WalletType.LIGHTNING_SHARED,
+            shared_wallet_id=shared_wallet.id,
+            conn=conn,
+        )
+        existing_request.approve(wallet_id=mirror_wallet.id)
+        await update_wallet(shared_wallet, conn=conn)
+        mirror_wallet.mirror_shared_wallet(shared_wallet)
+        return mirror_wallet
+
+    return await _create_new_lightning_shared_wallet(
+        user_id=user_id,
+        username=user.username or user.email or "Anonymous",
+        shared_wallet=shared_wallet,
+    )
+
+
+async def _create_new_lightning_shared_wallet(
+    user_id: str,
+    username: str,
+    shared_wallet: Wallet,
+    conn: Connection | None = None,
+) -> Wallet:
+
     mirror_wallet = await create_wallet(
         user_id=user_id,
-        wallet_name=wallet_name,
+        wallet_name=shared_wallet.name,
         wallet_type=WalletType.LIGHTNING_SHARED,
-        shared_wallet_id=shared_wallet_id,
+        shared_wallet_id=shared_wallet.id,
         conn=conn,
     )
 
     shared_wallet.extra.add_share_request(
-        wallet_id=mirror_wallet.id,
         user_id=user_id,
-        username=user.username or user.email or "Anonymous",
+        username=username,
+        wallet_id=mirror_wallet.id,
+        request_type=WalletShareStatus.REQUEST_ACCESS,
     )
 
     await update_wallet(shared_wallet, conn=conn)
