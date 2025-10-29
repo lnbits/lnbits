@@ -55,6 +55,15 @@ dependencies = [
     "jsonpath-ng==1.7.0",
 ]
 
+[project.scripts]
+lnbits = "lnbits.server:main"
+lnbits-cli = "lnbits.commands:main"
+
+[project.optional-dependencies]
+breez = ["breez-sdk==0.8.0", "breez-sdk-liquid==0.9.1"]
+liquid = ["wallycore==1.4.0"]
+migration = ["psycopg2-binary==2.9.10"]
+
 [dependency-groups]
 dev = [
   "black>=25.1.0,<26.0.0",
@@ -77,15 +86,6 @@ dev = [
   "mock>=5.1.0,<6.0.0",
   "grpcio-tools>=1.69.0,<2.0.0"
 ]
-
-[project.scripts]
-lnbits = "lnbits.server:main"
-lnbits-cli = "lnbits.commands:main"
-
-[project.optional-dependencies]
-breez = ["breez-sdk==0.8.0", "breez-sdk-liquid==0.9.1"]
-liquid = ["wallycore==1.4.0"]
-migration = ["psycopg2-binary==2.9.10"]
 
 [tool.poetry]
 packages = [
