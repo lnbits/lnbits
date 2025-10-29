@@ -4,7 +4,7 @@ import json
 import re
 from urllib.parse import urlparse
 
-import secp256k1
+import coincurve
 from bech32 import bech32_decode, bech32_encode, convertbits
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
@@ -19,7 +19,7 @@ def generate_keypair() -> tuple[str, str]:
 
 
 def encrypt_content(
-    content: str, service_pubkey: secp256k1.PublicKey, account_private_key_hex: str
+    content: str, service_pubkey: coincurve.PublicKey, account_private_key_hex: str
 ) -> str:
     """
     Encrypts the content to be sent to the service.
@@ -32,9 +32,9 @@ def encrypt_content(
     Returns:
         str: The encrypted content.
     """
-    shared = service_pubkey.tweak_mul(
-        bytes.fromhex(account_private_key_hex)
-    ).serialize()[1:]
+    shared = service_pubkey.multiply(bytes.fromhex(account_private_key_hex)).format()[
+        1:
+    ]
     # random iv (16B)
     iv = Random.new().read(AES.block_size)
     aes = AES.new(shared, AES.MODE_CBC, iv)
@@ -52,7 +52,7 @@ def encrypt_content(
 
 
 def decrypt_content(
-    content: str, service_pubkey: secp256k1.PublicKey, account_private_key_hex: str
+    content: str, service_pubkey: coincurve.PublicKey, account_private_key_hex: str
 ) -> str:
     """
     Decrypts the content coming from the service.
@@ -65,9 +65,9 @@ def decrypt_content(
     Returns:
         str: The decrypted content.
     """
-    shared = service_pubkey.tweak_mul(
-        bytes.fromhex(account_private_key_hex)
-    ).serialize()[1:]
+    shared = service_pubkey.multiply(bytes.fromhex(account_private_key_hex)).format()[
+        1:
+    ]
     # extract iv and content
     (encrypted_content_b64, iv_b64) = content.split("?iv=")
     encrypted_content = base64.b64decode(encrypted_content_b64.encode("ascii"))
@@ -105,16 +105,14 @@ def verify_event(event: dict) -> bool:
     if event_id != event["id"]:
         return False
     pubkey_hex = event["pubkey"]
-    pubkey = secp256k1.PublicKey(bytes.fromhex("02" + pubkey_hex), True)
-    if not pubkey.schnorr_verify(
-        bytes.fromhex(event_id), bytes.fromhex(event["sig"]), None, raw=True
-    ):
+    pubkey = coincurve.PublicKey(bytes.fromhex("02" + pubkey_hex))
+    if not pubkey.verify(bytes.fromhex(event["sig"]), bytes.fromhex(event_id)):
         return False
     return True
 
 
 def sign_event(
-    event: dict, account_public_key_hex: str, account_private_key: secp256k1.PrivateKey
+    event: dict, account_public_key_hex: str, account_private_key: coincurve.PrivateKey
 ) -> dict:
     """
     Signs the event (in place) with the service secret
@@ -122,7 +120,7 @@ def sign_event(
     Args:
         event (Dict): The event to be signed.
         account_public_key_hex (str): The account public key in hex format.
-        account_private_key (secp256k1.PrivateKey): The account private key.
+        account_private_key (coincurve.PrivateKey): The account private key.
 
     Returns:
         Dict: The input event with the signature added.
@@ -141,9 +139,7 @@ def sign_event(
     event["id"] = event_id
     event["pubkey"] = account_public_key_hex
 
-    signature = (
-        account_private_key.schnorr_sign(bytes.fromhex(event_id), None, raw=True)
-    ).hex()
+    signature = (account_private_key.sign_schnorr(bytes.fromhex(event_id))).hex()
     event["sig"] = signature
     return event
 
