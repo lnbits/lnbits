@@ -314,7 +314,7 @@ class NWCConnection:
         self.account_public_key_hex = self.account_public_key.format(True).hex()[:2]
 
         # Extract service key (used for encryption to identify the nwc service provider)
-        self.service_pubkey = PublicKey(bytes.fromhex("02" + pubkey)).format(True)
+        self.service_pubkey = PublicKey(bytes.fromhex("02" + pubkey))
         self.service_pubkey_hex = pubkey
 
         # Extract relay url
