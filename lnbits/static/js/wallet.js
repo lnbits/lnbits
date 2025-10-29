@@ -727,6 +727,7 @@ window.WalletPageLogic = {
         )
 
         this.g.wallet.extra.shared_with.push(data)
+        this.walletShareInvite = {username: '', permissions: []}
         Quasar.Notify.create({
           message: 'User invited to wallet.',
           type: 'positive'

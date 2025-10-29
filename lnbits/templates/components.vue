@@ -77,6 +77,13 @@
           class="text-caption"
           v-text="$t('add_new_wallet')"
         ></q-item-label>
+        <q-item-section v-if="g.user.walletInvitesCount" side>
+          <q-badge>
+            <span
+              v-text="'Wallet Invite (' + g.user.walletInvitesCount + ')'"
+            ></span>
+          </q-badge>
+        </q-item-section>
       </q-item-section>
     </q-item>
   </q-list>
