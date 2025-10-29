@@ -18,7 +18,6 @@ from lnbits.decorators import (
     parse_filters,
     require_admin_key,
     require_invoice_key,
-    require_wallet_owner,
 )
 from lnbits.helpers import generate_filter_params_openapi
 
@@ -65,7 +64,7 @@ async def api_wallets_paginated(
 
 @wallet_router.put("/{new_name}")
 async def api_update_wallet_name(
-    new_name: str, key_info: WalletTypeInfo = Depends(require_wallet_owner)
+    new_name: str, key_info: WalletTypeInfo = Depends(require_admin_key)
 ):
     wallet = await get_wallet(key_info.wallet.id)
     if not wallet:
@@ -97,7 +96,7 @@ async def api_reset_wallet_keys(
 async def api_put_stored_paylinks(
     wallet_id: str,
     data: StoredPayLinks,
-    key_info: WalletTypeInfo = Depends(require_wallet_owner),
+    key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> list[StoredPayLink]:
     if key_info.wallet.id != wallet_id:
         raise HTTPException(
@@ -115,7 +114,7 @@ async def api_update_wallet(
     color: str | None = Body(None),
     currency: str | None = Body(None),
     pinned: bool | None = Body(None),
-    key_info: WalletTypeInfo = Depends(require_wallet_owner),
+    key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
     wallet = await get_wallet(key_info.wallet.id)
     if not wallet:
