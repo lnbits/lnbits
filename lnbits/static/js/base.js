@@ -180,7 +180,7 @@ window.LNbits = {
   events: {
     onInvoicePaid(wallet, cb) {
       const reconnectInterval = 5000 // 5 seconds
-      const maxRetries = 12 // 12 × 5s = 60 seconds total
+      const maxRetries = 12 // ~60 seconds
       const websocketUrlFull = `${websocketUrl}/${wallet.inkey}`
 
       if (!g.activeWebsockets) g.activeWebsockets = {}
@@ -215,7 +215,7 @@ window.LNbits = {
 
           ws.onerror = err => {
             console.error(
-              `[LNbits] WebSocket error for wallet ${wallet.id}:`,
+              `[LNbits] WebSocket error for wallet ${wallet.name}:`,
               err
             )
             ws.close()
@@ -227,18 +227,24 @@ window.LNbits = {
 
             if (retryCount < maxRetries) {
               console.warn(
-                `[LNbits] WebSocket closed for wallet ${wallet.id}. Reconnecting in ${reconnectInterval / 1000}s...`
+                `[LNbits] WebSocket closed for wallet ${wallet.name}. Reconnecting in ${reconnectInterval / 1000}s...`
               )
+              this.$q.notify({
+                message: 'Connection lost. Trying to reconnect...',
+                caption: wallet.name,
+                color: 'negative',
+                position: 'top'
+              })
               setTimeout(() => connect(retryCount + 1), reconnectInterval)
             } else {
               console.error(
-                `[LNbits] WebSocket for wallet ${wallet.id} failed after ${maxRetries} attempts. Stopping retries.`
+                `[LNbits] WebSocket for wallet ${wallet.name} failed after ${maxRetries} attempts. Stopping retries.`
               )
             }
           }
         } catch (err) {
           console.error(
-            `[LNbits] WebSocket connection failed for wallet ${wallet.id}:`,
+            `[LNbits] WebSocket connection failed for wallet ${wallet.name}:`,
             err
           )
           g.disconnectedWallets.add(wallet.id)
@@ -248,7 +254,7 @@ window.LNbits = {
             setTimeout(() => connect(retryCount + 1), reconnectInterval)
           } else {
             console.error(
-              `[LNbits] Stopped retrying wallet ${wallet.id} after ${maxRetries} attempts.`
+              `[LNbits] Stopped retrying wallet ${wallet.name} after ${maxRetries} attempts.`
             )
           }
         }
