@@ -194,12 +194,12 @@ window.LNbits = {
         try {
           const ws = new WebSocket(websocketUrlFull)
           g.activeWebsockets[wallet.id] = ws
-          console.log(
-            `[LNbits] Connecting WebSocket for wallet ${wallet.id}... (attempt ${retryCount + 1})`
+          console.debug(
+            `Connecting WebSocket for wallet ${wallet.name}... (attempt ${retryCount + 1})`
           )
 
           ws.onopen = () => {
-            console.log(`[LNbits] WebSocket connected for wallet ${wallet.id}`)
+            console.debug(`WebSocket connected for wallet ${wallet.name}`)
             g.disconnectedWallets.delete(wallet.id)
             updateConnectionWarning()
           }
@@ -209,15 +209,12 @@ window.LNbits = {
               const data = JSON.parse(ev.data)
               if (data.payment) cb(data)
             } catch (err) {
-              console.error('[LNbits] Error parsing WebSocket message:', err)
+              console.error('Error parsing WebSocket message:', err)
             }
           }
 
           ws.onerror = err => {
-            console.error(
-              `[LNbits] WebSocket error for wallet ${wallet.name}:`,
-              err
-            )
+            console.error(`WebSocket error for wallet ${wallet.name}:`, err)
             ws.close()
           }
 
@@ -227,24 +224,18 @@ window.LNbits = {
 
             if (retryCount < maxRetries) {
               console.warn(
-                `[LNbits] WebSocket closed for wallet ${wallet.name}. Reconnecting in ${reconnectInterval / 1000}s...`
+                `WebSocket closed for wallet ${wallet.name}. Reconnecting in ${reconnectInterval / 1000}s...`
               )
-              this.$q.notify({
-                message: 'Connection lost. Trying to reconnect...',
-                caption: wallet.name,
-                color: 'negative',
-                position: 'top'
-              })
               setTimeout(() => connect(retryCount + 1), reconnectInterval)
             } else {
               console.error(
-                `[LNbits] WebSocket for wallet ${wallet.name} failed after ${maxRetries} attempts. Stopping retries.`
+                `WebSocket for wallet ${wallet.name} failed after ${maxRetries} attempts. Stopping retries.`
               )
             }
           }
         } catch (err) {
           console.error(
-            `[LNbits] WebSocket connection failed for wallet ${wallet.name}:`,
+            `WebSocket connection failed for wallet ${wallet.name}:`,
             err
           )
           g.disconnectedWallets.add(wallet.id)
@@ -533,7 +524,9 @@ if (!window.g) {
     langs: [],
     walletEventListeners: [],
     updatePayments: false,
-    updatePaymentsHash: ''
+    updatePaymentsHash: '',
+    wsDisconnectionNotification: false,
+    wsReconnectedNotification: false
   })
 }
 
@@ -568,7 +561,8 @@ window.windowMixin = {
       bgimageChoice: this.$q.localStorage.has('lnbits.backgroundImage')
         ? this.$q.localStorage.getItem('lnbits.backgroundImage')
         : USE_DEFAULT_BGIMAGE,
-      ...WINDOW_SETTINGS
+      ...WINDOW_SETTINGS,
+      silentConnectionCleanup: false
     }
   },
 
@@ -880,9 +874,7 @@ window.windowMixin = {
       // Retry timer reference (for cleanup)
       this.connectionRetryTimer = setInterval(() => {
         if (this.g.disconnectedWallets && this.g.disconnectedWallets.size > 0) {
-          console.warn(
-            '[LNbits] Some wallets are still disconnected. Retrying...'
-          )
+          console.warn('Some wallets are still disconnected. Retrying...')
           this.paymentEvents()
         }
       }, 60000)
@@ -890,10 +882,45 @@ window.windowMixin = {
   },
 
   beforeUnmount() {
+    this.silentConnectionCleanup = true
     // Prevent background timers when component is destroyed
     if (this.connectionRetryTimer) {
       clearInterval(this.connectionRetryTimer)
       this.connectionRetryTimer = null
+    }
+  },
+  watch: {
+    'g.connectionWarning': {
+      handler(newVal, oldVal) {
+        if (this.silentConnectionCleanup) return
+
+        if (newVal && !g.wsDisconnectionNotification) {
+          this.$q.notify({
+            message: 'Some wallet connections are lost. Retrying...',
+            color: 'negative',
+            icon: null,
+            position: 'top',
+            timeout: 5000
+          })
+          g.wsDisconnectionNotification = true
+          g.wsReconnectedNotification = false
+        } else if (
+          oldVal === true &&
+          newVal === false &&
+          !g.wsReconnectedNotification
+        ) {
+          this.$q.notify({
+            message: 'All wallet connections restored.',
+            color: 'positive',
+            icon: null,
+            position: 'top',
+            timeout: 3000
+          })
+          g.wsReconnectedNotification = true
+          g.wsDisconnectionNotification = false
+        }
+      },
+      immediate: false
     }
   }
 }
