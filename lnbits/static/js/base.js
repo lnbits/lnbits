@@ -179,14 +179,82 @@ window.LNbits = {
   },
   events: {
     onInvoicePaid(wallet, cb) {
-      ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
-      ws.onmessage = ev => {
-        const data = JSON.parse(ev.data)
-        if (data.payment) {
-          cb(data)
+      const reconnectInterval = 5000 // 5 seconds
+      const maxRetries = 12 // 12 × 5s = 60 seconds total
+      const websocketUrlFull = `${websocketUrl}/${wallet.inkey}`
+
+      if (!g.activeWebsockets) g.activeWebsockets = {}
+      if (!g.disconnectedWallets) g.disconnectedWallets = new Set()
+
+      const updateConnectionWarning = () => {
+        g.connectionWarning = g.disconnectedWallets.size > 0
+      }
+
+      const connect = (retryCount = 0) => {
+        try {
+          const ws = new WebSocket(websocketUrlFull)
+          g.activeWebsockets[wallet.id] = ws
+          console.log(
+            `[LNbits] Connecting WebSocket for wallet ${wallet.id}... (attempt ${retryCount + 1})`
+          )
+
+          ws.onopen = () => {
+            console.log(`[LNbits] WebSocket connected for wallet ${wallet.id}`)
+            g.disconnectedWallets.delete(wallet.id)
+            updateConnectionWarning()
+          }
+
+          ws.onmessage = ev => {
+            try {
+              const data = JSON.parse(ev.data)
+              if (data.payment) cb(data)
+            } catch (err) {
+              console.error('[LNbits] Error parsing WebSocket message:', err)
+            }
+          }
+
+          ws.onerror = err => {
+            console.error(
+              `[LNbits] WebSocket error for wallet ${wallet.id}:`,
+              err
+            )
+            ws.close()
+          }
+
+          ws.onclose = () => {
+            g.disconnectedWallets.add(wallet.id)
+            updateConnectionWarning()
+
+            if (retryCount < maxRetries) {
+              console.warn(
+                `[LNbits] WebSocket closed for wallet ${wallet.id}. Reconnecting in ${reconnectInterval / 1000}s...`
+              )
+              setTimeout(() => connect(retryCount + 1), reconnectInterval)
+            } else {
+              console.error(
+                `[LNbits] WebSocket for wallet ${wallet.id} failed after ${maxRetries} attempts. Stopping retries.`
+              )
+            }
+          }
+        } catch (err) {
+          console.error(
+            `[LNbits] WebSocket connection failed for wallet ${wallet.id}:`,
+            err
+          )
+          g.disconnectedWallets.add(wallet.id)
+          updateConnectionWarning()
+
+          if (retryCount < maxRetries) {
+            setTimeout(() => connect(retryCount + 1), reconnectInterval)
+          } else {
+            console.error(
+              `[LNbits] Stopped retrying wallet ${wallet.id} after ${maxRetries} attempts.`
+            )
+          }
         }
       }
-      return ws.onclose
+
+      connect()
     }
   },
   map: {
@@ -802,6 +870,24 @@ window.windowMixin = {
   mounted() {
     if (this.g.user) {
       this.paymentEvents()
+
+      // Retry timer reference (for cleanup)
+      this.connectionRetryTimer = setInterval(() => {
+        if (this.g.disconnectedWallets && this.g.disconnectedWallets.size > 0) {
+          console.warn(
+            '[LNbits] Some wallets are still disconnected. Retrying...'
+          )
+          this.paymentEvents()
+        }
+      }, 60000)
+    }
+  },
+
+  beforeUnmount() {
+    // Prevent background timers when component is destroyed
+    if (this.connectionRetryTimer) {
+      clearInterval(this.connectionRetryTimer)
+      this.connectionRetryTimer = null
     }
   }
 }
