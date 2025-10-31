@@ -48,29 +48,6 @@ async def home(request: Request, lightning: str = ""):
 
 
 @generic_router.get(
-    "/account",
-    response_class=HTMLResponse,
-    description="show account page",
-)
-async def account(
-    request: Request,
-    user: User = Depends(check_user_exists),
-):
-    nostr_configured = settings.is_nostr_notifications_configured()
-    telegram_configured = settings.is_telegram_notifications_configured()
-    return template_renderer().TemplateResponse(
-        request,
-        "core/account.html",
-        {
-            "user": user.json(),
-            "nostr_configured": nostr_configured,
-            "telegram_configured": telegram_configured,
-            "ajax": _is_ajax_request(request),
-        },
-    )
-
-
-@generic_router.get(
     "/wallet",
     response_class=HTMLResponse,
     description="show wallet page",
@@ -408,6 +385,7 @@ async def manifest(request: Request, usr: str):
 
 @generic_router.get("/payments", response_class=HTMLResponse)
 @generic_router.get("/wallets", response_class=HTMLResponse)
+@generic_router.get("/account", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return template_renderer().TemplateResponse(
         request,

@@ -158,15 +158,6 @@ const routes = [
     }
   },
   {
-    path: '/account',
-    name: 'Account',
-    component: DynamicComponent,
-    props: {
-      fetchUrl: '/account',
-      scripts: ['/static/js/account.js']
-    }
-  },
-  {
     path: '/node',
     name: 'Node',
     component: PageNode
@@ -200,6 +191,11 @@ const routes = [
     path: '/admin',
     name: 'Admin',
     component: PageAdmin
+  },
+  {
+    path: '/account',
+    name: 'Account',
+    component: PageAccount
   }
 ]
 

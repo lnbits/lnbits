@@ -106,6 +106,8 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
         "WEBPUSH_PUBKEY": settings.lnbits_webpush_pubkey,
         "LNBITS_DENOMINATION": settings.lnbits_denomination,
         "has_holdinvoice": settings.has_holdinvoice,
+        "LNBITS_NOSTR_CONFIGURED": settings.is_nostr_notifications_configured(),
+        "LNBITS_TELEGRAM_CONFIGURED": settings.is_telegram_notifications_configured(),
     }
 
     t.env.globals["WINDOW_SETTINGS"] = window_settings

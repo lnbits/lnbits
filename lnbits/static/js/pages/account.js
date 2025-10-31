@@ -1,4 +1,5 @@
-window.AccountPageLogic = {
+window.PageAccount = {
+  template: '#page-account',
   mixins: [window.windowMixin],
   data() {
     return {
