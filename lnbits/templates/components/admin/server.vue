@@ -1,37 +1,51 @@
-<q-tab-panel name="server">
+<template id="lnbits-admin-server">
   <q-card-section class="q-pa-none">
     <div>
-      <h6 class="q-my-none"><span v-text="$t('currency_settings')"></span></h6>
+      <h6 class="q-my-none">
+        <span v-text="$t('currency_settings')"></span>
+      </h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
-          <p><span v-text="$t('allowed_currencies')"></span></p>
+          <p>
+            <span v-text="$t('allowed_currencies')"></span>
+          </p>
           <q-select
             filled
             v-model="formData.lnbits_allowed_currencies"
             multiple
             :hint="$t('allowed_currencies_hint')"
             :label="$t('allowed_currencies')"
-            :options="{{ currencies | safe }}"
+            :options="currencies"
           ></q-select>
         </div>
         <div class="col-12 col-md-6">
-          <p><span v-text="$t('default_account_currency')"></span></p>
+          <p>
+            <span v-text="$t('default_account_currency')"></span>
+          </p>
           <q-select
             filled
             v-model="formData.lnbits_default_accounting_currency"
             clearable
             :hint="$t('default_account_currency_hint')"
             :label="$t('currency')"
-            :options="formData.lnbits_allowed_currencies?.length ? formData.lnbits_allowed_currencies : {{ currencies }}"
+            :options="
+              formData.lnbits_allowed_currencies?.length
+                ? formData.lnbits_allowed_currencies
+                : currencies
+            "
           ></q-select>
         </div>
       </div>
 
       <q-separator class="q-mb-lg q-mt-sm"></q-separator>
-      <h6 class="q-my-none"><span v-text="$t('payments')"></span></h6>
+      <h6 class="q-my-none">
+        <span v-text="$t('payments')"></span>
+      </h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-3">
-          <p><span v-text="$t('max_outgoing_payment_amount')"></span></p>
+          <p>
+            <span v-text="$t('max_outgoing_payment_amount')"></span>
+          </p>
           <q-input
             filled
             type="number"
@@ -44,7 +58,9 @@
         </div>
 
         <div class="col-12 col-md-3">
-          <p><span v-text="$t('max_incoming_payment_amount')"></span></p>
+          <p>
+            <span v-text="$t('max_incoming_payment_amount')"></span>
+          </p>
           <q-input
             filled
             type="number"
@@ -59,7 +75,9 @@
       </div>
 
       <q-separator class="q-mb-lg q-mt-sm"></q-separator>
-      <h6 class="q-my-none"><span v-text="$t('wallet_limiter')"></span></h6>
+      <h6 class="q-my-none">
+        <span v-text="$t('wallet_limiter')"></span>
+      </h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-3">
           <q-input
@@ -95,7 +113,9 @@
       </div>
 
       <q-separator class="q-mb-lg q-mt-sm"></q-separator>
-      <h6 class="q-my-none"><span v-text="$t('service_fee')"></span></h6>
+      <h6 class="q-my-none">
+        <span v-text="$t('service_fee')"></span>
+      </h6>
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
           <p><span v-text="$t('service_fee')"></span></p>
@@ -131,7 +151,9 @@
           <br />
         </div>
         <div class="col-12 col-md-6">
-          <p><span v-text="$t('disable_fee_internal')"></span></p>
+          <p>
+            <span v-text="$t('disable_fee_internal')"></span>
+          </p>
           <q-item tag="label" v-ripple>
             <q-item-section>
               <q-item-label v-text="$t('disable_fee')"></q-item-label>
@@ -155,4 +177,4 @@
       </div>
     </div>
   </q-card-section>
-</q-tab-panel>
+</template>

@@ -1,4 +1,4 @@
-<q-tab-panel name="extensions">
+<template id="lnbits-admin-extensions">
   <q-card-section class="q-pa-none">
     <div>
       <h6 class="q-my-none">
@@ -140,4 +140,4 @@
       </div>
     </div>
   </q-card-section>
-</q-tab-panel>
+</template>

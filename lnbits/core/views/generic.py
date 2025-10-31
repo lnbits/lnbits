@@ -20,9 +20,8 @@ from lnbits.core.services.extensions import get_valid_extensions
 from lnbits.decorators import check_admin, check_user_exists
 from lnbits.helpers import check_callback_url, template_renderer
 from lnbits.settings import settings
-from lnbits.wallets import get_funding_source
 
-from ...utils.exchange_rates import allowed_currencies, currencies
+from ...utils.exchange_rates import allowed_currencies
 from ..crud import (
     create_wallet,
     get_db_versions,
@@ -407,32 +406,12 @@ async def manifest(request: Request, usr: str):
     }
 
 
-@generic_router.get("/admin", response_class=HTMLResponse)
-async def admin_index(request: Request, user: User = Depends(check_admin)):
-    if not settings.lnbits_admin_ui:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-
-    funding_source = get_funding_source()
-    _, balance = await funding_source.status()
-
-    return template_renderer().TemplateResponse(
-        request,
-        "admin/index.html",
-        {
-            "user": user.json(),
-            "balance": balance,
-            "currencies": list(currencies.keys()),
-            "ajax": _is_ajax_request(request),
-        },
-    )
-
-
 @generic_router.get("/payments", response_class=HTMLResponse)
 @generic_router.get("/wallets", response_class=HTMLResponse)
-async def empty_index(request: Request, user: User = Depends(check_user_exists)):
+async def index(request: Request, user: User = Depends(check_user_exists)):
     return template_renderer().TemplateResponse(
         request,
-        "empty.html",
+        "index.html",
         {
             "user": user.json(),
         },
@@ -442,10 +421,16 @@ async def empty_index(request: Request, user: User = Depends(check_user_exists))
 @generic_router.get("/users", response_class=HTMLResponse)
 @generic_router.get("/audit", response_class=HTMLResponse)
 @generic_router.get("/node", response_class=HTMLResponse)
-async def empty_admin_index(request: Request, admin: User = Depends(check_admin)):
+@generic_router.get("/admin", response_class=HTMLResponse)
+async def index_admin(request: Request, admin: User = Depends(check_admin)):
+    if not settings.lnbits_admin_ui:
+        raise HTTPException(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE, detail="Admin UI is disabled."
+        )
+
     return template_renderer().TemplateResponse(
         request,
-        "empty.html",
+        "index.html",
         {
             "user": admin.json(),
         },
@@ -453,8 +438,8 @@ async def empty_admin_index(request: Request, admin: User = Depends(check_admin)
 
 
 @generic_router.get("/node/public", response_class=HTMLResponse)
-async def empty_public(request: Request):
-    return template_renderer().TemplateResponse(request, "empty_public.html")
+async def index_public(request: Request):
+    return template_renderer().TemplateResponse(request, "index_public.html")
 
 
 @generic_router.get("/uuidv4/{hex_value}")

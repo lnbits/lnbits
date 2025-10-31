@@ -1,7 +1,6 @@
-<q-tab-panel name="audit">
+<template id="lnbits-admin-audit">
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none q-mb-sm">Audit</h6>
-
     <div class="row q-mb-lg">
       <div class="col-md-6 col-sm-12 q-pr-sm">
         <q-item tag="label" v-ripple>
@@ -50,8 +49,12 @@
               <span v-text="$t('audit_record_warning')"></span>
               <br />
               <ul>
-                <li><span v-text="$t('audit_record_req_warning_1')"></span></li>
-                <li><span v-text="$t('audit_record_req_warning_2')"></span></li>
+                <li>
+                  <span v-text="$t('audit_record_req_warning_1')"></span>
+                </li>
+                <li>
+                  <span v-text="$t('audit_record_req_warning_2')"></span>
+                </li>
               </ul>
               <br />
               <span v-text="$t('audit_record_use')"></span>
@@ -133,7 +136,15 @@
           multiple
           :hint="$t('audit_http_methods_hint')"
           :label="$t('audit_http_methods_label')"
-          :options="['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']"
+          :options="[
+            'GET',
+            'POST',
+            'PUT',
+            'PATCH',
+            'DELETE',
+            'HEAD',
+            'OPTIONS'
+          ]"
         ></q-select>
       </div>
       <div class="col-md-6 col-sm-12 q-pr-sm">
@@ -225,4 +236,4 @@
       </div>
     </div>
   </q-card-section>
-</q-tab-panel>
+</template>

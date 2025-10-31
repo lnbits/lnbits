@@ -1,4 +1,4 @@
-<q-tab-panel name="library">
+<template id="lnbits-admin-library">
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('image_library')"></span>
@@ -64,4 +64,4 @@
   <div v-if="library_images.length === 0" class="q-pa-xl">
     <div class="text-subtitle2 text-grey">No images uploaded yet.</div>
   </div>
-</q-tab-panel>
+</template>

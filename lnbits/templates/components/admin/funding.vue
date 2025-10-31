@@ -1,4 +1,4 @@
-<q-tab-panel name="funding">
+<template id="lnbits-admin-funding">
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none">
       <span v-text="$t('wallets_management')"></span>
@@ -12,45 +12,67 @@
           </p>
           <ul>
             <li
-              v-text="$t('funding_source', {wallet_class: settings.lnbits_backend_wallet_class})"
+              v-text="
+                $t('funding_source', {
+                  wallet_class: settings.lnbits_backend_wallet_class
+                })
+              "
             ></li>
             <li
-              v-text="$t('node_balance', {balance: (auditData.node_balance_sats || 0).toLocaleString()})"
+              v-text="
+                $t('node_balance', {
+                  balance: (auditData.node_balance_sats || 0).toLocaleString()
+                })
+              "
             ></li>
             <li
-              v-text="$t('lnbits_balance', {balance: (auditData.lnbits_balance_sats || 0).toLocaleString()})"
+              v-text="
+                $t('lnbits_balance', {
+                  balance: (auditData.lnbits_balance_sats || 0).toLocaleString()
+                })
+              "
             ></li>
             <li
-              v-text="$t('funding_reserve_percent', {
-                percent: auditData.lnbits_balance_sats > 0
-                  ? (auditData.node_balance_sats / auditData.lnbits_balance_sats * 100).toFixed(2)
-                  : 100
-              })"
+              v-text="
+                $t('funding_reserve_percent', {
+                  percent:
+                    auditData.lnbits_balance_sats > 0
+                      ? (
+                          (auditData.node_balance_sats /
+                            auditData.lnbits_balance_sats) *
+                          100
+                        ).toFixed(2)
+                      : 100
+                })
+              "
             ></li>
           </ul>
           <br />
         </div>
         <div class="col">
-          {% if LNBITS_NODE_UI_AVAILABLE %}
-          <p><span v-text="$t('node_management')"></span></p>
-          <q-toggle
-            :label="$t('toggle_node_ui')"
-            v-model="formData.lnbits_node_ui"
-          ></q-toggle>
-          <q-toggle
-            v-if="formData.lnbits_node_ui"
-            :label="$t('toggle_public_node_ui')"
-            v-model="formData.lnbits_public_node_ui"
-          ></q-toggle>
-          <br />
-          <q-toggle
-            v-if="formData.lnbits_node_ui"
-            :label="$t('toggle_transactions_node_ui')"
-            v-model="formData.lnbits_node_ui_transactions"
-          ></q-toggle>
-          {% else %}
-          <p><span v-text="$t('node_management_not_supported')"></span></p>
-          {% endif %}
+          <div v-if="LNBITS_NODE_UI">
+            <p>
+              <span v-text="$t('node_management')"></span>
+            </p>
+            <q-toggle
+              :label="$t('toggle_node_ui')"
+              v-model="formData.lnbits_node_ui"
+            ></q-toggle>
+            <q-toggle
+              v-if="formData.lnbits_node_ui"
+              :label="$t('toggle_public_node_ui')"
+              v-model="formData.lnbits_public_node_ui"
+            ></q-toggle>
+            <br />
+            <q-toggle
+              v-if="formData.lnbits_node_ui"
+              :label="$t('toggle_transactions_node_ui')"
+              v-model="formData.lnbits_node_ui_transactions"
+            ></q-toggle>
+          </div>
+          <p v-if="!LNBITS_NODE_UI">
+            <span v-text="$t('node_management_not_supported')"></span>
+          </p>
         </div>
       </div>
       <div class="row q-col-gutter-md">
@@ -66,7 +88,9 @@
           </q-input>
         </div>
         <div class="col-12 col-md-3">
-          <p><span v-text="$t('fee_reserve_percent')"></span></p>
+          <p>
+            <span v-text="$t('fee_reserve_percent')"></span>
+          </p>
           <q-input
             type="number"
             filled
@@ -88,7 +112,9 @@
           </q-input>
         </div>
         <div class="col-12 col-md-3">
-          <p><span v-text="$t('payment_wait_time')"></span></p>
+          <p>
+            <span v-text="$t('payment_wait_time')"></span>
+          </p>
           <q-input
             type="number"
             filled
@@ -102,7 +128,7 @@
         </div>
       </div>
       <div v-if="isSuperUser">
-        <lnbits-funding-sources
+        <lnbits-admin-funding-sources
           :form-data="formData"
           :allowed-funding-sources="settings.lnbits_allowed_funding_sources"
         />
@@ -215,4 +241,4 @@
       </div>
     </div>
   </q-card-section>
-</q-tab-panel>
+</template>

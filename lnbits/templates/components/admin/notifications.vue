@@ -1,4 +1,4 @@
-<q-tab-panel name="notifications">
+<template id="lnbits-admin-notifications">
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('notifications_configure')"></span>
@@ -478,7 +478,9 @@
               type="number"
               min="0"
               filled
-              v-model="formData.lnbits_notification_incoming_payment_amount_sats"
+              v-model="
+                formData.lnbits_notification_incoming_payment_amount_sats
+              "
             />
           </q-item-section>
         </q-item>
@@ -501,11 +503,13 @@
               type="number"
               min="0"
               filled
-              v-model="formData.lnbits_notification_outgoing_payment_amount_sats"
+              v-model="
+                formData.lnbits_notification_outgoing_payment_amount_sats
+              "
             />
           </q-item-section>
         </q-item>
       </div>
     </div>
   </q-card-section>
-</q-tab-panel>
+</template>

@@ -1,4 +1,4 @@
-<q-tab-panel name="users">
+<template id="lnbits-admin-users">
   <q-card-section class="q-pa-none">
     <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('user_management')"></span>
@@ -80,4 +80,4 @@
       </div>
     </div>
   </q-card-section>
-</q-tab-panel>
+</template>

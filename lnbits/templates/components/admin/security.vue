@@ -1,6 +1,8 @@
-<q-tab-panel name="security">
+<template id="lnbits-admin-security">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none"><span v-text="$t('server_management')"></span></h6>
+    <h6 class="q-my-none">
+      <span v-text="$t('server_management')"></span>
+    </h6>
     <div class="row">
       <div class="col-12 col-md-6">
         <p><span v-text="$t('base_url')"></span></p>
@@ -34,7 +36,10 @@
           :hint="$t('auth_allowed_methods_hint')"
           :label="$t('auth_allowed_methods_label')"
           :options="formData.auth_all_methods"
-          :option-label="option => option.length > 25 ? option.substring(0, 22) + '...' : option"
+          :option-label="
+            option =>
+              option.length > 25 ? option.substring(0, 22) + '...' : option
+          "
         ></q-select>
       </div>
     </div>
@@ -206,7 +211,11 @@
           dense
           flat
           color="primary"
-          :label="(serverlogEnabled) ? $t('disable_server_log') : $t('enable_server_log')"
+          :label="
+            serverlogEnabled
+              ? $t('disable_server_log')
+              : $t('enable_server_log')
+          "
         ></q-btn>
       </div>
       <br />
@@ -291,7 +300,7 @@
             <div class="col-12 col-md-6">
               <q-select
                 filled
-                :options="[$t('second'),$t('minute'),$t('hour')]"
+                :options="[$t('second'), $t('minute'), $t('hour')]"
                 v-model="formData.lnbits_rate_limit_unit"
                 :label="$t('time_unit')"
               ></q-select>
@@ -337,4 +346,4 @@
       </div>
     </div>
   </q-card-section>
-</q-tab-panel>
+</template>

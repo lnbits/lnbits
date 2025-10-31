@@ -1,14 +1,13 @@
-<q-tab-panel name="fiat_providers">
+<template id="lnbits-admin-fiat-providers">
   <h6 class="q-my-none q-mb-sm">
     <span v-text="$t('fiat_providers')"></span>
     <q-btn
       round
       flat
-      @click="hideInputsToggle()"
+      @click="hideInputToggle = !hideInputToggle"
       :icon="hideInputToggle ? 'visibility_off' : 'visibility'"
     ></q-btn>
   </h6>
-
   <div class="row">
     <div class="col">
       <q-list bordered class="rounded-borders">
@@ -16,9 +15,7 @@
           <template v-slot:header>
             <q-item-section avatar>
               <q-avatar>
-                <img
-                  :src="'{{ static_url_for('static', 'images/stripe_logo.ico') }}'"
-                />
+                <img src="/static/images/stripe_logo.ico" />
               </q-avatar>
             </q-item-section>
 
@@ -103,7 +100,9 @@
               <q-card-section>
                 <span v-text="$t('webhook_events_list')"></span>
                 <ul>
-                  <li><code>checkout.session.completed</code></li>
+                  <li>
+                    <code>checkout.session.completed</code>
+                  </li>
                   - the user completed the checkout process
                   <li><code>invoice.paid</code></li>
                   - the invoice was successfully paid (for subscriptions)
@@ -120,7 +119,7 @@
                       type="number"
                       min="0"
                       v-model="formData.stripe_limits.service_fee_percent"
-                      @update:model-value="touchSettings()"
+                      @update:model-value="formData.touch = null"
                       :label="$t('service_fee_label')"
                       :hint="$t('service_fee_hint')"
                     ></q-input>
@@ -132,7 +131,7 @@
                       type="number"
                       min="0"
                       v-model="formData.stripe_limits.service_max_fee_sats"
-                      @update:model-value="touchSettings()"
+                      @update:model-value="formData.touch = null"
                       :label="$t('service_fee_max')"
                       :hint="$t('service_fee_max_hint')"
                     ></q-input>
@@ -143,7 +142,7 @@
                       class="q-ma-sm"
                       type="text"
                       v-model="formData.stripe_limits.service_fee_wallet_id"
-                      @update:model-value="touchSettings()"
+                      @update:model-value="formData.touch = null"
                       :label="$t('fee_wallet_label')"
                       :hint="$t('fee_wallet_hint')"
                     ></q-input>
@@ -161,7 +160,7 @@
                       type="number"
                       min="0"
                       v-model="formData.stripe_limits.service_min_amount_sats"
-                      @update:model-value="touchSettings()"
+                      @update:model-value="formData.touch = null"
                       :label="$t('min_incoming_payment_amount')"
                       :hint="$t('min_incoming_payment_amount_desc')"
                     ></q-input>
@@ -173,7 +172,7 @@
                       type="number"
                       min="0"
                       v-model="formData.stripe_limits.service_max_amount_sats"
-                      @update:model-value="touchSettings()"
+                      @update:model-value="formData.touch = null"
                       :label="$t('max_incoming_payment_amount')"
                       :hint="$t('max_incoming_payment_amount_desc')"
                     ></q-input>
@@ -183,7 +182,7 @@
                       filled
                       class="q-ma-sm"
                       v-model="formData.stripe_limits.service_faucet_wallet_id"
-                      @update:model-value="touchSettings()"
+                      @update:model-value="formData.touch = null"
                       :label="$t('faucest_wallet_id')"
                       :hint="$t('faucest_wallet_id_hint')"
                     ></q-input>
@@ -196,12 +195,20 @@
                       <ul>
                         <li>
                           <span
-                            v-text="$t('faucest_wallet_desc_1', {provider: 'stripe'})"
+                            v-text="
+                              $t('faucest_wallet_desc_1', {
+                                provider: 'stripe'
+                              })
+                            "
                           ></span>
                         </li>
                         <li>
                           <span
-                            v-text="$t('faucest_wallet_desc_2', {provider: 'stripe'})"
+                            v-text="
+                              $t('faucest_wallet_desc_2', {
+                                provider: 'stripe'
+                              })
+                            "
                           ></span>
                         </li>
                         <li>
@@ -209,7 +216,11 @@
                         </li>
                         <li>
                           <span
-                            v-text="$t('faucest_wallet_desc_4', {provider: 'stripe'})"
+                            v-text="
+                              $t('faucest_wallet_desc_4', {
+                                provider: 'stripe'
+                              })
+                            "
                           ></span>
                         </li>
                         <li>
@@ -227,10 +238,14 @@
                 <q-input
                   filled
                   v-model="formAddStripeUser"
-                  @keydown.enter="addAllowedUser"
+                  @keydown.enter="addStripeAllowedUser"
                   type="text"
                   :label="$t('allowed_users_label')"
-                  :hint="$t('allowed_users_hint_feature', {feature: 'Stripe'})"
+                  :hint="
+                    $t('allowed_users_hint_feature', {
+                      feature: 'Stripe'
+                    })
+                  "
                 >
                   <q-btn
                     @click="addStripeAllowedUser"
@@ -242,7 +257,7 @@
                 <div>
                   <q-chip
                     v-for="user in formData.stripe_limits.allowed_users"
-                    @update:model-value="touchSettings()"
+                    @update:model-value="formData.touch = null"
                     :key="user"
                     removable
                     @remove="removeStripeAllowedUser(user)"
@@ -264,9 +279,7 @@
           <template v-slot:header>
             <q-item-section avatar>
               <q-avatar>
-                <img
-                  :src="'{{ static_url_for('static', 'images/square_logo.png') }}'"
-                />
+                <img src="/static/images/square_logo.png" />
               </q-avatar>
             </q-item-section>
 
@@ -284,4 +297,4 @@
       </q-list>
     </div>
   </div>
-</q-tab-panel>
+</template>

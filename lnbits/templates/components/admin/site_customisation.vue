@@ -1,6 +1,8 @@
-<q-tab-panel name="site_customisation">
+<template id="lnbits-admin-site-customisation">
   <q-card-section class="q-pa-none">
-    <h6 class="q-my-none"><span v-text="$t('ui_management')"></span></h6>
+    <h6 class="q-my-none">
+      <span v-text="$t('ui_management')"></span>
+    </h6>
     <br />
     <div>
       <div class="row q-col-gutter-md">
@@ -10,7 +12,9 @@
             filled
             type="text"
             v-model="formData.lnbits_site_title"
-            :label="$t('ui_site_title') + $t('ui_changing_remove_lnbits_elements')"
+            :label="
+              $t('ui_site_title') + $t('ui_changing_remove_lnbits_elements')
+            "
           ></q-input>
           <br />
         </div>
@@ -28,13 +32,19 @@
           <q-toggle
             :tip="$t('ui_toggle_elements_tip')"
             v-model="formData.lnbits_show_home_page_elements"
-            :label="formData.lnbits_show_home_page_elements ? $t('ui_elements_enable') : $t('ui_elements_disable')"
+            :label="
+              formData.lnbits_show_home_page_elements
+                ? $t('ui_elements_enable')
+                : $t('ui_elements_disable')
+            "
           ></q-toggle>
         </div>
       </div>
 
       <div>
-        <p><span v-text="$t('ui_site_description')"></span></p>
+        <p>
+          <span v-text="$t('ui_site_description')"></span>
+        </p>
         <q-input
           v-model="formData.lnbits_site_description"
           filled
@@ -45,7 +55,9 @@
       <br />
       <div class="row q-col-gutter-md">
         <div class="col-12 col-md-4">
-          <p><span v-text="$t('ui_default_wallet_name')"></span></p>
+          <p>
+            <span v-text="$t('ui_default_wallet_name')"></span>
+          </p>
           <q-input
             filled
             type="text"
@@ -151,7 +163,11 @@
           </q-input>
           <q-toggle
             v-model="formData.lnbits_ad_space_enabled"
-            :label="formData.lnbits_ad_space_enabled ? $t('ads_enabled') : $t('ads_disabled')"
+            :label="
+              formData.lnbits_ad_space_enabled
+                ? $t('ads_enabled')
+                : $t('ads_disabled')
+            "
           />
           <br />
         </div>
@@ -207,4 +223,4 @@
       </div>
     </div>
   </q-card-section>
-</q-tab-panel>
+</template>

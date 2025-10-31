@@ -1,5 +1,5 @@
-window.app.component('lnbits-funding-sources', {
-  template: '#lnbits-funding-sources',
+window.app.component('lnbits-admin-funding-sources', {
+  template: '#lnbits-admin-funding-sources',
   mixins: [window.windowMixin],
   props: ['form-data', 'allowed-funding-sources'],
   methods: {

@@ -1,4 +1,4 @@
-<q-tab-panel name="exchange_providers">
+<template id="lnbits-admin-exchange-providers">
   <h6 class="q-my-none q-mb-sm">
     <span v-text="$t('exchange_providers')"></span>
   </h6>
@@ -109,7 +109,7 @@
               dense
               filled
               v-model="props.row.name"
-              @update:model-value="touchSettings()"
+              @update:model-value="formData.touch = null"
               type="text"
             >
             </q-input>
@@ -119,7 +119,7 @@
               dense
               filled
               v-model="props.row.api_url"
-              @update:model-value="touchSettings()"
+              @update:model-value="formData.touch = null"
               type="text"
             >
             </q-input
@@ -129,7 +129,7 @@
               dense
               filled
               v-model="props.row.path"
-              @update:model-value="touchSettings()"
+              @update:model-value="formData.touch = null"
               type="text"
             >
             </q-input>
@@ -139,9 +139,9 @@
               filled
               dense
               v-model="props.row.exclude_to"
-              @update:model-value="touchSettings()"
+              @update:model-value="formData.touch = null"
               multiple
-              :options="{{ currencies | safe }}"
+              :options="currencies"
             ></q-select>
           </q-td>
           <q-td>
@@ -155,7 +155,7 @@
             >
             </q-btn>
             <q-chip
-              v-for="ticker, index in props.row.ticker_conversion"
+              v-for="(ticker, index) in props.row.ticker_conversion"
               :key="ticker"
               removable
               dense
@@ -198,4 +198,47 @@
     </div>
     <div class="col-md-8 col-sm-12"></div>
   </div>
-</q-tab-panel>
+
+  <q-dialog v-model="exchangeData.showTickerConversion" position="top">
+    <q-card class="q-pa-md q-pt-md lnbits__dialog-card">
+      <div class="q-mb-md">
+        <strong v-text="$t('create_ticker_converter')"></strong>
+      </div>
+      <div class="row">
+        <div class="col-12 q-mb-md">
+          <q-select
+            filled
+            dense
+            v-model="exchangeData.convertFromTicker"
+            label="From Currency"
+            :options="currencies"
+          ></q-select>
+        </div>
+        <div class="col-12">
+          <q-input
+            v-model="exchangeData.convertToTicker"
+            dense
+            filled
+            label="New Ticker"
+            hint="This ticker will be used for the exchange API calls."
+          >
+          </q-input>
+        </div>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn
+          @click="addExchangeTickerConversion()"
+          label="Add Ticker Conversion"
+          color="primary"
+        ></q-btn>
+        <q-btn
+          v-close-popup
+          flat
+          color="grey"
+          class="q-ml-auto"
+          v-text="$t('close')"
+        ></q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+</template>
