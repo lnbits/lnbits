@@ -1,4 +1,5 @@
-window.WalletsPageLogic = {
+window.PageWallets = {
+  template: '#page-wallets',
   mixins: [window.windowMixin],
   data() {
     return {

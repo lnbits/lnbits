@@ -185,15 +185,6 @@ const routes = [
     }
   },
   {
-    path: '/wallets',
-    name: 'Wallets',
-    component: DynamicComponent,
-    props: {
-      fetchUrl: '/wallets',
-      scripts: ['/static/js/wallets.js']
-    }
-  },
-  {
     path: '/node',
     name: 'Node',
     component: PageNode
@@ -212,6 +203,11 @@ const routes = [
     path: '/audit',
     name: 'Audit',
     component: PageAudit
+  },
+  {
+    path: '/wallets',
+    name: 'Wallets',
+    component: PageWallets
   }
 ]
 

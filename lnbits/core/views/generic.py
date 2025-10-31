@@ -119,25 +119,6 @@ async def get_user_wallet(
     )
 
 
-@generic_router.get(
-    "/wallets",
-    response_class=HTMLResponse,
-    description="show wallets page",
-)
-async def wallets(
-    request: Request,
-    user: User = Depends(check_user_exists),
-):
-    return template_renderer().TemplateResponse(
-        request,
-        "core/wallets.html",
-        {
-            "user": user.json(),
-            "ajax": _is_ajax_request(request),
-        },
-    )
-
-
 @generic_router.get("/first_install", response_class=HTMLResponse)
 async def first_install(request: Request):
     if not settings.first_install:
@@ -463,6 +444,7 @@ async def users_index(request: Request, user: User = Depends(check_admin)):
 
 
 @generic_router.get("/payments", response_class=HTMLResponse)
+@generic_router.get("/wallets", response_class=HTMLResponse)
 async def empty_index(request: Request, user: User = Depends(check_user_exists)):
     return template_renderer().TemplateResponse(
         request,
