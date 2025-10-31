@@ -427,22 +427,6 @@ async def admin_index(request: Request, user: User = Depends(check_admin)):
     )
 
 
-@generic_router.get("/users", response_class=HTMLResponse)
-async def users_index(request: Request, user: User = Depends(check_admin)):
-    if not settings.lnbits_admin_ui:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-
-    return template_renderer().TemplateResponse(
-        "users/index.html",
-        {
-            "request": request,
-            "user": user.json(),
-            "currencies": list(currencies.keys()),
-            "ajax": _is_ajax_request(request),
-        },
-    )
-
-
 @generic_router.get("/payments", response_class=HTMLResponse)
 @generic_router.get("/wallets", response_class=HTMLResponse)
 async def empty_index(request: Request, user: User = Depends(check_user_exists)):
@@ -455,6 +439,7 @@ async def empty_index(request: Request, user: User = Depends(check_user_exists))
     )
 
 
+@generic_router.get("/users", response_class=HTMLResponse)
 @generic_router.get("/audit", response_class=HTMLResponse)
 @generic_router.get("/node", response_class=HTMLResponse)
 async def empty_admin_index(request: Request, admin: User = Depends(check_admin)):

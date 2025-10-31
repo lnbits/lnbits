@@ -1,4 +1,5 @@
-window.UsersPageLogic = {
+window.PageUsers = {
+  template: '#page-users',
   mixins: [window.windowMixin],
   data() {
     return {
