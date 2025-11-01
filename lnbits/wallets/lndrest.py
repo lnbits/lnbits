@@ -282,18 +282,23 @@ class LndRestWallet(Wallet):
                         return PaymentPendingStatus()
                     payment = line.get("result")
                     if payment is not None and payment.get("status"):
-                        return PaymentStatus(
-                            paid=statuses[payment["status"]],
-                            # API returns fee_msat as string, explicitly convert to int
-                            fee_msat=(
-                                int(payment["fee_msat"])
-                                if payment.get("fee_msat")
-                                else None
-                            ),
-                            preimage=payment.get("payment_preimage"),
-                        )
-                    else:
-                        return PaymentPendingStatus()
+                        status = payment["status"]
+
+                        # Only return on terminal states (SUCCEEDED or FAILED)
+                        # Continue streaming for IN_FLIGHT or UNKNOWN states
+                        if status == "SUCCEEDED":
+                            return PaymentSuccessStatus(
+                                # API returns fee_msat as string, explicitly convert to int
+                                fee_msat=(
+                                    int(payment["fee_msat"])
+                                    if payment.get("fee_msat")
+                                    else 0
+                                ),
+                                preimage=payment.get("payment_preimage"),
+                            )
+                        elif status == "FAILED":
+                            return PaymentFailedStatus()
+                        # else: IN_FLIGHT or UNKNOWN - continue streaming
                 except Exception as exc:
                     logger.debug(exc)
                     continue
