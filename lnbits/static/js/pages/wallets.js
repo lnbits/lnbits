@@ -78,9 +78,6 @@ window.PageWallets = {
       this.showAddNewWalletDialog() // from base.js
     },
 
-    goToWallet(walletId) {
-      window.location = `/wallet?wal=${walletId}`
-    },
     formattedFiatAmount(amount, currency) {
       return LNbits.utils.formatCurrency(Number(amount).toFixed(2), currency)
     },

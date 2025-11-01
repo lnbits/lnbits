@@ -76,18 +76,20 @@ window.windowMixin = {
       })
     },
     selectWallet(wallet) {
-      Object.assign(this.g.wallet, wallet)
-      // this.wallet = this.g.wallet
-      this.g.updatePayments = !this.g.updatePayments
+      this.g.wallet = wallet
+
+      // todo is this balance even used?
       this.balance = parseInt(wallet.balance_msat / 1000)
+
+      // todo is this name even used? i
       const currentPath = this.$route.path
-      if (currentPath !== '/wallet') {
-        this.$router.push({
+      if (currentPath === '/wallet') {
+        this.$router.replace({
           path: '/wallet',
           query: {wal: this.g.wallet.id}
         })
       } else {
-        this.$router.replace({
+        this.$router.push({
           path: '/wallet',
           query: {wal: this.g.wallet.id}
         })

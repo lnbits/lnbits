@@ -60,7 +60,7 @@
               <q-card
                 class="q-ma-sm cursor-pointer wallet-list-card"
                 style="text-decoration: none"
-                @click="goToWallet(props.row.id)"
+                @click="selectWallet(props.row.id)"
               >
                 <q-card-section>
                   <div class="row items-center">

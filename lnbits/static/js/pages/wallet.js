@@ -1,11 +1,11 @@
-window.WalletPageLogic = {
+window.PageWallet = {
+  template: '#page-wallet',
   mixins: [window.windowMixin],
   data() {
     return {
       origin: window.location.origin,
       baseUrl: `${window.location.protocol}//${window.location.host}/`,
       websocketUrl: `${'http:' ? 'ws://' : 'wss://'}${window.location.host}/api/v1/ws`,
-      stored_paylinks: [],
       parse: {
         show: false,
         invoice: null,
@@ -118,26 +118,16 @@ window.WalletPageLogic = {
       isFiatPriority: false,
       formattedFiatAmount: 0,
       formattedExchange: null,
-      chartData: [],
-      chartDataPointCount: 0,
-      chartConfig: {
-        showBalance: true,
-        showBalanceInOut: true,
-        showPaymentCountInOut: true
-      },
-      paymentsFilter: {},
-      permissionOptions: [
-        {label: 'View', value: 'view-payments'},
-        {label: 'Receive', value: 'receive-payments'},
-        {label: 'Send', value: 'send-payments'}
-      ],
-      walletShareInvite: {
-        unsername: '',
-        permissions: []
-      }
+      paymentsFilter: {}
     }
   },
   computed: {
+    adsEnabled() {
+      return this.AD_SPACE_ENABLED && this.AD_SPACE.length > 0
+    },
+    ads() {
+      return this.AD_SPACE.split(';')
+    },
     formattedBalance() {
       if (LNBITS_DENOMINATION != 'sats') {
         return LNbits.utils.formatCurrency(
@@ -173,31 +163,6 @@ window.WalletPageLogic = {
     },
     formattedSatAmount() {
       return LNbits.utils.formatMsat(this.receive.amountMsat) + ' sat'
-    },
-    wallet() {
-      return this.g.wallet
-    },
-    walletApprovedShares() {
-      return this.g.wallet.extra.shared_with.filter(
-        s => s.status === 'approved'
-      )
-    },
-    walletPendingRequests() {
-      return this.g.wallet.extra.shared_with.filter(
-        s => s.status === 'request_access'
-      )
-    },
-    walletPendingInvites() {
-      return this.g.wallet.extra.shared_with.filter(
-        s => s.status === 'invite_sent'
-      )
-    },
-    hasChartActive() {
-      return (
-        this.chartConfig.showBalance ||
-        this.chartConfig.showBalanceInOut ||
-        this.chartConfig.showPaymentCountInOut
-      )
     }
   },
   methods: {
@@ -206,7 +171,7 @@ window.WalletPageLogic = {
       return moment.utc(date).local().fromNow()
     },
     formatFiatAmount(amount, currency) {
-      this.update.currency = currency
+      // this.update.currency = currency
       this.formattedFiatAmount = LNbits.utils.formatCurrency(
         amount.toFixed(2),
         currency
@@ -219,29 +184,25 @@ window.WalletPageLogic = {
     msatoshiFormat(value) {
       return LNbits.utils.formatSat(value / 1000)
     },
-    closeCamera() {
-      this.parse.camera.show = false
-    },
-    showCamera() {
-      this.parse.camera.show = true
-    },
     focusInput(el) {
       this.$nextTick(() => this.$refs[el].focus())
     },
     showReceiveDialog() {
-      this.receive.show = true
-      this.receive.status = 'pending'
-      this.receive.paymentReq = null
-      this.receive.paymentHash = null
-      this.receive.data.amount = null
-      this.receive.data.memo = null
-      this.receive.data.internalMemo = null
-      this.receive.data.payment_hash = null
-      this.receive.unit = this.isFiatPriority
-        ? this.g.wallet.currency || 'sat'
-        : 'sat'
-      this.receive.minMax = [0, 2100000000000000]
-      this.receive.lnurl = null
+      console.log('emit show-receive-dialog')
+      this.emit('show-receive-dialog')
+      // this.receive.show = true
+      // this.receive.status = 'pending'
+      // this.receive.paymentReq = null
+      // this.receive.paymentHash = null
+      // this.receive.data.amount = null
+      // this.receive.data.memo = null
+      // this.receive.data.internalMemo = null
+      // this.receive.data.payment_hash = null
+      // this.receive.unit = this.isFiatPriority
+      //   ? this.g.wallet.currency || 'sat'
+      //   : 'sat'
+      // this.receive.minMax = [0, 2100000000000000]
+      // this.receive.lnurl = null
       this.focusInput('setAmount')
     },
     onReceiveDialogHide() {
@@ -260,7 +221,6 @@ window.WalletPageLogic = {
       this.parse.data.comment = ''
       this.parse.data.internalMemo = null
       this.parse.data.paymentChecker = null
-      this.parse.camera.show = false
       this.focusInput('textArea')
     },
     closeParseDialog() {
@@ -280,96 +240,6 @@ window.WalletPageLogic = {
     setIcon() {
       this.updateWallet(this.icon.data)
       this.icon.show = false
-    },
-    createInvoice() {
-      this.receive.status = 'loading'
-      if (LNBITS_DENOMINATION != 'sats') {
-        this.receive.data.amount = this.receive.data.amount * 100
-      }
-
-      LNbits.api
-        .createInvoice(
-          this.g.wallet,
-          this.receive.data.amount,
-          this.receive.data.memo,
-          this.receive.unit,
-          this.receive.lnurlWithdraw,
-          this.receive.fiatProvider,
-          this.receive.data.internalMemo,
-          this.receive.data.payment_hash
-        )
-        .then(response => {
-          this.g.updatePayments = !this.g.updatePayments
-          this.receive.status = 'success'
-          this.receive.paymentReq = response.data.bolt11
-          this.receive.fiatPaymentReq =
-            response.data.extra?.fiat_payment_request
-          this.receive.amountMsat = response.data.amount
-          this.receive.paymentHash = response.data.payment_hash
-          if (!this.receive.lnurl) {
-            this.readNfcTag()
-          }
-          // WITHDRAW
-          if (
-            this.receive.lnurl &&
-            response.data.extra?.lnurl_response !== null
-          ) {
-            if (response.data.extra.lnurl_response === false) {
-              response.data.extra.lnurl_response = `Unable to connect`
-            }
-            const domain = this.receive.lnurl.callback.split('/')[2]
-            if (typeof response.data.extra.lnurl_response === 'string') {
-              // failure
-              Quasar.Notify.create({
-                timeout: 5000,
-                type: 'warning',
-                message: `${domain} lnurl-withdraw call failed.`,
-                caption: response.data.extra.lnurl_response
-              })
-              return
-            } else if (response.data.extra.lnurl_response === true) {
-              // success
-              Quasar.Notify.create({
-                timeout: 3000,
-                message: `Invoice sent to ${domain}!`,
-                spinner: true
-              })
-            }
-          }
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-          this.receive.status = 'pending'
-        })
-    },
-    async onInitQR(promise) {
-      try {
-        await promise
-      } catch (error) {
-        const mapping = {
-          NotAllowedError: 'ERROR: you need to grant camera access permission',
-          NotFoundError: 'ERROR: no camera on this device',
-          NotSupportedError:
-            'ERROR: secure context required (HTTPS, localhost)',
-          NotReadableError: 'ERROR: is the camera already in use?',
-          OverconstrainedError: 'ERROR: installed cameras are not suitable',
-          StreamApiNotSupportedError:
-            'ERROR: Stream API is not supported in this browser',
-          InsecureContextError:
-            'ERROR: Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.'
-        }
-        const valid_error = Object.keys(mapping).filter(key => {
-          return error.name === key
-        })
-        const camera_error = valid_error
-          ? mapping[valid_error]
-          : `ERROR: Camera error (${error.name})`
-        this.parse.camera.show = false
-        Quasar.Notify.create({
-          message: camera_error,
-          type: 'negative'
-        })
-      }
     },
     lnurlScan() {
       LNbits.api
@@ -421,7 +291,7 @@ window.WalletPageLogic = {
     decodeQR(res) {
       this.parse.data.request = res[0].rawValue
       this.decodeRequest()
-      this.parse.camera.show = false
+      // this.parse.camera.show = false
     },
     isLnurl(req) {
       return (
@@ -537,7 +407,7 @@ window.WalletPageLogic = {
         )
         .then(response => {
           dismissPaymentMsg()
-          this.updatePayments = !this.updatePayments
+          this.g.updatePayments = !this.g.updatePayments
           this.parse.show = false
           if (response.data.status == 'success') {
             Quasar.Notify.create({
@@ -699,69 +569,6 @@ window.WalletPageLogic = {
           LNbits.utils.notifyApiError(err)
         })
     },
-    async updateSharePermissions(permission) {
-      try {
-        const {data} = await LNbits.api.request(
-          'PUT',
-          '/api/v1/wallet/share',
-          this.g.wallet.adminkey,
-          permission
-        )
-        Object.assign(permission, data)
-        Quasar.Notify.create({
-          message: 'Wallet permission updated.',
-          type: 'positive'
-        })
-      } catch (err) {
-        LNbits.utils.notifyApiError(err)
-      }
-    },
-    async inviteUserToWallet() {
-      try {
-        const {data} = await LNbits.api.request(
-          'PUT',
-          '/api/v1/wallet/share/invite',
-          this.g.wallet.adminkey,
-          {
-            ...this.walletShareInvite,
-            status: 'invite_sent',
-            wallet_id: this.g.wallet.id
-          }
-        )
-
-        this.g.wallet.extra.shared_with.push(data)
-        this.walletShareInvite = {username: '', permissions: []}
-        Quasar.Notify.create({
-          message: 'User invited to wallet.',
-          type: 'positive'
-        })
-      } catch (err) {
-        LNbits.utils.notifyApiError(err)
-      }
-    },
-    deleteSharePermission(permission) {
-      LNbits.utils
-        .confirmDialog('Are you sure you want to remove this share permission?')
-        .onOk(async () => {
-          try {
-            await LNbits.api.request(
-              'DELETE',
-              `/api/v1/wallet/share/${permission.request_id}`,
-              this.g.wallet.adminkey
-            )
-            this.g.wallet.extra.shared_with =
-              this.g.wallet.extra.shared_with.filter(
-                value => value.wallet_id !== permission.wallet_id
-              )
-            Quasar.Notify.create({
-              message: 'Wallet permission deleted.',
-              type: 'positive'
-            })
-          } catch (err) {
-            LNbits.utils.notifyApiError(err)
-          }
-        })
-    },
     deleteWallet() {
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this wallet?')
@@ -916,38 +723,6 @@ window.WalletPageLogic = {
         : 'sat'
       this.$q.localStorage.setItem('lnbits.isFiatPriority', this.isFiatPriority)
     },
-    handleFiatTracking() {
-      this.g.fiatTracking = !this.g.fiatTracking
-      if (!this.g.fiatTracking) {
-        this.$q.localStorage.setItem('lnbits.isFiatPriority', false)
-        this.isFiatPriority = false
-        this.update.currency = ''
-        this.g.wallet.currency = ''
-        this.updateWallet({currency: ''})
-      } else {
-        this.g.wallet.currency = this.update.currency
-        this.updateWallet({currency: this.update.currency})
-        this.updateFiatBalance(this.update.currency)
-      }
-    },
-    createdTasks() {
-      this.update.name = this.g.wallet.name
-      this.receive.units = ['sat', ...(window.currencies || [])]
-      if (this.g.wallet.currency != '' && LNBITS_DENOMINATION == 'sats') {
-        this.g.fiatTracking = true
-        this.updateFiatBalance(this.g.wallet.currency)
-      } else {
-        this.update.currency = ''
-        this.g.fiatTracking = false
-      }
-    },
-    walletFormatBalance(amount) {
-      if (LNBITS_DENOMINATION != 'sats') {
-        return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)
-      } else {
-        return LNbits.utils.formatSat(amount) + ' sats'
-      }
-    },
     handleFilterChange(value = {}) {
       if (
         this.paymentsFilter['time[ge]'] !== value['time[ge]'] ||
@@ -955,7 +730,9 @@ window.WalletPageLogic = {
         this.paymentsFilter['amount[ge]'] !== value['amount[ge]'] ||
         this.paymentsFilter['amount[le]'] !== value['amount[le]']
       ) {
-        this.refreshCharts()
+        // TODO: refresh charts
+        // pass prop paymentsFilter to chart components to refresh
+        // this.refreshCharts()
       }
       this.paymentsFilter = value
     },
@@ -1217,24 +994,18 @@ window.WalletPageLogic = {
       this.parse.show = true
       this.lnurlScan()
     },
-    editPaylink() {
-      this.$nextTick(() => {
-        this.updatePaylinks()
-      })
-    },
-    deletePaylink(lnurl) {
-      const links = []
-      this.stored_paylinks.forEach(link => {
-        if (link.lnurl !== lnurl) {
-          links.push(link)
-        }
-      })
-      this.stored_paylinks = links
-      this.updatePaylinks()
+    changeWallet() {
+      if (this.g.wallet.currency != '' && LNBITS_DENOMINATION == 'sats') {
+        this.g.fiatTracking = true
+        this.updateFiatBalance(this.g.wallet.currency)
+      } else {
+        // this.update.currency = ''
+        this.g.fiatTracking = false
+      }
     }
   },
   created() {
-    this.stored_paylinks = wallet.stored_paylinks.links
+    console.log('Wallet component created')
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
       this.parse.data.request =
@@ -1242,20 +1013,22 @@ window.WalletPageLogic = {
       this.decodeRequest()
       this.parse.show = true
     }
-    this.createdTasks()
-    try {
-      this.fetchChartData()
-    } catch (error) {
-      console.warn(`Chart creation failed: ${error}`)
+    if (urlParams.has('wal')) {
+      const walletId = urlParams.get('wal')
+      const wallet = user.wallets.find(w => w.id === walletId)
+      this.g.wallet = wallet
+    } else {
+      this.g.wallet = this.g.user.wallets[0]
     }
+    this.changeWallet()
   },
   watch: {
-    'g.updatePayments'(newVal, oldVal) {
-      this.parse.show = false
-      if (this.receive.paymentHash === this.g.updatePaymentsHash) {
-        this.receive.show = false
-        this.receive.paymentHash = null
-      }
+    'g.updatePayments'() {
+      // this.parse.show = false
+      // if (this.receive.paymentHash === this.g.updatePaymentsHash) {
+      //   this.receive.show = false
+      //   this.receive.paymentHash = null
+      // }
       if (
         this.g.wallet.currency &&
         this.$q.localStorage.getItem(
@@ -1272,21 +1045,11 @@ window.WalletPageLogic = {
     },
     'g.wallet': {
       handler() {
-        try {
-          this.createdTasks()
-        } catch (error) {
-          console.warn(`Chart creation failed: ${error}`)
-        }
-      },
-      deep: true
+        this.changeWallet()
+      }
     }
   },
   async mounted() {
-    if (!Quasar.LocalStorage.getItem('lnbits.disclaimerShown')) {
-      this.disclaimerDialog.show = true
-      Quasar.LocalStorage.setItem('lnbits.disclaimerShown', true)
-      Quasar.LocalStorage.setItem('lnbits.reactions', 'confettiTop')
-    }
     if (Quasar.LocalStorage.getItem('lnbits.isFiatPriority')) {
       this.isFiatPriority = Quasar.LocalStorage.getItem('lnbits.isFiatPriority')
     } else {
@@ -1294,10 +1057,4 @@ window.WalletPageLogic = {
       Quasar.LocalStorage.setItem('lnbits.isFiatPriority', false)
     }
   }
-}
-
-if (navigator.serviceWorker != null) {
-  navigator.serviceWorker.register('/service-worker.js').then(registration => {
-    console.log('Registered events at scope: ', registration.scope)
-  })
 }
