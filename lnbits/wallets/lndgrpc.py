@@ -191,7 +191,6 @@ class LndWallet(Wallet):
             payment_request=bolt11,
             fee_limit_msat=fee_limit_msat,
             timeout_seconds=30,
-            no_inflight_updates=True,
         )
         try:
             res: Payment = await self.router_rpc.SendPaymentV2(req).read()
