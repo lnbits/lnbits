@@ -1,4 +1,5 @@
-window.WalletPageLogic = {
+window.PageWallet = {
+  template: '#page-wallet',
   mixins: [window.windowMixin],
   data() {
     return {
@@ -538,7 +539,7 @@ window.WalletPageLogic = {
         )
         .then(response => {
           dismissPaymentMsg()
-          this.updatePayments = !this.updatePayments
+          this.g.updatePayments = !this.g.updatePayments
           this.parse.show = false
           if (response.data.status == 'success') {
             Quasar.Notify.create({
@@ -931,18 +932,8 @@ window.WalletPageLogic = {
         this.updateFiatBalance(this.update.currency)
       }
     },
-    createdTasks() {
-      this.update.name = this.g.wallet.name
-      this.receive.units = ['sat', ...(window.currencies || [])]
-      if (this.g.wallet.currency != '' && LNBITS_DENOMINATION == 'sats') {
-        this.g.fiatTracking = true
-        this.updateFiatBalance(this.g.wallet.currency)
-      } else {
-        this.update.currency = ''
-        this.g.fiatTracking = false
-      }
-    },
-    walletFormatBalance(amount) {
+    walletFormatBalance() {
+      const amount = this.g.wallet.sat
       if (LNBITS_DENOMINATION != 'sats') {
         return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)
       } else {
@@ -1232,10 +1223,22 @@ window.WalletPageLogic = {
       })
       this.stored_paylinks = links
       this.updatePaylinks()
+    },
+    changeWallet() {
+      this.stored_paylinks = this.g.wallet.stored_paylinks.links
+      this.update.name = this.g.wallet.name
+      if (this.g.wallet.currency != '' && LNBITS_DENOMINATION == 'sats') {
+        this.g.fiatTracking = true
+        this.updateFiatBalance(this.g.wallet.currency)
+      } else {
+        this.update.currency = ''
+        this.g.fiatTracking = false
+      }
     }
   },
   created() {
-    this.stored_paylinks = wallet.stored_paylinks.links
+    console.log('Wallet component created')
+    this.receive.units = ['sat', ...(window.currencies || [])]
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.has('lightning') || urlParams.has('lnurl')) {
       this.parse.data.request =
@@ -1243,15 +1246,18 @@ window.WalletPageLogic = {
       this.decodeRequest()
       this.parse.show = true
     }
-    this.createdTasks()
-    try {
-      this.fetchChartData()
-    } catch (error) {
-      console.warn(`Chart creation failed: ${error}`)
+    if (urlParams.has('wal')) {
+      const walletId = urlParams.get('wal')
+      const wallet = user.wallets.find(w => w.id === walletId)
+      this.g.wallet = wallet
+    } else {
+      this.g.wallet = this.g.user.wallets[0]
     }
+    this.changeWallet()
+    this.fetchChartData()
   },
   watch: {
-    'g.updatePayments'(newVal, oldVal) {
+    'g.updatePayments'() {
       this.parse.show = false
       if (this.receive.paymentHash === this.g.updatePaymentsHash) {
         this.receive.show = false
@@ -1278,16 +1284,12 @@ window.WalletPageLogic = {
     },
     'g.wallet': {
       handler() {
-        try {
-          this.createdTasks()
-        } catch (error) {
-          console.warn(`Chart creation failed: ${error}`)
-        }
-      },
-      deep: true
+        this.changeWallet()
+      }
     }
   },
   async mounted() {
+    console.log('Wallet component mounted')
     if (!Quasar.LocalStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       Quasar.LocalStorage.setItem('lnbits.disclaimerShown', true)
@@ -1300,10 +1302,4 @@ window.WalletPageLogic = {
       Quasar.LocalStorage.setItem('lnbits.isFiatPriority', false)
     }
   }
-}
-
-if (navigator.serviceWorker != null) {
-  navigator.serviceWorker.register('/service-worker.js').then(registration => {
-    console.log('Registered events at scope: ', registration.scope)
-  })
 }

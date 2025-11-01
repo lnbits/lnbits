@@ -377,10 +377,9 @@ window.app.component('payment-list', {
       this.fetchPayments()
     },
     'g.wallet': {
-      handler(newWallet) {
+      handler() {
         this.fetchPayments()
-      },
-      deep: true
+      }
     }
   },
   created() {

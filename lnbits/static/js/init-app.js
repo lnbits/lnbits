@@ -121,22 +121,21 @@ const DynamicComponent = {
 
 const routes = [
   {
-    path: '/wallet',
-    name: 'Wallet',
+    path: '/extensions',
+    name: 'Extensions',
     component: DynamicComponent,
-    props: route => {
-      let fetchUrl = '/wallet'
-      if (Object.keys(route.query).length > 0) {
-        fetchUrl += '?'
-        for (const [key, value] of Object.entries(route.query)) {
-          fetchUrl += `${key}=${value}&`
-        }
-        fetchUrl = fetchUrl.slice(0, -1) // remove last &
-      }
-      return {
-        fetchUrl,
-        scripts: ['/static/js/wallet.js']
-      }
+    props: {
+      fetchUrl: '/extensions',
+      scripts: ['/static/js/extensions.js']
+    }
+  },
+  {
+    path: '/extensions/builder',
+    name: 'ExtensionsBuilder',
+    component: DynamicComponent,
+    props: {
+      fetchUrl: '/extensions/builder',
+      scripts: ['/static/js/extensions_builder.js']
     }
   },
   {
@@ -198,6 +197,11 @@ const routes = [
     path: '/',
     name: 'PageHome',
     component: PageHome
+  },
+  {
+    path: '/wallet',
+    name: 'Wallet',
+    component: PageWallet
   }
 ]
 
@@ -230,3 +234,9 @@ window.app.provide('g', g)
 window.app.use(window.router)
 window.app.component('DynamicComponent', DynamicComponent)
 window.app.mount('#vue')
+
+if (navigator.serviceWorker != null) {
+  navigator.serviceWorker.register('/service-worker.js').then(registration => {
+    console.log('Registered events at scope: ', registration.scope)
+  })
+}

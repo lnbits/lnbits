@@ -1,0 +1,1454 @@
+<template id="page-wallet">
+  <div class="row q-col-gutter-md" style="margin-bottom: 6rem">
+    {% if HIDE_API and AD_SPACE_ENABLED and AD_SPACE %}
+    <div class="col-12 col-md-8 q-gutter-y-md">
+      {% elif HIDE_API %}
+      <div class="col-12 q-gutter-y-md">
+        {% else %}
+        <div
+          class="col-12 col-md-7 q-gutter-y-md"
+          :style="
+            $q.screen.lt.md
+              ? {
+                  position: mobileSimple ? 'fixed !important' : '',
+                  top: mobileSimple ? '50% !important' : '',
+                  left: mobileSimple ? '50% !important' : '',
+                  transform: mobileSimple
+                    ? 'translate(-50%, -50%) !important'
+                    : ''
+                }
+              : ''
+          "
+        >
+          {% endif %}
+          <q-card
+            :style="
+              $q.screen.lt.md
+                ? {
+                    background: $q.screen.lt.md ? 'none !important' : '',
+                    boxShadow: $q.screen.lt.md ? 'none !important' : '',
+                    border: $q.screen.lt.md ? 'none !important' : '',
+                    width:
+                      $q.screen.lt.md && mobileSimple ? '90% !important' : ''
+                  }
+                : ''
+            "
+          >
+            <q-card-section style="height: 130px">
+              <div class="row q-gutter-md">
+                <div
+                  v-if="isSatsDenomination"
+                  class="col-1"
+                  style="max-width: 30px"
+                >
+                  <q-btn
+                    v-if="g.fiatTracking"
+                    @click="swapBalancePriority"
+                    style="height: 50px"
+                    class="q-mt-lg"
+                    color="primary"
+                    flat
+                    dense
+                    icon="swap_vert"
+                  ></q-btn>
+                </div>
+                <div class="col">
+                  <div
+                    class="column"
+                    :class="{
+                      'q-pt-sm': g.fiatTracking,
+                      'q-pt-lg': !g.fiatTracking
+                    }"
+                    v-if="!isFiatPriority || !g.fiatTracking"
+                    style="height: 100px"
+                  >
+                    <div class="col-7">
+                      <div class="row">
+                        <div class="col-auto">
+                          <div class="text-h3 q-my-none full-width">
+                            <strong
+                              v-text="walletFormatBalance(this.g.wallet.sat)"
+                              class="text-no-wrap"
+                              :style="{
+                                fontSize: 'clamp(0.75rem, 10vw, 3rem)',
+                                display: 'inline-block',
+                                maxWidth: '100%'
+                              }"
+                            ></strong>
+                          </div>
+                        </div>
+                        <div class="col-auto">
+                          <lnbits-update-balance
+                            v-if="$q.screen.lt.lg"
+                            :wallet_id="this.g.wallet.id"
+                            :callback="updateBalanceCallback"
+                            :small_btn="true"
+                          ></lnbits-update-balance>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-2">
+                      <div v-if="g.fiatTracking">
+                        <span
+                          class="text-h5 text-italic"
+                          v-text="formattedFiatAmount"
+                          style="opacity: 0.75"
+                        ></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    class="column"
+                    v-if="isFiatPriority && g.fiatTracking"
+                    :class="{
+                      'q-pt-sm': g.fiatTracking,
+                      'q-pt-lg': !g.fiatTracking
+                    }"
+                    style="height: 100px"
+                  >
+                    <div class="col-7">
+                      <div class="row">
+                        <div class="col-auto">
+                          <div
+                            v-if="g.fiatTracking"
+                            class="text-h3 q-my-none text-no-wrap"
+                          >
+                            <strong v-text="formattedFiatAmount"></strong>
+                          </div>
+                        </div>
+                        <div class="col-auto">
+                          <lnbits-update-balance
+                            v-if="$q.screen.lt.lg"
+                            :wallet_id="this.g.wallet.id"
+                            :callback="updateBalanceCallback"
+                            :small_btn="true"
+                          ></lnbits-update-balance>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-2">
+                      <span
+                        class="text-h5 text-italic"
+                        style="opacity: 0.75"
+                        v-text="formattedBalance + ' {{LNBITS_DENOMINATION}}'"
+                      >
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    class="absolute-right q-pa-md"
+                    v-if="
+                      $q.screen.gt.md &&
+                      g.fiatTracking &&
+                      '{{ LNBITS_DENOMINATION }}' == 'sats'
+                    "
+                  >
+                    <div class="text-bold text-italic">BTC Price</div>
+                    <span
+                      class="text-bold text-italic"
+                      v-text="formattedExchange"
+                    ></span>
+                  </div>
+                  <q-btn
+                    v-if="$q.screen.lt.md"
+                    @click="simpleMobile()"
+                    color="primary"
+                    class="q-ml-xl absolute-right"
+                    dense
+                    size="sm"
+                    style="height: 20px; margin-top: 75px"
+                    flat
+                    :icon="mobileSimple ? 'unfold_more' : 'unfold_less'"
+                    :label="mobileSimple ? $t('more') : $t('less')"
+                  ></q-btn>
+                </div>
+              </div>
+            </q-card-section>
+            <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
+              <div class="col">
+                <q-btn
+                  unelevated
+                  color="primary"
+                  class="q-mr-md"
+                  @click="showParseDialog"
+                  :disable="!this.g.wallet.canSendPayments"
+                  :label="$t('paste_request')"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  color="primary"
+                  class="q-mr-md"
+                  @click="showReceiveDialog"
+                  :disable="!this.g.wallet.canReceivePayments"
+                  :label="$t('create_invoice')"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  color="secondary"
+                  icon="qr_code_scanner"
+                  :disable="
+                    !this.g.wallet.canReceivePayments &&
+                    !this.g.wallet.canSendPayments
+                  "
+                  @click="showCamera"
+                >
+                  <q-tooltip
+                    ><span v-text="$t('camera_tooltip')"></span
+                  ></q-tooltip>
+                </q-btn>
+                <lnbits-update-balance
+                  v-if="$q.screen.gt.md"
+                  :wallet_id="this.g.wallet.id"
+                  :callback="updateBalanceCallback"
+                  :small_btn="false"
+                ></lnbits-update-balance>
+              </div>
+            </div>
+          </q-card>
+
+          <q-card
+            :style="
+              $q.screen.lt.md
+                ? {
+                    background: $q.screen.lt.md ? 'none !important' : '',
+                    boxShadow: $q.screen.lt.md ? 'none !important' : '',
+                    border: $q.screen.lt.md ? 'none !important' : '',
+                    marginTop: $q.screen.lt.md ? '0px !important' : ''
+                  }
+                : ''
+            "
+          >
+            <q-card-section>
+              <payment-list
+                @filter-changed="handleFilterChange"
+                :update="updatePayments"
+                :mobile-simple="mobileSimple"
+                :expand-details="expandDetails"
+              ></payment-list>
+            </q-card-section>
+          </q-card>
+        </div>
+        {% if HIDE_API %}
+        <div class="col-12 col-md-4 q-gutter-y-md">
+          {% else %}
+          <div v-if="!mobileSimple" class="col-12 col-md-5 q-gutter-y-md">
+            <q-card>
+              <q-card-section class="q-pb-xs">
+                <div class="row items-center">
+                  <q-avatar
+                    size="lg"
+                    :icon="g.wallet.extra.icon"
+                    :text-color="$q.dark.isActive ? 'black' : 'grey-3'"
+                    :color="g.wallet.extra.color"
+                  >
+                  </q-avatar>
+                  <q-btn
+                    @click="icon.show = true"
+                    round
+                    color="grey-5"
+                    text-color="black"
+                    size="xs"
+                    icon="edit"
+                    style="position: relative; left: -15px; bottom: -10px"
+                  ></q-btn>
+                  <div class="text-subtitle1 q-mt-none q-mb-none">
+                    {{ SITE_TITLE }} Wallet:
+                    <strong><em v-text="g.wallet.name"></em></strong>
+                  </div>
+                  <q-space></q-space>
+                  <div class="float-right">
+                    <q-btn
+                      @click="updateWallet({pinned: !g.wallet.extra.pinned})"
+                      round
+                      class="float-right"
+                      :color="g.wallet.extra.pinned ? 'primary' : 'grey-5'"
+                      text-color="black"
+                      size="sm"
+                      icon="push_pin"
+                      style="transform: rotate(30deg)"
+                    >
+                      <q-tooltip
+                        ><span v-text="$t('pin_wallet')"></span
+                      ></q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+              </q-card-section>
+              <q-card-section class="q-pa-none">
+                <q-separator></q-separator>
+
+                <q-list>
+                  {% if wallet.lnurlwithdraw_full %}
+                  <q-expansion-item
+                    group="extras"
+                    icon="crop_free"
+                    :label="$t('drain_funds')"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <lnbits-qrcode
+                          value="lightning:{{wallet.lnurlwithdraw_full}}"
+                          href="lightning:{{wallet.lnurlwithdraw_full}}"
+                        ></lnbits-qrcode>
+                        <p
+                          class="text-center"
+                          v-text="$t('drain_funds_desc')"
+                        ></p>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+                  <q-separator></q-separator>
+                  {% endif %}
+                  <q-expansion-item
+                    group="extras"
+                    icon="qr_code"
+                    v-if="stored_paylinks.length > 0"
+                    :label="$t('stored_paylinks')"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <div
+                          class="row flex"
+                          v-for="paylink in stored_paylinks"
+                        >
+                          <q-btn
+                            dense
+                            flat
+                            color="primary"
+                            icon="send"
+                            size="xs"
+                            @click="sendToPaylink(paylink.lnurl)"
+                          >
+                            <q-tooltip>
+                              <span v-text="`send to: ${paylink.lnurl}`"></span>
+                            </q-tooltip>
+                          </q-btn>
+                          <q-btn
+                            dense
+                            flat
+                            color="secondary"
+                            icon="content_copy"
+                            size="xs"
+                            @click="copyText(paylink.lnurl)"
+                          >
+                            <q-tooltip>
+                              <span v-text="`copy: ${paylink.lnurl}`"></span>
+                            </q-tooltip>
+                          </q-btn>
+                          <span
+                            v-text="paylink.label"
+                            class="q-mr-xs q-ml-xs"
+                          ></span>
+                          <q-btn
+                            dense
+                            flat
+                            color="primary"
+                            icon="edit"
+                            size="xs"
+                          >
+                            <q-popup-edit
+                              @update:model-value="editPaylink()"
+                              v-model="paylink.label"
+                              v-slot="scope"
+                            >
+                              <q-input
+                                dark
+                                color="white"
+                                v-model="scope.value"
+                                dense
+                                autofocus
+                                counter
+                                @keyup.enter="scope.set"
+                              >
+                                <template v-slot:append>
+                                  <q-icon name="edit" />
+                                </template>
+                              </q-input>
+                            </q-popup-edit>
+                            <q-tooltip>
+                              <span v-text="$t('edit')"></span>
+                            </q-tooltip>
+                          </q-btn>
+                          <span style="flex-grow: 1"></span>
+                          <q-btn
+                            dense
+                            flat
+                            color="red"
+                            icon="delete"
+                            size="xs"
+                            @click="deletePaylink(paylink.lnurl)"
+                          >
+                            <q-tooltip>
+                              <span v-text="$t('delete')"></span>
+                            </q-tooltip>
+                          </q-btn>
+                          <span v-text="dateFromNow(paylink.last_used)"></span>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+                  <q-separator></q-separator>
+                  <lnbits-wallet-share></lnbits-wallet-share>
+                  <q-separator></q-separator>
+                  <q-expansion-item
+                    group="extras"
+                    icon="phone_android"
+                    :label="$t('access_wallet_on_mobile')"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        You can connect to this wallet from a mobile app:
+                        <ul>
+                          <li>
+                            Download
+                            <a class="text-secondary" href="https://zeusln.app"
+                              >Zeus</a
+                            >
+                            or
+                            <a
+                              class="text-secondary"
+                              href="https://bluewallet.io/"
+                              >BlueWallet</a
+                            >
+                            from App Store or Google Play
+                          </li>
+                          <li>
+                            Enable the
+                            <a class="text-secondary" href="/lndhub">LndHub </a>
+                            extension for this account
+                          </li>
+                          <li>
+                            Scan the QR code in the
+                            <a class="text-secondary" href="/lndhub">LndHub </a>
+                            extensions with your mobile app
+                          </li>
+                        </ul>
+                      </q-card-section>
+                      <q-card-section>
+                        Or you can access the wallet directly from your mobile
+                        browser using:
+                        <q-expansion-item
+                          icon="mobile_friendly"
+                          :label="$t('export_to_phone')"
+                        >
+                          <q-card>
+                            <q-card-section>
+                              <p
+                                class="text-center"
+                                v-text="$t('export_to_phone_desc')"
+                              ></p>
+                              <lnbits-qrcode
+                                :value="`${baseUrl}wallet?usr=${g.user.id}&wal=${g.wallet.id}`"
+                              ></lnbits-qrcode>
+                            </q-card-section>
+                          </q-card>
+                        </q-expansion-item>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+                  <q-separator></q-separator>
+                  <q-expansion-item
+                    group="extras"
+                    icon="settings"
+                    :label="$t('wallet_config')"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col-6">
+                            <q-input
+                              filled
+                              v-model.trim="update.name"
+                              label="Name"
+                              dense
+                            />
+                          </div>
+                          <div class="col-4 q-pl-sm">
+                            <q-btn
+                              :disable="!update.name.length"
+                              unelevated
+                              class="q-mt-xs full-width"
+                              color="primary"
+                              :label="$t('update_name')"
+                              dense
+                              @click="updateWallet({name: update.name})"
+                            ></q-btn>
+                          </div>
+                          <div class="col-2"></div>
+                        </div>
+                      </q-card-section>
+                      <q-card-section
+                        v-if="'{{ LNBITS_DENOMINATION }}' == 'sats'"
+                      >
+                        <div class="row">
+                          <div class="col-6">
+                            <q-select
+                              filled
+                              dense
+                              v-model="update.currency"
+                              type="text"
+                              :disable="g.fiatTracking"
+                              :options="receive.units.filter(u => u !== 'sat')"
+                              :label="$t('currency_settings')"
+                            ></q-select>
+                          </div>
+                          <div class="col-4 q-pl-sm">
+                            <q-btn
+                              dense
+                              color="primary"
+                              class="q-mt-xs full-width"
+                              @click="handleFiatTracking()"
+                              :disable="update.currency == ''"
+                              :label="g.fiatTracking ? 'Remove' : 'Add'"
+                            ></q-btn>
+                          </div>
+                          <div class="col-2">
+                            <q-btn
+                              v-if="g.user.admin"
+                              flat
+                              round
+                              icon="settings"
+                              class="float-right q-mb-lg"
+                              to="/admin#exchange_providers"
+                              ><q-tooltip
+                                v-text="$t('exchange_providers')"
+                              ></q-tooltip
+                            ></q-btn>
+                          </div>
+                        </div>
+                      </q-card-section>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col-6">
+                            <p v-text="$t('delete_wallet_desc')"></p>
+                          </div>
+                          <div class="col-4 q-pl-sm">
+                            <q-btn
+                              unelevated
+                              color="red-10"
+                              class="full-width"
+                              @click="deleteWallet()"
+                              :label="$t('delete_wallet')"
+                            ></q-btn>
+                          </div>
+                          <div class="col-2"></div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+                  <q-separator></q-separator>
+                  <q-expansion-item
+                    group="extras"
+                    icon="insights"
+                    :label="$t('wallet_charts')"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col-md-4 col-sm-12">
+                            <q-checkbox
+                              dense
+                              @click="saveChartsPreferences"
+                              v-model="chartConfig.showBalance"
+                              :label="$t('payments_balance_chart')"
+                            >
+                            </q-checkbox>
+                          </div>
+
+                          <div class="col-md-4 col-sm-12">
+                            <q-checkbox
+                              dense
+                              @click="saveChartsPreferences"
+                              v-model="chartConfig.showBalanceInOut"
+                              :label="$t('payments_balance_in_out_chart')"
+                            >
+                            </q-checkbox>
+                          </div>
+                          <div class="col-md-4 col-sm-12">
+                            <q-checkbox
+                              dense
+                              @click="saveChartsPreferences"
+                              v-model="chartConfig.showPaymentCountInOut"
+                              :label="$t('payments_count_in_out_chart')"
+                            >
+                            </q-checkbox>
+                          </div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+
+                  <q-separator></q-separator>
+                  <lnbits-wallet-api-docs></lnbits-wallet-api-docs>
+                </q-list>
+              </q-card-section>
+            </q-card>
+            {% endif %} {% if AD_SPACE_ENABLED and AD_SPACE %}
+            <q-card>
+              <q-card-section>
+                <h6 class="text-subtitle1 q-mt-none q-mb-sm">
+                  {{ AD_SPACE_TITLE }}
+                </h6>
+              </q-card-section>
+              {% for ADS in AD_SPACE %} {% set AD = ADS.split(";") %}
+
+              <q-card-section class="q-pa-none">
+                <a
+                  style="display: inline-block"
+                  href="{{ AD[0] }}"
+                  class="q-ml-md q-mb-xs q-mr-md"
+                >
+                  <img
+                    style="max-width: 100%; height: auto"
+                    v-if="$q.dark.isActive"
+                    src="{{ AD[1] }}"
+                  />
+                  <img
+                    style="max-width: 100%; height: auto"
+                    v-else
+                    src="{{ AD[2] }}"
+                  />
+                </a> </q-card-section
+              >{% endfor %}
+            </q-card>
+            {% endif %}
+            <div
+              v-show="chartDataPointCount"
+              class="col-12 col-md-5 q-gutter-y-md"
+            >
+              <q-card v-if="chartConfig.showBalance">
+                <q-card-section class="q-pa-none">
+                  <div style="height: 200px" class="q-pa-sm">
+                    <canvas ref="walletBalanceChart"></canvas>
+                  </div>
+                </q-card-section>
+              </q-card>
+              <q-card v-if="chartConfig.showBalanceInOut">
+                <q-card-section class="q-pa-none">
+                  <div style="height: 200px" class="q-pa-sm">
+                    <canvas ref="walletBalanceInOut"></canvas>
+                  </div>
+                </q-card-section>
+              </q-card>
+              <q-card v-if="chartConfig.showPaymentCountInOut">
+                <q-card-section class="q-pa-none">
+                  <div style="height: 200px" class="q-pa-sm">
+                    <canvas ref="walletPaymentsInOut"></canvas>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div v-if="hasChartActive && !chartDataPointCount">
+              <q-card>
+                <q-card-section> No chart data available</q-card-section>
+              </q-card>
+            </div>
+          </div>
+        </div>
+
+        <q-dialog v-model="icon.show" position="top">
+          <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+            <q-form @submit="setIcon" class="q-gutter-md">
+              <div class="q-gutter-sm q-pa-sm flex flex-wrap justify-center">
+                <!-- Loop through all icons -->
+                <q-btn
+                  v-for="(thisIcon, index) in icon.options"
+                  :key="index"
+                  @click="setSelectedIcon(thisIcon)"
+                  round
+                  text-color="black"
+                  :color="
+                    icon.data.icon === thisIcon
+                      ? icon.data.color || 'primary'
+                      : 'grey-5'
+                  "
+                  size="md"
+                  :icon="thisIcon"
+                  class="q-mb-sm"
+                ></q-btn>
+              </div>
+              <div class="q-pa-sm flex justify-between items-center">
+                <div class="flex q-pl-lg">
+                  <!-- Color options -->
+                  <q-btn
+                    v-for="(color, index) in icon.colorOptions"
+                    :key="'color-' + index"
+                    @click="setSelectedColor(color)"
+                    round
+                    :color="color"
+                    size="xs"
+                    style="
+                      width: 24px;
+                      height: 24px;
+                      min-width: 24px;
+                      padding: 0;
+                    "
+                    class="q-mr-xs"
+                  ></q-btn>
+                </div>
+                <q-btn
+                  unelevated
+                  color="primary"
+                  :disable="!icon.data.icon"
+                  type="submit"
+                >
+                  Save Icon
+                </q-btn>
+              </div>
+            </q-form>
+          </q-card>
+        </q-dialog>
+
+        <q-dialog
+          v-model="receive.show"
+          position="top"
+          @hide="onReceiveDialogHide"
+        >
+          <q-card
+            v-if="!receive.paymentReq"
+            class="q-pa-lg q-pt-xl lnbits__dialog-card"
+          >
+            <q-form @submit="createInvoice" class="q-gutter-md">
+              <p v-if="receive.lnurl" class="text-h6 text-center q-my-none">
+                <b v-text="receive.lnurl.domain"></b> is requesting an invoice:
+              </p>
+              {% if LNBITS_DENOMINATION != 'sats' %}
+              <q-input
+                filled
+                dense
+                v-model="receive.data.amount"
+                :label="$t('amount') + ' ({{LNBITS_DENOMINATION}}) *'"
+                mask="#.##"
+                fill-mask="0"
+                reverse-fill-mask
+                :min="receive.minMax[0]"
+                :max="receive.minMax[1]"
+                :readonly="receive.lnurl && receive.lnurl.fixed"
+              ></q-input>
+              {% else %}
+              <div class="row">
+                <div class="col-10">
+                  <q-select
+                    filled
+                    dense
+                    v-model="receive.unit"
+                    type="text"
+                    :label="$t('unit')"
+                    :options="receive.units"
+                  ></q-select>
+                </div>
+                <div class="col-2">
+                  <q-btn
+                    v-if="g.fiatTracking"
+                    @click="swapBalancePriority"
+                    class="float-right"
+                    color="primary"
+                    flat
+                    dense
+                    icon="swap_vert"
+                  ></q-btn>
+                </div>
+              </div>
+
+              <q-input
+                ref="setAmount"
+                filled
+                :pattern="receive.unit === 'sat' ? '\\d*' : '\\d*\\.?\\d*'"
+                inputmode="numeric"
+                dense
+                v-model.number="receive.data.amount"
+                :label="$t('amount') + ' (' + receive.unit + ') *'"
+                :min="receive.minMax[0]"
+                :max="receive.minMax[1]"
+                :readonly="receive.lnurl && receive.lnurl.fixed"
+              ></q-input>
+              {% endif %}
+              <q-input
+                v-if="has_holdinvoice"
+                filled
+                dense
+                v-model="receive.data.payment_hash"
+                :label="$t('hold_invoice_payment_hash')"
+              ></q-input>
+              <q-input
+                filled
+                dense
+                type="textarea"
+                rows="2"
+                v-model="receive.data.memo"
+                :label="$t('memo')"
+              >
+                <template
+                  v-if="receive.data.internalMemo === null"
+                  v-slot:append
+                >
+                  <q-icon
+                    name="add_comment"
+                    @click.stop.prevent="receive.data.internalMemo = ''"
+                    class="cursor-pointer"
+                  ></q-icon>
+                  <q-tooltip>
+                    <span v-text="$t('internal_memo')"></span>
+                  </q-tooltip>
+                </template>
+              </q-input>
+              <q-input
+                v-if="receive.data.internalMemo !== null"
+                autogrow
+                filled
+                dense
+                v-model="receive.data.internalMemo"
+                class="q-mb-lg"
+                :label="$t('internal_memo')"
+                :hint="$t('internal_memo_hint_receive')"
+                :rules="[
+                  val =>
+                    !val ||
+                    val.length <= 512 ||
+                    'Please use maximum 512 characters'
+                ]"
+                ><template v-slot:append>
+                  <q-icon
+                    name="cancel"
+                    @click.stop.prevent="receive.data.internalMemo = null"
+                    class="cursor-pointer"
+                  /> </template
+              ></q-input>
+              <div v-if="g.user.fiat_providers?.length" class="q-mt-md">
+                <q-list bordered dense class="rounded-borders">
+                  <q-item-label dense header>
+                    <span v-text="$t('select_payment_provider')"></span>
+                  </q-item-label>
+                  <q-separator></q-separator>
+                  <q-item
+                    :active="!receive.fiatProvider"
+                    @click="receive.fiatProvider = ''"
+                    active-class="bg-teal-1 text-grey-8 text-weight-bold"
+                    clickable
+                    v-ripple
+                  >
+                    <q-item-section avatar>
+                      <q-avatar square>
+                        <img
+                          :src="'{{ static_url_for('static', 'images/logos/lnbits.png') }}'"
+                        />
+                      </q-avatar>
+                    </q-item-section>
+                    <q-item-section>
+                      <span
+                        v-text="$t('pay_with', {provider: 'Lightning Network'})"
+                      ></span>
+                    </q-item-section>
+                  </q-item>
+                  <q-separator></q-separator>
+                  <q-item
+                    :active="receive.fiatProvider === 'stripe'"
+                    @click="receive.fiatProvider = 'stripe'"
+                    active-class="bg-teal-1 text-grey-8 text-weight-bold"
+                    clickable
+                    v-ripple
+                  >
+                    <q-item-section avatar>
+                      <q-avatar>
+                        <img
+                          :src="'{{ static_url_for('static', 'images/stripe_logo.ico') }}'"
+                        />
+                      </q-avatar>
+                    </q-item-section>
+                    <q-item-section>
+                      <span
+                        v-text="$t('pay_with', {provider: 'Stripe'})"
+                      ></span>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
+
+              <div v-if="receive.status == 'pending'" class="row q-mt-lg">
+                <q-btn
+                  unelevated
+                  color="primary"
+                  :disable="
+                    receive.data.amount == null || receive.data.amount <= 0
+                  "
+                  type="submit"
+                >
+                  <span
+                    v-if="receive.lnurl"
+                    v-text="`${$t('withdraw_from')} ${receive.lnurl.domain}`"
+                  ></span>
+                  <span v-else v-text="$t('create_invoice')"></span>
+                </q-btn>
+                <q-btn
+                  v-close-popup
+                  flat
+                  color="grey"
+                  class="q-ml-auto"
+                  :label="$t('cancel')"
+                ></q-btn>
+              </div>
+              <q-spinner-bars
+                v-if="receive.status == 'loading'"
+                color="primary"
+                size="2.55em"
+              ></q-spinner-bars>
+            </q-form>
+          </q-card>
+          <q-card
+            v-else-if="receive.paymentReq && receive.lnurl == null"
+            class="q-pa-lg q-pt-xl lnbits__dialog-card"
+          >
+            <lnbits-qrcode
+              v-if="receive.fiatPaymentReq"
+              :show-buttons="false"
+              :href="receive.fiatPaymentReq"
+              :value="receive.fiatPaymentReq"
+            >
+            </lnbits-qrcode>
+            <lnbits-qrcode
+              v-else
+              :href="'lightning:' + receive.paymentReq"
+              :value="'lightning:' + receive.paymentReq"
+            >
+            </lnbits-qrcode>
+            <div class="text-center">
+              <h3 class="q-my-md">
+                <span v-text="formattedAmount"></span>
+              </h3>
+              <h5 v-if="receive.unit != 'sat'" class="q-mt-none q-mb-sm">
+                <span v-text="formattedSatAmount"></span>
+              </h5>
+              <div v-if="!receive.fiatPaymentReq">
+                <q-chip v-if="hasNfc" outline square color="positive">
+                  <q-avatar
+                    icon="nfc"
+                    color="positive"
+                    text-color="white"
+                  ></q-avatar>
+                  <span v-text="$t('nfc_supported')"></span>
+                </q-chip>
+              </div>
+            </div>
+            <div class="row q-mt-lg">
+              <q-btn
+                v-close-popup
+                flat
+                color="grey"
+                class="q-ml-auto"
+                :label="$t('close')"
+              ></q-btn>
+            </div>
+          </q-card>
+        </q-dialog>
+
+        <q-dialog v-model="parse.show" @hide="closeParseDialog" position="top">
+          <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+            <div v-if="parse.invoice">
+              <div class="column content-center text-center q-mb-md">
+                <div v-if="!isFiatPriority">
+                  <h4 class="q-my-none text-bold">
+                    <span
+                      v-text="walletFormatBalance(parse.invoice.sat)"
+                    ></span>
+                  </h4>
+                </div>
+                <div v-else>
+                  <h4
+                    class="q-my-none text-bold"
+                    v-text="parse.invoice.fiatAmount"
+                  ></h4>
+                </div>
+                <div class="q-my-md absolute">
+                  <q-btn
+                    v-if="g.fiatTracking"
+                    @click="swapBalancePriority"
+                    flat
+                    dense
+                    icon="swap_vert"
+                    color="primary"
+                  ></q-btn>
+                </div>
+                <div v-if="g.fiatTracking">
+                  <div v-if="isFiatPriority">
+                    <h5 class="q-my-none text-bold">
+                      <span
+                        v-text="walletFormatBalance(parse.invoice.sat)"
+                      ></span>
+                    </h5>
+                  </div>
+                  <div v-else style="opacity: 0.75">
+                    <div class="text-h5 text-italic">
+                      <span
+                        v-text="parse.invoice.fiatAmount"
+                        style="opacity: 0.75"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <q-separator></q-separator>
+              <h6 class="text-center" v-text="parse.invoice.description"></h6>
+              <q-input
+                autogrow
+                filled
+                dense
+                v-model="parse.data.internalMemo"
+                :label="$t('internal_memo')"
+                :hint="$t('internal_memo_hint_pay')"
+                class="q-mb-lg"
+                :rules="[
+                  val =>
+                    !val ||
+                    val.length <= 512 ||
+                    'Please use maximum 512 characters'
+                ]"
+                ><template v-if="parse.data.internalMemo" v-slot:append>
+                  <q-icon
+                    name="cancel"
+                    @click.stop.prevent="parse.data.internalMemo = null"
+                    class="cursor-pointer" /></template
+              ></q-input>
+              <q-list separator bordered dense class="q-mb-md">
+                <q-expansion-item expand-separator icon="info" label="Details">
+                  <q-list separator>
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label v-text="$t('created')"></q-item-label>
+                        <q-item-label
+                          caption
+                          v-text="parse.invoice.createdDate"
+                        ></q-item-label>
+                      </q-item-section>
+
+                      <q-item-section side top>
+                        <q-item-label
+                          caption
+                          v-text="parse.invoice.createdDateFrom"
+                        ></q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label v-text="$t('expire_date')"></q-item-label>
+                        <q-item-label
+                          caption
+                          v-text="parse.invoice.expireDate"
+                        ></q-item-label>
+                      </q-item-section>
+                      <q-item-section side top>
+                        <q-item-label
+                          caption
+                          v-text="parse.invoice.expireDateFrom"
+                        ></q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label
+                          v-text="$t('payment_hash')"
+                        ></q-item-label>
+                        <q-item-label
+                          caption
+                          v-text="
+                            `${parse.invoice.hash.slice(0, 12)}...${parse.invoice.hash.slice(-12)}`
+                          "
+                        ></q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <q-item-label>
+                          <q-icon
+                            name="content_copy"
+                            @click="copyText(parse.invoice.hash)"
+                            size="1em"
+                            color="grey"
+                            class="cursor-pointer"
+                          />
+                        </q-item-label>
+                        <q-tooltip>
+                          <span v-text="parse.invoice.hash"></span>
+                        </q-tooltip>
+                      </q-item-section>
+                    </q-item>
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label v-text="$t('Invoice')"></q-item-label>
+                        <q-item-label
+                          caption
+                          v-text="
+                            `${parse.invoice.bolt11.slice(0, 12)}...${parse.invoice.bolt11.slice(-12)}`
+                          "
+                        ></q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <q-item-label>
+                          <q-icon
+                            name="content_copy"
+                            @click="copyText(parse.invoice.bolt11)"
+                            size="1em"
+                            color="grey"
+                            class="cursor-pointer"
+                          />
+                        </q-item-label>
+                        <q-tooltip>
+                          <span v-text="parse.invoice.bolt11"></span>
+                        </q-tooltip>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-expansion-item>
+              </q-list>
+              <div v-if="canPay" class="row q-mt-lg">
+                <q-btn
+                  unelevated
+                  color="primary"
+                  @click="payInvoice"
+                  :label="$t('pay')"
+                ></q-btn>
+                <q-btn
+                  v-close-popup
+                  flat
+                  color="grey"
+                  class="q-ml-auto"
+                  :label="$t('cancel')"
+                ></q-btn>
+              </div>
+              <div v-else class="row q-mt-lg">
+                <q-btn
+                  :label="$t('not_enough_funds')"
+                  unelevated
+                  disabled
+                  color="yellow"
+                  text-color="black"
+                ></q-btn>
+                <q-btn
+                  v-close-popup
+                  flat
+                  color="grey"
+                  class="q-ml-auto"
+                  :label="$t('cancel')"
+                ></q-btn>
+              </div>
+            </div>
+            <div v-else-if="parse.lnurlauth">
+              <q-form @submit="authLnurl" class="q-gutter-md">
+                <p class="q-my-none text-h6">
+                  Authenticate with <b v-text="parse.lnurlauth.domain"></b>?
+                </p>
+                <q-separator class="q-my-sm"></q-separator>
+                <p>
+                  For every website and for every LNbits wallet, a new keypair
+                  will be deterministically generated so your identity can't be
+                  tied to your LNbits wallet or linked across websites. No other
+                  data will be shared with
+                  <span v-text="parse.lnurlauth.domain"></span>.
+                </p>
+                <p>
+                  Your public key for
+                  <b v-text="parse.lnurlauth.domain"></b> is:
+                </p>
+                <p class="q-mx-xl">
+                  <code
+                    class="text-wrap"
+                    v-text="parse.lnurlauth.pubkey"
+                  ></code>
+                </p>
+                <div class="row q-mt-lg">
+                  <q-btn
+                    unelevated
+                    color="primary"
+                    type="submit"
+                    :label="$t('login')"
+                  ></q-btn>
+                  <q-btn
+                    :label="$t('cancel')"
+                    v-close-popup
+                    flat
+                    color="grey"
+                    class="q-ml-auto"
+                  ></q-btn>
+                </div>
+              </q-form>
+            </div>
+            <div v-else-if="parse.lnurlpay">
+              <q-form @submit="payLnurl" class="q-gutter-md">
+                <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
+                  <b v-text="parse.lnurlpay.domain"></b> is requesting
+                  <span
+                    v-text="msatoshiFormat(parse.lnurlpay.maxSendable)"
+                  ></span>
+                  <span v-text="'{{LNBITS_DENOMINATION}}'"></span>
+                  <span v-if="parse.lnurlpay.commentAllowed > 0">
+                    <br />
+                    and a
+                    <span v-text="parse.lnurlpay.commentAllowed"></span>-char
+                    comment
+                  </span>
+                </p>
+                <p v-else class="q-my-none text-h6 text-center">
+                  <b
+                    v-text="parse.lnurlpay.targetUser || parse.lnurlpay.domain"
+                  ></b>
+                  is requesting <br />
+                  between
+                  <b v-text="msatoshiFormat(parse.lnurlpay.minSendable)"></b>
+                  and
+                  <b v-text="msatoshiFormat(parse.lnurlpay.maxSendable)"></b>
+                  <span v-text="'{{LNBITS_DENOMINATION}}'"></span>
+                  <span v-if="parse.lnurlpay.commentAllowed > 0">
+                    <br />
+                    and a
+                    <span v-text="parse.lnurlpay.commentAllowed"></span>-char
+                    comment
+                  </span>
+                </p>
+                <q-separator class="q-my-sm"></q-separator>
+                <div class="row">
+                  <p
+                    class="col text-justify text-italic"
+                    v-text="parse.lnurlpay.description"
+                  ></p>
+                  <p class="col-4 q-pl-md" v-if="parse.lnurlpay.image">
+                    <q-img :src="parse.lnurlpay.image" />
+                  </p>
+                </div>
+                <div class="row">
+                  <div class="col q-mb-lg">
+                    <q-select
+                      filled
+                      dense
+                      v-if="!parse.lnurlpay.fixed"
+                      v-model="parse.data.unit"
+                      type="text"
+                      :label="$t('unit')"
+                      :options="receive.units"
+                    ></q-select>
+                    <br />
+                    <q-input
+                      ref="setAmount"
+                      filled
+                      dense
+                      v-model.number="parse.data.amount"
+                      :label="$t('amount') + ' (' + parse.data.unit + ') *'"
+                      :mask="parse.data.unit == 'sat' ? '#' : ''"
+                      :step="parse.data.unit == 'sat' ? '1' : '0.01'"
+                      fill-mask="0"
+                      reverse-fill-mask
+                      :min="parse.lnurlpay.minSendable / 1000"
+                      :max="parse.lnurlpay.maxSendable / 1000"
+                      :readonly="parse.lnurlpay && parse.lnurlpay.fixed"
+                    ></q-input>
+                  </div>
+                  <div
+                    class="col-8 q-pl-md"
+                    v-if="parse.lnurlpay.commentAllowed > 0"
+                  >
+                    <q-input
+                      filled
+                      dense
+                      v-model="parse.data.comment"
+                      :type="
+                        parse.lnurlpay.commentAllowed > 512
+                          ? 'textarea'
+                          : 'text'
+                      "
+                      label="Comment (optional)"
+                      :maxlength="parse.lnurlpay.commentAllowed"
+                      ><template
+                        v-if="parse.data.internalMemo === null"
+                        v-slot:append
+                      >
+                        <q-icon
+                          name="add_comment"
+                          @click.stop.prevent="parse.data.internalMemo = ''"
+                          class="cursor-pointer"
+                        ></q-icon>
+                        <q-tooltip>
+                          <span v-text="$t('internal_memo')"></span>
+                        </q-tooltip> </template
+                    ></q-input>
+                    <br />
+                    <q-input
+                      v-if="parse.data.internalMemo !== null"
+                      autogrow
+                      filled
+                      dense
+                      v-model="parse.data.internalMemo"
+                      :label="$t('internal_memo')"
+                      :hint="$t('internal_memo_hint_pay')"
+                      class=""
+                      :rules="[
+                        val =>
+                          !val ||
+                          val.length <= 512 ||
+                          'Please use maximum 512 characters'
+                      ]"
+                      ><template v-slot:append>
+                        <q-icon
+                          name="cancel"
+                          @click.stop.prevent="parse.data.internalMemo = null"
+                          class="cursor-pointer"
+                        /> </template
+                    ></q-input>
+                  </div>
+                </div>
+                <div class="row q-mt-lg">
+                  <q-btn unelevated color="primary" type="submit">Send</q-btn>
+                  <q-btn
+                    :label="$t('cancel')"
+                    v-close-popup
+                    flat
+                    color="grey"
+                    class="q-ml-auto"
+                  ></q-btn>
+                </div>
+              </q-form>
+            </div>
+            <div v-else>
+              <q-form
+                v-if="!parse.camera.show"
+                @submit="decodeRequest"
+                class="q-gutter-md"
+              >
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="parse.data.request"
+                  type="textarea"
+                  :label="$t('paste_invoice_label')"
+                  ref="textArea"
+                >
+                </q-input>
+                <div class="row q-mt-lg">
+                  <q-btn
+                    unelevated
+                    color="primary"
+                    :disable="parse.data.request == ''"
+                    type="submit"
+                    :label="$t('read')"
+                  ></q-btn>
+                  <q-icon
+                    name="content_paste"
+                    color="grey"
+                    class="q-mt-xs q-ml-sm q-mr-auto"
+                    v-if="parse.copy.show"
+                    @click="pasteToTextArea"
+                  >
+                    <q-tooltip>
+                      <span v-text="$t('paste_from_clipboard')"></span>
+                    </q-tooltip>
+                  </q-icon>
+                  <q-btn
+                    v-close-popup
+                    flat
+                    color="grey"
+                    class="q-ml-auto"
+                    :label="$t('cancel')"
+                  ></q-btn>
+                </div>
+              </q-form>
+              <div v-else>
+                <q-responsive :ratio="1">
+                  <qrcode-stream
+                    @detect="decodeQR"
+                    @camera-on="onInitQR"
+                    class="rounded-borders"
+                  ></qrcode-stream>
+                </q-responsive>
+                <div class="row q-mt-lg">
+                  <q-btn
+                    :label="$t('cancel')"
+                    @click="closeCamera"
+                    flat
+                    color="grey"
+                    class="q-ml-auto"
+                  >
+                  </q-btn>
+                </div>
+              </div>
+            </div>
+          </q-card>
+        </q-dialog>
+
+        <q-dialog v-model="parse.camera.show" position="top">
+          <q-card class="q-pa-lg q-pt-xl">
+            <div class="text-center q-mb-lg">
+              <qrcode-stream
+                @detect="decodeQR"
+                @camera-on="onInitQR"
+                class="rounded-borders"
+              ></qrcode-stream>
+            </div>
+            <div class="row q-mt-lg">
+              <q-btn
+                @click="closeCamera"
+                flat
+                color="grey"
+                class="q-ml-auto"
+                :label="$t('cancel')"
+              ></q-btn>
+            </div>
+          </q-card>
+        </q-dialog>
+        <div
+          class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
+        >
+          <q-tabs
+            active-class="px-0"
+            indicator-color="transparent"
+            align="justify"
+          >
+            <q-tab
+              icon="file_download"
+              @click="showReceiveDialog"
+              :label="$t('receive')"
+            >
+            </q-tab>
+
+            <q-tab
+              @click="showParseDialog"
+              icon="file_upload"
+              :label="$t('send')"
+            >
+            </q-tab>
+          </q-tabs>
+          <q-btn
+            round
+            size="35px"
+            unelevated
+            icon="qr_code_scanner"
+            @click="showCamera"
+            class="text-white bg-primary z-top vertical-bottom absolute-center absolute"
+          >
+          </q-btn>
+        </div>
+        <q-dialog v-model="disclaimerDialog.show" position="top">
+          <q-card class="q-pa-lg">
+            <h6
+              class="q-my-md text-primary"
+              v-text="$t('disclaimer_dialog_title')"
+            ></h6>
+            <p class="whitespace-pre-line" v-text="$t('disclaimer_dialog')"></p>
+            <div class="row q-mt-lg">
+              <q-btn
+                outline
+                color="grey"
+                type="a"
+                href="/account"
+                :label="$t('my_account')"
+              ></q-btn>
+              <q-btn
+                v-close-popup
+                flat
+                color="grey"
+                class="q-ml-auto"
+                :label="$t('i_understand')"
+              ></q-btn>
+            </div>
+          </q-card>
+        </q-dialog>
+      </div>
+    </div>
+  </div>
+</template>
