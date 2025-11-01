@@ -5,7 +5,7 @@ import warnings
 
 import lnbits.wallets.lnd_grpc_files.lightning_pb2 as lightning__pb2
 
-GRPC_GENERATED_VERSION = '1.68.1'
+GRPC_GENERATED_VERSION = '1.69.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -236,6 +236,11 @@ class LightningStub(object):
                 '/lnrpc.Lightning/SubscribeInvoices',
                 request_serializer=lightning__pb2.InvoiceSubscription.SerializeToString,
                 response_deserializer=lightning__pb2.Invoice.FromString,
+                _registered_method=True)
+        self.DeleteCanceledInvoice = channel.unary_unary(
+                '/lnrpc.Lightning/DeleteCanceledInvoice',
+                request_serializer=lightning__pb2.DelCanceledInvoiceReq.SerializeToString,
+                response_deserializer=lightning__pb2.DelCanceledInvoiceResp.FromString,
                 _registered_method=True)
         self.DecodePayReq = channel.unary_unary(
                 '/lnrpc.Lightning/DecodePayReq',
@@ -749,10 +754,10 @@ class LightningServicer(object):
 
     def SendPaymentSync(self, request, context):
         """
-        SendPaymentSync is the synchronous non-streaming version of SendPayment.
-        This RPC is intended to be consumed by clients of the REST proxy.
-        Additionally, this RPC expects the destination's public key and the payment
-        hash (if any) to be encoded as hex strings.
+        Deprecated, use routerrpc.SendPaymentV2. SendPaymentSync is the synchronous
+        non-streaming version of SendPayment. This RPC is intended to be consumed by
+        clients of the REST proxy. Additionally, this RPC expects the destination's
+        public key and the payment hash (if any) to be encoded as hex strings.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -772,8 +777,9 @@ class LightningServicer(object):
 
     def SendToRouteSync(self, request, context):
         """
-        SendToRouteSync is a synchronous version of SendToRoute. It Will block
-        until the payment either fails or succeeds.
+        Deprecated, use routerrpc.SendToRouteV2. SendToRouteSync is a synchronous
+        version of SendToRoute. It Will block until the payment either fails or
+        succeeds.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -824,6 +830,15 @@ class LightningServicer(object):
         invoices with a settle_index greater than the specified value. One or both
         of these fields can be set. If no fields are set, then we'll only send out
         the latest add/settle events.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteCanceledInvoice(self, request, context):
+        """lncli: `deletecanceledinvoice`
+        DeleteCanceledInvoice removes a canceled invoice from the database. If the
+        invoice is not in the canceled state, an error will be returned.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -1100,9 +1115,10 @@ class LightningServicer(object):
 
     def CheckMacaroonPermissions(self, request, context):
         """
-        CheckMacaroonPermissions checks whether a request follows the constraints
-        imposed on the macaroon and that the macaroon is authorized to follow the
-        provided permissions.
+        CheckMacaroonPermissions checks whether the provided macaroon contains all
+        the provided permissions. If the macaroon is valid (e.g. all caveats are
+        satisfied), and all permissions provided in the request are met, then
+        this RPC returns true.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -1355,6 +1371,11 @@ def add_LightningServicer_to_server(servicer, server):
                     servicer.SubscribeInvoices,
                     request_deserializer=lightning__pb2.InvoiceSubscription.FromString,
                     response_serializer=lightning__pb2.Invoice.SerializeToString,
+            ),
+            'DeleteCanceledInvoice': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteCanceledInvoice,
+                    request_deserializer=lightning__pb2.DelCanceledInvoiceReq.FromString,
+                    response_serializer=lightning__pb2.DelCanceledInvoiceResp.SerializeToString,
             ),
             'DecodePayReq': grpc.unary_unary_rpc_method_handler(
                     servicer.DecodePayReq,
@@ -2529,6 +2550,33 @@ class Lightning(object):
             '/lnrpc.Lightning/SubscribeInvoices',
             lightning__pb2.InvoiceSubscription.SerializeToString,
             lightning__pb2.Invoice.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteCanceledInvoice(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/lnrpc.Lightning/DeleteCanceledInvoice',
+            lightning__pb2.DelCanceledInvoiceReq.SerializeToString,
+            lightning__pb2.DelCanceledInvoiceResp.FromString,
             options,
             channel_credentials,
             insecure,

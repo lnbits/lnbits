@@ -684,7 +684,7 @@
             "response_type": "data",
             "response": {}
           },
-          "routerpc": {
+          "router_rpc": {
             "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
             "request_type": "function",
             "response_type": "data",
@@ -766,7 +766,7 @@
                   "response": {}
                 }
               ],
-              "routerpc": [
+              "router_rpc": [
                 {
                   "description": "one HTLCs",
                   "response": {
@@ -779,6 +779,7 @@
                           "response_type": "data",
                           "response": {
                             "status": 2,
+                            "fee_msat": 50,
                             "htlcs": [
                               {
                                 "route": {
@@ -806,6 +807,7 @@
                           "response_type": "data",
                           "response": {
                             "status": 2,
+                            "fee_msat": 50,
                             "htlcs": [
                               {
                                 "route": {
@@ -892,7 +894,7 @@
                   "response": {}
                 }
               ],
-              "routerpc": [
+              "router_rpc": [
                 {
                   "description": "No error given.",
                   "response": {
@@ -1076,7 +1078,7 @@
                   "response": {}
                 }
               ],
-              "routerpc": [
+              "router_rpc": [
                 {
                   "description": "RPC error.",
                   "response": {
@@ -1144,7 +1146,7 @@
             },
             "lndrpc": {
               "rpc": [],
-              "routerpc": []
+              "router_rpc": []
             }
           }
         },
@@ -1238,8 +1240,14 @@
             "response_type": "data",
             "response": {}
           },
-          "routerpc": {
+          "router_rpc": {
             "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {}
+          },
+          "invoices_rpc": {
+            "method": "lnbits.wallets.lnd_grpc_files.invoices_pb2_grpc.InvoicesStub.__new__",
             "request_type": "function",
             "response_type": "data",
             "response": {}
@@ -1315,20 +1323,25 @@
               ]
             },
             "lndrpc": {
-              "routerpc": [
+              "rpc": [
                 {
                   "response": {}
                 }
               ],
-              "rpc": [
+              "router_rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "invoices_rpc": [
                 {
                   "response": {
-                    "LookupInvoice": {
+                    "LookupInvoiceV2": {
                       "request_type": "async-function",
                       "request_data": {
-                        "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                        "klass": "lnbits.wallets.lnd_grpc_files.invoices_pb2.LookupInvoiceMsg",
                         "kwargs": {
-                          "__eval__:r_hash": "bytes.fromhex(\"c386d8e8d07342f2e39e189c8e6c57bb205bb373fe4e3a6f69404a8bb767b417\")"
+                          "__eval__:payment_hash": "bytes.fromhex(\"c386d8e8d07342f2e39e189c8e6c57bb205bb373fe4e3a6f69404a8bb767b417\")"
                         }
                       },
                       "response_type": "data",
@@ -1573,25 +1586,31 @@
               ]
             },
             "lndrpc": {
-              "routerpc": [
+              "rpc": [
                 {
                   "response": {}
                 }
               ],
-              "rpc": [
+              "router_rpc": [
+                {
+                  "response": {}
+                }
+              ],
+              "invoices_rpc": [
                 {
                   "description": "not settled",
                   "response": {
-                    "LookupInvoice": {
+                    "LookupInvoiceV2": {
                       "request_type": "async-function",
                       "request_data": {
-                        "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                        "klass": "lnbits.wallets.lnd_grpc_files.invoices_pb2.LookupInvoiceMsg",
                         "kwargs": {
-                          "__eval__:r_hash": "bytes.fromhex(\"c386d8e8d07342f2e39e189c8e6c57bb205bb373fe4e3a6f69404a8bb767b417\")"
+                          "__eval__:payment_hash": "bytes.fromhex(\"c386d8e8d07342f2e39e189c8e6c57bb205bb373fe4e3a6f69404a8bb767b417\")"
                         }
                       },
                       "response_type": "data",
                       "response": {
+                        "state": 0,
                         "settled": false
                       }
                     }
@@ -1600,12 +1619,12 @@
                 {
                   "description": "rpc error",
                   "response": {
-                    "LookupInvoice": {
+                    "LookupInvoiceV2": {
                       "request_type": "async-function",
                       "request_data": {
-                        "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                        "klass": "lnbits.wallets.lnd_grpc_files.invoices_pb2.LookupInvoiceMsg",
                         "kwargs": {
-                          "__eval__:r_hash": "bytes.fromhex(\"c386d8e8d07342f2e39e189c8e6c57bb205bb373fe4e3a6f69404a8bb767b417\")"
+                          "__eval__:payment_hash": "bytes.fromhex(\"c386d8e8d07342f2e39e189c8e6c57bb205bb373fe4e3a6f69404a8bb767b417\")"
                         }
                       },
                       "response_type": "exception",
@@ -1620,12 +1639,12 @@
                 {
                   "description": "rpc error",
                   "response": {
-                    "LookupInvoice": {
+                    "LookupInvoiceV2": {
                       "request_type": "async-function",
                       "request_data": {
-                        "klass": "lnbits.wallets.lnd_grpc_files.lightning_pb2.PaymentHash",
+                        "klass": "lnbits.wallets.lnd_grpc_files.invoices_pb2.LookupInvoiceMsg",
                         "kwargs": {
-                          "__eval__:r_hash": "bytes.fromhex(\"c386d8e8d07342f2e39e189c8e6c57bb205bb373fe4e3a6f69404a8bb767b417\")"
+                          "__eval__:payment_hash": "bytes.fromhex(\"c386d8e8d07342f2e39e189c8e6c57bb205bb373fe4e3a6f69404a8bb767b417\")"
                         }
                       },
                       "response_type": "exception",
@@ -1688,7 +1707,7 @@
               ]
             },
             "lndrpc": {
-              "routerpc": [
+              "router_rpc": [
                 {
                   "response": {}
                 }
@@ -1776,7 +1795,7 @@
               ]
             },
             "lndrpc": {
-              "routerpc": [],
+              "router_rpc": [],
               "rpc": []
             }
           }
@@ -1825,8 +1844,14 @@
             "response_type": "data",
             "response": {}
           },
-          "routerpc": {
+          "router_rpc": {
             "method": "lnbits.wallets.lnd_grpc_files.router_pb2_grpc.RouterStub.__new__",
+            "request_type": "function",
+            "response_type": "data",
+            "response": {}
+          },
+          "invoices_rpc": {
+            "method": "lnbits.wallets.lnd_grpc_files.invoices_pb2_grpc.InvoicesStub.__new__",
             "request_type": "function",
             "response_type": "data",
             "response": {}
@@ -1905,7 +1930,7 @@
                   "response": {}
                 }
               ],
-              "routerpc": [
+              "router_rpc": [
                 {
                   "description": "two HTLC",
                   "response": {
@@ -1921,6 +1946,8 @@
                       "response": [
                         {
                           "status": 2,
+                          "fee_msat": 50,
+                          "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000",
                           "htlcs": [
                             {
                               "route": {
@@ -1953,7 +1980,7 @@
             "success": true,
             "failed": false,
             "pending": false,
-            "fee_msat": null,
+            "fee_msat": 50,
             "preimage": null
           },
           "mocks": {
@@ -1965,7 +1992,7 @@
                   "response": {}
                 }
               ],
-              "routerpc": [
+              "router_rpc": [
                 {
                   "description": "two HTLC",
                   "response": {
@@ -1981,6 +2008,9 @@
                       "response": [
                         {
                           "status": 2,
+                          "failure_reason": 1,
+                          "fee_msat": 50,
+                          "payment_preimage": null,
                           "htlcs": []
                         }
                       ]
@@ -2122,7 +2152,7 @@
                   "response": {}
                 }
               ],
-              "routerpc": [
+              "router_rpc": [
                 {
                   "description": "no HTLC",
                   "response": {
@@ -2138,6 +2168,7 @@
                       "response": [
                         {
                           "status": 0,
+                          "failure_reason": 1,
                           "htlcs": []
                         }
                       ]
@@ -2157,22 +2188,6 @@
                       },
                       "response_type": "__aiter__",
                       "response": []
-                    }
-                  }
-                },
-                {
-                  "description": "no status",
-                  "response": {
-                    "TrackPaymentV2": {
-                      "request_type": "function",
-                      "request_data": {
-                        "klass": "lnbits.wallets.lnd_grpc_files.router_pb2.TrackPaymentRequest",
-                        "kwargs": {
-                          "__eval__:payment_hash": "bytes.fromhex(\"c386d8e8d07342f2e39e189c8e6c57bb205bb373fe4e3a6f69404a8bb767b417\")"
-                        }
-                      },
-                      "response_type": "__aiter__",
-                      "response": [{}]
                     }
                   }
                 },
@@ -2317,7 +2332,7 @@
                   "response": {}
                 }
               ],
-              "routerpc": [
+              "router_rpc": [
                 {
                   "description": "no HTLC",
                   "response": {}
@@ -2390,7 +2405,7 @@
                   "response": {}
                 }
               ],
-              "routerpc": [
+              "router_rpc": [
                 {
                   "description": "two HTLC",
                   "response": {
@@ -2406,6 +2421,7 @@
                       "response": [
                         {
                           "status": 3,
+                          "failure_reason": 1,
                           "htlcs": []
                         }
                       ]

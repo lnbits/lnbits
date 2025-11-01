@@ -7,14 +7,33 @@ from os import environ
 import grpc
 from loguru import logger
 
-import lnbits.wallets.lnd_grpc_files.invoices_pb2 as invoices
-import lnbits.wallets.lnd_grpc_files.invoices_pb2_grpc as invoicesrpc
-import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
-import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
-import lnbits.wallets.lnd_grpc_files.router_pb2 as router
 from lnbits.helpers import normalize_endpoint
 from lnbits.settings import settings
 from lnbits.utils.crypto import random_secret_and_hash
+from lnbits.wallets.lnd_grpc_files.invoices_pb2 import (
+    AddHoldInvoiceRequest,
+    AddHoldInvoiceResp,
+    CancelInvoiceMsg,
+    CancelInvoiceResp,
+    LookupInvoiceMsg,
+    SettleInvoiceMsg,
+    SettleInvoiceResp,
+)
+from lnbits.wallets.lnd_grpc_files.invoices_pb2_grpc import InvoicesStub
+from lnbits.wallets.lnd_grpc_files.lightning_pb2 import (
+    AddInvoiceResponse,
+    ChannelBalanceRequest,
+    ChannelBalanceResponse,
+    Invoice,
+    InvoiceSubscription,
+    Payment,
+    PaymentFailureReason,
+)
+from lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc import LightningStub
+from lnbits.wallets.lnd_grpc_files.router_pb2 import (
+    SendPaymentRequest,
+    TrackPaymentRequest,
+)
 from lnbits.wallets.lnd_grpc_files.router_pb2_grpc import RouterStub
 
 from .base import (
@@ -32,6 +51,7 @@ from .macaroon import load_macaroon
 
 
 def b64_to_bytes(checking_id: str) -> bytes:
+
     return base64.b64decode(checking_id.replace("_", "/"))
 
 
@@ -64,6 +84,10 @@ environ["GRPC_SSL_CIPHER_SUITES"] = "HIGH+ECDSA"
 
 
 class LndWallet(Wallet):
+    rpc: LightningStub
+    router_rpc: RouterStub
+    invoices_rpc: InvoicesStub
+
     features = [Feature.holdinvoice]
 
     def __init__(self):
@@ -99,9 +123,9 @@ class LndWallet(Wallet):
         channel = grpc.aio.secure_channel(
             f"{self.endpoint}:{self.port}", composite_creds
         )
-        self.rpc = lnrpc.LightningStub(channel)
-        self.routerpc = RouterStub(channel)
-        self.invoicesrpc = invoicesrpc.InvoicesStub(channel)
+        self.rpc = LightningStub(channel)
+        self.router_rpc = RouterStub(channel)
+        self.invoices_rpc = InvoicesStub(channel)
 
     def metadata_callback(self, _, callback):
         callback([("macaroon", self.macaroon)], None)
@@ -111,11 +135,12 @@ class LndWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         try:
-            resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())  # type: ignore
+            req = ChannelBalanceRequest()
+            res: ChannelBalanceResponse = await self.rpc.ChannelBalance(req)
         except Exception as exc:
             return StatusResponse(f"Unable to connect, got: '{exc}'", 0)
 
-        return StatusResponse(None, resp.balance * 1000)
+        return StatusResponse(None, res.balance * 1000)
 
     async def create_invoice(
         self,
@@ -125,18 +150,6 @@ class LndWallet(Wallet):
         unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: dict = {
-            "description_hash": b"",
-            "value": amount,
-            "private": True,
-            "memo": memo or "",
-        }
-        if kwargs.get("expiry"):
-            data["expiry"] = kwargs["expiry"]
-        if description_hash:
-            data["description_hash"] = description_hash
-        elif unhashed_description:
-            data["description_hash"] = sha256(unhashed_description).digest()
 
         preimage = kwargs.get("preimage")
         if preimage:
@@ -144,82 +157,70 @@ class LndWallet(Wallet):
         else:
             preimage, payment_hash = random_secret_and_hash()
 
-        data["r_hash"] = bytes.fromhex(payment_hash)
-        data["r_preimage"] = bytes.fromhex(preimage)
+        invoice = Invoice(
+            value=amount,
+            private=True,
+            memo=memo or "",
+            r_hash=bytes.fromhex(payment_hash),
+            r_preimage=bytes.fromhex(preimage),
+        )
+
+        if kwargs.get("expiry"):
+            invoice.expiry = kwargs.get("expiry", 3600)
+        if description_hash:
+            invoice.description_hash = description_hash
+        elif unhashed_description:
+            invoice.description_hash = sha256(unhashed_description).digest()
+
         try:
-            req = ln.Invoice(**data)  # type: ignore
-            resp = await self.rpc.AddInvoice(req)
-            # response model
-            # {
-            #    "r_hash": <bytes>,
-            #    "payment_request": <string>,
-            #    "add_index": <uint64>,
-            #    "payment_addr": <bytes>,
-            # }
+            res: AddInvoiceResponse = await self.rpc.AddInvoice(invoice)
         except Exception as exc:
             logger.warning(exc)
             return InvoiceResponse(ok=False, error_message=str(exc))
 
-        checking_id = bytes_to_hex(resp.r_hash)
-        payment_request = str(resp.payment_request)
         return InvoiceResponse(
             ok=True,
-            checking_id=checking_id,
-            payment_request=payment_request,
+            checking_id=bytes_to_hex(res.r_hash),
+            payment_request=res.payment_request,
             preimage=preimage,
         )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
-        req = router.SendPaymentRequest(  # type: ignore
+        req = SendPaymentRequest(
             payment_request=bolt11,
             fee_limit_msat=fee_limit_msat,
             timeout_seconds=30,
-            no_inflight_updates=True,
         )
         try:
-            resp = await self.routerpc.SendPaymentV2(req).read()
+            res: Payment = await self.router_rpc.SendPaymentV2(req).read()
         except Exception as exc:
             logger.warning(exc)
             return PaymentResponse(error_message=str(exc))
 
-        # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
-        statuses = {
-            0: None,  # NON_EXISTENT
-            1: None,  # IN_FLIGHT
-            2: True,  # SUCCEEDED
-            3: False,  # FAILED
-        }
-
-        failure_reasons = {
-            0: "Payment failed: No error given.",
-            1: "Payment failed: Payment timed out.",
-            2: "Payment failed: No route to destination.",
-            3: "Payment failed: Error.",
-            4: "Payment failed: Incorrect payment details.",
-            5: "Payment failed: Insufficient balance.",
-        }
-
-        fee_msat = None
-        preimage = None
-        error_message = None
-        checking_id = None
-
-        if statuses[resp.status] is True:  # SUCCEEDED
-            fee_msat = -resp.htlcs[-1].route.total_fees_msat
-            preimage = resp.payment_preimage
-            checking_id = resp.payment_hash
+        if res.status == Payment.PaymentStatus.SUCCEEDED:
             return PaymentResponse(
-                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+                ok=True,
+                checking_id=res.payment_hash,
+                fee_msat=abs(res.fee_msat),
+                preimage=res.payment_preimage,
             )
-        elif statuses[resp.status] is False:
-            error_message = failure_reasons[resp.failure_reason]
-            return PaymentResponse(ok=False, error_message=error_message)
+        elif res.status == Payment.PaymentStatus.FAILED:
+            error_message = PaymentFailureReason.Name(res.failure_reason)
+            return PaymentResponse(
+                ok=False, error_message=f"Payment failed: {error_message}"
+            )
+        elif res.status == Payment.PaymentStatus.IN_FLIGHT:
+            return PaymentResponse(
+                ok=None,
+                checking_id=res.payment_hash,
+                error_message="Payment is IN_FLIGHT.",
+            )
         else:
             return PaymentResponse(
                 ok=None,
-                checking_id=checking_id,
-                error_message="Payment in flight or non-existant.",
+                checking_id=res.payment_hash,
+                error_message="Payment is non-existant.",
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -229,73 +230,80 @@ class LndWallet(Wallet):
                 # this may happen if we switch between backend wallets
                 # that use different checking_id formats
                 raise ValueError
-
-            resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))  # type: ignore
-            if resp.settled:
-                return PaymentSuccessStatus(preimage=resp.r_preimage.hex())
-
-            if resp.state == "CANCELED":
-                return PaymentFailedStatus()
-
-            return PaymentPendingStatus()
-        except grpc.RpcError as exc:
-            logger.warning(exc)
+            req = LookupInvoiceMsg(payment_hash=r_hash)
+            res: Invoice = await self.invoices_rpc.LookupInvoiceV2(req)
+        except grpc.aio.AioRpcError as exc:
+            logger.warning(
+                f"LndWallet.get_invoice_status grpc exception: {exc.details()}"
+            )
             return PaymentPendingStatus()
         except Exception as exc:
-            logger.warning(exc)
+            logger.warning(f"LndWallet.get_invoice_status exception: {exc}")
             return PaymentPendingStatus()
+
+        if res.settled:
+            return PaymentSuccessStatus(preimage=res.r_preimage.hex())
+
+        if res.state == Invoice.InvoiceState.CANCELED:
+            return PaymentFailedStatus()
+
+        return PaymentPendingStatus()
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
-        This routine checks the payment status using routerpc.TrackPaymentV2.
+        This routine checks the payment status using router_rpc.TrackPaymentV2.
+        https://lightning.engineering/api-docs/api/lnd/router/track-payment-v2/#lnrpcpayment
         """
         try:
             r_hash = hex_to_bytes(checking_id)
-            if len(r_hash) != 32:
-                raise ValueError
         except ValueError:
-            # this may happen if we switch between backend wallets
-            # that use different checking_id formats
+            logger.error(
+                f"LndWallet: Invalid checking_id ({checking_id}),"
+                " was the fundingsource changed? Returning pending status."
+            )
             return PaymentPendingStatus()
-
-        # # HTLCAttempt.HTLCStatus:
-        # # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
-        # htlc_statuses = {
-        #     0: None,  # IN_FLIGHT
-        #     1: True,  # "SUCCEEDED"
-        #     2: False,  # "FAILED"
-        # }
-        statuses = {
-            0: None,  # NON_EXISTENT
-            1: None,  # IN_FLIGHT
-            2: True,  # SUCCEEDED
-            3: False,  # FAILED
-        }
 
         try:
-            resp = self.routerpc.TrackPaymentV2(
-                router.TrackPaymentRequest(payment_hash=r_hash)  # type: ignore
+            req = TrackPaymentRequest(payment_hash=r_hash)
+            res = self.router_rpc.TrackPaymentV2(req)
+        except grpc.aio.AioRpcError as exc:
+            logger.error(
+                f"Payment Status grpc exception: {exc.details() or exc.code()}"
             )
-            async for payment in resp:
-                if len(payment.htlcs) and statuses[payment.status]:
-                    return PaymentSuccessStatus(
-                        fee_msat=-payment.htlcs[-1].route.total_fees_msat,
-                        preimage=bytes_to_hex(payment.htlcs[-1].preimage),
-                    )
-                return PaymentStatus(statuses[payment.status])
-        except Exception:  # most likely the payment wasn't found
+            return PaymentPendingStatus()
+        except Exception as exc:  # most likely the payment wasn't found
+            logger.error(f"Payment Status exception: {exc}")
             return PaymentPendingStatus()
 
+        try:
+            async for payment in res:
+                if payment.status == Payment.PaymentStatus.SUCCEEDED:
+                    return PaymentSuccessStatus(
+                        fee_msat=abs(payment.fee_msat),
+                        preimage=payment.payment_preimage,
+                    )
+                elif payment.status == Payment.PaymentStatus.FAILED:
+                    logger.info(f"LND Payment failed: {payment.failure_reason}")
+                    return PaymentFailedStatus()
+                elif payment.status == Payment.PaymentStatus.IN_FLIGHT:
+                    logger.info(f"LND Payment in flight: {checking_id}")
+                    return PaymentPendingStatus()
+        except grpc.aio.AioRpcError as exc:
+            logger.error(
+                f"Payment Status grpc exception: {exc.details() or exc.code()}"
+            )
+            return PaymentPendingStatus()
+
+        logger.info(f"LND Payment non-existent: {checking_id}")
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while settings.lnbits_running:
             try:
-                request = ln.InvoiceSubscription()  # type: ignore
-                async for i in self.rpc.SubscribeInvoices(request):
+                req = InvoiceSubscription()
+                async for i in self.rpc.SubscribeInvoices(req):
                     if not i.settled:
                         continue
-
                     checking_id = bytes_to_hex(i.r_hash)
                     yield checking_id
             except Exception as exc:
@@ -314,35 +322,35 @@ class LndWallet(Wallet):
         unhashed_description: bytes | None = None,
         **kwargs,
     ) -> InvoiceResponse:
-        data: dict = {
-            "description_hash": b"",
-            "value": amount,
-            "hash": hex_to_bytes(payment_hash),
-            "private": True,
-            "memo": memo or "",
-        }
+        hold_invoice = AddHoldInvoiceRequest(
+            value=amount,
+            hash=hex_to_bytes(payment_hash),
+            private=True,
+            memo=memo or "",
+        )
         if kwargs.get("expiry"):
-            data["expiry"] = kwargs["expiry"]
+            hold_invoice.expiry = kwargs.get("expiry", 3600)
         if description_hash:
-            data["description_hash"] = description_hash
+            hold_invoice.description_hash = description_hash
         elif unhashed_description:
-            data["description_hash"] = sha256(unhashed_description).digest()
+            hold_invoice.description_hash = sha256(unhashed_description).digest()
         try:
-            req = invoices.AddHoldInvoiceRequest(**data)  # type: ignore
-            res = await self.invoicesrpc.AddHoldInvoice(req)
+            res: AddHoldInvoiceResp = await self.invoices_rpc.AddHoldInvoice(
+                hold_invoice
+            )
             logger.debug(f"AddHoldInvoice response: {res}")
         except Exception as exc:
             logger.warning(exc)
-            error_message = str(exc)
-            return InvoiceResponse(ok=False, error_message=error_message)
+            return InvoiceResponse(ok=False, error_message=str(exc))
         return InvoiceResponse(
-            ok=True, checking_id=payment_hash, payment_request=str(res.payment_request)
+            ok=True, checking_id=payment_hash, payment_request=res.payment_request
         )
 
     async def settle_hold_invoice(self, preimage: str) -> InvoiceResponse:
         try:
-            req = invoices.SettleInvoiceMsg(preimage=hex_to_bytes(preimage))  # type: ignore
-            await self.invoicesrpc.SettleInvoice(req)
+            req = SettleInvoiceMsg(preimage=hex_to_bytes(preimage))
+            res: SettleInvoiceResp = await self.invoices_rpc.SettleInvoice(req)
+            logger.debug(f"SettleInvoice response: {res}")
         except grpc.aio.AioRpcError as exc:
             return InvoiceResponse(
                 ok=False, error_message=exc.details() or "unknown grpc exception"
@@ -354,8 +362,8 @@ class LndWallet(Wallet):
 
     async def cancel_hold_invoice(self, payment_hash: str) -> InvoiceResponse:
         try:
-            req = invoices.CancelInvoiceMsg(payment_hash=hex_to_bytes(payment_hash))  # type: ignore
-            res = await self.invoicesrpc.CancelInvoice(req)
+            req = CancelInvoiceMsg(payment_hash=hex_to_bytes(payment_hash))
+            res: CancelInvoiceResp = await self.invoices_rpc.CancelInvoice(req)
             logger.debug(f"CancelInvoice response: {res}")
         except Exception as exc:
             logger.warning(exc)

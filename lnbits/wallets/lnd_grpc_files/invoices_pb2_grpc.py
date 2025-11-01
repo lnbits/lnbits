@@ -6,7 +6,7 @@ import warnings
 import lnbits.wallets.lnd_grpc_files.invoices_pb2 as invoices__pb2
 import lnbits.wallets.lnd_grpc_files.lightning_pb2 as lightning__pb2
 
-GRPC_GENERATED_VERSION = '1.68.1'
+GRPC_GENERATED_VERSION = '1.69.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
