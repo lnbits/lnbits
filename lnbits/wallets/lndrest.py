@@ -172,6 +172,13 @@ class LndRestWallet(Wallet):
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        # NOTE: This method uses the legacy /v1/channels/transactions endpoint.
+        # Consider migrating to /v2/router/send (SendPaymentV2) which provides:
+        # - Better multi-path payment (MPP) support
+        # - More reliable fee reporting
+        # - Active maintenance and new features
+        # - Consistent behavior with routerrpc.SendPaymentV2 (used in lndgrpc.py)
+
         # set the fee limit for the payment
         lnrpc_fee_limit = {}
         lnrpc_fee_limit["fixed_msat"] = f"{fee_limit_msat}"
@@ -184,7 +191,7 @@ class LndRestWallet(Wallet):
             if settings.lnd_rest_allow_self_payment:
                 json_["allow_self_payment"] = 1
             r = await self.client.post(
-                url="/v1/channels/transactions",
+                url="/v1/channels/transactions",  # Legacy endpoint - see note above
                 json=json_,
                 timeout=None,
             )
