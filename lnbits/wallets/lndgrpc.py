@@ -281,14 +281,21 @@ class LndWallet(Wallet):
                 router.TrackPaymentRequest(payment_hash=r_hash)  # type: ignore
             )
             async for payment in resp:
-                if len(payment.htlcs) and statuses[payment.status]:
+                status_value = statuses[payment.status]
+
+                # Only return on terminal states (SUCCEEDED or FAILED)
+                # Continue streaming for IN_FLIGHT or NON_EXISTENT states
+                if status_value is True:  # SUCCEEDED
                     # Use top-level fee_msat field which aggregates fees across all HTLCs/attempts
                     # instead of htlcs[-1].route.total_fees_msat which only shows last HTLC's fee
                     return PaymentSuccessStatus(
                         fee_msat=-payment.fee_msat,
-                        preimage=bytes_to_hex(payment.htlcs[-1].preimage),
+                        preimage=bytes_to_hex(payment.payment_preimage),
                     )
-                return PaymentStatus(statuses[payment.status])
+                elif status_value is False:  # FAILED
+                    return PaymentFailedStatus()
+                # else: IN_FLIGHT (status=1) or NON_EXISTENT (status=0) - continue streaming
+
         except Exception:  # most likely the payment wasn't found
             return PaymentPendingStatus()
 
