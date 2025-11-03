@@ -1092,7 +1092,7 @@
         },
         "lndrest": {
           "pay_invoice_endpoint": {
-            "uri": "/v1/channels/transactions",
+            "uri": "/v2/router/send",
             "headers": {
               "Grpc-Metadata-macaroon": "eNcRyPtEdMaCaRoOn",
               "User-Agent": "LNbits/Tests"
@@ -1205,9 +1205,7 @@
                   "response_type": "json",
                   "response": {
                     "payment_hash": "41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",
-                    "payment_route": {
-                      "total_fees_msat": 30000
-                    },
+                    "fee_msat": 30000,
                     "payment_preimage": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
                   }
                 }
