@@ -205,6 +205,8 @@ class LndRestWallet(Wallet):
 
         try:
             payment = data["result"]
+            if payment["state"] == "CANCELED":
+                return PaymentResponse(ok=False, error_message="Payment canceled.")
             checking_id = payment["payment_hash"]
             preimage = payment["payment_preimage"]
             fee_msat = abs(int(payment["fee_msat"]))
