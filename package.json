@@ -85,9 +85,14 @@
       "i18n/sk.js",
       "i18n/kr.js",
       "i18n/fi.js",
+      "js/utils.js",
+      "js/api.js",
+      "js/globals.js",
       "js/base.js",
+      "js/windowMixin.js",
       "js/event-reactions.js",
-      "js/bolt11-decoder.js"
+      "js/bolt11-decoder.js",
+      "js/lnurl.js"
     ],
     "components": [
       "js/pages/payments.js",
