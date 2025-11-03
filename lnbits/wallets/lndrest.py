@@ -274,7 +274,7 @@ class LndRestWallet(Wallet):
                 status = payment.get("status")
                 if status == "SUCCEEDED":
                     return PaymentSuccessStatus(
-                        fee_msat=abs(payment.get("fee_msat", 0)),
+                        fee_msat=abs(int(payment.get("fee_msat", 0))),
                         preimage=payment.get("payment_preimage"),
                     )
                 elif status == "FAILED":
