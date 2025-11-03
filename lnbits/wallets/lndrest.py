@@ -3,7 +3,6 @@ import base64
 import hashlib
 import json
 from collections.abc import AsyncGenerator
-from typing import Any
 
 import httpx
 from loguru import logger
@@ -172,41 +171,23 @@ class LndRestWallet(Wallet):
             )
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        # set the fee limit for the payment
-        lnrpc_fee_limit = {}
-        lnrpc_fee_limit["fixed_msat"] = f"{fee_limit_msat}"
+        req = {
+            "payment_request": bolt11,
+            "fee_limit_msat": fee_limit_msat,
+            "timeout_seconds": 30,
+            "no_inflight_updates": True,
+        }
+        if settings.lnd_rest_allow_self_payment:
+            req["allow_self_payment"] = 1
 
         try:
-            json_: dict[str, Any] = {
-                "payment_request": bolt11,
-                "fee_limit": lnrpc_fee_limit,
-            }
-            if settings.lnd_rest_allow_self_payment:
-                json_["allow_self_payment"] = 1
             r = await self.client.post(
-                url="/v1/channels/transactions",
-                json=json_,
+                url="/v2/router/send",
+                json=req,
                 timeout=None,
             )
             r.raise_for_status()
             data = r.json()
-
-            payment_error = data.get("payment_error")
-            if payment_error:
-                logger.warning(f"LndRestWallet payment_error: {payment_error}.")
-                return PaymentResponse(ok=False, error_message=payment_error)
-
-            checking_id = base64.b64decode(data["payment_hash"]).hex()
-            fee_msat = int(data["payment_route"]["total_fees_msat"])
-            preimage = base64.b64decode(data["payment_preimage"]).hex()
-            return PaymentResponse(
-                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
-            )
-        except KeyError as exc:
-            logger.warning(exc)
-            return PaymentResponse(
-                error_message="Server error: 'missing required fields'"
-            )
         except json.JSONDecodeError:
             return PaymentResponse(
                 error_message="Server error: 'invalid json response'"
@@ -216,6 +197,26 @@ class LndRestWallet(Wallet):
             return PaymentResponse(
                 error_message=f"Unable to connect to {self.endpoint}."
             )
+
+        payment_error = data.get("payment_error")
+        if payment_error:
+            logger.warning(f"LndRestWallet payment_error: {payment_error}.")
+            return PaymentResponse(ok=False, error_message=payment_error)
+
+        try:
+            payment = data["result"]
+            checking_id = payment["payment_hash"]
+            preimage = payment["payment_preimage"]
+            fee_msat = abs(int(payment["fee_msat"]))
+        except KeyError as exc:
+            logger.warning(exc)
+            return PaymentResponse(
+                error_message="Server error: 'missing required fields'"
+            )
+
+        return PaymentResponse(
+            ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = await self.client.get(url=f"/v1/invoice/{checking_id}")
@@ -244,7 +245,6 @@ class LndRestWallet(Wallet):
         """
         This routine checks the payment status using routerpc.TrackPaymentV2.
         """
-        # convert checking_id from hex to base64 and some LND magic
         try:
             checking_id = base64.urlsafe_b64encode(bytes.fromhex(checking_id)).decode(
                 "ascii"
@@ -253,51 +253,39 @@ class LndRestWallet(Wallet):
             return PaymentPendingStatus()
 
         url = f"/v2/router/track/{checking_id}"
-
-        # check payment.status:
-        # https://api.lightning.community/?python=#paymentpaymentstatus
-        statuses = {
-            "UNKNOWN": None,
-            "IN_FLIGHT": None,
-            "SUCCEEDED": True,
-            "FAILED": False,
-        }
-
         async with self.client.stream("GET", url, timeout=None) as r:
             async for json_line in r.aiter_lines():
                 try:
                     line = json.loads(json_line)
-                    if line.get("error"):
-                        logger.error(
-                            line["error"]["message"]
-                            if "message" in line["error"]
-                            else line["error"]
-                        )
-                        if (
-                            line["error"].get("code") == 5
-                            and line["error"].get("message")
-                            == "payment isn't initiated"
-                        ):
-                            return PaymentFailedStatus()
-                        return PaymentPendingStatus()
-                    payment = line.get("result")
-                    if payment is not None and payment.get("status"):
-                        return PaymentStatus(
-                            paid=statuses[payment["status"]],
-                            # API returns fee_msat as string, explicitly convert to int
-                            fee_msat=(
-                                int(payment["fee_msat"])
-                                if payment.get("fee_msat")
-                                else None
-                            ),
-                            preimage=payment.get("payment_preimage"),
-                        )
-                    else:
-                        return PaymentPendingStatus()
                 except Exception as exc:
                     logger.debug(exc)
                     continue
 
+                error = line.get("error")
+                if error:
+                    logger.error(error["message"] if "message" in error else error)
+                    return PaymentPendingStatus()
+
+                payment = line.get("result")
+                if not payment:
+                    logger.error(f"No payment info found for: {checking_id}")
+                    continue
+
+                status = payment.get("status")
+                if status == "SUCCEEDED":
+                    return PaymentSuccessStatus(
+                        fee_msat=abs(payment.get("fee_msat", 0)),
+                        preimage=payment.get("payment_preimage"),
+                    )
+                elif status == "FAILED":
+                    reason = payment.get("failure_reason", "unknown reason")
+                    logger.info(f"LNDRest Payment failed: {reason}")
+                    return PaymentFailedStatus()
+                elif status == "IN_FLIGHT":
+                    logger.info(f"LNDRest Payment in flight: {checking_id}")
+                    return PaymentPendingStatus()
+
+        logger.info(f"LNDRest Payment non-existent: {checking_id}")
         return PaymentPendingStatus()
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
