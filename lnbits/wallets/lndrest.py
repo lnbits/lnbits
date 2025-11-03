@@ -271,13 +271,12 @@ class LndRestWallet(Wallet):
             async for json_line in r.aiter_lines():
                 try:
                     line = json.loads(json_line)
+                    error = line.get("error")
+                    if error:
+                        logger.error(error["message"] if "message" in error else error)
+                        return PaymentPendingStatus()
                 except Exception as exc:
-                    logger.debug(exc)
-                    continue
-
-                error = line.get("error")
-                if error:
-                    logger.error(error["message"] if "message" in error else error)
+                    logger.error("Invalid JSON line in payment status stream:", exc)
                     return PaymentPendingStatus()
 
                 payment = line.get("result")

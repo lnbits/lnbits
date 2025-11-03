@@ -1204,9 +1204,12 @@
                   },
                   "response_type": "json",
                   "response": {
-                    "payment_hash": "41UmpD0E6YVZTA36uEiBT1JLHHhlmOyaY77dstcmrJY=",
-                    "fee_msat": 30000,
-                    "payment_preimage": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+                    "result": {
+                      "status": "SUCCEEDED",
+                      "payment_hash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                      "fee_msat": 30000,
+                      "payment_preimage": "0000000000000000000000000000000000000000000000000000000000000000"
+                    }
                   }
                 }
               ]
@@ -2621,16 +2624,6 @@
                   "response": {
                     "result": {
                       "status": "FAILED"
-                    }
-                  }
-                },
-                {
-                  "description": "error code 5",
-                  "response_type": "stream",
-                  "response": {
-                    "error": {
-                      "code": 5,
-                      "message": "payment isn't initiated"
                     }
                   }
                 }
