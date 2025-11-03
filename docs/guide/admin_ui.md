@@ -1,3 +1,9 @@
+---
+layout: default
+title: Admin UI
+nav_order: 1
+---
+
 <a href="https://lnbits.com" target="_blank" rel="noopener noreferrer">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png">
@@ -16,7 +22,7 @@ We introduced the Admin UI as the new default to make setup simpler and more str
 
 <ins>On a fresh install the Admin UI is enabled by default</ins>, and at first launch you are prompted to create **Super User** credentials so that sensitive operations, such as switching funding sources, remain in trusted hands. When the Admin UI is enabled, configuration is written to and read from the database; for all settings managed by the UI, the parameters in `.env` are largely no longer used. If you disable the Admin UI, the `.env` file becomes the single source of truth again.
 
-For privileged actions and role details see **[Super User](./super_user.md)** & [User Roles](./user_roles.md)  
+For privileged actions and role details see **[Super User](./super_user.md)** & [User Roles](./user_roles.md)
 For a complete reference of legacy variables consult **[.env.example](../../.env.example)**.
 
 <img width="900" height="640" alt="grafik" src="https://github.com/user-attachments/assets/d8852b4b-21be-446f-a1e7-d3eb794d3505" />
@@ -115,7 +121,7 @@ LNbits empowers everyone with modular, open source tools for building Bitcoin ba
 
 If you like this project, [send some tip love](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg) or visit our [Shop](https://shop.lnbits.de)
 
-[![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)  
+[![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)
 [![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart&logoColor=white&labelColor=5B21B6)](https://shop.lnbits.com/)
 [![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning&logoColor=white&labelColor=1E40AF)](https://my.lnbits.com/login)
 [![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss&logoColor=white&labelColor=C2410C)](https://news.lnbits.com/)

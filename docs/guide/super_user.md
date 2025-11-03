@@ -1,3 +1,9 @@
+---
+layout: default
+title: Super user
+nav_order: 1
+---
+
 <a href="https://lnbits.com" target="_blank" rel="noopener noreferrer">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png">

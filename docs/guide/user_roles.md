@@ -1,3 +1,9 @@
+---
+layout: default
+title: User Roles
+nav_order: 1
+---
+
 <a href="https://lnbits.com" target="_blank" rel="noopener noreferrer">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png">
@@ -14,7 +20,7 @@
 
 ### Understand **who can do what** in seconds: `Super User`, `Admin`, and `Regular User`.
 
-**Jump to:**  
+**Jump to:**
 [Roles at a Glance](#roles-at-a-glance) •
 [Super User](#super-user--master-control) •
 [Admin](#admin--day-to-day-manager) •
@@ -89,7 +95,7 @@ LNbits empowers everyone with modular, open-source tools for building Bitcoin-ba
 
 If you like this project, [send some tip love](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg) or visit our [Shop](https://shop.lnbits.de)
 
-[![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)  
+[![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)
 [![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart&logoColor=white&labelColor=5B21B6)](https://shop.lnbits.com/)
 [![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning&logoColor=white&labelColor=1E40AF)](https://my.lnbits.com/login)
 [![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss&logoColor=white&labelColor=C2410C)](https://news.lnbits.com/)

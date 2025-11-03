@@ -1,3 +1,9 @@
+---
+layout: default
+title: FastAPI extension upgrade
+nav_order: 1
+---
+
 ## Defining a route with path parameters
 
 **old:**

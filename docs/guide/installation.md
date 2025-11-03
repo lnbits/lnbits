@@ -1,3 +1,9 @@
+---
+layout: default
+title: Installation
+nav_order: 1
+---
+
 <a href="https://lnbits.com" target="_blank" rel="noopener noreferrer">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/QE6SIrs.png">
@@ -51,8 +57,8 @@ LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 ./LNbits-latest.AppImage # most syst
 - LNbits will create a folder for DB and extension files **in the same directory** as the AppImage.
 
 > [!NOTE]
-> **Next steps**  
-> Install complete → **[Running LNbits](#run-the-server)**  
+> **Next steps**
+> Install complete → **[Running LNbits](#run-the-server)**
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
 ## Option 2: UV (recommended for developers)
@@ -117,8 +123,8 @@ uv run lnbits
 #### Use Admin UI → Extensions → "Update All" to bring extensions up to the proper level
 
 > [!NOTE]
-> **Next steps**  
-> Install complete → **[Running LNbits](#run-the-server)**  
+> **Next steps**
+> Install complete → **[Running LNbits](#run-the-server)**
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
 ## Option 2a (Legacy): Poetry — _Replaced by UV_
@@ -197,8 +203,8 @@ poetry run lnbits
 #### Use Admin UI → Extensions → "Update All" to bring extensions up to the proper level
 
 > ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=494949)
-> **Next steps**  
-> Install complete → **[Running LNbits](#run-the-server)**  
+> **Next steps**
+> Install complete → **[Running LNbits](#run-the-server)**
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
 </details>
@@ -217,8 +223,8 @@ chmod +x lnbits.sh &&
 - You can use `./lnbits.sh` to run, but for more control: `cd lnbits` and use `uv run lnbits` (see Option 2).
 
 > ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=494949)
-> **Next steps**  
-> Install complete → **[Running LNbits](#run-the-server)**  
+> **Next steps**
+> Install complete → **[Running LNbits](#run-the-server)**
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
 </details>
@@ -286,7 +292,7 @@ SUPER_USER=be54db7f245346c8833eaa430e1e0405 LNBITS_ADMIN_UI=true ./result/bin/ln
 ```
 
 > ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=494949)
-> **Next steps**  
+> **Next steps**
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
 </details>
@@ -340,8 +346,8 @@ docker build --build-arg POETRY_INSTALL_ARGS="-E breez" -t lnbits/lnbits .
 ```
 
 > ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=494949)
-> **Next steps**  
-> Install complete → **[Running LNbits](#run-the-server)**  
+> **Next steps**
+> Install complete → **[Running LNbits](#run-the-server)**
 > Update LNBits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
 </details>
@@ -380,14 +386,14 @@ You'll be prompted to enter an app name, region, postgres (choose no), deploy no
 You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings.
 
 > ![IMPORTANT](https://img.shields.io/badge/IMPORTANT-7c3aed?labelColor=494949)
-> Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`.  
-> Environment variable strings should be quoted here. For example, if `.env` has  
-> `LNBITS_ENDPOINT=https://demo.lnbits.com`, then in `fly.toml` use  
+> Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`.
+> Environment variable strings should be quoted here. For example, if `.env` has
+> `LNBITS_ENDPOINT=https://demo.lnbits.com`, then in `fly.toml` use
 > `LNBITS_ENDPOINT="https://demo.lnbits.com"`.
 
 > ![WARNING](https://img.shields.io/badge/WARNING-ea580c?labelColor=494949)
-> Don't enter secret environment variables here. Fly.io offers **secrets** (via `fly secrets`) that are exposed as env vars at runtime.  
-> Example (LND REST funding source):  
+> Don't enter secret environment variables here. Fly.io offers **secrets** (via `fly secrets`) that are exposed as env vars at runtime.
+> Example (LND REST funding source):
 > `fly secrets set LND_REST_MACAROON=<hex_macaroon_data>`
 
 ```
@@ -445,8 +451,8 @@ poetry add setuptools wheel
 
 > ![NOTE](https://img.shields.io/badge/NOTE-3b82f6?labelColor=0b0b0b)
 >
-> **Next steps**  
-> Install complete → **[Running LNbits](#run-the-server)**  
+> **Next steps**
+> Install complete → **[Running LNbits](#run-the-server)**
 > Update LNbits → **[Update LNbits (all methods)](#update-lnbits-all-methods)**
 
 ## Troubleshooting
@@ -524,22 +530,22 @@ Visit **[http://localhost:5000/](http://localhost:5000/)** (or `0.0.0.0:5000`).
 > [!NOTE]
 > **Paths overview**
 >
-> - **SuperUser file:** `<lnbits_root>/data/.super_user`  
+> - **SuperUser file:** `<lnbits_root>/data/.super_user`
 >   Example: `~/lnbits/data/.super_user` • View: `cat ~/lnbits/data/.super_user`
 > - **Environment file:** `<lnbits_root>/.env` (for bare-metal installs)
-> - **Docker:** bind a host directory to `/app/data`.  
->   On the host the SuperUser file is at `<host_data_dir>/.super_user`.  
+> - **Docker:** bind a host directory to `/app/data`.
+>   On the host the SuperUser file is at `<host_data_dir>/.super_user`.
 >   The container reads `/app/.env` (usually bind-mounted from your project root).
 
 > [!TIP]
-> **Local Lightning test network**  
-> Use **Polar** to spin up a safe local Lightning environment and test LNbits without touching your live setup.  
+> **Local Lightning test network**
+> Use **Polar** to spin up a safe local Lightning environment and test LNbits without touching your live setup.
 > https://lightningpolar.com/
 
 > [!TIP]
-> **API comparison before updates**  
-> Use **TableTown** to diff your LNbits instance against another (dev vs prod) or the upstream dev branch. Spot endpoint changes before updating.  
-> Crafted by [Arbadacarbayk](https://github.com/arbadacarbaYK) - a standout contribution that makes pre-release reviews fast and reliable.  
+> **API comparison before updates**
+> Use **TableTown** to diff your LNbits instance against another (dev vs prod) or the upstream dev branch. Spot endpoint changes before updating.
+> Crafted by [Arbadacarbayk](https://github.com/arbadacarbaYK) - a standout contribution that makes pre-release reviews fast and reliable.
 > https://arbadacarbayk.github.io/LNbits_TableTown/
 
 # Additional guides
@@ -884,5 +890,5 @@ LNbits empowers everyone with modular, open-source tools for building Bitcoin-ba
 
 If you like this project [send some tip love](https://demo.lnbits.com/tipjar/DwaUiE4kBX6mUW6pj3X5Kg) or visiting our [Shop](https://shop.lnbits.com)
 
-[![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)  
+[![LNbits Shop](https://demo.lnbits.com/static/images/bitcoin-shop-banner.png)](https://shop.lnbits.com/)
 [![Visit LNbits Shop](https://img.shields.io/badge/Visit-LNbits%20Shop-7C3AED?logo=shopping-cart&logoColor=white&labelColor=5B21B6)](https://shop.lnbits.com/) [![Try myLNbits SaaS](https://img.shields.io/badge/Try-myLNbits%20SaaS-2563EB?logo=lightning&logoColor=white&labelColor=1E40AF)](https://my.lnbits.com/login) [![Read LNbits News](https://img.shields.io/badge/Read-LNbits%20News-F97316?logo=rss&logoColor=white&labelColor=C2410C)](https://news.lnbits.com/) [![Explore LNbits Extensions](https://img.shields.io/badge/Explore-LNbits%20Extensions-10B981?logo=puzzle-piece&logoColor=white&labelColor=065F46)](https://extensions.lnbits.com/)

@@ -1,3 +1,9 @@
+---
+layout: default
+title: Extension Install
+nav_order: 1
+---
+
 # Extension Install
 
 Anyone can create an extension by following the [example extension](https://github.com/lnbits/example) and [making extensions](https://github.com/lnbits/lnbits/blob/main/docs/devs/extensions.md) dev guide.
