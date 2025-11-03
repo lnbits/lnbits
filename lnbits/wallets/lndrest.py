@@ -205,8 +205,7 @@ class LndRestWallet(Wallet):
 
         try:
             payment = data["result"]
-            if payment["state"] == "CANCELED":
-                return PaymentResponse(ok=False, error_message="Payment canceled.")
+            status = payment["status"]
             checking_id = payment["payment_hash"]
             preimage = payment["payment_preimage"]
             fee_msat = abs(int(payment["fee_msat"]))
@@ -216,8 +215,21 @@ class LndRestWallet(Wallet):
                 error_message="Server error: 'missing required fields'"
             )
 
+        if status == "SUCCEEDED":
+            return PaymentResponse(
+                ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            )
+        elif status == "FAILED":
+            reason = payment.get("failure_reason", "unknown reason")
+            return PaymentResponse(
+                ok=False, checking_id=checking_id, error_message=reason
+            )
+        elif status == "IN_FLIGHT":
+            return PaymentResponse(ok=None, checking_id=checking_id)
         return PaymentResponse(
-            ok=True, checking_id=checking_id, fee_msat=fee_msat, preimage=preimage
+            ok=False,
+            checking_id=checking_id,
+            error_message="Server error: 'unknown payment status returned'",
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
