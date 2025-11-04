@@ -1,7 +1,7 @@
 window.LNbits = {
   g: window.g,
-  utils: window.lnbitsUtils,
-  api: window.lnbitsApi,
+  utils: window._lnbitsUtils,
+  api: window._lnbitsApi,
   events: {
     onInvoicePaid(wallet, cb) {
       ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)

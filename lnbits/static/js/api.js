@@ -1,4 +1,4 @@
-window.lnbitsApi = {
+window._lnbitsApi = {
   request(method, url, apiKey, data, options = {}) {
     return axios({
       method: method,

@@ -1,4 +1,4 @@
-window.lnbitsUtils = {
+window._lnbitsUtils = {
   confirmDialog(msg) {
     return Quasar.Dialog.create({
       message: msg,
