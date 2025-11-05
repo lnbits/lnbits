@@ -478,10 +478,7 @@ window.windowMixin = {
       mobileSimple: true,
       walletFlip: true,
       addWalletDialog: {show: false, walletType: 'lightning'},
-      walletTypes: [
-        {label: 'Lightning Wallet', value: 'lightning'},
-        {label: 'Lightning Wallet (Shared)', value: 'lightning-shared'}
-      ],
+      walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
       isUserAuthorized: false,
       isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
       allowedThemes: WINDOW_SETTINGS['LNBITS_THEME_OPTIONS'],
@@ -538,15 +535,8 @@ window.windowMixin = {
         })
         return
       }
-      let walletType = data.walletType
-      if (
-        ['lightning-shared', 'lightning-shared-invite'].includes(
-          data.walletType
-        )
-      ) {
-        walletType = 'lightning-shared'
-      }
-      if (walletType === 'lightning-shared' && !data.sharedWalletId) {
+
+      if (data.walletType === 'lightning-shared' && !data.sharedWalletId) {
         this.$q.notify({
           message: 'Please enter a shared wallet ID',
           color: 'warning'
@@ -557,9 +547,9 @@ window.windowMixin = {
         await LNbits.api.createWallet(
           this.g.user.wallets[0],
           data.name,
-          walletType,
+          data.walletType,
           {
-            shared_wallet_id: data.sharedWalletId
+            shared_wallet_id: data.sharedWalletId // todo: request id?
           }
         )
 
@@ -569,6 +559,7 @@ window.windowMixin = {
         LNbits.utils.notifyApiError(e)
       }
     },
+    submitRejectWallet() {},
 
     simpleMobile() {
       this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
@@ -828,7 +819,7 @@ window.windowMixin = {
     if (this.g.user?.extra?.wallet_invite_requests?.length) {
       this.walletTypes.push({
         label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
-        value: 'lightning-shared-invite'
+        value: 'lightning-shared'
       })
     }
     if (window.wallet) {
