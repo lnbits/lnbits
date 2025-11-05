@@ -22,44 +22,47 @@
   </template>
   <q-card>
     <q-card-section>
-      Other users can requests access to this wallet if they have the wallet ID.
+      You can invite other users to have access to this wallet.
       <br />
-      They will not have access to it until you grant them permission.
+      The access is limitted by the permission you grant.
     </q-card-section>
+
     <q-card-section>
-      <q-item dense class="q-pa-none">
-        <q-item-section>
-          <q-item-label>
-            <strong>Wallet ID: </strong
-            ><em v-text="walletIdHidden ? '****************' : wallet.id"></em>
-          </q-item-label>
-        </q-item-section>
-        <q-item-section side>
-          <div>
-            <q-icon
-              :name="walletIdHidden ? 'visibility_off' : 'visibility'"
-              class="cursor-pointer"
-              @click="walletIdHidden = !walletIdHidden"
-            ></q-icon>
-            <q-icon
-              name="content_copy"
-              class="cursor-pointer q-ml-sm"
-              @click="copyText(wallet.id)"
-            ></q-icon>
-            <q-icon name="qr_code" class="cursor-pointer q-ml-sm">
-              <q-popup-proxy>
-                <div class="q-pa-md">
-                  <lnbits-qrcode
-                    :value="wallet.id"
-                    :show-buttons="false"
-                  ></lnbits-qrcode>
-                </div>
-              </q-popup-proxy>
-            </q-icon>
-          </div>
-        </q-item-section>
-      </q-item>
+      <div class="row">
+        <div class="col-5">
+          <q-input
+            v-model="walletShareInvite.username"
+            label="Username"
+            hint="Invite user to this wallet"
+            dense
+          >
+          </q-input>
+        </div>
+        <div class="col-6">
+          <q-select
+            :options="permissionOptions"
+            v-model="walletShareInvite.permissions"
+            emit-value
+            map-options
+            multiple
+            use-chips
+            dense
+            class="q-pl-md"
+            hint="Select permissions for this user"
+          ></q-select>
+        </div>
+        <div class="col-1">
+          <q-btn
+            @click="inviteUserToWallet()"
+            dense
+            flat
+            icon="person_add_alt"
+            class="float-right"
+          ></q-btn>
+        </div>
+      </div>
     </q-card-section>
+    <q-separator class="q-mt-lg"></q-separator>
     <q-expansion-item
       group="wallet_shares"
       dense
@@ -157,101 +160,9 @@
         <q-card-section v-else>
           <span>No pending invites.</span>
         </q-card-section>
-
-        <q-card-section>
-          <div class="row">
-            <div class="col-5">
-              <q-input
-                v-model="walletShareInvite.username"
-                label="Username"
-                hint="Invite user to this wallet"
-                dense
-              >
-              </q-input>
-            </div>
-            <div class="col-6">
-              <q-select
-                :options="permissionOptions"
-                v-model="walletShareInvite.permissions"
-                emit-value
-                map-options
-                multiple
-                use-chips
-                dense
-                class="q-pl-md"
-              ></q-select>
-            </div>
-            <div class="col-1">
-              <q-btn
-                @click="inviteUserToWallet()"
-                dense
-                flat
-                color="primary"
-                icon="person_add_alt"
-              ></q-btn>
-            </div>
-          </div>
-        </q-card-section>
       </q-card>
     </q-expansion-item>
 
-    <q-expansion-item
-      group="wallet_shares"
-      dense
-      expand-separator
-      icon="hail"
-      :label="'Pending Requests (' + walletPendingRequests.length + ')'"
-    >
-      <q-card>
-        <q-card-section v-if="walletPendingRequests.length">
-          <div v-for="share in walletPendingRequests" class="row q-mb-xs">
-            <div class="col-3 q-mt-md">
-              <strong v-text="share.username"></strong>
-            </div>
-            <div class="col-1 q-mt-sm">
-              <q-icon v-if="share.comment" name="add_comment">
-                <q-tooltip v-text="share.comment"></q-tooltip>
-              </q-icon>
-            </div>
-            <div class="col-6">
-              <q-select
-                v-model="share.permissions"
-                :options="permissionOptions"
-                emit-value
-                map-options
-                multiple
-                use-chips
-                dense
-              ></q-select>
-            </div>
-            <div class="col-1 q-mt-sm">
-              <q-btn
-                flat
-                color="red"
-                icon="delete"
-                outline
-                class="full-width"
-                @click="deleteSharePermission(share)"
-              ></q-btn>
-            </div>
-            <div class="col-1 q-mt-sm">
-              <q-btn
-                dense
-                flat
-                color="primary"
-                icon="check"
-                class="full-width"
-                @click="updateSharePermissions(share)"
-              ></q-btn>
-            </div>
-          </div>
-        </q-card-section>
-
-        <q-card-section v-else>
-          <span>No pending requests.</span>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
     <q-card-section> </q-card-section>
   </q-card>
 </q-expansion-item>

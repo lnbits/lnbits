@@ -79,6 +79,10 @@ async def api_wallets_paginated(
 async def api_invite_wallet_share(
     data: WalletSharePermission, key_info: WalletTypeInfo = Depends(require_admin_key)
 ) -> WalletSharePermission:
+    if data.wallet_id != key_info.wallet.id:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Wallet ID does not match the admin key's wallet."
+        )
     return await invite_to_wallet(key_info.wallet, data)
 
 
