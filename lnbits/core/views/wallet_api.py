@@ -24,6 +24,7 @@ from lnbits.core.services.wallets import (
     create_lightning_shared_wallet,
     delete_wallet_share,
     invite_to_wallet,
+    reject_wallet_invitation,
     update_wallet_share_permissions,
 )
 from lnbits.db import Filters, Page
@@ -84,6 +85,14 @@ async def api_invite_wallet_share(
             HTTPStatus.FORBIDDEN, "Wallet ID does not match the admin key's wallet."
         )
     return await invite_to_wallet(key_info.wallet, data)
+
+
+@wallet_router.delete("/share/invite/{share_request_id}")
+async def api_reject_wallet_invitation(
+    share_request_id: str, key_info: WalletTypeInfo = Depends(require_admin_key)
+) -> SimpleStatus:
+    await reject_wallet_invitation(key_info.wallet.user, share_request_id)
+    return SimpleStatus(success=True, message="Invitation rejected.")
 
 
 @wallet_router.put("/share")

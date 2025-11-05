@@ -139,7 +139,10 @@ async def get_wallet(
 
 
 async def get_wallets(
-    user_id: str, deleted: bool | None = False, conn: Connection | None = None
+    user_id: str,
+    deleted: bool | None = False,
+    wallet_type: WalletType | None = None,
+    conn: Connection | None = None,
 ) -> list[Wallet]:
     query = """
             SELECT *, COALESCE((
@@ -149,9 +152,15 @@ async def get_wallets(
             """
     if deleted is not None:
         query += " AND deleted = :deleted "
+    if wallet_type is not None:
+        query += " AND wallet_type = :wallet_type "
     wallets = await (conn or db).fetchall(
         query,
-        {"user": user_id, "deleted": deleted},
+        {
+            "user": user_id,
+            "deleted": deleted,
+            "wallet_type": wallet_type.value if wallet_type else None,
+        },
         Wallet,
     )
 

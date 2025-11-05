@@ -72,6 +72,12 @@ class UserExtra(BaseModel):
         self.wallet_invite_requests.append(invite)
         return invite
 
+    def find_wallet_invite_request(self, request_id: str) -> WalletInviteRequest | None:
+        for invite in self.wallet_invite_requests:
+            if invite.request_id == request_id:
+                return invite
+        return None
+
     def remove_wallet_invite_request(
         self,
         request_id: str,
