@@ -704,7 +704,7 @@ window.WalletPageLogic = {
       try {
         const {data} = await LNbits.api.request(
           'PUT',
-          '/api/v1/wallet/share/accept',
+          '/api/v1/wallet/share',
           this.g.wallet.adminkey,
           permission
         )
