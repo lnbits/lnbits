@@ -43,8 +43,8 @@ class WalletShareStatus(Enum):
 
 class WalletSharePermission(BaseModel):
     request_id: str | None
-    username: str | None
-    wallet_id: str | None
+    username: str
+    wallet_id: str
     permissions: list[WalletPermission] = []
     status: WalletShareStatus
     comment: str | None = None
@@ -72,12 +72,12 @@ class WalletExtra(BaseModel):
     # What permissions this wallet grants when it's shared with other users
     shared_with: list[WalletSharePermission] = []
 
-    def add_share_request(
+    def invite_user_to_shared_wallet(
         self,
         request_id: str,
         request_type: WalletShareStatus,
-        wallet_id: str | None = None,
-        username: str | None = None,
+        wallet_id: str,
+        username: str,
         permissions: list[WalletPermission] | None = None,
     ) -> WalletSharePermission:
         share = WalletSharePermission(

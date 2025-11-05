@@ -723,7 +723,11 @@ window.WalletPageLogic = {
           'PUT',
           '/api/v1/wallet/share/invite',
           this.g.wallet.adminkey,
-          {...this.walletShareInvite, status: 'invite_sent'}
+          {
+            ...this.walletShareInvite,
+            status: 'invite_sent',
+            wallet_id: this.g.wallet.id
+          }
         )
 
         this.g.wallet.extra.shared_with.push(data)

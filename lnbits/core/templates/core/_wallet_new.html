@@ -6,7 +6,7 @@
   </q-card-section>
   <q-card-section v-if="g.user.walletInvitesCount">
     <q-badge
-      @click="addWalletDialog.walletType='lightning-shared-invite'"
+      @click="addWalletDialog.walletType='lightning-shared'"
       class="cursor-pointer"
     >
       <span
@@ -19,6 +19,7 @@
 
   <q-card-section class="q-pt-none">
     <q-select
+      v-if="walletTypes.length > 1"
       :options="walletTypes"
       emit-value
       map-options
@@ -36,16 +37,8 @@
       class="q-mt-md"
     ></q-input>
 
-    <q-input
-      v-if="addWalletDialog.walletType == 'lightning-shared'"
-      dense
-      v-model="addWalletDialog.sharedWalletId"
-      :label="$t('shared_wallet_id')"
-      class="q-mt-md"
-    ></q-input>
-
     <q-select
-      v-if="addWalletDialog.walletType == 'lightning-shared-invite'"
+      v-if="addWalletDialog.walletType == 'lightning-shared'"
       v-model="addWalletDialog.sharedWalletId"
       :label="$t('shared_wallet_id')"
       emit-value
@@ -72,6 +65,13 @@
 
   <q-card-actions align="right" class="text-primary">
     <q-btn flat :label="$t('cancel')" v-close-popup></q-btn>
+    <q-btn
+      flat
+      :label="$t('reject_wallet')"
+      v-close-popup
+      color="negative"
+      @click="submitRejectWallet()"
+    ></q-btn>
     <q-btn
       flat
       :label="$t('add_wallet')"
