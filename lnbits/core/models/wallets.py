@@ -43,7 +43,7 @@ class WalletShareStatus(Enum):
 
 class WalletSharePermission(BaseModel):
     # unique identifier for this share request
-    request_id: str | None
+    request_id: str | None = None
     # username of the invited user
     username: str
     # ID of the wallet being shared

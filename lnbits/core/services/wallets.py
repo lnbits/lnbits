@@ -23,7 +23,9 @@ from lnbits.db import Connection
 from lnbits.helpers import sha256s
 
 
-async def invite_to_wallet(source_wallet: Wallet, data: WalletSharePermission):
+async def invite_to_wallet(
+    source_wallet: Wallet, data: WalletSharePermission
+) -> WalletSharePermission:
     if not source_wallet.is_lightning_wallet:
         raise ValueError("Only lightning wallets can be shared.")
     if not data.username:
