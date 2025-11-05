@@ -57,7 +57,8 @@ window.localisation.en = {
   share_wallet: 'Share Wallet',
   update_permissions: 'Update Permissions',
   shared_wallet_id: 'Shared Wallet ID',
-  shared_wallet_desc: 'You have been invited to have access to this wallet.',
+  shared_wallet_desc:
+    "You have been invited to have access to someone else's wallet.",
   wallets: 'Wallets',
   exclude_wallets: 'Exclude Wallets',
   add_wallet: 'Add wallet',

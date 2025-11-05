@@ -32,6 +32,7 @@
         <div class="col-5">
           <q-input
             v-model="walletShareInvite.username"
+            @keyup.enter="inviteUserToWallet()"
             label="Username"
             hint="Invite user to this wallet"
             dense

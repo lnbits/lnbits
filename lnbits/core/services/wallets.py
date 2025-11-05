@@ -8,6 +8,7 @@ from lnbits.core.crud.wallets import (
     force_delete_wallet,
     get_standalone_wallet,
     get_wallet,
+    get_wallets,
     update_wallet,
 )
 from lnbits.core.models.misc import SimpleStatus
@@ -59,6 +60,19 @@ async def invite_to_wallet(source_wallet: Wallet, data: WalletSharePermission):
     return invite_request
 
 
+async def reject_wallet_invitation(invited_user_id: str, share_request_id: str):
+    invited_user = await get_account(invited_user_id)
+    if not invited_user:
+        raise ValueError("Invited user not found.")
+
+    existing_request = invited_user.extra.find_wallet_invite_request(share_request_id)
+    if not existing_request:
+        raise ValueError("Invitation not found.")
+
+    invited_user.extra.remove_wallet_invite_request(share_request_id)
+    await update_account(invited_user)
+
+
 async def update_wallet_share_permissions(
     source_wallet: Wallet, data: WalletSharePermission
 ) -> WalletSharePermission:
@@ -92,7 +106,24 @@ async def delete_wallet_share(source_wallet: Wallet, request_id: str):
     if not share:
         raise ValueError("Wallet share not found.")
     source_wallet.extra.remove_share_by_id(request_id)
-    mirror_wallet = await get_wallet(share.wallet_id) if share.wallet_id else None
+
+    invited_user = await get_account_by_username_or_email(share.username)
+    if not invited_user:
+        await update_wallet(source_wallet)
+        return SimpleStatus(
+            success=True, message="Permission removed. Invited user not found."
+        )
+    if invited_user.extra.find_wallet_invite_request(request_id):
+        invited_user.extra.remove_wallet_invite_request(request_id)
+        await update_account(invited_user)
+
+    mirror_wallets = await get_wallets(
+        invited_user.id, wallet_type=WalletType.LIGHTNING_SHARED
+    )
+    mirror_wallet = next(
+        (w for w in mirror_wallets if w.shared_wallet_id == source_wallet.id), None
+    )
+
     if not mirror_wallet:
         await update_wallet(source_wallet)
         return SimpleStatus(
