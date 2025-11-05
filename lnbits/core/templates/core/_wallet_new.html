@@ -55,28 +55,40 @@
       class="q-mt-md"
     >
       <span v-text="$t('shared_wallet_desc')" class="q-mt-lg"></span>
-      <br />
-      <span
-        v-text="$t('shared_wallet_access_desc')"
-        style="word-break: break-all"
-      ></span>
     </div>
   </q-card-section>
 
-  <q-card-actions align="right" class="text-primary">
-    <q-btn flat :label="$t('cancel')" v-close-popup></q-btn>
-    <q-btn
-      flat
-      :label="$t('reject_wallet')"
-      v-close-popup
-      color="negative"
-      @click="submitRejectWallet()"
-    ></q-btn>
-    <q-btn
-      flat
-      :label="$t('add_wallet')"
-      v-close-popup
-      @click="submitAddWallet()"
-    ></q-btn>
+  <q-card-actions class="text-primary">
+    <div class="row full-width">
+      <div class="col-md-4">
+        <q-btn
+          flat
+          :label="$t('cancel')"
+          class="float-left"
+          v-close-popup
+        ></q-btn>
+      </div>
+      <div class="col-md-4">
+        <q-btn
+          v-if="addWalletDialog.walletType == 'lightning-shared'"
+          :disabled="!addWalletDialog.sharedWalletId"
+          flat
+          :label="$t('reject_wallet')"
+          v-close-popup
+          color="negative"
+          @click="submitRejectWallet()"
+        ></q-btn>
+        <span v-else></span>
+      </div>
+      <div class="col-md-4">
+        <q-btn
+          flat
+          :label="$t('add_wallet')"
+          v-close-popup
+          @click="submitAddWallet()"
+          class="float-right"
+        ></q-btn>
+      </div>
+    </div>
   </q-card-actions>
 </q-card>
