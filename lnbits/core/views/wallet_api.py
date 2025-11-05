@@ -21,10 +21,10 @@ from lnbits.core.models.wallets import (
     WalletType,
 )
 from lnbits.core.services.wallets import (
-    accept_wallet_invitation,
     create_lightning_shared_wallet,
     delete_wallet_share,
     invite_to_wallet,
+    update_wallet_share_permissions,
 )
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -86,11 +86,11 @@ async def api_invite_wallet_share(
     return await invite_to_wallet(key_info.wallet, data)
 
 
-@wallet_router.put("/share/accept")
+@wallet_router.put("/share")
 async def api_accept_wallet_share_request(
     data: WalletSharePermission, key_info: WalletTypeInfo = Depends(require_admin_key)
 ) -> WalletSharePermission:
-    return await accept_wallet_invitation(key_info.wallet, data)
+    return await update_wallet_share_permissions(key_info.wallet, data)
 
 
 @wallet_router.delete("/share/{share_request_id}")

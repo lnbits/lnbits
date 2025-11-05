@@ -59,7 +59,9 @@ async def invite_to_wallet(source_wallet: Wallet, data: WalletSharePermission):
     return invite_request
 
 
-async def accept_wallet_invitation(source_wallet: Wallet, data: WalletSharePermission):
+async def update_wallet_share_permissions(
+    source_wallet: Wallet, data: WalletSharePermission
+) -> WalletSharePermission:
     if not source_wallet.is_lightning_wallet:
         raise ValueError("Only lightning wallets can be shared.")
     if not data.wallet_id:
@@ -68,14 +70,14 @@ async def accept_wallet_invitation(source_wallet: Wallet, data: WalletSharePermi
     share = source_wallet.extra.find_share_for_wallet(data.wallet_id)
     if not share:
         raise ValueError("Share not found")
-    if not share.wallet_id:
-        raise ValueError("Wallet ID missing in share.")
 
     mirror_wallet = await get_wallet(share.wallet_id)
     if not mirror_wallet:
         raise ValueError("Target wallet not found")
     if not mirror_wallet.is_lightning_shared_wallet:
         raise ValueError("Target wallet is not a shared wallet.")
+    if mirror_wallet.shared_wallet_id != source_wallet.id:
+        raise ValueError("Not the owner of the shared wallet.")
 
     share.approve(permissions=data.permissions)
     await update_wallet(source_wallet)
