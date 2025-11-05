@@ -42,10 +42,15 @@ class WalletShareStatus(Enum):
 
 
 class WalletSharePermission(BaseModel):
+    # unique identifier for this share request
     request_id: str | None
+    # username of the invited user
     username: str
+    # ID of the wallet being shared
     wallet_id: str
+    # permissions being granted
     permissions: list[WalletPermission] = []
+    # status of the share request
     status: WalletShareStatus
     comment: str | None = None
 

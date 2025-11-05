@@ -538,7 +538,7 @@ window.windowMixin = {
 
       if (data.walletType === 'lightning-shared' && !data.sharedWalletId) {
         this.$q.notify({
-          message: 'Please enter a shared wallet ID',
+          message: 'Missing a shared wallet ID',
           color: 'warning'
         })
         return
@@ -549,7 +549,7 @@ window.windowMixin = {
           data.name,
           data.walletType,
           {
-            shared_wallet_id: data.sharedWalletId // todo: request id?
+            shared_wallet_id: data.sharedWalletId
           }
         )
 
@@ -559,7 +559,36 @@ window.windowMixin = {
         LNbits.utils.notifyApiError(e)
       }
     },
-    submitRejectWallet() {},
+    async submitRejectWalletInvitation() {
+      try {
+        inviteRequests = this.g.user.extra.wallet_invite_requests || []
+        const invite = inviteRequests.find(
+          invite => invite.to_wallet_id === this.addWalletDialog.sharedWalletId
+        )
+        if (!invite) {
+          Quasar.Notify.create({
+            message: 'Cannot find invitation for the selected wallet.',
+            type: 'warning'
+          })
+          return
+        }
+        await LNbits.api.request(
+          'DELETE',
+          `/api/v1/wallet/share/invite/${invite.request_id}`,
+          this.g.wallet.adminkey
+        )
+
+        Quasar.Notify.create({
+          message: 'Invitation rejected.',
+          type: 'positive'
+        })
+        this.g.user.extra.wallet_invite_requests = inviteRequests.filter(
+          inv => inv.request_id !== invite.request_id
+        )
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
+      }
+    },
 
     simpleMobile() {
       this.$q.localStorage.set('lnbits.mobileSimple', !this.mobileSimple)
