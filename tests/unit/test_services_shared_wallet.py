@@ -493,9 +493,52 @@ async def test_delete_wallet_share_ok():
 
 
 @pytest.mark.anyio
+async def test_create_lightning_shared_wallet_ok():
+    invited_user = await new_user()
+    assert invited_user.username is not None
+    owner_user = await new_user()
+    source_wallet = await create_wallet(
+        user_id=owner_user.id, wallet_name="source_wallet"
+    )
+
+    await invite_to_wallet(
+        source_wallet=source_wallet,
+        data=WalletSharePermission(
+            username=invited_user.username,
+            wallet_id=source_wallet.id,
+            permissions=[WalletPermission.RECEIVE_PAYMENTS],
+            status=WalletShareStatus.INVITE_SENT,
+        ),
+    )
+
+    mirror_wallet = await create_lightning_shared_wallet(
+        user_id=invited_user.id, source_wallet_id=source_wallet.id
+    )
+
+    assert mirror_wallet is not None
+    assert mirror_wallet.is_lightning_shared_wallet
+    assert mirror_wallet.shared_wallet_id == source_wallet.id
+    assert mirror_wallet.can_receveive_payments is True
+    assert mirror_wallet.can_view_payments is False
+    assert mirror_wallet.can_send_payments is False
+
+    source_wallet = await get_wallet(source_wallet.id)
+    assert source_wallet is not None
+    share = source_wallet.extra.find_share_for_wallet(mirror_wallet.id)
+    assert share is not None
+    assert share.status == WalletShareStatus.APPROVED
+    assert share.permissions == [WalletPermission.RECEIVE_PAYMENTS]
+
+    with pytest.raises(ValueError, match="This wallet is already shared with you."):
+        mirror_wallet = await create_lightning_shared_wallet(
+            user_id=invited_user.id, source_wallet_id=source_wallet.id
+        )
+
+
+@pytest.mark.anyio
 async def test_create_lightning_shared_wallet_missing_source():
     invited_user = await new_user()
-    with pytest.raises(ValueError, match="Shared wallet does not exist"):
+    with pytest.raises(ValueError, match="Shared wallet does not exist."):
         await create_lightning_shared_wallet(
             invited_user.id, "non_existent_source_wallet_id"
         )
