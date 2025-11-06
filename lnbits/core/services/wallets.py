@@ -146,44 +146,42 @@ async def delete_wallet_share(source_wallet: Wallet, request_id: str) -> SimpleS
 
 async def create_lightning_shared_wallet(
     user_id: str,
-    shared_wallet_id: str,
+    source_wallet_id: str,
     conn: Connection | None = None,
 ) -> Wallet:
-    shared_wallet = await get_standalone_wallet(shared_wallet_id, conn=conn)
-    if not shared_wallet:
+    source_wallet = await get_standalone_wallet(source_wallet_id, conn=conn)
+    if not source_wallet:
         raise ValueError("Shared wallet does not exist")
 
-    if not shared_wallet.is_lightning_wallet:
+    if not source_wallet.is_lightning_wallet:
         raise ValueError("Shared wallet is not a lightning wallet.")
 
-    if shared_wallet.user == user_id:
+    if source_wallet.user == user_id:
         raise ValueError("Cannot mirror your own wallet.")
 
     invited_user = await get_account(user_id, conn=conn)
     if not invited_user:
-        raise ValueError("Invalid invited user id.")
+        raise ValueError("Cannot find invited user.")
 
-    request_id = sha256s(user_id + shared_wallet.id)
-    existing_request = shared_wallet.extra.find_share_by_id(request_id)
+    request_id = sha256s(user_id + source_wallet.id)
+    existing_request = source_wallet.extra.find_share_by_id(request_id)
     if not existing_request:
         raise ValueError("No invitation found for this invited user.")
 
     return await _accept_invitation_to_shared_wallet(
-        invited_user, shared_wallet, conn=conn
+        invited_user, source_wallet, conn=conn
     )
 
 
 async def _accept_invitation_to_shared_wallet(
     invited_user: Account,
-    shared_wallet: Wallet,
+    source_wallet: Wallet,
     conn: Connection | None = None,
 ) -> Wallet:
-    request_id = sha256s(invited_user.id + shared_wallet.id)
-    existing_request = shared_wallet.extra.find_share_by_id(request_id)
+    request_id = sha256s(invited_user.id + source_wallet.id)
+    existing_request = source_wallet.extra.find_share_by_id(request_id)
     if not existing_request:
         raise ValueError("Missing share request.")
-    if existing_request.status == WalletShareStatus.REQUEST_ACCESS:
-        raise ValueError("You have already requested access to this wallet.")
     if existing_request.status == WalletShareStatus.APPROVED:
         raise ValueError("This wallet is already shared with you.")
     if existing_request.status != WalletShareStatus.INVITE_SENT:
@@ -194,12 +192,12 @@ async def _accept_invitation_to_shared_wallet(
 
     mirror_wallet = await create_wallet(
         user_id=invited_user.id,
-        wallet_name=shared_wallet.name,
+        wallet_name=source_wallet.name,
         wallet_type=WalletType.LIGHTNING_SHARED,
-        shared_wallet_id=shared_wallet.id,
+        shared_wallet_id=source_wallet.id,
         conn=conn,
     )
     existing_request.approve(wallet_id=mirror_wallet.id)
-    await update_wallet(shared_wallet, conn=conn)
-    mirror_wallet.mirror_shared_wallet(shared_wallet)
+    await update_wallet(source_wallet, conn=conn)
+    mirror_wallet.mirror_shared_wallet(source_wallet)
     return mirror_wallet
