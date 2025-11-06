@@ -182,7 +182,7 @@ class Wallet(BaseModel):
         return self.id
 
     @property
-    def can_receveive_payments(self) -> bool:
+    def can_receive_payments(self) -> bool:
         return self.has_permission(WalletPermission.RECEIVE_PAYMENTS)
 
     @property
