@@ -81,6 +81,55 @@ async def test_invite_to_wallet_twice():
 
 
 @pytest.mark.anyio
+async def test_two_invites_to_wallet_ok():
+    invited_user = await new_user()
+    assert invited_user.username is not None
+    owner_user_one = await new_user()
+    source_wallet_one = await create_wallet(
+        user_id=owner_user_one.id, wallet_name="source_wallet_one"
+    )
+
+    wallet_share_one = await invite_to_wallet(
+        source_wallet=source_wallet_one,
+        data=WalletSharePermission(
+            username=invited_user.username,
+            wallet_id=source_wallet_one.id,
+            permissions=[WalletPermission.VIEW_PAYMENTS],
+            status=WalletShareStatus.INVITE_SENT,
+        ),
+    )
+    assert wallet_share_one.request_id is not None
+
+    owner_user_two = await new_user()
+    source_wallet_two = await create_wallet(
+        user_id=owner_user_two.id, wallet_name="source_wallet_two"
+    )
+
+    wallet_share_two = await invite_to_wallet(
+        source_wallet=source_wallet_two,
+        data=WalletSharePermission(
+            username=invited_user.username,
+            wallet_id=source_wallet_two.id,
+            permissions=[WalletPermission.VIEW_PAYMENTS, WalletPermission.RECEIVE_PAYMENTS],
+            status=WalletShareStatus.INVITE_SENT,
+        ),
+    )
+    assert wallet_share_two.request_id is not None
+
+    invited_user = await get_account(invited_user.id)
+    assert invited_user is not None
+    assert len(invited_user.extra.wallet_invite_requests) == 2
+    invite_request_one = invited_user.extra.find_wallet_invite_request(wallet_share_one.request_id)
+    assert invite_request_one is not None
+    assert invite_request_one.from_user_name == owner_user_one.username or owner_user_one.email
+    assert invite_request_one.to_wallet_id == source_wallet_one.id
+    invite_request_two = invited_user.extra.find_wallet_invite_request(wallet_share_two.request_id)
+    assert invite_request_two is not None
+    assert invite_request_two.from_user_name == owner_user_two.username or owner_user_two.email
+    assert invite_request_two.to_wallet_id == source_wallet_two.id
+
+
+@pytest.mark.anyio
 async def test_invite_to_wallet_non_lightning_wallet():
     owner_user = await new_user()
     source_wallet = await create_wallet(
