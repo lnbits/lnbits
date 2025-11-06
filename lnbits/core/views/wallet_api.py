@@ -201,6 +201,11 @@ async def api_create_wallet(
         return await create_wallet(user_id=key_info.wallet.user, wallet_name=data.name)
 
     if data.wallet_type == WalletType.LIGHTNING_SHARED:
+        if not data.shared_wallet_id:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                "Shared wallet ID is required for shared wallets.",
+            )
         return await create_lightning_shared_wallet(
             user_id=key_info.wallet.user,
             shared_wallet_id=data.shared_wallet_id,

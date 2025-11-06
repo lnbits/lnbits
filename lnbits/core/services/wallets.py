@@ -146,11 +146,9 @@ async def delete_wallet_share(source_wallet: Wallet, request_id: str) -> SimpleS
 
 async def create_lightning_shared_wallet(
     user_id: str,
-    shared_wallet_id: str | None = None,
+    shared_wallet_id: str,
     conn: Connection | None = None,
 ) -> Wallet:
-    if not shared_wallet_id:
-        raise ValueError("Shared wallet ID is required")
     shared_wallet = await get_standalone_wallet(shared_wallet_id, conn=conn)
     if not shared_wallet:
         raise ValueError("Shared wallet does not exist")

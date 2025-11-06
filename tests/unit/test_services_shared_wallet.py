@@ -162,7 +162,7 @@ async def test_many_invites_and_one_cancel():
     invited_user = await new_user()
     assert invited_user.username is not None
     count = 10
-    _, source_wallets = await _create_invitations_for_user(invited_user, count)
+    source_wallets = await _create_invitations_for_user(invited_user, count)
 
     invited_user = await get_account(invited_user.id)
     assert invited_user is not None
@@ -172,6 +172,7 @@ async def test_many_invites_and_one_cancel():
     mid_wallet = source_wallets[mid_index]
     share = mid_wallet.extra.find_share_for_wallet(mid_wallet.id)
     assert share is not None
+    assert share.request_id is not None
     assert invited_user.extra.find_wallet_invite_request(share.request_id) is not None
     await delete_wallet_share(mid_wallet, share.request_id)
 
@@ -186,7 +187,7 @@ async def test_many_invites_and_one_reject():
     invited_user = await new_user()
     assert invited_user.username is not None
     count = 10
-    _, source_wallets = await _create_invitations_for_user(invited_user, count)
+    source_wallets = await _create_invitations_for_user(invited_user, count)
 
     invited_user = await get_account(invited_user.id)
     assert invited_user is not None
@@ -194,6 +195,7 @@ async def test_many_invites_and_one_reject():
     mid_wallet = source_wallets[count // 2]
     share = mid_wallet.extra.find_share_for_wallet(mid_wallet.id)
     assert share is not None
+    assert share.request_id is not None
     assert invited_user.extra.find_wallet_invite_request(share.request_id) is not None
     await reject_wallet_invitation(invited_user.id, share.request_id)
 
@@ -208,7 +210,7 @@ async def test_many_invites_and_one_accept():
     invited_user = await new_user()
     assert invited_user.username is not None
     count = 10
-    _, source_wallets = await _create_invitations_for_user(invited_user, count)
+    source_wallets = await _create_invitations_for_user(invited_user, count)
 
     invited_user = await get_account(invited_user.id)
     assert invited_user is not None
@@ -227,6 +229,7 @@ async def test_many_invites_and_one_accept():
         (w for w in invited_user_wallets if w.shared_wallet_id == mid_wallet.id), None
     )
     assert shared_wallet is not None
+    assert share.request_id is not None
     assert shared_wallet.is_lightning_shared_wallet
     assert shared_wallet.shared_wallet_id == mid_wallet.id
     assert len(invited_user.extra.wallet_invite_requests) == count - 1
@@ -489,8 +492,8 @@ async def test_delete_wallet_share_ok():
     assert shared_wallet is None
 
 
-async def _create_invitations_for_user(invited_user, count):
-    owner_users, source_wallets = [], []
+async def _create_invitations_for_user(invited_user, count) -> list[Wallet]:
+    source_wallets = []
     for i in range(count):
         owner_user = await new_user()
         source_wallet = await create_wallet(
@@ -506,9 +509,8 @@ async def _create_invitations_for_user(invited_user, count):
                 status=WalletShareStatus.INVITE_SENT,
             ),
         )
-        owner_users.append(owner_user)
         source_wallets.append(source_wallet)
-    return owner_users, source_wallets
+    return source_wallets
 
 
 async def _create_shared_wallet_for_user(invited_user: User) -> Wallet:
