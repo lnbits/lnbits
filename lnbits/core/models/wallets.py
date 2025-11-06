@@ -221,7 +221,7 @@ class Wallet(BaseModel):
     def _validate_data(self):
         if self.is_lightning_shared_wallet:
             if not self.shared_wallet_id:
-                raise ValueError("shared_wallet_id must be set for shared wallets")
+                raise ValueError("Shared wallet ID must be set for shared wallets.")
 
 
 class CreateWallet(BaseModel):
