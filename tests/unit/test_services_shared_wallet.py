@@ -149,24 +149,7 @@ async def test_many_invites_and_one_cancel():
     invited_user = await new_user()
     assert invited_user.username is not None
     count = 10
-    owner_users, source_wallets = [], []
-    for i in range(count):
-        owner_user = await new_user()
-        source_wallet = await create_wallet(
-            user_id=owner_user.id, wallet_name=f"source_wallet_{i}"
-        )
-
-        await invite_to_wallet(
-            source_wallet=source_wallet,
-            data=WalletSharePermission(
-                username=invited_user.username,
-                wallet_id=source_wallet.id,
-                permissions=[WalletPermission.VIEW_PAYMENTS],
-                status=WalletShareStatus.INVITE_SENT,
-            ),
-        )
-        owner_users.append(owner_user)
-        source_wallets.append(source_wallet)
+    owner_users, source_wallets = await _create_invitations_for_user(invited_user, count)
 
     invited_user = await get_account(invited_user.id)
     assert invited_user is not None
@@ -350,3 +333,25 @@ async def test_invite_to_wallet_no_username():
                 status=WalletShareStatus.INVITE_SENT,
             ),
         )
+
+
+async def _create_invitations_for_user(invited_user, count):
+    owner_users, source_wallets = [], []
+    for i in range(count):
+        owner_user = await new_user()
+        source_wallet = await create_wallet(
+            user_id=owner_user.id, wallet_name=f"source_wallet_{i}"
+        )
+
+        await invite_to_wallet(
+            source_wallet=source_wallet,
+            data=WalletSharePermission(
+                username=invited_user.username,
+                wallet_id=source_wallet.id,
+                permissions=[WalletPermission.VIEW_PAYMENTS],
+                status=WalletShareStatus.INVITE_SENT,
+            ),
+        )
+        owner_users.append(owner_user)
+        source_wallets.append(source_wallet)
+    return owner_users, source_wallets
