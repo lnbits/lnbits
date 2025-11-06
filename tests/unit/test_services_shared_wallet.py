@@ -1,14 +1,14 @@
 import pytest
 
 from lnbits.core.crud.users import get_account
-from lnbits.core.crud.wallets import create_wallet, get_wallet, update_wallet
+from lnbits.core.crud.wallets import create_wallet, get_wallet, get_wallets, update_wallet
 from lnbits.core.models.wallets import (
     WalletPermission,
     WalletSharePermission,
     WalletShareStatus,
     WalletType,
 )
-from lnbits.core.services.wallets import delete_wallet_share, invite_to_wallet
+from lnbits.core.services.wallets import create_lightning_shared_wallet, delete_wallet_share, invite_to_wallet, reject_wallet_invitation
 from tests.conftest import new_user
 
 
@@ -149,7 +149,7 @@ async def test_many_invites_and_one_cancel():
     invited_user = await new_user()
     assert invited_user.username is not None
     count = 10
-    owner_users, source_wallets = await _create_invitations_for_user(invited_user, count)
+    _, source_wallets = await _create_invitations_for_user(invited_user, count)
 
     invited_user = await get_account(invited_user.id)
     assert invited_user is not None
@@ -167,6 +167,54 @@ async def test_many_invites_and_one_cancel():
     assert len(invited_user.extra.wallet_invite_requests) == count - 1
     assert invited_user.extra.find_wallet_invite_request(share.request_id) is None
 
+@pytest.mark.anyio
+async def test_many_invites_and_one_reject():
+    invited_user = await new_user()
+    assert invited_user.username is not None
+    count = 10
+    _, source_wallets = await _create_invitations_for_user(invited_user, count)
+
+    invited_user = await get_account(invited_user.id)
+    assert invited_user is not None
+
+    mid_wallet = source_wallets[count // 2]
+    share = mid_wallet.extra.find_share_for_wallet(mid_wallet.id)
+    assert share is not None
+    assert invited_user.extra.find_wallet_invite_request(share.request_id) is not None
+    await reject_wallet_invitation(invited_user.id, share.request_id)
+
+    invited_user = await get_account(invited_user.id)
+    assert invited_user is not None
+    assert len(invited_user.extra.wallet_invite_requests) == count - 1
+    assert invited_user.extra.find_wallet_invite_request(share.request_id) is None
+
+
+@pytest.mark.anyio
+async def test_many_invites_and_one_accept():
+    invited_user = await new_user()
+    assert invited_user.username is not None
+    count = 10
+    _, source_wallets = await _create_invitations_for_user(invited_user, count)
+
+    invited_user = await get_account(invited_user.id)
+    assert invited_user is not None
+
+    mid_wallet = source_wallets[count // 2]
+    share = mid_wallet.extra.find_share_for_wallet(mid_wallet.id)
+    assert share is not None
+    await create_lightning_shared_wallet(invited_user.id, mid_wallet.id)
+
+    invited_user = await get_account(invited_user.id)
+
+    assert invited_user is not None
+    invited_user_wallets = await get_wallets(invited_user.id)
+    assert len(invited_user_wallets) == 2
+    shared_wallet = next((w for w in invited_user_wallets if w.shared_wallet_id == mid_wallet.id), None)
+    assert shared_wallet is not None
+    assert shared_wallet.is_lightning_shared_wallet == True
+    assert shared_wallet.shared_wallet_id == mid_wallet.id
+    assert len(invited_user.extra.wallet_invite_requests) == count - 1
+    assert invited_user.extra.find_wallet_invite_request(share.request_id) is None
 
 @pytest.mark.anyio
 async def test_invite_to_wallet_non_lightning_wallet():
