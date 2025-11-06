@@ -163,11 +163,6 @@ async def create_lightning_shared_wallet(
     if not invited_user:
         raise ValueError("Cannot find invited user.")
 
-    request_id = sha256s(user_id + source_wallet.id)
-    existing_request = source_wallet.extra.find_share_by_id(request_id)
-    if not existing_request:
-        raise ValueError("No invitation found for this invited user.")
-
     return await _accept_invitation_to_shared_wallet(
         invited_user, source_wallet, conn=conn
     )
@@ -181,7 +176,7 @@ async def _accept_invitation_to_shared_wallet(
     request_id = sha256s(invited_user.id + source_wallet.id)
     existing_request = source_wallet.extra.find_share_by_id(request_id)
     if not existing_request:
-        raise ValueError("Missing share request.")
+        raise ValueError("No invitation found for this invited user.")
     if existing_request.status == WalletShareStatus.APPROVED:
         raise ValueError("This wallet is already shared with you.")
     if existing_request.status != WalletShareStatus.INVITE_SENT:
