@@ -224,7 +224,7 @@ async def test_many_invites_and_one_accept():
         (w for w in invited_user_wallets if w.shared_wallet_id == mid_wallet.id), None
     )
     assert shared_wallet is not None
-    assert shared_wallet.is_lightning_shared_wallet == True
+    assert shared_wallet.is_lightning_shared_wallet
     assert shared_wallet.shared_wallet_id == mid_wallet.id
     assert len(invited_user.extra.wallet_invite_requests) == count - 1
     assert invited_user.extra.find_wallet_invite_request(share.request_id) is None
