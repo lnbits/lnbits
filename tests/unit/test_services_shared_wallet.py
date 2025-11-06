@@ -8,7 +8,7 @@ from lnbits.core.models.wallets import (
     WalletShareStatus,
     WalletType,
 )
-from lnbits.core.services.wallets import invite_to_wallet
+from lnbits.core.services.wallets import delete_wallet_share, invite_to_wallet
 from tests.conftest import new_user
 
 
@@ -110,7 +110,10 @@ async def test_two_invites_to_wallet_ok():
         data=WalletSharePermission(
             username=invited_user.username,
             wallet_id=source_wallet_two.id,
-            permissions=[WalletPermission.VIEW_PAYMENTS, WalletPermission.RECEIVE_PAYMENTS],
+            permissions=[
+                WalletPermission.VIEW_PAYMENTS,
+                WalletPermission.RECEIVE_PAYMENTS,
+            ],
             status=WalletShareStatus.INVITE_SENT,
         ),
     )
@@ -119,14 +122,67 @@ async def test_two_invites_to_wallet_ok():
     invited_user = await get_account(invited_user.id)
     assert invited_user is not None
     assert len(invited_user.extra.wallet_invite_requests) == 2
-    invite_request_one = invited_user.extra.find_wallet_invite_request(wallet_share_one.request_id)
+    invite_request_one = invited_user.extra.find_wallet_invite_request(
+        wallet_share_one.request_id
+    )
     assert invite_request_one is not None
-    assert invite_request_one.from_user_name == owner_user_one.username or owner_user_one.email
+    assert (
+        invite_request_one.from_user_name == owner_user_one.username
+        or owner_user_one.email
+    )
     assert invite_request_one.to_wallet_id == source_wallet_one.id
-    invite_request_two = invited_user.extra.find_wallet_invite_request(wallet_share_two.request_id)
+    assert invite_request_one.to_wallet_name == source_wallet_one.name
+    invite_request_two = invited_user.extra.find_wallet_invite_request(
+        wallet_share_two.request_id
+    )
     assert invite_request_two is not None
-    assert invite_request_two.from_user_name == owner_user_two.username or owner_user_two.email
+    assert (
+        invite_request_two.from_user_name == owner_user_two.username
+        or owner_user_two.email
+    )
     assert invite_request_two.to_wallet_id == source_wallet_two.id
+    assert invite_request_two.to_wallet_name == source_wallet_two.name
+
+
+@pytest.mark.anyio
+async def test_many_invites_and_one_cancel():
+    invited_user = await new_user()
+    assert invited_user.username is not None
+    count = 10
+    owner_users, source_wallets = [], []
+    for i in range(count):
+        owner_user = await new_user()
+        source_wallet = await create_wallet(
+            user_id=owner_user.id, wallet_name=f"source_wallet_{i}"
+        )
+
+        await invite_to_wallet(
+            source_wallet=source_wallet,
+            data=WalletSharePermission(
+                username=invited_user.username,
+                wallet_id=source_wallet.id,
+                permissions=[WalletPermission.VIEW_PAYMENTS],
+                status=WalletShareStatus.INVITE_SENT,
+            ),
+        )
+        owner_users.append(owner_user)
+        source_wallets.append(source_wallet)
+
+    invited_user = await get_account(invited_user.id)
+    assert invited_user is not None
+    assert len(invited_user.extra.wallet_invite_requests) == count
+
+    mid_index = count // 2
+    mid_wallet = source_wallets[mid_index]
+    share = mid_wallet.extra.find_share_for_wallet(mid_wallet.id)
+    assert share is not None
+    assert invited_user.extra.find_wallet_invite_request(share.request_id) is not None
+    await delete_wallet_share(mid_wallet, share.request_id)
+
+    invited_user = await get_account(invited_user.id)
+    assert invited_user is not None
+    assert len(invited_user.extra.wallet_invite_requests) == count - 1
+    assert invited_user.extra.find_wallet_invite_request(share.request_id) is None
 
 
 @pytest.mark.anyio
