@@ -1,14 +1,24 @@
 import pytest
 
 from lnbits.core.crud.users import get_account
-from lnbits.core.crud.wallets import create_wallet, get_wallet, get_wallets, update_wallet
+from lnbits.core.crud.wallets import (
+    create_wallet,
+    get_wallet,
+    get_wallets,
+    update_wallet,
+)
 from lnbits.core.models.wallets import (
     WalletPermission,
     WalletSharePermission,
     WalletShareStatus,
     WalletType,
 )
-from lnbits.core.services.wallets import create_lightning_shared_wallet, delete_wallet_share, invite_to_wallet, reject_wallet_invitation
+from lnbits.core.services.wallets import (
+    create_lightning_shared_wallet,
+    delete_wallet_share,
+    invite_to_wallet,
+    reject_wallet_invitation,
+)
 from tests.conftest import new_user
 
 
@@ -167,6 +177,7 @@ async def test_many_invites_and_one_cancel():
     assert len(invited_user.extra.wallet_invite_requests) == count - 1
     assert invited_user.extra.find_wallet_invite_request(share.request_id) is None
 
+
 @pytest.mark.anyio
 async def test_many_invites_and_one_reject():
     invited_user = await new_user()
@@ -209,12 +220,15 @@ async def test_many_invites_and_one_accept():
     assert invited_user is not None
     invited_user_wallets = await get_wallets(invited_user.id)
     assert len(invited_user_wallets) == 2
-    shared_wallet = next((w for w in invited_user_wallets if w.shared_wallet_id == mid_wallet.id), None)
+    shared_wallet = next(
+        (w for w in invited_user_wallets if w.shared_wallet_id == mid_wallet.id), None
+    )
     assert shared_wallet is not None
     assert shared_wallet.is_lightning_shared_wallet == True
     assert shared_wallet.shared_wallet_id == mid_wallet.id
     assert len(invited_user.extra.wallet_invite_requests) == count - 1
     assert invited_user.extra.find_wallet_invite_request(share.request_id) is None
+
 
 @pytest.mark.anyio
 async def test_invite_to_wallet_non_lightning_wallet():
@@ -381,6 +395,19 @@ async def test_invite_to_wallet_no_username():
                 status=WalletShareStatus.INVITE_SENT,
             ),
         )
+
+
+@pytest.mark.anyio
+async def test_reject_wallet_invitation_user_not_found():
+    with pytest.raises(ValueError, match="Invited user not found."):
+        await reject_wallet_invitation("non_existent_user_id", "some_request_id")
+
+
+@pytest.mark.anyio
+async def test_reject_wallet_invitation_not_found():
+    invited_user = await new_user()
+    with pytest.raises(ValueError, match="Invitation not found."):
+        await reject_wallet_invitation(invited_user.id, "non_existent_request_id")
 
 
 async def _create_invitations_for_user(invited_user, count):
