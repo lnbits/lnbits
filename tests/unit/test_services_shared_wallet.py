@@ -1,6 +1,6 @@
 import pytest
 
-from lnbits.core.crud.users import get_account
+from lnbits.core.crud.users import delete_account, get_account
 from lnbits.core.crud.wallets import (
     create_wallet,
     get_wallet,
@@ -425,6 +425,24 @@ async def test_delete_wallet_share_not_found(to_wallet: Wallet):
         await delete_wallet_share(to_wallet, "non_existent_request_id")
 
 
+@pytest.mark.anyio
+async def test_delete_wallet_share_invited_user_not_found():
+    invited_user = await new_user()
+    shared_wallet = await _create_shared_wallet_for_user(invited_user)
+    assert shared_wallet.shared_wallet_id is not None
+    source_wallet = await get_wallet(shared_wallet.shared_wallet_id)
+    assert source_wallet is not None
+    request_id = source_wallet.extra.shared_with[0].request_id
+    assert request_id is not None
+    await delete_account(invited_user.id)
+    resp = await delete_wallet_share(
+        source_wallet, request_id
+    )
+
+    assert resp.success
+    assert resp.message == "Permission removed. Invited user not found."
+
+
 async def _create_invitations_for_user(invited_user, count):
     owner_users, source_wallets = [], []
     for i in range(count):
@@ -463,7 +481,7 @@ async def _create_shared_wallet_for_user(invited_user: User) -> Wallet:
             status=WalletShareStatus.INVITE_SENT,
         ),
     )
-    assert invited_user.username is not None
+
     shared_wallet = await create_lightning_shared_wallet(
         user_id=invited_user.id, shared_wallet_id=source_wallet.id
     )
