@@ -1,5 +1,6 @@
 import pytest
 
+from lnbits.core.crud.payments import get_payments
 from lnbits.core.crud.users import delete_account, get_account
 from lnbits.core.crud.wallets import (
     create_wallet,
@@ -16,6 +17,7 @@ from lnbits.core.models.wallets import (
     WalletShareStatus,
     WalletType,
 )
+from lnbits.core.services.payments import create_invoice, pay_invoice
 from lnbits.core.services.wallets import (
     create_lightning_shared_wallet,
     delete_wallet_share,
@@ -522,7 +524,7 @@ async def test_create_lightning_shared_wallet_ok():
     assert mirror_wallet is not None
     assert mirror_wallet.is_lightning_shared_wallet
     assert mirror_wallet.shared_wallet_id == source_wallet.id
-    assert mirror_wallet.can_receveive_payments is True
+    assert mirror_wallet.can_receive_payments is True
     assert mirror_wallet.can_view_payments is False
     assert mirror_wallet.can_send_payments is False
 
@@ -541,6 +543,46 @@ async def test_create_lightning_shared_wallet_ok():
         mirror_wallet = await create_lightning_shared_wallet(
             user_id=invited_user.id, source_wallet_id=source_wallet.id
         )
+
+
+@pytest.mark.anyio
+async def test_shared_wallet_permissions(from_wallet: Wallet):
+    invited_user = await new_user()
+    mirror_wallet = await _create_shared_wallet_for_user(invited_user)
+    assert mirror_wallet.shared_wallet_id is not None
+
+    assert mirror_wallet.can_view_payments is True
+    assert mirror_wallet.can_send_payments is False
+    assert mirror_wallet.can_receive_payments is False
+
+    shared_wallet_payments = await get_payments(wallet_id=mirror_wallet.id)
+    assert len(shared_wallet_payments) == 0
+
+
+
+    payment_count = 11
+    wallet_balance = 0
+    for i in range(payment_count):
+        payment = await create_invoice(
+            wallet_id=mirror_wallet.shared_wallet_id,
+            amount=1000 + i * 100,
+            memo=f"Test invoice {i}",
+        )
+        await pay_invoice(
+            wallet_id=from_wallet.id, payment_request=payment.bolt11
+        )
+        wallet_balance += payment.sat
+
+    shared_wallet_payments = await get_payments(wallet_id=mirror_wallet.id)
+    assert len(shared_wallet_payments) == payment_count
+    mirror_wallet = await get_wallet(mirror_wallet.id)
+    assert mirror_wallet is not None
+    assert mirror_wallet.shared_wallet_id is not None
+    assert mirror_wallet.balance == wallet_balance
+
+    source_wallet = await get_wallet(mirror_wallet.shared_wallet_id)
+    assert source_wallet is not None
+    assert source_wallet.balance == wallet_balance
 
 
 @pytest.mark.anyio
