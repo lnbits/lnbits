@@ -511,6 +511,10 @@ async def test_create_lightning_shared_wallet_ok():
         ),
     )
 
+    invited_user = await get_account(invited_user.id)
+    assert invited_user is not None
+    assert len(invited_user.extra.wallet_invite_requests) == 1
+
     mirror_wallet = await create_lightning_shared_wallet(
         user_id=invited_user.id, source_wallet_id=source_wallet.id
     )
@@ -528,6 +532,10 @@ async def test_create_lightning_shared_wallet_ok():
     assert share is not None
     assert share.status == WalletShareStatus.APPROVED
     assert share.permissions == [WalletPermission.RECEIVE_PAYMENTS]
+
+    invited_user = await get_account(invited_user.id)
+    assert invited_user is not None
+    assert len(invited_user.extra.wallet_invite_requests) == 0
 
     with pytest.raises(ValueError, match="This wallet is already shared with you."):
         mirror_wallet = await create_lightning_shared_wallet(
