@@ -89,9 +89,9 @@ async def api_invite_wallet_share(
 
 @wallet_router.delete("/share/invite/{share_request_id}")
 async def api_reject_wallet_invitation(
-    share_request_id: str, key_info: WalletTypeInfo = Depends(require_admin_key)
+    share_request_id: str, invited_user: User = Depends(check_user_exists)
 ) -> SimpleStatus:
-    await reject_wallet_invitation(key_info.wallet.user, share_request_id)
+    await reject_wallet_invitation(invited_user.id, share_request_id)
     return SimpleStatus(success=True, message="Invitation rejected.")
 
 
