@@ -208,7 +208,7 @@ async def api_create_wallet(
             )
         return await create_lightning_shared_wallet(
             user_id=key_info.wallet.user,
-            shared_wallet_id=data.shared_wallet_id,
+            source_wallet_id=data.shared_wallet_id,
         )
 
     raise HTTPException(
