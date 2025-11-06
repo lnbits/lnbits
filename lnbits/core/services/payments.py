@@ -255,7 +255,7 @@ async def create_invoice(
     if not user_wallet:
         raise InvoiceError(f"Could not fetch wallet '{wallet_id}'.", status="failed")
 
-    if not user_wallet.can_receveive_payments:
+    if not user_wallet.can_receive_payments:
         raise InvoiceError(
             "Wallet does not have permission to create invoices.",
             status="failed",
