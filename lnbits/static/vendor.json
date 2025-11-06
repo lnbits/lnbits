@@ -48,6 +48,7 @@
     "js/pages/node-public.js",
     "js/pages/audit.js",
     "js/pages/wallets.js",
+    "js/pages/users.js",
     "js/components/lnbits-qrcode.js",
     "js/components/lnbits-qrcode-lnurl.js",
     "js/components/lnbits-funding-sources.js",
