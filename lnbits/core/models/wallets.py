@@ -37,7 +37,6 @@ class WalletPermission(Enum):
 
 class WalletShareStatus(Enum):
     INVITE_SENT = "invite_sent"
-    REQUEST_ACCESS = "request_access"
     APPROVED = "approved"
 
 

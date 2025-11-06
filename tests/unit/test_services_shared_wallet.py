@@ -492,6 +492,42 @@ async def test_delete_wallet_share_ok():
     assert shared_wallet is None
 
 
+@pytest.mark.anyio
+async def test_create_lightning_shared_wallet_missing_source():
+    invited_user = await new_user()
+    with pytest.raises(ValueError, match="Shared wallet does not exist"):
+        await create_lightning_shared_wallet(
+            invited_user.id, "non_existent_source_wallet_id"
+        )
+
+
+@pytest.mark.anyio
+async def test_create_lightning_shared_wallet_bad_type():
+    invited_user = await new_user()
+    shared_wallet = await _create_shared_wallet_for_user(invited_user)
+    with pytest.raises(ValueError, match="Shared wallet is not a lightning wallet."):
+        await create_lightning_shared_wallet(invited_user.id, shared_wallet.id)
+
+
+@pytest.mark.anyio
+async def test_create_lightning_shared_wallet_self_mirror(to_wallet: Wallet):
+    with pytest.raises(ValueError, match="Cannot mirror your own wallet."):
+        await create_lightning_shared_wallet(to_wallet.user, to_wallet.id)
+
+
+@pytest.mark.anyio
+async def test_create_lightning_shared_wallet_missing_invitation(to_wallet: Wallet):
+    with pytest.raises(ValueError, match="Cannot find invited user."):
+        await create_lightning_shared_wallet("non_existing_user", to_wallet.id)
+
+
+@pytest.mark.anyio
+async def test_create_lightning_shared_wallet_missing_user(to_wallet: Wallet):
+    invited_user = await new_user()
+    with pytest.raises(ValueError, match="No invitation found for this invited user."):
+        await create_lightning_shared_wallet(invited_user.id, to_wallet.id)
+
+
 async def _create_invitations_for_user(invited_user, count) -> list[Wallet]:
     source_wallets = []
     for i in range(count):
@@ -531,6 +567,6 @@ async def _create_shared_wallet_for_user(invited_user: User) -> Wallet:
     )
 
     shared_wallet = await create_lightning_shared_wallet(
-        user_id=invited_user.id, shared_wallet_id=source_wallet.id
+        user_id=invited_user.id, source_wallet_id=source_wallet.id
     )
     return shared_wallet
