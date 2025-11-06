@@ -266,37 +266,106 @@ class StrikeWallet(Wallet):
             return InvoiceResponse(ok=False, error_message="Connection error")
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        # Extract payment hash from invoice for checking_id
+        from bolt11 import decode as bolt11_decode
+        try:
+            invoice = bolt11_decode(bolt11)
+            payment_hash = invoice.payment_hash
+        except Exception as decode_exc:
+            logger.error(f"Strike: Failed to decode invoice: {decode_exc}")
+            return PaymentResponse(
+                ok=False, error_message=f"Invalid invoice: {str(decode_exc)}"
+            )
+
+        quote_id = None
         try:
             # 1) Create a payment quote.
-            q = await self._post(
-                "/payment-quotes/lightning",
-                json={"lnInvoice": bolt11},
-            )
-            q.raise_for_status()
-            quote_id = q.json().get("paymentQuoteId")
+            try:
+                q = await self._post(
+                    "/payment-quotes/lightning",
+                    json={"lnInvoice": bolt11},
+                )
+                q.raise_for_status()
+            except httpx.HTTPStatusError as quote_exc:
+                logger.error(f"Strike: Failed to create payment quote: {quote_exc}")
+                logger.error(
+                    f"Response: {quote_exc.response.status_code} - "
+                    f"{quote_exc.response.text}"
+                )
+                return PaymentResponse(
+                    ok=False,
+                    error_message=(
+                        f"Strike: Failed to create quote "
+                        f"(HTTP {quote_exc.response.status_code})"
+                    ),
+                )
+
+            quote_data = q.json()
+            quote_id = quote_data.get("paymentQuoteId")
             if not quote_id:
+                logger.error(
+                    f"Strike: missing paymentQuoteId in quote response: "
+                    f"{quote_data}"
+                )
                 return PaymentResponse(
                     ok=False, error_message="Strike: missing payment quote Id"
                 )
 
             # 2) Execute the payment quote.
-            e = await self._patch(f"/payment-quotes/{quote_id}/execute")
-            e.raise_for_status()
+            try:
+                e = await self._patch(f"/payment-quotes/{quote_id}/execute")
+                e.raise_for_status()
+            except httpx.HTTPStatusError as exec_exc:
+                logger.error(
+                    f"Strike: Failed to execute payment quote {quote_id}: "
+                    f"{exec_exc}"
+                )
+                logger.error(
+                    f"Response: {exec_exc.response.status_code} - "
+                    f"{exec_exc.response.text}"
+                )
+                return PaymentResponse(
+                    ok=False,
+                    error_message=(
+                        f"Strike: Failed to execute quote "
+                        f"(HTTP {exec_exc.response.status_code})"
+                    ),
+                )
 
             data = e.json() if e.content else {}
             payment_id = data.get("paymentId")
             state = data.get("state", "").upper()
 
+            if not payment_id:
+                logger.error(f"Strike: missing paymentId in response: {data}")
+                return PaymentResponse(
+                    ok=False, error_message="Strike: missing paymentId in response"
+                )
+
             # Network fee → msat.
-            fee_obj = data.get("lightningNetworkFee") or data.get("totalFee") or {}
-            fee_btc = Decimal(fee_obj.get("amount", "0"))
-            fee_msat = int(fee_btc * Decimal("1e11"))  # millisatoshis.
+            # Updated API structure (Aug 26, 2024): fee is now in lightning.networkFee
+            lightning_data = data.get("lightning", {})
+            fee_obj = lightning_data.get("networkFee") or data.get("totalFee") or {}
+            fee_msat = 0
+            try:
+                fee_amount = fee_obj.get("amount")
+                if fee_amount is not None:
+                    fee_btc = Decimal(str(fee_amount))
+                    fee_msat = int(fee_btc * Decimal("1e11"))  # millisatoshis.
+            except Exception as fee_exc:
+                logger.warning(f"Error parsing fee for payment {payment_id}: {fee_exc}")
 
             if state in {"SUCCEEDED", "COMPLETED"}:
-                preimage = data.get("preimage") or data.get("preImage")
+                # Preimage can be in lightning object or at top level
+                preimage = (
+                    lightning_data.get("preimage")
+                    or lightning_data.get("preImage")
+                    or data.get("preimage")
+                    or data.get("preImage")
+                )
                 return PaymentResponse(
                     ok=True,
-                    checking_id=payment_id,
+                    checking_id=payment_hash,  # Use payment_hash not Strike's paymentId
                     fee_msat=fee_msat,
                     preimage=preimage,
                 )
@@ -307,22 +376,37 @@ class StrikeWallet(Wallet):
                 "TIMED_OUT",
             }
             if state in failed_states:
+                logger.warning(
+                    f"Strike payment {payment_id} failed with state: {state}"
+                )
                 return PaymentResponse(
-                    ok=False, checking_id=payment_id, error_message=f"State: {state}"
+                    ok=False,
+                    checking_id=payment_hash,
+                    error_message=f"Payment {state.lower()}",
                 )
 
-            # Store mapping for later polling.
+            # Store mapping for later polling - map payment_hash to quote_id
             if payment_id:
                 # todo: this will be lost on server restart
-                self.pending_payments[payment_id] = quote_id
+                self.pending_payments[payment_hash] = quote_id
 
             # Treat all other states as pending (including unknown states).
-            return PaymentResponse(ok=None, checking_id=payment_id)
+            return PaymentResponse(ok=None, checking_id=payment_hash)
 
+        except httpx.HTTPStatusError as http_exc:
+            logger.error(f"Strike HTTP error during payment: {http_exc}")
+            logger.error(
+                f"Response status: {http_exc.response.status_code}, "
+                f"body: {http_exc.response.text}"
+            )
+            return PaymentResponse(
+                ok=False,
+                error_message=f"Strike API error: {http_exc.response.status_code}",
+            )
         except Exception as e:
-            logger.warning(e)
-            # Keep pending. Not sure if the payment went trough or not.
-            return PaymentResponse(ok=None, error_message="Connection error")
+            logger.error(f"Strike payment exception: {e}", exc_info=True)
+            # Keep pending. Not sure if the payment went through or not.
+            return PaymentResponse(ok=None, error_message=f"Error: {str(e)}")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -495,10 +579,19 @@ class StrikeWallet(Wallet):
 
         data = resp.json()
         state = data.get("state", "").upper()
-        preimage = data.get("preimage") or data.get("preImage")
+
+        # Extract preimage from lightning object (new API structure)
+        lightning_data = data.get("lightning", {})
+        preimage = (
+            lightning_data.get("preimage")
+            or lightning_data.get("preImage")
+            or data.get("preimage")
+            or data.get("preImage")
+        )
 
         fee_msat = 0
-        fee_obj = data.get("lightningNetworkFee") or data.get("totalFee")
+        # Updated API structure (Aug 26, 2024): fee is now in lightning.networkFee
+        fee_obj = lightning_data.get("networkFee") or data.get("totalFee")
         if fee_obj and fee_obj.get("amount") and fee_obj.get("currency"):
             amount_str = fee_obj.get("amount")
             currency_str = fee_obj.get("currency").upper()
@@ -534,8 +627,30 @@ class StrikeWallet(Wallet):
         if r_payment.status_code == 200:
             data = r_payment.json()
             state = data.get("state", "").upper()
-            preimage = None
+
+            # Extract data from lightning object (new API structure)
+            lightning_data = data.get("lightning", {})
+            preimage = (
+                lightning_data.get("preimage")
+                or lightning_data.get("preImage")
+                or data.get("preimage")
+                or data.get("preImage")
+            )
+
+            # Extract fee from new API structure
+            fee_obj = lightning_data.get("networkFee") or data.get("totalFee")
             fee_msat = 0
+            if fee_obj and fee_obj.get("amount"):
+                try:
+                    fee_btc = Decimal(fee_obj.get("amount", "0"))
+                    currency = fee_obj.get("currency", "BTC").upper()
+                    if currency == "BTC":
+                        fee_msat = int(fee_btc * Decimal("1e11"))
+                    elif currency == "SAT":
+                        fee_msat = int(fee_btc * 1000)
+                except Exception as e:
+                    logger.warning(f"Error parsing fee for payment {checking_id}: {e}")
+                    fee_msat = 0
 
             if state in {"SUCCEEDED", "COMPLETED"}:
                 self.pending_payments.pop(checking_id, None)
