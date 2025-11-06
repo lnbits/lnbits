@@ -106,15 +106,7 @@ async def user_alan():
     if account:
         await delete_account(account.id)
 
-    account = Account(
-        id=uuid4().hex,
-        email="alan@lnbits.com",
-        username="alan",
-    )
-    account.hash_password("secret1234")
-    user = await create_user_account(account)
-
-    yield user
+    yield new_user("alan")
 
 
 @pytest.fixture(scope="session")
@@ -297,6 +289,20 @@ async def fake_payments(client, inkey_fresh_headers_to):
         "created_at[le]": datetime.now(timezone.utc).timestamp(),
     }
     return fake_data, params
+
+
+async def new_user(username: str | None = None) -> User:
+    id_ = uuid4().hex
+    username = username or f"u_{id_[:16]}"
+    account = Account(
+        id=id_,
+        email=f"{username}@lnbits.com",
+        username=username,
+    )
+    account.hash_password("secret1234")
+    user = await create_user_account(account)
+
+    return user
 
 
 def _settings_cleanup(settings: Settings):
