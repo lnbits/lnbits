@@ -47,3 +47,62 @@ async def test_invite_to_wallet_ok():
     assert invite_request.from_user_name == owner_user.username or owner_user.email
     assert invite_request.to_wallet_id == source_wallet.id
     assert invite_request.to_wallet_name == source_wallet.name
+
+
+@pytest.mark.anyio
+async def test_invite_to_wallet_twice():
+    owner_user = await new_user()
+    source_wallet = await create_wallet(
+        user_id=owner_user.id, wallet_name="source_wallet"
+    )
+    invited_user = await new_user()
+    assert invited_user.username is not None
+    await invite_to_wallet(
+        source_wallet=source_wallet,
+        data=WalletSharePermission(
+            username=invited_user.username,
+            wallet_id=source_wallet.id,
+            permissions=[WalletPermission.VIEW_PAYMENTS],
+            status=WalletShareStatus.INVITE_SENT,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="User already invited to this wallet."):
+        await invite_to_wallet(
+            source_wallet=source_wallet,
+            data=WalletSharePermission(
+                username=invited_user.username,
+                wallet_id=source_wallet.id,
+                permissions=[WalletPermission.VIEW_PAYMENTS],
+                status=WalletShareStatus.INVITE_SENT,
+            ),
+        )
+
+@pytest.mark.anyio
+async def test_invite_to_wallet_bad_username():
+    owner_user = await new_user()
+    source_wallet = await create_wallet(
+        user_id=owner_user.id, wallet_name="source_wallet"
+    )
+
+    with pytest.raises(ValueError, match="Username or email missing."):
+        await invite_to_wallet(
+            source_wallet=source_wallet,
+            data=WalletSharePermission(
+                username="",
+                wallet_id=source_wallet.id,
+                permissions=[WalletPermission.VIEW_PAYMENTS],
+                status=WalletShareStatus.INVITE_SENT,
+            ),
+        )
+
+    with pytest.raises(ValueError, match="Invited user not found."):
+        await invite_to_wallet(
+            source_wallet=source_wallet,
+            data=WalletSharePermission(
+                username="nonexistentuser",
+                wallet_id=source_wallet.id,
+                permissions=[WalletPermission.VIEW_PAYMENTS],
+                status=WalletShareStatus.INVITE_SENT,
+            ),
+        )
