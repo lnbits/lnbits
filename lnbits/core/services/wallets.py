@@ -151,7 +151,7 @@ async def create_lightning_shared_wallet(
 ) -> Wallet:
     source_wallet = await get_standalone_wallet(source_wallet_id, conn=conn)
     if not source_wallet:
-        raise ValueError("Shared wallet does not exist")
+        raise ValueError("Shared wallet does not exist.")
 
     if not source_wallet.is_lightning_wallet:
         raise ValueError("Shared wallet is not a lightning wallet.")
