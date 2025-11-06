@@ -100,7 +100,7 @@ async def update_wallet_share_permissions(
     return share
 
 
-async def delete_wallet_share(source_wallet: Wallet, request_id: str):
+async def delete_wallet_share(source_wallet: Wallet, request_id: str) -> SimpleStatus:
     if not source_wallet.is_lightning_wallet:
         raise ValueError("Source wallet is not a lightning wallet.")
 
