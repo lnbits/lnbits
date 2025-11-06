@@ -436,15 +436,18 @@ async def test_delete_wallet_share_invited_user_not_found():
     request_id = source_wallet.extra.shared_with[0].request_id
     assert request_id is not None
     await delete_account(invited_user.id)
-    resp = await delete_wallet_share(
-        source_wallet, request_id
-    )
+    resp = await delete_wallet_share(source_wallet, request_id)
 
     assert resp.success
     assert resp.message == "Permission removed. Invited user not found."
 
+    source_wallet = await get_wallet(shared_wallet.shared_wallet_id)
+    assert source_wallet is not None
+    assert source_wallet.extra.find_share_by_id(request_id) is None
+
+
 @pytest.mark.anyio
-async def test_delete_wallet_share_invited_user_not_found():
+async def test_delete_wallet_share_target_wallet_not_found():
     invited_user = await new_user()
     shared_wallet = await _create_shared_wallet_for_user(invited_user)
     assert shared_wallet.shared_wallet_id is not None
@@ -453,12 +456,37 @@ async def test_delete_wallet_share_invited_user_not_found():
     request_id = source_wallet.extra.shared_with[0].request_id
     assert request_id is not None
     await delete_wallet(user_id=invited_user.id, wallet_id=shared_wallet.id)
-    resp = await delete_wallet_share(
-        source_wallet, request_id
-    )
+    resp = await delete_wallet_share(source_wallet, request_id)
 
     assert resp.success
     assert resp.message == "Permission removed. Target wallet not found."
+
+    source_wallet = await get_wallet(shared_wallet.shared_wallet_id)
+    assert source_wallet is not None
+    assert source_wallet.extra.find_share_by_id(request_id) is None
+
+
+@pytest.mark.anyio
+async def test_delete_wallet_share_ok():
+    invited_user = await new_user()
+    shared_wallet = await _create_shared_wallet_for_user(invited_user)
+    assert shared_wallet.shared_wallet_id is not None
+    source_wallet = await get_wallet(shared_wallet.shared_wallet_id)
+    assert source_wallet is not None
+    request_id = source_wallet.extra.shared_with[0].request_id
+    assert request_id is not None
+    resp = await delete_wallet_share(source_wallet, request_id)
+
+    assert resp.success
+    assert resp.message == "Permission removed."
+
+    source_wallet = await get_wallet(shared_wallet.shared_wallet_id)
+    assert source_wallet is not None
+    assert source_wallet.extra.find_share_by_id(request_id) is None
+    assert len(source_wallet.extra.shared_with) == 0
+
+    shared_wallet = await get_wallet(shared_wallet.id)
+    assert shared_wallet is None
 
 
 async def _create_invitations_for_user(invited_user, count):
