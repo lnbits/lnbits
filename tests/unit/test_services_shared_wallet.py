@@ -7,7 +7,9 @@ from lnbits.core.crud.wallets import (
     get_wallets,
     update_wallet,
 )
+from lnbits.core.models.users import User
 from lnbits.core.models.wallets import (
+    Wallet,
     WalletPermission,
     WalletSharePermission,
     WalletShareStatus,
@@ -410,6 +412,19 @@ async def test_reject_wallet_invitation_not_found():
         await reject_wallet_invitation(invited_user.id, "non_existent_request_id")
 
 
+@pytest.mark.anyio
+async def test_delete_wallet_share_bad_wallet_type():
+    shared_wallet = await _create_shared_wallet_for_user(await new_user())
+    with pytest.raises(ValueError, match="Source wallet is not a lightning wallet."):
+        await delete_wallet_share(shared_wallet, "some_request_id")
+
+
+@pytest.mark.anyio
+async def test_delete_wallet_share_not_found(to_wallet: Wallet):
+    with pytest.raises(ValueError, match="Wallet share not found."):
+        await delete_wallet_share(to_wallet, "non_existent_request_id")
+
+
 async def _create_invitations_for_user(invited_user, count):
     owner_users, source_wallets = [], []
     for i in range(count):
@@ -430,3 +445,26 @@ async def _create_invitations_for_user(invited_user, count):
         owner_users.append(owner_user)
         source_wallets.append(source_wallet)
     return owner_users, source_wallets
+
+
+async def _create_shared_wallet_for_user(invited_user: User) -> Wallet:
+    assert invited_user.username is not None
+    owner_user = await new_user()
+    source_wallet = await create_wallet(
+        user_id=owner_user.id, wallet_name="source_wallet"
+    )
+
+    await invite_to_wallet(
+        source_wallet=source_wallet,
+        data=WalletSharePermission(
+            username=invited_user.username,
+            wallet_id=source_wallet.id,
+            permissions=[WalletPermission.VIEW_PAYMENTS],
+            status=WalletShareStatus.INVITE_SENT,
+        ),
+    )
+    assert invited_user.username is not None
+    shared_wallet = await create_lightning_shared_wallet(
+        user_id=invited_user.id, shared_wallet_id=source_wallet.id
+    )
+    return shared_wallet
