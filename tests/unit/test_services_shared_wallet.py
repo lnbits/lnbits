@@ -554,7 +554,7 @@ async def test_create_lightning_shared_wallet_ok():
 @pytest.mark.anyio
 async def test_shared_wallet_view_permissions(from_wallet: Wallet):
     invited_user = await new_user()
-    mirror_wallet = await _create_shared_wallet_for_user(invited_user)
+    mirror_wallet: Wallet | None = await _create_shared_wallet_for_user(invited_user)
     assert mirror_wallet is not None
     assert mirror_wallet.shared_wallet_id is not None
 
@@ -611,7 +611,7 @@ async def test_shared_wallet_view_permissions(from_wallet: Wallet):
 @pytest.mark.anyio
 async def test_shared_wallet_no_permissions(from_wallet: Wallet):
     invited_user = await new_user()
-    mirror_wallet = await _create_shared_wallet_for_user(invited_user)
+    mirror_wallet: Wallet | None = await _create_shared_wallet_for_user(invited_user)
     assert mirror_wallet is not None
     assert mirror_wallet.shared_wallet_id is not None
     source_wallet = await get_wallet(mirror_wallet.shared_wallet_id)
@@ -652,7 +652,7 @@ async def test_shared_wallet_no_permissions(from_wallet: Wallet):
 @pytest.mark.anyio
 async def test_shared_wallet_receive_permission(from_wallet: Wallet):
     invited_user = await new_user()
-    mirror_wallet = await _create_shared_wallet_for_user(invited_user)
+    mirror_wallet: Wallet | None = await _create_shared_wallet_for_user(invited_user)
     assert mirror_wallet is not None
     assert mirror_wallet.shared_wallet_id is not None
     source_wallet = await get_wallet(mirror_wallet.shared_wallet_id)
@@ -710,7 +710,7 @@ async def test_shared_wallet_receive_permission(from_wallet: Wallet):
 @pytest.mark.anyio
 async def test_shared_wallet_send_permission(from_wallet: Wallet):
     invited_user = await new_user()
-    mirror_wallet = await _create_shared_wallet_for_user(invited_user)
+    mirror_wallet: Wallet | None = await _create_shared_wallet_for_user(invited_user)
     assert mirror_wallet is not None
     assert mirror_wallet.shared_wallet_id is not None
     source_wallet = await get_wallet(mirror_wallet.shared_wallet_id)
