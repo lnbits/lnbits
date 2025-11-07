@@ -1,6 +1,9 @@
-window.ExtensionsPageLogic = {
-  data: function () {
+window.PageExtensions = {
+  template: '#page-extensions',
+  mixins: [windowMixin],
+  data() {
     return {
+      extbuilder_enabled: false,
       slide: 0,
       fullscreen: false,
       autoplay: true,
@@ -33,10 +36,10 @@ window.ExtensionsPageLogic = {
     }
   },
   methods: {
-    handleTabChanged: function (tab) {
+    handleTabChanged(tab) {
       this.filterExtensions(this.searchTerm, tab)
     },
-    filterExtensions: function (term, tab) {
+    filterExtensions(term, tab) {
       // Filter the extensions list
       function extensionNameContains(searchTerm) {
         return function (extension) {
@@ -65,7 +68,7 @@ window.ExtensionsPageLogic = {
       this.tab = tab
     },
 
-    installExtension: async function (release) {
+    async installExtension(release) {
       // no longer required to check if the invoice was paid
       // the install logic has been triggered one way or another
       this.unsubscribeFromPaylinkWs()
@@ -101,7 +104,7 @@ window.ExtensionsPageLogic = {
           LNbits.utils.notifyApiError(err)
         })
     },
-    uninstallExtension: async function () {
+    async uninstallExtension() {
       const extension = this.selectedExtension
       this.showManageExtensionDialog = false
       this.showUninstallDialog = false
@@ -137,7 +140,7 @@ window.ExtensionsPageLogic = {
           extension.inProgress = false
         })
     },
-    dropExtensionDb: async function () {
+    async dropExtensionDb() {
       const extension = this.selectedExtension
       this.showManageExtensionDialog = false
       this.showDropDbDialog = false
@@ -187,14 +190,14 @@ window.ExtensionsPageLogic = {
           extension.inProgress = false
         })
     },
-    enableExtensionForUser: function (extension) {
+    async enableExtensionForUser(extension) {
       if (extension.isPaymentRequired) {
         this.showPayToEnable(extension)
         return
       }
       this.enableExtension(extension)
     },
-    enableExtension: function (extension) {
+    async enableExtension(extension) {
       LNbits.api
         .request(
           'PUT',
@@ -215,7 +218,7 @@ window.ExtensionsPageLogic = {
           LNbits.utils.notifyApiError(err)
         })
     },
-    disableExtension: function (extension) {
+    disableExtension(extension) {
       LNbits.api
         .request(
           'PUT',
@@ -236,14 +239,14 @@ window.ExtensionsPageLogic = {
           LNbits.utils.notifyApiError(err)
         })
     },
-    showPayToEnable: function (extension) {
+    showPayToEnable(extension) {
       this.selectedExtension = extension
       this.selectedExtension.payToEnable.paidAmount =
         extension.payToEnable.amount
       this.selectedExtension.payToEnable.showQRCode = false
       this.showPayToEnableDialog = true
     },
-    updatePayToInstallData: function (extension) {
+    updatePayToInstallData(extension) {
       LNbits.api
         .request(
           'PUT',
@@ -268,17 +271,17 @@ window.ExtensionsPageLogic = {
         })
     },
 
-    showUninstall: function () {
+    showUninstall() {
       this.showManageExtensionDialog = false
       this.showUninstallDialog = true
       this.uninstallAndDropDb = false
     },
 
-    showDropDb: function () {
+    showDropDb() {
       this.showDropDbDialog = true
     },
 
-    showManageExtension: async function (extension) {
+    async showManageExtension(extension) {
       this.selectedExtension = extension
       this.selectedRelease = null
       this.selectedExtensionRepos = null
@@ -323,7 +326,7 @@ window.ExtensionsPageLogic = {
       }
     },
 
-    showExtensionDetails: async function (extId, detailsLink) {
+    async showExtensionDetails(extId, detailsLink) {
       if (!detailsLink) {
         return
       }
@@ -528,14 +531,14 @@ window.ExtensionsPageLogic = {
       }
     },
 
-    hasNewVersion: function (extension) {
+    hasNewVersion(extension) {
       if (extension.installedRelease && extension.latestRelease) {
         return (
           extension.installedRelease.version !== extension.latestRelease.version
         )
       }
     },
-    isInstalledVersion: function (extension, release) {
+    isInstalledVersion(extension, release) {
       if (extension.installedRelease) {
         return (
           extension.installedRelease.source_repo === release.source_repo &&
@@ -543,19 +546,19 @@ window.ExtensionsPageLogic = {
         )
       }
     },
-    getReleaseIcon: function (release) {
+    getReleaseIcon(release) {
       if (!release.is_version_compatible) return 'block'
       if (release.isInstalled) return 'download_done'
 
       return 'download'
     },
-    getReleaseIconColor: function (release) {
+    getReleaseIconColor(release) {
       if (!release.is_version_compatible) return 'text-red'
       if (release.isInstalled) return 'text-green'
 
       return ''
     },
-    getGitHubReleaseDetails: async function (release) {
+    async getGitHubReleaseDetails(release) {
       if (!release.is_github_release || release.loaded) {
         return
       }
@@ -579,10 +582,10 @@ window.ExtensionsPageLogic = {
         release.inProgress = false
       }
     },
-    selectAllUpdatableExtensionss: async function () {
+    async selectAllUpdatableExtensionss() {
       this.updatableExtensions.forEach(e => (e.selectedForUpdate = true))
     },
-    updateSelectedExtensions: async function () {
+    async updateSelectedExtensions() {
       let count = 0
       for (const ext of this.updatableExtensions) {
         try {
@@ -628,14 +631,21 @@ window.ExtensionsPageLogic = {
       setTimeout(() => {
         this.refreshRoute()
       }, 2000)
+    },
+    async fetchAllExtensions() {
+      try {
+        const {data} = await LNbits.api.request('GET', `/api/v1/extension/all`)
+        return data
+      } catch (error) {
+        console.warn(error)
+        LNbits.utils.notifyApiError(error)
+        return []
+      }
     }
   },
-  created: function () {
-    this.extensions = window.extension_data.map(e => ({
-      ...e,
-      inProgress: false,
-      selectedForUpdate: false
-    }))
+  async created() {
+    this.extensions = await this.fetchAllExtensions()
+    this.extbuilder_enabled = user.admin || this.LNBITS_EXT_BUILDER
     this.filteredExtensions = this.extensions.concat([])
     const hash = window.location.hash.replace('#', '')
     const ext = this.filteredExtensions.find(ext => ext.id === hash)
@@ -651,6 +661,5 @@ window.ExtensionsPageLogic = {
     this.updatableExtensions = this.extensions.filter(ext =>
       this.hasNewVersion(ext)
     )
-  },
-  mixins: [windowMixin]
+  }
 }

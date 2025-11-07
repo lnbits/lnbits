@@ -14,7 +14,6 @@ from pydantic.types import UUID4
 
 from lnbits.core.helpers import to_valid_user_id
 from lnbits.core.models import User
-from lnbits.core.models.extensions import ExtensionMeta, InstallableExtension
 from lnbits.core.services import create_invoice, create_user_account
 from lnbits.core.services.extensions import get_valid_extensions
 from lnbits.decorators import (
@@ -29,8 +28,6 @@ from lnbits.settings import settings
 from ...utils.exchange_rates import allowed_currencies
 from ..crud import (
     create_wallet,
-    get_db_versions,
-    get_installed_extensions,
     get_user,
     get_wallet,
 )
@@ -120,97 +117,6 @@ async def robots():
     Disallow: /
     """
     return HTMLResponse(content=data, media_type="text/plain")
-
-
-@generic_router.get("/extensions", name="extensions", response_class=HTMLResponse)
-async def extensions(request: Request, user: User = Depends(check_user_exists)):
-    installed_exts: list[InstallableExtension] = await get_installed_extensions()
-    installed_exts_ids = [e.id for e in installed_exts]
-
-    installable_exts = await InstallableExtension.get_installable_extensions()
-    installable_exts_ids = [e.id for e in installable_exts]
-    installable_exts += [e for e in installed_exts if e.id not in installable_exts_ids]
-
-    for e in installable_exts:
-        installed_ext = next((ie for ie in installed_exts if e.id == ie.id), None)
-        if installed_ext and installed_ext.meta:
-            installed_release = installed_ext.meta.installed_release
-            if installed_ext.meta.pay_to_enable and not user.admin:
-                # not a security leak, but better not to share the wallet id
-                installed_ext.meta.pay_to_enable.wallet = None
-            pay_to_enable = installed_ext.meta.pay_to_enable
-
-            if e.meta:
-                e.meta.installed_release = installed_release
-                e.meta.pay_to_enable = pay_to_enable
-            else:
-                e.meta = ExtensionMeta(
-                    installed_release=installed_release,
-                    pay_to_enable=pay_to_enable,
-                )
-            # use the installed extension values
-            e.name = installed_ext.name
-            e.short_description = installed_ext.short_description
-            e.icon = installed_ext.icon
-
-    all_ext_ids = [ext.code for ext in await get_valid_extensions()]
-    inactive_extensions = [e.id for e in await get_installed_extensions(active=False)]
-    db_versions = await get_db_versions()
-
-    extension_data = [
-        {
-            "id": ext.id,
-            "name": ext.name,
-            "icon": ext.icon,
-            "shortDescription": ext.short_description,
-            "stars": ext.stars,
-            "isFeatured": ext.meta.featured if ext.meta else False,
-            "dependencies": ext.meta.dependencies if ext.meta else "",
-            "isInstalled": ext.id in installed_exts_ids,
-            "hasDatabaseTables": next(
-                (True for version in db_versions if version.db == ext.id), False
-            ),
-            "isAvailable": ext.id in all_ext_ids,
-            "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
-            "isActive": ext.id not in inactive_extensions,
-            "latestRelease": (
-                dict(ext.meta.latest_release)
-                if ext.meta and ext.meta.latest_release
-                else None
-            ),
-            "hasPaidRelease": ext.meta.has_paid_release if ext.meta else False,
-            "hasFreeRelease": ext.meta.has_free_release if ext.meta else False,
-            "paidFeatures": ext.meta.paid_features if ext.meta else False,
-            "installedRelease": (
-                dict(ext.meta.installed_release)
-                if ext.meta and ext.meta.installed_release
-                else None
-            ),
-            "payToEnable": (
-                dict(ext.meta.pay_to_enable)
-                if ext.meta and ext.meta.pay_to_enable
-                else {}
-            ),
-            "isPaymentRequired": ext.requires_payment,
-        }
-        for ext in installable_exts
-    ]
-
-    # refresh user state. Eg: enabled extensions.
-    # TODO: refactor
-    # user = await get_user(user.id) or user
-
-    return template_renderer().TemplateResponse(
-        request,
-        "core/extensions.html",
-        {
-            "user": user.json(),
-            "extension_data": extension_data,
-            "extension_builder_enabled": user.admin
-            or settings.lnbits_extensions_builder_activate_non_admins,
-            "ajax": _is_ajax_request(request),
-        },
-    )
 
 
 @generic_router.get(
@@ -370,6 +276,7 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/payments")
 @generic_router.get("/wallets")
 @generic_router.get("/account")
+@generic_router.get("/extensions")
 @generic_router.get("/users", dependencies=admin_ui_checks)
 @generic_router.get("/audit", dependencies=admin_ui_checks)
 @generic_router.get("/node", dependencies=admin_ui_checks)
