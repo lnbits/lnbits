@@ -376,3 +376,11 @@ async def check_extension_builder(
             HTTPStatus.FORBIDDEN,
             "Extension Builder is disabled for non admin users.",
         )
+
+
+async def check_first_install():
+    if not settings.first_install:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Super user account has already been configured.",
+        )

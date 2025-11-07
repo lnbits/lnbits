@@ -188,6 +188,11 @@ const routes = [
     path: '/extensions',
     name: 'Extensions',
     component: PageExtensions
+  },
+  {
+    path: '/first_install',
+    name: 'FirstInstall',
+    component: PageFirstInstall
   }
 ]
 

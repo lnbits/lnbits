@@ -19,6 +19,7 @@ from lnbits.decorators import (
     check_admin,
     check_admin_ui,
     check_extension_builder,
+    check_first_install,
     check_user_exists,
 )
 from lnbits.helpers import check_callback_url, template_renderer
@@ -93,19 +94,6 @@ async def get_user_wallet(
         request,
         "core/wallet.html",
         {**context, "ajax": _is_ajax_request(request)},
-    )
-
-
-@generic_router.get("/first_install", response_class=HTMLResponse)
-async def first_install(request: Request):
-    if not settings.first_install:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Super user account has already been configured.",
-        )
-    return template_renderer().TemplateResponse(
-        request,
-        "core/first_install.html",
     )
 
 
@@ -296,6 +284,7 @@ async def index(
 
 
 @generic_router.get("/node/public")
+@generic_router.get("/first_install", dependencies=[Depends(check_first_install)])
 async def index_public(request: Request) -> HTMLResponse:
     return template_renderer().TemplateResponse(request, "index_public.html")
 
