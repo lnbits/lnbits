@@ -49,6 +49,7 @@
     "js/pages/audit.js",
     "js/pages/wallets.js",
     "js/pages/users.js",
+    "js/pages/account.js",
     "js/pages/admin.js",
     "js/components/admin/lnbits-admin-funding.js",
     "js/components/admin/lnbits-admin-funding-sources.js",
