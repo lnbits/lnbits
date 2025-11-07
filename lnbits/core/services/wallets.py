@@ -187,6 +187,8 @@ async def _accept_invitation_to_shared_wallet(
     invited_user.extra.remove_wallet_invite_request(request_id)
     await update_account(invited_user)
 
+    # todo: double check if user already has a mirror wallet for this source wallet
+
     mirror_wallet = await create_wallet(
         user_id=invited_user.id,
         wallet_name=source_wallet.name,

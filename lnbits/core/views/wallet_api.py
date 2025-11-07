@@ -192,7 +192,6 @@ async def api_create_wallet(
     data: CreateWallet,
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Wallet:
-
     if data.wallet_type == WalletType.LIGHTNING:
         return await create_wallet(user_id=key_info.wallet.user, wallet_name=data.name)
 

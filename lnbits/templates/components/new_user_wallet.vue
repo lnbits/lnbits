@@ -7,7 +7,7 @@
     </q-card-section>
     <q-card-section v-if="g.user.walletInvitesCount">
       <q-badge
-        @click="addWalletDialog.walletType = 'lightning-shared'"
+        @click="newWallet.walletType = 'lightning-shared'"
         class="cursor-pointer"
       >
         <span
@@ -28,13 +28,13 @@
         emit-value
         map-options
         :label="$t('wallet_type')"
-        v-model="addWalletDialog.walletType"
+        v-model="newWallet.walletType"
         dense
       ></q-select>
       <q-input
-        v-if="addWalletDialog.walletType == 'lightning'"
+        v-if="newWallet.walletType == 'lightning'"
         dense
-        v-model="addWalletDialog.name"
+        v-model="newWallet.name"
         :label="$t('wallet_name')"
         autofocus
         @keyup.enter="submitAddWallet()"
@@ -42,8 +42,8 @@
       ></q-input>
 
       <q-select
-        v-if="addWalletDialog.walletType == 'lightning-shared'"
-        v-model="addWalletDialog.sharedWalletId"
+        v-if="newWallet.walletType == 'lightning-shared'"
+        v-model="newWallet.sharedWalletId"
         :label="$t('shared_wallet_id')"
         emit-value
         map-options
@@ -56,10 +56,7 @@
         "
         class="q-mt-md"
       ></q-select>
-      <div
-        v-if="addWalletDialog.walletType == 'lightning-shared'"
-        class="q-mt-md"
-      >
+      <div v-if="newWallet.walletType == 'lightning-shared'" class="q-mt-md">
         <span v-text="$t('shared_wallet_desc')" class="q-mt-lg"></span>
       </div>
     </q-card-section>
@@ -76,8 +73,8 @@
         </div>
         <div class="col-md-4">
           <q-btn
-            v-if="addWalletDialog.walletType == 'lightning-shared'"
-            :disabled="!addWalletDialog.sharedWalletId"
+            v-if="newWallet.walletType == 'lightning-shared'"
+            :disabled="!newWallet.sharedWalletId"
             flat
             :label="$t('reject_wallet')"
             v-close-popup

@@ -123,9 +123,11 @@ window._lnbitsApi = {
   getWallet(wallet) {
     return this.request('get', '/api/v1/wallet', wallet.inkey)
   },
-  createWallet(wallet, name) {
+  createWallet(wallet, name, walletType, ops = {}) {
     return this.request('post', '/api/v1/wallet', wallet.adminkey, {
-      name: name
+      name: name,
+      wallet_type: walletType,
+      ...ops
     }).then(res => {
       window.location = '/wallet?wal=' + res.data.id
     })
