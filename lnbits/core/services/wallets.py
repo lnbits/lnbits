@@ -43,7 +43,6 @@ async def invite_to_wallet(
         request_id=request_id,
         request_type=WalletShareStatus.INVITE_SENT,
         username=data.username,
-        wallet_id=source_wallet.id,
         permissions=data.permissions,
     )
     await update_wallet(source_wallet)
@@ -80,14 +79,17 @@ async def update_wallet_share_permissions(
 ) -> WalletSharePermission:
     if not source_wallet.is_lightning_wallet:
         raise ValueError("Only lightning wallets can be shared.")
-    if not data.wallet_id:
+    if not data.shared_with_wallet_id:
         raise ValueError("Wallet ID missing.")
 
-    share = source_wallet.extra.find_share_for_wallet(data.wallet_id)
+    share = source_wallet.extra.find_share_for_wallet(data.shared_with_wallet_id)
     if not share:
         raise ValueError("Share not found")
 
-    mirror_wallet = await get_wallet(share.wallet_id)
+    if not share.shared_with_wallet_id:
+        raise ValueError("Share does not have a mirror wallet ID.")
+
+    mirror_wallet = await get_wallet(share.shared_with_wallet_id)
     if not mirror_wallet:
         raise ValueError("Target wallet not found")
     if not mirror_wallet.is_lightning_shared_wallet:
@@ -192,7 +194,7 @@ async def _accept_invitation_to_shared_wallet(
         shared_wallet_id=source_wallet.id,
         conn=conn,
     )
-    existing_request.approve(wallet_id=mirror_wallet.id)
+    existing_request.approve(shared_with_wallet_id=mirror_wallet.id)
     await update_wallet(source_wallet, conn=conn)
     mirror_wallet.mirror_shared_wallet(source_wallet)
     return mirror_wallet
