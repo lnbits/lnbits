@@ -17,7 +17,12 @@ from lnbits.core.models import User
 from lnbits.core.models.extensions import ExtensionMeta, InstallableExtension
 from lnbits.core.services import create_invoice, create_user_account
 from lnbits.core.services.extensions import get_valid_extensions
-from lnbits.decorators import check_admin, check_user_exists
+from lnbits.decorators import (
+    check_admin,
+    check_admin_ui,
+    check_extension_builder,
+    check_user_exists,
+)
 from lnbits.helpers import check_callback_url, template_renderer
 from lnbits.settings import settings
 
@@ -209,14 +214,13 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
 
 
 @generic_router.get(
-    "/extensions/builder", name="extensions builder", response_class=HTMLResponse
+    "/extensions/builder",
+    name="extensions builder",
+    dependencies=[Depends(check_extension_builder)],
 )
-async def extensions_builder(request: Request, user: User = Depends(check_user_exists)):
-    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
-        raise HTTPException(
-            HTTPStatus.FORBIDDEN,
-            "Extension Builder is disabled for non admin users.",
-        )
+async def extensions_builder(
+    request: Request, user: User = Depends(check_user_exists)
+) -> HTMLResponse:
     return template_renderer().TemplateResponse(
         request,
         "core/extensions_builder.html",
@@ -230,19 +234,14 @@ async def extensions_builder(request: Request, user: User = Depends(check_user_e
 @generic_router.get(
     "/extensions/builder/preview/{ext_id}",
     name="extensions builder",
-    response_class=HTMLResponse,
+    dependencies=[Depends(check_extension_builder)],
 )
 async def extensions_builder_preview(
     request: Request,
     ext_id: str,
     page_name: str | None = None,
     user: User = Depends(check_user_exists),
-):
-    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
-        raise HTTPException(
-            HTTPStatus.FORBIDDEN,
-            "Extension Builder is disabled for non admin users.",
-        )
+) -> HTMLResponse:
     working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
     html_file_name = "index.html"
     if page_name == "public_page":
@@ -383,10 +382,19 @@ async def manifest(request: Request, usr: str):
     }
 
 
-@generic_router.get("/payments", response_class=HTMLResponse)
-@generic_router.get("/wallets", response_class=HTMLResponse)
-@generic_router.get("/account", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
+admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
+
+
+@generic_router.get("/payments")
+@generic_router.get("/wallets")
+@generic_router.get("/account")
+@generic_router.get("/users", dependencies=admin_ui_checks)
+@generic_router.get("/audit", dependencies=admin_ui_checks)
+@generic_router.get("/node", dependencies=admin_ui_checks)
+@generic_router.get("/admin", dependencies=admin_ui_checks)
+async def index(
+    request: Request, user: User = Depends(check_user_exists)
+) -> HTMLResponse:
     return template_renderer().TemplateResponse(
         request,
         "index.html",
@@ -396,27 +404,8 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     )
 
 
-@generic_router.get("/users", response_class=HTMLResponse)
-@generic_router.get("/audit", response_class=HTMLResponse)
-@generic_router.get("/node", response_class=HTMLResponse)
-@generic_router.get("/admin", response_class=HTMLResponse)
-async def index_admin(request: Request, admin: User = Depends(check_admin)):
-    if not settings.lnbits_admin_ui:
-        raise HTTPException(
-            status_code=HTTPStatus.SERVICE_UNAVAILABLE, detail="Admin UI is disabled."
-        )
-
-    return template_renderer().TemplateResponse(
-        request,
-        "index.html",
-        {
-            "user": admin.json(),
-        },
-    )
-
-
-@generic_router.get("/node/public", response_class=HTMLResponse)
-async def index_public(request: Request):
+@generic_router.get("/node/public")
+async def index_public(request: Request) -> HTMLResponse:
     return template_renderer().TemplateResponse(request, "index_public.html")
 
 
