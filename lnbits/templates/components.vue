@@ -9,7 +9,8 @@ include('components/admin/audit.vue') %} {%
 include('components/admin/extensions.vue') %} {%
 include('components/admin/library.vue') %} {%
 include('components/admin/notifications.vue') %} {%
-include('components/admin/server.vue') %}
+include('components/admin/server.vue') %} {%
+include('components/new_user_wallet.vue') %}
 
 <template id="lnbits-wallet-list">
   <q-list

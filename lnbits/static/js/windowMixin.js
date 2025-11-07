@@ -6,7 +6,8 @@ window.windowMixin = {
       toggleSubs: true,
       mobileSimple: true,
       walletFlip: true,
-      showAddWalletDialog: {show: false},
+      addWalletDialog: {show: false, walletType: 'lightning'},
+      walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
       isUserAuthorized: false,
       isSatsDenomination: WINDOW_SETTINGS['LNBITS_DENOMINATION'] == 'sats',
       allowedThemes: WINDOW_SETTINGS['LNBITS_THEME_OPTIONS'],
@@ -46,21 +47,75 @@ window.windowMixin = {
         path: '/wallets'
       })
     },
-    submitAddWallet() {
-      if (
-        this.showAddWalletDialog.name &&
-        this.showAddWalletDialog.name.length > 0
-      ) {
-        LNbits.api.createWallet(
-          this.g.user.wallets[0],
-          this.showAddWalletDialog.name
-        )
-        this.showAddWalletDialog = {show: false}
-      } else {
+    handleWalletAction(payload) {
+      if (payload.action === 'create-wallet') {
+        this.showAddNewWalletDialog()
+      }
+    },
+    showAddNewWalletDialog() {
+      this.addWalletDialog = {show: true, walletType: 'lightning'}
+    },
+    async submitAddWallet() {
+      const data = this.addWalletDialog
+      if (data.walletType === 'lightning' && !data.name) {
         this.$q.notify({
           message: 'Please enter a name for the wallet',
-          color: 'negative'
+          color: 'warning'
         })
+        return
+      }
+
+      if (data.walletType === 'lightning-shared' && !data.sharedWalletId) {
+        this.$q.notify({
+          message: 'Missing a shared wallet ID',
+          color: 'warning'
+        })
+        return
+      }
+      try {
+        await LNbits.api.createWallet(
+          this.g.user.wallets[0],
+          data.name,
+          data.walletType,
+          {
+            shared_wallet_id: data.sharedWalletId
+          }
+        )
+
+        this.addWalletDialog = {show: false}
+      } catch (e) {
+        console.warn(e)
+        LNbits.utils.notifyApiError(e)
+      }
+    },
+    async submitRejectWalletInvitation() {
+      try {
+        inviteRequests = this.g.user.extra.wallet_invite_requests || []
+        const invite = inviteRequests.find(
+          invite => invite.to_wallet_id === this.addWalletDialog.sharedWalletId
+        )
+        if (!invite) {
+          Quasar.Notify.create({
+            message: 'Cannot find invitation for the selected wallet.',
+            type: 'warning'
+          })
+          return
+        }
+        await LNbits.api.request(
+          'DELETE',
+          `/api/v1/wallet/share/invite/${invite.request_id}`,
+          this.g.wallet.adminkey
+        )
+
+        Quasar.Notify.create({
+          message: 'Invitation rejected.',
+          type: 'positive'
+        })
+        this.g.user.extra.wallet_invite_requests = inviteRequests.filter(
+          inv => inv.request_id !== invite.request_id
+        )
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
       }
     },
     simpleMobile() {
@@ -325,6 +380,12 @@ window.windowMixin = {
 
     if (window.user) {
       this.g.user = Vue.reactive(window.LNbits.map.user(window.user))
+    }
+    if (this.g.user?.extra?.wallet_invite_requests?.length) {
+      this.walletTypes.push({
+        label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
+        value: 'lightning-shared'
+      })
     }
     if (window.wallet) {
       this.g.wallet = Vue.reactive(window.LNbits.map.wallet(window.wallet))

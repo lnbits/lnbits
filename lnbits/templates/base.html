@@ -401,7 +401,9 @@
               position="top"
               @hide="addWalletDialog = {show: false}"
             >
-              {% include "core/_wallet_new.html" %}
+              <lnbits-new-user-wallet
+                :form-data="formData"
+              ></lnbits-new-user-wallet>
             </q-dialog>
 
             <router-view v-if="isVueRoute"></router-view>

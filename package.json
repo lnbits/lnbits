@@ -115,6 +115,7 @@
       "js/components/admin/lnbits-admin-site-customisation.js",
       "js/components/admin/lnbits-admin-library.js",
       "js/components/admin/lnbits-admin-audit.js",
+      "js/components/lnbits-new-user-wallet.js",
       "js/components/lnbits-qrcode.js",
       "js/components/lnbits-qrcode-lnurl.js",
       "js/components/extension-settings.js",

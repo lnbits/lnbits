@@ -6,7 +6,7 @@
           <div class="row items-center justify-between q-gutter-xs">
             <div class="col">
               <q-btn
-                @click="showAddWalletDialog.show = true"
+                @click="showNewWalletDialog()"
                 :label="$t('add_wallet')"
                 color="primary"
               >
@@ -125,35 +125,10 @@
   </div>
 
   <q-dialog
-    v-model="showAddWalletDialog.show"
+    v-model="addWalletDialog.show"
     persistent
-    @hide="showAddWalletDialog = {show: false}"
+    @hide="addWalletDialog = {show: false}"
   >
-    <q-card style="min-width: 350px">
-      <q-card-section>
-        <div class="text-h6">
-          <span v-text="$t('wallet_name')"></span>
-        </div>
-      </q-card-section>
-
-      <q-card-section class="q-pt-none">
-        <q-input
-          dense
-          v-model="showAddWalletDialog.name"
-          autofocus
-          @keyup.enter="submitAddWallet()"
-        ></q-input>
-      </q-card-section>
-
-      <q-card-actions align="right" class="text-primary">
-        <q-btn flat :label="$t('cancel')" v-close-popup></q-btn>
-        <q-btn
-          flat
-          :label="$t('add_wallet')"
-          v-close-popup
-          @click="submitAddWallet()"
-        ></q-btn>
-      </q-card-actions>
-    </q-card>
+    <lnbits-new-user-wallet></lnbits-new-user-wallet>
   </q-dialog>
 </template>
