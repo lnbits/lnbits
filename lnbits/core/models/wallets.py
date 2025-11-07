@@ -45,8 +45,8 @@ class WalletSharePermission(BaseModel):
     request_id: str | None = None
     # username of the invited user
     username: str
-    # ID of the wallet being shared
-    wallet_id: str
+    # ID of the wallet being shared with
+    shared_with_wallet_id: str | None = None
     # permissions being granted
     permissions: list[WalletPermission] = []
     # status of the share request
@@ -56,13 +56,13 @@ class WalletSharePermission(BaseModel):
     def approve(
         self,
         permissions: list[WalletPermission] | None = None,
-        wallet_id: str | None = None,
+        shared_with_wallet_id: str | None = None,
     ):
         self.status = WalletShareStatus.APPROVED
         if permissions is not None:
             self.permissions = permissions
-        if wallet_id is not None:
-            self.wallet_id = wallet_id
+        if shared_with_wallet_id is not None:
+            self.shared_with_wallet_id = shared_with_wallet_id
 
     @property
     def is_approved(self) -> bool:
@@ -80,14 +80,12 @@ class WalletExtra(BaseModel):
         self,
         request_id: str,
         request_type: WalletShareStatus,
-        wallet_id: str,
         username: str,
         permissions: list[WalletPermission] | None = None,
     ) -> WalletSharePermission:
         share = WalletSharePermission(
             request_id=request_id,
             username=username,
-            wallet_id=wallet_id,
             status=request_type,
             permissions=permissions or [],
         )
@@ -100,16 +98,13 @@ class WalletExtra(BaseModel):
                 return share
         return None
 
-    def find_share_for_wallet(self, wallet_id: str) -> WalletSharePermission | None:
+    def find_share_for_wallet(
+        self, shared_with_wallet_id: str
+    ) -> WalletSharePermission | None:
         for share in self.shared_with:
-            if share.wallet_id == wallet_id:
+            if share.shared_with_wallet_id == shared_with_wallet_id:
                 return share
         return None
-
-    def remove_share_for_wallet(self, wallet_id: str):
-        self.shared_with = [
-            share for share in self.shared_with if share.wallet_id != wallet_id
-        ]
 
     def remove_share_by_id(self, request_id: str):
         self.shared_with = [
@@ -162,7 +157,7 @@ class Wallet(BaseModel):
 
     def get_share_permissions(self, wallet_id: str) -> list[WalletPermission]:
         for share in self.extra.shared_with:
-            if share.wallet_id == wallet_id and share.is_approved:
+            if share.shared_with_wallet_id == wallet_id and share.is_approved:
                 return share.permissions
         return []
 
