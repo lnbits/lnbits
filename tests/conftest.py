@@ -106,7 +106,7 @@ async def user_alan():
     if account:
         await delete_account(account.id)
 
-    yield new_user("alan")
+    yield await new_user("alan")
 
 
 @pytest.fixture(scope="session")
