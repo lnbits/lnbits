@@ -45,7 +45,6 @@ async def test_invite_to_wallet_ok():
         source_wallet=source_wallet,
         data=WalletSharePermission(
             username=invited_user.username,
-            wallet_id=source_wallet.id,
             permissions=[WalletPermission.VIEW_PAYMENTS],
             status=WalletShareStatus.INVITE_SENT,
         ),
@@ -54,7 +53,7 @@ async def test_invite_to_wallet_ok():
 
     source_wallet = await get_wallet(source_wallet.id)
     assert source_wallet is not None
-    share = source_wallet.extra.find_share_for_wallet(source_wallet.id)
+    share = source_wallet.extra.shared_with[0]
     assert share is not None
     assert share.request_id is not None
     assert share.username == invited_user.username
@@ -83,7 +82,6 @@ async def test_invite_to_wallet_twice():
         source_wallet=source_wallet,
         data=WalletSharePermission(
             username=invited_user.username,
-            wallet_id=source_wallet.id,
             permissions=[WalletPermission.VIEW_PAYMENTS],
             status=WalletShareStatus.INVITE_SENT,
         ),
@@ -94,7 +92,6 @@ async def test_invite_to_wallet_twice():
             source_wallet=source_wallet,
             data=WalletSharePermission(
                 username=invited_user.username,
-                wallet_id=source_wallet.id,
                 permissions=[WalletPermission.VIEW_PAYMENTS],
                 status=WalletShareStatus.INVITE_SENT,
             ),
@@ -114,7 +111,6 @@ async def test_two_invites_to_wallet_ok():
         source_wallet=source_wallet_one,
         data=WalletSharePermission(
             username=invited_user.username,
-            wallet_id=source_wallet_one.id,
             permissions=[WalletPermission.VIEW_PAYMENTS],
             status=WalletShareStatus.INVITE_SENT,
         ),
@@ -130,7 +126,6 @@ async def test_two_invites_to_wallet_ok():
         source_wallet=source_wallet_two,
         data=WalletSharePermission(
             username=invited_user.username,
-            wallet_id=source_wallet_two.id,
             permissions=[
                 WalletPermission.VIEW_PAYMENTS,
                 WalletPermission.RECEIVE_PAYMENTS,
@@ -178,7 +173,7 @@ async def test_many_invites_and_one_cancel():
 
     mid_index = count // 2
     mid_wallet = source_wallets[mid_index]
-    share = mid_wallet.extra.find_share_for_wallet(mid_wallet.id)
+    share = mid_wallet.extra.shared_with[0]
     assert share is not None
     assert share.request_id is not None
     assert invited_user.extra.find_wallet_invite_request(share.request_id) is not None
@@ -201,7 +196,7 @@ async def test_many_invites_and_one_reject():
     assert invited_user is not None
 
     mid_wallet = source_wallets[count // 2]
-    share = mid_wallet.extra.find_share_for_wallet(mid_wallet.id)
+    share = mid_wallet.extra.shared_with[0]
     assert share is not None
     assert share.request_id is not None
     assert invited_user.extra.find_wallet_invite_request(share.request_id) is not None
@@ -224,7 +219,7 @@ async def test_many_invites_and_one_accept():
     assert invited_user is not None
 
     mid_wallet = source_wallets[count // 2]
-    share = mid_wallet.extra.find_share_for_wallet(mid_wallet.id)
+    share = mid_wallet.extra.shared_with[0]
     assert share is not None
     await create_lightning_shared_wallet(invited_user.id, mid_wallet.id)
 
@@ -263,7 +258,6 @@ async def test_invite_to_wallet_non_lightning_wallet():
             source_wallet=source_wallet,
             data=WalletSharePermission(
                 username=invited_user.username,
-                wallet_id=source_wallet.id,
                 permissions=[WalletPermission.VIEW_PAYMENTS],
                 status=WalletShareStatus.INVITE_SENT,
             ),
@@ -286,7 +280,6 @@ async def test_invite_to_wallet_wallet_owner_not_found():
             source_wallet=source_wallet,
             data=WalletSharePermission(
                 username=invited_user.username,
-                wallet_id=source_wallet.id,
                 permissions=[WalletPermission.VIEW_PAYMENTS],
                 status=WalletShareStatus.INVITE_SENT,
             ),
@@ -306,7 +299,6 @@ async def test_invite_to_wallet_empty_permissions_ok():
         source_wallet=source_wallet,
         data=WalletSharePermission(
             username=invited_user.username,
-            wallet_id=source_wallet.id,
             permissions=[],
             status=WalletShareStatus.INVITE_SENT,
         ),
@@ -327,7 +319,6 @@ async def test_invite_to_wallet_username_is_email():
         source_wallet=source_wallet,
         data=WalletSharePermission(
             username=invited_user.email,
-            wallet_id=source_wallet.id,
             permissions=[WalletPermission.VIEW_PAYMENTS],
             status=WalletShareStatus.INVITE_SENT,
         ),
@@ -347,7 +338,6 @@ async def test_invite_to_wallet_sql_injection_username():
             source_wallet=source_wallet,
             data=WalletSharePermission(
                 username="' OR 1=1; --",
-                wallet_id=source_wallet.id,
                 permissions=[WalletPermission.VIEW_PAYMENTS],
                 status=WalletShareStatus.INVITE_SENT,
             ),
@@ -366,7 +356,6 @@ async def test_invite_to_wallet_long_username():
             source_wallet=source_wallet,
             data=WalletSharePermission(
                 username=long_username,
-                wallet_id=source_wallet.id,
                 permissions=[WalletPermission.VIEW_PAYMENTS],
                 status=WalletShareStatus.INVITE_SENT,
             ),
@@ -385,7 +374,6 @@ async def test_invite_to_wallet_special_characters_username():
             source_wallet=source_wallet,
             data=WalletSharePermission(
                 username=special_username,
-                wallet_id=source_wallet.id,
                 permissions=[WalletPermission.VIEW_PAYMENTS],
                 status=WalletShareStatus.INVITE_SENT,
             ),
@@ -404,7 +392,6 @@ async def test_invite_to_wallet_no_username():
             source_wallet=source_wallet,
             data=WalletSharePermission(
                 username=special_username,
-                wallet_id=source_wallet.id,
                 permissions=[WalletPermission.VIEW_PAYMENTS],
                 status=WalletShareStatus.INVITE_SENT,
             ),
@@ -513,7 +500,6 @@ async def test_create_lightning_shared_wallet_ok():
         source_wallet=source_wallet,
         data=WalletSharePermission(
             username=invited_user.username,
-            wallet_id=source_wallet.id,
             permissions=[WalletPermission.RECEIVE_PAYMENTS],
             status=WalletShareStatus.INVITE_SENT,
         ),
@@ -810,7 +796,6 @@ async def _create_invitations_for_user(invited_user, count) -> list[Wallet]:
             source_wallet=source_wallet,
             data=WalletSharePermission(
                 username=invited_user.username,
-                wallet_id=source_wallet.id,
                 permissions=[WalletPermission.VIEW_PAYMENTS],
                 status=WalletShareStatus.INVITE_SENT,
             ),
@@ -830,7 +815,6 @@ async def _create_shared_wallet_for_user(invited_user: User) -> Wallet:
         source_wallet=source_wallet,
         data=WalletSharePermission(
             username=invited_user.username,
-            wallet_id=source_wallet.id,
             permissions=[WalletPermission.VIEW_PAYMENTS],
             status=WalletShareStatus.INVITE_SENT,
         ),
