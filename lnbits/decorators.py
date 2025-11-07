@@ -359,3 +359,20 @@ def url_for_interceptor(original_method):
 # Upgraded extensions modify the path.
 # This interceptor ensures that the path is normalized.
 Request.url_for = url_for_interceptor(Request.url_for)  # type: ignore[method-assign]
+
+
+async def check_admin_ui() -> None:
+    if not settings.lnbits_admin_ui:
+        raise HTTPException(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE, detail="Admin UI is disabled."
+        )
+
+
+async def check_extension_builder(
+    user: Annotated[User, Depends(check_user_exists)],
+) -> None:
+    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Extension Builder is disabled for non admin users.",
+        )
