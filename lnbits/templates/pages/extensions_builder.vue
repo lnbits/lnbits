@@ -1,0 +1,878 @@
+<template id="page-extension-builder">
+  <div class="row">
+    <div class="col-12">
+      <q-stepper
+        v-model="step"
+        ref="stepper"
+        color="primary"
+        animated
+        header-nav
+        class="q-pt-sm"
+        @update:model-value="onStepChange"
+      >
+        <q-step
+          :name="1"
+          title="Describe"
+          icon="info"
+          :done="step > 1"
+          style="min-height: 100px"
+        >
+          <div class="row q-col-gutter-md">
+            <div class="col-12">
+              <span class="text-h6">
+                Tell us something about your extension:
+              </span>
+              <ul>
+                <li>This is the first step, you can return and change it.</li>
+                <li>
+                  The <code>`name`</code> and
+                  <code>`sort description`</code> fields are what the users will
+                  see when browsing the list of extensions.
+                </li>
+                <li>
+                  The <code>`id`</code> field is used internally and in the URL
+                  of your extension.
+                </li>
+              </ul>
+            </div>
+
+            <!-- todo: add icon -->
+
+            <div class="col-12">
+              <div>
+                <q-btn
+                  color="primary"
+                  label="Upload Existing config"
+                  @click="$refs.extensionDataInput.click()"
+                  class="q-mb-md"
+                />
+                <input
+                  type="file"
+                  ref="extensionDataInput"
+                  accept="application/json"
+                  style="display: none"
+                  @change="onJsonDataInput"
+                />
+              </div>
+            </div>
+          </div>
+          <q-separator class="q-mt-sm"></q-separator>
+          <div class="row q-col-gutter-md q-mt-md">
+            <div class="col-md-4 col-sm-12">
+              <q-input
+                filled
+                v-model="extensionData.name"
+                label="Extension Name"
+                hint="The name of your extension"
+              >
+              </q-input>
+            </div>
+            <div class="col-md-4 col-sm-12">
+              <q-input
+                filled
+                v-model="extensionData.id"
+                label="Extension Id"
+                hint="Lowercase letters, numbers, and underscores only (snake_case). This will be used in the URL."
+              >
+              </q-input>
+            </div>
+            <div class="col-md-4 col-sm-12">
+              <q-input
+                filled
+                v-model="extensionData.short_description"
+                label="Short Description"
+                hint="A short description that is shown in the extension list."
+              >
+              </q-input>
+            </div>
+          </div>
+          <div class="row q-mt-lg">
+            <div class="col-12">
+              <q-input
+                filled
+                v-model="extensionData.description"
+                label="Description"
+                hint="A detailed description of your extension."
+                type="textarea"
+                rows="3"
+                maxlength="1000"
+              >
+              </q-input>
+            </div>
+          </div>
+        </q-step>
+
+        <q-step
+          :name="2"
+          title="Settings"
+          icon="settings"
+          :done="step > 2"
+          style="min-height: 100px"
+        >
+          <div class="row q-col-gutter-md q-mt-md">
+            <div class="col-md-8 col-sm-12">
+              <iframe
+                ref="iframeStep2"
+                class="full-width"
+                height="400px"
+                sandbox="allow-scripts allow-same-origin"
+              ></iframe>
+            </div>
+            <div class="col-md-4 col-sm-12">
+              <q-btn
+                @click="previewExtension('settings')"
+                color="primary"
+                outline
+                label="Refresh Preview"
+                class="full-width q-mb-md"
+              ></q-btn>
+              <q-toggle
+                v-model="extensionData.settings_data.enabled"
+                label="Generate Settings Fields"
+                size="md"
+                color="green"
+              />
+              <br />
+
+              <ul>
+                <li>Define what settings your extension will have.</li>
+                <li>
+                  You can choose if each user has its own settings or if the
+                  settings are global (set by the admin).
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <q-separator
+            v-if="extensionData.settings_data.enabled"
+            class="q-mt-sm"
+          ></q-separator>
+          <div v-if="extensionData.settings_data.enabled" class="row q-mt-lg">
+            <div class="col-md-2 col-sm-12">
+              <q-select
+                filled
+                dense
+                emit-value
+                map-options
+                v-model="extensionData.settings_data.type"
+                :options="settingsTypes"
+              ></q-select>
+            </div>
+            <div class="col-md-10 col-sm-12 q-pt-sm">
+              <q-badge
+                v-if="extensionData.settings_data.type === 'user'"
+                outline
+                class="text-caption q-ml-md"
+                >Each user can set its own settings for this extension.</q-badge
+              >
+              <q-badge v-else outline class="text-caption q-ml-md"
+                >Settings are set by the admin and apply to all users of the
+                extension</q-badge
+              >
+            </div>
+          </div>
+          <div v-if="extensionData.settings_data.enabled" class="row q-mt-lg">
+            <div class="col-12">
+              <lnbits-data-fields
+                :fields="extensionData.settings_data.fields"
+                :hide-advanced="true"
+              ></lnbits-data-fields>
+            </div>
+          </div>
+        </q-step>
+
+        <q-step
+          :name="3"
+          :done="step > 3"
+          title="Owner Data"
+          icon="list"
+          style="min-height: 100px"
+        >
+          <div class="row q-col-gutter-md q-mt-md">
+            <div class="col-md-8 col-sm-12">
+              <iframe
+                ref="iframeStep3"
+                class="full-width"
+                height="400px"
+                sandbox="allow-scripts allow-same-origin"
+              ></iframe>
+            </div>
+            <div class="col-md-4 col-sm-12">
+              <q-btn
+                @click="previewExtension('owner_data')"
+                color="primary"
+                outline
+                label="Refresh Preview"
+                class="full-width q-mb-md"
+              ></q-btn>
+              <q-input
+                v-model="extensionData.owner_data.name"
+                filled
+                label="Owner Table Name"
+                hint="CamelCase name for the owner data table (e.g. Campaign, PoS, etc.)"
+                class="q-mb-xl"
+              >
+              </q-input>
+
+              <ul>
+                <li>
+                  The owner of the extension manages this data. It can add,
+                  remove and update instances of it.
+                </li>
+
+                <li>
+                  Some fileds are present by default, like
+                  <code>created_at</code>, <code>updated_at</code> and
+                  <code>extra</code>.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="row q-mt-lg">
+            <div class="col-12">
+              <lnbits-data-fields
+                :fields="extensionData.owner_data.fields"
+              ></lnbits-data-fields>
+            </div>
+          </div>
+        </q-step>
+
+        <q-step
+          :name="4"
+          :done="step > 4"
+          title="Client Data"
+          icon="blur_linear"
+          style="min-height: 100px"
+        >
+          <div class="row q-col-gutter-md q-mt-md">
+            <div class="col-md-8 col-sm-12">
+              <iframe
+                ref="iframeStep4"
+                class="full-width"
+                height="400px"
+                sandbox="allow-scripts allow-same-origin"
+              ></iframe>
+            </div>
+            <div class="col-md-4 col-sm-12">
+              <q-btn
+                @click="previewExtension('client_data')"
+                color="primary"
+                outline
+                label="Refresh Preview"
+                class="full-width q-mb-md"
+              ></q-btn>
+              <!-- <q-toggle
+              v-model="extensionData.client_data.enabled"
+              label="Generate Client Table"
+              disable
+              size="md"
+              color="green"
+            />
+
+            <br /> -->
+              <q-input
+                v-if="extensionData.client_data.enabled"
+                v-model="extensionData.client_data.name"
+                filled
+                label="Client Table Name"
+                hint="CamelCase name for the client data table (e.g. Donation, Payment, etc.)"
+                class="q-mb-xl"
+              >
+              </q-input>
+              <ul>
+                <li>
+                  This data is created by users of the extension. Usually when
+                  they submit a form or make a payment.
+                </li>
+                <li>
+                  The owner of the extension can view this data, but should not
+                  modify it.
+                </li>
+              </ul>
+            </div>
+          </div>
+          <q-separator
+            v-if="extensionData.client_data.enabled"
+            class="q-mt-sm"
+          ></q-separator>
+          <div v-if="extensionData.client_data.enabled" class="row q-mt-lg">
+            <div class="col-12">
+              <lnbits-data-fields
+                :fields="extensionData.client_data.fields"
+              ></lnbits-data-fields>
+            </div>
+          </div>
+        </q-step>
+
+        <q-step
+          :name="5"
+          :done="step > 5"
+          title="Public Pages"
+          icon="link"
+          style="min-height: 100px"
+        >
+          <div class="row q-col-gutter-md q-mt-md">
+            <div class="col-md-8 col-sm-12">
+              <iframe
+                ref="iframeStep5"
+                class="full-width"
+                height="400px"
+                sandbox="allow-scripts allow-same-origin"
+              ></iframe>
+            </div>
+
+            <div class="col-md-4 col-sm-12">
+              <q-btn
+                @click="previewExtension('public_page')"
+                color="primary"
+                outline
+                label="Refresh Preview"
+                class="full-width q-mb-md"
+              ></q-btn>
+              <q-toggle
+                v-model="extensionData.public_page.has_public_page"
+                label="Generate Public Page"
+                size="md"
+                color="green"
+              />
+              <br />
+
+              <ul>
+                <li>
+                  Most extensions have a public page that can be shared (this
+                  page will still be accessible even if you have restricted
+                  access to your LNbits install).
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div v-if="extensionData.public_page.has_public_page">
+            <div class="row q-col-gutter-md q-mt-md">
+              <div class="col-12 col-md-6">
+                <q-item tag="label" v-ripple>
+                  <q-item-section>
+                    <q-item-label>Public page title</q-item-label>
+                    <q-item-label caption
+                      >Select the field from the
+                      <code v-text="extensionData.owner_data.name"></code>&nbsp;
+                      (Owner Data) that will be used as a title for the public
+                      page.</q-item-label
+                    >
+                  </q-item-section>
+                  <q-item-section>
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
+                      v-model="extensionData.public_page.owner_data_fields.name"
+                      :options="
+                        [''].concat(
+                          extensionData.owner_data.fields.map(f => f.name)
+                        )
+                      "
+                    ></q-select>
+                  </q-item-section>
+                </q-item>
+              </div>
+              <div class="col-12 col-md-6">
+                <q-item tag="label" v-ripple>
+                  <q-item-section>
+                    <q-item-label>Public page description</q-item-label>
+                    <q-item-label caption
+                      >Select the field from the
+                      <code v-text="extensionData.owner_data.name"></code>&nbsp;
+                      (Owner Data) that will be used as a description for the
+                      public page.</q-item-label
+                    >
+                  </q-item-section>
+                  <q-item-section>
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
+                      v-model="
+                        extensionData.public_page.owner_data_fields.description
+                      "
+                      :options="
+                        [''].concat(
+                          extensionData.owner_data.fields.map(f => f.name)
+                        )
+                      "
+                    ></q-select>
+                  </q-item-section>
+                </q-item>
+              </div>
+              <div class="col-12 col-md-6">
+                <q-item tag="label" v-ripple>
+                  <q-item-section>
+                    <q-item-label>Public page inputs</q-item-label>
+                    <q-item-label caption>
+                      <ul class="q-pa-none q-ma-none">
+                        <li>
+                          Select the fields from the
+                          <code v-text="extensionData.client_data.name"></code
+                          >&nbsp; (Client Data) that will be shown as inputs in
+                          the public page form.
+                        </li>
+                        <li>You can select multiple fields.</li>
+                        <li>
+                          A corresponding input field will be created for each
+                          selected field.
+                        </li>
+                      </ul>
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
+                      multiple
+                      use-chips
+                      v-model="
+                        extensionData.public_page.client_data_fields
+                          .public_inputs
+                      "
+                      :options="
+                        extensionData.client_data.fields.map(f => f.name)
+                      "
+                    ></q-select>
+                  </q-item-section>
+                </q-item>
+              </div>
+              <div class="col-12 col-md-6">
+                <q-item tag="label" v-ripple>
+                  <q-item-section>
+                    <q-item-label>Generate Action Button</q-item-label>
+                    <q-item-label caption>
+                      <ul class="q-pa-none q-ma-none">
+                        <li>
+                          If enabled, the public page will have a button to
+                          perform an action (e.g. generate a payment request).
+                        </li>
+                        <li>
+                          The action will use the selected input fields from
+                          <code v-text="extensionData.client_data.name"></code
+                          >&nbsp; (Client Data) as parameters.
+                        </li>
+                        <li>
+                          A corresponding REST API endpoint will be created.
+                        </li>
+                      </ul></q-item-label
+                    >
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-toggle
+                      v-model="
+                        extensionData.public_page.action_fields.generate_action
+                      "
+                      size="md"
+                      color="green"
+                    />
+                  </q-item-section>
+                </q-item>
+              </div>
+            </div>
+            <q-separator
+              v-if="extensionData.public_page.action_fields.generate_action"
+              class="q-mt-sm"
+            ></q-separator>
+
+            <div v-if="extensionData.public_page.action_fields.generate_action">
+              <div class="row q-col-gutter-md q-mt-md">
+                <div class="col-12 col-md-6">
+                  <q-item tag="label" v-ripple>
+                    <q-item-section>
+                      <q-item-label>Generate Payment Logic</q-item-label>
+                      <q-item-label caption>
+                        <ul class="q-pa-none q-ma-none">
+                          <li>
+                            If enabled, the endpoint will create an invoice from
+                            the submitted data and the UI will show the QR code
+                            with the invoice.
+                          </li>
+                          <li>
+                            A listener will be created to check for the pay
+                            event.
+                          </li>
+                          <li>You must map the fieds.</li>
+                        </ul></q-item-label
+                      >
+                    </q-item-section>
+                    <q-item-section avatar>
+                      <q-toggle
+                        v-model="
+                          extensionData.public_page.action_fields
+                            .generate_payment_logic
+                        "
+                        size="md"
+                        color="green"
+                      />
+                    </q-item-section>
+                  </q-item>
+                </div>
+
+                <div class="col-12 col-md-6"></div>
+              </div>
+              <div
+                v-if="
+                  extensionData.public_page.action_fields.generate_action &&
+                  extensionData.public_page.action_fields.generate_payment_logic
+                "
+                class="row q-col-gutter-md q-mt-md"
+              >
+                <div class="col-12 col-md-6">
+                  <q-item tag="label" v-ripple>
+                    <q-item-section>
+                      <q-item-label>Wallet</q-item-label>
+                      <q-item-label caption>
+                        <ul class="q-pa-none q-ma-none">
+                          <li>
+                            Select the field from the
+                            <code v-text="extensionData.owner_data.name"></code
+                            >&nbsp; (Owner Data) that represents the wallet
+                            which will generate the invoice and receive the
+                            payments.
+                          </li>
+
+                          <li>
+                            Only fields with the type <code>Wallet</code> will
+                            be shown.
+                          </li>
+                        </ul>
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-select
+                        filled
+                        dense
+                        emit-value
+                        map-options
+                        v-model="
+                          extensionData.public_page.action_fields.wallet_id
+                        "
+                        :options="
+                          [''].concat(
+                            extensionData.owner_data.fields
+                              .filter(f => f.type === 'wallet')
+                              .map(f => f.name)
+                          )
+                        "
+                      ></q-select>
+                    </q-item-section>
+                  </q-item>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <q-item tag="label" v-ripple>
+                    <q-item-section>
+                      <q-item-label>Currency</q-item-label>
+                      <q-item-label caption>
+                        <ul class="q-pa-none q-ma-none">
+                          <li>
+                            Select the field from the
+                            <code v-text="extensionData.owner_data.name"></code
+                            >&nbsp; (Owner Data) that represents the currency
+                            which will be used to for the amount.
+                          </li>
+                          <li>
+                            Only fields with the type <code>Currency</code> will
+                            be shown.
+                          </li>
+                          <li>Empty if you want to use sats.</li>
+                        </ul>
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-select
+                        filled
+                        dense
+                        emit-value
+                        map-options
+                        v-model="
+                          extensionData.public_page.action_fields.currency
+                        "
+                        :options="
+                          [''].concat(
+                            extensionData.owner_data.fields
+                              .filter(f => f.type === 'currency')
+                              .map(f => f.name)
+                          )
+                        "
+                      ></q-select>
+                    </q-item-section>
+                  </q-item>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <q-item tag="label" v-ripple>
+                    <q-item-section>
+                      <q-item-label>Amount</q-item-label>
+                      <q-item-label caption>
+                        <ul class="q-pa-none q-ma-none">
+                          <li>
+                            Select the field from the
+                            <code v-text="extensionData.owner_data.name"></code
+                            >&nbsp; (Owner Data) or
+                            <code v-text="extensionData.client_data.name"></code
+                            >&nbsp; (Client Data) that represents the amount (in
+                            the selected currency).
+                          </li>
+                          <li>
+                            Only fields with the type <code>Integer</code> and
+                            <code>Float</code> will be shown.
+                          </li>
+                        </ul>
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section>
+                      <div class="row">
+                        <div class="col-6">
+                          <q-select
+                            filled
+                            dense
+                            emit-value
+                            map-options
+                            v-model="
+                              extensionData.public_page.action_fields
+                                .amount_source
+                            "
+                            :options="amountSource"
+                            class="q-mr-sm"
+                          ></q-select>
+                        </div>
+                        <div class="col-6">
+                          <q-select
+                            filled
+                            dense
+                            emit-value
+                            map-options
+                            v-model="
+                              extensionData.public_page.action_fields.amount
+                            "
+                            :options="paymentActionAmountFields"
+                          ></q-select>
+                        </div>
+                      </div>
+                    </q-item-section>
+                  </q-item>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <q-item tag="label" v-ripple>
+                    <q-item-section>
+                      <q-item-label>Paid Flag</q-item-label>
+                      <q-item-label caption>
+                        <ul class="q-pa-none q-ma-none">
+                          <li>
+                            Select the field from the
+                            <code v-text="extensionData.client_data.name"></code
+                            >&nbsp; (Client Data) that will be set to true when
+                            the invoice is paid.
+                          </li>
+                          <li>
+                            Only fields with the type <code>Boolean</code> will
+                            be shown.
+                          </li>
+                        </ul>
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-select
+                        filled
+                        dense
+                        emit-value
+                        map-options
+                        v-model="
+                          extensionData.public_page.action_fields.paid_flag
+                        "
+                        :options="
+                          [''].concat(
+                            extensionData.client_data.fields
+                              .filter(f => f.type === 'bool')
+                              .map(f => f.name)
+                          )
+                        "
+                      ></q-select>
+                    </q-item-section>
+                  </q-item>
+                </div>
+              </div>
+            </div>
+          </div>
+        </q-step>
+
+        <q-step
+          :name="6"
+          :done="step > 6"
+          title="Publish"
+          icon="publish"
+          style="min-height: 100px"
+        >
+          <div v-if="g.user.admin" class="row">
+            <div class="col-md-4 col-sm-12 col-xs-12">
+              <q-select
+                filled
+                dense
+                emit-value
+                map-options
+                v-model="extensionData.stub_version"
+                hint="The version of the extension stub. Make sure it is compatible with your LNbits install."
+                :options="extensionStubVersions.map(f => f.version)"
+              ></q-select>
+            </div>
+            <div class="col-md-4 col-sm-12 col-xs-12">
+              <q-btn
+                @click="cleanCacheData()"
+                color="grey"
+                outline
+                label="Clean Cache"
+                class="q-ml-md"
+              />
+              <q-icon
+                name="info"
+                size="md"
+                color="primary"
+                class="cursor-pointer q-ml-xs q-mb-xs"
+              >
+                <q-tooltip>
+                  <ul class="q-pl-sm">
+                    <li>
+                      The extension builder uses caching to speed up the build
+                      process.
+                    </li>
+                    <li>
+                      This action clears old data and redownloads the Extension
+                      Builder Stub release.
+                    </li>
+                  </ul>
+                </q-tooltip>
+              </q-icon>
+            </div>
+          </div>
+          <div v-if="g.user.admin" class="row q-mt-md">
+            <div class="col-md-4 col-sm-12 col-xs-12">
+              <div class="row">
+                <q-btn
+                  @click="buildExtensionAndDeploy()"
+                  color="primary"
+                  label="Build and Deploy (Admin Only)"
+                  class="col"
+                />
+                <q-icon
+                  name="info"
+                  size="md"
+                  color="primary"
+                  class="cursor-pointer q-ml-sm self-center"
+                >
+                  <q-tooltip>
+                    <ul class="q-pl-sm">
+                      <li>
+                        Installs the extension directly to this LNbits instance.
+                      </li>
+                      <li>
+                        The extension will be enabled by default, and available
+                        to all users.
+                      </li>
+                    </ul>
+                  </q-tooltip>
+                </q-icon>
+              </div>
+            </div>
+          </div>
+
+          <div class="row q-mt-md">
+            <div class="col-md-4 col-sm-12 col-xs-12">
+              <div class="row">
+                <q-btn
+                  @click="buildExtension()"
+                  outline
+                  color="gray"
+                  label="Download Extension Zip"
+                  icon="download"
+                  class="col"
+                />
+                <q-icon
+                  name="info"
+                  size="md"
+                  color="primary"
+                  class="cursor-pointer q-ml-sm self-center"
+                >
+                  <q-tooltip>
+                    Builds the extension and downloads a zip file with the code.
+                    You can then install it manually in your LNbits instance.
+                  </q-tooltip>
+                </q-icon>
+              </div>
+            </div>
+          </div>
+        </q-step>
+
+        <template v-slot:navigation>
+          <q-separator></q-separator>
+          <div class="row">
+            <div class="col-md-6 col-sm-12 q-pl-md q-pt-md">
+              <q-btn
+                v-if="step == 1"
+                label="Clear All Data"
+                color="negative"
+                @click="clearAllData"
+              ></q-btn>
+              <q-btn
+                v-else
+                flat
+                color="grey-8"
+                class="q-mr-sm"
+                @click="previousStep()"
+                label="Back"
+                icon="chevron_left"
+              />
+            </div>
+            <div class="col-md-6 col-sm-12 q-pr-md q-pb-md">
+              <q-stepper-navigation class="float-right">
+                <q-btn
+                  v-if="step < 6"
+                  @click="nextStep()"
+                  color="primary"
+                  label="Next"
+                ></q-btn>
+                <template v-else>
+                  <q-btn
+                    @click="exportJsonData()"
+                    color="primary"
+                    label="Export JSON Data"
+                  ></q-btn>
+                  <q-icon
+                    name="info"
+                    size="md"
+                    color="primary"
+                    class="cursor-pointer q-ml-sm self-center"
+                  >
+                    <q-tooltip>
+                      <ul class="q-pl-sm">
+                        <li>
+                          Exports the config JSON so it can be later imported or
+                          shared.
+                        </li>
+                        <li>
+                          This JSON is also added to the zip in a file called
+                          `builder.json`.
+                        </li>
+                      </ul>
+                    </q-tooltip>
+                  </q-icon>
+                </template>
+              </q-stepper-navigation>
+            </div>
+          </div>
+        </template>
+      </q-stepper>
+    </div>
+  </div>
+  <div class="row q-col-gutter-md"></div>
+</template>

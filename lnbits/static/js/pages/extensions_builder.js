@@ -1,5 +1,7 @@
-window.ExtensionsBuilderPageLogic = {
-  data: function () {
+window.PageExtensionBuilder = {
+  template: '#page-extension-builder',
+  mixins: [windowMixin],
+  data() {
     return {
       step: 1,
       previewStepNames: {
@@ -92,7 +94,6 @@ window.ExtensionsBuilderPageLogic = {
     paymentActionAmountFields() {
       const amount_source =
         this.extensionData.public_page.action_fields.amount_source
-      console.log('### amount_source:', amount_source)
       if (!amount_source) return ['']
 
       if (amount_source === 'owner_data') {
@@ -325,7 +326,7 @@ window.ExtensionsBuilderPageLogic = {
       this.extensionDataCleanString = JSON.stringify(this.extensionData)
     }
   },
-  created: function () {
+  created() {
     this.initBasicData()
 
     const extensionData = this.$q.localStorage.getItem(
@@ -345,6 +346,5 @@ window.ExtensionsBuilderPageLogic = {
     setTimeout(() => {
       this.refreshIframe()
     }, 1000)
-  },
-  mixins: [windowMixin]
+  }
 }

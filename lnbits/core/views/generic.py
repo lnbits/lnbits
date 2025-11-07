@@ -214,24 +214,6 @@ async def extensions(request: Request, user: User = Depends(check_user_exists)):
 
 
 @generic_router.get(
-    "/extensions/builder",
-    name="extensions builder",
-    dependencies=[Depends(check_extension_builder)],
-)
-async def extensions_builder(
-    request: Request, user: User = Depends(check_user_exists)
-) -> HTMLResponse:
-    return template_renderer().TemplateResponse(
-        request,
-        "core/extensions_builder.html",
-        {
-            "user": user.json(),
-            "ajax": _is_ajax_request(request),
-        },
-    )
-
-
-@generic_router.get(
     "/extensions/builder/preview/{ext_id}",
     name="extensions builder",
     dependencies=[Depends(check_extension_builder)],
@@ -392,6 +374,9 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/audit", dependencies=admin_ui_checks)
 @generic_router.get("/node", dependencies=admin_ui_checks)
 @generic_router.get("/admin", dependencies=admin_ui_checks)
+@generic_router.get(
+    "/extensions/builder", dependencies=[Depends(check_extension_builder)]
+)
 async def index(
     request: Request, user: User = Depends(check_user_exists)
 ) -> HTMLResponse:
