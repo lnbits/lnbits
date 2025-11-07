@@ -268,13 +268,14 @@ class StrikeWallet(Wallet):
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # Extract payment hash from invoice for checking_id
         from bolt11 import decode as bolt11_decode
+
         try:
             invoice = bolt11_decode(bolt11)
             payment_hash = invoice.payment_hash
         except Exception as decode_exc:
             logger.error(f"Strike: Failed to decode invoice: {decode_exc}")
             return PaymentResponse(
-                ok=False, error_message=f"Invalid invoice: {str(decode_exc)}"
+                ok=False, error_message=f"Invalid invoice: {decode_exc!s}"
             )
 
         quote_id = None
@@ -406,7 +407,7 @@ class StrikeWallet(Wallet):
         except Exception as e:
             logger.error(f"Strike payment exception: {e}", exc_info=True)
             # Keep pending. Not sure if the payment went through or not.
-            return PaymentResponse(ok=None, error_message=f"Error: {str(e)}")
+            return PaymentResponse(ok=None, error_message=f"Error: {e!s}")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
