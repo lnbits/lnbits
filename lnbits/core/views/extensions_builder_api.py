@@ -1,9 +1,8 @@
 import os
 import shutil
 from hashlib import sha256
-from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
 from lnbits.core.models import (
@@ -28,9 +27,9 @@ from lnbits.core.services.extensions_builder import (
 )
 from lnbits.decorators import (
     check_admin,
+    check_extension_builder,
     check_user_exists,
 )
-from lnbits.settings import settings
 
 from ..crud import (
     create_user_extension,
@@ -47,19 +46,12 @@ extension_builder_router = APIRouter(
 @extension_builder_router.post(
     "/zip",
     summary="Build and download extension zip.",
+    dependencies=[Depends(check_extension_builder)],
     description="""
         This endpoint generates a zip file for the extension based on the provided data.
     """,
 )
-async def api_build_extension(
-    data: ExtensionData,
-    user: User = Depends(check_user_exists),
-) -> FileResponse:
-    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
-        raise HTTPException(
-            HTTPStatus.FORBIDDEN,
-            "Extension Builder is disabled for non admin users.",
-        )
+async def api_build_extension(data: ExtensionData) -> FileResponse:
     stub_ext_id = "extension_builder_stub"  # todo: do not hardcode, fetch from manifest
     release, build_dir = await build_extension_from_data(data, stub_ext_id)
 
@@ -132,16 +124,12 @@ async def api_deploy_extension(
 @extension_builder_router.post(
     "/preview",
     summary="Build and preview the extension ui.",
+    dependencies=[Depends(check_extension_builder)],
 )
 async def api_preview_extension(
     data: ExtensionData,
     user: User = Depends(check_user_exists),
 ) -> SimpleStatus:
-    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
-        raise HTTPException(
-            HTTPStatus.FORBIDDEN,
-            "Extension Builder is disabled for non admin users.",
-        )
     stub_ext_id = "extension_builder_stub"
     working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
     await build_extension_from_data(data, stub_ext_id, working_dir_name)
