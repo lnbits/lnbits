@@ -125,6 +125,7 @@
       "js/components/lnbits-qrcode-lnurl.js",
       "js/components/lnbits-footer.js",
       "js/components/lnbits-header.js",
+      "js/components/lnbits-drawer.js",
       "js/components/extension-settings.js",
       "js/components/data-fields.js",
       "js/components/payment-list.js",
