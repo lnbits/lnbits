@@ -33,143 +33,7 @@
   <body data-theme="bitcoin">
     <div id="vue">
       <q-layout view="hHh lpR lfr" v-cloak>
-        <q-header bordered class="bg-marginal-bg">
-          <!-- VoidWallet Warning Banner -->
-          {% if VOIDWALLET %}
-          <q-banner v-if="g.user" class="bg-warning text-white" dense>
-            <template v-slot:avatar>
-              <q-icon name="warning" color="white" />
-            </template>
-            <a
-              v-if="g.user && (g.user.super_user || g.user.admin)"
-              href="/admin"
-              style="color: white; text-decoration: underline; cursor: pointer"
-              v-text="$t('voidwallet_active_admin')"
-            ></a>
-            <span v-else v-text="$t('voidwallet_active_user')"></span>
-          </q-banner>
-          {% endif %}
-
-          <q-toolbar>
-            {% block drawer_toggle %}
-            <q-btn
-              dense
-              flat
-              round
-              icon="menu"
-              @click="g.visibleDrawer = !g.visibleDrawer"
-            ></q-btn>
-            {% endblock %}
-            <q-toolbar-title>
-              {% block toolbar_title %}
-              <q-btn flat no-caps dense size="lg" type="a" href="/"
-                >{% if USE_CUSTOM_LOGO %}
-                <img height="30px" alt="Logo" src="{{ USE_CUSTOM_LOGO }}" />
-                {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {%
-                else %}
-                <span><strong>LN</strong>bits</span> {% endif %} {%endif%} </q-btn
-              >{% endblock %} {% block toolbar_subtitle %}
-              <q-badge v-if="g.user && g.user.super_user">Super User</q-badge>
-              <q-badge v-else-if="g.user && g.user.admin">Admin User</q-badge>
-              {% endblock %}
-            </q-toolbar-title>
-            {% block beta %} {% if LNBITS_CUSTOM_BADGE is not none and
-            LNBITS_CUSTOM_BADGE != "" %}
-            <q-badge
-              v-show="$q.screen.gt.sm"
-              color="{{ LNBITS_CUSTOM_BADGE_COLOR }}"
-              class="q-mr-md"
-              label="{{LNBITS_CUSTOM_BADGE|e}}"
-            >
-            </q-badge>
-            {% endif %} {% if LNBITS_SERVICE_FEE > 0 %}
-            <q-badge
-              v-show="$q.screen.gt.sm"
-              v-if="g.user"
-              color="green"
-              class="q-mr-md"
-            >
-              {% if LNBITS_SERVICE_FEE_MAX > 0 %}
-              <span
-                v-text='$t("service_fee_max_badge", { amount: "{{ LNBITS_SERVICE_FEE }}", max: "{{ LNBITS_SERVICE_FEE_MAX }}", denom: "{{ LNBITS_DENOMINATION }}"})'
-              ></span>
-              {%else%}
-              <span
-                v-text='$t("service_fee_badge", { amount: "{{ LNBITS_SERVICE_FEE}}"})'
-              ></span>
-              {%endif%}
-              <q-tooltip
-                ><span v-text='$t("service_fee_tooltip")'></span
-              ></q-tooltip>
-            </q-badge>
-
-            {%endif%} {% endblock %}
-            <q-badge v-if="g.offline" color="red" class="q-mr-md">
-              <span>OFFLINE</span>
-            </q-badge>
-            <q-btn-dropdown
-              v-if="g.user || isUserAuthorized"
-              flat
-              rounded
-              size="sm"
-              class="q-pl-sm"
-            >
-              <template v-slot:label>
-                <div>
-                  {%if user and user.config and user.config.picture%}
-                  <img src="{{user.config.picture}}" style="max-width: 32px" />
-                  {%else%}
-                  <q-icon name="account_circle" />
-                  {%endif%}
-                </div>
-              </template>
-              <q-list>
-                <q-item to="/account" clickable v-close-popup
-                  ><q-item-section>
-                    <q-icon name="person" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>
-                      <span v-text="$t('my_account')"></span>
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label> </q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item to="/account#theme" clickable v-close-popup
-                  ><q-item-section>
-                    <q-icon
-                      :name="$q.dark.isActive ? 'dark_mode' : 'light_mode'"
-                    />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>
-                      <span v-text="$t('theme')"></span>
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label> </q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-separator></q-separator>
-                <q-item clickable v-close-popup @click="logout"
-                  ><q-item-section>
-                    <q-icon name="logout" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>
-                      <span v-text="$t('logout')"></span>
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label> </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-btn-dropdown>
-          </q-toolbar>
-        </q-header>
+        <lnbits-header></lnbits-header>
 
         {% block drawer %}
         <q-drawer
@@ -205,18 +69,13 @@
                 </q-btn>
               </q-item-section>
             </q-item>
+
             <lnbits-wallet-list
               v-if="!walletFlip"
               :balance="balance"
               @wallet-action="handleWalletAction"
             ></lnbits-wallet-list>
-            <lnbits-manage
-              :show-admin="'{{LNBITS_ADMIN_UI}}' == 'True'"
-              :show-users="'{{LNBITS_ADMIN_UI}}' == 'True'"
-              :show-audit="'{{LNBITS_AUDIT_ENABLED}}' == 'True'"
-              :show-node="'{{LNBITS_NODE_UI}}' == 'True'"
-              :show-extensions="'{{LNBITS_EXTENSIONS_DEACTIVATE_ALL}}' == 'False'"
-            ></lnbits-manage>
+            <lnbits-manage />
             <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
           </q-scroll-area>
         </q-drawer>
