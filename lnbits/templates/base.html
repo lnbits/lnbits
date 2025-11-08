@@ -16,64 +16,6 @@
         src: url("{{ static_url_for('static', 'fonts/material-icons-v50.woff2') }}")
           format('woff2');
       }
-      .wallet-list-card {
-        margin-top: 1px;
-        margin-right: 1rem;
-      }
-      .wallet-list-card:first-child {
-        margin-left: 1px;
-      }
-      /* Force chip content to wrap on mobile */
-      @media (max-width: 1023px) {
-        .q-chip {
-          height: auto !important;
-          min-height: 2rem !important;
-        }
-        .q-chip .q-chip__content {
-          white-space: normal !important;
-          word-break: break-all !important;
-          min-height: 1.5rem !important;
-          height: auto !important;
-        }
-        .q-chip .ellipsis {
-          overflow: visible !important;
-          text-overflow: clip !important;
-          white-space: normal !important;
-          word-break: break-all !important;
-        }
-        /* Fix q-input hint text wrapping and container growth */
-        .q-field {
-          overflow: visible !important;
-          height: auto !important;
-          min-height: 56px !important;
-        }
-        .q-field__inner {
-          overflow: visible !important;
-          height: auto !important;
-        }
-        .q-field__control {
-          overflow: visible !important;
-          height: auto !important;
-        }
-        .q-field__bottom {
-          position: relative !important;
-          transform: none !important;
-          max-height: none !important;
-          overflow: visible !important;
-          height: auto !important;
-          margin-bottom: 8px !important;
-        }
-        .q-field__messages {
-          min-height: auto !important;
-        }
-        .q-field__messages,
-        .q-field__messages > div {
-          white-space: normal !important;
-          word-wrap: break-word !important;
-          overflow-wrap: break-word !important;
-          word-break: break-word !important;
-        }
-      }
     </style>
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />

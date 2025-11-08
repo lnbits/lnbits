@@ -169,3 +169,11 @@ video {
     }
   }
 }
+
+.wallet-list-card {
+  margin-top: 1px;
+  margin-right: 1rem;
+}
+.wallet-list-card:first-child {
+  margin-left: 1px;
+}
