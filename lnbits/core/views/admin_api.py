@@ -101,6 +101,7 @@ async def api_update_settings(data: UpdateSettings, user: User = Depends(check_a
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings_partial(data: dict, user: User = Depends(check_admin)):
+    # nada
     updatable_settings = dict_to_settings({**settings.dict(), **data})
     return await api_update_settings(updatable_settings, user)
 
