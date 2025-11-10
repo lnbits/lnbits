@@ -46,10 +46,6 @@ window.PageWallet = {
           payment_hash: null
         }
       },
-      disclaimerDialog: {
-        show: false,
-        location: window.location
-      },
       mobileSimple: this.$q.screen.lt.md,
       icon: {
         show: false,
@@ -1295,12 +1291,6 @@ window.PageWallet = {
     }
   },
   async mounted() {
-    console.log('Wallet component mounted')
-    if (!Quasar.LocalStorage.getItem('lnbits.disclaimerShown')) {
-      this.disclaimerDialog.show = true
-      Quasar.LocalStorage.setItem('lnbits.disclaimerShown', true)
-      Quasar.LocalStorage.setItem('lnbits.reactions', 'confettiTop')
-    }
     if (Quasar.LocalStorage.getItem('lnbits.isFiatPriority')) {
       this.isFiatPriority = Quasar.LocalStorage.getItem('lnbits.isFiatPriority')
     } else {

@@ -1278,6 +1278,7 @@
       </div>
     </q-card>
   </q-dialog>
+
   <div
     class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
   >
@@ -1302,29 +1303,6 @@
     >
     </q-btn>
   </div>
-  <q-dialog v-model="disclaimerDialog.show" position="top">
-    <q-card class="q-pa-lg">
-      <h6
-        class="q-my-md text-primary"
-        v-text="$t('disclaimer_dialog_title')"
-      ></h6>
-      <p class="whitespace-pre-line" v-text="$t('disclaimer_dialog')"></p>
-      <div class="row q-mt-lg">
-        <q-btn
-          outline
-          color="grey"
-          type="a"
-          href="/account"
-          :label="$t('my_account')"
-        ></q-btn>
-        <q-btn
-          v-close-popup
-          flat
-          color="grey"
-          class="q-ml-auto"
-          :label="$t('i_understand')"
-        ></q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
+
+  <lnbits-wallet-disclaimer></lnbits-wallet-disclaimer>
 </template>
