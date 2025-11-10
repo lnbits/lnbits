@@ -1,5 +1,5 @@
 <template id="page-first-install">
-  <div class="row q-col-gutter-md justify-center main">
+  <div class="row q-col-gutter-md justify-center main first-install">
     <div class="col-10 col-md-8 col-lg-6 q-gutter-y-md">
       <q-card>
         <q-card-section class="grid">
