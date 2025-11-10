@@ -3,6 +3,7 @@ from fastapi import APIRouter, FastAPI
 from .db import core_app_extra, db
 from .views.admin_api import admin_router
 from .views.api import api_router
+from .views.asset_api import asset_router
 from .views.audit_api import audit_router
 from .views.auth_api import auth_router
 from .views.callback_api import callback_router
@@ -44,6 +45,7 @@ def init_core_routers(app: FastAPI):
     app.include_router(webpush_router)
     app.include_router(users_router)
     app.include_router(audit_router)
+    app.include_router(asset_router)
     app.include_router(fiat_router)
     app.include_router(lnurl_router)
 

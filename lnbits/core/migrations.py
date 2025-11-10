@@ -771,6 +771,7 @@ async def m037_create_assets_table(db: Connection):
             name TEXT NOT NULL,
             size INT NOT NULL,
             extra TEXT,
+            thumbnail_base64 TEXT,
             thumbnail {db.blob},
             data {db.blob} NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}

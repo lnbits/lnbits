@@ -18,7 +18,7 @@ class AssetInfo(BaseModel):
     name: str
     size: int  # TODO: size in ??
     extra: AssetExtra
-    thumbnail: bytes | None = None
+    thumbnail_base64: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
