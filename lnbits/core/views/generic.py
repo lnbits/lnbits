@@ -24,8 +24,6 @@ from lnbits.helpers import check_callback_url, template_renderer
 from lnbits.settings import settings
 
 from ..crud import (
-    get_db_versions,
-    get_installed_extensions,
     get_user,
 )
 
@@ -273,6 +271,7 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 
 
 @generic_router.get("/payments")
+@generic_router.get("/wallet")
 @generic_router.get("/wallets")
 @generic_router.get("/account")
 @generic_router.get("/extensions")
