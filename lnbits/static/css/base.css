@@ -341,3 +341,37 @@ video {
 .q-dialog__inner--minimized {
   padding: 12px;
 }
+
+.first-install {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.first-install .grid {
+  display: block;
+}
+.first-install .hero-wrapper {
+  display: none;
+}
+.first-install .hero {
+  display: block;
+  height: 100%;
+  max-width: 250px;
+  background-image: url(/static/images/logos/lnbits.svg);
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+@media (min-width: 992px) {
+  .first-install .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 1rem;
+  }
+  .first-install .hero-wrapper {
+    display: block;
+    position: relative;
+    height: 100%;
+    padding: 1rem;
+  }
+}
