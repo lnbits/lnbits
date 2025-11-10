@@ -3,7 +3,6 @@ window.PageFirstInstall = {
   mixins: [window.windowMixin],
   data() {
     return {
-      hasAdminUI: LNBITS_ADMIN_UI,
       loginData: {
         isPwd: true,
         isPwdRepeat: true,
@@ -31,5 +30,8 @@ window.PageFirstInstall = {
         LNbits.utils.notifyApiError(e)
       }
     }
+  },
+  created() {
+    document.title = 'First Install - LNbits'
   }
 }

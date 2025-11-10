@@ -2,4 +2,4 @@
 include('pages/audit.vue') %} {% include('pages/wallets.vue') %} {%
 include('pages/users.vue') %} {% include('pages/admin.vue') %} {%
 include('pages/account.vue') %} {% include('pages/extensions_builder.vue') %} {%
-include('pages/extensions.vue') %}
+include('pages/extensions.vue') %} {% include('pages/first-install.vue') %}
