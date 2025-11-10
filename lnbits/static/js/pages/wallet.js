@@ -934,14 +934,6 @@ window.PageWallet = {
         this.updateFiatBalance(this.update.currency)
       }
     },
-    walletFormatBalance() {
-      const amount = this.g.wallet.sat
-      if (LNBITS_DENOMINATION != 'sats') {
-        return LNbits.utils.formatCurrency(amount / 100, LNBITS_DENOMINATION)
-      } else {
-        return LNbits.utils.formatSat(amount) + ' sats'
-      }
-    },
     handleFilterChange(value = {}) {
       if (
         this.paymentsFilter['time[ge]'] !== value['time[ge]'] ||

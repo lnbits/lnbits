@@ -18,7 +18,11 @@ include('components/lnbits-home-logos.vue') %} {%
 include('components/lnbits-wallet-api-docs.vue') %} {%
 include('components/lnbits-wallet-list.vue') %} {%
 include('components/lnbits-wallet-share.vue') %} {%
-include('components/lnbits-wallet-disclaimer.vue') %}
+include('components/lnbits-wallet-disclaimer.vue') %} {%
+include('components/lnbits-wallet-header.vue') %} {%
+include('components/lnbits-wallet-parse.vue') %} {%
+include('components/lnbits-wallet-receive.vue') %} {%
+include('components/lnbits-wallet-not-receive.vue') %}
 
 <template id="lnbits-extension-list">
   <q-list
