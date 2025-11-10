@@ -95,6 +95,7 @@
       "js/lnurl.js"
     ],
     "components": [
+      "js/pages/home.js",
       "js/pages/extensions_builder.js",
       "js/pages/extensions.js",
       "js/pages/first-install.js",
@@ -118,6 +119,7 @@
       "js/components/admin/lnbits-admin-site-customisation.js",
       "js/components/admin/lnbits-admin-library.js",
       "js/components/admin/lnbits-admin-audit.js",
+      "js/components/lnbits-home-logos.js",
       "js/components/lnbits-new-user-wallet.js",
       "js/components/lnbits-qrcode.js",
       "js/components/lnbits-qrcode-lnurl.js",

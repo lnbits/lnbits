@@ -42,13 +42,6 @@ async def favicon():
     return RedirectResponse(settings.lnbits_qr_logo)
 
 
-@generic_router.get("/", response_class=HTMLResponse)
-async def home(request: Request, lightning: str = ""):
-    return template_renderer().TemplateResponse(
-        request, "core/index.html", {"lnurl": lightning}
-    )
-
-
 @generic_router.get(
     "/wallet",
     response_class=HTMLResponse,
@@ -283,6 +276,7 @@ async def index(
     )
 
 
+@generic_router.get("/")
 @generic_router.get("/node/public")
 @generic_router.get("/first_install", dependencies=[Depends(check_first_install)])
 async def index_public(request: Request) -> HTMLResponse:

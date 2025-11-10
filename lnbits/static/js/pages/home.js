@@ -1,13 +1,9 @@
-window.app = Vue.createApp({
-  el: '#vue',
+window.PageHome = {
+  template: '#page-home',
   mixins: [window.windowMixin],
   data() {
     return {
-      disclaimerDialog: {
-        show: false,
-        data: {},
-        description: ''
-      },
+      lnurl: '',
       isUserAuthorized: false,
       authAction: 'login',
       authMethod: 'username-password',
@@ -22,11 +18,50 @@ window.app = Vue.createApp({
     }
   },
   computed: {
+    showClaimLnurl() {
+      return (
+        this.lnurl !== '' &&
+        this.allowRegister &&
+        'user-id-only' in this.LNBITS_AUTH_METHODS
+      )
+    },
     formatDescription() {
-      return LNbits.utils.convertMarkdown(this.description)
+      return LNbits.utils.convertMarkdown(this.SITE_DESCRIPTION)
     },
     isAccessTokenExpired() {
       return this.$q.cookies.get('is_access_token_expired')
+    },
+    allowRegister() {
+      return this.LNBITS_NEW_ACCOUNTS_ALLOWED
+    },
+    // TODO: this makes no sense
+    hasCustomImage() {
+      return this.LNBITS_CUSTOM_IMAGE
+    },
+    showHomepageElements() {
+      return this.HOMEPAGE_ELEMENTS_ENABLED
+    },
+    siteTitle() {
+      return this.SITE_TITLE || ''
+    },
+    siteTagline() {
+      return this.SITE_TAGLINE || ''
+    },
+    adsEnabled() {
+      return this.AD_SPACE_ENABLED && this.AD_SPACE && this.AD_SPACE.length > 0
+    },
+    adsTitle() {
+      return this.AD_SPACE_TITLE || ''
+    },
+    ads() {
+      return this.AD_SPACE.map(ad => ad.split(';'))
+    },
+    lnbitsBannerEnabled() {
+      return (
+        this.LNBITS_DENOMINATION == 'sats' &&
+        this.SITE_TITLE == 'LNbits' &&
+        this.LNBITS_SHOW_HOME_PAGE_ELEMENTS == true
+      )
     }
   },
   methods: {
@@ -101,23 +136,24 @@ window.app = Vue.createApp({
     }
   },
   created() {
-    this.description = this.SITE_DESCRIPTION
-    this.allowedRegister = this.LNBITS_NEW_ACCOUNTS_ALLOWED
-    this.authAction =
-      !this.allowedRegister ||
-      Quasar.LocalStorage.getItem('lnbits.disclaimerShown')
-        ? 'login'
-        : 'register'
     this.isUserAuthorized = !!this.$q.cookies.get('is_lnbits_user_authorized')
-    const _acccess_cookies_for_safari_refresh_do_not_delete = document.cookie
+
+    const _access_cookies_for_safari_refresh_do_not_delete = document.cookie
+
     if (this.isUserAuthorized) {
       window.location.href = '/wallet'
     }
-    this.reset_key = new URLSearchParams(window.location.search).get(
-      'reset_key'
-    )
+
+    const urlParams = new URLSearchParams(window.location.search)
+
+    this.reset_key = urlParams.get('reset_key')
     if (this.reset_key) {
       this.authAction = 'reset'
     }
+
+    // check if lightning parameters are present in the URL
+    if (urlParams.has('lightning')) {
+      this.lnurl = urlParams.get('lightning')
+    }
   }
-})
+}

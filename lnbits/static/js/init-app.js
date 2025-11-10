@@ -193,6 +193,11 @@ const routes = [
     path: '/first_install',
     name: 'FirstInstall',
     component: PageFirstInstall
+  },
+  {
+    path: '/',
+    name: 'PageHome',
+    component: PageHome
   }
 ]
 
