@@ -119,7 +119,9 @@ async def admin_user(settings: Settings):
         settings.lnbits_admin_users = [user.id]
         await set_settings_field("lnbits_admin_users", [user.id])
     else:
-        user = await get_user(account.id)
+        user_ = await get_user(account.id)
+        assert user_ is not None
+        user = user_
     yield user
 
 
