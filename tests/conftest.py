@@ -16,6 +16,7 @@ from lnbits.core.crud import (
     get_payment,
     update_payment,
 )
+from lnbits.core.crud.settings import set_settings_field
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
 from lnbits.core.models.users import UpdateSuperuserPassword
 from lnbits.core.services import create_user_account, update_wallet_balance
@@ -50,11 +51,11 @@ def settings():
 
 
 @pytest.fixture(autouse=True)
-def run_before_and_after_tests(settings: Settings):
+def run_before_and_after_tests(settings: Settings, admin_user: User):
     """Fixture to execute asserts before and after a test is run"""
-    _settings_cleanup(settings)
+    _settings_cleanup(settings, admin_user)
     yield  # this is where the testing happens
-    _settings_cleanup(settings)
+    _settings_cleanup(settings, admin_user)
 
 
 # use session scope to run once before and once after all tests
@@ -107,6 +108,28 @@ async def user_alan():
         await delete_account(account.id)
 
     yield await new_user("alan")
+
+
+@pytest.fixture(scope="session")
+async def admin_user(settings: Settings):
+    account = await get_account_by_username("admin")
+    if account:
+        await delete_account(account.id)
+
+    account = Account(
+        id=uuid4().hex,
+        email="admin@lnbits.com",
+        username="admin",
+        admin=True,
+    )
+    account.hash_password("secret1234")
+
+    user = await create_user_account(account)
+    # print("### lnbits_all_extensions_ids:", settings.lnbits_all_extensions_ids)
+    settings.lnbits_admin_users = [user.id]
+    await set_settings_field("lnbits_admin_users", [user.id])
+
+    yield user
 
 
 @pytest.fixture(scope="session")
@@ -305,7 +328,7 @@ async def new_user(username: str | None = None) -> User:
     return user
 
 
-def _settings_cleanup(settings: Settings):
+def _settings_cleanup(settings: Settings, admin_user: User):
     settings.lnbits_allow_new_accounts = True
     settings.lnbits_allowed_users = []
     settings.auth_allowed_methods = AuthMethods.all()
@@ -316,7 +339,7 @@ def _settings_cleanup(settings: Settings):
     settings.lnbits_reserve_fee_percent = 0
     settings.lnbits_wallet_limit_daily_max_withdraw = 0
     settings.lnbits_admin_extensions = []
-    settings.lnbits_admin_users = []
+    settings.lnbits_admin_users = [admin_user.id]
     settings.lnbits_max_outgoing_payment_amount_sats = 10_000_000_100
     settings.lnbits_max_incoming_payment_amount_sats = 10_000_000_200
     settings.stripe_limits = FiatProviderLimits()
