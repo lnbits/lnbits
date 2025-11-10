@@ -16,7 +16,6 @@ from lnbits.core.crud import (
     get_payment,
     update_payment,
 )
-from lnbits.core.crud.settings import set_settings_field
 from lnbits.core.models import Account, CreateInvoice, PaymentState, User
 from lnbits.core.models.users import UpdateSuperuserPassword
 from lnbits.core.services import create_user_account, update_wallet_balance
@@ -31,6 +30,8 @@ from tests.helpers import (
 )
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
+ADMIN_USER_ID = uuid4().hex
 
 
 @pytest.fixture(scope="session")
@@ -51,11 +52,11 @@ def settings():
 
 
 @pytest.fixture(autouse=True)
-def run_before_and_after_tests(settings: Settings, admin_user: User):
+def run_before_and_after_tests(settings: Settings):
     """Fixture to execute asserts before and after a test is run"""
-    _settings_cleanup(settings, admin_user)
+    _settings_cleanup(settings)
     yield  # this is where the testing happens
-    _settings_cleanup(settings, admin_user)
+    _settings_cleanup(settings)
 
 
 # use session scope to run once before and once after all tests
@@ -111,15 +112,17 @@ async def user_alan():
 
 
 @pytest.fixture(scope="session")
-async def admin_user(settings: Settings):
-    account = await get_account_by_username("admin")
-    if account:
-        await delete_account(account.id)
+async def admin_user():
+    username = "admin"
+    account = Account(
+        id=ADMIN_USER_ID,
+        email=f"{username}@lnbits.com",
+        username=username,
+    )
+    account.hash_password("secret1234")
+    user = await create_user_account(account)
 
-    admin = await new_user("admin")
-    settings.lnbits_admin_users = [admin.id]
-    await set_settings_field("lnbits_admin_users", [admin.id])
-    yield admin
+    return user
 
 
 @pytest.fixture(scope="session")
@@ -318,7 +321,7 @@ async def new_user(username: str | None = None) -> User:
     return user
 
 
-def _settings_cleanup(settings: Settings, admin_user: User):
+def _settings_cleanup(settings: Settings):
     settings.lnbits_allow_new_accounts = True
     settings.lnbits_allowed_users = []
     settings.auth_allowed_methods = AuthMethods.all()
@@ -329,7 +332,7 @@ def _settings_cleanup(settings: Settings, admin_user: User):
     settings.lnbits_reserve_fee_percent = 0
     settings.lnbits_wallet_limit_daily_max_withdraw = 0
     settings.lnbits_admin_extensions = []
-    settings.lnbits_admin_users = [admin_user.id]
+    settings.lnbits_admin_users = [ADMIN_USER_ID]
     settings.lnbits_max_outgoing_payment_amount_sats = 10_000_000_100
     settings.lnbits_max_incoming_payment_amount_sats = 10_000_000_200
     settings.stripe_limits = FiatProviderLimits()
