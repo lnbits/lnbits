@@ -44,6 +44,7 @@
   ],
   "components": [
     "js/pages/extensions_builder.js",
+    "js/pages/extensions.js",
     "js/pages/payments.js",
     "js/pages/node.js",
     "js/pages/node-public.js",
