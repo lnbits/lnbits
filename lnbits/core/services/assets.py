@@ -14,7 +14,7 @@ async def create_user_asset(user_id: str, file: UploadFile) -> Asset:
     print(f"### User {user_id} has {user_assets_count} assets.")
     # todo: settings for max assets per user
     if user_assets_count >= 2:
-        raise ValueError("Maximum number of allowed assets uploads reached.")
+        raise ValueError("Reached maximum number of allowed asset uploads.")
     if not file.content_type:
         raise ValueError("Image file must have a content type.")
     # todo: settings for allowed mime types
