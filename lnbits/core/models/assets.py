@@ -1,0 +1,39 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from pydantic import BaseModel, Field
+
+from lnbits.db import FilterModel
+
+
+class AssetExtra(BaseModel):
+    description: str | None = None
+    mime_type: str | None = None
+
+
+class AssetInfo(BaseModel):
+    id: str
+    asset_type: str
+    name: str
+    size: int  # TODO: size in ??
+    extra: AssetExtra
+    thumbnail: bytes | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class Asset(AssetInfo):
+    user_id: str
+    data: bytes
+
+
+class AssetFilters(FilterModel):
+    __search_fields__ = ["name"]
+    __sort_fields__ = [
+        "created_at",
+        "name",
+        "size",
+    ]
+
+    name: str | None = None
+    size: int | None = None

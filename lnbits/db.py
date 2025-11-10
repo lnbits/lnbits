@@ -130,6 +130,12 @@ class Compat:
             return "BIGINT"
         return "INT"
 
+    @property
+    def blob(self) -> str:
+        if self.type in {POSTGRES}:
+            return "BYTEA"
+        return "BLOB"
+
     def timestamp_placeholder(self, key: str) -> str:
         return compat_timestamp_placeholder(key)
 
