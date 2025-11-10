@@ -103,7 +103,6 @@ async def favicon():
 #     return template_renderer().TemplateResponse(
 #         request,
 #         "core/wallet.html",
-#         {**context, "ajax": _is_ajax_request(request)},
 #     )
 
 
@@ -157,12 +156,13 @@ async def extensions_builder_preview(
             status_code=HTTPStatus.NOT_FOUND,
         )
 
+    is_ajax = request.headers.get("X-Requested-With", None) == "XMLHttpRequest"
     response = template_renderer().TemplateResponse(
         request,
         html_file_path.as_posix(),
         {
             "user": user.json(),
-            "ajax": _is_ajax_request(request),
+            "ajax": is_ajax,
         },
     )
 
@@ -359,7 +359,3 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     return RedirectResponse(
         f"/wallet?usr={account.id}&wal={wallet.id}",
     )
-
-
-def _is_ajax_request(request: Request):
-    return request.headers.get("X-Requested-With", None) == "XMLHttpRequest"
