@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import Any
 
 import httpx
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 
 from lnbits.helpers import normalize_endpoint
@@ -131,52 +132,11 @@ class StrikeWallet(Wallet):
         self._cached_balance_ts: float = 0.0
         self._cache_ttl = 30  # seconds
 
-    def _persist_pending(self):
-        try:
-            with open(self.state_path, "w") as f:
-                json.dump(self.pending_invoices, f)
-        except Exception as e:
-            logger.warning(f"Could not persist pending invoices: {e}")
-
     async def cleanup(self) -> None:
         try:
             await self.client.aclose()
         except Exception:
             logger.warning("Error closing Strike client")
-
-    # --------------------------------------------------------------------- #
-    # low-level request helpers                                             #
-    # --------------------------------------------------------------------- #
-
-    async def _req(self, method: str, path: str, /, **kw) -> httpx.Response:
-        """Make a Strike HTTP call with:
-        One Strike HTTP call with
-            • rate limiting based on endpoint type
-            • concurrency throttle
-            • exponential back-off + jitter
-            • explicit retry on 429/5xx
-            • latency logging
-        """
-        # Apply the appropriate rate limiter based on the endpoint path.
-        if path.startswith("/invoices") or path.startswith("/receive-requests"):
-            await self._invoice_limiter.consume()
-        elif path.startswith("/payment-quotes"):
-            await self._payment_limiter.consume()
-        else:
-            await self._general_limiter.consume()
-
-        async with self._sem:
-            return await self.client.request(method, path, **kw)
-
-    # Typed wrappers - so call-sites stay tidy.
-    async def _get(self, path: str, **kw) -> httpx.Response:  # GET request.
-        return await self._req("GET", path, **kw)
-
-    async def _post(self, path: str, **kw) -> httpx.Response:
-        return await self._req("POST", path, **kw)
-
-    async def _patch(self, path: str, **kw) -> httpx.Response:
-        return await self._req("PATCH", path, **kw)
 
     # --------------------------------------------------------------------- #
     # LNbits wallet API implementation                                      #
@@ -265,92 +225,8 @@ class StrikeWallet(Wallet):
             logger.warning(e)
             return InvoiceResponse(ok=False, error_message="Connection error")
 
-    async def _create_payment_quote(self, bolt11: str) -> tuple[str | None, str | None]:
-        """Create a payment quote and return (quote_id, error_message)."""
-        try:
-            q = await self._post(
-                "/payment-quotes/lightning",
-                json={"lnInvoice": bolt11},
-            )
-            q.raise_for_status()
-        except httpx.HTTPStatusError as quote_exc:
-            logger.warning(f"Strike: Failed to create payment quote: {quote_exc}")
-            logger.warning(
-                f"Response: {quote_exc.response.status_code} - "
-                f"{quote_exc.response.text}"
-            )
-            error_msg = (
-                f"Strike: Failed to create quote "
-                f"(HTTP {quote_exc.response.status_code})"
-            )
-            return None, error_msg
-
-        quote_data = q.json()
-        quote_id = quote_data.get("paymentQuoteId")
-        if not quote_id:
-            logger.warning(
-                f"Strike: missing paymentQuoteId in quote response: {quote_data}"
-            )
-            return None, "Strike: missing payment quote Id"
-
-        return quote_id, None
-
-    async def _execute_payment_quote(
-        self, quote_id: str
-    ) -> tuple[dict | None, str | None]:
-        """Execute a payment quote and return (response_data, error_message)."""
-        try:
-            e = await self._patch(f"/payment-quotes/{quote_id}/execute")
-            e.raise_for_status()
-        except httpx.HTTPStatusError as exec_exc:
-            logger.warning(
-                f"Strike: Failed to execute payment quote {quote_id}: {exec_exc}"
-            )
-            logger.warning(
-                f"Response: {exec_exc.response.status_code} - "
-                f"{exec_exc.response.text}"
-            )
-            error_msg = (
-                f"Strike: Failed to execute quote "
-                f"(HTTP {exec_exc.response.status_code})"
-            )
-            return None, error_msg
-
-        data = e.json() if e.content else {}
-        payment_id = data.get("paymentId")
-        if not payment_id:
-            logger.warning(f"Strike: missing paymentId in response: {data}")
-            return None, "Strike: missing paymentId in response"
-
-        return data, None
-
-    def _parse_payment_fee(self, data: dict, payment_id: str) -> int:
-        """Parse payment fee from response data and return fee in millisatoshis."""
-        lightning_data = data.get("lightning", {})
-        fee_obj = lightning_data.get("networkFee") or data.get("totalFee") or {}
-        fee_msat = 0
-        try:
-            fee_amount = fee_obj.get("amount")
-            if fee_amount is not None:
-                fee_btc = Decimal(str(fee_amount))
-                fee_msat = int(fee_btc * Decimal("1e11"))
-        except Exception as fee_exc:
-            logger.warning(f"Error parsing fee for payment {payment_id}: {fee_exc}")
-        return fee_msat
-
-    def _extract_preimage(self, data: dict) -> str | None:
-        """Extract preimage from payment response data."""
-        lightning_data = data.get("lightning", {})
-        return (
-            lightning_data.get("preimage")
-            or lightning_data.get("preImage")
-            or data.get("preimage")
-            or data.get("preImage")
-        )
-
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         # Extract payment hash from invoice for checking_id
-        from bolt11 import decode as bolt11_decode
 
         try:
             invoice = bolt11_decode(bolt11)
@@ -486,26 +362,31 @@ class StrikeWallet(Wallet):
             logger.debug(f"Error while fetching payment {checking_id}.")
             return PaymentPendingStatus()
 
-    async def _get_invoices_status_batch(
-        self, invoice_ids: list[str]
-    ) -> dict[str, PaymentStatus]:
-        out: dict[str, PaymentStatus] = {}
-        if not invoice_ids:
-            return out
-        ids_list = ",".join(f"'{i}'" for i in invoice_ids)
-        filter_expr = f"receiveRequestId in ({ids_list})"
-        params = {"$filter": filter_expr, "$top": len(invoice_ids)}
-        r = await self._get("/receive-requests/receives", params=params)
-        r.raise_for_status()
-        items = r.json().get("items") or r.json().get("value") or []
-        completed = {item.get("receiveRequestId") for item in items}
-        for inv in invoice_ids:
-            out[inv] = (
-                PaymentSuccessStatus(fee_msat=0)
-                if inv in completed
-                else PaymentPendingStatus()
-            )
-        return out
+    async def get_invoices(
+        self,
+        filters: str | None = None,
+        orderby: str | None = None,
+        skip: int | None = None,
+        top: int | None = None,
+    ) -> dict[str, Any]:
+        try:
+            params: dict[str, Any] = {}
+            if filters:
+                params["$filter"] = filters
+            if orderby:
+                params["$orderby"] = orderby
+            if skip is not None:
+                params["$skip"] = skip
+            if top is not None:
+                params["$top"] = top
+            r = await self._get(
+                "/invoices", params=params
+            )  # Get invoices from Strike API.
+            r.raise_for_status()
+            return r.json()
+        except Exception:
+            logger.warning("Error in get_invoices()")
+            return {"error": "unable to fetch invoices"}
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         """
@@ -553,35 +434,154 @@ class StrikeWallet(Wallet):
             min_sleep_for_rate = processed * 60 / rate_limit - elapsed
             await asyncio.sleep(max(sleep_s, min_sleep_for_rate, 0))
 
+    # --------------------------------------------------------------------- #
+    # low-level request helpers                                             #
+    # --------------------------------------------------------------------- #
+
+    def _persist_pending(self):
+        try:
+            with open(self.state_path, "w") as f:
+                json.dump(self.pending_invoices, f)
+        except Exception as e:
+            logger.warning(f"Could not persist pending invoices: {e}")
+
+    async def _req(self, method: str, path: str, /, **kw) -> httpx.Response:
+        """Make a Strike HTTP call with:
+        One Strike HTTP call with
+            • rate limiting based on endpoint type
+            • concurrency throttle
+            • exponential back-off + jitter
+            • explicit retry on 429/5xx
+            • latency logging
+        """
+        # Apply the appropriate rate limiter based on the endpoint path.
+        if path.startswith("/invoices") or path.startswith("/receive-requests"):
+            await self._invoice_limiter.consume()
+        elif path.startswith("/payment-quotes"):
+            await self._payment_limiter.consume()
+        else:
+            await self._general_limiter.consume()
+
+        async with self._sem:
+            return await self.client.request(method, path, **kw)
+
+    # Typed wrappers - so call-sites stay tidy.
+    async def _get(self, path: str, **kw) -> httpx.Response:  # GET request.
+        return await self._req("GET", path, **kw)
+
+    async def _post(self, path: str, **kw) -> httpx.Response:
+        return await self._req("POST", path, **kw)
+
+    async def _patch(self, path: str, **kw) -> httpx.Response:
+        return await self._req("PATCH", path, **kw)
+
+    async def _create_payment_quote(self, bolt11: str) -> tuple[str | None, str | None]:
+        """Create a payment quote and return (quote_id, error_message)."""
+        try:
+            q = await self._post(
+                "/payment-quotes/lightning",
+                json={"lnInvoice": bolt11},
+            )
+            q.raise_for_status()
+        except httpx.HTTPStatusError as quote_exc:
+            logger.warning(f"Strike: Failed to create payment quote: {quote_exc}")
+            logger.warning(
+                f"Response: {quote_exc.response.status_code} - "
+                f"{quote_exc.response.text}"
+            )
+            error_msg = (
+                f"Strike: Failed to create quote "
+                f"(HTTP {quote_exc.response.status_code})"
+            )
+            return None, error_msg
+
+        quote_data = q.json()
+        quote_id = quote_data.get("paymentQuoteId")
+        if not quote_id:
+            logger.warning(
+                f"Strike: missing paymentQuoteId in quote response: {quote_data}"
+            )
+            return None, "Strike: missing payment quote Id"
+
+        return quote_id, None
+
+    async def _execute_payment_quote(
+        self, quote_id: str
+    ) -> tuple[dict | None, str | None]:
+        """Execute a payment quote and return (response_data, error_message)."""
+        try:
+            e = await self._patch(f"/payment-quotes/{quote_id}/execute")
+            e.raise_for_status()
+        except httpx.HTTPStatusError as exec_exc:
+            logger.warning(
+                f"Strike: Failed to execute payment quote {quote_id}: {exec_exc}"
+            )
+            logger.warning(
+                f"Response: {exec_exc.response.status_code} - "
+                f"{exec_exc.response.text}"
+            )
+            error_msg = (
+                f"Strike: Failed to execute quote "
+                f"(HTTP {exec_exc.response.status_code})"
+            )
+            return None, error_msg
+
+        data = e.json() if e.content else {}
+        payment_id = data.get("paymentId")
+        if not payment_id:
+            logger.warning(f"Strike: missing paymentId in response: {data}")
+            return None, "Strike: missing paymentId in response"
+
+        return data, None
+
+    def _parse_payment_fee(self, data: dict, payment_id: str) -> int:
+        """Parse payment fee from response data and return fee in millisatoshis."""
+        lightning_data = data.get("lightning", {})
+        fee_obj = lightning_data.get("networkFee") or data.get("totalFee") or {}
+        fee_msat = 0
+        try:
+            fee_amount = fee_obj.get("amount")
+            if fee_amount is not None:
+                fee_btc = Decimal(str(fee_amount))
+                fee_msat = int(fee_btc * Decimal("1e11"))
+        except Exception as fee_exc:
+            logger.warning(f"Error parsing fee for payment {payment_id}: {fee_exc}")
+        return fee_msat
+
+    def _extract_preimage(self, data: dict) -> str | None:
+        """Extract preimage from payment response data."""
+        lightning_data = data.get("lightning", {})
+        return (
+            lightning_data.get("preimage")
+            or lightning_data.get("preImage")
+            or data.get("preimage")
+            or data.get("preImage")
+        )
+
+    async def _get_invoices_status_batch(
+        self, invoice_ids: list[str]
+    ) -> dict[str, PaymentStatus]:
+        out: dict[str, PaymentStatus] = {}
+        if not invoice_ids:
+            return out
+        ids_list = ",".join(f"'{i}'" for i in invoice_ids)
+        filter_expr = f"receiveRequestId in ({ids_list})"
+        params = {"$filter": filter_expr, "$top": len(invoice_ids)}
+        r = await self._get("/receive-requests/receives", params=params)
+        r.raise_for_status()
+        items = r.json().get("items") or r.json().get("value") or []
+        completed = {item.get("receiveRequestId") for item in items}
+        for inv in invoice_ids:
+            out[inv] = (
+                PaymentSuccessStatus(fee_msat=0)
+                if inv in completed
+                else PaymentPendingStatus()
+            )
+        return out
+
     # ------------------------------------------------------------------ #
     # misc Strike helpers                                                #
     # ------------------------------------------------------------------ #
-
-    async def get_invoices(
-        self,
-        filters: str | None = None,
-        orderby: str | None = None,
-        skip: int | None = None,
-        top: int | None = None,
-    ) -> dict[str, Any]:
-        try:
-            params: dict[str, Any] = {}
-            if filters:
-                params["$filter"] = filters
-            if orderby:
-                params["$orderby"] = orderby
-            if skip is not None:
-                params["$skip"] = skip
-            if top is not None:
-                params["$top"] = top
-            r = await self._get(
-                "/invoices", params=params
-            )  # Get invoices from Strike API.
-            r.raise_for_status()
-            return r.json()
-        except Exception:
-            logger.warning("Error in get_invoices()")
-            return {"error": "unable to fetch invoices"}
 
     async def _get_payment_status_by_quote_id(
         self, checking_id: str, quote_id: str
